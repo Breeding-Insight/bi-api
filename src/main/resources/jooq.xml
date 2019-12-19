@@ -1,0 +1,6 @@
+<jdbc>
+    <driver>org.postgresql.Driver</driver>
+    <url>jdbc:postgresql://localhost:5432/bidb</url>
+    <user>postgres</user>
+    <password>postgres</password>
+</jdbc>
