@@ -36,6 +36,7 @@
 
     <properties>
         <micronaut.version>1.2.8</micronaut.version>
+        <micronaut.security.version>1.3.0.BUILD-SNAPSHOT</micronaut.security.version>
         <jdk.version>12</jdk.version>
         <maven.compiler.target>${jdk.version}</maven.compiler.target>
         <maven.compiler.source>${jdk.version}</maven.compiler.source>
@@ -128,18 +129,21 @@
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-security</artifactId>
+            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-security-jwt</artifactId>
+            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.micronaut.configuration</groupId>
             <artifactId>micronaut-security-oauth2</artifactId>
+            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 

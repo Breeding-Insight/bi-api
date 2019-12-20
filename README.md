@@ -2,7 +2,7 @@
 
 The BI API powers the BI Web, as well as BrAPI powered applications.
 
-The API is built using Java 12 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html 
+The API is built using Java 12 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html
 
 ## Development Guide
 
@@ -17,9 +17,25 @@ The API is built using Java 12 and the Micronaut framework.  The development gui
 mvn clean install
 ```
 
+#### Get latest micronaut-security code
+
+Micronaut-security 1.2.2 has a bug in the JWT validation code so the latest code from github must be used to fix this problem.
+
+```
+git clone https://github.com/micronaut-projects/micronaut-security.git
+```
+
+Build micronaut-security using:
+
+```
+./gradlew publishToMavenLocal
+```
+
+If using IntelliJ, press Ctrl+Shigt+A to open actions and type reimport to find the option to reimport all maven projects. Execute a maven run configuration that does a clean install.
+
 ### Developer config
 
-In `src/main/resources/`, make a copy of `application-prod.yml` as `application-dev.yml` (this file is ignored from git) and replace placeholder values.  If you need to override any value that's in `application.yml`, you can do so by specifying the identical structure in your `application-dev.yml` file. 
+In `src/main/resources/`, make a copy of `application-prod.yml` as `application-dev.yml` (this file is ignored from git) and replace placeholder values.  If you need to override any value that's in `application.yml`, you can do so by specifying the identical structure in your `application-dev.yml` file.
 
 ### Run the app
 
