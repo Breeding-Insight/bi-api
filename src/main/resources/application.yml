@@ -40,8 +40,8 @@ micronaut:
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
           cookie-domain: ${jwt.cookie.domain:localhost}
-          login-success-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}/sso/success
-          login-failure-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}/unauthorized
+          login-success-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}
+          login-failure-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}
         bearer:
           enabled: false
         signatures:
@@ -49,6 +49,12 @@ micronaut:
             generator:
               secret: ${jwt.secret}
               jws-algorithm: HS256
+    endpoints:
+      login:
+        enabled: true
+      logout:
+        enabled: true
+        get-allowed: true
 
 #datasources:
 #  default:
