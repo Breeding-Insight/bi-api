@@ -40,8 +40,8 @@ micronaut:
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
           cookie-domain: ${jwt.cookie.domain:localhost}
-          login-success-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}
-          login-failure-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}
+          login-success-target-url: ${web.url}
+          login-failure-target-url: ${web.url}
         bearer:
           enabled: false
         signatures:
@@ -70,4 +70,4 @@ micronaut:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
-  url: ${webUrl:`http://localhost:3000`}
+  url: ${webUrl:`http://localhost:8080`}
