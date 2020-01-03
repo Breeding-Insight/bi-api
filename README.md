@@ -37,6 +37,20 @@ If using IntelliJ, press Ctrl+Shigt+A to open actions and type reimport to find 
 
 In `src/main/resources/`, make a copy of `application-prod.yml` as `application-dev.yml` (this file is ignored from git) and replace placeholder values.  If you need to override any value that's in `application.yml`, you can do so by specifying the identical structure in your `application-dev.yml` file.
 
+### Create the database
+
+Run this docker command to start up a postgres docker container with the empty bi_db database in it. 
+
+```
+docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgres:11.4
+```
+
+Then run this flyway command to create the database (You will have to have maven installed for this)
+
+```
+mvn flyway:migrate -X
+```
+
 ### Run the app
 
 If running in an IDE (like IntelliJ):

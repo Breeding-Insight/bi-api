@@ -1,4 +1,4 @@
-orcid:
+oauth:
   clientId: <production client id>
   clientSecret: <production client secret>
 
