@@ -53,6 +53,10 @@ flyway:
     default:
       locations: classpath:db.migration
       enabled: true
+jooq:
+  datasources:
+    default:
+      sql-dialect: 'POSTGRES'
 
 #datasources:
 #  default:
