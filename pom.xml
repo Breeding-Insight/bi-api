@@ -51,6 +51,8 @@
         <logback.version>1.2.3</logback.version>
         <lombok.version>1.18.10</lombok.version>
         <jooq.config>src/main/resources/jooq.xml</jooq.config>
+        <flyway-config>src/main/resources/flyway.properties</flyway-config>
+        <flyway-db-config>src/main/resources/flyway.db.properties</flyway-db-config>
     </properties>
 
     <profiles>
@@ -64,6 +66,7 @@
             </activation>
             <properties>
                 <jooq.config>src/main/resources/jooq.dev.xml</jooq.config>
+                <flyway-db-config>src/main/resources/flyway.db.dev.properties</flyway-db-config>
             </properties>
         </profile>
     </profiles>
@@ -174,6 +177,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.micronaut.configuration</groupId>
+            <artifactId>micronaut-flyway</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>28.1-jre</version>
@@ -260,7 +268,7 @@
                     <target>12</target>
                 </configuration>
             </plugin>
-        <!--<plugin>
+        <plugin>
             <groupId>org.jooq</groupId>
             <artifactId>jooq-codegen-maven</artifactId>
             <version>${jooq.version}</version>
@@ -320,13 +328,13 @@
                 </generator>
 
             </configuration>
-        </plugin>-->
+        </plugin>
         <plugin>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-maven-plugin</artifactId>
             <version>6.0.0</version>
             <configuration>
-                <configFiles>src/main/resources/flyway.db.properties, src/main/resources/flyway.properties</configFiles>
+                <configFiles>${flyway-config},${flyway-db-config}</configFiles>
             </configuration>
             <dependencies>
                 <dependency>
