@@ -9,21 +9,12 @@ import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Result;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import static org.breedinginsight.dao.db.Tables.BI_USER;
 
 @Replaces(JwtCookieLoginHandler.class)
 @Singleton
 public class AuthService extends JwtCookieLoginHandler {
-
-    @Inject
-    DSLContext dsl;
 
     public AuthService(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -34,21 +25,7 @@ public class AuthService extends JwtCookieLoginHandler {
     @Override
     public HttpResponse loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
         System.out.println("loginSuccess: User = " + userDetails.getUsername());
-
-        // User has been authenticated against orcid, check they have a bi account.
-        Result<Record> result = dsl.select().from(BI_USER).where(BI_USER.ORCID.eq(userDetails.getUsername())).fetch();
-
-        // For now, if we have found a record, let them through
-        HttpResponse response;
-        if (result.size() > 0){
-            response = super.loginSuccess(userDetails, request);
-        }
-        else {
-            // If they are not in our database, fail our authentication
-            AuthenticationFailed authFailed = new AuthenticationFailed();
-            response = super.loginFailed(authFailed);
-        }
-
+        HttpResponse response = super.loginSuccess(userDetails, request);
 
         return response;
     }
