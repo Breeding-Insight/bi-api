@@ -41,7 +41,7 @@ micronaut:
           http-only: true
           cookie-domain: ${jwt.cookie.domain:localhost}
           login-success-target-url: ${web.url}
-          login-failure-target-url: ${web.auth-fail-url}
+          login-failure-target-url: ${web.url}
         bearer:
           enabled: false
         signatures:
@@ -80,5 +80,4 @@ jooq:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
-  url: ${webUrl:`http://localhost:8080?auth-success=true`}
-  auth-fail-url: ${webUrl:`http://localhost:8080?auth-success=false`}
+  url: ${webUrl:`http://localhost:8080?new-login=true`}
