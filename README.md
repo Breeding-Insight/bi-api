@@ -39,7 +39,7 @@ In `src/main/resources/`, make a copy of `application-prod.yml` as `application-
 
 ### Create the database
 
-Run this docker command to start up a postgres docker container with the empty bi_db database in it. 
+Run this docker command in terminal to start up a postgres docker container with the empty bi_db database in it. 
 
 ```
 docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgres:11.4
@@ -50,6 +50,15 @@ Then run this flyway command to create the database (You will have to have maven
 ```
 mvn flyway:migrate -X
 ```
+
+Then you will need to create your user in the database table in order to log in successfully. Execute this sql command, swapping out your name and orcid. Execute it in the your sql executer of your choice like DBeaver.
+
+```
+insert into bi_user (orcid, first_name, last_name) values ('xxxx-xxxx-xxxx-xxxx', '<first name>', '<last name>');
+```
+
+The database with your user data will persist until the docker container is stopped. 
+
 
 ### Run the app
 
