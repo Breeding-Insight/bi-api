@@ -1,0 +1,1 @@
+insert into bi_user (orcid, first_name, last_name) values ('0000-0002-5527-2711', 'Chris', 'Tucker');

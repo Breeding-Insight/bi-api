@@ -45,19 +45,19 @@ Run this docker command in terminal to start up a postgres docker container with
 docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgres:11.4
 ```
 
-Then run this flyway command to create the database (You will have to have maven installed for this)
-
-```
-mvn flyway:migrate -X
-```
-
-Then you will need to create your user in the database table in order to log in successfully. Execute this sql command, swapping out your name and orcid. Execute it in the your sql executer of your choice like DBeaver.
+You will need to create your user in the database table in order to log in successfully. Under resources/db/migration open the V0.11_create-users.sql file and add another insert line for your user. Alternatively, you can execute the same sql insert statement in the sql executor of your choice. 
 
 ```
 insert into bi_user (orcid, first_name, last_name) values ('xxxx-xxxx-xxxx-xxxx', '<first name>', '<last name>');
 ```
 
-The database with your user data will persist until the docker container is stopped. 
+Flyway will run when you run your bi-api project for the first time. Alternatively, you can run flyway through Maven. 
+
+```
+mvn flyway:migrate -X
+```
+
+The database with your user data will persist until the docker container is stopped. But, saving your username in the V0.11__create-users.sql file will create your user again when the project is run. 
 
 
 ### Run the app
