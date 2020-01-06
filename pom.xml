@@ -50,8 +50,9 @@
         <postgres.version>42.2.6</postgres.version>
         <logback.version>1.2.3</logback.version>
         <lombok.version>1.18.10</lombok.version>
-        <flyway.db.config>src/main/resources/flyway.properties</flyway.db.config>
         <jooq.config>src/main/resources/jooq.xml</jooq.config>
+        <flyway-config>src/main/resources/flyway.properties</flyway-config>
+        <flyway-db-config>src/main/resources/flyway.db.properties</flyway-db-config>
     </properties>
 
     <profiles>
@@ -64,8 +65,8 @@
                 </property>
             </activation>
             <properties>
-                <flyway.db.config>src/main/resources/flyway.dev.properties</flyway.db.config>
                 <jooq.config>src/main/resources/jooq.dev.xml</jooq.config>
+                <flyway-db-config>src/main/resources/flyway.db.dev.properties</flyway-db-config>
             </properties>
         </profile>
     </profiles>
@@ -176,6 +177,11 @@
         </dependency>
 
         <dependency>
+            <groupId>io.micronaut.configuration</groupId>
+            <artifactId>micronaut-flyway</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>28.1-jre</version>
@@ -254,82 +260,46 @@
                     </arguments>
                 </configuration>
             </plugin>
-<!--            <plugin>-->
-<!--                <groupId>org.jooq</groupId>-->
-<!--                <artifactId>jooq-codegen-maven</artifactId>-->
-<!--                <version>${jooq.version}</version>-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <source>12</source>
+                    <target>12</target>
+                </configuration>
+            </plugin>
+        <plugin>
+            <groupId>org.jooq</groupId>
+            <artifactId>jooq-codegen-maven</artifactId>
+            <version>${jooq.version}</version>
 
-<!--                <executions>-->
-<!--                    <execution>-->
-<!--                        <goals>-->
-<!--                            <goal>generate</goal>-->
-<!--                        </goals>-->
-<!--                    </execution>-->
-<!--                </executions>-->
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>generate</goal>
+                    </goals>
+                </execution>
+            </executions>
 
-<!--                <configuration>-->
-
-<!--                    <configurationFile>${jooq.config}</configurationFile>-->
-
-<!--                    <generator>-->
-<!--                        <database>-->
-<!--                            <name>org.jooq.meta.postgres.PostgresDatabase</name>-->
-<!--                            <includes>.*</includes>-->
-<!--                            <inputSchema>public</inputSchema>-->
-<!--                            <includeTables>true</includeTables>-->
-<!--                            <includeUDTs>true</includeUDTs>-->
-<!--                            <includeRoutines>false</includeRoutines>-->
-<!--                            <includePrimaryKeys>false</includePrimaryKeys>-->
-<!--                            <includeUniqueKeys>false</includeUniqueKeys>-->
-<!--                            <includeForeignKeys>false</includeForeignKeys>-->
-<!--                            <includeCheckConstraints>true</includeCheckConstraints>-->
-<!--                            <includeIndexes>false</includeIndexes>-->
-<!--                            <excludes>-->
-<!--                                flyway_schema_history-->
-<!--                            </excludes>-->
-<!--                        </database>-->
-
-<!--                        <strategy>-->
-<!--                            <matchers>-->
-<!--                                <tables>-->
-<!--                                    <table>-->
-<!--                                        <pojoClass>-->
-<!--                                            <transform>PASCAL</transform>-->
-<!--                                            <expression>JOOQ_$0</expression>-->
-<!--                                        </pojoClass>-->
-<!--                                    </table>-->
-<!--                                </tables>-->
-<!--                            </matchers>-->
-<!--                        </strategy>-->
-
-<!--                        <target>-->
-<!--                            <packageName>org.breedinginsight.api.dao.db</packageName>-->
-<!--                            <directory>target/generated-sources/jooq</directory>-->
-<!--                        </target>-->
-<!--                        <generate>-->
-<!--                            <pojos>true</pojos>-->
-<!--                            <fluentSetters>true</fluentSetters>-->
-<!--                            <javaTimeTypes>true</javaTimeTypes>-->
-<!--                        </generate>-->
-<!--                    </generator>-->
-
-<!--                </configuration>-->
-<!--            </plugin>-->
-<!--            <plugin>-->
-<!--                <groupId>org.flywaydb</groupId>-->
-<!--                <artifactId>flyway-maven-plugin</artifactId>-->
-<!--                <version>6.0.0</version>-->
-<!--                <configuration>-->
-<!--                    <configFiles>src/main/resources/flyway.properties,${flyway.db.config}</configFiles>-->
-<!--                </configuration>-->
-<!--                <dependencies>-->
-<!--                    <dependency>-->
-<!--                        <groupId>org.postgresql</groupId>-->
-<!--                        <artifactId>postgresql</artifactId>-->
-<!--                        <version>${postgres.version}</version>-->
-<!--                    </dependency>-->
-<!--                </dependencies>-->
-<!--            </plugin>-->
+            <configuration>
+                <configurationFile>${jooq.config}</configurationFile>
+            </configuration>
+        </plugin>
+        <plugin>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-maven-plugin</artifactId>
+            <version>6.0.0</version>
+            <configuration>
+                <configFiles>${flyway-config},${flyway-db-config}</configFiles>
+            </configuration>
+            <dependencies>
+                <dependency>
+                    <groupId>org.postgresql</groupId>
+                    <artifactId>postgresql</artifactId>
+                    <version>${postgres.version}</version>
+                </dependency>
+            </dependencies>
+        </plugin>
         </plugins>
         <pluginManagement>
             <plugins>

@@ -48,6 +48,15 @@ micronaut:
             generator:
               secret: ${jwt.secret}
               jws-algorithm: HS256
+flyway:
+  datasources:
+    default:
+      locations: classpath:db.migration
+      enabled: true
+jooq:
+  datasources:
+    default:
+      sql-dialect: 'POSTGRES'
 
 #datasources:
 #  default:
