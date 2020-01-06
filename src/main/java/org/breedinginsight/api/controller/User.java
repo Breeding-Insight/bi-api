@@ -11,7 +11,7 @@ import io.micronaut.security.rules.SecurityRule;
 public class User {
     @Get("/userinfo")
     @Produces(MediaType.TEXT_PLAIN)
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public String index() {
         return "userinfo";
     }
