@@ -7,10 +7,6 @@ micronaut:
     port: 8081
     cors:
       enabled: true
-      configurations:
-        web:
-          allowedOrigins:
-            - http://localhost:8080
   security:
     enabled: true
     oauth2:
@@ -44,9 +40,9 @@ micronaut:
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
           cookie-domain: ${jwt.cookie.domain:localhost}
-          login-success-target-url: ${web.url}
-          login-failure-target-url: ${web.url}
-          logout-target-url: ${web.url}
+          login-success-target-url: ${web.login.url}
+          login-failure-target-url: ${web.login.url}
+          logout-target-url: ${web.logout.url}
         bearer:
           enabled: false
         signatures:
@@ -86,5 +82,7 @@ jooq:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
-  url: ${webUrl:`http://localhost:8080`}
-#  url: ${webUrl:`http://localhost:8080?new-login=true`}
+  login:
+    url: ${web.loginUrl:`http://localhost:8080?new-login=true`}
+  logout:
+    url: ${web.logoutUrl:`http://localhost:8080`}
