@@ -44,10 +44,7 @@ public class User {
             // Construct our response JSON
             JSONObject resultBody = new JSONObject();
             resultBody.put("orcid", orcid);
-            resultBody.put("name", String.format("%s %s",
-                    userRecord.get(BI_USER.FIRST_NAME), userRecord.get(BI_USER.LAST_NAME)));
-            resultBody.put("given_name", userRecord.get(BI_USER.FIRST_NAME));
-            resultBody.put("family_name", userRecord.get(BI_USER.LAST_NAME));
+            resultBody.put("name", userRecord.get(BI_USER.NAME));
             resultBody.put("roles", roles);
 
             response = HttpResponse.ok(resultBody.toJSONString());
