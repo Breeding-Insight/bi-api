@@ -14,9 +14,9 @@ import javax.inject.Singleton;
 
 @Replaces(JwtCookieLoginHandler.class)
 @Singleton
-public class AuthService extends JwtCookieLoginHandler {
+public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
-    public AuthService(JwtCookieConfiguration jwtCookieConfiguration,
+    public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
                        AccessRefreshTokenGenerator accessRefreshTokenGenerator) {
         super(jwtCookieConfiguration, jwtGeneratorConfiguration, accessRefreshTokenGenerator);
@@ -24,15 +24,15 @@ public class AuthService extends JwtCookieLoginHandler {
 
     @Override
     public HttpResponse loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
-        System.out.println("loginSuccess: User = " + userDetails.getUsername());
-        HttpResponse response = super.loginSuccess(userDetails, request);
-
-        return response;
+        // If we want to hook code into the login process in the future we can put it here, for now just
+        // passes through to JwtCookieLoginHandler
+        return super.loginSuccess(userDetails, request);
     }
 
     @Override
     public HttpResponse loginFailed(AuthenticationFailed authenticationFailed) {
-        System.out.println("loginFailed");
+        // If we want to hook code into the login process in the future we can put it here, for now just
+        // passes through to JwtCookieLoginHandler
         return super.loginFailed(authenticationFailed);
     }
 }
