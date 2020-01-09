@@ -31,7 +31,7 @@ Build micronaut-security using:
 ./gradlew publishToMavenLocal
 ```
 
-If using IntelliJ, press Ctrl+Shigt+A to open actions and type reimport to find the option to reimport all maven projects. Execute a maven run configuration that does a clean install.
+If using IntelliJ, press Ctrl+Shift+A to open actions and type reimport to find the option to reimport all maven projects. (note: on a Mac that’s Command-Shift-A; it opens a Search window that has an option for Actions, but is not labeled as an Actions pane). Execute a maven run configuration that does a clean install.
 
 ### Developer config
 
@@ -48,7 +48,7 @@ docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bi
 You will need to create your user in the database table in order to log in successfully. Under resources/db/migration open the V0.11_create-users.sql file and add another insert line for your user. Alternatively, you can execute the same sql insert statement in the sql executor of your choice. 
 
 ```
-insert into bi_user (orcid, first_name, last_name) values ('xxxx-xxxx-xxxx-xxxx', '<first name>', '<last name>');
+insert into bi_user (orcid, name) values ('xxxx-xxxx-xxxx-xxxx', '<name>');
 ```
 
 Flyway will run when you run your bi-api project for the first time. Alternatively, you can run flyway through Maven. 
@@ -59,6 +59,15 @@ mvn flyway:migrate -X
 
 The database with your user data will persist until the docker container is stopped. But, saving your username in the V0.11__create-users.sql file will create your user again when the project is run. 
 
+#### Updating Database
+
+If you have run the project and the database once already, you will need to clear recreate your database container for the new database with the following commands:
+
+```
+docker stop bidb
+docker rm bidb
+docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgres:11.4
+```
 
 ### Run the app
 
