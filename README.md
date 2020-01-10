@@ -61,12 +61,11 @@ The database with your user data will persist until the docker container is stop
 
 #### Updating Database
 
-If you have run the project and the database once already, you will need to clear recreate your database container for the new database with the following commands:
+If you have run the project and the database once already, you will need to clear your database with the flyway java module and recreate it. 
 
 ```
-docker stop bidb
-docker rm bidb
-docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgres:11.4
+mvn flyway:clean -X
+mvn flyway:migrate -X
 ```
 
 ### Run the app
