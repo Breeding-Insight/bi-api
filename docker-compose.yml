@@ -1,0 +1,28 @@
+version: "3.7"
+
+services:
+  biapi:
+    image: bi-api
+    depends_on:
+      - bidb
+    container_name: biapi
+    environment:
+      - POSTGRES_DB=bidb
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - type: bind
+        source: ./src
+        target: /biapi/src/
+    ports:
+      - 8081:8081
+  bidb:
+    image: postgres:11.4
+    container_name: bidb
+    ports:
+      - 5432:5432
+    volumes:
+      - biapi_data
+
+volumes:
+  biapi_data:
+    name: biapi_data

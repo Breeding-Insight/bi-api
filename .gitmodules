@@ -1,0 +1,3 @@
+[submodule "micronaut-security"]
+	path = micronaut-security
+	url = https://github.com/micronaut-projects/micronaut-security.git

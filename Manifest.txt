@@ -1,0 +1,2 @@
+Main-Class: org.breedinginsight.api.Application
+Class-Path: jar_files/*
