@@ -7,14 +7,16 @@ services:
       - bidb
     container_name: biapi
     environment:
-      - POSTGRES_DB=bidb
-      - POSTGRES_PASSWORD=postgres
+      POSTGRES_DB: bidb
+      POSTGRES_PASSWORD: 'postgres'
     volumes:
       - type: bind
         source: ./src
         target: /biapi/src/
     ports:
       - 8081:8081
+    networks:
+      - backend
   bidb:
     image: postgres:11.4
     container_name: bidb
@@ -22,6 +24,13 @@ services:
       - 5432:5432
     volumes:
       - biapi_data
+    networks:
+      backend:
+        aliases:
+          - dbserver
+
+networks:
+  backend:
 
 volumes:
   biapi_data:

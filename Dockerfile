@@ -1,4 +1,5 @@
-FROM maven:3.6.3-jdk-14
+#FROM maven:3.6.3-jdk-14
+FROM maven:3.6.2-jdk-12
 
 WORKDIR /biapi
 
@@ -13,4 +14,5 @@ COPY ./io-micronaut/jar_files/ ./jar_files
 COPY ./micronaut-security ./micronaut-security/
 RUN cd micronaut-security && ./gradlew publishToMavenLocal
 
-ENTRYPOINT ["./entrypoint.sh"]
+#ENTRYPOINT ["./entrypoint.sh"]
+ENTRYPOINT ["sleep", "infinity"]
