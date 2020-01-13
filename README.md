@@ -13,9 +13,7 @@ The API is built using Java 12 and the Micronaut framework.  The development gui
 
 ### Project setup
 
-```
-mvn clean install
-```
+
 
 #### Get latest micronaut-security code
 
@@ -29,6 +27,12 @@ Build micronaut-security using:
 
 ```
 ./gradlew publishToMavenLocal
+```
+
+Run Maven clean install:
+
+```
+mvn clean install
 ```
 
 If using IntelliJ, press Ctrl+Shift+A to open actions and type reimport to find the option to reimport all maven projects. (note: on a Mac that’s Command-Shift-A; it opens a Search window that has an option for Actions, but is not labeled as an Actions pane). Execute a maven run configuration that does a clean install.
