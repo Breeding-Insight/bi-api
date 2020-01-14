@@ -1,16 +1,17 @@
-package org.breedinginsight.api.controller;
+package org.breedinginsight.api.bi.v1.controller;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
-import net.minidev.json.JSONObject;
+import lombok.Getter;
+import lombok.experimental.Accessors;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
+import com.google.gson.Gson;
 
 import javax.inject.Inject;
 import java.security.Principal;
@@ -18,17 +19,26 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.breedinginsight.dao.db.Tables.BI_USER;
+import org.breedinginsight.api.bi.model.v1.response.UserInfoResponse;
 
+@Accessors(fluent=true)
 @Controller
-public class User {
+public class UserInfoController {
 
     @Inject
     DSLContext dsl;
+    @Getter
+    private final Gson gson;
 
-    @Get("/userinfo")
-    @Produces(MediaType.APPLICATION_JSON)
+    public final static String USER_INFO_FUNCTION = "userinfo";
+
+    public UserInfoController() {
+        this.gson = new Gson();
+    }
+
+    @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse index(Principal principal) {
+    public HttpResponse userinfo(Principal principal) {
         String orcid = principal.getName();
 
         // User has been authenticated against orcid, check they have a bi account.
@@ -42,12 +52,12 @@ public class User {
             List<String> roles = new ArrayList<String>();
 
             // Construct our response JSON
-            JSONObject resultBody = new JSONObject();
-            resultBody.put("orcid", orcid);
-            resultBody.put("name", userRecord.get(BI_USER.NAME));
-            resultBody.put("roles", roles);
+            UserInfoResponse userInfoResponse = new UserInfoResponse()
+                    .orcid(orcid)
+                    .name(userRecord.get(BI_USER.NAME))
+                    .roles(roles);
 
-            response = HttpResponse.ok(resultBody.toJSONString());
+            response = HttpResponse.ok(gson.toJson(userInfoResponse));
         }
         else {
             // If they are not in our database, fail our authentication
@@ -56,4 +66,5 @@ public class User {
 
         return response;
     }
+
 }
