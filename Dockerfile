@@ -7,12 +7,11 @@ WORKDIR /biapi
 COPY pom.xml ./
 COPY entrypoint.sh ./
 COPY ./src ./src/
-COPY Manifest.txt ./
 COPY ./io-micronaut/jar_files/ ./jar_files
 
 # patch the security module for micronaut
 COPY ./micronaut-security ./micronaut-security/
-RUN cd micronaut-security && ./gradlew publishToMavenLocal
+#RUN cd micronaut-security && ./gradlew publishToMavenLocal
 
-#ENTRYPOINT ["./entrypoint.sh"]
-ENTRYPOINT ["sleep", "infinity"]
+ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]
+#ENTRYPOINT ["sleep", "infinity"]
