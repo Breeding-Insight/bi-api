@@ -19,9 +19,9 @@ cat <<EOF > ./src/main/resources/jooq.xml
             <includeTables>true</includeTables>
             <includeUDTs>true</includeUDTs>
             <includeRoutines>false</includeRoutines>
-            <includePrimaryKeys>false</includePrimaryKeys>
-            <includeUniqueKeys>false</includeUniqueKeys>
-            <includeForeignKeys>false</includeForeignKeys>
+            <includePrimaryKeys>true</includePrimaryKeys>
+            <includeUniqueKeys>true</includeUniqueKeys>
+            <includeForeignKeys>true</includeForeignKeys>
             <includeCheckConstraints>true</includeCheckConstraints>
             <includeIndexes>false</includeIndexes>
             <excludes>

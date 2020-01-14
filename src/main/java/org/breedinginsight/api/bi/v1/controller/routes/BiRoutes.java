@@ -7,6 +7,7 @@ import org.breedinginsight.api.bi.v1.controller.UserController;
 
 import javax.inject.Inject;
 import java.security.Principal;
+import java.util.UUID;
 
 public class BiRoutes extends DefaultRouteBuilder {
 
@@ -23,16 +24,16 @@ public class BiRoutes extends DefaultRouteBuilder {
         GET("/users", userController, UserController.USERS_FUNCTION, Principal.class);
 
         // Get a single user
-        GET("/users/{userId}", userController, UserController.USERS_FUNCTION, Principal.class, Integer.class);
+        GET("/users/{userId}", userController, UserController.USERS_FUNCTION, Principal.class, UUID.class);
 
         // Creates a new user
         POST("/users", userController, UserController.CREATE_USER_FUNCTION, Principal.class, UserRequest.class);
 
         // Updates a user
-        PUT("/users", userController, UserController.UPDATE_USER_FUNCTION, Principal.class, UserRequest.class);
+        PUT("/users/{userId}", userController, UserController.UPDATE_USER_FUNCTION, Principal.class, UUID.class, UserRequest.class);
 
         // Deletes a user
-        DELETE("/users/{userId}", userController, UserController.DELETE_USER_FUNCTION, Principal.class, Integer.class);
+        DELETE("/users/{userId}", userController, UserController.DELETE_USER_FUNCTION, Principal.class, UUID.class);
     }
 
 
