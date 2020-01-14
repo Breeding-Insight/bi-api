@@ -2,12 +2,15 @@ package org.breedinginsight.api.bi.v1.controller;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import org.breedinginsight.api.bi.model.v1.request.UserRequest;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Result;
@@ -23,16 +26,22 @@ import org.breedinginsight.api.bi.model.v1.response.UserInfoResponse;
 
 @Accessors(fluent=true)
 @Controller
-public class UserInfoController {
+public class UserController {
 
     @Inject
     DSLContext dsl;
     @Getter
     private final Gson gson;
 
+    // Our method names to be called in our routes
     public final static String USER_INFO_FUNCTION = "userinfo";
+    public final static String USERS_FUNCTION = "users";
+    public final static String CREATE_USER_FUNCTION = "createUser";
+    public final static String UPDATE_USER_FUNCTION = "updateUser";
+    public final static String DELETE_USER_FUNCTION = "deleteUser";
 
-    public UserInfoController() {
+
+    public UserController() {
         this.gson = new Gson();
     }
 
@@ -67,4 +76,38 @@ public class UserInfoController {
         return response;
     }
 
+    @Produces(MediaType.TEXT_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse users(Principal principal, @PathVariable Integer userId) {
+
+        return HttpResponse.ok("get user");
+    }
+
+    @Produces(MediaType.TEXT_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse users(Principal principal) {
+
+        return HttpResponse.ok("get user list");
+    }
+
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse createUser(Principal principal, @Body UserRequest user){
+
+        return HttpResponse.ok("create user");
+    }
+
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse updateUser(Principal principal, @Body UserRequest user){
+
+        return HttpResponse.ok("update user");
+    }
+
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse deleteUser(Principal principal, @PathVariable Integer userId){
+
+        return HttpResponse.ok("delete user");
+    }
 }
