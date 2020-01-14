@@ -1,4 +1,4 @@
-package org.breedinginsight.api.auth;
+package org.breedinginsight.api.bi.auth;
 
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;

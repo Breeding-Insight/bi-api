@@ -50,6 +50,7 @@
         <postgres.version>42.2.6</postgres.version>
         <logback.version>1.2.3</logback.version>
         <lombok.version>1.18.10</lombok.version>
+        <gson.version>2.8.6</gson.version>
         <jooq.config>src/main/resources/jooq.xml</jooq.config>
         <flyway-config>src/main/resources/flyway.properties</flyway-config>
         <flyway-db-config>src/main/resources/flyway.db.properties</flyway-db-config>
@@ -218,6 +219,11 @@
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+            <version>${gson.version}</version>
         </dependency>
     </dependencies>
     <build>
