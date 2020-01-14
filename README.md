@@ -12,8 +12,13 @@ The API is built using Java 12 and the Micronaut framework.  The development gui
 1. Maven installed (or via IDE)
 
 ### Project setup
-
-
+The micronaut-security code is included as a git submodule.  To include the contents of this submodule use the --recurse-submodules flag when cloning the bi-api repo:
+```
+git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-api.git
+```
+```
+mvn clean install
+```
 
 #### Get latest micronaut-security code
 
