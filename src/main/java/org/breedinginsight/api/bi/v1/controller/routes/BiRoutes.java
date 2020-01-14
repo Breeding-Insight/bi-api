@@ -1,7 +1,9 @@
 package org.breedinginsight.api.bi.v1.controller.routes;
 
 import io.micronaut.context.ExecutionHandleLocator;
+import io.micronaut.http.HttpMethod;
 import io.micronaut.web.router.DefaultRouteBuilder;
+import io.micronaut.web.router.UriRoute;
 import org.breedinginsight.api.bi.model.v1.request.UserRequest;
 import org.breedinginsight.api.bi.v1.controller.UserController;
 
@@ -15,8 +17,25 @@ public class BiRoutes extends DefaultRouteBuilder {
         super(executionHandleLocator, uriNamingStrategy);
     }
 
+    public UriRoute GET(String uri, Object target, String method, Class... parameterTypes) {
+        return this.buildRoute(HttpMethod.GET, uriNamingStrategy.resolveUri(uri), target.getClass(), method, parameterTypes);
+    }
+
+    public UriRoute POST(String uri, Object target, String method, Class... parameterTypes) {
+        return this.buildRoute(HttpMethod.POST, uriNamingStrategy.resolveUri(uri), target.getClass(), method, parameterTypes);
+    }
+
+    public UriRoute PUT(String uri, Object target, String method, Class... parameterTypes) {
+        return this.buildRoute(HttpMethod.PUT, uriNamingStrategy.resolveUri(uri), target.getClass(), method, parameterTypes);
+    }
+
+    public UriRoute DELETE(String uri, Object target, String method, Class... parameterTypes) {
+        return this.buildRoute(HttpMethod.DELETE, uriNamingStrategy.resolveUri(uri), target.getClass(), method, parameterTypes);
+    }
+
     @Inject
-    void userRoutes(UserController userController){
+    void userRoutes(UserController userController) {
+
         // Gets the user information for a logged in user
         GET("/userinfo", userController, UserController.USER_INFO_FUNCTION, Principal.class);
 
