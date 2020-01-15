@@ -2,6 +2,7 @@ package org.breedinginsight.api.bi.v1.controller;
 
 import com.google.gson.GsonBuilder;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Body;
 import io.micronaut.http.annotation.Controller;
@@ -12,6 +13,11 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.breedinginsight.api.bi.model.v1.request.UserRequest;
+import org.breedinginsight.api.bi.model.v1.response.Response;
+import org.breedinginsight.api.bi.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.bi.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.bi.model.v1.response.metadata.Status;
+import org.breedinginsight.api.bi.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.dao.db.tables.records.BiUserRecord;
 import org.jooq.*;
 import com.google.gson.Gson;
@@ -49,57 +55,67 @@ public class UserController {
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse userinfo(Principal principal) {
+
+        List<Status> metadataStatus = new ArrayList<>();
+
         String orcid = principal.getName();
 
         // User has been authenticated against orcid, check they have a bi account.
-        Result<Record> result = dsl.select().from(BI_USER).where(BI_USER.ORCID.eq(orcid)).fetch();
+        BiUserRecord result = dsl.fetchOne(BI_USER, BI_USER.ORCID.eq(orcid));
 
         // For now, if we have found a record, let them through
-        HttpResponse response;
-        if (result.size() > 0){
-            // Get our first record for the user (Should be only one for the given orcid)
-            Record userRecord = result.get(0);
-            List<String> roles = new ArrayList<String>();
-
-            // Construct our response JSON
-            UserInfoResponse userInfoResponse = new UserInfoResponse()
-                    .orcid(orcid)
-                    .name(userRecord.get(BI_USER.NAME))
-                    .roles(roles);
-
-            response = HttpResponse.ok(gson.toJson(userInfoResponse));
+        UserInfoResponse userInfoResponse;
+        if (result != null){
+            userInfoResponse = new UserInfoResponse(result);
         }
         else {
             // If they are not in our database, fail our authentication
-            response = HttpResponse.unauthorized();
+            return HttpResponse.unauthorized();
         }
 
-        return response;
+        // Users query successfully
+        metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
+
+        // Construct our metadata and response
+        Pagination pagination = new Pagination(1, 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse users(Principal principal, @PathVariable UUID userId) {
 
+        List<Status> metadataStatus = new ArrayList<>();
+
         // User has been authenticated against orcid, check they have a bi account.
         BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
 
         // Parse into our java object
         List<String> roles = new ArrayList<>();
-        UserInfoResponse userInfoResponse = new UserInfoResponse()
-                .id(biUser.getId())
-                .orcid(biUser.getOrcid())
-                .name(biUser.getName())
-                .roles(roles);
+        UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
 
-        return HttpResponse.ok(gson.toJson(userInfoResponse));
+        // Users query successfully
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+
+        // Construct our metadata and response
+        Pagination pagination = new Pagination(1, 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse users(Principal principal) {
 
-        // User has been authenticated against orcid, check they have a bi account.
+        //TODO: Add in pagination
+        List<Status> metadataStatus = new ArrayList<>();
+
+        // Get our users
         List<BiUserRecord> results = dsl.select().from(BI_USER).fetchInto(BiUserRecord.class);
 
         List<UserInfoResponse> resultBody = new ArrayList<>();
@@ -113,12 +129,23 @@ public class UserController {
             resultBody.add(userInfoResponse);
         }
 
-        return HttpResponse.ok(gson.toJson(resultBody));
+        // Users query successfully
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+
+        // Construct our metadata and response
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(resultBody.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<List<UserInfoResponse>> response = new Response<>(metadata, resultBody);
+
+        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse createUser(Principal principal, @Body UserRequest user){
+
+        List<Status> metadataStatus = new ArrayList<>();
 
         // Check that name and email was provided
         if (user.getEmail() == null || user.getName() == null) { return HttpResponse.badRequest(); }
@@ -128,9 +155,8 @@ public class UserController {
         // Check if the users email already exists
         Integer numExistEmails = dsl.selectCount().from(BI_USER).where(BI_USER.EMAIL.eq(user.getEmail())).fetchOne(0, Integer.class);
 
-        // Return an okay with an 'account already exists' flag and message
-        // TODO: Implement API return messages metadata
-        if (numExistEmails > 0) { return HttpResponse.ok(); }
+        // Return a conflict with an 'account already exists' flag and message
+        if (numExistEmails > 0) { return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists"); }
 
         // Create the user
         BiUserRecord newBiUser = dsl.newRecord(BI_USER)
@@ -138,17 +164,27 @@ public class UserController {
                 .setName(user.getName());
         newBiUser.store();
 
+        // TODO: Send an email to the user with a invite token
+
+        // User is now created successfully
+        metadataStatus.add(new Status(StatusCode.INFO, "User created successfully"));
+
         // Convert to response object
         UserInfoResponse userInfoResponse = new UserInfoResponse(newBiUser);
 
-        // TODO: Send an email to the user with a invite token
+        // Construct our metadata and response
+        Pagination pagination = new Pagination(1, 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
 
-        return HttpResponse.ok(gson.toJson(userInfoResponse));
+        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse updateUser( Principal principal, @PathVariable UUID userId, @Body UserRequest user){
+
+        List<Status> metadataStatus = new ArrayList<>();
 
         // Update the user info
         BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
@@ -159,13 +195,22 @@ public class UserController {
 
         // Store our record
         biUser.store();
+
+        // Our user is updated successfully
+        metadataStatus.add(new Status(StatusCode.INFO, "User updated successfully"));
+
         // Get our updated record
         biUser.refresh();
 
         // Convert to return object
         UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
 
-        return HttpResponse.ok(gson.toJson(userInfoResponse));
+        // Construct our metadata and response
+        Pagination pagination = new Pagination(1, 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.APPLICATION_JSON)
