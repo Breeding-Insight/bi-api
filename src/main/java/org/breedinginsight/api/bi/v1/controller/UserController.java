@@ -13,6 +13,7 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import org.breedinginsight.api.bi.model.v1.request.UserRequest;
+import org.breedinginsight.api.bi.model.v1.response.DataResponse;
 import org.breedinginsight.api.bi.model.v1.response.Response;
 import org.breedinginsight.api.bi.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.bi.model.v1.response.metadata.Pagination;
@@ -136,7 +137,7 @@ public class UserController {
         //TODO: Put in the actual page size
         Pagination pagination = new Pagination(resultBody.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<List<UserInfoResponse>> response = new Response<>(metadata, resultBody);
+        Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(resultBody));
 
         return HttpResponse.ok(gson.toJson(response));
     }
