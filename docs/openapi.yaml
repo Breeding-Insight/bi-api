@@ -1,0 +1,493 @@
+openapi: 3.0.2
+info:
+  title: Breeding Insight API
+  description: API documentation for Breeding Insight
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: np398@cornell.edu
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Breeding Insight
+  url: http://www.breedinginsight.org
+servers:
+- url: http://localhost:8081/bi/v1
+tags:
+- name: users
+  description: User Management
+paths:
+  /users:
+    get:
+      tags:
+      - users
+      summary: Get list of all users in the system.
+      description: Get list of all users
+      operationId: getUsers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 2
+                    totalPages: 1
+                  status: []
+                result:
+                  data:
+                  - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                    orcid: 1234-4312-4352-6314
+                    name: Bob Smith
+                    roles: []
+                  - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
+                    orcid: 1234-4312-4352-6314
+                    name: Fred Brown
+                    roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+    post:
+      tags:
+      - users
+      summary: Create user
+      description: Create a new user.
+      operationId: createUser
+      requestBody:
+        description: User information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newUserRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: bob@bob.com
+                  name: Bob Smith
+                  roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /users/{id}:
+    get:
+      tags:
+      - users
+      summary: Get user information
+      description: Get a specific user
+      operationId: getUserById
+      parameters:
+      - name: id
+        in: path
+        description: The id of the user information that needs to be fetched.
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: bob@bob.com
+                  name: Bob Smith
+                  roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    put:
+      tags:
+      - users
+      summary: Update user information
+      description: Update user information with specified data.
+      operationId: updateUser
+      parameters:
+      - name: id
+        in: path
+        description: id of user to be updated
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      requestBody:
+        description: Updated user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newUserRequest'
+            example:
+              name: Bob Smith
+              email: bob@bob.com
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: bob@bob.com
+                  name: Bob Smith
+                  roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    delete:
+      tags:
+      - users
+      summary: Delete user
+      description: This can only be done by the logged in user.
+      operationId: deleteUser
+      parameters:
+      - name: id
+        in: path
+        description: id of user to be deleted
+        required: true
+        style: simple
+        explode: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+components:
+  schemas:
+    metadata:
+      type: object
+      properties:
+        datafiles:
+          type: array
+          description: The datafiles key contains a list of file paths, which can
+            be relative or complete URLs. These files contain additional information
+            related to the returned object and can be retrieved by a subsequent call.
+            The empty list should be returned if no additional data files are present.
+          items:
+            type: string
+        pagination:
+          $ref: '#/components/schemas/metadata_pagination'
+        status:
+          type: array
+          description: The status field contains a list of informational status messages
+            from the server. If no status is reported, an empty list should be returned.
+            See Error Reporting for more information.
+          items:
+            $ref: '#/components/schemas/status'
+    status:
+      required:
+      - message
+      - messageType
+      type: object
+      properties:
+        message:
+          type: string
+          description: A short message concerning the status of this request/response
+        messageType:
+          type: string
+          description: The logging level for the attached message
+          enum:
+          - DEBUG
+          - ERROR
+          - WARNING
+          - INFO
+    user:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: string
+    newUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: name of this user
+        email:
+          type: string
+          description: email address of this user
+    usersResponse:
+      title: usersResponse
+      required:
+      - metadata
+      - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/usersResponse_result'
+    usersResponse_1:
+      title: usersResponse
+      required:
+      - metadata
+      - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/user'
+    metadata_pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        pageSize:
+          type: integer
+        totalCount:
+          type: integer
+        totalPages:
+          type: integer
+      description: The pagination object is applicable only when the payload contains
+        a "data" key. It describes the pagination of the data contained in the "data"
+        array, as a way to identify which subset of data is being returned. Pages
+        are zero indexed, so the first page will be page 0 (zero).
+    usersResponse_result:
+      required:
+      - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of users
+          items:
+            $ref: '#/components/schemas/user'
+  responses:
+    "400BadRequest":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: string
+          example: |-
+            ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+            ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+            ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+    "401Unauthorized":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: string
+          example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+            token
+    "403Forbidden":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: string
+          example: ERROR - 2018-10-08T20:15:11Z - User does not have permission to
+            perform this action
+    "404NotFound":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            type: string
+          example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is not
+            found
+  securitySchemes:
+    orcid_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://sandbox.orcid.org/oauth/authorize
+          scopes:
+            write:bi: modify
+            read:bi: read
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
