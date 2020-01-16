@@ -16,12 +16,14 @@ public class UserInfoResponse {
     private UUID id;
     private String orcid;
     private String name;
+    private String email;
     private List<String> roles;
 
     public UserInfoResponse(BiUserRecord biUserRecord){
         this.id(biUserRecord.getId());
         this.orcid(biUserRecord.getOrcid());
         this.name(biUserRecord.getName());
+        this.email(biUserRecord.getEmail());
         this.roles(new ArrayList<>());
     }
 
