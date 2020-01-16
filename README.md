@@ -21,6 +21,13 @@ placed in docker-compose.yml and never committed to the repo.  At the root level
 of the repo locally create a file called .env and save the Lastpass contents for
 "bi-api secrets" in this file.
 
+## Pull Request Criteria
+
+When evaluating a pull request for merge acceptance, verify that the following criteria are met:
+
+* Any changes to API code have a corresponding change to the openAPI specification in the docs folder
+* Any changes to the API code have corresponding endpoint tests
+
 ## Development Guide
 
 ### Prerequisites
@@ -51,6 +58,7 @@ Build micronaut-security using:
 ./gradlew publishToMavenLocal
 ```
 
+<<<<<<< HEAD
 Run Maven clean install:
 
 ```
@@ -58,6 +66,9 @@ mvn clean install
 ```
 
 If using IntelliJ, press Ctrl+Shift+A to open actions and type reimport to find the option to reimport all maven projects. (note: on a Mac that’s Command-Shift-A; it opens a Search window that has an option for Actions, but is not labeled as an Actions pane). Execute a maven run configuration that does a clean install.
+=======
+If using IntelliJ, press Ctrl+Shift+A to open actions and type reimport to find the option to reimport all maven projects. (note: on a Mac that�s Command-Shift-A; it opens a Search window that has an option for Actions, but is not labeled as an Actions pane). Execute a maven run configuration that does a clean install.
+>>>>>>> Added pull request criteria
 
 ### Developer config
 
