@@ -4,6 +4,7 @@ micronaut:
     instance:
       id: ${random.shortuuid}
   server:
+    port: 8081
     cors:
       enabled: true
   security:
@@ -39,8 +40,9 @@ micronaut:
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
           cookie-domain: ${jwt.cookie.domain:localhost}
-          login-success-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}/sso/success
-          login-failure-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}/unauthorized
+          login-success-target-url: ${web.login.url}
+          login-failure-target-url: ${web.login.url}
+          logout-target-url: ${web.logout.url}
         bearer:
           enabled: false
         signatures:
@@ -48,6 +50,23 @@ micronaut:
             generator:
               secret: ${jwt.secret}
               jws-algorithm: HS256
+    endpoints:
+      login:
+        enabled: true
+      logout:
+        enabled: true
+        get-allowed: true
+        path: /logout
+flyway:
+  datasources:
+    default:
+      locations: classpath:db.migration
+      enabled: true
+jooq:
+  datasources:
+    default:
+      sql-dialect: 'POSTGRES'
+    
 
 #datasources:
 #  default:
@@ -63,4 +82,7 @@ micronaut:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
-  url: ${webUrl:`http://localhost:3000`}
+  login:
+    url: ${web.loginUrl:`http://localhost:8080?new-login=true`}
+  logout:
+    url: ${web.logoutUrl:`http://localhost:8080`}

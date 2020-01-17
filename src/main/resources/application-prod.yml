@@ -1,4 +1,4 @@
-orcid:
+oauth:
   clientId: <production client id>
   clientSecret: <production client secret>
 
@@ -12,9 +12,8 @@ jwt:
 #server:
 #  port: 8080
 
-db:
-  host: <db host>
-  port: <db port>
-  name: <db name>
-  username: <db username>
-  password: <db password>
+datasources:
+  default:
+    url: jdbc:postgresql://localhost:5432/bidb
+    username: <db username>
+    password: <db password>
