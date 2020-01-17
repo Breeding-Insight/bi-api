@@ -1,14 +1,12 @@
 #!/bin/bash
 
-cd micronaut-security && ./gradlew publishToMavenLocal && cd ..
 mvn flyway:migrate -X
-mvn clean install
 
-# create a jar file for br-api
-if [ -n "$PROFILE"]; then
-    mvn package -P $PROFILE
+create a jar file for br-api
+if [[ -n "$PROFILE" ]]; then
+    mvn clean install -P $PROFILE
 else
-    mvn package
+    mvn clean install
 fi
 
 # start up the api server
