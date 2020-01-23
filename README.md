@@ -4,6 +4,23 @@ The BI API powers the BI Web, as well as BrAPI powered applications.
 
 The API is built using Java 12 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html
 
+## Docker support
+The API can run inside a Docker container using the Dockerfile for building the
+API image and the docker-compose.yml to run the container.
+```
+docker-compose up -d biapi-dev
+```
+
+The docker-compose.yml should contain a service for each environment the API is
+to be run in: e.g develop, test, staging, and production.  Each service contains
+under the environment key public values for environment variables used as params
+for the API configuration.
+
+Private values used in each environment are stored in Lastpass and are never
+placed in docker-compose.yml and never committed to the repo.  At the root level
+of the repo locally create a file called .env and save the Lastpass contents for
+"bi-api secrets" in this file.
+
 ## Development Guide
 
 ### Prerequisites

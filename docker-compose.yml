@@ -12,8 +12,13 @@ services:
         source: ./src
         target: /biapi/src/
     environment:
-      PROFILE: 'dev'
-    ports:
+      - API_INTERNAL_PORT=8081
+      - OAUTH_CLIENT_ID='APP-ZX6M8LSAN3YIIAQ5'
+      - JWT_DOMAIN='localhost'
+      - DB_SERVER='dbserver:5432'
+      - DB_NAME='bidb'
+      - DB_USERNAME='postgres'
+  ports:
       - 8081:8081
     networks:
       - backend

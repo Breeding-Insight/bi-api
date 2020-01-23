@@ -1,7 +1,13 @@
+#!/bin/bash
+
+# create a jooq.xml file with the following params pulled from local environment
+# variables:
+# POSTGRES_DB --- the ip address (or alias) for the bi database
+cat <<EOF > ./src/resources/jooq.xml
 <configuration xmlns="http://www.jooq.org/xsd/jooq-codegen-3.12.0.xsd">
     <jdbc>
         <driver>org.postgresql.Driver</driver>
-        <url>jdbc:postgresql://localhost:5432/bidb</url>
+        <url>jdbc:postgresql://$POSTGRES_DB:5432/bidb</url>
         <user>postgres</user>
         <password>postgres</password>
     </jdbc>
@@ -47,3 +53,4 @@
         </generate>
     </generator>
 </configuration>
+EOF
