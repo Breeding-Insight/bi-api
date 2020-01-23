@@ -12,6 +12,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.Getter;
 import lombok.experimental.Accessors;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.bi.model.v1.request.UserRequest;
 import org.breedinginsight.api.bi.model.v1.response.DataResponse;
 import org.breedinginsight.api.bi.model.v1.response.Response;
@@ -31,7 +32,9 @@ import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.BI_USER;
 import org.breedinginsight.api.bi.model.v1.response.UserInfoResponse;
+import org.jooq.exception.DataAccessException;
 
+@Slf4j
 @Accessors(fluent=true)
 @Controller
 public class UserController {
@@ -61,28 +64,33 @@ public class UserController {
 
         String orcid = principal.getName();
 
-        // User has been authenticated against orcid, check they have a bi account.
-        BiUserRecord result = dsl.fetchOne(BI_USER, BI_USER.ORCID.eq(orcid));
+        try {
+            // User has been authenticated against orcid, check they have a bi account.
+            BiUserRecord result = dsl.fetchOne(BI_USER, BI_USER.ORCID.eq(orcid));
 
-        // For now, if we have found a record, let them through
-        UserInfoResponse userInfoResponse;
-        if (result != null){
-            userInfoResponse = new UserInfoResponse(result);
+            if (result == null) {
+                // If they are not in our database, fail our authentication
+                log.info("ORCID not associated with registered user");
+                return HttpResponse.unauthorized();
+            }
+
+            // For now, if we have found a record, let them through
+            UserInfoResponse userInfoResponse = new UserInfoResponse(result);
+
+            // Users query successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
+
+            // Construct our metadata and response
+            Pagination pagination = new Pagination(1, 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+            return HttpResponse.ok(gson.toJson(response));
+
+        } catch (DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
         }
-        else {
-            // If they are not in our database, fail our authentication
-            return HttpResponse.unauthorized();
-        }
-
-        // Users query successfully
-        metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
-
-        // Construct our metadata and response
-        Pagination pagination = new Pagination(1, 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
-
-        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.TEXT_JSON)
@@ -91,22 +99,35 @@ public class UserController {
 
         List<Status> metadataStatus = new ArrayList<>();
 
-        // User has been authenticated against orcid, check they have a bi account.
-        BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
+        try {
+            // User has been authenticated against orcid, check they have a bi account.
+            BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
 
-        // Parse into our java object
-        List<String> roles = new ArrayList<>();
-        UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
+            if (biUser == null) {
+                log.info("UUID for user does not exist");
+                return HttpResponse.notFound();
+            }
 
-        // Users query successfully
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            // Parse into our java object
+            List<String> roles = new ArrayList<>();
 
-        // Construct our metadata and response
-        Pagination pagination = new Pagination(1, 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+            UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
 
-        return HttpResponse.ok(gson.toJson(response));
+            // Users query successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+
+            // Construct our metadata and response
+            Pagination pagination = new Pagination(1, 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+            return HttpResponse.ok(gson.toJson(response));
+
+        } catch (DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
+        }
+
     }
 
     @Produces(MediaType.TEXT_JSON)
@@ -116,30 +137,36 @@ public class UserController {
         //TODO: Add in pagination
         List<Status> metadataStatus = new ArrayList<>();
 
-        // Get our users
-        List<BiUserRecord> results = dsl.select().from(BI_USER).fetchInto(BiUserRecord.class);
+        try {
+            // Get our users
+            List<BiUserRecord> results = dsl.select().from(BI_USER).fetchInto(BiUserRecord.class);
 
-        List<UserInfoResponse> resultBody = new ArrayList<>();
-        for (BiUserRecord result : results) {
-            // We don't have roles right now
-            List<String> roles = new ArrayList<>();
-            // Generate our response class from db record
-            UserInfoResponse userInfoResponse = new UserInfoResponse(result)
-                    .roles(roles);
+            List<UserInfoResponse> resultBody = new ArrayList<>();
+            for (BiUserRecord result : results) {
+                // We don't have roles right now
+                List<String> roles = new ArrayList<>();
+                // Generate our response class from db record
+                UserInfoResponse userInfoResponse = new UserInfoResponse(result)
+                        .roles(roles);
 
-            resultBody.add(userInfoResponse);
+                resultBody.add(userInfoResponse);
+            }
+
+            // Users query successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+
+            // Construct our metadata and response
+            //TODO: Put in the actual page size
+            Pagination pagination = new Pagination(resultBody.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(resultBody));
+
+            return HttpResponse.ok(gson.toJson(response));
+
+        } catch (DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
         }
-
-        // Users query successfully
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-
-        // Construct our metadata and response
-        //TODO: Put in the actual page size
-        Pagination pagination = new Pagination(resultBody.size(), 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(resultBody));
-
-        return HttpResponse.ok(gson.toJson(response));
     }
 
     @Produces(MediaType.APPLICATION_JSON)
@@ -149,7 +176,10 @@ public class UserController {
         List<Status> metadataStatus = new ArrayList<>();
 
         // Check that name and email was provided
-        if (user.getEmail() == null || user.getName() == null) { return HttpResponse.badRequest(); }
+        if (user.getEmail() == null || user.getName() == null) {
+            log.info("Missing name or email");
+            return HttpResponse.badRequest();
+        }
 
         // TODO: Check is a valid email
 
@@ -157,7 +187,10 @@ public class UserController {
         Integer numExistEmails = dsl.selectCount().from(BI_USER).where(BI_USER.EMAIL.eq(user.getEmail())).fetchOne(0, Integer.class);
 
         // Return a conflict with an 'account already exists' flag and message
-        if (numExistEmails > 0) { return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists"); }
+        if (numExistEmails > 0) {
+            log.info("Email already exists");
+            return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
+        }
 
         // Create the user
         BiUserRecord newBiUser = dsl.newRecord(BI_USER)
@@ -218,11 +251,24 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse deleteUser(Principal principal, @PathVariable UUID userId){
 
-        // Delete the user
-        BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
-        biUser.delete();
+        try {
 
-        return HttpResponse.ok();
+            // Delete the user
+            BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
+
+            if (biUser == null) {
+                log.info("UUID for user does not exist");
+                return HttpResponse.notFound();
+            }
+
+            biUser.delete();
+
+            return HttpResponse.ok();
+
+        } catch (DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
+        }
     }
 
 }
