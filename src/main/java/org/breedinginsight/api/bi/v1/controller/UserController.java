@@ -220,31 +220,60 @@ public class UserController {
 
         List<Status> metadataStatus = new ArrayList<>();
 
-        // Update the user info
-        BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
+        try {
+            // Update the user info
+            BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
 
-        // If values are specified, update them
-        if (user.getEmail() != null){  biUser.setEmail(user.getEmail()); }
-        if (user.getName() != null){ biUser.setName(user.getName()); }
+            if (biUser == null) {
+                log.info("UUID for user does not exist");
+                return HttpResponse.notFound();
+            }
 
-        // Store our record
-        biUser.store();
+            // If values are specified, update them
+            if (user.getEmail() != null) {
 
-        // Our user is updated successfully
-        metadataStatus.add(new Status(StatusCode.INFO, "User updated successfully"));
+                // Check if the requested email address already exists
+                Integer numExistEmails = dsl.selectCount()
+                        .from(BI_USER)
+                        .where(BI_USER.EMAIL.eq(user.getEmail()).and(BI_USER.ID.ne(userId)))
+                        .fetchOne(0, Integer.class);
 
-        // Get our updated record
-        biUser.refresh();
+                // Return a conflict with an 'account already exists' flag and message
+                if (numExistEmails > 0) {
+                    log.info("Email already exists");
+                    return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
+                }
 
-        // Convert to return object
-        UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
+                biUser.setEmail(user.getEmail());
+            }
 
-        // Construct our metadata and response
-        Pagination pagination = new Pagination(1, 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+            if (user.getName() != null) {
+                biUser.setName(user.getName());
+            }
 
-        return HttpResponse.ok(gson.toJson(response));
+            // Store our record
+            biUser.store();
+
+            // Our user is updated successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "User updated successfully"));
+
+            // Get our updated record
+            biUser.refresh();
+
+            // Convert to return object
+            UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
+
+            // Construct our metadata and response
+            Pagination pagination = new Pagination(1, 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+            return HttpResponse.ok(gson.toJson(response));
+
+        } catch (DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
+        }
     }
 
     @Produces(MediaType.APPLICATION_JSON)
