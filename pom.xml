@@ -43,14 +43,16 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <exec.mainClass>org.breedinginsight.api.Application</exec.mainClass>
-        <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-        <maven-failsafe-plugin.version>2.22.2</maven-failsafe-plugin.version>
+        <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version> <!-- 2.22.2 -->
+        <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
+        <jvm.options>--enable-preview</jvm.options>
 
         <jooq.version>3.12.3</jooq.version>
         <postgres.version>42.2.6</postgres.version>
         <logback.version>1.2.3</logback.version>
         <lombok.version>1.18.10</lombok.version>
         <gson.version>2.8.6</gson.version>
+        <spock.version>1.1.2</spock.version>
         <jooq.config>src/main/resources/jooq.xml</jooq.config>
         <flyway-config>src/main/resources/flyway.properties</flyway-config>
         <flyway-db-config>src/main/resources/flyway.db.properties</flyway-db-config>
@@ -215,6 +217,17 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>io.micronaut.test</groupId>
+            <artifactId>micronaut-test-spock</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>3.2.4</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <version>${lombok.version}</version>
@@ -225,6 +238,11 @@
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
         </dependency>
+
+
+
+
+
     </dependencies>
     <build>
         <plugins>
@@ -313,7 +331,21 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.junit.platform</groupId>
+                            <artifactId>junit-platform-surefire-provider</artifactId>
+                            <version>1.1.0</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>org.junit.jupiter</groupId>
+                            <artifactId>junit-jupiter-engine</artifactId>
+                            <version>5.1.0</version>
+                        </dependency>
+                    </dependencies>
                     <configuration>
+                        <redirectTestOutputToFile>false</redirectTestOutputToFile>
+                            <argLine>${jvm.options}</argLine>
                         <detail>true</detail>
                         <includes>
                             <include>%regex[.*]</include>

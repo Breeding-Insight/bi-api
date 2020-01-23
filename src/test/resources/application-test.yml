@@ -1,0 +1,19 @@
+oauth:
+  clientId: APP-1GF559BY4CWL8KSH
+  clientSecret: 033bc27f-ccb5-4591-a4c3-53be80a6f494
+
+jwt:
+  secret: siodjf09usdfijsdf09jkojhasd98aysdkjhasd98yasdohasd908yasdohasdo8ausdihhasd09uasldhiasdiuasd09asd0ihasd09uasdioh
+  cookie:
+    secure: true
+    domain: localhost
+
+#Change this if the production port needs to be different than 8080
+#server:
+#  port: 8080
+
+datasources:
+  default:
+    url: jdbc:postgresql://localhost:5432/bidb
+    username: postgres
+    password: postgres
