@@ -6,7 +6,7 @@
 # DB_NAME             --- the name of the database
 # DB_USERNAME         --- the database username
 # DB_PASSWORD         --- the database password
-cat <<EOF > ./src/resources/flyway.db.properties
+cat <<EOF > ./src/main/resources/flyway.db.properties
 # This is only needed in order to run flyway through terminal commands.
 flyway.url=jdbc:postgresql://$DB_SERVER/$DB_NAME
 flyway.user=$DB_USERNAME
