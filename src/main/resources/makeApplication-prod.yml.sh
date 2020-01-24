@@ -11,7 +11,7 @@
 # DB_NAME             --- the name of the database
 # DB_USERNAME         --- the database username and password
 # DB_PASSWORD         --- the database password
-cat <<EOF > ./src/main/resources/application-prod.yml
+cat <<EOF > ./src/main/resources/application-dev.yml
 oauth:
   clientId: $OAUTH_CLIENT_ID
   clientSecret: $OAUTH_CLIENT_SECRET
