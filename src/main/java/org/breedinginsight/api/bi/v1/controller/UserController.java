@@ -4,10 +4,8 @@ import com.google.gson.GsonBuilder;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.Body;
-import io.micronaut.http.annotation.Controller;
-import io.micronaut.http.annotation.PathVariable;
-import io.micronaut.http.annotation.Produces;
+import io.micronaut.http.annotation.*;
+import io.micronaut.http.annotation.Delete;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.Getter;
@@ -36,7 +34,7 @@ import org.jooq.exception.DataAccessException;
 
 @Slf4j
 @Accessors(fluent=true)
-@Controller
+@Controller("/${micronaut.bi.api.version}")
 public class UserController {
 
     @Inject
@@ -51,11 +49,11 @@ public class UserController {
     public final static String UPDATE_USER_FUNCTION = "updateUser";
     public final static String DELETE_USER_FUNCTION = "deleteUser";
 
-
     public UserController() {
         this.gson = new GsonBuilder().serializeNulls().create();
     }
 
+    @Get("/userinfo")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse userinfo(Principal principal) {
@@ -93,6 +91,7 @@ public class UserController {
         }
     }
 
+    @Get("/users/{userId}")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse users(Principal principal, @PathVariable UUID userId) {
@@ -130,6 +129,7 @@ public class UserController {
 
     }
 
+    @Get("/users")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse users(Principal principal) {
@@ -169,6 +169,7 @@ public class UserController {
         }
     }
 
+    @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse createUser(Principal principal, @Body UserRequest user){
@@ -183,37 +184,43 @@ public class UserController {
 
         // TODO: Check is a valid email
 
-        // Check if the users email already exists
-        Integer numExistEmails = dsl.selectCount().from(BI_USER).where(BI_USER.EMAIL.eq(user.getEmail())).fetchOne(0, Integer.class);
+        try {
+            // Check if the users email already exists
+            Integer numExistEmails = dsl.selectCount().from(BI_USER).where(BI_USER.EMAIL.eq(user.getEmail())).fetchOne(0, Integer.class);
 
-        // Return a conflict with an 'account already exists' flag and message
-        if (numExistEmails > 0) {
-            log.info("Email already exists");
-            return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
+            // Return a conflict with an 'account already exists' flag and message
+            if (numExistEmails > 0) {
+                log.info("Email already exists");
+                return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
+            }
+
+            // Create the user
+            BiUserRecord newBiUser = dsl.newRecord(BI_USER)
+                    .setEmail(user.getEmail())
+                    .setName(user.getName());
+            newBiUser.store();
+
+            // TODO: Send an email to the user with a invite token
+
+            // User is now created successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "User created successfully"));
+
+            // Convert to response object
+            UserInfoResponse userInfoResponse = new UserInfoResponse(newBiUser);
+
+            // Construct our metadata and response
+            Pagination pagination = new Pagination(1, 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+
+            return HttpResponse.ok(gson.toJson(response));
+        } catch(DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
         }
-
-        // Create the user
-        BiUserRecord newBiUser = dsl.newRecord(BI_USER)
-                .setEmail(user.getEmail())
-                .setName(user.getName());
-        newBiUser.store();
-
-        // TODO: Send an email to the user with a invite token
-
-        // User is now created successfully
-        metadataStatus.add(new Status(StatusCode.INFO, "User created successfully"));
-
-        // Convert to response object
-        UserInfoResponse userInfoResponse = new UserInfoResponse(newBiUser);
-
-        // Construct our metadata and response
-        Pagination pagination = new Pagination(1, 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
-
-        return HttpResponse.ok(gson.toJson(response));
     }
 
+    @Put("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse updateUser( Principal principal, @PathVariable UUID userId, @Body UserRequest user){
@@ -276,12 +283,12 @@ public class UserController {
         }
     }
 
+    @Delete("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse deleteUser(Principal principal, @PathVariable UUID userId){
 
         try {
-
             // Delete the user
             BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
 
@@ -291,7 +298,6 @@ public class UserController {
             }
 
             biUser.delete();
-
             return HttpResponse.ok();
 
         } catch (DataAccessException e) {
