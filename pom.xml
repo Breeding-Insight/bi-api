@@ -79,6 +79,13 @@
             <id>jcenter.bintray.com</id>
             <url>https://jcenter.bintray.com</url>
         </repository>
+        <repository> <!-- repo where micronaut snapshots are deployed -->
+            <id>jfrog-snapshot</id>
+            <url>https://oss.jfrog.org/artifactory/jfrog-dependencies</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
     </repositories>
 
     <dependencyManagement>
