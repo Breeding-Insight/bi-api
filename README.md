@@ -44,28 +44,6 @@ git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-a
 mvn clean install
 ```
 
-#### Get latest micronaut-security code
-
-Micronaut-security 1.2.2 has a bug in the JWT validation code so the latest code from github must be used to fix this problem.
-
-```
-git clone https://github.com/micronaut-projects/micronaut-security.git
-```
-
-Build micronaut-security using:
-
-```
-./gradlew publishToMavenLocal
-```
-
-Run Maven clean install:
-
-```
-mvn clean install
-```
-
-If using IntelliJ, press Ctrl+Shift+A to open actions and type reimport to find the option to reimport all maven projects. (note: on a Mac that’s Command-Shift-A; it opens a Search window that has an option for Actions, but is not labeled as an Actions pane). Execute a maven run configuration that does a clean install.
-
 ### Developer config
 
 In `src/main/resources/`, make a copy of `application-prod.yml` as `application-dev.yml` (this file is ignored from git) and replace placeholder values.  If you need to override any value that's in `application.yml`, you can do so by specifying the identical structure in your `application-dev.yml` file.
@@ -92,6 +70,20 @@ mvn flyway:migrate -X
 
 The database with your user data will persist until the docker container is stopped. But, saving your username in the V0.11__create-users.sql file will create your user again when the project is run. 
 
+#### Test database
+
+Run this docker command in terminal to start up a postgres docker container with the empty test database in it. 
+
+```
+docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 5433:5432 -d postgres:11.4
+```
+
+Run migrate using the test profile to apply the migrates to the test database.
+
+```
+mvn flyway:migrate -X -Dtest=true
+```
+
 #### Updating Database
 
 If you have run the project and the database once already, you will need to clear your database with the flyway java module and recreate it. 
@@ -99,6 +91,15 @@ If you have run the project and the database once already, you will need to clea
 ```
 mvn flyway:clean -X
 mvn flyway:migrate -X
+```
+
+##### Test Database
+
+Clean and migrate using the test profile.
+
+```
+mvn flyway:clean -X -Dtest=true
+mvn flyway:migrate -X -Dtest=true
 ```
 
 ### Run the app
@@ -112,3 +113,14 @@ If running as a packaged JAR:
 ```
 java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar
 ```
+
+### Run tests
+
+Tests can be run with the following command:
+```
+mvn test
+```
+
+They are also run as part of the install profile. In IntelliJ you can create test profiles for the tests to get eaily readable output.
+
+
