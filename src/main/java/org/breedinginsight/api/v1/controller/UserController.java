@@ -1,4 +1,4 @@
-package org.breedinginsight.api.bi.v1.controller;
+package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.GsonBuilder;
 import io.micronaut.http.HttpResponse;
@@ -11,13 +11,13 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.Getter;
 import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.bi.model.v1.request.UserRequest;
-import org.breedinginsight.api.bi.model.v1.response.DataResponse;
-import org.breedinginsight.api.bi.model.v1.response.Response;
-import org.breedinginsight.api.bi.model.v1.response.metadata.Metadata;
-import org.breedinginsight.api.bi.model.v1.response.metadata.Pagination;
-import org.breedinginsight.api.bi.model.v1.response.metadata.Status;
-import org.breedinginsight.api.bi.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.api.model.v1.request.UserRequest;
+import org.breedinginsight.api.model.v1.response.DataResponse;
+import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.model.v1.response.metadata.Status;
+import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.dao.db.tables.records.BiUserRecord;
 import org.jooq.*;
 import com.google.gson.Gson;
@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.BI_USER;
-import org.breedinginsight.api.bi.model.v1.response.UserInfoResponse;
+import org.breedinginsight.api.model.v1.response.UserInfoResponse;
 import org.jooq.exception.DataAccessException;
 
 @Slf4j

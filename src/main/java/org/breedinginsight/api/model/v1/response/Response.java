@@ -1,8 +1,8 @@
-package org.breedinginsight.api.bi.model.v1.response;
+package org.breedinginsight.api.model.v1.response;
 
 import lombok.*;
 import lombok.experimental.Accessors;
-import org.breedinginsight.api.bi.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 
 @Getter
 @Setter

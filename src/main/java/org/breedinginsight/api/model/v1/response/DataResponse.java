@@ -1,4 +1,4 @@
-package org.breedinginsight.api.bi.model.v1.response;
+package org.breedinginsight.api.model.v1.response;
 
 import lombok.*;
 import lombok.experimental.Accessors;
