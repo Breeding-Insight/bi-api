@@ -1,8 +1,7 @@
-package org.breedinginsight.api;
+package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpStatus;
-import org.breedinginsight.api.bi.model.v1.request.UserRequest;
-import org.breedinginsight.api.bi.v1.controller.UserController;
+import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,4 +1,4 @@
-package org.breedinginsight.api;
+package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.security.authentication.Authentication;

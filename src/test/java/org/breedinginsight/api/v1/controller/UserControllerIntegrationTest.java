@@ -1,4 +1,4 @@
-package org.breedinginsight.api;
+package org.breedinginsight.api.v1.controller;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;

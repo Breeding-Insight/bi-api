@@ -1,8 +1,7 @@
-package org.breedinginsight.api.bi.model.v1.response.metadata;
+package org.breedinginsight.api.model.v1.response.metadata;
 
 import lombok.*;
 import lombok.experimental.Accessors;
-import org.jooq.Require;
 
 import java.util.List;
 
