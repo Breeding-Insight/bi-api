@@ -92,6 +92,20 @@ mvn flyway:migrate -X
 
 The database with your user data will persist until the docker container is stopped. But, saving your username in the V0.11__create-users.sql file will create your user again when the project is run. 
 
+#### Test database
+
+Run this docker command in terminal to start up a postgres docker container with the empty test database in it. 
+
+```
+docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 5433:5432 -d postgres:11.4
+```
+
+Run migrate using the test profile to apply the migrates to the test database.
+
+```
+mvn flyway:migrate -X -Dtest=true
+```
+
 #### Updating Database
 
 If you have run the project and the database once already, you will need to clear your database with the flyway java module and recreate it. 
@@ -99,6 +113,15 @@ If you have run the project and the database once already, you will need to clea
 ```
 mvn flyway:clean -X
 mvn flyway:migrate -X
+```
+
+##### Test Database
+
+Clean and migrate using the test profile.
+
+```
+mvn flyway:clean -X -Dtest=true
+mvn flyway:migrate -X -Dtest=true
 ```
 
 ### Run the app
@@ -112,3 +135,14 @@ If running as a packaged JAR:
 ```
 java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar
 ```
+
+### Run tests
+
+Tests can be run with the following command:
+```
+mvn test
+```
+
+They are also run as part of the install profile. In IntelliJ you can create test profiles for the tests to get eaily readable output.
+
+
