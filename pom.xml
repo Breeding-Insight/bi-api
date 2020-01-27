@@ -72,6 +72,19 @@
                 <flyway-db-config>src/main/resources/flyway.db.dev.properties</flyway-db-config>
             </properties>
         </profile>
+        <profile>
+            <id>test</id>
+            <activation>
+                <property>
+                    <name>test</name>
+                    <value>true</value>
+                </property>
+            </activation>
+            <properties>
+                <jooq.config>src/test/resources/jooq.xml</jooq.config>
+                <flyway-db-config>src/test/resources/flyway.db.properties</flyway-db-config>
+            </properties>
+        </profile>
     </profiles>
 
     <repositories>

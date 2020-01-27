@@ -15,7 +15,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
-
 import javax.inject.Inject;
 
 /*
@@ -344,5 +343,6 @@ public class UserControllerIntegrationTest {
         });
         assertEquals(HttpStatus.CONFLICT, e.getStatus());
     }
+
 
 }
