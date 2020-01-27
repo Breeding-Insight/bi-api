@@ -42,13 +42,6 @@ public class UserController {
     @Getter
     private final Gson gson;
 
-    // Our method names to be called in our routes
-    public final static String USER_INFO_FUNCTION = "userinfo";
-    public final static String USERS_FUNCTION = "users";
-    public final static String CREATE_USER_FUNCTION = "createUser";
-    public final static String UPDATE_USER_FUNCTION = "updateUser";
-    public final static String DELETE_USER_FUNCTION = "deleteUser";
-
     public UserController() {
         this.gson = new GsonBuilder().serializeNulls().create();
     }
