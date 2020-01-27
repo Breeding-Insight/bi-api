@@ -1,4 +1,4 @@
-package org.breedinginsight.test;
+package org.breedinginsight.api;
 
 import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.bi.model.v1.request.UserRequest;
