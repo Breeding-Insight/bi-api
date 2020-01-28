@@ -97,7 +97,7 @@ The database with your user data will persist until the docker container is stop
 Run this docker command in terminal to start up a postgres docker container with the empty test database in it. 
 
 ```
-docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 5433:5432 -d postgres:11.4
+docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 8765:5432 -d postgres:11.4
 ```
 
 Run migrate using the test profile to apply the migrates to the test database.

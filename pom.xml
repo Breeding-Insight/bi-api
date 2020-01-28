@@ -81,7 +81,6 @@
                 </property>
             </activation>
             <properties>
-                <jooq.config>src/test/resources/jooq.xml</jooq.config>
                 <flyway-db-config>src/test/resources/flyway.db.properties</flyway-db-config>
             </properties>
         </profile>
@@ -264,11 +263,6 @@
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
         </dependency>
-
-
-
-
-
     </dependencies>
     <build>
         <plugins>
