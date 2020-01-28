@@ -14,7 +14,7 @@ jwt:
 
 datasources:
   default:
-    url: jdbc:postgresql://localhost:5433/bitest
+    url: jdbc:postgresql://localhost:8765/bitest
     username: postgres
     password: postgres
     dbname: bitest
