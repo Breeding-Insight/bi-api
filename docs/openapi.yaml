@@ -46,10 +46,12 @@ paths:
                   - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
                     orcid: 1234-4312-4352-6314
                     name: Bob Smith
+                    email: bob.smith@mail.com
                     roles: []
                   - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
                     orcid: 1234-4312-4352-6314
                     name: Fred Brown
+                    email: null
                     roles: []
         "400":
           description: Bad Request
@@ -108,8 +110,9 @@ paths:
                   status: []
                 result:
                   id: d4f23375-0033-4d16-a62f-072e3a9198fa
-                  orcid: bob@bob.com
+                  orcid: null
                   name: Bob Smith
+                  email: bob@bob.com
                   roles: []
         "400":
           description: Bad Request
@@ -137,6 +140,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
   /users/{id}:
     get:
       tags:
@@ -171,8 +181,9 @@ paths:
                   status: []
                 result:
                   id: d4f23375-0033-4d16-a62f-072e3a9198fa
-                  orcid: bob@bob.com
+                  orcid: 1111-2222-3333-4444
                   name: Bob Smith
+                  email: bob@bob.com
                   roles: []
         "400":
           description: Bad Request
@@ -249,8 +260,9 @@ paths:
                   status: []
                 result:
                   id: d4f23375-0033-4d16-a62f-072e3a9198fa
-                  orcid: bob@bob.com
+                  orcid: 1111-2222-3333-4444
                   name: Bob Smith
+                  email: bob@bob.com
                   roles: []
         "400":
           description: Bad Request
@@ -286,6 +298,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+        "409":
+          description: Conflict - Email Already Exists
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
     delete:
       tags:
       - users
