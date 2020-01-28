@@ -16,7 +16,7 @@ public class Metadata {
     private List<String> dataFiles;
 
     public Metadata(Pagination pagination, List<Status> status) {
-        this.pagination = pagination;
-        this.status = status;
+        this.pagination(pagination)
+            .status(status);
     }
 }

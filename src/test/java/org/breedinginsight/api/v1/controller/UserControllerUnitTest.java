@@ -49,7 +49,7 @@ public class UserControllerUnitTest {
     public void getUsersSingleDataAccessException() {
         // select doesn't throw, fetchOne does but just using select for easier mocking
         when(dsl.select()).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.users(principal);
+        HttpResponse response = userController.users();
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
@@ -63,7 +63,7 @@ public class UserControllerUnitTest {
     @Test
     public void getUsersDataAccessException() {
         when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.users(principal, UUID.randomUUID());
+        HttpResponse response = userController.users(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
@@ -71,21 +71,21 @@ public class UserControllerUnitTest {
     public void postUsersDataAccessException() {
         // selectCount doesn't throw, fetchOne does but just using select for easier mocking
         when(dsl.selectCount()).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.createUser(principal, new UserRequest("Test User", "test@test.com"));
+        HttpResponse response = userController.createUser(new UserRequest("Test User", "test@test.com"));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void putUsersDataAccessException() {
         when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.updateUser(principal, UUID.randomUUID(), new UserRequest());
+        HttpResponse response = userController.updateUser(UUID.randomUUID(), new UserRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void deleteUserDataAccessException() {
         when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.updateUser(principal, UUID.randomUUID(), new UserRequest());
+        HttpResponse response = userController.updateUser(UUID.randomUUID(), new UserRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 

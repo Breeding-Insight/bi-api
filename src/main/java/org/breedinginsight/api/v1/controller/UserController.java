@@ -87,7 +87,7 @@ public class UserController {
     @Get("/users/{userId}")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse users(Principal principal, @PathVariable UUID userId) {
+    public HttpResponse users(@PathVariable UUID userId) {
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -125,7 +125,7 @@ public class UserController {
     @Get("/users")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse users(Principal principal) {
+    public HttpResponse users() {
 
         //TODO: Add in pagination
         List<Status> metadataStatus = new ArrayList<>();
@@ -165,7 +165,7 @@ public class UserController {
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse createUser(Principal principal, @Body UserRequest user){
+    public HttpResponse createUser(@Body UserRequest user){
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -216,7 +216,7 @@ public class UserController {
     @Put("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse updateUser( Principal principal, @PathVariable UUID userId, @Body UserRequest user){
+    public HttpResponse updateUser(@PathVariable UUID userId, @Body UserRequest user){
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -279,7 +279,7 @@ public class UserController {
     @Delete("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse deleteUser(Principal principal, @PathVariable UUID userId){
+    public HttpResponse deleteUser(@PathVariable UUID userId){
 
         try {
             // Delete the user
