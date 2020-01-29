@@ -18,6 +18,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.dao.db.tables.records.BiUserRecord;
+import org.breedinginsight.services.UserService;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -31,7 +32,7 @@ import org.breedinginsight.api.model.v1.response.UserInfoResponse;
 import org.jooq.exception.DataAccessException;
 
 @Slf4j
-@Accessors(fluent=true)
+@Accessors(chain=true)
 @Controller("/${micronaut.bi.api.version}")
 public class UserController {
 
@@ -170,11 +171,12 @@ public class UserController {
         // TODO: Check is a valid email
 
         try {
+
             // Check if the users email already exists
-            Integer numExistEmails = dsl.selectCount().from(BI_USER).where(BI_USER.EMAIL.eq(user.getEmail())).fetchOne(0, Integer.class);
+            UserService userService = new UserService(dsl);
 
             // Return a conflict with an 'account already exists' flag and message
-            if (numExistEmails > 0) {
+            if (userService.userEmailInUse(user.getEmail())) {
                 log.info("Email already exists");
                 return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
             }
@@ -224,14 +226,11 @@ public class UserController {
             // If values are specified, update them
             if (user.getEmail() != null) {
 
-                // Check if the requested email address already exists
-                Integer numExistEmails = dsl.selectCount()
-                        .from(BI_USER)
-                        .where(BI_USER.EMAIL.eq(user.getEmail()).and(BI_USER.ID.ne(userId)))
-                        .fetchOne(0, Integer.class);
+                // Check if the users email already exists
+                UserService userService = new UserService(dsl);
 
                 // Return a conflict with an 'account already exists' flag and message
-                if (numExistEmails > 0) {
+                if (userService.userEmailInUse(user.getEmail())) {
                     log.info("Email already exists");
                     return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
                 }
