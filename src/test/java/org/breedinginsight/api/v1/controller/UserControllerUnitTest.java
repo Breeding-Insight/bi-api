@@ -2,6 +2,7 @@ package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.request.UserRequest;
+import org.breedinginsight.services.UserService;
 import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,6 +30,9 @@ public class UserControllerUnitTest {
 
     @Mock
     DSLContext dsl;
+
+    @Mock
+    UserService userService;
 
     @InjectMocks
     UserController userController;
@@ -70,7 +74,7 @@ public class UserControllerUnitTest {
     @Test
     public void postUsersDataAccessException() {
         // selectCount doesn't throw, fetchOne does but just using select for easier mocking
-        when(dsl.selectCount()).thenThrow(new DataAccessException("TEST"));
+        when(userService.userEmailInUse(anyString())).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = userController.createUser(new UserRequest("Test User", "test@test.com"));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }

@@ -32,15 +32,17 @@ import org.breedinginsight.api.model.v1.response.UserInfoResponse;
 import org.jooq.exception.DataAccessException;
 
 @Slf4j
-@Accessors(chain=true)
 @Controller("/${micronaut.bi.api.version}")
 public class UserController {
 
     @Inject
-    DSLContext dsl;
+    private DSLContext dsl;
+
+    @Inject
+    private UserService userService;
 
     @Get("/userinfo")
-    @Produces(MediaType.TEXT_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<UserInfoResponse>> userinfo(Principal principal) {
 
@@ -78,7 +80,7 @@ public class UserController {
     }
 
     @Get("/users/{userId}")
-    @Produces(MediaType.TEXT_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<UserInfoResponse>> users(@PathVariable UUID userId) {
 
@@ -116,7 +118,7 @@ public class UserController {
     }
 
     @Get("/users")
-    @Produces(MediaType.TEXT_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<UserInfoResponse>>> users() {
 
@@ -172,9 +174,6 @@ public class UserController {
 
         try {
 
-            // Check if the users email already exists
-            UserService userService = new UserService(dsl);
-
             // Return a conflict with an 'account already exists' flag and message
             if (userService.userEmailInUse(user.getEmail())) {
                 log.info("Email already exists");
@@ -226,11 +225,8 @@ public class UserController {
             // If values are specified, update them
             if (user.getEmail() != null) {
 
-                // Check if the users email already exists
-                UserService userService = new UserService(dsl);
-
                 // Return a conflict with an 'account already exists' flag and message
-                if (userService.userEmailInUse(user.getEmail())) {
+                if (userService.userEmailInUseExcludingUser(user.getEmail(), userId)) {
                     log.info("Email already exists");
                     return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
                 }
