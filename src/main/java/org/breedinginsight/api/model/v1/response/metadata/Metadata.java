@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@Accessors(fluent=true)
+@Accessors(chain=true)
 @ToString
 @NoArgsConstructor
 public class Metadata {
@@ -16,7 +16,7 @@ public class Metadata {
     private List<String> dataFiles;
 
     public Metadata(Pagination pagination, List<Status> status) {
-        this.pagination(pagination)
-            .status(status);
+        this.setPagination(pagination)
+            .setStatus(status);
     }
 }

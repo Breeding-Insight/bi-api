@@ -43,6 +43,18 @@ services:
       backend:
         aliases:
           - dbserver
+  bitestdb:
+    image: postgres:11.4
+    environment:
+      - POSTGRES_DB=bitest
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    container_name: bitest
+    ports:
+      - 8765:5432
+    networks:
+      backend:
+        aliases:
+          - testserver
 
 networks:
   backend:

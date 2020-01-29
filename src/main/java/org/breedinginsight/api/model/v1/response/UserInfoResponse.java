@@ -10,7 +10,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@Accessors(fluent=true)
+@Accessors(chain=true)
 @ToString
 @NoArgsConstructor
 public class UserInfoResponse {
@@ -21,11 +21,11 @@ public class UserInfoResponse {
     private List<String> roles;
 
     public UserInfoResponse(BiUserRecord biUserRecord){
-        this.id(biUserRecord.getId())
-            .orcid(biUserRecord.getOrcid())
-            .name(biUserRecord.getName())
-            .email(biUserRecord.getEmail())
-            .roles(new ArrayList<>());
+        this.setId(biUserRecord.getId())
+            .setOrcid(biUserRecord.getOrcid())
+            .setName(biUserRecord.getName())
+            .setEmail(biUserRecord.getEmail())
+            .setRoles(new ArrayList<>());
     }
 
 }

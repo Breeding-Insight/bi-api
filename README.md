@@ -44,28 +44,6 @@ git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-a
 mvn clean install
 ```
 
-#### Get latest micronaut-security code
-
-Micronaut-security 1.2.2 has a bug in the JWT validation code so the latest code from github must be used to fix this problem.
-
-```
-git clone https://github.com/micronaut-projects/micronaut-security.git
-```
-
-Build micronaut-security using:
-
-```
-./gradlew publishToMavenLocal
-```
-
-Run Maven clean install:
-
-```
-mvn clean install
-```
-
-If using IntelliJ, press Ctrl+Shift+A to open actions and type reimport to find the option to reimport all maven projects. (note: on a Mac thats Command-Shift-A; it opens a Search window that has an option for Actions, but is not labeled as an Actions pane). Execute a maven run configuration that does a clean install.
-
 ### Developer config
 
 In `src/main/resources/`, make a copy of `application-prod.yml` as `application-dev.yml` (this file is ignored from git) and replace placeholder values.  If you need to override any value that's in `application.yml`, you can do so by specifying the identical structure in your `application-dev.yml` file.
