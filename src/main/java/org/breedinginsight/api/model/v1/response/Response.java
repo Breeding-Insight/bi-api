@@ -6,7 +6,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 
 @Getter
 @Setter
-@Accessors(fluent=true)
+@Accessors(chain=true)
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
