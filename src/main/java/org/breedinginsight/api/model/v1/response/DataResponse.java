@@ -7,7 +7,7 @@ import java.util.List;
 
 @Getter
 @Setter
-@Accessors(fluent=true)
+@Accessors(chain=true)
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor

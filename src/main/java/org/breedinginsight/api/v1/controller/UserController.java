@@ -1,6 +1,5 @@
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.GsonBuilder;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -20,7 +19,6 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.dao.db.tables.records.BiUserRecord;
 import org.jooq.*;
-import com.google.gson.Gson;
 
 import javax.inject.Inject;
 import java.security.Principal;
@@ -39,17 +37,11 @@ public class UserController {
 
     @Inject
     DSLContext dsl;
-    @Getter
-    private final Gson gson;
-
-    public UserController() {
-        this.gson = new GsonBuilder().serializeNulls().create();
-    }
 
     @Get("/userinfo")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse userinfo(Principal principal) {
+    public HttpResponse<Response<UserInfoResponse>> userinfo(Principal principal) {
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -76,7 +68,7 @@ public class UserController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
 
-            return HttpResponse.ok(gson.toJson(response));
+            return HttpResponse.ok(response);
 
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
@@ -87,7 +79,7 @@ public class UserController {
     @Get("/users/{userId}")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse users(@PathVariable UUID userId) {
+    public HttpResponse<Response<UserInfoResponse>> users(@PathVariable UUID userId) {
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -113,7 +105,7 @@ public class UserController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
 
-            return HttpResponse.ok(gson.toJson(response));
+            return HttpResponse.ok(response);
 
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
@@ -125,7 +117,7 @@ public class UserController {
     @Get("/users")
     @Produces(MediaType.TEXT_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse users() {
+    public HttpResponse<Response<DataResponse<UserInfoResponse>>> users() {
 
         //TODO: Add in pagination
         List<Status> metadataStatus = new ArrayList<>();
@@ -140,7 +132,7 @@ public class UserController {
                 List<String> roles = new ArrayList<>();
                 // Generate our response class from db record
                 UserInfoResponse userInfoResponse = new UserInfoResponse(result)
-                        .roles(roles);
+                        .setRoles(roles);
 
                 resultBody.add(userInfoResponse);
             }
@@ -154,7 +146,7 @@ public class UserController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(resultBody));
 
-            return HttpResponse.ok(gson.toJson(response));
+            return HttpResponse.ok(response);
 
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
@@ -165,7 +157,7 @@ public class UserController {
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse createUser(@Body UserRequest user){
+    public HttpResponse<Response<UserInfoResponse>> createUser(@Body UserRequest user){
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -206,7 +198,7 @@ public class UserController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
 
-            return HttpResponse.ok(gson.toJson(response));
+            return HttpResponse.ok(response);
         } catch(DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
@@ -216,7 +208,7 @@ public class UserController {
     @Put("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse updateUser(@PathVariable UUID userId, @Body UserRequest user){
+    public HttpResponse<Response<UserInfoResponse>> updateUser(@PathVariable UUID userId, @Body UserRequest user){
 
         List<Status> metadataStatus = new ArrayList<>();
 
@@ -268,7 +260,7 @@ public class UserController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
 
-            return HttpResponse.ok(gson.toJson(response));
+            return HttpResponse.ok(response);
 
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
