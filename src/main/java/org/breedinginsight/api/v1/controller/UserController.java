@@ -7,8 +7,6 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
-import lombok.Getter;
-import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -17,9 +15,10 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
 import org.breedinginsight.services.UserService;
-import org.jooq.*;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 
 import javax.inject.Inject;
 import java.security.Principal;
@@ -27,16 +26,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.breedinginsight.dao.db.Tables.BI_USER;
 import org.breedinginsight.api.model.v1.response.UserInfoResponse;
 import org.jooq.exception.DataAccessException;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 public class UserController {
-
-    @Inject
-    private DSLContext dsl;
 
     @Inject
     private UserService userService;
@@ -46,33 +41,22 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<UserInfoResponse>> userinfo(Principal principal) {
 
-        List<Status> metadataStatus = new ArrayList<>();
-
-        String orcid = principal.getName();
-
         try {
-            // User has been authenticated against orcid, check they have a bi account.
-            BiUserRecord result = dsl.fetchOne(BI_USER, BI_USER.ORCID.eq(orcid));
 
-            if (result == null) {
-                // If they are not in our database, fail our authentication
-                log.info("ORCID not associated with registered user");
-                return HttpResponse.unauthorized();
-            }
-
-            // For now, if we have found a record, let them through
-            UserInfoResponse userInfoResponse = new UserInfoResponse(result);
-
+            String orcid = principal.getName();
+            UserInfoResponse userInfoResponse = userService.get(orcid);
+            List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
-
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
-
             return HttpResponse.ok(response);
 
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.unauthorized();
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
@@ -84,37 +68,27 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<UserInfoResponse>> users(@PathVariable UUID userId) {
 
-        List<Status> metadataStatus = new ArrayList<>();
-
         try {
-            // User has been authenticated against orcid, check they have a bi account.
-            BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
 
-            if (biUser == null) {
-                log.info("UUID for user does not exist");
-                return HttpResponse.notFound();
-            }
-
+            UserInfoResponse userInfoResponse = userService.get(userId);
+            List<Status> metadataStatus = new ArrayList<>();
             // Parse into our java object
             List<String> roles = new ArrayList<>();
-
-            UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
-
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
-
             return HttpResponse.ok(response);
 
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
         }
-
     }
 
     @Get("/users")
@@ -122,33 +96,18 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<UserInfoResponse>>> users() {
 
-        //TODO: Add in pagination
-        List<Status> metadataStatus = new ArrayList<>();
-
         try {
-            // Get our users
-            List<BiUserRecord> results = dsl.select().from(BI_USER).fetchInto(BiUserRecord.class);
 
-            List<UserInfoResponse> resultBody = new ArrayList<>();
-            for (BiUserRecord result : results) {
-                // We don't have roles right now
-                List<String> roles = new ArrayList<>();
-                // Generate our response class from db record
-                UserInfoResponse userInfoResponse = new UserInfoResponse(result)
-                        .setRoles(roles);
-
-                resultBody.add(userInfoResponse);
-            }
-
+            List<UserInfoResponse> users = userService.getAll();
+            //TODO: Add in pagination
+            List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-
             // Construct our metadata and response
             //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(resultBody.size(), 1, 1, 0);
+            Pagination pagination = new Pagination(users.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(resultBody));
-
+            Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(users));
             return HttpResponse.ok(response);
 
         } catch (DataAccessException e) {
@@ -162,48 +121,29 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<UserInfoResponse>> createUser(@Body UserRequest user){
 
-        List<Status> metadataStatus = new ArrayList<>();
-
-        // Check that name and email was provided
-        if (user.getEmail() == null || user.getName() == null) {
-            log.info("Missing name or email");
-            return HttpResponse.badRequest();
-        }
-
-        // TODO: Check is a valid email
-
         try {
 
-            // Return a conflict with an 'account already exists' flag and message
-            if (userService.userEmailInUse(user.getEmail())) {
-                log.info("Email already exists");
-                return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
-            }
-
-            // Create the user
-            BiUserRecord newBiUser = dsl.newRecord(BI_USER)
-                    .setEmail(user.getEmail())
-                    .setName(user.getName());
-            newBiUser.store();
-
-            // TODO: Send an email to the user with a invite token
-
+            UserInfoResponse userInfoResponse = userService.create(user);
+            List<Status> metadataStatus = new ArrayList<>();
             // User is now created successfully
             metadataStatus.add(new Status(StatusCode.INFO, "User created successfully"));
-
-            // Convert to response object
-            UserInfoResponse userInfoResponse = new UserInfoResponse(newBiUser);
-
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
-
             return HttpResponse.ok(response);
+
+        } catch (MissingRequiredInfoException e) {
+            log.info(e.getMessage());
+            return HttpResponse.badRequest();
+        } catch (AlreadyExistsException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         } catch(DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
         }
+
     }
 
     @Put("/users/{userId}")
@@ -211,52 +151,24 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<UserInfoResponse>> updateUser(@PathVariable UUID userId, @Body UserRequest user){
 
-        List<Status> metadataStatus = new ArrayList<>();
-
         try {
-            // Update the user info
-            BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
 
-            if (biUser == null) {
-                log.info("UUID for user does not exist");
-                return HttpResponse.notFound();
-            }
-
-            // If values are specified, update them
-            if (user.getEmail() != null) {
-
-                // Return a conflict with an 'account already exists' flag and message
-                if (userService.userEmailInUseExcludingUser(user.getEmail(), userId)) {
-                    log.info("Email already exists");
-                    return HttpResponse.status(HttpStatus.CONFLICT, "Email already exists");
-                }
-
-                biUser.setEmail(user.getEmail());
-            }
-
-            if (user.getName() != null) {
-                biUser.setName(user.getName());
-            }
-
-            // Store our record
-            biUser.store();
-
+            UserInfoResponse userInfoResponse = userService.update(userId, user);
+            List<Status> metadataStatus = new ArrayList<>();
             // Our user is updated successfully
             metadataStatus.add(new Status(StatusCode.INFO, "User updated successfully"));
-
-            // Get our updated record
-            biUser.refresh();
-
-            // Convert to return object
-            UserInfoResponse userInfoResponse = new UserInfoResponse(biUser);
-
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
-
             return HttpResponse.ok(response);
 
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AlreadyExistsException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
@@ -269,17 +181,11 @@ public class UserController {
     public HttpResponse deleteUser(@PathVariable UUID userId){
 
         try {
-            // Delete the user
-            BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
-
-            if (biUser == null) {
-                log.info("UUID for user does not exist");
-                return HttpResponse.notFound();
-            }
-
-            biUser.delete();
+            userService.delete(userId);
             return HttpResponse.ok();
-
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();

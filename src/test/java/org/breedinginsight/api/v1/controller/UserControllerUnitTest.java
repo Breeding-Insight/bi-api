@@ -3,6 +3,9 @@ package org.breedinginsight.api.v1.controller;
 import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.services.UserService;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.jooq.*;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +22,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
 /*
@@ -27,9 +31,6 @@ import static org.mockito.Mockito.when;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UserControllerUnitTest {
-
-    @Mock
-    DSLContext dsl;
 
     @Mock
     UserService userService;
@@ -50,46 +51,47 @@ public class UserControllerUnitTest {
     };
 
     @Test
-    public void getUsersSingleDataAccessException() {
+    public void getUsersSingleDataAccessException() throws DoesNotExistException {
         // select doesn't throw, fetchOne does but just using select for easier mocking
-        when(dsl.select()).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.users();
+        when(userService.get(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = userController.users(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
-    public void getUserInfoDataAccessException() {
-        when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
+    public void getUserInfoDataAccessException() throws DoesNotExistException {
+        when(userService.get(anyString())).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = userController.userinfo(principal);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void getUsersDataAccessException() {
-        when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.users(UUID.randomUUID());
+        when(userService.getAll()).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = userController.users();
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
-    public void postUsersDataAccessException() {
+    public void postUsersDataAccessException() throws AlreadyExistsException, MissingRequiredInfoException {
         // selectCount doesn't throw, fetchOne does but just using select for easier mocking
-        when(userService.userEmailInUse(anyString())).thenThrow(new DataAccessException("TEST"));
+        when(userService.create(any())).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = userController.createUser(new UserRequest("Test User", "test@test.com"));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
-    public void putUsersDataAccessException() {
-        when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
+    public void putUsersDataAccessException() throws AlreadyExistsException, DoesNotExistException {
+        when(userService.update(any(), any())).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = userController.updateUser(UUID.randomUUID(), new UserRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
-    public void deleteUserDataAccessException() {
-        when(dsl.fetchOne((Table<Record>) any(), (Condition) any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.updateUser(UUID.randomUUID(), new UserRequest());
+    public void deleteUserDataAccessException() throws DoesNotExistException {
+        doThrow(new DataAccessException("TEST")).when(userService).delete(any(UUID.class));
+        //when(userService.delete(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = userController.deleteUser(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
