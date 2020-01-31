@@ -3,14 +3,11 @@ package org.breedinginsight.services;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.response.UserInfoResponse;
-import org.breedinginsight.dao.db.tables.daos.BiUserDao;
-import org.breedinginsight.dao.db.tables.pojos.JooqBiUser;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
+import org.breedinginsight.dao.db.tables.pojos.BiUser;
+import org.breedinginsight.daos.UserDao;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
-import org.jooq.DAO;
-import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -19,42 +16,37 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import static org.breedinginsight.dao.db.Tables.BI_USER;
-
 @Slf4j
 @Singleton
 public class UserService {
 
     @Inject
-    private DSLContext dsl;
-
-    //@Inject
-    //private DAO dao;
+    private UserDao dao;
 
     public UserInfoResponse get(String orcid) throws DoesNotExistException {
 
         // User has been authenticated against orcid, check they have a bi account.
-        BiUserRecord result = dsl.fetchOne(BI_USER, BI_USER.ORCID.eq(orcid));
+        List<BiUser> users = dao.fetchByOrcid(orcid);
 
-        if (result == null) {
+        if (users.size() != 1) {
             throw new DoesNotExistException("ORCID not associated with registered user");
         }
 
         // For now, if we have found a record, let them through
-        return new UserInfoResponse(result);
+        return new UserInfoResponse(users.get(0));
     }
 
     public List<UserInfoResponse> getAll() {
 
         // Get our users
-        List<BiUserRecord> results = dsl.select().from(BI_USER).fetchInto(BiUserRecord.class);
+        List<BiUser> users = dao.findAll();
 
         List<UserInfoResponse> resultBody = new ArrayList<>();
-        for (BiUserRecord result : results) {
+        for (BiUser user : users) {
             // We don't have roles right now
             List<String> roles = new ArrayList<>();
             // Generate our response class from db record
-            UserInfoResponse userInfoResponse = new UserInfoResponse(result)
+            UserInfoResponse userInfoResponse = new UserInfoResponse(user)
                     .setRoles(roles);
 
             resultBody.add(userInfoResponse);
@@ -66,16 +58,13 @@ public class UserService {
     public UserInfoResponse get(UUID userId) throws DoesNotExistException {
 
         // User has been authenticated against orcid, check they have a bi account.
-        BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
+        BiUser biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
-            //log.info("UUID for user does not exist");
-            //return HttpResponse.notFound();
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
         return new UserInfoResponse(biUser);
-
     }
 
     public UserInfoResponse create(UserRequest user) throws MissingRequiredInfoException, AlreadyExistsException {
@@ -89,27 +78,16 @@ public class UserService {
             throw new AlreadyExistsException("Email already exists");
         }
 
-        /*
-        JooqBiUser jooqUser = new JooqBiUser();
+        BiUser jooqUser = new BiUser();
         jooqUser.setName(user.getName());
         jooqUser.setEmail(user.getEmail());
         dao.insert(jooqUser);
-        UserInfoResponse userInfoResponse = new UserInfoResponse(jooqUser);
-         */
-
-        // Create the user
-        BiUserRecord newBiUser = dsl.newRecord(BI_USER)
-                .setEmail(user.getEmail())
-                .setName(user.getName());
-        newBiUser.store();
-
-        return new UserInfoResponse(newBiUser);
+        return new UserInfoResponse(jooqUser);
     }
 
     public UserInfoResponse update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
 
-        // Update the user info
-        BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
+        BiUser biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
@@ -128,47 +106,40 @@ public class UserService {
             biUser.setName(user.getName());
         }
 
-        // Store our record
-        biUser.store();
-        // Get our updated record
-        biUser.refresh();
-        // Convert to return object
+        dao.update(biUser);
+
         return new UserInfoResponse(biUser);
     }
 
     public void delete(UUID userId) throws DoesNotExistException {
 
-        // Delete the user
-        BiUserRecord biUser = dsl.fetchOne(BI_USER, BI_USER.ID.eq(userId));
+        BiUser biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        biUser.delete();
+        dao.deleteById(userId);
     }
 
     private boolean userEmailInUse(String email) {
-        // Check if the users email already exists
-        Integer numExistEmails = dsl.selectCount()
-                .from(BI_USER)
-                .where(BI_USER.EMAIL.eq(email))
-                .fetchOne(0, Integer.class);
 
-        // Check if the email is already in use
-        if (numExistEmails > 0) { return true; }
-        else { return false; }
+        List<BiUser> existingUsers = dao.fetchByEmail(email);
+        if (existingUsers.size() > 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private boolean userEmailInUseExcludingUser(String email, UUID userId) {
-        // Check if the users email already exists
-        Integer numExistEmails = dsl.selectCount()
-                .from(BI_USER)
-                .where(BI_USER.EMAIL.eq(email).and(BI_USER.ID.ne(userId)))
-                .fetchOne(0, Integer.class);
 
-        // Check if the email is already in use
-        if (numExistEmails > 0) { return true; }
-        else { return false; }
+        List<BiUser> existingUsers = dao.fetchByEmail(email);
+        for (BiUser user : existingUsers) {
+            if (!user.getId().equals(userId)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

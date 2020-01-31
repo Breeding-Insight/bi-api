@@ -173,6 +173,7 @@ public class UserController {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
         }
+
     }
 
     @Delete("/users/{userId}")

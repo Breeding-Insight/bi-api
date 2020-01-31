@@ -2,7 +2,7 @@ package org.breedinginsight.api.model.v1.response;
 
 import lombok.*;
 import lombok.experimental.Accessors;
-import org.breedinginsight.dao.db.tables.pojos.JooqBiUser;
+import org.breedinginsight.dao.db.tables.pojos.BiUser;
 import org.breedinginsight.dao.db.tables.records.BiUserRecord;
 
 import java.util.ArrayList;
@@ -29,11 +29,11 @@ public class UserInfoResponse {
             .setRoles(new ArrayList<>());
     }
 
-    public UserInfoResponse(JooqBiUser jooqBiUser) {
-        this.setId(jooqBiUser.getId())
-            .setOrcid(jooqBiUser.getOrcid())
-            .setName(jooqBiUser.getName())
-            .setEmail(jooqBiUser.getEmail())
+    public UserInfoResponse(BiUser biUser) {
+        this.setId(biUser.getId())
+            .setOrcid(biUser.getOrcid())
+            .setName(biUser.getName())
+            .setEmail(biUser.getEmail())
             .setRoles(new ArrayList<>());
     }
 

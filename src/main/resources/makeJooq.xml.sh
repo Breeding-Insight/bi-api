@@ -35,7 +35,7 @@ cat <<EOF > ./src/main/resources/jooq.xml
                     <table>
                         <pojoClass>
                             <transform>PASCAL</transform>
-                            <expression>JOOQ_$0</expression>
+                            <expression>$0</expression>
                         </pojoClass>
                     </table>
                 </tables>
