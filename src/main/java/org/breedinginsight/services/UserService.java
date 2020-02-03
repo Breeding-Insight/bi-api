@@ -2,9 +2,9 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.UserRequest;
-import org.breedinginsight.api.model.v1.response.UserInfoResponse;
 import org.breedinginsight.dao.db.tables.pojos.BiUser;
 import org.breedinginsight.daos.UserDao;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
@@ -23,7 +23,7 @@ public class UserService {
     @Inject
     private UserDao dao;
 
-    public UserInfoResponse get(String orcid) throws DoesNotExistException {
+    public User get(String orcid) throws DoesNotExistException {
 
         // User has been authenticated against orcid, check they have a bi account.
         List<BiUser> users = dao.fetchByOrcid(orcid);
@@ -33,29 +33,29 @@ public class UserService {
         }
 
         // For now, if we have found a record, let them through
-        return new UserInfoResponse(users.get(0));
+        return new User(users.get(0));
     }
 
-    public List<UserInfoResponse> getAll() {
+    public List<User> getAll() {
 
         // Get our users
         List<BiUser> users = dao.findAll();
 
-        List<UserInfoResponse> resultBody = new ArrayList<>();
-        for (BiUser user : users) {
+        List<User> resultBody = new ArrayList<>();
+        for (BiUser queriedUser : users) {
             // We don't have roles right now
             List<String> roles = new ArrayList<>();
             // Generate our response class from db record
-            UserInfoResponse userInfoResponse = new UserInfoResponse(user)
+            User user = new User(queriedUser)
                     .setRoles(roles);
 
-            resultBody.add(userInfoResponse);
+            resultBody.add(user);
         }
 
         return resultBody;
     }
 
-    public UserInfoResponse get(UUID userId) throws DoesNotExistException {
+    public User get(UUID userId) throws DoesNotExistException {
 
         // User has been authenticated against orcid, check they have a bi account.
         BiUser biUser = dao.fetchOneById(userId);
@@ -64,10 +64,10 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        return new UserInfoResponse(biUser);
+        return new User(biUser);
     }
 
-    public UserInfoResponse create(UserRequest user) throws MissingRequiredInfoException, AlreadyExistsException {
+    public User create(UserRequest user) throws MissingRequiredInfoException, AlreadyExistsException {
 
         // Check that name and email was provided
         if (user.getEmail() == null || user.getName() == null) {
@@ -82,10 +82,10 @@ public class UserService {
         jooqUser.setName(user.getName());
         jooqUser.setEmail(user.getEmail());
         dao.insert(jooqUser);
-        return new UserInfoResponse(jooqUser);
+        return new User(jooqUser);
     }
 
-    public UserInfoResponse update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
+    public User update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
 
         BiUser biUser = dao.fetchOneById(userId);
 
@@ -108,7 +108,7 @@ public class UserService {
 
         dao.update(biUser);
 
-        return new UserInfoResponse(biUser);
+        return new User(biUser);
     }
 
     public void delete(UUID userId) throws DoesNotExistException {

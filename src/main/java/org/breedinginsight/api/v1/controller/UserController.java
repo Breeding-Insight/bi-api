@@ -15,6 +15,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -26,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.breedinginsight.api.model.v1.response.UserInfoResponse;
 import org.jooq.exception.DataAccessException;
 
 @Slf4j
@@ -39,19 +39,19 @@ public class UserController {
     @Get("/userinfo")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<UserInfoResponse>> userinfo(Principal principal) {
+    public HttpResponse<Response<User>> userinfo(Principal principal) {
 
         try {
 
             String orcid = principal.getName();
-            UserInfoResponse userInfoResponse = userService.get(orcid);
+            User user = userService.get(orcid);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+            Response<User> response = new Response<>(metadata, user);
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e) {
@@ -66,11 +66,11 @@ public class UserController {
     @Get("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<UserInfoResponse>> users(@PathVariable UUID userId) {
+    public HttpResponse<Response<User>> users(@PathVariable UUID userId) {
 
         try {
 
-            UserInfoResponse userInfoResponse = userService.get(userId);
+            User user = userService.get(userId);
             List<Status> metadataStatus = new ArrayList<>();
             // Parse into our java object
             List<String> roles = new ArrayList<>();
@@ -79,7 +79,7 @@ public class UserController {
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+            Response<User> response = new Response<>(metadata, user);
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e) {
@@ -94,11 +94,11 @@ public class UserController {
     @Get("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<UserInfoResponse>>> users() {
+    public HttpResponse<Response<DataResponse<User>>> users() {
 
         try {
 
-            List<UserInfoResponse> users = userService.getAll();
+            List<User> users = userService.getAll();
             //TODO: Add in pagination
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
@@ -107,7 +107,7 @@ public class UserController {
             //TODO: Put in the actual page size
             Pagination pagination = new Pagination(users.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<DataResponse<UserInfoResponse>> response = new Response<>(metadata, new DataResponse<>(users));
+            Response<DataResponse<User>> response = new Response<>(metadata, new DataResponse<>(users));
             return HttpResponse.ok(response);
 
         } catch (DataAccessException e) {
@@ -119,18 +119,18 @@ public class UserController {
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<UserInfoResponse>> createUser(@Body UserRequest user){
+    public HttpResponse<Response<User>> createUser(@Body UserRequest requestUser){
 
         try {
 
-            UserInfoResponse userInfoResponse = userService.create(user);
+            User user = userService.create(requestUser);
             List<Status> metadataStatus = new ArrayList<>();
             // User is now created successfully
             metadataStatus.add(new Status(StatusCode.INFO, "User created successfully"));
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+            Response<User> response = new Response<>(metadata, user);
             return HttpResponse.ok(response);
 
         } catch (MissingRequiredInfoException e) {
@@ -149,18 +149,18 @@ public class UserController {
     @Put("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<UserInfoResponse>> updateUser(@PathVariable UUID userId, @Body UserRequest user){
+    public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body UserRequest requestUser){
 
         try {
 
-            UserInfoResponse userInfoResponse = userService.update(userId, user);
+            User user = userService.update(userId, requestUser);
             List<Status> metadataStatus = new ArrayList<>();
             // Our user is updated successfully
             metadataStatus.add(new Status(StatusCode.INFO, "User updated successfully"));
             // Construct our metadata and response
             Pagination pagination = new Pagination(1, 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<UserInfoResponse> response = new Response<>(metadata, userInfoResponse);
+            Response<User> response = new Response<>(metadata, user);
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e) {
