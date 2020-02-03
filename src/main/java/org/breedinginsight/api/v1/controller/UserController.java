@@ -19,9 +19,9 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 
 import javax.inject.Inject;
+import javax.validation.Valid;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
@@ -133,9 +133,6 @@ public class UserController {
             Response<User> response = new Response<>(metadata, user);
             return HttpResponse.ok(response);
 
-        } catch (MissingRequiredInfoException e) {
-            log.info(e.getMessage());
-            return HttpResponse.badRequest();
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());

@@ -234,6 +234,26 @@ public class UserControllerIntegrationTest {
 
     @Test
     @Order(7)
+    public void putUsersEmptyName() {
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("email", "emptyname@test.com");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + testUserUUID, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+
+    @Test
+    @Order(8)
     public void deleteUsersExisting() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
