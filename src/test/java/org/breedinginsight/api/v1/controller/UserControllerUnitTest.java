@@ -53,14 +53,14 @@ public class UserControllerUnitTest {
     @Test
     public void getUsersSingleDataAccessException() throws DoesNotExistException {
         // select doesn't throw, fetchOne does but just using select for easier mocking
-        when(userService.get(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(userService.getById(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = userController.users(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void getUserInfoDataAccessException() throws DoesNotExistException {
-        when(userService.get(anyString())).thenThrow(new DataAccessException("TEST"));
+        when(userService.getByOrcid(anyString())).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = userController.userinfo(principal);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }

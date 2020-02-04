@@ -23,7 +23,7 @@ public class UserService {
     @Inject
     private UserDao dao;
 
-    public User get(String orcid) throws DoesNotExistException {
+    public User getByOrcid(String orcid) throws DoesNotExistException {
 
         // User has been authenticated against orcid, check they have a bi account.
         List<BiUser> users = dao.fetchByOrcid(orcid);
@@ -55,7 +55,7 @@ public class UserService {
         return resultBody;
     }
 
-    public User get(UUID userId) throws DoesNotExistException {
+    public User getById(UUID userId) throws DoesNotExistException {
 
         // User has been authenticated against orcid, check they have a bi account.
         BiUser biUser = dao.fetchOneById(userId);

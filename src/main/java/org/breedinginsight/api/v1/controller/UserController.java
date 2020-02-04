@@ -44,7 +44,7 @@ public class UserController {
         try {
 
             String orcid = principal.getName();
-            User user = userService.get(orcid);
+            User user = userService.getByOrcid(orcid);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
@@ -70,7 +70,7 @@ public class UserController {
 
         try {
 
-            User user = userService.get(userId);
+            User user = userService.getById(userId);
             List<Status> metadataStatus = new ArrayList<>();
             // Parse into our java object
             List<String> roles = new ArrayList<>();
