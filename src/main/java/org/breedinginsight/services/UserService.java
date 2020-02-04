@@ -3,25 +3,25 @@ package org.breedinginsight.services;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.pojos.BiUser;
+import org.breedinginsight.daos.TransactionHandler;
 import org.breedinginsight.daos.UserDao;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-@Singleton
 public class UserService {
 
     @Inject
     private UserDao dao;
+    @Inject
+    private TransactionHandler transactionHandler;
 
     public User getByOrcid(String orcid) throws DoesNotExistException {
 
@@ -82,21 +82,40 @@ public class UserService {
 
     public User update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
 
-        BiUser biUser = dao.fetchOneById(userId);
+        BiUser biUserResult = transactionHandler.transactionResult(configuration -> {
 
-        if (biUser == null) {
-            throw new DoesNotExistException("UUID for user does not exist");
-        }
+            // Create our DOA's.
+            UserDao localDoa = new UserDao(configuration);
 
-        if (userEmailInUseExcludingUser(user.getEmail(), userId)) {
-            throw new AlreadyExistsException("Email already exists");
-        }
-        biUser.setEmail(user.getEmail());
-        biUser.setName(user.getName());
+            BiUser biUser = dao.fetchOneById(userId);
 
-        dao.update(biUser);
+            if (biUser == null) {
+                throw new DoesNotExistException("UUID for user does not exist");
+            }
 
-        return new User(biUser);
+            // If values are specified, update them
+            if (user.getEmail() != null) {
+                // Return a conflict with an 'account already exists' flag and message
+                if (userEmailInUseExcludingUser(user.getEmail(), userId)) {
+                    throw new AlreadyExistsException("Email already exists");
+                }
+                biUser.setEmail(user.getEmail());
+            }
+
+            if (user.getName() != null) {
+                biUser.setName(user.getName());
+            }
+
+            dao.update(biUser);
+
+            boolean throwException = true;
+            if (throwException){ throw new Exception("I am the test exception"); }
+
+            return biUser;
+
+        });
+
+        return new User(biUserResult);
     }
 
     public void delete(UUID userId) throws DoesNotExistException {
