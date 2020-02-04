@@ -48,6 +48,7 @@ cat <<EOF > ./src/main/resources/jooq.xml
         </target>
         <generate>
             <pojos>true</pojos>
+            <daos>true</daos>
             <fluentSetters>false</fluentSetters>
             <javaTimeTypes>true</javaTimeTypes>
         </generate>
