@@ -84,9 +84,6 @@ public class UserService {
 
         BiUser biUserResult = transactionHandler.transactionResult(configuration -> {
 
-            // Create our DOA's.
-            UserDao localDoa = new UserDao(configuration);
-
             BiUser biUser = dao.fetchOneById(userId);
 
             if (biUser == null) {
