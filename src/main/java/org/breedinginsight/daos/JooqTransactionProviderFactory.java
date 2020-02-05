@@ -16,8 +16,7 @@ import javax.inject.Singleton;
 import javax.sql.DataSource;
 
 @Factory
-@Replaces(factory = JooqConfigurationFactory.class)
-public class JooqTransactionProviderFactory extends JooqConfigurationFactory {
+public class JooqTransactionProviderFactory {
 
 
     @EachBean(DataSource.class)
@@ -27,22 +26,4 @@ public class JooqTransactionProviderFactory extends JooqConfigurationFactory {
         return new ThreadLocalTransactionProvider(cp);
     }
 
-    @Override
-    public Configuration jooqConfiguration(String name,
-                                           DataSource dataSource,
-                                           @Parameter @Nullable TransactionProvider transactionProvider,
-                                           @Parameter @Nullable Settings settings,
-                                           @Parameter @Nullable ExecutorProvider executorProvider,
-                                           @Parameter @Nullable RecordMapperProvider recordMapperProvider,
-                                           @Parameter @Nullable RecordUnmapperProvider recordUnmapperProvider,
-                                           @Parameter @Nullable MetaProvider metaProvider,
-                                           ApplicationContext ctx) {
-        Configuration config = super.jooqConfiguration(name, dataSource, transactionProvider, settings, executorProvider, recordMapperProvider, recordUnmapperProvider, metaProvider, ctx);
-
-        if(config instanceof DefaultConfiguration) {
-            ((DefaultConfiguration) config).setTransactionProvider(new ThreadLocalTransactionProvider(config.connectionProvider()));
-        }
-
-        return config;
-    }
 }

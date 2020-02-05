@@ -13,6 +13,7 @@ import javax.inject.Inject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -82,37 +83,44 @@ public class UserService {
 
     public User update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
 
-        BiUser biUserResult = transactionHandler.transactionResult(configuration -> {
+        try {
+            Optional<BiUser> biUserResult = transactionHandler.transaction(() -> {
 
-            BiUser biUser = dao.fetchOneById(userId);
+                BiUser biUser = dao.fetchOneById(userId);
 
-            if (biUser == null) {
-                throw new DoesNotExistException("UUID for user does not exist");
-            }
-
-            // If values are specified, update them
-            if (user.getEmail() != null) {
-                // Return a conflict with an 'account already exists' flag and message
-                if (userEmailInUseExcludingUser(user.getEmail(), userId)) {
-                    throw new AlreadyExistsException("Email already exists");
+                if (biUser == null) {
+                    throw new DoesNotExistException("UUID for user does not exist");
                 }
-                biUser.setEmail(user.getEmail());
-            }
 
-            if (user.getName() != null) {
-                biUser.setName(user.getName());
-            }
+                // If values are specified, update them
+                if (user.getEmail() != null) {
+                    // Return a conflict with an 'account already exists' flag and message
+                    if (userEmailInUseExcludingUser(user.getEmail(), userId)) {
+                        throw new AlreadyExistsException("Email already exists");
+                    }
+                    biUser.setEmail(user.getEmail());
+                }
 
-            dao.update(biUser);
+                if (user.getName() != null) {
+                    biUser.setName(user.getName());
+                }
 
-            boolean throwException = true;
-            if (throwException){ throw new Exception("I am the test exception"); }
+                dao.update(biUser);
 
-            return biUser;
+                boolean throwException = true;
+                if (throwException){ throw new DoesNotExistException("I am the test exception"); }
 
-        });
+                return biUser;
 
-        return new User(biUserResult);
+            });
+
+            return new User(biUserResult.get());
+        }
+        catch (Exception e){
+            // Throw any exception that was thrown in transaction
+            throw e;
+        }
+
     }
 
     public void delete(UUID userId) throws DoesNotExistException {

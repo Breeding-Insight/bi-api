@@ -5,29 +5,23 @@ import org.jooq.TransactionalCallable;
 import org.jooq.TransactionalRunnable;
 
 import javax.inject.Inject;
+import javax.swing.text.html.Option;
+import java.util.Optional;
+import java.util.concurrent.Callable;
 
 public class TransactionHandler {
 
     @Inject
     DSLContext dsl;
 
-    public void transaction(TransactionalRunnable jooqFunction) {
-        // Use the jooq transaction to run our transaction
-
-        dsl.transaction(configuration -> jooqFunction.run(configuration));
-    }
-
-    public <T> T transactionResult(TransactionalCallable<T> jooqFunction) {
+    public <T> Optional<T> transaction(Callable<T> jooqFunction) {
 
         T result = dsl.transactionResult(configuration -> {
-            // Use our spring transaction provider
-            SpringTransactionProvider springProvider = new SpringTransactionProvider();
-            configuration.set(springProvider);
-
             // Run our sql
-            return jooqFunction.run(configuration);
+            return jooqFunction.call();
         });
-        return result;
+
+        return Optional.ofNullable(result);
     }
 
 
