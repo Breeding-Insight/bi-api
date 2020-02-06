@@ -45,13 +45,7 @@ public class UserController {
 
             String orcid = principal.getName();
             User user = userService.getByOrcid(orcid);
-            List<Status> metadataStatus = new ArrayList<>();
-            // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Authentication Successful"));
-            // Construct our metadata and response
-            Pagination pagination = new Pagination(1, 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<User> response = new Response<>(metadata, user);
+            Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e) {
@@ -71,15 +65,7 @@ public class UserController {
         try {
 
             User user = userService.getById(userId);
-            List<Status> metadataStatus = new ArrayList<>();
-            // Parse into our java object
-            List<String> roles = new ArrayList<>();
-            // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            // Construct our metadata and response
-            Pagination pagination = new Pagination(1, 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<User> response = new Response<>(metadata, user);
+            Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e) {
@@ -124,13 +110,7 @@ public class UserController {
         try {
 
             User user = userService.create(requestUser);
-            List<Status> metadataStatus = new ArrayList<>();
-            // User is now created successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "User created successfully"));
-            // Construct our metadata and response
-            Pagination pagination = new Pagination(1, 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<User> response = new Response<>(metadata, user);
+            Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
 
         } catch (AlreadyExistsException e) {
@@ -151,13 +131,7 @@ public class UserController {
         try {
 
             User user = userService.update(userId, requestUser);
-            List<Status> metadataStatus = new ArrayList<>();
-            // Our user is updated successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "User updated successfully"));
-            // Construct our metadata and response
-            Pagination pagination = new Pagination(1, 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<User> response = new Response<>(metadata, user);
+            Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e) {

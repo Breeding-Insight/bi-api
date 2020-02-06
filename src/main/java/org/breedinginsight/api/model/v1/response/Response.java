@@ -9,8 +9,10 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 @Accessors(chain=true)
 @ToString
 @NoArgsConstructor
+@RequiredArgsConstructor
 @AllArgsConstructor
 public class Response<T> {
     public Metadata metadata;
+    @NonNull
     public T result;
 }
