@@ -119,7 +119,7 @@ public class UserController {
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> createUser(@Body UserRequest requestUser){
+    public HttpResponse<Response<User>> createUser(@Body @Valid UserRequest requestUser){
 
         try {
 
@@ -146,7 +146,7 @@ public class UserController {
     @Put("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body UserRequest requestUser){
+    public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body @Valid UserRequest requestUser){
 
         try {
 
