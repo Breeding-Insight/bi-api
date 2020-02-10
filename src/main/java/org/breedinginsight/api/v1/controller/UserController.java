@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 
 @Slf4j
@@ -36,9 +35,6 @@ public class UserController {
 
     @Inject
     private UserService userService;
-
-    @Inject
-    private DSLContext dslContext;
 
     @Get("/userinfo")
     @Produces(MediaType.APPLICATION_JSON)
@@ -192,40 +188,6 @@ public class UserController {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
         }
-    }
-
-    @Get("/test")
-    @Secured(SecurityRule.IS_ANONYMOUS)
-    @Produces(MediaType.TEXT_PLAIN)
-    public HttpResponse test() {
-        try {
-            dslContext.transaction(configuration -> {
-                UserService service = this.userService;
-
-
-                service.create(UserRequest.builder()
-                                          .name("Tim")
-                                          .email("foobar@test.com")
-                                          .build());
-
-                throw new RuntimeException("don't commit!");
-
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        log.debug("just do it already");
-        try {
-            userService.create(UserRequest.builder().name("Tim").email("foobar@test.com").build());
-        } catch (MissingRequiredInfoException e) {
-            e.printStackTrace();
-        } catch (AlreadyExistsException e) {
-            e.printStackTrace();
-        }
-
-
-        return HttpResponse.ok("Hello!");
     }
 
 }
