@@ -15,7 +15,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
-import org.breedinginsight.api.v1.controller.metadata.FilterMetadata;
+import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
@@ -39,7 +39,7 @@ public class UserController {
 
     @Get("/userinfo")
     @Produces(MediaType.APPLICATION_JSON)
-    @FilterMetadata
+    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<User>> userinfo(Principal principal) {
 
@@ -61,7 +61,7 @@ public class UserController {
 
     @Get("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @FilterMetadata
+    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<User>> users(@PathVariable UUID userId) {
 
@@ -107,7 +107,7 @@ public class UserController {
 
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
-    @FilterMetadata
+    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<User>> createUser(@Body @Valid UserRequest requestUser){
 
@@ -129,7 +129,7 @@ public class UserController {
 
     @Put("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @FilterMetadata
+    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body @Valid UserRequest requestUser){
 

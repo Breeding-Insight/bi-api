@@ -38,7 +38,7 @@ public class MetadataFilter implements HttpServerFilter {
                     RouteMatch routeMatch = request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse(null);
                     if (routeMatch instanceof  MethodBasedRouteMatch){
                         var methodRoute = ((MethodBasedRouteMatch) routeMatch);
-                        if (methodRoute.hasAnnotation(FilterMetadata.class)) {
+                        if (methodRoute.hasAnnotation(AddMetadata.class)) {
 
                             try {
                                 processMetadata(res);

@@ -4,5 +4,5 @@ import java.lang.annotation.*;
 
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
-public @interface FilterMetadata {
+public @interface AddMetadata {
 }
