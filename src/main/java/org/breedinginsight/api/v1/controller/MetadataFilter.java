@@ -1,4 +1,4 @@
-package org.breedinginsight.api;
+package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.*;
 import io.micronaut.http.annotation.Filter;
