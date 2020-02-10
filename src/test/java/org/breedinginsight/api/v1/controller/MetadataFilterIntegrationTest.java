@@ -1,10 +1,7 @@
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.micronaut.core.convert.value.MutableConvertibleValues;
-import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
@@ -19,17 +16,9 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.UserService;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.*;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
-import javax.annotation.Nonnull;
 import javax.inject.Inject;
-import javax.validation.constraints.Null;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
