@@ -1,4 +1,4 @@
-package org.breedinginsight.api.v1.controller;
+package org.breedinginsight.api.v1.controller.metadata;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -15,6 +15,7 @@ import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.v1.controller.UserController;
 import org.breedinginsight.model.User;
 import org.junit.jupiter.api.*;
 
