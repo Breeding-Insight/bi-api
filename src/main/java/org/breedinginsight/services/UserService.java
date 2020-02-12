@@ -10,7 +10,6 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.validation.Valid;
 
 import java.util.ArrayList;
 import java.util.List;
