@@ -41,13 +41,13 @@ public class ProgramService {
         return null;
     }
 
-    public Program updateProgram(UUID programId, ProgramRequest programRequest) throws DoesNotExistException {
+    public Program update(UUID programId, ProgramRequest programRequest) throws DoesNotExistException {
         /* Update an existing program */
         //TODO
         return null;
     }
 
-    public void archiveProgram(UUID programId) throws DoesNotExistException {
+    public void archive(UUID programId) throws DoesNotExistException {
         /* Archive an existing program */
         //TODO
     }

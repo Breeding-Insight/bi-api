@@ -106,7 +106,7 @@ public class ProgramController {
     public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
         try {
-            Program program = programService.updateProgram(programId, programRequest);
+            Program program = programService.update(programId, programRequest);
             Response response = new Response(program);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -125,7 +125,7 @@ public class ProgramController {
     public HttpResponse archiveProgram(@PathVariable UUID programId) {
         /* Archive a program */
         try {
-            programService.archiveProgram(programId);
+            programService.archive(programId);
         } catch(DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
