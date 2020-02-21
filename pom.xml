@@ -53,12 +53,18 @@
         <lombok.version>1.18.10</lombok.version>
         <gson.version>2.8.6</gson.version>
         <spock.version>1.1.2</spock.version>
-        <jooq.config>src/main/resources/jooq.xml</jooq.config>
-        <flyway-config>src/main/resources/flyway.properties</flyway-config>
-        <flyway-db-config>src/main/resources/flyway.db.properties</flyway-db-config>
     </properties>
 
     <profiles>
+        <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <db.config>src/build/db.config.properties</db.config>
+            </properties>
+        </profile>
         <profile>
             <id>dev</id>
             <activation>
@@ -68,8 +74,7 @@
                 </property>
             </activation>
             <properties>
-                <jooq.config>src/main/resources/jooq.dev.xml</jooq.config>
-                <flyway-db-config>src/main/resources/flyway.db.dev.properties</flyway-db-config>
+                <db.config>src/build/db.config.dev.properties</db.config>
             </properties>
         </profile>
         <profile>
@@ -81,7 +86,7 @@
                 </property>
             </activation>
             <properties>
-                <flyway-db-config>src/test/resources/flyway.db.properties</flyway-db-config>
+                <db.config>test/build/db.config.test.properties</db.config>
             </properties>
         </profile>
     </profiles>
@@ -268,6 +273,23 @@
     <build>
         <plugins>
             <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>properties-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>read-project-properties</goal>
+                        </goals>
+                        <phase>validate</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <files>
+                        <file>${db.config}</file>
+                    </files>
+                </configuration>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
                 <version>3.1.0</version>
@@ -327,7 +349,54 @@
             </executions>
 
             <configuration>
-                <configurationFile>${jooq.config}</configurationFile>
+                <jdbc>
+                    <driver>org.postgresql.Driver</driver>
+                    <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
+                    <user>${DB_USER}</user>
+                    <password>${DB_PASSWORD}</password>
+                </jdbc>
+                <generator>
+                    <database>
+                        <name>org.jooq.meta.postgres.PostgresDatabase</name>
+                        <includes>.*</includes>
+                        <inputSchema>public</inputSchema>
+                        <includeTables>true</includeTables>
+                        <includeUDTs>true</includeUDTs>
+                        <includeRoutines>false</includeRoutines>
+                        <includePrimaryKeys>true</includePrimaryKeys>
+                        <includeUniqueKeys>true</includeUniqueKeys>
+                        <includeForeignKeys>true</includeForeignKeys>
+                        <includeCheckConstraints>true</includeCheckConstraints>
+                        <includeIndexes>false</includeIndexes>
+                        <excludes>
+                            flyway_schema_history
+                        </excludes>
+                    </database>
+
+                    <strategy>
+                        <matchers>
+                            <tables>
+                                <table>
+                                    <pojoClass>
+                                        <transform>PASCAL</transform>
+                                        <expression>$0</expression>
+                                    </pojoClass>
+                                </table>
+                            </tables>
+                        </matchers>
+                    </strategy>
+
+                    <target>
+                        <packageName>org.breedinginsight.dao.db</packageName>
+                        <directory>target/generated-sources/jooq</directory>
+                    </target>
+                    <generate>
+                        <pojos>true</pojos>
+                        <daos>true</daos>
+                        <fluentSetters>false</fluentSetters>
+                        <javaTimeTypes>true</javaTimeTypes>
+                    </generate>
+                </generator>
             </configuration>
         </plugin>
         <plugin>
@@ -335,7 +404,9 @@
             <artifactId>flyway-maven-plugin</artifactId>
             <version>6.0.0</version>
             <configuration>
-                <configFiles>${flyway-config},${flyway-db-config}</configFiles>
+                <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
+                <user>${DB_USER}</user>
+                <password>${DB_PASSWORD}</password>
             </configuration>
             <dependencies>
                 <dependency>

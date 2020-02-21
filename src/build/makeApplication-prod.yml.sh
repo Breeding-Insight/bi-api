@@ -9,7 +9,7 @@
 # JWT_DOMAIN          --- the domain associate with the JWT
 # DB_SERVER           --- the IP:port of the database server
 # DB_NAME             --- the name of the database
-# DB_USERNAME         --- the database username and password
+# DB_USER         --- the database username and password
 # DB_PASSWORD         --- the database password
 cat <<EOF > ./src/main/resources/application-dev.yml
 oauth:
@@ -28,6 +28,6 @@ server:
 datasources:
   default:
     url: jdbc:postgresql://$DB_SERVER/$DB_NAME
-    username: $DB_USERNAME
+    username: $DB_USER
     password: $DB_PASSWORD
 EOF
