@@ -86,7 +86,7 @@
                 </property>
             </activation>
             <properties>
-                <db.config>test/build/db.config.test.properties</db.config>
+                <db.config>src/build/db.config.test.properties</db.config>
             </properties>
         </profile>
     </profiles>

@@ -14,6 +14,7 @@ Thumbs.db
 dependency-reduced-pom.xml
 src/main/resources/*.dev.*
 src/build/*.dev.*
-src/test/build/*.test.*
+src/build/*.test.*
 application-dev.yml
+application-test.yml
 .env
