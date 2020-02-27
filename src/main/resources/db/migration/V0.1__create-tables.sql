@@ -7,7 +7,7 @@ CREATE TABLE bi_user (
 
 CREATE TABLE program (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  species_id UUID,
+  species_id UUID NOT NULL,
   name text,
   abbreviation text,
   objective text,
@@ -22,9 +22,9 @@ CREATE TABLE species (
 
 CREATE TABLE program_user_role (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  program_id UUID,
-  user_id UUID,
-  role_id UUID
+  program_id UUID NOT NULL,
+  user_id UUID NOT NULL,
+  role_id UUID NOT NULL
 );
 
 CREATE TABLE role (
@@ -35,7 +35,7 @@ CREATE TABLE role (
 CREATE TABLE place (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   country_id UUID,
-  program_id UUID,
+  program_id UUID NOT NULL,
   environment_type_id UUID,
   accessibility_id UUID,
   topography_id UUID,
