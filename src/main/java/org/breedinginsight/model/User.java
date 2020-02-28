@@ -2,8 +2,7 @@ package org.breedinginsight.model;
 
 import lombok.*;
 import lombok.experimental.Accessors;
-import org.breedinginsight.dao.db.tables.pojos.BiUser;
-import org.breedinginsight.dao.db.tables.records.BiUserRecord;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,7 +21,7 @@ public class User {
     private String email;
     private List<String> roles;
 
-    public User(BiUser biUser) {
+    public User(BiUserEntity biUser) {
         this.setId(biUser.getId())
                 .setOrcid(biUser.getOrcid())
                 .setName(biUser.getName())

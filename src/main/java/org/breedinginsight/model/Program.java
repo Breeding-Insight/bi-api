@@ -1,4 +1,6 @@
 package org.breedinginsight.model;
 
-public class Program {
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+
+public class Program extends ProgramEntity {
 }

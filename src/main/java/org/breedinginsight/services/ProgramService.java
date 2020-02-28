@@ -4,9 +4,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramDao;
 import org.breedinginsight.model.Location;
-import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -24,24 +24,34 @@ public class ProgramService {
     @Inject
     private ProgramDao dao;
 
-    public Program getById(UUID programId) throws DoesNotExistException {
+    public ProgramEntity getById(UUID programId) throws DoesNotExistException {
         /* Get Program by program ID */
-        return null;
+
+        List<ProgramEntity> programs = dao.fetchById(programId);
+
+        if (programs.size() != 1) {
+            throw new DoesNotExistException("Id not associated with a program");
+        }
+
+        // For now, if we have found a record, let them through
+        //return new org.breedinginsight.model.Program(programs.get(0));
+
+        return programs.get(0);
     }
 
-    public List<Program> getAll(){
+    public List<ProgramEntity> getAll(){
         /* Get all of the programs */
         //TODO
         return new ArrayList<>();
     }
 
-    public Program create(ProgramRequest programRequest) throws AlreadyExistsException {
+    public ProgramEntity create(ProgramRequest programRequest) throws AlreadyExistsException {
         /* Create a program from a request object */
         // TODO
         return null;
     }
 
-    public Program update(UUID programId, ProgramRequest programRequest) throws DoesNotExistException {
+    public ProgramEntity update(UUID programId, ProgramRequest programRequest) throws DoesNotExistException {
         /* Update an existing program */
         //TODO
         return null;
