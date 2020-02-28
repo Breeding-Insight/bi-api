@@ -1,24 +1,3 @@
-create extension "uuid-ossp";
-
-CREATE TABLE base_entity (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4()
-);
-
-CREATE TABLE base_edit_track_entity (
-    created_at_utc timestamptz default timezone('UTC', now()),
-    updated_at_utc timestamptz default timezone('UTC', now()),
-    created_by UUID,
-    updated_by UUID
-);
-
-CREATE TABLE bi_user (
-    like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-    orcid text,
-    name text,
-    email text,
-    like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
-);
-
 CREATE TABLE program (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   species_id UUID NOT NULL,
@@ -93,10 +72,6 @@ CREATE TABLE topography_option (
   name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
-
-ALTER TABLE base_edit_track_entity ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
-
-ALTER TABLE base_edit_track_entity ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 ALTER TABLE program ADD FOREIGN KEY (species_id) REFERENCES species (id);
 
