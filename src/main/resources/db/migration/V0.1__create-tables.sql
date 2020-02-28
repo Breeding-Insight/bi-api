@@ -1,41 +1,57 @@
 create extension "uuid-ossp";
 
+CREATE TABLE base_entity (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4()
+);
+
+CREATE TABLE base_edit_track_entity (
+    created_at_utc timestamptz default timezone('UTC', now()),
+    updated_at_utc timestamptz default timezone('UTC', now()),
+    created_by UUID,
+    updated_by UUID
+);
+
 CREATE TABLE bi_user (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
     orcid text,
     name text,
-    email text
+    email text,
+    like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE program (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   species_id UUID NOT NULL,
   name text,
   abbreviation text,
   objective text,
-  documentation_url text
+  documentation_url text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE species (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   common_name text,
-  description text
+  description text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE program_user_role (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   program_id UUID NOT NULL,
   user_id UUID NOT NULL,
-  role_id UUID NOT NULL
+  role_id UUID NOT NULL,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE role (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  domain text
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+  domain text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE place (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   country_id UUID,
   program_id UUID NOT NULL,
   environment_type_id UUID,
@@ -48,30 +64,39 @@ CREATE TABLE place (
   coordinate_description text,
   slope numeric,
   exposure text,
-  documentation_url text
+  documentation_url text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE country (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   name text,
   alpha_2_code varchar(2),
-  alpha_3_code varchar(3)
+  alpha_3_code varchar(3),
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE environment_type (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+  name text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE accessibility_option (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+  name text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE topography_option (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  name text
+  like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+  name text,
+  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+
+ALTER TABLE base_edit_track_entity ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+
+ALTER TABLE base_edit_track_entity ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 ALTER TABLE program ADD FOREIGN KEY (species_id) REFERENCES species (id);
 
