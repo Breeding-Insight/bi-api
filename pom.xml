@@ -369,7 +369,7 @@
                         <includeCheckConstraints>true</includeCheckConstraints>
                         <includeIndexes>false</includeIndexes>
                         <excludes>
-                            flyway_schema_history
+                            flyway_schema_history|base_entity|base_track_edit_entity
                         </excludes>
                     </database>
 
@@ -379,8 +379,12 @@
                                 <table>
                                     <pojoClass>
                                         <transform>PASCAL</transform>
-                                        <expression>$0</expression>
+                                        <expression>$0_ENTITY</expression>
                                     </pojoClass>
+                                    <tableClass>
+                                        <transform>PASCAL</transform>
+                                        <expression>$0_TABLE</expression>
+                                    </tableClass>
                                 </table>
                             </tables>
                         </matchers>
