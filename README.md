@@ -47,7 +47,7 @@ git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-a
 Run this docker command in terminal to start up a postgres docker container with the empty bi_db database in it. 
 
 ```
-docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgres:11.4
+docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgis/postgis:12-3.0
 ```
 
 ### Build the app
@@ -113,7 +113,7 @@ mvn clean generate-sources -P dev
 Run this docker command in terminal to start up a postgres docker container with the empty test database in it. 
 
 ```
-docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 8765:5432 -d postgres:11.4
+docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 8765:5432 -d postgis/postgis:12-3.0
 ```
 
 Run migrate using the test profile to apply the migrates to the test database.
