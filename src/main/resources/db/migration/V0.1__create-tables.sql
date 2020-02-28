@@ -22,7 +22,7 @@ CREATE TABLE bi_user (
 CREATE TABLE program (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   species_id UUID NOT NULL,
-  name text,
+  name text NOT NULL,
   abbreviation text,
   objective text,
   documentation_url text,
@@ -31,7 +31,7 @@ CREATE TABLE program (
 
 CREATE TABLE species (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-  common_name text,
+  common_name text NOT NULL,
   description text,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
@@ -46,7 +46,7 @@ CREATE TABLE program_user_role (
 
 CREATE TABLE role (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-  domain text,
+  domain text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
@@ -57,7 +57,7 @@ CREATE TABLE place (
   environment_type_id UUID,
   accessibility_id UUID,
   topography_id UUID,
-  name text,
+  name text NOT NULL,
   abbreviation text,
   coordinates geography(POINT, 4326),
   coordinate_uncertainty numeric,
@@ -70,7 +70,7 @@ CREATE TABLE place (
 
 CREATE TABLE country (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-  name text,
+  name text NOT NULL,
   alpha_2_code varchar(2),
   alpha_3_code varchar(3),
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
@@ -78,19 +78,19 @@ CREATE TABLE country (
 
 CREATE TABLE environment_type (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-  name text,
+  name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE accessibility_option (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-  name text,
+  name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
 CREATE TABLE topography_option (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-  name text,
+  name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 
