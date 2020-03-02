@@ -13,15 +13,17 @@ externalDocs:
   description: Find out more about Breeding Insight
   url: http://www.breedinginsight.org
 servers:
-- url: http://localhost:8081/bi/v1
+  - url: http://localhost:8081/bi/v1
 tags:
-- name: users
-  description: User Management
+  - name: users
+    description: User Management
+  - name: programs
+    description: Program Management
 paths:
   /users:
     get:
       tags:
-      - users
+        - users
       summary: Get list of all users in the system.
       description: Get list of all users
       operationId: getUsers
@@ -43,16 +45,16 @@ paths:
                   status: []
                 result:
                   data:
-                  - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
-                    orcid: 1234-4312-4352-6314
-                    name: Bob Smith
-                    email: bob.smith@mail.com
-                    roles: []
-                  - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
-                    orcid: 1234-4312-4352-6314
-                    name: Fred Brown
-                    email: null
-                    roles: []
+                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                      orcid: 1234-4312-4352-6314
+                      name: Bob Smith
+                      email: bob.smith@mail.com
+                      roles: []
+                    - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
+                      orcid: 1234-4312-4352-6314
+                      name: Fred Brown
+                      email: null
+                      roles: []
         "400":
           description: Bad Request
           content:
@@ -81,7 +83,7 @@ paths:
                 to perform this action
     post:
       tags:
-      - users
+        - users
       summary: Create user
       description: Create a new user.
       operationId: createUser
@@ -150,19 +152,19 @@ paths:
   /users/{id}:
     get:
       tags:
-      - users
+        - users
       summary: Get user information
       description: Get a specific user
       operationId: getUserById
       parameters:
-      - name: id
-        in: path
-        description: The id of the user information that needs to be fetched.
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: id
+          in: path
+          description: The id of the user information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -221,19 +223,19 @@ paths:
                 not found
     put:
       tags:
-      - users
+        - users
       summary: Update user information
       description: Update user information with specified data.
       operationId: updateUser
       parameters:
-      - name: id
-        in: path
-        description: id of user to be updated
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: id
+          in: path
+          description: id of user to be updated
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       requestBody:
         description: Updated user object
         content:
@@ -307,19 +309,19 @@ paths:
               example: ERROR - 2018-10-08T20:15:11Z - Email already exists
     delete:
       tags:
-      - users
+        - users
       summary: Delete user
       description: This can only be done by the logged in user.
       operationId: deleteUser
       parameters:
-      - name: id
-        in: path
-        description: id of user to be deleted
-        required: true
-        style: simple
-        explode: false
-        schema:
-          type: string
+        - name: id
+          in: path
+          description: id of user to be deleted
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
       responses:
         "200":
           description: OK
@@ -357,6 +359,634 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+
+  /programs:
+    get:
+      tags:
+        - programs
+      summary: Get list of all programs in the system.
+      description: Get list of all programs
+      operationId: getPrograms
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseResult'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 2
+                    totalPages: 1
+                  status: []
+                result:
+                  data:
+                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                      species_id: 1234-4312-4352-6314
+                      name: Bob Smith's Breeding Program
+                      abbreviation: BSBP
+                      objective: To breed the best grapes in the world
+                      documentation_url: http://www.bobsbestbreeding.com
+                    - id: b2263532-3fa3-49a6-9a66-957f313c8ed4
+                      species_id: 4234-4312-4352-6316
+                      name: Fred's Blueberry Program
+                      abbreviation: FBP
+                      objective: To make the best juicing blueberries
+                      documentation_url: http://www.fredsblueberry.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+
+    post:
+      tags:
+        - programs
+      summary: Create program
+      description: Create a new program.
+      operationId: createProgram
+      requestBody:
+        description: Program information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateProgramRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseSingle'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: e2263532-1fa3-49a6-9a66-957f313c8ed3
+                  species_id: 4234-4312-4352-6314
+                  name: Franks's Salmon
+                  abbreviation: FS
+                  objective: To breed the best salmon in the world
+                  documentation_url: http://www.franks.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /programs/{id}:
+    get:
+      tags:
+        - programs
+      summary: Get program information
+      description: Get a specific program
+      operationId: getProgramById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseSingle'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d2263532-1fa3-49a6-9a66-957f313c8ed2
+                  species_id: 4234-4312-4352-6314
+                  name: Ted's Tomatoes'
+                  abbreviation: TT
+                  objective: To breed the best tomatoes in the world
+                  documentation_url: http://www.teds.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    put:
+      tags:
+        - programs
+      summary: Update program information
+      description: Update program information with specified data.
+      operationId: updateProgram
+      parameters:
+        - name: id
+          in: path
+          description: id of program to be updated
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: Updated program object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateProgramRequest'
+            example:
+              species_id: f4f23375-0033-4d16-a62f-072e3a9198fs
+              name: Tim's program
+              abbreviation: TP
+              objective: To breed some good stuff
+              documentation_url: http://www.timsgoodstuff.com
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: b2f23375-0033-4d16-a62f-072e3a919844
+                  species_id: f4f23375-0033-4d16-a62f-072e3a9198fs
+                  name: Tim's program
+                  abbreviation: TP
+                  objective: To breed some good stuff
+                  documentation_url: http://www.timsgoodstuff.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "409":
+          description: Conflict - Email Already Exists
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+    delete:
+      tags:
+        - programs
+      summary: Archive program
+      description: Archives the indicated program
+      operationId: deleteProgram
+      parameters:
+        - name: id
+          in: path
+          description: id of program to be archived
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+
+  /programs/{id}/users:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get list of all users in the specified program
+      description: Get list of all users in program
+      operationId: getProgramUsers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 2
+                    totalPages: 1
+                  status: []
+                result:
+                  data:
+                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                      orcid: 1234-4312-4352-6314
+                      name: Bob Smith
+                      email: bob.smith@mail.com
+                      roles: []
+                    - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
+                      orcid: 1234-4312-4352-6314
+                      name: Fred Brown
+                      email: null
+                      roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+    post:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Create a user in specified program
+      description: Add user to program if they exist in the system, otherwise create new user and add
+      operationId: createProgramUser
+      requestBody:
+        description: User information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramUserRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: null
+                  name: Bob Smith
+                  email: bob@bob.com
+                  roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+
+  /programs/{id}/users/{userId}:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          description: The id of the user information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get specified user in the specified program
+      description: Get user in the program
+      operationId: getProgramUser
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 2
+                    totalPages: 1
+                  status: []
+                result:
+                  - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                    orcid: 1234-4312-4352-6314
+                    name: Bob Smith
+                    email: bob.smith@mail.com
+                    roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+
+    delete:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          description: The id of the user
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Remove user from the specified program
+      description: Remove user from the specified program
+      operationId: deleteProgramUser
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
 components:
   schemas:
     metadata:
@@ -381,8 +1011,8 @@ components:
             $ref: '#/components/schemas/status'
     status:
       required:
-      - message
-      - messageType
+        - message
+        - messageType
       type: object
       properties:
         message:
@@ -392,10 +1022,10 @@ components:
           type: string
           description: The logging level for the attached message
           enum:
-          - DEBUG
-          - ERROR
-          - WARNING
-          - INFO
+            - DEBUG
+            - ERROR
+            - WARNING
+            - INFO
     user:
       type: object
       properties:
@@ -406,6 +1036,23 @@ components:
           type: string
         email:
           type: string
+    program:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        species_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        abbreviation:
+          type: string
+        objective:
+          type: string
+        documentation_url:
+          type: string
     newUserRequest:
       type: object
       properties:
@@ -415,22 +1062,76 @@ components:
         email:
           type: string
           description: email address of this user
+    newProgramUserRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          description: user id
+        name:
+          type: string
+          description: name of this user
+        email:
+          type: string
+          description: email address of this user
     usersResponse:
       title: usersResponse
       required:
-      - metadata
-      - result
+        - metadata
+        - result
       type: object
       properties:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
           $ref: '#/components/schemas/usersResponse_result'
+
+    updateProgramRequest:
+      type: object
+      properties:
+        species_id:
+          type: string
+          description: uuid of species
+        name:
+          type: string
+          description: name of program
+        abbreviation:
+          type: string
+          description: abbreviation for program name
+        objective:
+          type: string
+          description: program objective
+        documetation_url:
+          type: string
+          description: program documentation url
+
+    programsResponse:
+      title: programsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/programsResponseResult'
+    programsResponseSingle:
+      title: programsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/program'
     usersResponse_1:
       title: usersResponse
       required:
-      - metadata
-      - result
+        - metadata
+        - result
       type: object
       properties:
         metadata:
@@ -454,7 +1155,7 @@ components:
         are zero indexed, so the first page will be page 0 (zero).
     usersResponse_result:
       required:
-      - data
+        - data
       type: object
       properties:
         data:
@@ -462,6 +1163,16 @@ components:
           description: Array of users
           items:
             $ref: '#/components/schemas/user'
+    programsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of programs
+          items:
+            $ref: '#/components/schemas/program'
   responses:
     "400BadRequest":
       description: Bad Request
