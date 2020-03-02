@@ -4,9 +4,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramDao;
 import org.breedinginsight.model.Location;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -33,15 +35,27 @@ public class ProgramService {
             throw new DoesNotExistException("Id not associated with a program");
         }
 
-        // For now, if we have found a record, let them through
-        //return new org.breedinginsight.model.Program(programs.get(0));
+        ProgramEntity programEntity = programs.get(0);
+        ProgramEntity
 
         return programs.get(0);
     }
 
     public List<ProgramEntity> getAll(){
         /* Get all of the programs */
-        //TODO
+
+        List<ProgramEntity> programs = dao.findAll();
+
+        List<ProgramEntity> resultBody = new ArrayList<>();
+        for (ProgramEntity queriedProgram : programs) {
+            // Generate our response class from db record
+            //User user = new User(queriedProgram);
+
+            //resultBody.add(user);
+        }
+
+        //return resultBody;
+
         return new ArrayList<>();
     }
 
