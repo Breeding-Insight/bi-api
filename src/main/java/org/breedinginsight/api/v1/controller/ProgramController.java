@@ -43,7 +43,7 @@ public class ProgramController {
     public HttpResponse<Response<DataResponse<Program>>> getPrograms() {
 
         try {
-            List<ProgramEntity> programs = programService.getAll();
+            List<Program> programs = programService.getAll();
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));

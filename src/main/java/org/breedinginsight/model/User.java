@@ -2,30 +2,42 @@ package org.breedinginsight.model;
 
 import lombok.*;
 import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
+import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
+import org.jooq.Record;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import static org.breedinginsight.dao.db.Tables.BI_USER;
+
 @Getter
 @Setter
 @Accessors(chain=true)
 @ToString
+@SuperBuilder
 @NoArgsConstructor
-public class User {
+public class User extends BiUserEntity{
 
-    private UUID id;
-    private String orcid;
-    private String name;
-    private String email;
     private List<String> roles;
 
     public User(BiUserEntity biUser) {
-        this.setId(biUser.getId())
-                .setOrcid(biUser.getOrcid())
-                .setName(biUser.getName())
-                .setEmail(biUser.getEmail())
-                .setRoles(new ArrayList<>());
+        this.setId(biUser.getId());
+        this.setOrcid(biUser.getOrcid());
+        this.setName(biUser.getName());
+        this.setEmail(biUser.getEmail());
+        this.setRoles(new ArrayList<>());
+    }
+
+    public static User parseSQLRecord(Record record, BiUserTable alias){
+        BiUserTable tableName = alias != null ? alias : BI_USER;
+
+        return User.builder()
+                .id(record.getValue(tableName.ID))
+                .name(record.getValue(tableName.NAME))
+                .email(record.getValue(tableName.EMAIL))
+                .build();
     }
 }

@@ -183,22 +183,24 @@ public class MetadataFilterIntegrationTest {
 
     public Response<User> getResponseMock() {
 
-        User mockedUser = new User();
-        mockedUser.setName("Test User")
-                .setEmail("test@user.com")
-                .setId(UUID.randomUUID())
-                .setOrcid("testorcid");
+        User mockedUser = User.builder()
+            .name("Test User")
+            .email("test@user.com")
+            .id(UUID.randomUUID())
+            .orcid("testorcid")
+            .build();
 
         return new Response<>(mockedUser);
     }
 
     public Response<DataResponse<User>> getDataResponseMock() {
 
-        User mockedUser = new User();
-        mockedUser.setName("Test User")
-                .setEmail("test@user.com")
-                .setId(UUID.randomUUID())
-                .setOrcid("testorcid");
+        User mockedUser = User.builder()
+                .name("Test User")
+                .email("test@user.com")
+                .id(UUID.randomUUID())
+                .orcid("testorcid")
+                .build();
         List<User> users = new ArrayList<>();
         users.add(mockedUser);
         users.add(mockedUser);

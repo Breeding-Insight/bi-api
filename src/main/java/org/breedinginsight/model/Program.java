@@ -1,20 +1,24 @@
 package org.breedinginsight.model;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
+import org.jooq.Record;
+
+import static org.breedinginsight.dao.db.Tables.*;
 
 @Getter
 @Setter
 @Accessors(chain=true)
 @ToString
+@SuperBuilder
 @NoArgsConstructor
 public class Program extends ProgramEntity {
     private SpeciesEntity species;
+    private User createdByUser;
+    private User updatedByUser;
 
     public Program(ProgramEntity programEntity){
 
@@ -30,4 +34,23 @@ public class Program extends ProgramEntity {
         this.setUpdatedBy(programEntity.getUpdatedBy());
 
     }
+
+    public static Program parseSQLRecord(Record record){
+
+        // Generate our program record
+        Program program = Program.builder()
+                .id(record.getValue(PROGRAM.ID))
+                .name(record.getValue(PROGRAM.NAME))
+                .abbreviation(record.getValue(PROGRAM.ABBREVIATION))
+                .objective(record.getValue(PROGRAM.OBJECTIVE))
+                .documentationUrl(record.getValue(PROGRAM.DOCUMENTATION_URL))
+                .createdAtUtc(record.getValue(PROGRAM.CREATED_AT_UTC))
+                .updatedAtUtc(record.getValue(PROGRAM.UPDATED_AT_UTC))
+                .createdBy(record.getValue(PROGRAM.CREATED_BY))
+                .updatedBy(record.getValue(PROGRAM.UPDATED_BY))
+                .build();
+
+        return program;
+    }
+
 }
