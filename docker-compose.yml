@@ -30,7 +30,7 @@ services:
     networks:
       - backend
   bidb:
-    image: postgres:11.4
+    image: postgis/postgis:12-3.0
     environment:
       - POSTGRES_DB=bidb
       - POSTGRES_PASSWORD=${DB_PASSWORD}
@@ -44,7 +44,7 @@ services:
         aliases:
           - dbserver
   bitestdb:
-    image: postgres:11.4
+    image: postgis/postgis:12-3.0
     environment:
       - POSTGRES_DB=bitest
       - POSTGRES_PASSWORD=${DB_PASSWORD}
