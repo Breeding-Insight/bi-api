@@ -779,6 +779,14 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
     post:
       tags:
         - programs
@@ -849,6 +857,14 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
         "409":
           description: Conflict
           content:
@@ -929,6 +945,14 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
 
     delete:
       tags:
@@ -987,6 +1011,377 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+
+  /programs/{id}/locations:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get list of all locations in the specified program
+      description: Get list of all locations in program
+      operationId: getProgramLocations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponse'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  data:
+                    - id:  d2263532-1fa3-49a6-9a66-957f313c8ed2
+                      country_name:  United States of America
+                      country_alpha_2_code:  US
+                      country_alpha_3_code: USA
+                      environment_type:  field
+                      accessibility: public
+                      topography:  valley
+                      name: Nick's Field
+                      abbreviation:  NF
+                      coordinates: {
+                        "geometry": {
+                          "coordinates": [
+                            -76.506042,
+                            42.417373,
+                            123
+                          ],
+                          "type": "Point"
+                        },
+                        "type": "Feature"
+                      }
+                      coordinate_uncertainty:  0
+                      coordinate_description:  Northwest corner of field
+                      slope: 1
+                      exposure: none
+                      documentation_url: http://www.nick.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    post:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Create a location in specified program
+      description: Add location to program if they exist in the system, otherwise create new location and add
+      operationId: createProgramLocation
+      requestBody:
+        description: Location information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramLocationRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponseResult'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id:  d2263532-1fa3-49a6-9a66-957f313c8ed2
+                  country_name:  United States of America
+                  country_alpha_2_code:  US
+                  country_alpha_3_code: USA
+                  environment_type:  field
+                  accessibility: public
+                  topography:  valley
+                  name: Nick's Field
+                  abbreviation:  NF
+                  coordinates: {
+                    "geometry": {
+                      "coordinates": [
+                        -76.506042,
+                        42.417373,
+                        123
+                      ],
+                      "type": "Point"
+                    },
+                    "type": "Feature"
+                  }
+                  coordinate_uncertainty:  0
+                  coordinate_description:  Northwest corner of field
+                  slope: 1
+                  exposure: none
+                  documentation_url: http://www.nick.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+
+  /programs/{id}/locations/{locationId}:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          description: The id of the location
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get specified location in the specified program
+      description: Get location in the program
+      operationId: getProgramLocation
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponseResult'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  - id:  d2263532-1fa3-49a6-9a66-957f313c8ed2
+                    country_name:  United States of America
+                    country_alpha_2_code:  US
+                    country_alpha_3_code: USA
+                    environment_type:  field
+                    accessibility: public
+                    topography:  valley
+                    name: Nick's Field
+                    abbreviation:  NF
+                    coordinates: {
+                      "geometry": {
+                        "coordinates": [
+                          -76.506042,
+                          42.417373,
+                          123
+                        ],
+                        "type": "Point"
+                      },
+                      "type": "Feature"
+                    }
+                    coordinate_uncertainty:  0
+                    coordinate_description:  Northwest corner of field
+                    slope: 1
+                    exposure: none
+                    documentation_url: http://www.nick.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+
+    delete:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          description: The id of the location
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Remove location from the specified program
+      description: Remove location from the specified program
+      operationId: deleteProgramLocation
+      responses:
+        "200":
+          description: OK
+
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+
 components:
   schemas:
     metadata:
@@ -1053,6 +1448,41 @@ components:
           type: string
         documentation_url:
           type: string
+    location:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country_name:
+          type: string
+        country_alpha_2_code:
+          type: string
+        country_alpha_3_code:
+          type: string
+        environment_type:
+          type: string
+        accessibility:
+          type: string
+        topography:
+          type: string
+        name:
+          type: string
+        abbreviation:
+          type: string
+        coordinates:
+          type: string
+          format: geojson
+        coordinate_uncertainty:
+          type: string
+        coordinate_description:
+          type: string
+        slope:
+          type: string
+        exposure:
+          type: string
+        documentation_url:
+          type: string
     newUserRequest:
       type: object
       properties:
@@ -1074,6 +1504,38 @@ components:
         email:
           type: string
           description: email address of this user
+    newProgramLocationRequest:
+      type: object
+      properties:
+        country_name:
+          type: string
+        country_alpha_2_code:
+          type: string
+        country_alpha_3_code:
+          type: string
+        environment_type:
+          type: string
+        accessibility:
+          type: string
+        topography:
+          type: string
+        name:
+          type: string
+        abbreviation:
+          type: string
+        coordinates:
+          type: string
+          format: geojson
+        coordinate_uncertainty:
+          type: string
+        coordinate_description:
+          type: string
+        slope:
+          type: string
+        exposure:
+          type: string
+        documentation_url:
+          type: string
     usersResponse:
       title: usersResponse
       required:
@@ -1085,13 +1547,27 @@ components:
           $ref: '#/components/schemas/metadata'
         result:
           $ref: '#/components/schemas/usersResponse_result'
+    locationsResponse:
+      title: locationsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/locationsResponseResult'
 
     updateProgramRequest:
       type: object
       properties:
-        species_id:
+        species_common_name:
           type: string
-          description: uuid of species
+          description: name of species
+        species_description:
+          type: string
+          description: description of species
         name:
           type: string
           description: name of program
@@ -1163,6 +1639,16 @@ components:
           description: Array of users
           items:
             $ref: '#/components/schemas/user'
+    locationsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of locations
+          items:
+            $ref: '#/components/schemas/location'
     programsResponseResult:
       required:
         - data
