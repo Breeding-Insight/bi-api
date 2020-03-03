@@ -1,13 +1,10 @@
 package org.breedinginsight.daos;
 
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
-import org.breedinginsight.dao.db.tables.records.ProgramRecord;
+import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.model.Program;
-import org.jooq.Configuration;
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Result;
+import org.breedinginsight.model.Species;
+import org.breedinginsight.model.User;
+import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -26,42 +23,46 @@ public class ProgramDao extends org.breedinginsight.dao.db.tables.daos.ProgramDa
         super(config);
     }
 
-    public List<Program> getAll(UUID programId){
+    public List<Program> getSet(List<UUID> programIds){
+        return getPrograms(programIds);
+    }
 
-        Result<Record> queryResults = dsl.select()
-            .from(PROGRAM)
-            .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
-            .leftJoin(BI_USER).on(PROGRAM.CREATED_BY.eq(BI_USER.ID))
-            .leftJoin(BI_USER).on(PROGRAM.UPDATED_BY.eq(BI_USER.ID))
-            .where(PROGRAM.ID.eq(programId))
-            .fetch();
+    public List<Program> getAll()
+    {
+        return getPrograms(null);
+    }
 
-        for (Record record: queryResults){
+    private List<Program> getPrograms(List<UUID> programIds){
 
-            // Generate our program record
-            Program program = new Program();
-            program.setId(record.getValue(PROGRAM.ID));
-            program.setName(record.getValue(PROGRAM.NAME));
-            program.setAbbreviation(record.getValue(PROGRAM.ABBREVIATION));
-            program.setObjective(record.getValue(PROGRAM.OBJECTIVE));
-            program.setDocumentationUrl(record.getValue(PROGRAM.DOCUMENTATION_URL));
-            program.setCreatedAtUtc(record.getValue(PROGRAM.CREATED_AT_UTC));
-            program.setUpdatedAtUtc(record.getValue(PROGRAM.UPDATED_AT_UTC));
-            program.setCreatedBy(record.getValue(PROGRAM.CREATED_BY));
-            program.setUpdatedBy(record.getValue(PROGRAM.UPDATED_BY));
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+        Result<Record> queryResult;
+        List<Program> resultPrograms = new ArrayList<>();
 
-            // Generate our species to attach to our program
-            SpeciesEntity speciesEntity = new SpeciesEntity();
-            speciesEntity.setId(record.getValue(SPECIES.ID));
-            speciesEntity.setCommonName(record.getValue(SPECIES.COMMON_NAME));
-            program.setSpecies(speciesEntity);
+        SelectOnConditionStep<Record> query = dsl.select()
+                .from(PROGRAM)
+                .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
+                .leftJoin(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                .leftJoin(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
 
-            // Generate our created by user to attach to our program
-
-            // Generate our updated by user to attach to our program
+        if (programIds != null){
+            queryResult = query
+                    .where(PROGRAM.ID.in(programIds))
+                    .fetch();
+        } else {
+            queryResult = query.fetch();
         }
 
-        return new ArrayList<>();
+        // Parse the result
+        for (Record record: queryResult){
+            Program program = Program.parseSQLRecord(record);
+            program.setSpecies(Species.parseSQLRecord(record));
+            program.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
+            program.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
+            resultPrograms.add(program);
+        }
+
+        return resultPrograms;
     }
 }
 

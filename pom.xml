@@ -269,11 +269,6 @@
             <version>${gson.version}</version>
             <scope>test</scope>
         </dependency>
-        <dependency>
-            <groupId>org.breedinginsight</groupId>
-            <artifactId>bi-jooq-codegen</artifactId>
-            <version>1.0-SNAPSHOT</version>
-        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -361,6 +356,7 @@
                     <password>${DB_PASSWORD}</password>
                 </jdbc>
                 <generator>
+                    <name>org.breedinginsight.generation.JooqDaoGenerator</name>
                     <database>
                         <name>org.jooq.meta.postgres.PostgresDatabase</name>
                         <includes>.*</includes>
@@ -407,6 +403,13 @@
                     </generate>
                 </generator>
             </configuration>
+            <dependencies>
+                <dependency>
+                    <groupId>org.breedinginsight</groupId>
+                    <artifactId>bi-jooq-codegen</artifactId>
+                    <version>1.0-SNAPSHOT</version>
+                </dependency>
+            </dependencies>
         </plugin>
         <plugin>
             <groupId>org.flywaydb</groupId>

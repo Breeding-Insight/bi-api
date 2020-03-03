@@ -36,27 +36,16 @@ public class ProgramService {
         }
 
         ProgramEntity programEntity = programs.get(0);
-        ProgramEntity
 
         return programs.get(0);
     }
 
-    public List<ProgramEntity> getAll(){
+    public List<Program> getAll(){
         /* Get all of the programs */
 
-        List<ProgramEntity> programs = dao.findAll();
+        List<Program> programs = dao.getAll();
 
-        List<ProgramEntity> resultBody = new ArrayList<>();
-        for (ProgramEntity queriedProgram : programs) {
-            // Generate our response class from db record
-            //User user = new User(queriedProgram);
-
-            //resultBody.add(user);
-        }
-
-        //return resultBody;
-
-        return new ArrayList<>();
+        return programs;
     }
 
     public ProgramEntity create(ProgramRequest programRequest) throws AlreadyExistsException {
