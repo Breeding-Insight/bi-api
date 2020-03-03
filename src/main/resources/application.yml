@@ -60,6 +60,8 @@ micronaut:
         enabled: true
         get-allowed: true
         path: /logout
+jackson:
+  date-format: yyyy-MM-dd'T'HH:mm:ssZ
 flyway:
   datasources:
     default:
