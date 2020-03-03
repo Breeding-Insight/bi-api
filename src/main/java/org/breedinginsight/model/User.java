@@ -7,6 +7,7 @@ import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.jooq.Record;
 
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -31,13 +32,15 @@ public class User extends BiUserEntity{
         this.setRoles(new ArrayList<>());
     }
 
-    public static User parseSQLRecord(Record record, BiUserTable alias){
-        BiUserTable tableName = alias != null ? alias : BI_USER;
-
+    public static User parseSQLRecord(Record record, @NotNull BiUserTable tableName){
         return User.builder()
                 .id(record.getValue(tableName.ID))
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .build();
+    }
+
+    public static User parseSQLRecord(Record record) {
+        return parseSQLRecord(record, BI_USER);
     }
 }

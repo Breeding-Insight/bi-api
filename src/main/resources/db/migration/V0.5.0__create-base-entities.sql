@@ -5,8 +5,8 @@ CREATE TABLE base_entity (
 );
 
 CREATE TABLE base_edit_track_entity (
-    created_at_utc timestamptz default timezone('UTC', now()),
-    updated_at_utc timestamptz default timezone('UTC', now()),
+    created_at_utc timestamptz(0) default now(),
+    updated_at_utc timestamptz(0) default now(),
     created_by UUID,
     updated_by UUID
 );
