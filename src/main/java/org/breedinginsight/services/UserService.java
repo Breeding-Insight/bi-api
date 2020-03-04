@@ -10,9 +10,11 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.swing.text.html.Option;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -66,6 +68,21 @@ public class UserService {
         return new User(biUser);
     }
 
+    public Optional<User> getByIdOptional(UUID userId) {
+
+        Optional<User> retVal = Optional.empty();
+
+        // User has been authenticated against orcid, check they have a bi account.
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            return Optional.empty();
+        }
+
+        return retVal;
+    }
+
+
     public User create(UserRequest user) throws AlreadyExistsException {
 
         if (userEmailInUse(user.getEmail())) {
@@ -78,6 +95,7 @@ public class UserService {
         dao.insert(jooqUser);
         return new User(jooqUser);
     }
+
 
     public User update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
 
