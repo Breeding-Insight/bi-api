@@ -19,6 +19,11 @@ import static org.breedinginsight.dao.db.Tables.SPECIES;
 @NoArgsConstructor
 public class Species extends SpeciesEntity {
 
+    public Species(SpeciesEntity speciesEntity){
+        this.setId(speciesEntity.getId());
+        this.setCommonName(speciesEntity.getCommonName());
+    }
+
     public static Species parseSQLRecord(Record record) {
         return Species.builder()
                 .id(record.getValue(SPECIES.ID))

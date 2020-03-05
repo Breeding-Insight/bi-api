@@ -1,6 +1,8 @@
 package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.dao.db.tables.records.ProgramRecord;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
@@ -23,8 +25,20 @@ public class ProgramDao extends org.breedinginsight.dao.db.tables.daos.ProgramDa
         super(config);
     }
 
-    public List<Program> getSet(List<UUID> programIds){
+    public List<Program> get(List<UUID> programIds){
         return getPrograms(programIds);
+    }
+
+    public List<Program> get(UUID programId) {
+        List<UUID> programList = new ArrayList<>();
+        programList.add(programId);
+        return getPrograms(programList);
+    }
+
+    public ProgramEntity insertThenFetch(ProgramEntity programEntity) {
+        this.insert(programEntity);
+        programEntity = this.fetchOneById(programEntity.getId());
+        return programEntity;
     }
 
     public List<Program> getAll()

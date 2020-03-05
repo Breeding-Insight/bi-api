@@ -3,9 +3,9 @@ package org.breedinginsight.api.model.v1.request;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.util.UUID;
 
 @Getter
 @Setter
@@ -14,13 +14,9 @@ import javax.validation.constraints.NotNull;
 @AllArgsConstructor
 @NoArgsConstructor
 @Introspected
-public class ProgramRequest {
+public class SpeciesRequest {
     @NotBlank
-    private String name;
-    private String abbreviation;
-    private String objective;
-    private String documentationUrl;
     @NotNull
-    @Valid
-    private SpeciesRequest species;
+    private UUID id;
+    private String commonName;
 }
