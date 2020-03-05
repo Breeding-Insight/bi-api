@@ -49,6 +49,7 @@ public class ProgramControllerIntegrationTest {
 
     }
 
+    //region Program User Tests
     @Test
     public void postProgramsUsersInvalidProgram() {
         JsonObject requestBody = new JsonObject();
@@ -198,6 +199,7 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
+    //endregion
 
 
 }
