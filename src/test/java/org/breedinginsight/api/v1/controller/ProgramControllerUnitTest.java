@@ -9,6 +9,7 @@ import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -63,15 +64,17 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void postProgramsDataAccessException() throws DoesNotExistException {
-        when(programService.create(any(ProgramRequest.class))).thenThrow(new DataAccessException("TEST"));
+        User user = new User();
+        when(programService.create(any(ProgramRequest.class), user)).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.createProgram(principal, new ProgramRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void putProgramsDataAccessException() throws DoesNotExistException {
-        when(programService.update(any(UUID.class), any(ProgramRequest.class))).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = programController.updateProgram(UUID.randomUUID(), new ProgramRequest());
+        User user = new User();
+        when(programService.update(any(UUID.class), any(ProgramRequest.class), user)).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = programController.updateProgram(principal, UUID.randomUUID(), new ProgramRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
