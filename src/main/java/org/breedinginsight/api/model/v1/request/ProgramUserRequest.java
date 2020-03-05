@@ -4,6 +4,7 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import org.breedinginsight.api.model.v1.validators.ProgramUserValid;
 
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -22,5 +23,5 @@ public class ProgramUserRequest {
 
     private String email;
 
-    private UUID roleId;
+    private List<UUID> roleIds;
 }

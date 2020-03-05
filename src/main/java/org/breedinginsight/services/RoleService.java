@@ -53,4 +53,8 @@ public class RoleService {
         return Optional.of(role);
     }
 
+    public List<RoleEntity> getRolesByIds(List<UUID> roleIds) {
+        return dao.fetchById(roleIds.stream().toArray(UUID[]::new));
+    }
+
 }

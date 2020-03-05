@@ -1,5 +1,6 @@
 package org.breedinginsight.api.v1.controller;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -27,11 +28,12 @@ public class ProgramControllerIntegrationTest {
     //(species_id, name, abbreviation, objective, documentation_url)
     //VALUES
     //('56849650-7f0e-46c3-bf9c-f86e814d4ecb', 'Nick Grapes', 'NG', 'Breed grapes', 'grapes.com');
-    String validProgram = "458bd904-9746-4ec8-b048-28907925999c";
+    String validProgram = "dfa47289-da43-471c-a944-77965b7af076";
     String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String validUser = "74a6ebfe-d114-419b-8bdc-2f7b52d26172";
+    String validUser = "bea6e697-0e14-44f1-96e8-523965bb33c8";
     String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String validRole = "5077b080-ba7f-4402-b059-3dfb907d40a6";
+    String validRole = "6c6d1d9d-1f6d-47e4-8ac7-46ed1b78536e";
+    String validSpecies = "6f4b7238-af95-4178-bae2-89bbfbb2e3b5";
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -43,7 +45,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @AfterAll
-    void cleanup() {
+    void teardown() {
 
     }
 
@@ -52,7 +54,7 @@ public class ProgramControllerIntegrationTest {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", "test");
         requestBody.addProperty("email", "test@test.com");
-        requestBody.addProperty("roleId", validRole);
+        requestBody.addProperty("roleIds", validRole);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+invalidProgram+"/users", requestBody.toString())
@@ -71,7 +73,9 @@ public class ProgramControllerIntegrationTest {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", "test");
         requestBody.addProperty("email", "test@test.com");
-        requestBody.addProperty("roleId", validRole);
+        JsonArray roles = new JsonArray();
+        roles.add(validRole);
+        requestBody.add("roleIds", roles);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram+"/users", requestBody.toString())
@@ -118,11 +122,14 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
+
     @Test
     public void postProgramsUsersOnlyIdSuccess() {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("id", validUser);
-        requestBody.addProperty("roleId", validRole);
+        JsonArray roles = new JsonArray();
+        roles.add(validRole);
+        requestBody.add("roleIds", roles);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram+"/users", requestBody.toString())
@@ -158,6 +165,38 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
+    @Test
+    public void deleteProgramsUsersSuccess() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+validProgram+"/users/"+validUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    public void createProgramSuccess() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Nick's Program");
+        requestBody.addProperty("abbreviation", "NP");
+        requestBody.addProperty("objective", "To breed stuff");
+        requestBody.addProperty("documentationUrl", "www.nick.com");
+
+        JsonObject species = new JsonObject();
+        species.addProperty("id",validSpecies);
+        species.addProperty("commonName", "Grape");
+        requestBody.add("species", species);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
 
 
 

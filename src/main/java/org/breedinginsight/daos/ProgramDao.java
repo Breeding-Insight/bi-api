@@ -54,6 +54,11 @@ public class ProgramDao extends org.breedinginsight.dao.db.tables.daos.ProgramDa
         return getPrograms(null);
     }
 
+    public void deleteProgramUserRoles(UUID programId, UUID userId) {
+        dsl.delete(PROGRAM_USER_ROLE)
+                .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId).and(PROGRAM_USER_ROLE.USER_ID.eq(userId))).execute();
+    }
+
     private List<Program> getPrograms(List<UUID> programIds){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
