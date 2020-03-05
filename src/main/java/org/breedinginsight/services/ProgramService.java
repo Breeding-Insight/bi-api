@@ -7,10 +7,7 @@ import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.ProgramUserRoleDao;
 import org.breedinginsight.dao.db.tables.daos.RoleDao;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
-import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
+import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.dao.db.tables.ProgramTable;
 import org.breedinginsight.dao.db.tables.records.ProgramRecord;
@@ -41,25 +38,22 @@ public class ProgramService {
     private ProgramDao dao;
     @Inject
     private SpeciesService speciesService;
-
     @Inject
     private ProgramUserRoleDao programUserRoleDao;
-
     @Inject
     private UserService userService;
-
     @Inject
     private RoleService roleService;
 
-    public ProgramEntity getById(UUID programId) throws DoesNotExistException {
+    public Program getById(UUID programId) throws DoesNotExistException {
         /* Get Program by program ID */
-        Optional<ProgramEntity> program = getByIdOptional(programId);
+        List<Program> programs = dao.get(programId);
 
-        if (program.isEmpty()) {
+        if (programs.size() <= 0) {
             throw new DoesNotExistException("Id not associated with a program");
         }
 
-        return program.get();
+        return programs.get(0);
     }
 
     public Optional<ProgramEntity> getByIdOptional(UUID programId) {
@@ -81,15 +75,14 @@ public class ProgramService {
         return programs;
     }
 
-    public ProgramEntity create(ProgramRequest programRequest) throws DoesNotExistException {
+    public Program create(ProgramRequest programRequest, User actingUser) throws DoesNotExistException {
         /* Create a program from a request object */
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
-        try {
-            speciesService.getById(speciesRequest);
-        } catch (DoesNotExistException e){
-            throw new DoesNotExistException(e.toString());
+        Optional<SpeciesEntity> speciesEntity = speciesService.getByIdOptional(speciesRequest.getId());
+        if (speciesEntity.isEmpty()){
+            throw new DoesNotExistException("Species does not exist");
         }
 
         // Parse and create the program object
@@ -99,15 +92,18 @@ public class ProgramService {
                 .abbreviation(programRequest.getAbbreviation())
                 .objective(programRequest.getObjective())
                 .documentationUrl(programRequest.getDocumentationUrl())
+                .createdBy(actingUser.getId())
+                .updatedBy(actingUser.getId())
                 .build();
 
         // Insert and update
-        programEntity = dao.insertThenFetch(programEntity);
+        dao.insert(programEntity);
+        Program program = dao.get(programEntity.getId()).get(0);
 
-        return programEntity;
+        return program;
     }
 
-    public ProgramEntity update(UUID programId, ProgramRequest programRequest) throws DoesNotExistException {
+    public Program update(UUID programId, ProgramRequest programRequest, User actingUser) throws DoesNotExistException {
         /* Update an existing program */
 
         ProgramEntity programEntity = dao.fetchOneById(programId);
@@ -115,12 +111,11 @@ public class ProgramService {
             throw new DoesNotExistException("Program does not exist");
         }
 
-        // Check that the species exists
+        // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
-        try {
-            speciesService.getById(speciesRequest);
-        } catch (DoesNotExistException e){
-            throw new DoesNotExistException(e.toString());
+        Optional<SpeciesEntity> speciesEntity = speciesService.getByIdOptional(speciesRequest.getId());
+        if (speciesEntity.isEmpty()){
+            throw new DoesNotExistException("Species does not exist");
         }
 
         // Parse and create the program object
@@ -130,10 +125,12 @@ public class ProgramService {
         programEntity.setObjective(programRequest.getObjective());
         programEntity.setDocumentationUrl(programRequest.getDocumentationUrl());
         programEntity.setUpdatedAtUtc(OffsetDateTime.now());
+        programEntity.setUpdatedBy(actingUser.getId());
 
         dao.update(programEntity);
+        Program program = dao.get(programEntity.getId()).get(0);
 
-        return programEntity;
+        return program;
     }
 
     public void archive(UUID programId) throws DoesNotExistException {

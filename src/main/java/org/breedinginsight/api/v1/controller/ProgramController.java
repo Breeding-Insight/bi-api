@@ -20,6 +20,7 @@ import org.breedinginsight.model.Location;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.exception.DataAccessException;
@@ -37,6 +38,8 @@ public class ProgramController {
 
     @Inject
     private ProgramService programService;
+    @Inject
+    private UserService userService;
 
     @Get("/programs")
     @Produces(MediaType.APPLICATION_JSON)
@@ -88,8 +91,9 @@ public class ProgramController {
     public HttpResponse<Response<Program>> createProgram(Principal principal, @Valid @Body ProgramRequest programRequest) {
 
         try {
-
-            ProgramEntity program = programService.create(programRequest);
+            String orcid = principal.getName();
+            User user = userService.getByOrcid(orcid);
+            ProgramEntity program = programService.create(programRequest, user);
             Response response = new Response(program);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -106,10 +110,12 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
+    public HttpResponse<Response<Program>> updateProgram(Principal principal, @PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
         try {
-            ProgramEntity program = programService.update(programId, programRequest);
+            String orcid = principal.getName();
+            User user = userService.getByOrcid(orcid);
+            ProgramEntity program = programService.update(programId, programRequest, user);
             Response response = new Response(program);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){

@@ -2,10 +2,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.daos.RoleDao;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
-import org.breedinginsight.daos.ProgramDao;
-import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
