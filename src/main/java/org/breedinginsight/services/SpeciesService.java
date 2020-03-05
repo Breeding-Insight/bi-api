@@ -9,6 +9,8 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,9 +21,20 @@ public class SpeciesService {
     @Inject
     private SpeciesDao dao;
 
-    public Species getById(SpeciesRequest speciesRequest) throws DoesNotExistException{
+    public List<Species> getAll() {
+        List<SpeciesEntity> speciesEntities = dao.findAll();
 
-        SpeciesEntity speciesEntity = dao.fetchOneById(speciesRequest.getId());
+        List<Species> species = new ArrayList<>();
+        for (SpeciesEntity speciesEntity: speciesEntities){
+            species.add(new Species(speciesEntity));
+        }
+
+        return species;
+    }
+
+    public Species getById(UUID speciesId) throws DoesNotExistException{
+
+        SpeciesEntity speciesEntity = dao.fetchOneById(speciesId);
 
         if (speciesEntity == null){
             throw new DoesNotExistException("Species does not exist");
