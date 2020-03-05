@@ -24,6 +24,7 @@ import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.lang.reflect.Array;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -151,7 +152,6 @@ public class ProgramService {
     public List<User> getProgramUsers(UUID programId) throws DoesNotExistException {
         /* Get all of the users in the program */
         //TODO
-        //List<ProgramUserRoleEntity> users = programUserRoleDao.fetchByProgramId(programId);
 
 
         return new ArrayList<>();
@@ -193,18 +193,23 @@ public class ProgramService {
             }
         }
 
-        Optional<RoleEntity> role = roleService.getByIdOptional(programUserRequest.getRoleId());
-        if (role.isEmpty()) {
+        List<RoleEntity> roles = roleService.getRolesByIds(programUserRequest.getRoleIds());
+        if (roles.isEmpty()) {
             throw new DoesNotExistException("Role does not exist");
         }
 
-        ProgramUserRoleEntity programUser = ProgramUserRoleEntity.builder()
-                .userId(user.getId())
-                .programId(programId)
-                .roleId(role.get().getId())
-                .build();
+        List<ProgramUserRoleEntity> programUserRoles = new ArrayList<>();
 
-        programUserRoleDao.insert(programUser);
+        for (RoleEntity role : roles) {
+            ProgramUserRoleEntity programUser = ProgramUserRoleEntity.builder()
+                    .userId(user.getId())
+                    .programId(programId)
+                    .roleId(role.getId())
+                    .build();
+            programUserRoles.add(programUser);
+        }
+
+        programUserRoleDao.insert(programUserRoles);
 
         return user;
     }
@@ -212,13 +217,17 @@ public class ProgramService {
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
         /* Remove a user from a program, but don't delete the user. */
 
-        getById(programId); // throws DoesNotExist if program doesn't exist
-        userService.getById(userId); // throws DoesNotExist if user doesn't exist
+        if (getByIdOptional(programId).isEmpty())
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
 
-        // TODO: need to know what role unless they can only have one
-        ProgramUserRoleEntity entity = ProgramUserRoleEntity.builder().programId(programId).userId(userId).build();
+        if (userService.getByIdOptional(userId).isEmpty())
+        {
+            throw new DoesNotExistException("User id does not exist");
+        }
 
-        programUserRoleDao.delete(entity);
+        dao.deleteProgramUserRoles(programId, userId);
     }
 
     public List<Location> getProgramLocations(UUID programId) throws DoesNotExistException {

@@ -19,6 +19,6 @@ public class ValidatorFactory {
     ConstraintValidator<ProgramUserValid, ProgramUserRequest> programUserValidator() {
         return (value, annotationMetadata, context) ->
                 // TODO: check e-mail, make sure same as other validations
-                (value.getId() != null || (value.getName() != null && value.getEmail() != null)) && value.getRoleId() != null;
+                (value.getId() != null || (value.getName() != null && value.getEmail() != null)) && value.getRoleIds() != null;
     }
 }
