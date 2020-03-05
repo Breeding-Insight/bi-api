@@ -5,6 +5,7 @@ CREATE TABLE program (
   abbreviation text,
   objective text,
   documentation_url text,
+  active boolean NOT NULL DEFAULT true,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 

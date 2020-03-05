@@ -80,8 +80,8 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void deleteProgramsDataAccessException() throws DoesNotExistException {
-        doThrow(new DataAccessException("TEST")).when(programService).archive(any(UUID.class));
-        HttpResponse response = programController.archiveProgram(UUID.randomUUID());
+        doThrow(new DataAccessException("TEST")).when(programService).archive(any(UUID.class), new User());
+        HttpResponse response = programController.archiveProgram(principal, UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
