@@ -1,7 +1,6 @@
 package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -15,8 +14,7 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
-import static io.micronaut.http.HttpRequest.GET;
-import static io.micronaut.http.HttpRequest.POST;
+import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -32,6 +30,7 @@ public class ProgramControllerIntegrationTest {
     String validProgram = "458bd904-9746-4ec8-b048-28907925999c";
     String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String validUser = "74a6ebfe-d114-419b-8bdc-2f7b52d26172";
+    String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String validRole = "5077b080-ba7f-4402-b059-3dfb907d40a6";
 
     @Inject
@@ -133,8 +132,33 @@ public class ProgramControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
-
     }
+
+    @Test
+    public void deleteProgramsUsersNotExistingProgramId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+invalidProgram+"/users/"+invalidProgram).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void deleteProgramsUsersNotExistingUserId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+validProgram+"/users/"+invalidUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+
 
 
 }
