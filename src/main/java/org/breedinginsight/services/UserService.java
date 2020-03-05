@@ -58,19 +58,16 @@ public class UserService {
 
     public User getById(UUID userId) throws DoesNotExistException {
 
-        // User has been authenticated against orcid, check they have a bi account.
-        BiUserEntity biUser = dao.fetchOneById(userId);
+        Optional<User> user = getByIdOptional(userId);
 
-        if (biUser == null) {
+        if (user.isEmpty()) {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        return new User(biUser);
+        return user.get();
     }
 
     public Optional<User> getByIdOptional(UUID userId) {
-
-        Optional<User> retVal = Optional.empty();
 
         // User has been authenticated against orcid, check they have a bi account.
         BiUserEntity biUser = dao.fetchOneById(userId);
@@ -79,21 +76,31 @@ public class UserService {
             return Optional.empty();
         }
 
-        return retVal;
+        return Optional.of(new User(biUser));
     }
-
 
     public User create(UserRequest user) throws AlreadyExistsException {
 
-        if (userEmailInUse(user.getEmail())) {
+        Optional<User> created = createOptional(user);
+
+        if (created.isEmpty()) {
             throw new AlreadyExistsException("Email already exists");
+        }
+
+        return created.get();
+    }
+
+    public Optional<User> createOptional(UserRequest user) {
+
+        if (userEmailInUse(user.getEmail())) {
+            return Optional.empty();
         }
 
         BiUserEntity jooqUser = new BiUserEntity();
         jooqUser.setName(user.getName());
         jooqUser.setEmail(user.getEmail());
         dao.insert(jooqUser);
-        return new User(jooqUser);
+        return Optional.of(new User(jooqUser));
     }
 
 

@@ -23,6 +23,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -43,18 +44,24 @@ public class ProgramService {
 
     public ProgramEntity getById(UUID programId) throws DoesNotExistException {
         /* Get Program by program ID */
+        Optional<ProgramEntity> program = getByIdOptional(programId);
 
-        List<ProgramEntity> programs = dao.fetchById(programId);
-
-        if (programs.size() != 1) {
+        if (program.isEmpty()) {
             throw new DoesNotExistException("Id not associated with a program");
         }
 
-        ProgramEntity programEntity = programs.get(0);
+        return program.get();
+    }
 
-        //ProgramEntity
+    public Optional<ProgramEntity> getByIdOptional(UUID programId) {
 
-        return programs.get(0);
+        ProgramEntity program = dao.fetchOneById(programId);
+
+        if (program == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(program);
     }
 
     public List<Program> getAll(){
@@ -103,25 +110,39 @@ public class ProgramService {
 
         //TODO: Jooq transaction stuff maybe
 
-        getById(programId); // throws DoesNotExist if program doesn't exist
+        if (getByIdOptional(programId).isEmpty())
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
 
-        try {
-            user = userService.getById(programUserRequest.getId());
-        } catch (DoesNotExistException e) {
+        Optional<User> optUser = userService.getByIdOptional(programUserRequest.getId());
+
+        if (optUser.isPresent()) {
+            user = optUser.get();
+        }
+        else {
             // user doesn't exist so create them
             UserRequest userRequest = new UserRequest().builder()
                     .name(programUserRequest.getName())
                     .email(programUserRequest.getEmail())
                     .build();
-            user = userService.create(userRequest); // throws AlreadyExists if duplicate user
+            optUser = userService.createOptional(userRequest);
+            if (optUser.isEmpty()) {
+                throw new AlreadyExistsException("Cannot create new user, email already exists");
+            } else {
+                user = optUser.get();
+            }
         }
 
-        RoleEntity role = roleService.getById(programUserRequest.getRoleId()); // throws DoesNotExist if bad role
+        Optional<RoleEntity> role = roleService.getByIdOptional(programUserRequest.getRoleId());
+        if (role.isEmpty()) {
+            throw new DoesNotExistException("Role does not exist");
+        }
 
         ProgramUserRoleEntity programUser = ProgramUserRoleEntity.builder()
                 .userId(user.getId())
                 .programId(programId)
-                .roleId(role.getId())
+                .roleId(role.get().getId())
                 .build();
 
         programUserRoleDao.insert(programUser);
@@ -131,13 +152,12 @@ public class ProgramService {
 
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
         /* Remove a user from a program, but don't delete the user. */
-        //TODO
 
-        // builder?
-        ProgramUserRoleEntity entity = new ProgramUserRoleEntity();
-        entity.setProgramId(programId);
-        entity.setUserId(userId);
-        // role_id?
+        getById(programId); // throws DoesNotExist if program doesn't exist
+        userService.getById(userId); // throws DoesNotExist if user doesn't exist
+
+        // TODO: need to know what role unless they can only have one
+        ProgramUserRoleEntity entity = ProgramUserRoleEntity.builder().programId(programId).userId(userId).build();
 
         programUserRoleDao.delete(entity);
     }

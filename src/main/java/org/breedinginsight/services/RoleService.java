@@ -11,6 +11,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -33,13 +34,26 @@ public class RoleService {
 
     public RoleEntity getById(UUID roleId) throws DoesNotExistException {
 
-        RoleEntity role = dao.fetchOneById(roleId);
+        Optional<RoleEntity> role = getByIdOptional(roleId);
 
-        if (role == null) {
+        if (role.isEmpty()) {
             throw new DoesNotExistException("UUID for role does not exist");
         }
 
-        return role;
+        return role.get();
+    }
+
+
+    public Optional<RoleEntity> getByIdOptional(UUID roleId) {
+
+        // User has been authenticated against orcid, check they have a bi account.
+        RoleEntity role = dao.fetchOneById(roleId);
+
+        if (role == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(role);
     }
 
 }
