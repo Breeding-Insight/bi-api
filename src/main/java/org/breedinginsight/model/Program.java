@@ -48,6 +48,7 @@ public class Program extends ProgramEntity {
                 .updatedAtUtc(record.getValue(PROGRAM.UPDATED_AT_UTC))
                 .createdBy(record.getValue(PROGRAM.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM.UPDATED_BY))
+                .active(record.getValue(PROGRAM.ACTIVE))
                 .build();
 
         return program;

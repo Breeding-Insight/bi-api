@@ -131,10 +131,12 @@ public class ProgramController {
     @Delete("/programs/archive/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse archiveProgram(@PathVariable UUID programId) {
+    public HttpResponse archiveProgram(Principal principal, @PathVariable UUID programId) {
         /* Archive a program */
         try {
-            programService.archive(programId);
+            String orcid = principal.getName();
+            User user = userService.getByOrcid(orcid);
+            programService.archive(programId, user);
         } catch(DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();

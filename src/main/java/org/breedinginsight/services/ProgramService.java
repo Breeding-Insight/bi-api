@@ -70,7 +70,8 @@ public class ProgramService {
     public List<Program> getAll(){
         /* Get all of the programs */
 
-        List<Program> programs = dao.getAll();
+        List<ProgramEntity> programEntities = dao.fetchByActive(true);
+        List<Program> programs = dao.getFromEntity(programEntities);
 
         return programs;
     }
@@ -133,9 +134,18 @@ public class ProgramService {
         return program;
     }
 
-    public void archive(UUID programId) throws DoesNotExistException {
+    public void archive(UUID programId, User actingUser) throws DoesNotExistException {
         /* Archive an existing program */
-        //TODO
+
+        ProgramEntity programEntity = dao.fetchOneById(programId);
+        if (programEntity == null){
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        programEntity.setActive(false);
+        programEntity.setUpdatedBy(actingUser.getId());
+        programEntity.setUpdatedAtUtc(OffsetDateTime.now());
+        dao.update(programEntity);
     }
 
     public List<User> getProgramUsers(UUID programId) throws DoesNotExistException {

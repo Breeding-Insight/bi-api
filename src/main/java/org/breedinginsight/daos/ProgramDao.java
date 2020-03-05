@@ -35,6 +35,14 @@ public class ProgramDao extends org.breedinginsight.dao.db.tables.daos.ProgramDa
         return getPrograms(programList);
     }
 
+    public List<Program> getFromEntity(List<ProgramEntity> programEntities){
+        List<UUID> programList = new ArrayList<>();
+        for (ProgramEntity programEntity: programEntities){
+            programList.add(programEntity.getId());
+        }
+        return getPrograms(programList);
+    }
+
     public ProgramEntity insertThenFetch(ProgramEntity programEntity) {
         this.insert(programEntity);
         programEntity = this.fetchOneById(programEntity.getId());
