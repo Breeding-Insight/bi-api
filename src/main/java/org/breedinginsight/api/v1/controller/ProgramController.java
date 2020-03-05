@@ -26,6 +26,7 @@ import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -84,15 +85,16 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Program>> createProgram(@Valid @Body ProgramRequest programRequest) {
+    public HttpResponse<Response<Program>> createProgram(Principal principal, @Valid @Body ProgramRequest programRequest) {
 
         try {
+
             ProgramEntity program = programService.create(programRequest);
             Response response = new Response(program);
             return HttpResponse.ok(response);
-        } catch (AlreadyExistsException e){
+        } catch (DoesNotExistException e){
             log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();

@@ -35,17 +35,17 @@ public class ProgramControllerUnitTest {
     @InjectMocks
     ProgramController programController;
 
-    @BeforeEach
-    void initMocks() {
-        MockitoAnnotations.initMocks(this);
-    }
-
     Principal principal = new Principal() {
         @Override
         public String getName() {
             return "test";
         }
     };
+
+    @BeforeEach
+    void initMocks() {
+        MockitoAnnotations.initMocks(this);
+    }
 
     @Test
     public void getProgramsSingleDataAccessException() throws DoesNotExistException {
@@ -62,9 +62,9 @@ public class ProgramControllerUnitTest {
     }
 
     @Test
-    public void postProgramsDataAccessException() throws AlreadyExistsException {
+    public void postProgramsDataAccessException() throws DoesNotExistException {
         when(programService.create(any(ProgramRequest.class))).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = programController.createProgram(new ProgramRequest());
+        HttpResponse response = programController.createProgram(principal, new ProgramRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
