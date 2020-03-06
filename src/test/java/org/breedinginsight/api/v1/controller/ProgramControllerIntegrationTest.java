@@ -14,6 +14,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.Flowable;
+import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
@@ -49,6 +50,7 @@ public class ProgramControllerIntegrationTest {
     User validUser;
     Species validSpecies;
     Role validRole;
+    User testUser;
 
     String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
@@ -71,7 +73,9 @@ public class ProgramControllerIntegrationTest {
     RxHttpClient client;
 
     @BeforeAll
-    void setup() throws Exception{
+    void setup() throws Exception {
+
+        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
         // Get species for tests
         Species species = getTestSpecies();
         validSpecies = species;
@@ -96,14 +100,12 @@ public class ProgramControllerIntegrationTest {
 
     @AfterAll
     void teardown() throws Exception{
-        // TODO: Get a delete function for program
         try {
             programService.delete(validProgram.getId());
         } catch (DoesNotExistException e){
             throw new Exception("Unable to delete test program");
         }
 
-        // TODO: Delete user
         try {
             userService.delete(validUser.getId());
         } catch (DoesNotExistException e){
@@ -123,7 +125,7 @@ public class ProgramControllerIntegrationTest {
                 .species(speciesRequest)
                 .build();
         try {
-            Program program = programService.create(programRequest, validUser);
+            Program program = programService.create(programRequest, testUser);
             return program;
         } catch (DoesNotExistException e){
             throw new Exception("Unable to create test program");
@@ -433,6 +435,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
     public void postProgramsMinimalBodySuccess() throws Exception{
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
@@ -463,15 +466,11 @@ public class ProgramControllerIntegrationTest {
 
         checkMinimalValidProgram(program, result);
 
-        try {
-            programService.delete(program.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete program after test");
-        }
-
+        programService.delete(program.getId());
     }
 
     @Test
+    @SneakyThrows
     public void postProgramsFullBodySuccess() throws Exception {
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
@@ -506,11 +505,8 @@ public class ProgramControllerIntegrationTest {
 
         checkMinimalValidProgram(program, result);
 
-        try {
-            programService.delete(program.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete program after test");
-        }
+        programService.delete(program.getId());
+
     }
 
     @Test
@@ -639,16 +635,101 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void putProgramsFullBodySuccess() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .commonName(validSpecies.getCommonName())
+                .build();
+
+        Program alteredProgram = validProgram;
+        alteredProgram.setName("changed");
+        alteredProgram.setAbbreviation("changed abbreviation");
+        alteredProgram.setObjective("changed objective");
+        alteredProgram.setDocumentationUrl("changed doc url");
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(alteredProgram.getName())
+                .abbreviation(alteredProgram.getAbbreviation())
+                .documentationUrl(alteredProgram.getDocumentationUrl())
+                .objective(alteredProgram.getObjective())
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", alteredProgram.getId()), gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        checkMinimalValidProgram(alteredProgram, result);
     }
 
     @Test
     public void archiveProgramsInvalidId() {
 
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(String.format("/programs/archive/%s", invalidProgram))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+
+        Program program = Assertions.assertDoesNotThrow(() -> {
+            Program createdProgram = programService.getById(validProgram.getId());
+            return createdProgram;
+        });
+        assertEquals(true, program.getActive(), "Inactive flag not set in database");
     }
 
     @Test
+    @SneakyThrows
     public void archiveProgramsSuccess() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(validProgram.getName())
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> createCall = client.exchange(
+                POST("/programs", gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = createCall.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String newProgramId = result.getAsJsonPrimitive("id").getAsString();
+
+        Flowable<HttpResponse<String>> archiveCall = client.exchange(
+                DELETE(String.format("/programs/archive/%s", newProgramId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> archiveResponse = archiveCall.blockingFirst();
+        assertEquals(HttpStatus.OK, archiveResponse.getStatus());
+
+        Program program = Assertions.assertDoesNotThrow(() -> {
+            Program createdProgram = programService.getById(UUID.fromString(newProgramId));
+            return createdProgram;
+        });
+        assertEquals(false, program.getActive(), "Inactive flag not set in database");
+
+        programService.delete(UUID.fromString(newProgramId));
     }
     //endregion
 }
