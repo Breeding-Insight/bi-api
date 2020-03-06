@@ -11,9 +11,25 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.SpeciesRequest;
+import org.breedinginsight.api.model.v1.request.UserRequest;
+import org.breedinginsight.dao.db.tables.records.ProgramRecord;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.services.UserService;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.checkerframework.common.value.qual.IntRangeFromNonNegative;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
+
+import java.util.List;
+import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -28,25 +44,99 @@ public class ProgramControllerIntegrationTest {
     //(species_id, name, abbreviation, objective, documentation_url)
     //VALUES
     //('56849650-7f0e-46c3-bf9c-f86e814d4ecb', 'Nick Grapes', 'NG', 'Breed grapes', 'grapes.com');
-    String validProgram = "dfa47289-da43-471c-a944-77965b7af076";
+    Program validProgram;
+    User validUser;
+    Species validSpecies;
+
     String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String validUser = "bea6e697-0e14-44f1-96e8-523965bb33c8";
     String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String validRole = "6c6d1d9d-1f6d-47e4-8ac7-46ed1b78536e";
-    String validSpecies = "6f4b7238-af95-4178-bae2-89bbfbb2e3b5";
+
+
+    @Inject
+    UserService userService;
+    @Inject
+    ProgramService programService;
+    @Inject
+    SpeciesService speciesService;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
     @BeforeAll
-    void setup() {
+    void setup() throws Exception{
+        // Get species for tests
+        Species species = getTestSpecies();
+        validSpecies = species;
+        // Insert and get user for tests
+        try {
+            validUser = insertAndFetchTestUser();
+        } catch (Exception e){
+            throw new Exception(e.toString());
+        }
+        // Insert and get program for tests
+        try {
+            validProgram = insertAndFetchTestProgram();
+        } catch (Exception e){
+            throw new Exception(e.toString());
+        }
 
     }
 
     @AfterAll
-    void teardown() {
+    void teardown() throws Exception{
+        // TODO: Get a delete function for program
+        try {
+            programService.delete(validProgram.getId());
+        } catch (DoesNotExistException e){
+            throw new Exception("Unable to delete test program");
+        }
 
+        // TODO: Delete user
+        try {
+            userService.delete(validUser.getId());
+        } catch (DoesNotExistException e){
+            throw new Exception("Unable to delete test user");
+        }
+    }
+
+    public Program insertAndFetchTestProgram() throws Exception{
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+        ProgramRequest programRequest = ProgramRequest.builder()
+                .name("Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .build();
+        try {
+            Program program = programService.create(programRequest, validUser);
+            return program;
+        } catch (DoesNotExistException e){
+            throw new Exception("Unable to create test program");
+        }
+    }
+
+    public User insertAndFetchTestUser() throws Exception{
+        UserRequest userRequest = UserRequest.builder()
+                .name("Test User")
+                .email("test1@test.com")
+                .build();
+        try {
+            User user = userService.create(userRequest);
+            return user;
+        } catch (AlreadyExistsException e) {
+            throw new Exception("Failed to insert test user" + e.toString());
+        }
+
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
     }
 
     //region Program User Tests
@@ -77,9 +167,10 @@ public class ProgramControllerIntegrationTest {
         JsonArray roles = new JsonArray();
         roles.add(validRole);
         requestBody.add("roleIds", roles);
+        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgram+"/users", requestBody.toString())
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -93,9 +184,10 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void postProgramsUsersMissingBody() {
         JsonObject requestBody = new JsonObject();
+        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgram+"/users", requestBody.toString())
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -110,9 +202,10 @@ public class ProgramControllerIntegrationTest {
     public void postProgramsUsersOnlyName() {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", "test");
+        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgram+"/users", requestBody.toString())
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -127,13 +220,14 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void postProgramsUsersOnlyIdSuccess() {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("id", validUser);
+        requestBody.addProperty("id", validUser.getId().toString());
         JsonArray roles = new JsonArray();
         roles.add(validRole);
         requestBody.add("roleIds", roles);
+        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgram+"/users", requestBody.toString())
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -156,8 +250,10 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     public void deleteProgramsUsersNotExistingUserId() {
+        String validProgramId = validProgram.getId().toString();
+
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/programs/"+validProgram+"/users/"+invalidUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/programs/"+validProgramId+"/users/"+invalidUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
@@ -168,8 +264,10 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     public void deleteProgramsUsersSuccess() {
+        String validProgramId = validProgram.getId().toString();
+
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/programs/"+validProgram+"/users/"+validUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/programs/"+validProgramId+"/users/"+validUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
@@ -185,7 +283,7 @@ public class ProgramControllerIntegrationTest {
         requestBody.addProperty("documentationUrl", "www.nick.com");
 
         JsonObject species = new JsonObject();
-        species.addProperty("id",validSpecies);
+        species.addProperty("id",validSpecies.getId().toString());
         species.addProperty("commonName", "Grape");
         requestBody.add("species", species);
 
@@ -201,5 +299,70 @@ public class ProgramControllerIntegrationTest {
 
     //endregion
 
+    //region Program Tests
+    @Test
+    public void postProgramsInvalidSpecies() {
 
+    }
+
+    @Test
+    public void postProgramsMissingBody() {
+
+    }
+
+    @Test
+    public void postProgramsMissingSpecies() {
+
+    }
+
+    @Test
+    public void postProgramsMinimalBodySuccess() {
+
+    }
+
+    @Test
+    public void postProgramsFullBodySuccess(){
+
+    }
+
+    @Test
+    public void putProgramsInvalidSpecies() {
+
+    }
+
+    @Test
+    public void putProgramsMissingSpecies() {
+
+    }
+
+    @Test
+    public void putProgramsInvalidId() {
+
+    }
+
+    @Test
+    public void putProgramsMissingName() {
+
+    }
+
+    @Test
+    public void putProgramsMinimalBodySuccess() {
+
+    }
+
+    @Test
+    public void putProgramsFullBodySuccess() {
+
+    }
+
+    @Test
+    public void archiveProgramsInvalidId() {
+
+    }
+
+    @Test
+    public void archiveProgramsSuccess() {
+
+    }
+    //endregion
 }

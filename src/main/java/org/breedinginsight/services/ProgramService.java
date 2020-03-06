@@ -149,6 +149,17 @@ public class ProgramService {
         dao.update(programEntity);
     }
 
+    public void delete(UUID programId) throws DoesNotExistException {
+        /* Deletes an existing program */
+
+        ProgramEntity programEntity = dao.fetchOneById(programId);
+        if (programEntity == null){
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        dao.delete(programEntity);
+    }
+
     public List<User> getProgramUsers(UUID programId) throws DoesNotExistException {
         /* Get all of the users in the program */
         //TODO
