@@ -18,6 +18,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.Location;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.UserService;
@@ -150,10 +151,10 @@ public class ProgramController {
     @Get("/programs/{programId}/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> getProgramUsers(@PathVariable UUID programId) {
+    public HttpResponse<Response<ProgramUser>> getProgramUsers(@PathVariable UUID programId) {
 
         try {
-            List<User> programUsers = programService.getProgramUsers(programId);
+            List<ProgramUser> programUsers = programService.getProgramUsers(programId);
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));

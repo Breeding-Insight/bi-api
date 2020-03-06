@@ -6,10 +6,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
-
-import java.util.List;
 
 @Getter
 @Setter
@@ -17,9 +14,11 @@ import java.util.List;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-public class ProgramUser {
+public class Role extends RoleEntity {
 
-    private User user;
-    private List<RoleEntity> roles;
+    public Role(RoleEntity roleEntity){
+        this.setId(roleEntity.getId());
+        this.setDomain(roleEntity.getDomain());
+    }
 
 }

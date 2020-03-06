@@ -14,11 +14,14 @@ import io.reactivex.Flowable;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
+import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.dao.db.tables.records.ProgramRecord;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Role;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.RoleService;
 import org.breedinginsight.services.SpeciesService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
@@ -39,19 +42,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProgramControllerIntegrationTest {
 
-    // TODO: change this
-    // INSERT INTO program
-    //(species_id, name, abbreviation, objective, documentation_url)
-    //VALUES
-    //('56849650-7f0e-46c3-bf9c-f86e814d4ecb', 'Nick Grapes', 'NG', 'Breed grapes', 'grapes.com');
     Program validProgram;
     User validUser;
     Species validSpecies;
+    Role validRole;
 
     String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String validRole = "6c6d1d9d-1f6d-47e4-8ac7-46ed1b78536e";
-
+    String invalidRole = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
 
     @Inject
     UserService userService;
@@ -59,6 +57,8 @@ public class ProgramControllerIntegrationTest {
     ProgramService programService;
     @Inject
     SpeciesService speciesService;
+    @Inject
+    RoleService roleService;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -69,6 +69,10 @@ public class ProgramControllerIntegrationTest {
         // Get species for tests
         Species species = getTestSpecies();
         validSpecies = species;
+        // Get role for tests
+        Role role = getTestRole();
+        validRole = role;
+
         // Insert and get user for tests
         try {
             validUser = insertAndFetchTestUser();
@@ -139,13 +143,18 @@ public class ProgramControllerIntegrationTest {
         return species.get(0);
     }
 
+    public Role getTestRole() {
+        List<Role> roles = roleService.getAll();
+        return roles.get(0);
+    }
+
     //region Program User Tests
     @Test
     public void postProgramsUsersInvalidProgram() {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", "test");
         requestBody.addProperty("email", "test@test.com");
-        requestBody.addProperty("roleIds", validRole);
+        requestBody.addProperty("roleIds", validRole.getId().toString());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+invalidProgram+"/users", requestBody.toString())
@@ -165,7 +174,7 @@ public class ProgramControllerIntegrationTest {
         requestBody.addProperty("name", "test");
         requestBody.addProperty("email", "test@test.com");
         JsonArray roles = new JsonArray();
-        roles.add(validRole);
+        roles.add(validRole.getId().toString());
         requestBody.add("roleIds", roles);
         String validProgramId = validProgram.getId().toString();
 
@@ -216,13 +225,13 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
-
     @Test
+    @Order(1)
     public void postProgramsUsersOnlyIdSuccess() {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("id", validUser.getId().toString());
         JsonArray roles = new JsonArray();
-        roles.add(validRole);
+        roles.add(validRole.getId().toString());
         requestBody.add("roleIds", roles);
         String validProgramId = validProgram.getId().toString();
 
@@ -263,11 +272,13 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @Order(2)
     public void deleteProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
+        String validUserId = validUser.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/programs/"+validProgramId+"/users/"+validUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/programs/"+validProgramId+"/users/"+validUserId).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
