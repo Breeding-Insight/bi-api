@@ -1,7 +1,9 @@
 package org.breedinginsight.api.v1.controller;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -10,6 +12,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
+import io.netty.handler.codec.http.HttpResponseStatus;
 import io.reactivex.Flowable;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
@@ -35,7 +38,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -50,6 +53,9 @@ public class ProgramControllerIntegrationTest {
     String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
     String invalidRole = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
+    String invalidSpecies = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+    Gson gson = new Gson();
 
     @Inject
     UserService userService;
@@ -310,25 +316,175 @@ public class ProgramControllerIntegrationTest {
 
     //endregion
 
+    public void checkValidProgram(Program program, JsonObject programJson){
+
+        assertEquals(program.getName(), programJson.get("name").getAsString(), "Wrong name");
+        assertEquals(program.getAbbreviation(), programJson.get("abbreviation").getAsString(), "Wrong abbreviation");
+        assertEquals(program.getDocumentationUrl(), programJson.get("documentationUrl").getAsString(), "Wrong documentation url");
+        assertEquals(program.getObjective(), programJson.get("objective").getAsString(), "Wrong objective");
+
+        JsonObject species = programJson.getAsJsonObject("species");
+        assertEquals(program.getSpecies().getId().toString(), species.get("id").getAsString(), "Wrong species");
+
+        JsonObject createdByUser = programJson.getAsJsonObject("createdByUser");
+        assertEquals(program.getCreatedByUser().getId().toString(), createdByUser.get("id").getAsString(), "Wrong created by user");
+
+        JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
+        assertEquals(program.getUpdatedByUser().getId().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+    }
+
+    public void checkMinimalValidProgram(Program program, JsonObject programJson){
+        assertEquals(program.getName(), programJson.get("name").getAsString(), "Wrong name");
+
+        JsonObject species = programJson.getAsJsonObject("species");
+        assertEquals(program.getSpecies().getId().toString(), species.get("id").getAsString(), "Wrong species");
+
+        JsonObject createdByUser = programJson.getAsJsonObject("createdByUser");
+        assertEquals(program.getCreatedByUser().getId().toString(), createdByUser.get("id").getAsString(), "Wrong created by user");
+
+        JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
+        assertEquals(program.getUpdatedByUser().getId().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+    }
+
     //region Program Tests
+    @Test
+    public void getProgramsSuccess() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertTrue(result.size() >= 1, "Wrong number of programs");
+
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject programResult = data.get(0).getAsJsonObject();
+
+        checkValidProgram(validProgram, programResult);
+    }
+
+    @Test
+    public void getProgramsSpecificInvalidId() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s", invalidProgram)).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void getProgramsSpecificSuccess(){
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s", validProgram.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidProgram(validProgram, result);
+    }
+
     @Test
     public void postProgramsInvalidSpecies() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(UUID.fromString(invalidSpecies))
+                .build();
+
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("Test program")
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
     @Test
     public void postProgramsMissingBody() {
 
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", "")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
     public void postProgramsMissingSpecies() {
 
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("Test program")
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
     public void postProgramsMinimalBodySuccess() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(validProgram.getName())
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String newProgramId = result.getAsJsonPrimitive("id").getAsString();
+
+        Program program = Assertions.assertDoesNotThrow(() -> {
+            Program createdProgram = programService.getById(UUID.fromString(newProgramId));
+            return createdProgram;
+        });
+
+        checkMinimalValidProgram(program, result);
     }
 
     @Test
