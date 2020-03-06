@@ -21,6 +21,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -41,6 +42,8 @@ public class ProgramController {
     private ProgramService programService;
     @Inject
     private UserService userService;
+    @Inject
+    private ProgramUserService programUserService;
 
     @Get("/programs")
     @Produces(MediaType.APPLICATION_JSON)
@@ -154,7 +157,7 @@ public class ProgramController {
     public HttpResponse<Response<ProgramUser>> getProgramUsers(@PathVariable UUID programId) {
 
         try {
-            List<ProgramUser> programUsers = programService.getProgramUsers(programId);
+            List<ProgramUser> programUsers = programUserService.getProgramUsers(programId);
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
@@ -179,7 +182,7 @@ public class ProgramController {
     public HttpResponse<Response<User>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
         try {
-            User programUser = programService.getProgramUserbyId(programId, userId);
+            User programUser = programUserService.getProgramUserbyId(programId, userId);
             Response response = new Response(programUser);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -199,7 +202,7 @@ public class ProgramController {
         /* Add a user to a program. Create the user if they don't exist. */
 
         try {
-            User programUser = programService.addProgramUser(programId, programUserRequest);
+            User programUser = programUserService.addProgramUser(programId, programUserRequest);
             Response response = new Response(programUser);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -221,7 +224,7 @@ public class ProgramController {
     public HttpResponse removeProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
         try {
-            programService.removeProgramUser(programId, userId);
+            programUserService.removeProgramUser(programId, userId);
             return HttpResponse.ok();
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
