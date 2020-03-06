@@ -12,10 +12,7 @@ import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.dao.db.tables.ProgramTable;
 import org.breedinginsight.dao.db.tables.records.ProgramRecord;
 import org.breedinginsight.daos.ProgramDao;
-import org.breedinginsight.model.Location;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Species;
-import org.breedinginsight.model.User;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.tools.StringUtils;
@@ -160,9 +157,10 @@ public class ProgramService {
         dao.delete(programEntity);
     }
 
-    public List<User> getProgramUsers(UUID programId) throws DoesNotExistException {
+    public List<ProgramUser> getProgramUsers(UUID programId) throws DoesNotExistException {
         /* Get all of the users in the program */
         //TODO
+
 
 
         return new ArrayList<>();
@@ -204,7 +202,7 @@ public class ProgramService {
             }
         }
 
-        List<RoleEntity> roles = roleService.getRolesByIds(programUserRequest.getRoleIds());
+        List<Role> roles = roleService.getRolesByIds(programUserRequest.getRoleIds());
         if (roles.isEmpty()) {
             throw new DoesNotExistException("Role does not exist");
         }

@@ -22,14 +22,11 @@ import static org.breedinginsight.dao.db.Tables.BI_USER;
 @NoArgsConstructor
 public class User extends BiUserEntity{
 
-    private List<String> roles;
-
     public User(BiUserEntity biUser) {
         this.setId(biUser.getId());
         this.setOrcid(biUser.getOrcid());
         this.setName(biUser.getName());
         this.setEmail(biUser.getEmail());
-        this.setRoles(new ArrayList<>());
     }
 
     public static User parseSQLRecord(Record record, @NotNull BiUserTable tableName){

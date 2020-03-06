@@ -46,8 +46,7 @@ public class UserService {
             // We don't have roles right now
             List<String> roles = new ArrayList<>();
             // Generate our response class from db record
-            User user = new User(queriedUser)
-                    .setRoles(roles);
+            User user = new User(queriedUser);
 
             resultBody.add(user);
         }
