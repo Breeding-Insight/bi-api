@@ -456,7 +456,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    public void postProgramsMinimalBodySuccess() {
+    public void postProgramsMinimalBodySuccess() throws Exception{
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
                 .id(validSpecies.getId())
@@ -485,35 +485,177 @@ public class ProgramControllerIntegrationTest {
         });
 
         checkMinimalValidProgram(program, result);
+
+        try {
+            programService.delete(program.getId());
+        } catch (DoesNotExistException e){
+            throw new Exception("Unable to delete program after test");
+        }
+
     }
 
     @Test
-    public void postProgramsFullBodySuccess(){
+    public void postProgramsFullBodySuccess() throws Exception {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .commonName(validSpecies.getCommonName())
+                .build();
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(validProgram.getName())
+                .abbreviation("Test")
+                .documentationUrl("localhost")
+                .objective("Testing things")
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String newProgramId = result.getAsJsonPrimitive("id").getAsString();
+
+        Program program = Assertions.assertDoesNotThrow(() -> {
+            Program createdProgram = programService.getById(UUID.fromString(newProgramId));
+            return createdProgram;
+        });
+
+        checkMinimalValidProgram(program, result);
+
+        try {
+            programService.delete(program.getId());
+        } catch (DoesNotExistException e){
+            throw new Exception("Unable to delete program after test");
+        }
     }
 
     @Test
     public void putProgramsInvalidSpecies() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(UUID.fromString(invalidSpecies))
+                .build();
+
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("Test program")
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", validProgram.getId()), gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
     @Test
     public void putProgramsMissingSpecies() {
 
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("Test program")
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", validProgram.getId()), gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
     public void putProgramsInvalidId() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(UUID.fromString(invalidSpecies))
+                .build();
+
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("Test program")
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", invalidProgram), gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
     @Test
     public void putProgramsMissingName() {
 
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(UUID.fromString(invalidSpecies))
+                .build();
+
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", validProgram.getId()), gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
-    public void putProgramsMinimalBodySuccess() {
+    public void putProgramsMinimalBodySuccess() throws Exception {
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+
+        Program alteredProgram = validProgram;
+        alteredProgram.setName("changed");
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(alteredProgram.getName())
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", validProgram.getId()) , gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        checkMinimalValidProgram(alteredProgram, result);
 
     }
 
