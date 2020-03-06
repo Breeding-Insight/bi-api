@@ -284,30 +284,7 @@ public class ProgramControllerIntegrationTest {
         String validUserId = validUser.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/programs/"+validProgramId+"/users/"+validUserId).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-    }
-
-    @Test
-    public void createProgramSuccess() {
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", "Nick's Program");
-        requestBody.addProperty("abbreviation", "NP");
-        requestBody.addProperty("objective", "To breed stuff");
-        requestBody.addProperty("documentationUrl", "www.nick.com");
-
-        JsonObject species = new JsonObject();
-        species.addProperty("id",validSpecies.getId().toString());
-        species.addProperty("commonName", "Grape");
-        requestBody.add("species", species);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/programs/" + validProgramId + "/users/" + validUserId).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
