@@ -11,6 +11,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.exception.DataAccessException;
@@ -32,6 +33,8 @@ public class ProgramControllerUnitTest {
 
     @Mock
     ProgramService programService;
+    @Mock
+    ProgramUserService programUserService;
 
     @InjectMocks
     ProgramController programController;
@@ -87,28 +90,28 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void getProgramUsersAllDataAccessException() throws DoesNotExistException {
-        when(programService.getProgramUsers(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(programUserService.getProgramUsers(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.getProgramUsers(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void getProgramUsersSingleDataAccessException() throws DoesNotExistException {
-        when(programService.getProgramUserbyId(any(UUID.class), any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(programUserService.getProgramUserbyId(any(UUID.class), any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.getProgramUser(UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void postProgramUsersDataAccessException() throws DoesNotExistException, AlreadyExistsException {
-        when(programService.addProgramUser(any(UUID.class), any(ProgramUserRequest.class))).thenThrow(new DataAccessException("TEST"));
+        when(programUserService.addProgramUser(any(UUID.class), any(ProgramUserRequest.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.addProgramUser(UUID.randomUUID(), new ProgramUserRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void deleteProgramUsersDataAccessException() throws DoesNotExistException {
-        doThrow(new DataAccessException("TEST")).when(programService).removeProgramUser(any(UUID.class), any(UUID.class));
+        doThrow(new DataAccessException("TEST")).when(programUserService).removeProgramUser(any(UUID.class), any(UUID.class));
         HttpResponse response = programController.removeProgramUser(UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
