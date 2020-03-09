@@ -12,6 +12,7 @@ import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.exception.DataAccessException;
@@ -26,6 +27,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 
@@ -35,6 +37,8 @@ public class ProgramControllerUnitTest {
     ProgramService programService;
     @Mock
     ProgramUserService programUserService;
+    @Mock
+    UserService userService;
 
     @InjectMocks
     ProgramController programController;
@@ -42,7 +46,7 @@ public class ProgramControllerUnitTest {
     Principal principal = new Principal() {
         @Override
         public String getName() {
-            return "test";
+            return TestTokenValidator.TEST_USER_ORCID;
         }
     };
 
@@ -67,23 +71,24 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void postProgramsDataAccessException() throws DoesNotExistException {
-        User user = new User();
-        when(programService.create(any(ProgramRequest.class), user)).thenThrow(new DataAccessException("TEST"));
+        when(userService.getByOrcid(any(String.class))).thenReturn(new User());
+        when(programService.create(any(ProgramRequest.class), any(User.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.createProgram(principal, new ProgramRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void putProgramsDataAccessException() throws DoesNotExistException {
-        User user = new User();
-        when(programService.update(any(UUID.class), any(ProgramRequest.class), user)).thenThrow(new DataAccessException("TEST"));
+        when(userService.getByOrcid(any(String.class))).thenReturn(new User());
+        when(programService.update(any(UUID.class), any(ProgramRequest.class), any(User.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.updateProgram(principal, UUID.randomUUID(), new ProgramRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void deleteProgramsDataAccessException() throws DoesNotExistException {
-        doThrow(new DataAccessException("TEST")).when(programService).archive(any(UUID.class), new User());
+        when(userService.getByOrcid(any(String.class))).thenReturn(new User());
+        doThrow(new DataAccessException("TEST")).when(programService).archive(any(UUID.class), any(User.class));
         HttpResponse response = programController.archiveProgram(principal, UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
