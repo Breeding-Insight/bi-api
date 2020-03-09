@@ -179,11 +179,12 @@ public class ProgramController {
     @Get("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
+    @AddMetadata
+    public HttpResponse<Response<ProgramUser>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
         try {
-            User programUser = programUserService.getProgramUserbyId(programId, userId);
-            Response response = new Response(programUser);
+            ProgramUser programUser = programUserService.getProgramUserbyId(programId, userId);
+            Response<ProgramUser> response = new Response<>(programUser);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
@@ -198,11 +199,39 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> addProgramUser(@PathVariable UUID programId, @Valid @Body ProgramUserRequest programUserRequest) {
+    public HttpResponse<Response<ProgramUser>> addProgramUser(Principal principal, @PathVariable UUID programId, @Valid @Body ProgramUserRequest programUserRequest) {
         /* Add a user to a program. Create the user if they don't exist. */
 
         try {
-            User programUser = programUserService.addProgramUser(programId, programUserRequest);
+            String orcid = principal.getName();
+            User user = userService.getByOrcid(orcid);
+            ProgramUser programUser = programUserService.addProgramUser(user, programId, programUserRequest);
+            Response<ProgramUser> response = new Response<>(programUser);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AlreadyExistsException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (DataAccessException e){
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
+        }
+    }
+
+    @Put("/programs/{programId}/users/{userId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<ProgramUser>> updateProgramUser(Principal principal, @PathVariable UUID programId, @PathVariable UUID userId,
+                                                                 @Valid @Body ProgramUserRequest programUserRequest) {
+        /* Add a user to a program. Create the user if they don't exist. */
+
+        try {
+            String orcid = principal.getName();
+            User user = userService.getByOrcid(orcid);
+            ProgramUser programUser = programUserService.editProgramUser(user, programId, programUserRequest);
             Response response = new Response(programUser);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -215,8 +244,9 @@ public class ProgramController {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
         }
-
     }
+
+
 
     @Delete("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -266,6 +296,7 @@ public class ProgramController {
     @Get("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<Location>> getProgramLocations(@PathVariable UUID programId, @PathVariable UUID locationId) {
 
         try {
