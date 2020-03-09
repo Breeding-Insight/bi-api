@@ -598,6 +598,7 @@ paths:
               schema:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /programs/archive/{id}:
     delete:
       tags:
         - programs
@@ -1740,7 +1741,7 @@ components:
           pagination:
             currentPage: 0
             pageSize: 1
-            totalCount: 2
+            totalCount: 1
             totalPages: 1
           status: []
         result:

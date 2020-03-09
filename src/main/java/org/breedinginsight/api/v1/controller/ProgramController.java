@@ -59,7 +59,7 @@ public class ProgramController {
             Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response response = new Response(metadata, new DataResponse<>(programs));
+            Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
             return HttpResponse.ok(response);
         } catch (DataAccessException e){
             log.error("Error executing query: {}", e.getMessage());
@@ -75,8 +75,8 @@ public class ProgramController {
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
         try {
-            ProgramEntity program = programService.getById(programId);
-            Response response = new Response(program);
+            Program program = programService.getById(programId);
+            Response<Program> response = new Response(program);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
@@ -97,8 +97,8 @@ public class ProgramController {
         try {
             String orcid = principal.getName();
             User user = userService.getByOrcid(orcid);
-            ProgramEntity program = programService.create(programRequest, user);
-            Response response = new Response(program);
+            Program program = programService.create(programRequest, user);
+            Response<Program> response = new Response(program);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
@@ -119,8 +119,8 @@ public class ProgramController {
         try {
             String orcid = principal.getName();
             User user = userService.getByOrcid(orcid);
-            ProgramEntity program = programService.update(programId, programRequest, user);
-            Response response = new Response(program);
+            Program program = programService.update(programId, programRequest, user);
+            Response<Program> response = new Response(program);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
