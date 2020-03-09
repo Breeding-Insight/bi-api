@@ -10,19 +10,19 @@
     <profiles>
         <profile>
             <id>github</id>
-            <repositories>
-                <repository>
+            <pluginRepositories>
+                <pluginRepository>
                     <id>central</id>
                     <url>https://repo1.maven.org/maven2</url>
                     <releases><enabled>true</enabled></releases>
                     <snapshots><enabled>true</enabled></snapshots>
-                </repository>
-                <repository>
+                </pluginRepository>
+                <pluginRepository>
                     <id>github</id>
                     <name>GitHub Breeding Insight Apache Maven Packages</name>
                     <url>https://maven.pkg.github.com/Breeding-Insight/bi-jooq-codegen</url>
-                </repository>
-            </repositories>
+                </pluginRepository>
+            </pluginRepositories>
         </profile>
     </profiles>
 
