@@ -15,22 +15,21 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Role;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.services.RoleService;
-import org.breedinginsight.services.SpeciesService;
-import org.breedinginsight.services.UserService;
+import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,6 +62,8 @@ public class ProgramControllerIntegrationTest {
     SpeciesService speciesService;
     @Inject
     RoleService roleService;
+    @Inject
+    ProgramUserService programUserService;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -156,9 +157,15 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void postProgramsUsersInvalidProgram() {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", "test");
-        requestBody.addProperty("email", "test@test.com");
-        requestBody.addProperty("roleIds", validRole.getId().toString());
+        JsonObject user = new JsonObject();
+        user.addProperty("id", validUser.getId().toString());
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
+        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+invalidProgram+"/users", requestBody.toString())
@@ -175,11 +182,17 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void postProgramsUsersDuplicateUser() {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", "test");
-        requestBody.addProperty("email", "test@test.com");
+
+        JsonObject user = new JsonObject();
+        user.addProperty("name", "test");
+        user.addProperty("email", "test@test.com");
+
         JsonArray roles = new JsonArray();
-        roles.add(validRole.getId().toString());
-        requestBody.add("roleIds", roles);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -233,10 +246,14 @@ public class ProgramControllerIntegrationTest {
     @Order(1)
     public void postProgramsUsersOnlyIdSuccess() {
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("id", validUser.getId().toString());
+        JsonObject user = new JsonObject();
+        user.addProperty("id", validUser.getId().toString());
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
         JsonArray roles = new JsonArray();
-        roles.add(validRole.getId().toString());
-        requestBody.add("roleIds", roles);
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -287,6 +304,36 @@ public class ProgramControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    void getProgramsUsersSingleRoleSuccess() {
+        /*
+        String validProgramId = validProgram.getId().toString();
+        String validUserId = validUser.getId().toString();
+        List<UUID> roles = new ArrayList<>();
+        roles.add(validRole.getId());
+
+        ProgramUserRequest request = ProgramUserRequest.builder().id(validUser.getId())
+                .name(validUser.getName())
+                .email(validUser.getEmail())
+                .roleIds(roles)
+                .build();
+
+        programUserService.addProgramUser(validUser, validProgram.getId(), request);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validUserId+"/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        programUserService.removeProgramUser(validProgram.getId(), validUser.getId());
+
+         */
+
     }
 
     //endregion

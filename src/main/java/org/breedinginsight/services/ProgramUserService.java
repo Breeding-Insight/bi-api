@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -33,10 +34,9 @@ public class ProgramUserService {
     @Inject
     private RoleService roleService;
 
-    public User addProgramUser(UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
+    public ProgramUser addProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
         /* Add a user to a program. Create the user if they don't exist. */
         User user;
-
         //TODO: Jooq transaction stuff maybe
 
         if (programService.getByIdOptional(programId).isEmpty())
@@ -44,7 +44,7 @@ public class ProgramUserService {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        Optional<User> optUser = userService.getByIdOptional(programUserRequest.getId());
+        Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
 
         if (optUser.isPresent()) {
             user = optUser.get();
@@ -52,8 +52,8 @@ public class ProgramUserService {
         else {
             // user doesn't exist so create them
             UserRequest userRequest = new UserRequest().builder()
-                    .name(programUserRequest.getName())
-                    .email(programUserRequest.getEmail())
+                    .name(programUserRequest.getUser().getName())
+                    .email(programUserRequest.getUser().getEmail())
                     .build();
             optUser = userService.createOptional(userRequest);
             if (optUser.isEmpty()) {
@@ -63,25 +63,80 @@ public class ProgramUserService {
             }
         }
 
-        List<Role> roles = roleService.getRolesByIds(programUserRequest.getRoleIds());
-        if (roles.isEmpty()) {
+        // check if user is already in program, only allow puts for update, no posts
+        Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
+
+        if (existingProgramUser.isPresent()) {
+            throw new AlreadyExistsException("Program user already exists");
+        }
+
+        List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
+
+        List<Role> roles = roleService.getRolesByIds(roleIds);
+        if (roles.isEmpty() || roles.size() != roleIds.size()) {
             throw new DoesNotExistException("Role does not exist");
         }
+
+        return updateProgramUser(actingUser, programId, user.getId(), roles);
+
+    }
+
+    private ProgramUser updateProgramUser(User actingUser, UUID programId, UUID userId, List<Role> roles) throws DoesNotExistException {
 
         List<ProgramUserRoleEntity> programUserRoles = new ArrayList<>();
 
         for (RoleEntity role : roles) {
             ProgramUserRoleEntity programUser = ProgramUserRoleEntity.builder()
-                    .userId(user.getId())
+                    .userId(userId)
                     .programId(programId)
                     .roleId(role.getId())
+                    .createdBy(actingUser.getId())
+                    .updatedBy(actingUser.getId())
                     .build();
             programUserRoles.add(programUser);
         }
 
+        // insert
         programUserDao.insert(programUserRoles);
 
-        return user;
+        ProgramUser programUser = getProgramUserbyId(programId, userId);
+
+        return programUser;
+    }
+
+    public ProgramUser editProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
+        // only can modify roles
+        User user;
+
+        if (programService.getByIdOptional(programId).isEmpty()) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
+
+        if (optUser.isPresent()) {
+            user = optUser.get();
+        }
+        else {
+            throw new DoesNotExistException("User id does not exist");
+        }
+
+        // check if user is already in program, only allow puts for update, no posts
+        Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
+
+        if (existingProgramUser.isEmpty()) {
+            throw new DoesNotExistException("Program user does not exist");
+        }
+
+        List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
+        List<Role> roles = roleService.getRolesByIds(roleIds);
+        if (roles.isEmpty() || roles.size() != roleIds.size()) {
+            throw new DoesNotExistException("Role does not exist");
+        }
+
+        // delete existing roles and replace with new roles
+        programUserDao.deleteProgramUserRoles(programId, user.getId());
+        return updateProgramUser(actingUser, programId, user.getId(), roles);
     }
 
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
@@ -102,15 +157,28 @@ public class ProgramUserService {
 
     public List<ProgramUser> getProgramUsers(UUID programId) throws DoesNotExistException {
         /* Get all of the users in the program */
-        //TODO
-
-        return new ArrayList<>();
+        return programUserDao.getProgramUsers(programId);
     }
 
-    public User getProgramUserbyId(UUID programId, UUID userId) throws DoesNotExistException {
+    public ProgramUser getProgramUserbyId(UUID programId, UUID userId) throws DoesNotExistException {
+        Optional<ProgramUser> user = getProgramUserbyIdOptional(programId, userId);
+
+        if (user.isEmpty()) {
+            throw new DoesNotExistException("Program user does not exist");
+        }
+
+        return user.get();
+    }
+
+    public Optional<ProgramUser> getProgramUserbyIdOptional(UUID programId, UUID userId) {
         /* Get a program user by their id */
-        //TODO
-        return null;
+        ProgramUser user = programUserDao.getProgramUser(programId, userId);
+
+        if (user == null) {
+            return Optional.empty();
+        }
+
+        return Optional.of(user);
     }
 
 }
