@@ -374,29 +374,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/programsResponseResult'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 2
-                    totalPages: 1
-                  status: []
-                result:
-                  data:
-                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
-                      species_id: 1234-4312-4352-6314
-                      name: Bob Smith's Breeding Program
-                      abbreviation: BSBP
-                      objective: To breed the best grapes in the world
-                      documentation_url: http://www.bobsbestbreeding.com
-                    - id: b2263532-3fa3-49a6-9a66-957f313c8ed4
-                      species_id: 4234-4312-4352-6316
-                      name: Fred's Blueberry Program
-                      abbreviation: FBP
-                      objective: To make the best juicing blueberries
-                      documentation_url: http://www.fredsblueberry.com
+              examples:
+                programExample1:
+                  $ref: '#/components/examples/arrayOfPrograms'
+
         "400":
           description: Bad Request
           content:
@@ -436,6 +417,9 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/updateProgramRequest'
+            examples:
+              createProgramRequest:
+                $ref: '#/components/examples/updateProgramRequestExample'
         required: true
       responses:
         "200":
@@ -444,22 +428,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/programsResponseSingle'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 1
-                    totalPages: 1
-                  status: []
-                result:
-                  id: e2263532-1fa3-49a6-9a66-957f313c8ed3
-                  species_id: 4234-4312-4352-6314
-                  name: Franks's Salmon
-                  abbreviation: FS
-                  objective: To breed the best salmon in the world
-                  documentation_url: http://www.franks.com
+              examples:
+                singleProgram:
+                  $ref: '#/components/examples/singleProgram'
         "400":
           description: Bad Request
           content:
@@ -516,22 +487,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/programsResponseSingle'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 1
-                    totalPages: 1
-                  status: []
-                result:
-                  id: d2263532-1fa3-49a6-9a66-957f313c8ed2
-                  species_id: 4234-4312-4352-6314
-                  name: Ted's Tomatoes'
-                  abbreviation: TT
-                  objective: To breed the best tomatoes in the world
-                  documentation_url: http://www.teds.com
+              examples:
+                singleProgram:
+                  $ref: '#/components/examples/singleProgram'
         "400":
           description: Bad Request
           content:
@@ -587,34 +545,18 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/updateProgramRequest'
-            example:
-              species_id: f4f23375-0033-4d16-a62f-072e3a9198fs
-              name: Tim's program
-              abbreviation: TP
-              objective: To breed some good stuff
-              documentation_url: http://www.timsgoodstuff.com
+            examples:
+              updateProgramRequestExample:
+                $ref: '#/components/examples/updateProgramRequestExample'
         required: true
       responses:
         "200":
           description: OK
           content:
             application/json:
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 1
-                    totalPages: 1
-                  status: []
-                result:
-                  id: b2f23375-0033-4d16-a62f-072e3a919844
-                  species_id: f4f23375-0033-4d16-a62f-072e3a9198fs
-                  name: Tim's program
-                  abbreviation: TP
-                  objective: To breed some good stuff
-                  documentation_url: http://www.timsgoodstuff.com
+              examples:
+                singleProgram:
+                  $ref: '#/components/examples/singleProgram'
         "400":
           description: Bad Request
           content:
@@ -1437,9 +1379,6 @@ components:
         id:
           type: string
           format: uuid
-        species_id:
-          type: string
-          format: uuid
         name:
           type: string
         abbreviation:
@@ -1448,6 +1387,38 @@ components:
           type: string
         documentation_url:
           type: string
+        active:
+          type: boolean
+        createdAtUtc:
+          type: string
+          format: datetime
+        updatedAtUtc:
+          type: string
+          format: datetime
+        species:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            commonName:
+              type: string
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
     location:
       type: object
       properties:
@@ -1562,12 +1533,17 @@ components:
     updateProgramRequest:
       type: object
       properties:
-        species_common_name:
-          type: string
-          description: name of species
-        species_description:
-          type: string
-          description: description of species
+        species:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Id of species to assign to program
+            commonName:
+              type: string
+              description: Name of species
+          required:
+            - id
         name:
           type: string
           description: name of program
@@ -1580,6 +1556,9 @@ components:
         documetation_url:
           type: string
           description: program documentation url
+      required:
+        - species
+        - name
 
     programsResponse:
       title: programsResponse
@@ -1707,3 +1686,88 @@ components:
       type: apiKey
       name: api_key
       in: header
+  examples:
+    arrayOfPrograms:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+              name: Bob Smith's Breeding Program
+              abbreviation: BSBP
+              objective: To breed the best grapes in the world
+              documentationUrl: http://www.bobsbestbreeding.com
+              active: true
+              createdAtUtc: "2020-03-09T09:57:35-04:00"
+              updatedAtUtc: "2020-03-09T09:59:25-04:00"
+              species:
+                id: b3764582-e1ac-4c5c-85c4-b76bae0a18d2
+                commonName: "Grape"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Stacy Stacktrace
+            - id: e2263532-1fa3-49a6-9a66-957f313c8ed3
+              name: Franks's Salmon
+              abbreviation: FS
+              objective: To breed the best salmon in the world
+              documentation_url: http://www.franks.com
+              active: true
+              createdAtUtc: "2020-03-09T09:57:35-04:00"
+              updatedAtUtc: "2020-03-09T09:59:25-04:00"
+              species:
+                id: 239b9ce5-bf72-412e-a456-42ecb2a621ec
+                commonName: Salmon
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Stacy Stacktrace
+    singleProgram:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+          name: Bob Smith's Breeding Program
+          abbreviation: BSBP
+          objective: To breed the best grapes in the world
+          documentationUrl: http://www.bobsbestbreeding.com
+          active: true
+          createdAtUtc: "2020-03-09T09:57:35-04:00"
+          updatedAtUtc: "2020-03-09T09:59:25-04:00"
+          species:
+            id: b3764582-e1ac-4c5c-85c4-b76bae0a18d2
+            commonName: "Grape"
+          createdByUser:
+            id: e024a9be-98bf-4802-bec0-16bdf7343888
+            name: Bob Smith
+          updatedByUser:
+            id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+            name: Stacy Stacktrace
+    updateProgramRequestExample:
+      value:
+        species:
+          id: f4f23375-0033-4d16-a62f-072e3a9198fs
+          commonName: "Sweetpotato"
+        name: Tim's program
+        abbreviation: TP
+        objective: To breed some good stuff
+        documentationUrl: http://www.timsgoodstuff.com
+

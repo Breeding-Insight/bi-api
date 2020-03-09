@@ -1,5 +1,6 @@
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
@@ -15,6 +16,7 @@ import static org.breedinginsight.dao.db.Tables.*;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "speciesId" })
 public class Program extends ProgramEntity {
     private SpeciesEntity species;
     private User createdByUser;
