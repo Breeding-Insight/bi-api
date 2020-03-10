@@ -674,28 +674,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/usersResponse'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 2
-                    totalPages: 1
-                  status: []
-                result:
-                  data:
-                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
-                      orcid: 1234-4312-4352-6314
-                      name: Bob Smith
-                      email: bob.smith@mail.com
-                      roles: []
-                    - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
-                      orcid: 1234-4312-4352-6314
-                      name: Fred Brown
-                      email: null
-                      roles: []
+                $ref: '#/components/schemas/programUserResponseResult'
+              examples:
+                programUserExample1:
+                  $ref: '#/components/examples/arrayOfProgramUsers'
         "400":
           description: Bad Request
           content:
@@ -896,7 +878,92 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-
+    put:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be updated.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          description: The id of the user information that needs to be updated.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Update specified user in the specified program
+      description: Update user in the program
+      operationId: putProgramUser
+      requestBody:
+        description: Program user information to update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramUserRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 2
+                    totalPages: 1
+                  status: []
+                result:
+                  - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                    orcid: 1234-4312-4352-6314
+                    name: Bob Smith
+                    email: bob.smith@mail.com
+                    roles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
     delete:
       tags:
         - programs
@@ -1374,6 +1441,24 @@ components:
           type: string
         email:
           type: string
+    role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        domain:
+          type: string
+    programUser:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/user'
+        roles:
+          type: array
+          description: Array of roles
+          items:
+            $ref: '#/components/schemas/role'
     program:
       type: object
       properties:
@@ -1467,15 +1552,28 @@ components:
     newProgramUserRequest:
       type: object
       properties:
-        id:
-          type: string
-          description: user id
-        name:
-          type: string
-          description: name of this user
-        email:
-          type: string
-          description: email address of this user
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Id of user to assign to program
+            name:
+              type: string
+              description: Name of the user
+            email:
+              type: string
+              description: Email address of this user
+          required:
+            - id
+        roles:
+          type: array
+          description: Array of roles
+          items:
+            $ref: '#/components/schemas/role'
+      required:
+        - user
+        - roles
     newProgramLocationRequest:
       type: object
       properties:
@@ -1619,6 +1717,14 @@ components:
           description: Array of users
           items:
             $ref: '#/components/schemas/user'
+    programUserResponseResult:
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of program users
+          items:
+            $ref: '#/components/schemas/programUser'
     locationsResponseResult:
       required:
         - data
@@ -1771,4 +1877,51 @@ components:
         abbreviation: TP
         objective: To breed some good stuff
         documentationUrl: http://www.timsgoodstuff.com
+    arrayOfProgramUsers:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:57:35-04:00"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+                email: bob@bob.com
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Stacy Stacktrace
+                email: stacy@stacy.com
+              user:
+                id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                name: Bob Smith
+                email: bob.smith@mail.com
+              roles:
+                - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+                  domain: Breeder
+            - createdAt: "2020-04-09T09:57:35-04:00"
+              updatedAt: "2020-04-09T09:57:35-04:00"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Fred Smith
+                email: fred@smith.com
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Joe Dirt
+                email: joe@dirt.com
+              user:
+                id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                name: Tim Smith
+                email: tim.smith@mail.com
+              roles:
+                - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+                  domain: Breeder
+
 
