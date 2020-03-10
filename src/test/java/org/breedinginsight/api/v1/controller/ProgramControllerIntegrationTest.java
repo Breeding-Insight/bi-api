@@ -157,15 +157,7 @@ public class ProgramControllerIntegrationTest {
     //region Program User Tests
     @Test
     public void postProgramsUsersInvalidProgram() {
-        JsonObject requestBody = new JsonObject();
-        JsonObject user = new JsonObject();
-        user.addProperty("id", validUser.getId().toString());
-        JsonObject role = new JsonObject();
-        role.addProperty("id", validRole.getId().toString());
-        JsonArray roles = new JsonArray();
-        roles.add(role);
-        requestBody.add("user", user);
-        requestBody.add("roles", roles);
+        JsonObject requestBody = validProgramUserRequest();
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -244,8 +236,94 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    @Order(1)
-    public void postProgramsUsersOnlyIdSuccess() {
+    public void postProgramsUsersDuplicateRoles() {
+        String validProgramId = validProgram.getId().toString();
+        JsonObject requestBody = new JsonObject();
+        JsonObject user = new JsonObject();
+        user.addProperty("id", validUser.getId().toString());
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+
+    }
+
+    @Test
+    public void postProgramsUsersInvalidRole() {
+        String validProgramId = validProgram.getId().toString();
+        JsonObject requestBody = invalidRoleProgramUserRequest();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsUsersDuplicateRoles() {
+        String validProgramId = validProgram.getId().toString();
+        JsonObject requestBody = new JsonObject();
+        JsonObject user = new JsonObject();
+        user.addProperty("id", validUser.getId().toString());
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+
+    }
+
+    @Test
+    public void putProgramsUsersInvalidRole() {
+        String validProgramId = validProgram.getId().toString();
+        JsonObject requestBody = invalidRoleProgramUserRequest();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    public JsonObject validProgramUserRequest() {
         JsonObject requestBody = new JsonObject();
         JsonObject user = new JsonObject();
         user.addProperty("id", validUser.getId().toString());
@@ -255,6 +333,26 @@ public class ProgramControllerIntegrationTest {
         roles.add(role);
         requestBody.add("user", user);
         requestBody.add("roles", roles);
+        return requestBody;
+    }
+
+    public JsonObject invalidRoleProgramUserRequest() {
+        JsonObject requestBody = new JsonObject();
+        JsonObject user = new JsonObject();
+        user.addProperty("id", validUser.getId().toString());
+        JsonObject role = new JsonObject();
+        role.addProperty("id", invalidRole);
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
+        return requestBody;
+    }
+
+    @Test
+    @Order(1)
+    public void postProgramsUsersOnlyIdSuccess() {
+        JsonObject requestBody = validProgramUserRequest();
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -269,7 +367,7 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     @Order(2)
-    void getProgramsUsersSingleSuccess() {
+    void getProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -298,6 +396,66 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @Order(3)
+    void getProgramsUsersSingleSuccess() {
+        String validProgramId = validProgram.getId().toString();
+        String validUserId = validUser.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/users/"+validUserId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonObject user = result.getAsJsonObject("user");
+        assertEquals(user.get("id").getAsString(),validUser.getId().toString(), "Wrong user id");
+        assertEquals(user.get("name").getAsString(),validUser.getName(), "Wrong name");
+        assertEquals(user.get("email").getAsString(),validUser.getEmail(), "Wrong email");
+        JsonArray roles = result.getAsJsonArray("roles");
+        JsonObject role = roles.get(0).getAsJsonObject();
+        assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
+        assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+    }
+
+    @Test
+    @Order(4)
+    public void putProgramsUsersOnlyIdSuccess() {
+        /*
+        JsonObject requestBody = new JsonObject();
+        JsonObject user = new JsonObject();
+        user.addProperty("id", validUser.getId().toString());
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
+        String validProgramId = validProgram.getId().toString();
+        String validUserId = validUser.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/users/"+validUserId, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        */
+    }
+
+
+
+
+
+    @Test
     public void deleteProgramsUsersNotExistingProgramId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/programs/"+invalidProgram+"/users/"+invalidProgram).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -324,7 +482,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    @Order(3)
+    @Order(5)
     public void deleteProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
         String validUserId = validUser.getId().toString();
@@ -368,6 +526,82 @@ public class ProgramControllerIntegrationTest {
         assertEquals(result.size(),0, "Wrong size");
 
     }
+
+    @Test
+    void getProgramsUsersSingleInvalidProgramId() {
+        String validUserId = validUser.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+invalidProgram+"/users/"+validUserId).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void getProgramsUsersSingleInvalidUserId() {
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/users/"+invalidUser).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void putProgramsUsersInvalidProgramId() {
+        JsonObject requestBody = validProgramUserRequest();
+        String validUserId = validUser.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+invalidProgram+"/users/"+validUserId, requestBody.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void putProgramsUsersInvalidUserId() {
+        JsonObject requestBody = validProgramUserRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/users/"+invalidUser, requestBody.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void putProgramsUsersMissingBody() {
+        JsonObject requestBody = validProgramUserRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/users/"+invalidUser, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+
+
 
 
     //endregion

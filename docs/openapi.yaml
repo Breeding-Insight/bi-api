@@ -740,22 +740,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/usersResponse_1'
+                $ref: '#/components/schemas/programUserResponse'
               example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 1
-                    totalPages: 1
-                  status: []
-                result:
-                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
-                  orcid: null
-                  name: Bob Smith
-                  email: bob@bob.com
-                  roles: []
+                programUserExample2:
+                  $ref: '#/components/examples/singleProgramUser'
         "400":
           description: Bad Request
           content:
@@ -828,22 +816,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/usersResponse_1'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 2
-                    totalPages: 1
-                  status: []
-                result:
-                  - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
-                    orcid: 1234-4312-4352-6314
-                    name: Bob Smith
-                    email: bob.smith@mail.com
-                    roles: []
+                $ref: '#/components/schemas/programUserResponse'
+              examples:
+                singleProgramUser:
+                  $ref: '#/components/examples/singleProgramUser'
         "400":
           description: Bad Request
           content:
@@ -914,22 +890,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/usersResponse_1'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 2
-                    totalPages: 1
-                  status: []
-                result:
-                  - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
-                    orcid: 1234-4312-4352-6314
-                    name: Bob Smith
-                    email: bob.smith@mail.com
-                    roles: []
+                $ref: '#/components/schemas/programUserResponse'
+              examples:
+                singleProgramUser:
+                  $ref: '#/components/examples/singleProgramUser'
         "400":
           description: Bad Request
           content:
@@ -990,10 +954,6 @@ paths:
       responses:
         "200":
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/usersResponse_1'
 
         "400":
           description: Bad Request
@@ -1681,6 +1641,18 @@ components:
           $ref: '#/components/schemas/metadata'
         result:
           $ref: '#/components/schemas/program'
+    programUserResponse:
+      title: programUserResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/programUser'
+
     usersResponse_1:
       title: usersResponse
       required:
@@ -1906,8 +1878,8 @@ components:
               roles:
                 - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
                   domain: Breeder
-            - createdAt: "2020-04-09T09:57:35-04:00"
-              updatedAt: "2020-04-09T09:57:35-04:00"
+            - createdAt: "2020-02-09T09:57:35-04:00"
+              updatedAt: "2020-02-09T09:57:35-04:00"
               createdByUser:
                 id: e024a9be-98bf-4802-bec0-16bdf7343888
                 name: Fred Smith
@@ -1923,5 +1895,32 @@ components:
               roles:
                 - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
                   domain: Breeder
-
+    singleProgramUser:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          createdAt: "2020-01-09T09:57:35-04:00"
+          updatedAt: "2020-01-09T09:57:35-04:00"
+          createdByUser:
+            id: d024a9be-98bf-4802-bec0-16bdf7343888
+            name: Mark Smith
+            email: mark@smith.com
+          updatedByUser:
+            id: 2d6c5c3-4064-4afe-abd6-0af90fbf2243
+            name: Stacy Stacktrace
+            email: stacy@stacy.com
+          user:
+            id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+            name: Bob Smith
+            email: bob.smith@mail.com
+          roles:
+            - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: Field Manager
 

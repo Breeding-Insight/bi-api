@@ -15,10 +15,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -72,6 +69,10 @@ public class ProgramUserService {
 
         List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
 
+        if (hasDuplicatesRoleIds(roleIds)) {
+            throw new AlreadyExistsException("Duplicate roles specified, must be unique");
+        }
+
         List<Role> roles = roleService.getRolesByIds(roleIds);
         if (roles.isEmpty() || roles.size() != roleIds.size()) {
             throw new DoesNotExistException("Role does not exist");
@@ -79,6 +80,15 @@ public class ProgramUserService {
 
         return updateProgramUser(actingUser, programId, user.getId(), roles);
 
+    }
+
+    private boolean hasDuplicatesRoleIds(List<UUID> roles) {
+        Set<UUID> set = new HashSet<>();
+        for (UUID role: roles){
+            if (!set.add(role))
+                return true;
+        }
+        return false;
     }
 
     private ProgramUser updateProgramUser(User actingUser, UUID programId, UUID userId, List<Role> roles) throws DoesNotExistException {
@@ -129,6 +139,11 @@ public class ProgramUserService {
         }
 
         List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
+
+        if (hasDuplicatesRoleIds(roleIds)) {
+            throw new AlreadyExistsException("Duplicate roles specified, must be unique");
+        }
+
         List<Role> roles = roleService.getRolesByIds(roleIds);
         if (roles.isEmpty() || roles.size() != roleIds.size()) {
             throw new DoesNotExistException("Role does not exist");
