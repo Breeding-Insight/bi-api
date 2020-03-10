@@ -36,8 +36,8 @@ public class ProgramUser extends ProgramUserRoleEntity {
                 .roles(new ArrayList<>())
                 .programId(record.getValue(PROGRAM_USER_ROLE.PROGRAM_ID))
                 .userId(record.getValue(PROGRAM_USER_ROLE.USER_ID))
-                .createdAtUtc(record.getValue(PROGRAM_USER_ROLE.CREATED_AT_UTC))
-                .updatedAtUtc(record.getValue(PROGRAM_USER_ROLE.UPDATED_AT_UTC))
+                .createdAt(record.getValue(PROGRAM_USER_ROLE.CREATED_AT))
+                .updatedAt(record.getValue(PROGRAM_USER_ROLE.UPDATED_AT))
                 .createdBy(record.getValue(PROGRAM_USER_ROLE.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM_USER_ROLE.UPDATED_BY))
                 .build();

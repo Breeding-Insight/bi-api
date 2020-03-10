@@ -47,10 +47,11 @@ public class ProgramControllerIntegrationTest {
     Role validRole;
     User testUser;
 
-    String invalidProgram = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String invalidUser = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String invalidRole = "3ea369b8-138b-44d6-aeab-a3c25a17d556";
-    String invalidSpecies = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    String invalidProgram = invalidUUID;
+    String invalidUser = invalidUUID;
+    String invalidRole = invalidUUID;
+    String invalidSpecies = invalidUUID;
 
     Gson gson = new Gson();
 
@@ -267,6 +268,36 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @Order(2)
+    void getProgramsUsersSingleSuccess() {
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject programUser = data.get(0).getAsJsonObject();
+        JsonObject user = programUser.getAsJsonObject("user");
+        assertEquals(user.get("id").getAsString(),validUser.getId().toString(), "Wrong user id");
+        assertEquals(user.get("name").getAsString(),validUser.getName(), "Wrong name");
+        assertEquals(user.get("email").getAsString(),validUser.getEmail(), "Wrong email");
+        JsonArray roles = programUser.getAsJsonArray("roles");
+        JsonObject role = roles.get(0).getAsJsonObject();
+        assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
+        assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+    }
+
+    @Test
     public void deleteProgramsUsersNotExistingProgramId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/programs/"+invalidProgram+"/users/"+invalidProgram).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -293,7 +324,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     public void deleteProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
         String validUserId = validUser.getId().toString();
@@ -307,34 +338,37 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    @SneakyThrows
-    void getProgramsUsersSingleRoleSuccess() {
-        /*
-        String validProgramId = validProgram.getId().toString();
-        String validUserId = validUser.getId().toString();
-        List<UUID> roles = new ArrayList<>();
-        roles.add(validRole.getId());
-
-        ProgramUserRequest request = ProgramUserRequest.builder().id(validUser.getId())
-                .name(validUser.getName())
-                .email(validUser.getEmail())
-                .roleIds(roles)
-                .build();
-
-        programUserService.addProgramUser(validUser, validProgram.getId(), request);
-
+    void getProgramsUsersInvalidProgramId() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/"+validUserId+"/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                GET("/programs/"+invalidProgram+"/users/"+invalidProgram).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void getProgramsUsersNoUsers() {
+        String validProgramId = validProgram.getId().toString();
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
 
-        programUserService.removeProgramUser(validProgram.getId(), validUser.getId());
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 0, "Wrong totalCount");
 
-         */
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(result.size(),0, "Wrong size");
 
     }
+
 
     //endregion
 
