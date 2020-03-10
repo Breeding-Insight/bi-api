@@ -109,6 +109,7 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void postProgramUsersDataAccessException() throws DoesNotExistException, AlreadyExistsException {
+        when(userService.getByOrcid(any(String.class))).thenReturn(new User());
         when(programUserService.addProgramUser(any(User.class), any(UUID.class), any(ProgramUserRequest.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.addProgramUser(principal, UUID.randomUUID(), new ProgramUserRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
