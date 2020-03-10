@@ -1435,10 +1435,10 @@ components:
           type: string
         active:
           type: boolean
-        createdAtUtc:
+        createdAt:
           type: string
           format: datetime
-        updatedAtUtc:
+        updatedAt:
           type: string
           format: datetime
         species:
@@ -1784,8 +1784,8 @@ components:
               objective: To breed the best grapes in the world
               documentationUrl: http://www.bobsbestbreeding.com
               active: true
-              createdAtUtc: "2020-03-09T09:57:35-04:00"
-              updatedAtUtc: "2020-03-09T09:59:25-04:00"
+              createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:59:25-04:00"
               species:
                 id: b3764582-e1ac-4c5c-85c4-b76bae0a18d2
                 commonName: "Grape"
@@ -1801,8 +1801,8 @@ components:
               objective: To breed the best salmon in the world
               documentation_url: http://www.franks.com
               active: true
-              createdAtUtc: "2020-03-09T09:57:35-04:00"
-              updatedAtUtc: "2020-03-09T09:59:25-04:00"
+              createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:59:25-04:00"
               species:
                 id: 239b9ce5-bf72-412e-a456-42ecb2a621ec
                 commonName: Salmon
@@ -1829,8 +1829,8 @@ components:
           objective: To breed the best grapes in the world
           documentationUrl: http://www.bobsbestbreeding.com
           active: true
-          createdAtUtc: "2020-03-09T09:57:35-04:00"
-          updatedAtUtc: "2020-03-09T09:59:25-04:00"
+          createdAt: "2020-03-09T09:57:35-04:00"
+          updatedAt: "2020-03-09T09:59:25-04:00"
           species:
             id: b3764582-e1ac-4c5c-85c4-b76bae0a18d2
             commonName: "Grape"
