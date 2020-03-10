@@ -30,8 +30,8 @@ public class Program extends ProgramEntity {
         this.setAbbreviation(programEntity.getAbbreviation());
         this.setObjective(programEntity.getObjective());
         this.setDocumentationUrl(programEntity.getDocumentationUrl());
-        this.setCreatedAtUtc(programEntity.getCreatedAtUtc());
-        this.setUpdatedAtUtc(programEntity.getUpdatedAtUtc());
+        this.setCreatedAt(programEntity.getCreatedAt());
+        this.setUpdatedAt(programEntity.getUpdatedAt());
         this.setCreatedBy(programEntity.getCreatedBy());
         this.setUpdatedBy(programEntity.getUpdatedBy());
 
@@ -46,8 +46,8 @@ public class Program extends ProgramEntity {
                 .abbreviation(record.getValue(PROGRAM.ABBREVIATION))
                 .objective(record.getValue(PROGRAM.OBJECTIVE))
                 .documentationUrl(record.getValue(PROGRAM.DOCUMENTATION_URL))
-                .createdAtUtc(record.getValue(PROGRAM.CREATED_AT_UTC))
-                .updatedAtUtc(record.getValue(PROGRAM.UPDATED_AT_UTC))
+                .createdAt(record.getValue(PROGRAM.CREATED_AT))
+                .updatedAt(record.getValue(PROGRAM.UPDATED_AT))
                 .createdBy(record.getValue(PROGRAM.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM.UPDATED_BY))
                 .active(record.getValue(PROGRAM.ACTIVE))

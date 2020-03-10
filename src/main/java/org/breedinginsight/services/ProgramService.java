@@ -121,7 +121,7 @@ public class ProgramService {
         programEntity.setAbbreviation(programRequest.getAbbreviation());
         programEntity.setObjective(programRequest.getObjective());
         programEntity.setDocumentationUrl(programRequest.getDocumentationUrl());
-        programEntity.setUpdatedAtUtc(OffsetDateTime.now());
+        programEntity.setUpdatedAt(OffsetDateTime.now());
         programEntity.setUpdatedBy(actingUser.getId());
 
         dao.update(programEntity);
@@ -140,7 +140,7 @@ public class ProgramService {
 
         programEntity.setActive(false);
         programEntity.setUpdatedBy(actingUser.getId());
-        programEntity.setUpdatedAtUtc(OffsetDateTime.now());
+        programEntity.setUpdatedAt(OffsetDateTime.now());
         dao.update(programEntity);
     }
 
