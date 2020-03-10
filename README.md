@@ -34,7 +34,7 @@ This section is provided as an alternative to running the application in Docker.
 
 ### Prerequisites
 
-1. Java 12 SDK installed
+1. Java 13 SDK installed
 1. Maven installed (or via IDE)
 
 ### Project setup
@@ -142,4 +142,11 @@ mvn test -P test
 
 They are also run as part of the install profile. In IntelliJ you can create test profiles for the tests to get easily readable output.
 
+### Troubleshooting
 
+If you are having errors to the effect of `invalid source release 12 with --enable-preview` and are using IntelliJ, change the jdk to 13 in the following places and it may help:
+
+1. File -> Project Structure -> Project Settings
+2. File -> Project Structure -> Module Settings -> Tab: Sources: Language Level
+3. File -> Project Structure -> Module Settings -> Tab: Dependencies: Module SDK
+4. File -> Settings -> Compiler -> Java Compiler -> Target bytecode version
