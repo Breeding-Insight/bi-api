@@ -3,7 +3,6 @@ package org.breedinginsight.services;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
-import org.breedinginsight.dao.db.tables.daos.ProgramUserRoleDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.daos.ProgramUserDao;
@@ -12,6 +11,8 @@ import org.breedinginsight.model.Role;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.jooq.DSLContext;
+import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -30,41 +31,64 @@ public class ProgramUserService {
     private UserService userService;
     @Inject
     private RoleService roleService;
+    @Inject
+    private DSLContext dsl;
 
     public ProgramUser addProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
         /* Add a user to a program. Create the user if they don't exist. */
-        User user;
-        //TODO: Jooq transaction stuff maybe
 
-        if (programService.getByIdOptional(programId).isEmpty())
-        {
-            throw new DoesNotExistException("Program id does not exist");
-        }
+        try {
+            ProgramUser programUser = dsl.transactionResult(configuration -> {
 
-        Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
+                List<Role> roles = checkInputsGetRoles(programId, programUserRequest);
 
-        if (optUser.isPresent()) {
-            user = optUser.get();
-        }
-        else {
-            // user doesn't exist so create them
-            UserRequest userRequest = new UserRequest().builder()
-                    .name(programUserRequest.getUser().getName())
-                    .email(programUserRequest.getUser().getEmail())
-                    .build();
-            optUser = userService.createOptional(userRequest);
-            if (optUser.isEmpty()) {
-                throw new AlreadyExistsException("Cannot create new user, email already exists");
-            } else {
-                user = optUser.get();
+                User user;
+                Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
+
+                if (optUser.isPresent()) {
+                    user = optUser.get();
+
+                    // check if user is already in program, only allow puts for update, not posts
+                    Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
+
+                    if (existingProgramUser.isPresent()) {
+                        throw new AlreadyExistsException("Program user already exists");
+                    }
+                } else {
+                    // user doesn't exist so create them
+                    UserRequest userRequest = new UserRequest().builder()
+                            .name(programUserRequest.getUser().getName())
+                            .email(programUserRequest.getUser().getEmail())
+                            .build();
+                    optUser = userService.createOptional(userRequest);
+                    if (optUser.isEmpty()) {
+                        throw new AlreadyExistsException("Cannot create new user, email already exists");
+                    } else {
+                        user = optUser.get();
+                    }
+                }
+
+                return updateProgramUser(actingUser, programId, user.getId(), roles);
+            });
+
+            return programUser;
+
+        } catch(DataAccessException e) {
+            if (e.getCause() instanceof AlreadyExistsException) {
+                throw (AlreadyExistsException)e.getCause();
+            }
+            else if (e.getCause() instanceof DoesNotExistException) {
+                throw (DoesNotExistException)e.getCause();
+            }
+            else {
+                throw e;
             }
         }
+    }
 
-        // check if user is already in program, only allow puts for update, no posts
-        Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
-
-        if (existingProgramUser.isPresent()) {
-            throw new AlreadyExistsException("Program user already exists");
+    private List<Role> checkInputsGetRoles(UUID programId, ProgramUserRequest programUserRequest) throws AlreadyExistsException, DoesNotExistException {
+        if (programService.getByIdOptional(programId).isEmpty()) {
+            throw new DoesNotExistException("Program id does not exist");
         }
 
         List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
@@ -78,8 +102,7 @@ public class ProgramUserService {
             throw new DoesNotExistException("Role does not exist");
         }
 
-        return updateProgramUser(actingUser, programId, user.getId(), roles);
-
+        return roles;
     }
 
     private boolean hasDuplicatesRoleIds(List<UUID> roles) {
@@ -115,43 +138,44 @@ public class ProgramUserService {
     }
 
     public ProgramUser editProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
-        // only can modify roles
-        User user;
 
-        if (programService.getByIdOptional(programId).isEmpty()) {
-            throw new DoesNotExistException("Program id does not exist");
+        try {
+            ProgramUser programUser = dsl.transactionResult(configuration -> {
+                User user;
+                List<Role> roles = checkInputsGetRoles(programId, programUserRequest);
+
+                Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
+
+                if (optUser.isPresent()) {
+                    user = optUser.get();
+                } else {
+                    throw new DoesNotExistException("User id does not exist");
+                }
+
+                // check if user is already in program, only allow puts for update, no posts
+                Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
+
+                if (existingProgramUser.isEmpty()) {
+                    throw new DoesNotExistException("Program user does not exist");
+                }
+
+                // delete existing roles and replace with new roles
+                programUserDao.deleteProgramUserRoles(programId, user.getId());
+                return updateProgramUser(actingUser, programId, user.getId(), roles);
+            });
+
+            return programUser;
+        } catch(DataAccessException e) {
+            if (e.getCause() instanceof AlreadyExistsException) {
+                throw (AlreadyExistsException)e.getCause();
+            }
+            else if (e.getCause() instanceof DoesNotExistException) {
+                throw (DoesNotExistException)e.getCause();
+            }
+            else {
+                throw e;
+            }
         }
-
-        Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
-
-        if (optUser.isPresent()) {
-            user = optUser.get();
-        }
-        else {
-            throw new DoesNotExistException("User id does not exist");
-        }
-
-        // check if user is already in program, only allow puts for update, no posts
-        Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
-
-        if (existingProgramUser.isEmpty()) {
-            throw new DoesNotExistException("Program user does not exist");
-        }
-
-        List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
-
-        if (hasDuplicatesRoleIds(roleIds)) {
-            throw new AlreadyExistsException("Duplicate roles specified, must be unique");
-        }
-
-        List<Role> roles = roleService.getRolesByIds(roleIds);
-        if (roles.isEmpty() || roles.size() != roleIds.size()) {
-            throw new DoesNotExistException("Role does not exist");
-        }
-
-        // delete existing roles and replace with new roles
-        programUserDao.deleteProgramUserRoles(programId, user.getId());
-        return updateProgramUser(actingUser, programId, user.getId(), roles);
     }
 
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
