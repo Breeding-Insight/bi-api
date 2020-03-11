@@ -40,7 +40,11 @@ public class ProgramUserService {
         try {
             ProgramUser programUser = dsl.transactionResult(configuration -> {
 
-                List<Role> roles = checkInputsGetRoles(programId, programUserRequest);
+                if (programService.getByIdOptional(programId).isEmpty()) {
+                    throw new DoesNotExistException("Program id does not exist");
+                }
+
+                List<Role> roles = validateAndGetRoles(programUserRequest);
 
                 User user;
                 Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
@@ -86,10 +90,7 @@ public class ProgramUserService {
         }
     }
 
-    private List<Role> checkInputsGetRoles(UUID programId, ProgramUserRequest programUserRequest) throws AlreadyExistsException, DoesNotExistException {
-        if (programService.getByIdOptional(programId).isEmpty()) {
-            throw new DoesNotExistException("Program id does not exist");
-        }
+    private List<Role> validateAndGetRoles(ProgramUserRequest programUserRequest) throws AlreadyExistsException, DoesNotExistException {
 
         List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
 
@@ -141,8 +142,13 @@ public class ProgramUserService {
 
         try {
             ProgramUser programUser = dsl.transactionResult(configuration -> {
+
+                if (programService.getByIdOptional(programId).isEmpty()) {
+                    throw new DoesNotExistException("Program id does not exist");
+                }
+
                 User user;
-                List<Role> roles = checkInputsGetRoles(programId, programUserRequest);
+                List<Role> roles = validateAndGetRoles(programUserRequest);
 
                 Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
 
