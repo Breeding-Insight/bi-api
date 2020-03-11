@@ -130,6 +130,10 @@ mvn validate flyway:clean flyway:migrate -X -P test
 
 ### Run tests
 
+Create a file, `application-test.yml` in the `src/test/resources` directory.
+You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
+variable configuration.
+
 Tests can be run with the following command:
 
 ```
