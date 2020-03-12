@@ -116,17 +116,9 @@ mvn clean generate-sources -P dev
 
 #### Test database
 
-Run this docker command in terminal to start up a postgres docker container with the empty test database in it. 
-
-```
-docker container run --name bitest -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bitest -p 8765:5432 -d postgis/postgis:12-3.0
-```
-
-Run migrate using the test profile to apply the migrates to the test database.
-
-```
-mvn validate flyway:clean flyway:migrate -X -P test
-```
+The test database is started as part of the tests in a separate docker container. The JOOQ classes for the tests
+are generated from the main database, so this will have to be up and running. The reference to the main database
+can be found in src/build/build.config.properties. 
 
 ### Run tests
 

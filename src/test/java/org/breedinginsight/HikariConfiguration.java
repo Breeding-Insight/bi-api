@@ -1,6 +1,8 @@
 package org.breedinginsight;
 
 import com.zaxxer.hikari.HikariConfig;
+import io.micronaut.context.event.BeanCreatedEvent;
+import io.micronaut.context.event.BeanCreatedEventListener;
 import io.micronaut.context.event.BeanInitializedEventListener;
 import io.micronaut.context.event.BeanInitializingEvent;
 import org.testcontainers.containers.GenericContainer;
@@ -22,7 +24,7 @@ public class HikariConfiguration implements BeanInitializedEventListener<HikariC
                 .withExposedPorts(5432)
                 .withEnv("POSTGRES_DB", "bitest")
                 .withEnv("POSTGRES_PASSWORD", "postgres")
-                .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections*\\n", 1));
+                .waitingFor(Wait.forListeningPort());
 
         dbContainer.start();
         Integer containerPort = dbContainer.getMappedPort(5432);
@@ -33,4 +35,6 @@ public class HikariConfiguration implements BeanInitializedEventListener<HikariC
 
         return configuration;
     }
+
 }
+

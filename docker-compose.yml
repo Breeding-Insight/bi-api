@@ -12,9 +12,8 @@ services:
     depends_on:
       - bidb
     volumes:
-      - type: bind
-        source: ./src
-        target: /biapi/src/
+      - ./entrypoint.sh:/home/host/biapi/entrypoint.sh
+      - ./pom.xml:/home/host/biapi/pom.xml
     environment:
       - API_INTERNAL_PORT=8081
       - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
@@ -26,16 +25,18 @@ services:
       - JWT_SECRET=${JWT_SECRET}
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
       - ADMIN_ORCID=${ADMIN_ORCID}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_ACTOR=${GITHUB_ACTOR}
     ports:
       - 8081:8081
     networks:
       - backend
   bidb:
     image: postgis/postgis:12-3.0
+    container_name: bidb
     environment:
       - POSTGRES_DB=bidb
       - POSTGRES_PASSWORD=${DB_PASSWORD}
-    container_name: bidb
     ports:
       - 5432:5432
     volumes:
@@ -44,18 +45,6 @@ services:
       backend:
         aliases:
           - dbserver
-  bitestdb:
-    image: postgis/postgis:12-3.0
-    environment:
-      - POSTGRES_DB=bitest
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    container_name: bitest
-    ports:
-      - 8765:5432
-    networks:
-      backend:
-        aliases:
-          - testserver
 
 networks:
   backend:
