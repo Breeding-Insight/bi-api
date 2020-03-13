@@ -28,10 +28,11 @@ public class HikariConfiguration implements BeanInitializedEventListener<HikariC
 
         dbContainer.start();
         Integer containerPort = dbContainer.getMappedPort(5432);
+        String containerIp = dbContainer.getContainerIpAddress();
 
         HikariConfig configuration = configurationEvent.getBean();
 
-        configuration.setJdbcUrl(String.format("jdbc:postgresql://localhost:%s/bitest", containerPort));
+        configuration.setJdbcUrl(String.format("jdbc:postgresql://%s:%s/bitest", containerIp, containerPort));
 
         return configuration;
     }

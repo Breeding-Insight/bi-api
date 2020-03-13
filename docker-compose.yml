@@ -12,10 +12,11 @@ services:
     depends_on:
       - bidb
     volumes:
-      - ./entrypoint.sh:/home/host/biapi/entrypoint.sh
-      - ./pom.xml:/home/host/biapi/pom.xml
+      - /usr/bin/docker:/usr/bin/docker
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - API_INTERNAL_PORT=8081
+      - API_INTERNAL_TEST_PORT=8082
       - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
       - JWT_DOMAIN=localhost
       - DB_SERVER=dbserver:5432

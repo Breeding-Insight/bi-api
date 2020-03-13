@@ -1,12 +1,13 @@
 #!/bin/bash
 
 ./src/build/makeApplication-dev.yml.sh
+./src/build/makeApplication-test.yml.sh
 
 mvn validate flyway:migrate -X
 
 # create a jar file for br-api.
 #mvn clean install
-mvn clean install -Dmaven.test.skip=true --settings ./settings.xml -X
+mvn clean install -Dmaven.test.skip=true --settings settings.xml -X
 
 # start up the api server
 cd target && java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar

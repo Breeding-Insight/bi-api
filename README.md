@@ -21,6 +21,21 @@ placed in docker-compose.yml and never committed to the repo.  At the root level
 of the repo locally create a file called .env and save the Lastpass contents for
 "bi-api secrets" in this file.
 
+### Running tests in docker container
+
+If you have the docker socket (/var/run/docker.sock) and docker executable folder (/usr/bin/docker)
+mounted in your docker-compose.yml file, you will be able to run the biapi tests from within the docker container. 
+
+The biapi tests use the hosts docker instance to spin up test database containers for integration tests. 
+
+NOTE: Do not run a production container within the docker socket mounted. While useful for testing and
+development, mounting the docker socket into a container is a large security risk. The application will
+still work fine without the docker socket mounted, but tests will fail. 
+
+To run the tests, use the following command:
+
+```docker exec -it biapi mvn test```
+
 ## Pull Request Criteria
 
 When evaluating a pull request for merge acceptance, verify that the following criteria are met:
@@ -129,7 +144,7 @@ variable configuration.
 Tests can be run with the following command:
 
 ```
-mvn test -P test
+mvn test
 ```
 
 They are also run as part of the install profile. In IntelliJ you can create test profiles for the tests to get easily readable output.
