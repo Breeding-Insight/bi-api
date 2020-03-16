@@ -2,7 +2,6 @@ package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.dao.db.tables.records.ProgramRecord;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;

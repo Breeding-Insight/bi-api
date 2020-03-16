@@ -1,7 +1,6 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.breedinginsight.daos.SpeciesDao;
 import org.breedinginsight.model.Species;
