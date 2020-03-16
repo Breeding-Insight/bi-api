@@ -156,7 +156,6 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void postProgramsUsersInvalidProgram() {
         JsonObject requestBody = validProgramUserRequest();
-        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+invalidProgram+"/users", requestBody.toString())
@@ -585,7 +584,6 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     void putProgramsUsersMissingBody() {
-        JsonObject requestBody = validProgramUserRequest();
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
