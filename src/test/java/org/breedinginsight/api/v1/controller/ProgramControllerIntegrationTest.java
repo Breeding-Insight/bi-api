@@ -15,7 +15,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
-import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.model.Program;
@@ -29,7 +28,6 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 

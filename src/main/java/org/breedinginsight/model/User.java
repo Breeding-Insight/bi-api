@@ -8,9 +8,6 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.jooq.Record;
 
 import javax.validation.constraints.NotNull;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.BI_USER;
 

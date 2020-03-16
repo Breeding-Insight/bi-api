@@ -1,7 +1,5 @@
 package org.breedinginsight.api.model.v1.validators;
 
-import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
-
 import javax.validation.Constraint;
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;

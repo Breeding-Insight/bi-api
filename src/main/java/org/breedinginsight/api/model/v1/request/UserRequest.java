@@ -2,7 +2,6 @@ package org.breedinginsight.api.model.v1.request;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
-import org.breedinginsight.api.model.v1.validators.AlwaysInvalid;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;

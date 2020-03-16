@@ -1,6 +1,5 @@
 package org.breedinginsight.api.v1.controller;
 
-import groovy.transform.ImmutableBase;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.authentication.DefaultAuthentication;
@@ -10,16 +9,11 @@ import io.micronaut.security.token.jwt.validator.GenericJwtClaimsValidator;
 import io.micronaut.security.token.jwt.validator.JwtAuthenticationFactory;
 import io.micronaut.security.token.jwt.validator.JwtTokenValidator;
 import io.reactivex.Flowable;
-import lombok.SneakyThrows;
-import org.breedinginsight.model.User;
-import org.breedinginsight.services.UserService;
 import org.reactivestreams.Publisher;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.UUID;
 
 @Replaces(JwtTokenValidator.class)
 @Singleton

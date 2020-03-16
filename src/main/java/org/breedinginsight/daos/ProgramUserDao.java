@@ -15,7 +15,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.breedinginsight.dao.db.Tables.PROGRAM;
 
 @Singleton
 public class ProgramUserDao extends ProgramUserRoleDao {

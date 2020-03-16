@@ -15,7 +15,6 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.Location;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
