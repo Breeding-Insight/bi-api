@@ -425,7 +425,6 @@ public class ProgramControllerIntegrationTest {
     @Test
     @Order(4)
     public void putProgramsUsersOnlyIdSuccess() {
-        /*
         JsonObject requestBody = new JsonObject();
         JsonObject user = new JsonObject();
         user.addProperty("id", validUser.getId().toString());
@@ -446,12 +445,7 @@ public class ProgramControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
-        */
     }
-
-
-
-
 
     @Test
     public void deleteProgramsUsersNotExistingProgramId() {
