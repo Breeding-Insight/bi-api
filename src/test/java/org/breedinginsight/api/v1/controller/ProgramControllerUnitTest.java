@@ -15,6 +15,7 @@ import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -69,7 +70,7 @@ public class ProgramControllerUnitTest {
     }
 
     @Test
-    public void postProgramsDataAccessException() throws DoesNotExistException {
+    public void postProgramsDataAccessException() throws UnprocessableEntityException, DoesNotExistException {
         when(userService.getByOrcid(any(String.class))).thenReturn(new User());
         when(programService.create(any(ProgramRequest.class), any(User.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.createProgram(principal, new ProgramRequest());
@@ -77,7 +78,7 @@ public class ProgramControllerUnitTest {
     }
 
     @Test
-    public void putProgramsDataAccessException() throws DoesNotExistException {
+    public void putProgramsDataAccessException() throws DoesNotExistException, UnprocessableEntityException {
         when(userService.getByOrcid(any(String.class))).thenReturn(new User());
         when(programService.update(any(UUID.class), any(ProgramRequest.class), any(User.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.updateProgram(principal, UUID.randomUUID(), new ProgramRequest());

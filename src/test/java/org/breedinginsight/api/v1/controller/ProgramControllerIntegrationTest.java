@@ -24,6 +24,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -123,7 +124,7 @@ public class ProgramControllerIntegrationTest {
         try {
             Program program = programService.create(programRequest, testUser);
             return program;
-        } catch (DoesNotExistException e){
+        } catch (UnprocessableEntityException e){
             throw new Exception("Unable to create test program");
         }
     }
@@ -702,7 +703,7 @@ public class ProgramControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
@@ -838,7 +839,7 @@ public class ProgramControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
