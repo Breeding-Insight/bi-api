@@ -212,10 +212,19 @@ public class ProgramUserService {
 
     public List<ProgramUser> getProgramUsers(UUID programId) throws DoesNotExistException {
         /* Get all of the users in the program */
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
         return programUserDao.getProgramUsers(programId);
     }
 
     public ProgramUser getProgramUserbyId(UUID programId, UUID userId) throws DoesNotExistException {
+
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
         Optional<ProgramUser> user = getProgramUserbyIdOptional(programId, userId);
 
         if (user.isEmpty()) {
