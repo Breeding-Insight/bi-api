@@ -518,7 +518,7 @@ public class ProgramControllerIntegrationTest {
     @Test
     void getProgramsUsersInvalidProgramId() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/"+invalidProgram+"/users/"+invalidProgram).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                GET("/programs/"+invalidProgram+"/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
