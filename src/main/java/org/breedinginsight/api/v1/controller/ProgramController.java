@@ -24,6 +24,7 @@ import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
@@ -102,6 +103,9 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        } catch (UnprocessableEntityException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
@@ -124,6 +128,9 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (UnprocessableEntityException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DataAccessException e){
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();

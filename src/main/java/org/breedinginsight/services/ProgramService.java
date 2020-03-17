@@ -9,6 +9,7 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -58,13 +59,13 @@ public class ProgramService {
         return programs;
     }
 
-    public Program create(ProgramRequest programRequest, User actingUser) throws DoesNotExistException {
+    public Program create(ProgramRequest programRequest, User actingUser) throws UnprocessableEntityException {
         /* Create a program from a request object */
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
         if (!speciesService.exists(speciesRequest.getId())){
-            throw new DoesNotExistException("Species does not exist");
+            throw new UnprocessableEntityException("Species does not exist");
         }
 
         // Parse and create the program object
@@ -85,7 +86,7 @@ public class ProgramService {
         return program;
     }
 
-    public Program update(UUID programId, ProgramRequest programRequest, User actingUser) throws DoesNotExistException {
+    public Program update(UUID programId, ProgramRequest programRequest, User actingUser) throws DoesNotExistException, UnprocessableEntityException {
         /* Update an existing program */
 
         ProgramEntity programEntity = dao.fetchOneById(programId);
@@ -96,7 +97,7 @@ public class ProgramService {
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
         if (!speciesService.exists(speciesRequest.getId())){
-            throw new DoesNotExistException("Species does not exist");
+            throw new UnprocessableEntityException("Species does not exist");
         }
 
         // Parse and create the program object
