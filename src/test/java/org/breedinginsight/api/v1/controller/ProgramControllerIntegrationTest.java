@@ -171,6 +171,21 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    void postProgramsUsersInvalidUserId() {
+        JsonObject requestBody = invalidUserProgramUserRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/users/", requestBody.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
     public void postProgramsUsersDuplicateUser() {
         JsonObject requestBody = new JsonObject();
 
@@ -340,6 +355,19 @@ public class ProgramControllerIntegrationTest {
         user.addProperty("id", validUser.getId().toString());
         JsonObject role = new JsonObject();
         role.addProperty("id", invalidRole);
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("user", user);
+        requestBody.add("roles", roles);
+        return requestBody;
+    }
+
+    public JsonObject invalidUserProgramUserRequest() {
+        JsonObject requestBody = new JsonObject();
+        JsonObject user = new JsonObject();
+        user.addProperty("id", invalidUser);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validRole.getId().toString());
         JsonArray roles = new JsonArray();
         roles.add(role);
         requestBody.add("user", user);

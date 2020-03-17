@@ -11,6 +11,7 @@ import org.breedinginsight.model.Role;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 
@@ -34,7 +35,7 @@ public class ProgramUserService {
     @Inject
     private DSLContext dsl;
 
-    public ProgramUser addProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
+    public ProgramUser addProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
         /* Add a user to a program. Create the user if they don't exist. */
 
         try {
@@ -59,6 +60,12 @@ public class ProgramUserService {
                         throw new AlreadyExistsException("Program user already exists");
                     }
                 } else {
+
+                    // if an id was specified but not found in the system
+                    if (programUserRequest.getUser().getId() != null) {
+                        throw new UnprocessableEntityException("User Id Not Found");
+                    }
+
                     // user doesn't exist so create them
                     UserRequest userRequest = new UserRequest().builder()
                             .name(programUserRequest.getUser().getName())
@@ -83,6 +90,9 @@ public class ProgramUserService {
             }
             else if (e.getCause() instanceof DoesNotExistException) {
                 throw (DoesNotExistException)e.getCause();
+            }
+            else if (e.getCause() instanceof UnprocessableEntityException) {
+                throw (UnprocessableEntityException) e.getCause();
             }
             else {
                 throw e;
