@@ -5,7 +5,7 @@ import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
-import org.breedinginsight.daos.ProgramDao;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -23,34 +23,30 @@ import java.util.UUID;
 public class ProgramService {
 
     @Inject
-    private ProgramDao dao;
+    private ProgramDAO dao;
     @Inject
     private SpeciesService speciesService;
-    @Inject
-    private UserService userService;
-    @Inject
-    private RoleService roleService;
 
     public Program getById(UUID programId) throws DoesNotExistException {
         /* Get Program by program ID */
-        List<Program> programs = dao.get(programId);
+        Optional<Program> program = getByIdOptional(programId);
 
-        if (programs.size() <= 0) {
+        if (program.isEmpty()) {
             throw new DoesNotExistException("Id not associated with a program");
         }
 
-        return programs.get(0);
+        return program.get();
     }
 
-    public Optional<ProgramEntity> getByIdOptional(UUID programId) {
+    public Optional<Program> getByIdOptional(UUID programId) {
 
-        ProgramEntity program = dao.fetchOneById(programId);
+        List<Program> programs = dao.get(programId);
 
-        if (program == null) {
+        if (programs.size() <= 0) {
             return Optional.empty();
         }
 
-        return Optional.of(program);
+        return Optional.of(programs.get(0));
     }
 
     public List<Program> getAll(){
@@ -67,8 +63,7 @@ public class ProgramService {
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
-        Optional<SpeciesEntity> speciesEntity = speciesService.getByIdOptional(speciesRequest.getId());
-        if (speciesEntity.isEmpty()){
+        if (!speciesService.exists(speciesRequest.getId())){
             throw new DoesNotExistException("Species does not exist");
         }
 
@@ -100,8 +95,7 @@ public class ProgramService {
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
-        Optional<SpeciesEntity> speciesEntity = speciesService.getByIdOptional(speciesRequest.getId());
-        if (speciesEntity.isEmpty()){
+        if (!speciesService.exists(speciesRequest.getId())){
             throw new DoesNotExistException("Species does not exist");
         }
 
@@ -132,6 +126,10 @@ public class ProgramService {
         programEntity.setUpdatedBy(actingUser.getId());
         programEntity.setUpdatedAt(OffsetDateTime.now());
         dao.update(programEntity);
+    }
+
+    public boolean exists(UUID programId) {
+        return dao.existsById(programId);
     }
 
     public void delete(UUID programId) throws DoesNotExistException {

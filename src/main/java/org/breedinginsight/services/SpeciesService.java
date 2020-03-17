@@ -2,7 +2,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
-import org.breedinginsight.daos.SpeciesDao;
+import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
@@ -18,7 +18,7 @@ import java.util.UUID;
 public class SpeciesService {
 
     @Inject
-    private SpeciesDao dao;
+    private SpeciesDAO dao;
 
     public List<Species> getAll() {
         List<SpeciesEntity> speciesEntities = dao.findAll();
@@ -33,17 +33,16 @@ public class SpeciesService {
 
     public Species getById(UUID speciesId) throws DoesNotExistException{
 
-        SpeciesEntity speciesEntity = dao.fetchOneById(speciesId);
+        Optional<Species> species = getByIdOptional(speciesId);
 
-        if (speciesEntity == null){
+        if (species.isEmpty()){
             throw new DoesNotExistException("Species does not exist");
         }
 
-        Species species = new Species(speciesEntity);
-        return species;
+        return species.get();
     }
 
-    public Optional<SpeciesEntity> getByIdOptional(UUID speciesId) {
+    public Optional<Species> getByIdOptional(UUID speciesId) {
 
         SpeciesEntity species = dao.fetchOneById(speciesId);
 
@@ -51,6 +50,10 @@ public class SpeciesService {
             return Optional.empty();
         }
 
-        return Optional.of(species);
+        return Optional.of(new Species(species));
+    }
+
+    public boolean exists(UUID speciesId){
+        return dao.existsById(speciesId);
     }
 }
