@@ -40,7 +40,7 @@ public class ProgramUserService {
         try {
             ProgramUser programUser = dsl.transactionResult(configuration -> {
 
-                if (programService.getByIdOptional(programId).isEmpty()) {
+                if (!programService.exists(programId)) {
                     throw new DoesNotExistException("Program id does not exist");
                 }
 
@@ -143,7 +143,7 @@ public class ProgramUserService {
         try {
             ProgramUser programUser = dsl.transactionResult(configuration -> {
 
-                if (programService.getByIdOptional(programId).isEmpty()) {
+                if (!programService.exists(programId)) {
                     throw new DoesNotExistException("Program id does not exist");
                 }
 
@@ -187,7 +187,7 @@ public class ProgramUserService {
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
         /* Remove a user from a program, but don't delete the user. */
 
-        if (programService.getByIdOptional(programId).isEmpty())
+        if (!programService.exists(programId))
         {
             throw new DoesNotExistException("Program id does not exist");
         }

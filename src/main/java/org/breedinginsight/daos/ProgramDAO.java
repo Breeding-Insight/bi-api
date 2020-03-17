@@ -1,6 +1,7 @@
 package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
@@ -16,12 +17,13 @@ import java.util.UUID;
 import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
-public class ProgramDao extends org.breedinginsight.dao.db.tables.daos.ProgramDao {
+public class ProgramDAO extends ProgramDao {
+
+    private DSLContext dsl;
     @Inject
-    DSLContext dsl;
-    @Inject
-    public ProgramDao(Configuration config) {
+    public ProgramDAO(Configuration config, DSLContext dsl) {
         super(config);
+        this.dsl = dsl;
     }
 
     public List<Program> get(List<UUID> programIds){
@@ -40,12 +42,6 @@ public class ProgramDao extends org.breedinginsight.dao.db.tables.daos.ProgramDa
             programList.add(programEntity.getId());
         }
         return getPrograms(programList);
-    }
-
-    public ProgramEntity insertThenFetch(ProgramEntity programEntity) {
-        this.insert(programEntity);
-        programEntity = this.fetchOneById(programEntity.getId());
-        return programEntity;
     }
 
     public List<Program> getAll()
