@@ -220,6 +220,9 @@ public class ProgramController {
         } catch (AlreadyExistsException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (UnprocessableEntityException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DataAccessException e){
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
