@@ -17,12 +17,12 @@ import java.util.UUID;
 import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
-public class ProgramUserDao extends ProgramUserRoleDao {
+public class ProgramUserDAO extends ProgramUserRoleDao {
 
     @Inject
     DSLContext dsl;
     @Inject
-    public ProgramUserDao(Configuration config) {
+    public ProgramUserDAO(Configuration config) {
         super(config);
     }
 
