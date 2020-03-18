@@ -235,8 +235,6 @@ public class ProgramController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<ProgramUser>> updateProgramUser(Principal principal, @PathVariable UUID programId, @PathVariable UUID userId,
                                                                  @Valid @Body ProgramUserRequest programUserRequest) {
-        /* Add a user to a program. Create the user if they don't exist. */
-
         try {
             String orcid = principal.getName();
             User user = userService.getByOrcid(orcid);
