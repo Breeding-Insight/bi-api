@@ -3,7 +3,7 @@ package org.breedinginsight.services;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.daos.UserDao;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -21,7 +21,7 @@ import java.util.UUID;
 public class UserService {
 
     @Inject
-    private UserDao dao;
+    private UserDAO dao;
 
     public User getByOrcid(String orcid) throws DoesNotExistException {
 

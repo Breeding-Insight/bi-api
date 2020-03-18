@@ -5,7 +5,7 @@ import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
-import org.breedinginsight.daos.ProgramUserDao;
+import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.Role;
 import org.breedinginsight.model.User;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 public class ProgramUserService {
 
     @Inject
-    private ProgramUserDao programUserDao;
+    private ProgramUserDAO programUserDao;
     @Inject
     private ProgramService programService;
     @Inject

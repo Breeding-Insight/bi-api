@@ -8,9 +8,9 @@ import javax.inject.Singleton;
 
 // need annotation to find bean in micronaut test context
 @Singleton
-public class UserDao extends BiUserDao {
+public class UserDAO extends BiUserDao {
     @Inject
-    public UserDao(Configuration config) {
+    public UserDAO(Configuration config) {
         super(config);
     }
 }
