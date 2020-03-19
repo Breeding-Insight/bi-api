@@ -32,6 +32,7 @@ import javax.validation.Valid;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -75,12 +76,14 @@ public class ProgramController {
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
         try {
-            Program program = programService.getById(programId);
-            Response<Program> response = new Response(program);
-            return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
+            Optional<Program> program = programService.getById(programId);
+            if(program.isPresent()) {
+                Response<Program> response = new Response(program);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.notFound();
+            }
+
         } catch (DataAccessException e){
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();

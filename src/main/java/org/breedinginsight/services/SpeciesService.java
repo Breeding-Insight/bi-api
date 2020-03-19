@@ -31,18 +31,7 @@ public class SpeciesService {
         return species;
     }
 
-    public Species getById(UUID speciesId) throws DoesNotExistException{
-
-        Optional<Species> species = getByIdOptional(speciesId);
-
-        if (species.isEmpty()){
-            throw new DoesNotExistException("Species does not exist");
-        }
-
-        return species.get();
-    }
-
-    public Optional<Species> getByIdOptional(UUID speciesId) {
+    public Optional<Species> getById(UUID speciesId) {
 
         SpeciesEntity species = dao.fetchOneById(speciesId);
 
