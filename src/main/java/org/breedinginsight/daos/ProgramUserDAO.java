@@ -19,11 +19,11 @@ import static org.breedinginsight.dao.db.Tables.*;
 @Singleton
 public class ProgramUserDAO extends ProgramUserRoleDao {
 
+    private DSLContext dsl;
     @Inject
-    DSLContext dsl;
-    @Inject
-    public ProgramUserDAO(Configuration config) {
+    public ProgramUserDAO(Configuration config, DSLContext dsl) {
         super(config);
+        this.dsl = dsl;
     }
 
     public void deleteProgramUserRoles(UUID programId, UUID userId) {
