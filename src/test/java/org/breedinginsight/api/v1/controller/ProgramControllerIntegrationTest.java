@@ -82,7 +82,7 @@ public class ProgramControllerIntegrationTest {
 
         // Insert and get user for tests
         try {
-            validUser = insertAndFetchTestUser();
+            validUser = fetchTestUser();
         } catch (Exception e){
             throw new Exception(e.toString());
         }
@@ -101,12 +101,6 @@ public class ProgramControllerIntegrationTest {
             programService.delete(validProgram.getId());
         } catch (DoesNotExistException e){
             throw new Exception("Unable to delete test program");
-        }
-
-        try {
-            userService.delete(validUser.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete test user");
         }
     }
 
@@ -129,19 +123,12 @@ public class ProgramControllerIntegrationTest {
         }
     }
 
-    public User insertAndFetchTestUser() throws Exception{
-        UserRequest userRequest = UserRequest.builder()
-                .name("Test User")
-                .email("test1@test.com")
-                .build();
-        User actingUser = User.builder()
-                .id(UUID.fromString(invalidUUID))
-                .build();
+    public User fetchTestUser() throws Exception{
 
         try {
-            User user = userService.create(actingUser, userRequest);
+            User user = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
             return user;
-        } catch (AlreadyExistsException e) {
+        } catch (DoesNotExistException e) {
             throw new Exception("Failed to insert test user" + e.toString());
         }
 

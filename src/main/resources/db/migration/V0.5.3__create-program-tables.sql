@@ -6,8 +6,10 @@ CREATE TABLE program (
   objective text,
   documentation_url text,
   active boolean NOT NULL DEFAULT true,
-  like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
+  like base_edit_track_entity INCLUDING ALL
 );
+ALTER TABLE program ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE program ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE species (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
@@ -15,6 +17,8 @@ CREATE TABLE species (
   description text,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE species ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE species ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE program_user_role (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
@@ -23,12 +27,16 @@ CREATE TABLE program_user_role (
   role_id UUID NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE program_user_role ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE program_user_role ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE role (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   domain text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE role ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE role ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE place (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
@@ -47,6 +55,8 @@ CREATE TABLE place (
   documentation_url text,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE place ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE place ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE country (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
@@ -55,24 +65,32 @@ CREATE TABLE country (
   alpha_3_code varchar(3),
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE country ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE country ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE environment_type (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE environment_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE environment_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE accessibility_option (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE accessibility_option ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE accessibility_option ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 CREATE TABLE topography_option (
   like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
   name text NOT NULL,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
+ALTER TABLE topography_option ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE topography_option ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
 ALTER TABLE program ADD FOREIGN KEY (species_id) REFERENCES species (id);
 
