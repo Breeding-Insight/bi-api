@@ -77,9 +77,9 @@ public class UserService {
         return Optional.of(new User(biUser));
     }
 
-    public User create(UserRequest user) throws AlreadyExistsException {
+    public User create(User actingUser, UserRequest user) throws AlreadyExistsException {
 
-        Optional<User> created = createOptional(user);
+        Optional<User> created = createOptional(actingUser, user);
 
         if (created.isEmpty()) {
             throw new AlreadyExistsException("Email already exists");
@@ -88,7 +88,7 @@ public class UserService {
         return created.get();
     }
 
-    public Optional<User> createOptional(UserRequest user) {
+    public Optional<User> createOptional(User actingUser, UserRequest user) {
 
         if (userEmailInUse(user.getEmail())) {
             return Optional.empty();
@@ -97,12 +97,14 @@ public class UserService {
         BiUserEntity jooqUser = new BiUserEntity();
         jooqUser.setName(user.getName());
         jooqUser.setEmail(user.getEmail());
+        jooqUser.setCreatedBy(actingUser.getId());
+        jooqUser.setUpdatedBy(actingUser.getId());
         dao.insert(jooqUser);
         return Optional.of(new User(jooqUser));
     }
 
 
-    public User update(UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
+    public User update(User actingUser, UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -115,6 +117,8 @@ public class UserService {
         }
         biUser.setEmail(user.getEmail());
         biUser.setName(user.getName());
+        biUser.setCreatedBy(actingUser.getId());
+        biUser.setUpdatedBy(actingUser.getId());
 
         dao.update(biUser);
 

@@ -41,8 +41,8 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                     .from(PROGRAM_USER_ROLE)
                     .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
                     .join(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
-                    .leftJoin(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
-                    .leftJoin(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
+                    .join(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
+                    .join(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
                     .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId).and(PROGRAM_USER_ROLE.USER_ID.eq(userId)))
                     .fetch();
 
@@ -76,8 +76,8 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                 .from(PROGRAM_USER_ROLE)
                 .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
                 .join(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
-                .leftJoin(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
-                .leftJoin(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
+                .join(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
                 .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
                 .fetch();
 
