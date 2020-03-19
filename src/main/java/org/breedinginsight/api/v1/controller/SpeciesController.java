@@ -18,12 +18,12 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -62,11 +62,14 @@ public class SpeciesController {
     public HttpResponse<Response<Species>> getSpecies(@PathVariable UUID speciesId) {
 
         try {
-            Species species = speciesService.getById(speciesId);
-            Response<Species> response = new Response<>(species);
-            return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
-            return HttpResponse.notFound();
+            Optional<Species> species = speciesService.getById(speciesId);
+            if(species.isPresent()) {
+                Response<Species> response = new Response(species);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.notFound();
+            }
+
         } catch (DataAccessException e){
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();

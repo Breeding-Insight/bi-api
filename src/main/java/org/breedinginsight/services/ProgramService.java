@@ -28,18 +28,7 @@ public class ProgramService {
     @Inject
     private SpeciesService speciesService;
 
-    public Program getById(UUID programId) throws DoesNotExistException {
-        /* Get Program by program ID */
-        Optional<Program> program = getByIdOptional(programId);
-
-        if (program.isEmpty()) {
-            throw new DoesNotExistException("Id not associated with a program");
-        }
-
-        return program.get();
-    }
-
-    public Optional<Program> getByIdOptional(UUID programId) {
+    public Optional<Program> getById(UUID programId) {
 
         List<Program> programs = dao.get(programId);
 

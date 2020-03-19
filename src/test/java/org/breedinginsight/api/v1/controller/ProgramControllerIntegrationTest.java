@@ -30,6 +30,7 @@ import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
@@ -780,10 +781,9 @@ public class ProgramControllerIntegrationTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String newProgramId = result.getAsJsonPrimitive("id").getAsString();
 
-        Program program = Assertions.assertDoesNotThrow(() -> {
-            Program createdProgram = programService.getById(UUID.fromString(newProgramId));
-            return createdProgram;
-        });
+        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
+        assertTrue(createdProgram.isPresent(), "Created program was not found");
+        Program program = createdProgram.get();
 
         checkMinimalValidProgram(program, result);
 
@@ -819,10 +819,9 @@ public class ProgramControllerIntegrationTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String newProgramId = result.getAsJsonPrimitive("id").getAsString();
 
-        Program program = Assertions.assertDoesNotThrow(() -> {
-            Program createdProgram = programService.getById(UUID.fromString(newProgramId));
-            return createdProgram;
-        });
+        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
+        assertTrue(createdProgram.isPresent(), "Created program was not found");
+        Program program = createdProgram.get();
 
         checkMinimalValidProgram(program, result);
 
@@ -1003,10 +1002,10 @@ public class ProgramControllerIntegrationTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        Program program = Assertions.assertDoesNotThrow(() -> {
-            Program createdProgram = programService.getById(validProgram.getId());
-            return createdProgram;
-        });
+        Optional<Program> createdProgram = programService.getById(validProgram.getId());
+        assertTrue(createdProgram.isPresent(), "Created program was not found");
+        Program program = createdProgram.get();
+
         assertEquals(true, program.getActive(), "Inactive flag not set in database");
     }
 
@@ -1044,10 +1043,10 @@ public class ProgramControllerIntegrationTest {
         HttpResponse<String> archiveResponse = archiveCall.blockingFirst();
         assertEquals(HttpStatus.OK, archiveResponse.getStatus());
 
-        Program program = Assertions.assertDoesNotThrow(() -> {
-            Program createdProgram = programService.getById(UUID.fromString(newProgramId));
-            return createdProgram;
-        });
+        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
+        assertTrue(createdProgram.isPresent(), "Created program was not found");
+        Program program = createdProgram.get();
+
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
         programService.delete(UUID.fromString(newProgramId));
