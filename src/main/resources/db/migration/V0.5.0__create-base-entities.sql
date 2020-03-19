@@ -7,6 +7,6 @@ CREATE TABLE base_entity (
 CREATE TABLE base_edit_track_entity (
     created_at timestamptz(0) NOT NULL default now(),
     updated_at timestamptz(0) NOT NULL default now(),
-    created_by UUID,
-    updated_by UUID
+    created_by UUID NOT NULL,
+    updated_by UUID NOT NULL
 );

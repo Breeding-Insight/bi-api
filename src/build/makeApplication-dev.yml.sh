@@ -25,6 +25,12 @@ jwt:
 server:
   port: $API_INTERNAL_PORT
 
+flyway:
+  datasources:
+    default:
+      placeholders:
+        admin-orcid: $ADMIN_ORCID
+
 datasources:
   default:
     url: jdbc:postgresql://$DB_SERVER/$DB_NAME

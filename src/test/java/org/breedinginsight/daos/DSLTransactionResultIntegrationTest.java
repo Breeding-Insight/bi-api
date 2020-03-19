@@ -1,13 +1,18 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.test.annotation.MicronautTest;
+import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import javax.inject.Inject;
 
@@ -20,13 +25,23 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 
 @MicronautTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class DSLTransactionResultIntegrationTest {
 
     @Inject
     DSLContext dsl;
 
     @Inject
-    UserDao dao;
+    UserDAO dao;
+    @Inject
+    UserService userService;
+
+    User actingUser;
+
+    @BeforeAll
+    void setup() throws Exception {
+        actingUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+    }
 
     @Test
     void noRollback() {
@@ -34,6 +49,8 @@ public class DSLTransactionResultIntegrationTest {
             BiUserEntity jooqUser = new BiUserEntity();
             jooqUser.setName("Test User");
             jooqUser.setEmail("norollback@test.com");
+            jooqUser.setCreatedBy(actingUser.getId());
+            jooqUser.setUpdatedBy(actingUser.getId());
             dao.insert(jooqUser);
             return jooqUser;
         });
@@ -53,6 +70,8 @@ public class DSLTransactionResultIntegrationTest {
                 BiUserEntity jooqUser = new BiUserEntity();
             jooqUser.setName("Test User");
             jooqUser.setEmail("rollback@test.com");
+            jooqUser.setCreatedBy(actingUser.getId());
+            jooqUser.setUpdatedBy(actingUser.getId());
             dao.insert(jooqUser);
             throw new AlreadyExistsException("test");
         });
@@ -73,6 +92,8 @@ public class DSLTransactionResultIntegrationTest {
                 BiUserEntity jooqUser = new BiUserEntity();
                 jooqUser.setName("Test Inner");
                 jooqUser.setEmail("norollbackinner@test.com");
+                jooqUser.setCreatedBy(actingUser.getId());
+                jooqUser.setUpdatedBy(actingUser.getId());
                 dao.insert(jooqUser);
                 return jooqUser;
             });
@@ -80,6 +101,8 @@ public class DSLTransactionResultIntegrationTest {
             BiUserEntity jooqUser = new BiUserEntity();
             jooqUser.setName("Test Outer");
             jooqUser.setEmail("norollbackouter@test.com");
+            jooqUser.setCreatedBy(actingUser.getId());
+            jooqUser.setUpdatedBy(actingUser.getId());
             dao.insert(jooqUser);
             return jooqUser;
         });
@@ -112,6 +135,8 @@ public class DSLTransactionResultIntegrationTest {
                     BiUserEntity jooqUser = new BiUserEntity();
                     jooqUser.setName("Test Inner");
                     jooqUser.setEmail("norollbackinner@test.com");
+                    jooqUser.setCreatedBy(actingUser.getId());
+                    jooqUser.setUpdatedBy(actingUser.getId());
                     dao.insert(jooqUser);
 
                     throw new DoesNotExistException("test");

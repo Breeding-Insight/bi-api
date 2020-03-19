@@ -134,8 +134,12 @@ public class ProgramControllerIntegrationTest {
                 .name("Test User")
                 .email("test1@test.com")
                 .build();
+        User actingUser = User.builder()
+                .id(UUID.fromString(invalidUUID))
+                .build();
+
         try {
-            User user = userService.create(userRequest);
+            User user = userService.create(actingUser, userRequest);
             return user;
         } catch (AlreadyExistsException e) {
             throw new Exception("Failed to insert test user" + e.toString());

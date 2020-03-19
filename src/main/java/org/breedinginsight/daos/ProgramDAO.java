@@ -59,8 +59,8 @@ public class ProgramDAO extends ProgramDao {
         SelectOnConditionStep<Record> query = dsl.select()
                 .from(PROGRAM)
                 .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
-                .leftJoin(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
-                .leftJoin(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
+                .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
 
         if (programIds != null){
             queryResult = query

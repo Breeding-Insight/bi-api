@@ -71,7 +71,7 @@ public class ProgramUserService {
                             .name(programUserRequest.getUser().getName())
                             .email(programUserRequest.getUser().getEmail())
                             .build();
-                    optUser = userService.createOptional(userRequest);
+                    optUser = userService.createOptional(actingUser, userRequest);
                     if (optUser.isEmpty()) {
                         throw new AlreadyExistsException("Cannot create new user, email already exists");
                     } else {

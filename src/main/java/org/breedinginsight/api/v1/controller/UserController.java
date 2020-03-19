@@ -109,17 +109,21 @@ public class UserController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> createUser(@Body @Valid UserRequest requestUser){
+    public HttpResponse<Response<User>> createUser(Principal principal, @Body @Valid UserRequest requestUser){
 
         try {
-
-            User user = userService.create(requestUser);
+            String orcid = principal.getName();
+            User actingUser = userService.getByOrcid(orcid);
+            User user = userService.create(actingUser, requestUser);
             Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
 
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
         } catch(DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
@@ -131,11 +135,12 @@ public class UserController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body @Valid UserRequest requestUser){
+    public HttpResponse<Response<User>> updateUser(Principal principal, @PathVariable UUID userId, @Body @Valid UserRequest requestUser){
 
         try {
-
-            User user = userService.update(userId, requestUser);
+            String orcid = principal.getName();
+            User actingUser = userService.getByOrcid(orcid);
+            User user = userService.update(actingUser, userId, requestUser);
             Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
 

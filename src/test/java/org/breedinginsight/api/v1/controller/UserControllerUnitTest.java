@@ -74,15 +74,15 @@ public class UserControllerUnitTest {
     @Test
     public void postUsersDataAccessException() throws AlreadyExistsException, MissingRequiredInfoException {
         // selectCount doesn't throw, fetchOne does but just using select for easier mocking
-        when(userService.create(any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.createUser(new UserRequest("Test User", "test@test.com"));
+        when(userService.create(any(), any())).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = userController.createUser(principal, new UserRequest("Test User", "test@test.com"));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void putUsersDataAccessException() throws AlreadyExistsException, DoesNotExistException {
-        when(userService.update(any(), any())).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = userController.updateUser(UUID.randomUUID(), new UserRequest());
+        when(userService.update(any(), any(), any())).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = userController.updateUser(principal, UUID.randomUUID(), new UserRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 

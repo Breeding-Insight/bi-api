@@ -14,6 +14,9 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.UserService;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
@@ -32,6 +35,19 @@ public class UserControllerIntegrationTest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
+
+    @Inject
+    UserDAO userDAO;
+    @Inject
+    UserService userService;
+
+    private User testUser;
+
+    @BeforeAll
+    void setup() throws Exception {
+
+        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+    }
 
     @Test
     public void getUserInfoRegisteredUser() {
@@ -80,14 +96,14 @@ public class UserControllerIntegrationTest {
 
         // TODO: depends on db setup
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/users/74a6ebfe-d114-419b-8bdc-2f7b52d26172").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                GET("/users/" + testUser.getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        assertEquals("74a6ebfe-d114-419b-8bdc-2f7b52d26172", result.get("id").getAsString(), "Wrong id");
+        assertEquals(testUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
         assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
         assertEquals("1111-2222-3333-4444", result.get("orcid").getAsString(), "Wrong orcid");
     }

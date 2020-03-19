@@ -25,6 +25,7 @@ services:
       - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
+      - ADMIN_ORCID=${ADMIN_ORCID}
     ports:
       - 8081:8081
     networks:
