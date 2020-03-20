@@ -102,27 +102,14 @@ public class ProgramUserService {
 
     private List<Role> validateAndGetRoles(ProgramUserRequest programUserRequest) throws AlreadyExistsException, DoesNotExistException {
 
-        List<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toList());
+        Set<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toSet());
 
-        if (hasDuplicatesRoleIds(roleIds)) {
-            throw new AlreadyExistsException("Duplicate roles specified, must be unique");
-        }
-
-        List<Role> roles = roleService.getRolesByIds(roleIds);
+        List<Role> roles = roleService.getRolesByIds(new ArrayList<>(roleIds));
         if (roles.isEmpty() || roles.size() != roleIds.size()) {
             throw new DoesNotExistException("Role does not exist");
         }
 
         return roles;
-    }
-
-    private boolean hasDuplicatesRoleIds(List<UUID> roles) {
-        Set<UUID> set = new HashSet<>();
-        for (UUID role: roles){
-            if (!set.add(role))
-                return true;
-        }
-        return false;
     }
 
     private ProgramUser updateProgramUser(User actingUser, UUID programId, UUID userId, List<Role> roles) throws DoesNotExistException {
