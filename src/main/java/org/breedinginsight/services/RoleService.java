@@ -30,18 +30,7 @@ public class RoleService {
         return roles;
     }
 
-    public Role getById(UUID roleId) throws DoesNotExistException {
-
-        Optional<Role> role = getByIdOptional(roleId);
-
-        if (role.isEmpty()) {
-            throw new DoesNotExistException("UUID for role does not exist");
-        }
-
-        return role.get();
-    }
-
-    public Optional<Role> getByIdOptional(UUID roleId) {
+    public Optional<Role> getById(UUID roleId) {
         RoleEntity role = dao.fetchOneById(roleId);
 
         if (role == null) {

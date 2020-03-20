@@ -54,7 +54,7 @@ public class ProgramUserService {
                     user = optUser.get();
 
                     // check if user is already in program, only allow puts for update, not posts
-                    Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
+                    Optional<ProgramUser> existingProgramUser = getProgramUserbyId(programId, user.getId());
 
                     if (existingProgramUser.isPresent()) {
                         throw new AlreadyExistsException("Program user already exists");
@@ -143,9 +143,13 @@ public class ProgramUserService {
         // insert
         programUserDao.insert(programUserRoles);
 
-        ProgramUser programUser = getProgramUserbyId(programId, userId);
+        Optional<ProgramUser> programUser = getProgramUserbyId(programId, userId);
 
-        return programUser;
+        if (programUser.isEmpty()) {
+            throw new DoesNotExistException("Program user does not exist");
+        }
+
+        return programUser.get();
     }
 
     public ProgramUser editProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
@@ -169,7 +173,7 @@ public class ProgramUserService {
                 }
 
                 // check if user is already in program, only allow puts for update, no posts
-                Optional<ProgramUser> existingProgramUser = getProgramUserbyIdOptional(programId, user.getId());
+                Optional<ProgramUser> existingProgramUser = getProgramUserbyId(programId, user.getId());
 
                 if (existingProgramUser.isEmpty()) {
                     throw new DoesNotExistException("Program user does not exist");
@@ -219,22 +223,7 @@ public class ProgramUserService {
         return programUserDao.getProgramUsers(programId);
     }
 
-    public ProgramUser getProgramUserbyId(UUID programId, UUID userId) throws DoesNotExistException {
-
-        if (!programService.exists(programId)) {
-            throw new DoesNotExistException("Program id does not exist");
-        }
-
-        Optional<ProgramUser> user = getProgramUserbyIdOptional(programId, userId);
-
-        if (user.isEmpty()) {
-            throw new DoesNotExistException("Program user does not exist");
-        }
-
-        return user.get();
-    }
-
-    public Optional<ProgramUser> getProgramUserbyIdOptional(UUID programId, UUID userId) {
+    public Optional<ProgramUser> getProgramUserbyId(UUID programId, UUID userId) {
         /* Get a program user by their id */
         ProgramUser user = programUserDao.getProgramUser(programId, userId);
 
