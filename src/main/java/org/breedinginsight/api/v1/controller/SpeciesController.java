@@ -64,7 +64,7 @@ public class SpeciesController {
         try {
             Optional<Species> species = speciesService.getById(speciesId);
             if(species.isPresent()) {
-                Response<Species> response = new Response(species);
+                Response<Species> response = new Response(species.get());
                 return HttpResponse.ok(response);
             } else {
                 return HttpResponse.notFound();

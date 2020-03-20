@@ -78,7 +78,7 @@ public class ProgramController {
         try {
             Optional<Program> program = programService.getById(programId);
             if(program.isPresent()) {
-                Response<Program> response = new Response(program);
+                Response<Program> response = new Response(program.get());
                 return HttpResponse.ok(response);
             } else {
                 return HttpResponse.notFound();
