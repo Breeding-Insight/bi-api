@@ -26,6 +26,7 @@ import javax.validation.Valid;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jooq.exception.DataAccessException;
@@ -66,14 +67,16 @@ public class UserController {
     public HttpResponse<Response<User>> users(@PathVariable UUID userId) {
 
         try {
+            Optional<User> user = userService.getById(userId);
 
-            User user = userService.getById(userId);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
+            if(user.isPresent()) {
+                Response<User> response = new Response(user.get());
+                return HttpResponse.ok(response);
+            } else {
+                log.info("User not found");
+                return HttpResponse.notFound();
+            }
 
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();

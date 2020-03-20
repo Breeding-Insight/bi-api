@@ -54,18 +54,7 @@ public class UserService {
         return resultBody;
     }
 
-    public User getById(UUID userId) throws DoesNotExistException {
-
-        Optional<User> user = getByIdOptional(userId);
-
-        if (user.isEmpty()) {
-            throw new DoesNotExistException("UUID for user does not exist");
-        }
-
-        return user.get();
-    }
-
-    public Optional<User> getByIdOptional(UUID userId) {
+    public Optional<User> getById(UUID userId) {
 
         // User has been authenticated against orcid, check they have a bi account.
         BiUserEntity biUser = dao.fetchOneById(userId);

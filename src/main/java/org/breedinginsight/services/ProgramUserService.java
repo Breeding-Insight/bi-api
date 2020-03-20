@@ -48,7 +48,7 @@ public class ProgramUserService {
                 List<Role> roles = validateAndGetRoles(programUserRequest);
 
                 User user;
-                Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
+                Optional<User> optUser = userService.getById(programUserRequest.getUser().getId());
 
                 if (optUser.isPresent()) {
                     user = optUser.get();
@@ -164,7 +164,7 @@ public class ProgramUserService {
                 User user;
                 List<Role> roles = validateAndGetRoles(programUserRequest);
 
-                Optional<User> optUser = userService.getByIdOptional(programUserRequest.getUser().getId());
+                Optional<User> optUser = userService.getById(programUserRequest.getUser().getId());
 
                 if (optUser.isPresent()) {
                     user = optUser.get();
@@ -206,7 +206,7 @@ public class ProgramUserService {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        if (userService.getByIdOptional(userId).isEmpty())
+        if (userService.getById(userId).isEmpty())
         {
             throw new DoesNotExistException("User id does not exist");
         }
