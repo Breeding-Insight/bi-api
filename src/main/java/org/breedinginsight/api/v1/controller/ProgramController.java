@@ -192,12 +192,16 @@ public class ProgramController {
     public HttpResponse<Response<ProgramUser>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
         try {
-            ProgramUser programUser = programUserService.getProgramUserbyId(programId, userId);
-            Response<ProgramUser> response = new Response<>(programUser);
-            return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
+            Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, userId);
+
+            if(programUser.isPresent()) {
+                Response<ProgramUser> response = new Response(programUser.get());
+                return HttpResponse.ok(response);
+            } else {
+                log.info("Program user not found");
+                return HttpResponse.notFound();
+            }
+
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
