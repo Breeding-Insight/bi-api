@@ -241,6 +241,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
     public void postProgramsUsersDuplicateRoles() {
         String validProgramId = validProgram.getId().toString();
         JsonObject requestBody = new JsonObject();
@@ -260,10 +261,20 @@ public class ProgramControllerIntegrationTest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray rolesRx = result.getAsJsonArray("roles");
+
+        assertEquals(rolesRx.size(), 1, "Wrong number of roles");
+
+        JsonObject roleRx = rolesRx.get(0).getAsJsonObject();
+
+        assertEquals(roleRx.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
+        assertEquals(roleRx.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+
+        programUserService.removeProgramUser(validProgram.getId(), validUser.getId());
 
     }
 
@@ -285,6 +296,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
     public void putProgramsUsersDuplicateRoles() {
         String validProgramId = validProgram.getId().toString();
         JsonObject requestBody = new JsonObject();
@@ -304,11 +316,20 @@ public class ProgramControllerIntegrationTest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
 
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray rolesRx = result.getAsJsonArray("roles");
+
+        assertEquals(rolesRx.size(), 1, "Wrong number of roles");
+
+        JsonObject roleRx = rolesRx.get(0).getAsJsonObject();
+
+        assertEquals(roleRx.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
+        assertEquals(roleRx.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+
+        programUserService.removeProgramUser(validProgram.getId(), validUser.getId());
     }
 
     @Test
