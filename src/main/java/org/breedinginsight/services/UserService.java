@@ -77,7 +77,7 @@ public class UserService {
         return created.get();
     }
 
-    public Optional<User> createOptional(User actingUser, UserRequest user) {
+    private Optional<User> createOptional(User actingUser, UserRequest user) {
 
         if (userEmailInUse(user.getEmail())) {
             return Optional.empty();
