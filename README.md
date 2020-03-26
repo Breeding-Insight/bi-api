@@ -25,10 +25,11 @@ of the repo locally create a file called .env and save the Lastpass contents for
 
 If you have the docker socket (/var/run/docker.sock) and docker executable folder (/usr/bin/docker)
 mounted in your docker-compose.yml file, you will be able to run the biapi tests from within the docker container. 
+The default docker-compose file has these mounted. 
 
 The biapi tests use the hosts docker instance to spin up test database containers for integration tests. 
 
-NOTE: Do not run a production container within the docker socket mounted. While useful for testing and
+NOTE: Do not run a production container with the docker socket mounted. While useful for testing and
 development, mounting the docker socket into a container is a large security risk. The application will
 still work fine without the docker socket mounted, but tests will fail. 
 
@@ -154,6 +155,7 @@ They are also run as part of the install profile. In IntelliJ you can create tes
 If you are having errors to the effect of `invalid source release 12 with --enable-preview` and are using IntelliJ, change the jdk to 13 in the following places and it may help:
 
 1. File -> Project Structure -> Project Settings
-2. File -> Project Structure -> Module Settings -> Tab: Sources: Language Level
-3. File -> Project Structure -> Module Settings -> Tab: Dependencies: Module SDK
-4. File -> Settings -> Compiler -> Java Compiler -> Target bytecode version
+2. File -> Project Structure -> Modules -> Tab: Sources: Language Level
+3. File -> Project Structure -> Modules -> Tab: Dependencies: Module SDK
+4. Main -> Preferences -> Compiler -> Java Compiler -> Target bytecode version
+5. Run/Debug Configurations (Your run profiles) -> JRE select box

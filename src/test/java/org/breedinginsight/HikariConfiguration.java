@@ -1,8 +1,6 @@
 package org.breedinginsight;
 
 import com.zaxxer.hikari.HikariConfig;
-import io.micronaut.context.event.BeanCreatedEvent;
-import io.micronaut.context.event.BeanCreatedEventListener;
 import io.micronaut.context.event.BeanInitializedEventListener;
 import io.micronaut.context.event.BeanInitializingEvent;
 import org.testcontainers.containers.GenericContainer;

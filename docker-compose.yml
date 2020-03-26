@@ -41,7 +41,7 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - biapi_data
+      - biapi_data:/var/lib/postgresql/data
     networks:
       backend:
         aliases:

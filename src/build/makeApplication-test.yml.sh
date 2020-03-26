@@ -22,8 +22,20 @@ jwt:
     secure: true
     domain: $JWT_DOMAIN
 
+flyway:
+  datasources:
+    default:
+      placeholders:
+        admin-orcid: $ADMIN_ORCID
+
 micronaut:
   server:
     port: $API_INTERNAL_TEST_PORT
+
+datasources:
+  default:
+    url: jdbc:postgresql://$DB_SERVER/$DB_NAME
+    username: $DB_PASSWORD
+    password: $DB_PASSWORD
 
 EOF
