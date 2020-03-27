@@ -29,6 +29,8 @@ When evaluating a pull request for merge acceptance, verify that the following c
 * Any changes to the API code have corresponding endpoint tests
 
 ## Development Guide
+The following sections provide instructions to get the application running in your local development environment. 
+This section is provided as an alternative to running the application in Docker. 
 
 ### Prerequisites
 
@@ -63,11 +65,15 @@ This process will pull down all the application's dependencies to your local mac
 
 ### Run the app
 
-You will need to create your user in the database table in order to log in successfully. Execute the following line in the sql executor of your choice (don't forget to populate the `values` of the query): 
+- You will need to create your user in the database table in order to log in successfully. Execute the following line in the sql executor of your choice (don't forget to populate the `values` of the query): 
 
 ```sql
 insert into bi_user (orcid, name) values ('xxxx-xxxx-xxxx-xxxx', '<name>');
 ``` 
+
+- Create a application variable configuration file for the environment you plan to run the project under (```Ex.  application-dev.yml```).
+You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
+variable configuration.
 
 *If running in an IDE (like IntelliJ)*:
 
@@ -123,6 +129,10 @@ mvn validate flyway:clean flyway:migrate -X -P test
 ```
 
 ### Run tests
+
+Create a file, `application-test.yml` in the `src/test/resources` directory.
+You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
+variable configuration.
 
 Tests can be run with the following command:
 
