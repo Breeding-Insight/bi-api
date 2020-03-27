@@ -18,7 +18,7 @@ public class HikariConfiguration implements BeanInitializedEventListener<HikariC
 
         // Initialize container using TestContainers
         GenericContainer dbContainer = new GenericContainer<>("postgis/postgis:12-3.0")
-                .withImagePullPolicy(PullPolicy.alwaysPull())
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
                 .withExposedPorts(5432)
                 .withEnv("POSTGRES_DB", "bitest")
                 .withEnv("POSTGRES_PASSWORD", "postgres")
