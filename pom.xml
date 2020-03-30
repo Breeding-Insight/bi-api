@@ -56,33 +56,6 @@
         <db.config>src/build/build.config.properties</db.config>
     </properties>
 
-    <profiles>
-        <profile>
-            <id>default</id>
-            <activation>
-                <activeByDefault>true</activeByDefault>
-            </activation>
-        </profile>
-        <profile>
-            <id>dev</id>
-            <activation>
-                <property>
-                    <name>dev</name>
-                    <value>true</value>
-                </property>
-            </activation>
-        </profile>
-        <profile>
-            <id>test</id>
-            <activation>
-                <property>
-                    <name>test</name>
-                    <value>true</value>
-                </property>
-            </activation>
-        </profile>
-    </profiles>
-
     <repositories>
         <repository>
             <id>jcenter.bintray.com</id>

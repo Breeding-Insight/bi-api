@@ -65,7 +65,7 @@ git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-a
 Run this docker command in terminal to start up a postgres docker container with the empty bi_db database in it. 
 
 ```
-docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgis/postgis:12-3.0
+docker-compose up -d bidb
 ```
 
 ### Building the project
@@ -76,10 +76,10 @@ Once you have the project pulled down and your database running, follow these st
 
 You will need to specify variables specific to your environment in order to run the project. 
 
-Environment specific variables are specified in the following files:
+Environment specific project variables are specified in the following files:
 - src/build/build.config.properties
-- src/makeApplication-dev.yml.sh
-- src/makeApplication-test.yml.sh
+- src/main/resources/application-prod.yml
+- src/test/application-test.yml
 - settings.xml
 
 NOTE: Your application-dev.yml (see section 'Run the Project' and application-test.yml (see section 'Testing') will contain system specific variables, but will need to be updated manually. Update the structure of these files based on the makeApplication-dev.yml.sh file. 
@@ -87,7 +87,7 @@ NOTE: Your application-dev.yml (see section 'Run the Project' and application-te
 There are three options to specify these environmental variables: 
 1) Specify environmental variables in your system (this is what our docker build does)
 2) Specify environmental variables in your IntelliJ run configuration (recommended). 
-3) Edit the files above directly and replace the placeholders the environment variable placeholders with actual values. 
+3) Edit the files above directly and replace the placeholders with actual values. 
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
@@ -122,12 +122,14 @@ Once the project dependencies are installed successfully, you can run the projec
 
 #### Creating application.yml
 
-*Improvements coming soon!
+If you chose one of the options to specify your environment variables, either in your system, or in IntelliJ you can skip this step.
 
-For now, you will need to manually specify the values in your application-dev.yml file. 
+Otherwise, If you chose to manually specify your environment variables, you will need to manually specify the values in your application-dev.yml file. 
 
-- Create a application variable configuration file for the environment you plan to run the project under (```Ex.  application-dev.yml```).
-You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
+The How: 
+
+Create a application variable configuration file for the environment you plan to run the project under (```Ex.  application-dev.yml```).
+You can reference the `application-prod.yml` file to see what information is needed in the
 variable configuration.
 
 #### Start the run
@@ -135,12 +137,12 @@ variable configuration.
 *If running in an IDE (like IntelliJ)*:
 
 - Create an `Application` run config with the main class being `org.breedinginsight.api.Application`
-- Pass VM options of: `--enable-preview --illegal-access=warn -Dmicronaut.environments=dev`
+- Pass VM options: `--enable-preview --illegal-access=warn -Dmicronaut.environments=prod`
 
 *If running as a packaged JAR*:
 
 ```
-java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar
+java --enable-preview -Dmicronaut.environments=prod -jar bi-api*.jar
 ```
 
 ### Ongoing Development
@@ -165,7 +167,7 @@ mvn validate flyway:clean flyway:migrate -X
 As structural database changes are made, you will need to re-generate Java classes via JOOQ (data model, base DAOs).  To do so, run:
 
 ```
-mvn clean generate-sources -P dev
+mvn clean generate-sources
 ```
 
 NOTE: This step is not necessary if a `mvn clean install` is run (see section Install Project Dependencies above).
@@ -180,20 +182,27 @@ can be found in `src/build/build.config.properties`.
 
 ### Run tests
 
-*Improvements coming soon! 
+If you chose one of the options to specify your environment variables in your system, or IntelliJ you can skip this step.
 
-Create a file, `application-test.yml` in the `src/test/resources` directory.
-You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
-variable configuration.
+If you chose to manually specify your environment variables, you will need to manually specify the values in your application-dev.yml file. 
+
+The How: 
+
+Change the values in `src/test/resources/application-test.yml` to be the values for your system. 
 
 Tests can be run with the following command:
 
 ```
 mvn test
-```
 
+```
 They are also run as part of the install profile (if specified). 
 In IntelliJ, you can create test profiles for the tests to get easily readable output.
+
+If not manually specifying values in application-test.yml, you will need to set all of the environment variables 
+found in the .env file for running the tests as well. 
+
+
 
 ### Troubleshooting
 
