@@ -220,3 +220,4 @@ Installation error for bi-jooq-codegen during build.
 1. Make sure your build command includes `--settings settings.xml`
 2. Make sure you specified environment variables for `GITHUB_ACTOR` and `GITHUB_TOKEN`
 3. Make sure your `GITHUB_TOKEN` is valid and that you have access to the bi-jooq-codegen repo. 
+4. See bi-jooq-codegen to make sure everything is setup correctly for pulling the repository, https://github.com/Breeding-Insight/bi-jooq-codegen. 
