@@ -82,13 +82,17 @@ Environment specific variables are specified in the following files:
 - src/makeApplication-test.yml.sh
 - settings.xml
 
+NOTE: Your application-dev.yml (see section 'Run the Project' and application-test.yml (see section 'Testing') will contain system specific variables, but will need to be updated manually. Update the structure of these files based on the makeApplication-dev.yml.sh file. 
+
 There are three options to specify these environmental variables: 
 1) Specify environmental variables in your system (this is what our docker build does)
 2) Specify environmental variables in your IntelliJ run configuration (recommended). 
 3) Edit the files above directly and replace the placeholders the environment variable placeholders with actual values. 
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
-NOTE: See the section `Creating admin user` on information of how to set the `ADMIN_ORCID` variable. 
+NOTES: 
+1) See the section `Creating admin user` on information of how to set the `ADMIN_ORCID` variable. 
+2) If using option 2 (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
 
 #### Creating admin user
 
@@ -221,3 +225,10 @@ Installation error for bi-jooq-codegen during build.
 2. Make sure you specified environment variables for `GITHUB_ACTOR` and `GITHUB_TOKEN`
 3. Make sure your `GITHUB_TOKEN` is valid and that you have access to the bi-jooq-codegen repo. 
 4. See bi-jooq-codegen to make sure everything is setup correctly for pulling the repository, https://github.com/Breeding-Insight/bi-jooq-codegen. 
+
+Value ${SOME_VARIABLE} is not specified/found/valid. 
+1. Check you have the mentioned variable specified in your IntelliJ run configuration or system variables. 
+2. Make sure you are running your commands through IntelliJ run configuration if using that option. 
+
+Placeholder ${SOME_VALUE} is not specified/found/valid.
+1. Make sure your application-dev.yml and application-test.yml files are up to date with makeApplication-dev.yml.sh and makeApplication-test.yml.sh files. 
