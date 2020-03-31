@@ -82,17 +82,35 @@ Environment specific project variables are specified in the following files:
 - src/test/application-test.yml
 - settings.xml
 
-NOTE: Your application-dev.yml (see section 'Run the Project' and application-test.yml (see section 'Testing') will contain system specific variables, but will need to be updated manually. Update the structure of these files based on the makeApplication-dev.yml.sh file. 
-
-There are three options to specify these environmental variables: 
-1) Specify environmental variables in your system (this is what our docker build does)
-2) Specify environmental variables in your IntelliJ run configuration (recommended). 
+There are three options to specify these project variables: 
+1) Specify environmental variables in your system or terminal session (this is what our docker build does)
+2) Specify environmental variables in your IntelliJ run configuration. 
 3) Edit the files above directly and replace the placeholders with actual values. 
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
 1) See the section `Creating admin user` on information of how to set the `ADMIN_ORCID` variable. 
 2) If using option 2 (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
+
+#### Setting environmental variables in your terminal session
+
+If you want to run your mvn or java commands through terminal, you will need to set your environmental variables
+in your terminal session or for the system. To set your environment variables for the terminal session
+you can use the following command at the beginning of your terminal session:
+
+```source .env && export $(grep --regexp ^[A-Z] .env | cut -d= -f1)```
+
+This will set your variables from your .env file while ignoring comments in the file. 
+
+#### Setting environmental variables in IntelliJ
+
+You can set your environment variables in IntelliJ in two ways: 
+1) Go to the run configuration of focus and navigate to the 'Runner' tab, enter environment variables 
+in the 'Environment Variables' field.
+2) Use the EnvFile plugin, https://plugins.jetbrains.com/plugin/7861-envfile, and use your .env file. 
+
+NOTE: The EnvFile plugin does not work for maven run configurations. 
+
 
 #### Creating admin user
 
