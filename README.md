@@ -55,11 +55,6 @@ This section is provided as an alternative to running the application in Docker.
 1. Docker (and docker-compose) installed
 
 ### Project setup
-The micronaut-security code is included as a git submodule.  To include the contents of this submodule use the --recurse-submodules flag when cloning the bi-api repo:
-
-```
-git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-api.git
-```
 
 #### Postgres
 
