@@ -72,7 +72,7 @@ docker-compose up -d bidb
 
 Once you have the project pulled down and your database running, follow these steps to build the project.
 
-#### Setting your environment variables
+#### Setting your project variables
 
 You will need to specify variables specific to your environment in order to run the project. 
 
@@ -85,7 +85,7 @@ Environment specific project variables are specified in the following files:
 There are three options to specify these project variables: 
 1) Specify environmental variables in your system or terminal session (this is what our docker build does)
 2) Specify environmental variables in your IntelliJ run configuration. 
-3) Edit the files above directly and replace the placeholders with actual values. 
+3) Create dev versions of build.config.properties and application-prod.yml and edit files directly.  
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
@@ -111,6 +111,23 @@ in the 'Environment Variables' field.
 
 NOTE: The EnvFile plugin does not work for maven run configurations. 
 
+#### Creating dev versions of project config files
+
+To edit the config files directly, it is recommended to create dev versions of the config files and use
+then use dev run environments for maven and micronaut. 
+
+1) Create a build.config.dev.properties file based on the build.config.properties file. Enter your values in the ${} placeholders. 
+2) Create a settings.dev.xml file based on the settings.xml file. Enter your values in the ${} placeholders. 
+3) Create an application-dev.yml file base on the application-prod.yml file. Enter your values in the ${} placeholders. 
+4) Enter your values in the application-test.yml file directly.
+
+The build can now be run with your new files:
+ 
+```mvn validate clean install --settings settings.dev.xml -P dev```
+ 
+And the application can now be run with 
+
+```java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar```
 
 #### Creating admin user
 
