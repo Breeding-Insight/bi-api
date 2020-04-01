@@ -11,7 +11,7 @@
 # DB_NAME             --- the name of the database
 # DB_USER         --- the database username and password
 # DB_PASSWORD         --- the database password
-cat <<EOF > ./src/main/resources/application-dev.yml
+cat <<EOF > ./src/test/resources/application-test.yml
 oauth:
   clientId: $OAUTH_CLIENT_ID
   clientSecret: $OAUTH_CLIENT_SECRET
@@ -22,19 +22,20 @@ jwt:
     secure: true
     domain: $JWT_DOMAIN
 
-micronaut:
-  server:
-    port: $API_INTERNAL_PORT
-
 flyway:
   datasources:
     default:
       placeholders:
         admin-orcid: $ADMIN_ORCID
 
+micronaut:
+  server:
+    port: $API_INTERNAL_TEST_PORT
+
 datasources:
   default:
     url: jdbc:postgresql://$DB_SERVER/$DB_NAME
-    username: $DB_USER
+    username: $DB_PASSWORD
     password: $DB_PASSWORD
+
 EOF
