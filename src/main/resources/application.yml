@@ -4,7 +4,7 @@ micronaut:
     instance:
       id: ${random.shortuuid}
   server:
-    port: 8081
+    port: ${server.port}
     cors:
       enabled: true
   bi:
@@ -66,6 +66,8 @@ flyway:
   datasources:
     default:
       locations: classpath:db.migration
+      placeholders:
+        admin-orcid: ${adminOrcid}
       enabled: true
 jooq:
   datasources:

@@ -4,22 +4,14 @@ oauth:
 
 jwt:
   secret: ${JWT_SECRET}
-  cookie:
-    secure: true
-    domain: ${JWT_DOMAIN}
 
-micronaut:
-  server:
-    port: ${API_INTERNAL_TEST_PORT}
+server:
+  port: ${API_INTERNAL_PORT:8082}
 
-flyway:
-  datasources:
-    default:
-      placeholders:
-        admin-orcid: ${ADMIN_ORCID}
+adminOrcid: ${ADMIN_ORCID}
 
 datasources:
   default:
-    url: jdbc:postgresql://${DB_SERVER}/${DB_NAME}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
+    url: jdbc:postgresql://${DB_SERVER:`localhost:5432`}/${DB_NAME:bidb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
