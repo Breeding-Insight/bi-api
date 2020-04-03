@@ -1,10 +1,9 @@
 DO $$
 DECLARE
     user_id UUID;
-    admin_orcid TEXT := '${admin-orcid}';
 BEGIN
 
-user_id := (SELECT id FROM bi_user WHERE orcid = admin_orcid);
+user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
 insert into species
 (common_name, description, created_by, updated_by)
