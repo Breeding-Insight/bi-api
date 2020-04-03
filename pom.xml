@@ -62,7 +62,7 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <db.config>src/build/build.config.properties</db.config>
+                <db.config>src/build/build.properties</db.config>
             </properties>
         </profile>
         <profile>
@@ -74,7 +74,7 @@
                 </property>
             </activation>
             <properties>
-                <db.config>src/build/build.config.dev.properties</db.config>
+                <db.config>src/build/build.dev.properties</db.config>
             </properties>
         </profile>
         <profile>
@@ -86,7 +86,7 @@
                 </property>
             </activation>
             <properties>
-                <db.config>src/build/build.config.test.properties</db.config>
+                <db.config>src/build/build.test.properties</db.config>
             </properties>
         </profile>
     </profiles>
@@ -424,9 +424,6 @@
                 <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
                 <user>${DB_USER}</user>
                 <password>${DB_PASSWORD}</password>
-                <placeholders>
-                    <admin-orcid>${ADMIN_ORCID}</admin-orcid>
-                </placeholders>
             </configuration>
             <dependencies>
                 <dependency>
@@ -462,6 +459,16 @@
                         <includes>
                             <include>%regex[.*]</include>
                         </includes>
+                        <systemPropertyVariables>
+                            <oauth.clientId>test</oauth.clientId>
+                            <oauth.clientSecret>test</oauth.clientSecret>
+                            <jwt.secret>test</jwt.secret>
+                            <micronaut.server.port>${API_INTERNAL_TEST_PORT}</micronaut.server.port>
+                            <db.default.host>${DB_SERVER}</db.default.host>
+                            <db.default.name>${DB_NAME}</db.default.name>
+                            <db.default.username>${DB_USER}</db.default.username>
+                            <db.default.password>${DB_PASSWORD}</db.default.password>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
                 <plugin>

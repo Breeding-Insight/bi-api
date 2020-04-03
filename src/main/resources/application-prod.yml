@@ -8,10 +8,9 @@ jwt:
 server:
   port: ${API_INTERNAL_PORT:8081}
 
-adminOrcid: ${ADMIN_ORCID}
-
-datasources:
+db:
   default:
-    url: jdbc:postgresql://${DB_SERVER:`localhost:5432`}/${DB_NAME:bidb}
+    host: ${DB_SERVER:`localhost:5432`}
+    name: ${DB_NAME:bidb}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}

@@ -77,15 +77,15 @@ Once you have the project pulled down and your database running, follow these st
 You will need to specify variables specific to your environment in order to run the project. 
 
 Environment specific project variables are specified in the following files:
-- src/build/build.config.properties
+- src/build/build.properties
 - src/main/resources/application-prod.yml
-- src/test/application-test.yml
+- src/test/application-test.yml (optional)
 - settings.xml
 
 There are three options to specify these project variables: 
 1) Specify environmental variables in your system or terminal session (this is what our docker build does)
 2) Specify environmental variables in your IntelliJ run configuration. 
-3) Create dev versions of build.config.properties and application-prod.yml and edit files directly.  
+3) Create dev versions of build.properties and application-prod.yml and edit files directly.  
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
@@ -116,7 +116,7 @@ NOTE: The EnvFile plugin does not work for maven run configurations.
 To edit the config files directly, it is recommended to create dev versions of the config files and use
 then use dev run environments for maven and micronaut. 
 
-1) Create a build.config.dev.properties file based on the build.config.properties file. Enter your values in the ${} placeholders. 
+1) Create a build.dev.properties file based on the build.properties file. Enter your values in the ${} placeholders. 
 2) Create a settings.dev.xml file based on the settings.xml file. Enter your values in the ${} placeholders. 
 3) Create an application-dev.yml file base on the application-prod.yml file. Enter your values in the ${} placeholders. 
 4) Enter your values in the application-test.yml file directly.
@@ -128,12 +128,6 @@ The build can now be run with your new files:
 And the application can now be run with 
 
 ```java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar```
-
-#### Creating admin user
-
-The project is created with an admin user that is then able to setup the system for end users through the UI. 
-The admin user will need to have a valid ORCID account. Once you retrieve the ORCID (through the ORCID site) 
-for the admin user, set the `ADMIN_ORCID` variable in the environmental variables (see section above).
 
 #### Install project dependencies
 
@@ -213,31 +207,37 @@ NOTE: This step is not necessary if a `mvn clean install` is run (see section In
 
 The test database is started as part of the tests in a separate docker container. The JOOQ classes for the tests
 are generated from the main database, so this will have to be up and running. The reference to the main database
-can be found in `src/build/build.config.properties`. 
+can be found in `src/build/build.properties`. 
 
 ### Run tests
 
-If you chose one of the options to specify your environment variables in your system, or IntelliJ you can skip this step.
+There are two ways to run the tests:
 
-If you chose to manually specify your environment variables, you will need to manually specify the values in your application-dev.yml file. 
+1) JUnit
+2) Maven
 
-The How: 
+#### Running through JUnit
 
-Change the values in `src/test/resources/application-test.yml` to be the values for your system. 
+For this option, you will need to run the tests through IntelliJ. You will need to create a file 
+`src/test/resources/application-test.yml` based off the `application-prod.yml` file. Edit the values
+directly in the file, or use environment variables like described above. 
 
-Tests can be run with the following command:
+#### Running through Maven
+
+This method uses the values set in the `build.properties` or `build.dev.properties` file to run your tests. 
+To run the tests, use the command:
 
 ```
 mvn test
+```
+
+or 
 
 ```
-They are also run as part of the install profile (if specified). 
-In IntelliJ, you can create test profiles for the tests to get easily readable output.
+mvn test -P dev
+```
 
-If not manually specifying values in application-test.yml, you will need to set all of the environment variables 
-found in the .env file for running the tests as well. 
-
-
+Maven tests are also run as part of the install profile (if specified). 
 
 ### Troubleshooting
 
@@ -251,7 +251,7 @@ If you are having errors to the effect of `invalid source release 12 with --enab
 
 Connection issues during build: 
 
-1. Check that you all of the environment variables in the src/build/build.config.properties file specified. 
+1. Check that you all of the environment variables in the src/build/build.properties file specified. 
 2. Make sure you are able to connect to your database outside of the project. 
 
 JOOQ class errors during build: 

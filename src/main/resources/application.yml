@@ -66,21 +66,18 @@ flyway:
   datasources:
     default:
       locations: classpath:db.migration
-      placeholders:
-        admin-orcid: ${adminOrcid}
       enabled: true
 jooq:
   datasources:
     default:
       sql-dialect: 'POSTGRES'
-    
 
-#datasources:
-#  default:
-#    url: jdbc:postgresql://${db.host}:${db.port}/${db.name}
-#    username: ${db.username}
-#    password: ${db.password}
-#    driverClassName: 'org.postgresql.Driver'
+datasources:
+  default:
+    url: jdbc:postgresql://${db.default.host}/${db.default.name}
+    username: ${db.default.username}
+    password: ${db.default.password}
+    driverClassName: 'org.postgresql.Driver'
 #
 #api:
 #  oauth:
