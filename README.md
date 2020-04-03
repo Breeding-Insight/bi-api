@@ -79,8 +79,6 @@ You will need to specify variables specific to your environment in order to run 
 Environment specific project variables are specified in the following files:
 - src/build/build.properties
 - src/main/resources/application-prod.yml
-- src/test/application-test.yml (optional)
-- settings.xml
 
 There are three options to specify these project variables: 
 1) Specify environmental variables in your system or terminal session (this is what our docker build does)
@@ -89,8 +87,7 @@ There are three options to specify these project variables:
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
-1) See the section `Creating admin user` on information of how to set the `ADMIN_ORCID` variable. 
-2) If using option 2 (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
+* If using option 2 (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
 
 #### Setting environmental variables in your terminal session
 
@@ -117,13 +114,11 @@ To edit the config files directly, it is recommended to create dev versions of t
 then use dev run environments for maven and micronaut. 
 
 1) Create a build.dev.properties file based on the build.properties file. Enter your values in the ${} placeholders. 
-2) Create a settings.dev.xml file based on the settings.xml file. Enter your values in the ${} placeholders. 
-3) Create an application-dev.yml file base on the application-prod.yml file. Enter your values in the ${} placeholders. 
-4) Enter your values in the application-test.yml file directly.
+2) Create an application-dev.yml file base on the application-prod.yml file. Enter your values in the ${} placeholders. 
 
 The build can now be run with your new files:
  
-```mvn validate clean install --settings settings.dev.xml -P dev```
+```mvn validate clean install --settings settings.xml -P dev```
  
 And the application can now be run with 
 
@@ -266,7 +261,7 @@ Micronaut error, variable XXX is not specified:
 Installation error for bi-jooq-codegen during build. 
 
 1. Make sure your build command includes `--settings settings.xml`
-2. Make sure you specified environment variables for `GITHUB_ACTOR` and `GITHUB_TOKEN`
+2. Make sure you have values for `GITHUB_ACTOR` and `GITHUB_TOKEN`. 
 3. Make sure your `GITHUB_TOKEN` is valid and that you have access to the bi-jooq-codegen repo. 
 4. See bi-jooq-codegen to make sure everything is setup correctly for pulling the repository, https://github.com/Breeding-Insight/bi-jooq-codegen. 
 
