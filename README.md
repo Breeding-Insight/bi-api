@@ -2,7 +2,7 @@
 
 The BI API powers the BI Web, as well as BrAPI powered applications.
 
-The API is built using Java 12 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html
+The API is built using Java 13 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html
 
 ## Docker support
 The API can run inside a Docker container using the Dockerfile for building the
@@ -52,6 +52,7 @@ This section is provided as an alternative to running the application in Docker.
 
 1. Java 13 SDK installed
 1. Maven installed (or via IDE)
+1. Docker (and docker-compose) installed
 
 ### Project setup
 The micronaut-security code is included as a git submodule.  To include the contents of this submodule use the --recurse-submodules flag when cloning the bi-api repo:
@@ -81,13 +82,13 @@ Environment specific project variables are specified in the following files:
 - src/main/resources/application-prod.yml
 
 There are three options to specify these project variables: 
-1) Specify environmental variables in your system or terminal session (this is what our docker build does)
-2) Specify environmental variables in your IntelliJ run configuration. 
-3) Create dev versions of build.properties and application-prod.yml and edit files directly.  
+a. Specify environmental variables in your system or terminal session (this is what our docker build does)
+b. Specify environmental variables in your IDE run configuration (examples are given in IntelliJ)
+c. Create dev versions of build.properties and application-prod.yml and edit files directly.  
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
-* If using option 2 (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
+* If using option b (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
 
 #### Setting environmental variables in your terminal session
 
@@ -113,28 +114,27 @@ NOTE: The EnvFile plugin does not work for maven run configurations.
 To edit the config files directly, it is recommended to create dev versions of the config files and use
 then use dev run environments for maven and micronaut. 
 
-1) Create a build.dev.properties file based on the build.properties file. Enter your values in the ${} placeholders. 
-2) Create an application-dev.yml file base on the application-prod.yml file. Enter your values in the ${} placeholders. 
+1) Create a `build.dev.properties` file based on the `build.properties` file. Enter your values in the `${}` placeholders. 
+2) Create an `application-dev.yml` file base on the `application-prod.yml` file. Enter your values in the `${}` placeholders. 
 
-The build can now be run with your new files:
- 
-```mvn validate clean install --settings settings.xml -P dev```
- 
 And the application can now be run with 
 
 ```java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar```
 
-#### Install project dependencies
+#### Compile & Build
 
 After setting the values for your environment, run:
 
 ```
 mvn clean validate install -D maven.test.skip=true --settings settings.xml
 ```
+NOTE: if using option c, run:
+```
+mvn validate clean install -D maven.test.skip=true --settings settings.dev.xml -P dev
+```
 
 This process will pull down all the application's dependencies to your local machine, 
-create the application's database structure (with appropriate data), generate required source files (via JOOQ), 
-and finally build the final JAR file. 
+create the application's database structure (with appropriate data), generate required source files (via JOOQ), and finally build the final JAR file. 
 
 The command above will not run unit tests. If you want to run unit tests during the project's dependency installation
 remove the `-D maven.test.skip=true` command. Alternatively, you can run the tests separately, see the testing
@@ -143,18 +143,6 @@ section below.
 ### Run the project
 
 Once the project dependencies are installed successfully, you can run the project. 
-
-#### Creating application.yml
-
-If you chose one of the options to specify your environment variables, either in your system, or in IntelliJ you can skip this step.
-
-Otherwise, If you chose to manually specify your environment variables, you will need to manually specify the values in your application-dev.yml file. 
-
-The How: 
-
-Create a application variable configuration file for the environment you plan to run the project under (```Ex.  application-dev.yml```).
-You can reference the `application-prod.yml` file to see what information is needed in the
-variable configuration.
 
 #### Start the run
 
@@ -168,6 +156,8 @@ variable configuration.
 ```
 java --enable-preview -Dmicronaut.environments=prod -jar bi-api*.jar
 ```
+
+NOTE: if you used option c to configure the project's variables, replace `-Dmicronaut.environments=prod` with `-Dmicronaut.environments=dev`
 
 ### Ongoing Development
 
@@ -233,6 +223,8 @@ mvn test -P dev
 ```
 
 Maven tests are also run as part of the install profile (if specified). 
+
+If not manually specifying values in application-test.yml, you will need to set all of the environment variables by following either option a or option b above.
 
 ### Troubleshooting
 
