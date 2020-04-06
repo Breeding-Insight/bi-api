@@ -11,6 +11,10 @@ user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
 insert into bi_user (orcid, name, created_by, updated_by)
 values
+('0000-0003-0437-8310', 'BI-DEV Admin', user_id, user_id);
+
+insert into bi_user (orcid, name, created_by, updated_by)
+values
 ('0000-0002-5527-2711', 'Chris Tucker', user_id, user_id);
 
 insert into bi_user (orcid, name, email, created_by, updated_by)
