@@ -15,13 +15,13 @@ services:
       - /usr/bin/docker:/usr/bin/docker
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - API_INTERNAL_PORT=8081
-      - API_INTERNAL_TEST_PORT=8082
+      - API_INTERNAL_PORT=${API_INTERNAL_PORT}
+      - API_INTERNAL_TEST_PORT=${API_INTERNAL_TEST_PORT}
       - OAUTH_CLIENT_ID=${OAUTH_CLIENT_ID}
-      - JWT_DOMAIN=localhost
-      - DB_SERVER=dbserver:5432
-      - DB_NAME=bidb
-      - DB_USER=postgres
+      - JWT_DOMAIN=${JWT_DOMAIN}
+      - DB_SERVER=${DB_SERVER}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
       - DB_PASSWORD=${DB_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
@@ -29,14 +29,14 @@ services:
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_ACTOR=${GITHUB_ACTOR}
     ports:
-      - 8081:8081
+      - ${API_INTERNAL_PORT}:${API_INTERNAL_PORT}
     networks:
       - backend
   bidb:
     image: postgis/postgis:12-3.0
     container_name: bidb
     environment:
-      - POSTGRES_DB=bidb
+      - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
       - 5432:5432

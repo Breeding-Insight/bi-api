@@ -4,7 +4,7 @@ micronaut:
     instance:
       id: ${random.shortuuid}
   server:
-    port: 8081
+    port: ${server.port}
     cors:
       enabled: true
   bi:
@@ -42,7 +42,7 @@ micronaut:
           cookie-name: phylo-token
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
-          cookie-domain: ${jwt.cookie.domain:localhost}
+          cookie-domain: ${jwt.cookie.domain}
           login-success-target-url: ${web.login.url}
           login-failure-target-url: ${web.login.url}
           logout-target-url: ${web.logout.url}
@@ -71,14 +71,13 @@ jooq:
   datasources:
     default:
       sql-dialect: 'POSTGRES'
-    
 
-#datasources:
-#  default:
-#    url: jdbc:postgresql://${db.host}:${db.port}/${db.name}
-#    username: ${db.username}
-#    password: ${db.password}
-#    driverClassName: 'org.postgresql.Driver'
+datasources:
+  default:
+    url: jdbc:postgresql://${db.default.host}/${db.default.name}
+    username: ${db.default.username}
+    password: ${db.default.password}
+    driverClassName: 'org.postgresql.Driver'
 #
 #api:
 #  oauth:

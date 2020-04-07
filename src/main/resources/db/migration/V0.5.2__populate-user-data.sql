@@ -1,14 +1,17 @@
-insert into bi_user (id, orcid, name, created_by, updated_by)
+insert into bi_user (id, name, created_by, updated_by)
 values
-('74a6ebfe-d114-419b-8bdc-2f7b52d26172', '${admin-orcid}', 'BI-DEV Admin', '74a6ebfe-d114-419b-8bdc-2f7b52d26172', '74a6ebfe-d114-419b-8bdc-2f7b52d26172');
+('00000000-0000-0000-0000-000000000000', 'system', '00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000');
 
 DO $$
 DECLARE
     user_id UUID;
-    admin_orcid TEXT := '${admin-orcid}';
 BEGIN
 
-user_id := (SELECT id FROM bi_user WHERE orcid = admin_orcid);
+user_id := (SELECT id FROM bi_user WHERE name = 'system');
+
+insert into bi_user (orcid, name, created_by, updated_by)
+values
+('0000-0003-0437-8310', 'BI-DEV Admin', user_id, user_id);
 
 insert into bi_user (orcid, name, created_by, updated_by)
 values

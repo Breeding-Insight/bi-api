@@ -2,7 +2,7 @@
 
 The BI API powers the BI Web, as well as BrAPI powered applications.
 
-The API is built using Java 12 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html
+The API is built using Java 13 and the Micronaut framework.  The development guide for Micronaut can be found at: https://docs.micronaut.io/latest/guide/index.html
 
 ## Docker support
 The API can run inside a Docker container using the Dockerfile for building the
@@ -52,6 +52,7 @@ This section is provided as an alternative to running the application in Docker.
 
 1. Java 13 SDK installed
 1. Maven installed (or via IDE)
+1. Docker (and docker-compose) installed
 
 ### Project setup
 The micronaut-security code is included as a git submodule.  To include the contents of this submodule use the --recurse-submodules flag when cloning the bi-api repo:
@@ -65,52 +66,71 @@ git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-a
 Run this docker command in terminal to start up a postgres docker container with the empty bi_db database in it. 
 
 ```
-docker container run --name bidb -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=bidb -p 5432:5432 -d postgis/postgis:12-3.0
+docker-compose up -d bidb
 ```
 
 ### Building the project
 
 Once you have the project pulled down and your database running, follow these steps to build the project.
 
-#### Setting your environment variables
+#### Setting your project variables
 
 You will need to specify variables specific to your environment in order to run the project. 
 
-Environment specific variables are specified in the following files:
-- src/build/build.config.properties
-- src/makeApplication-dev.yml.sh
-- src/makeApplication-test.yml.sh
-- settings.xml
+Environment specific project variables are specified in the following files:
+- src/build/build.properties
+- src/main/resources/application-prod.yml
 
-NOTE: Your application-dev.yml (see section 'Run the Project' and application-test.yml (see section 'Testing') will contain system specific variables, but will need to be updated manually. Update the structure of these files based on the makeApplication-dev.yml.sh file. 
-
-There are three options to specify these environmental variables: 
-1) Specify environmental variables in your system (this is what our docker build does)
-2) Specify environmental variables in your IntelliJ run configuration (recommended). 
-3) Edit the files above directly and replace the placeholders the environment variable placeholders with actual values. 
+There are three options to specify these project variables: 
+a. Specify environmental variables in your system or terminal session (this is what our docker build does)
+b. Specify environmental variables in your IDE run configuration (examples are given in IntelliJ)
+c. Create dev versions of build.properties and application-prod.yml and edit files directly.  
 
 See the .env file in the project's root directory for a list of environmental variables you will need to specify. 
 NOTES: 
-1) See the section `Creating admin user` on information of how to set the `ADMIN_ORCID` variable. 
-2) If using option 2 (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
+* If using option b (IntelliJ) to specify environment variables, you will need to run all commands through a run configuration in IntelliJ. Running commands in terminal will not exposed the environment variables you set in your run configuration. 
 
-#### Creating admin user
+#### Setting environmental variables in your terminal session
 
-The project is created with an admin user that is then able to setup the system for end users through the UI. 
-The admin user will need to have a valid ORCID account. Once you retrieve the ORCID (through the ORCID site) 
-for the admin user, set the `ADMIN_ORCID` variable in the environmental variables (see section above).
+If you want to run your mvn or java commands through terminal, you will need to set your environmental variables
+in your terminal session or for the system. To set your environment variables for the terminal session
+you can use the following command at the beginning of your terminal session:
 
-#### Install project dependencies
+```source .env && export $(grep --regexp ^[A-Z] .env | cut -d= -f1)```
+
+This will set your variables from your .env file while ignoring comments in the file. 
+
+#### Setting environmental variables in IntelliJ
+
+You can set your environment variables in IntelliJ in two ways: 
+1) Go to the run configuration of focus and navigate to the 'Runner' tab, enter environment variables 
+in the 'Environment Variables' field.
+2) Use the EnvFile plugin, https://plugins.jetbrains.com/plugin/7861-envfile, and use your .env file. 
+
+NOTE: The EnvFile plugin does not work for maven run configurations. 
+
+#### Creating dev versions of project config files
+
+To edit the config files directly, it is recommended to create dev versions of the config files and use
+then use dev run environments for maven and micronaut. 
+
+1) Create a `build.dev.properties` file based on the `build.properties` file. Enter your values in the `${}` placeholders. 
+2) Create an `application-dev.yml` file base on the `application-prod.yml` file. Enter your values in the `${}` placeholders. 
+
+#### Compile & Build
 
 After setting the values for your environment, run:
 
 ```
 mvn clean validate install -D maven.test.skip=true --settings settings.xml
 ```
+NOTE: if using option c, run:
+```
+mvn validate clean install -D maven.test.skip=true --settings settings.dev.xml -P dev
+```
 
 This process will pull down all the application's dependencies to your local machine, 
-create the application's database structure (with appropriate data), generate required source files (via JOOQ), 
-and finally build the final JAR file. 
+create the application's database structure (with appropriate data), generate required source files (via JOOQ), and finally build the final JAR file. 
 
 The command above will not run unit tests. If you want to run unit tests during the project's dependency installation
 remove the `-D maven.test.skip=true` command. Alternatively, you can run the tests separately, see the testing
@@ -120,28 +140,20 @@ section below.
 
 Once the project dependencies are installed successfully, you can run the project. 
 
-#### Creating application.yml
-
-*Improvements coming soon!
-
-For now, you will need to manually specify the values in your application-dev.yml file. 
-
-- Create a application variable configuration file for the environment you plan to run the project under (```Ex.  application-dev.yml```).
-You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
-variable configuration.
-
 #### Start the run
 
 *If running in an IDE (like IntelliJ)*:
 
 - Create an `Application` run config with the main class being `org.breedinginsight.api.Application`
-- Pass VM options of: `--enable-preview --illegal-access=warn -Dmicronaut.environments=dev`
+- Pass VM options: `--enable-preview --illegal-access=warn -Dmicronaut.environments=prod`
 
 *If running as a packaged JAR*:
 
 ```
-java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar
+java --enable-preview -Dmicronaut.environments=prod -jar bi-api*.jar
 ```
+
+NOTE: if you used option c to configure the project's variables, replace `-Dmicronaut.environments=prod` with `-Dmicronaut.environments=dev`
 
 ### Ongoing Development
 
@@ -165,7 +177,7 @@ mvn validate flyway:clean flyway:migrate -X
 As structural database changes are made, you will need to re-generate Java classes via JOOQ (data model, base DAOs).  To do so, run:
 
 ```
-mvn clean generate-sources -P dev
+mvn clean generate-sources
 ```
 
 NOTE: This step is not necessary if a `mvn clean install` is run (see section Install Project Dependencies above).
@@ -176,24 +188,39 @@ NOTE: This step is not necessary if a `mvn clean install` is run (see section In
 
 The test database is started as part of the tests in a separate docker container. The JOOQ classes for the tests
 are generated from the main database, so this will have to be up and running. The reference to the main database
-can be found in `src/build/build.config.properties`. 
+can be found in `src/build/build.properties`. 
 
 ### Run tests
 
-*Improvements coming soon! 
+There are two ways to run the tests:
 
-Create a file, `application-test.yml` in the `src/test/resources` directory.
-You can reference the `src/build/makeApplication-dev.yml.sh` file to see what information is needed in the
-variable configuration.
+1) JUnit
+2) Maven
 
-Tests can be run with the following command:
+#### Running through JUnit
+
+For this option, you will need to run the tests through IntelliJ. You will need to create a file 
+`src/test/resources/application-test.yml` based off the `application-prod.yml` file. Edit the values
+directly in the file, or use environment variables like described above. 
+
+#### Running through Maven
+
+This method uses the values set in the `build.properties` or `build.dev.properties` file to run your tests. 
+To run the tests, use the command:
 
 ```
 mvn test
 ```
 
-They are also run as part of the install profile (if specified). 
-In IntelliJ, you can create test profiles for the tests to get easily readable output.
+or 
+
+```
+mvn test -P dev
+```
+
+Maven tests are also run as part of the install profile (if specified). 
+
+If not manually specifying values in application-test.yml, you will need to set all of the environment variables by following either option a or option b above.
 
 ### Troubleshooting
 
@@ -207,7 +234,7 @@ If you are having errors to the effect of `invalid source release 12 with --enab
 
 Connection issues during build: 
 
-1. Check that you all of the environment variables in the src/build/build.config.properties file specified. 
+1. Check that you all of the environment variables in the src/build/build.properties file specified. 
 2. Make sure you are able to connect to your database outside of the project. 
 
 JOOQ class errors during build: 
@@ -222,7 +249,7 @@ Micronaut error, variable XXX is not specified:
 Installation error for bi-jooq-codegen during build. 
 
 1. Make sure your build command includes `--settings settings.xml`
-2. Make sure you specified environment variables for `GITHUB_ACTOR` and `GITHUB_TOKEN`
+2. Make sure you have values for `GITHUB_ACTOR` and `GITHUB_TOKEN`. 
 3. Make sure your `GITHUB_TOKEN` is valid and that you have access to the bi-jooq-codegen repo. 
 4. See bi-jooq-codegen to make sure everything is setup correctly for pulling the repository, https://github.com/Breeding-Insight/bi-jooq-codegen. 
 
