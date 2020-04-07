@@ -460,6 +460,7 @@
                             <oauth.clientId>test</oauth.clientId>
                             <oauth.clientSecret>test</oauth.clientSecret>
                             <jwt.secret>test</jwt.secret>
+                            <jwt.cookie.domain>localhost</jwt.cookie.domain>
                             <micronaut.server.port>${API_INTERNAL_TEST_PORT}</micronaut.server.port>
                             <db.default.host>${DB_SERVER}</db.default.host>
                             <db.default.name>${DB_NAME}</db.default.name>
