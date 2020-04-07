@@ -117,10 +117,6 @@ then use dev run environments for maven and micronaut.
 1) Create a `build.dev.properties` file based on the `build.properties` file. Enter your values in the `${}` placeholders. 
 2) Create an `application-dev.yml` file base on the `application-prod.yml` file. Enter your values in the `${}` placeholders. 
 
-And the application can now be run with 
-
-```java --enable-preview -Dmicronaut.environments=dev -jar bi-api*.jar```
-
 #### Compile & Build
 
 After setting the values for your environment, run:

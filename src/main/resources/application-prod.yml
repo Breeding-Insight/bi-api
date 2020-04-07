@@ -4,6 +4,9 @@ oauth:
 
 jwt:
   secret: ${JWT_SECRET}
+  cookie:
+    domain: ${JWT_DOMAIN:localhost}
+
 
 server:
   port: ${API_INTERNAL_PORT:8081}
