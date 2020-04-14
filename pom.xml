@@ -35,8 +35,8 @@
     </developers>
 
     <properties>
-        <micronaut.version>1.2.8</micronaut.version>
-        <micronaut.security.version>1.3.0.BUILD-SNAPSHOT</micronaut.security.version>
+        <micronaut.version>1.3.3</micronaut.version>
+        <micronaut.security.version>1.3.2</micronaut.security.version>
         <jdk.version>13</jdk.version>
         <maven.compiler.target>${jdk.version}</maven.compiler.target>
         <maven.compiler.source>${jdk.version}</maven.compiler.source>
@@ -160,24 +160,21 @@
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-security</artifactId>
-<!--            <version>${micronaut.security.version}</version>-->
-            <version>1.3.0.BUILD-20200122.112702-10</version>
+            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.micronaut</groupId>
             <artifactId>micronaut-security-jwt</artifactId>
-<!--            <version>${micronaut.security.version}</version>-->
-            <version>1.3.0.BUILD-20200122.112704-10</version>
+            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>io.micronaut.configuration</groupId>
             <artifactId>micronaut-security-oauth2</artifactId>
-<!--            <version>${micronaut.security.version}</version>-->
-            <version>1.3.0.BUILD-20200122.112706-10</version>
+            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -463,6 +460,7 @@
                             <oauth.clientId>test</oauth.clientId>
                             <oauth.clientSecret>test</oauth.clientSecret>
                             <jwt.secret>test</jwt.secret>
+                            <jwt.cookie.domain>localhost</jwt.cookie.domain>
                             <micronaut.server.port>${API_INTERNAL_TEST_PORT}</micronaut.server.port>
                             <db.default.host>${DB_SERVER}</db.default.host>
                             <db.default.name>${DB_NAME}</db.default.name>

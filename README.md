@@ -55,11 +55,6 @@ This section is provided as an alternative to running the application in Docker.
 1. Docker (and docker-compose) installed
 
 ### Project setup
-The micronaut-security code is included as a git submodule.  To include the contents of this submodule use the --recurse-submodules flag when cloning the bi-api repo:
-
-```
-git clone --recurse-submodules https://<user>@bitbucket.org/breedinginsight/bi-api.git
-```
 
 #### Postgres
 
@@ -210,7 +205,6 @@ To run the tests, use the command:
 
 ```
 mvn test
-```
 
 or 
 
@@ -221,6 +215,11 @@ mvn test -P dev
 Maven tests are also run as part of the install profile (if specified). 
 
 If not manually specifying values in application-test.yml, you will need to set all of the environment variables by following either option a or option b above.
+
+If not manually specifying values in application-test.yml, you will need to set all of the environment variables 
+found in the .env file for running the tests as well. 
+
+
 
 ### Troubleshooting
 

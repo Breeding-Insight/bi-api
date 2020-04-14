@@ -26,8 +26,4 @@ COPY settings.xml ./
 COPY ./src ./src/
 COPY ./io-micronaut/jar_files/ ./jar_files
 
-# patch the security module for micronaut
-COPY ./micronaut-security ./micronaut-security/
-RUN cd micronaut-security && ./gradlew --info publishToMavenLocal && cd ..
-
 ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]
