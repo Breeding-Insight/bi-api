@@ -19,6 +19,8 @@ tags:
     description: User Management
   - name: programs
     description: Program Management
+  - name: roles
+    description: Role Information
 paths:
   /users:
     get:
@@ -1351,7 +1353,109 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-
+  /roles:
+    get:
+      tags:
+        - roles
+      summary: Get list of all roles in the system.
+      description: Get list of all roles
+      operationId: getRoles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponse'
+              examples:
+                arrayOfRoles:
+                  $ref: '#/components/examples/arrayOfRoles'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /roles/{id}:
+    get:
+      tags:
+        - roles
+      summary: Get role information
+      description: Get a specific role
+      operationId: getRoleById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the role information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponseSingle'
+              examples:
+                singleRole:
+                  $ref: '#/components/examples/singleRole'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
 components:
   schemas:
     metadata:
@@ -1618,7 +1722,38 @@ components:
       required:
         - species
         - name
-
+    rolesResponse:
+      title: rolesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/rolesResponseResult'
+    rolesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of roles
+          items:
+            $ref: '#/components/schemas/role'
+    rolesResponseSingle:
+      title: rolesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/role'
     programsResponse:
       title: programsResponse
       required:
@@ -1923,4 +2058,33 @@ components:
           roles:
             - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
               domain: Field Manager
+    arrayOfRoles:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: Breeder
+            - id: a2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: Member
+    singleRole:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+          domain: Field Manager
 
