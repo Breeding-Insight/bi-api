@@ -14,13 +14,8 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
-import org.breedinginsight.api.model.v1.request.ProgramRequest;
-import org.breedinginsight.api.model.v1.request.SpeciesRequest;
-import org.breedinginsight.api.model.v1.request.UserRequest;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Role;
-import org.breedinginsight.model.Species;
-import org.breedinginsight.model.User;
+import org.breedinginsight.api.model.v1.request.*;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -29,6 +24,7 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -465,6 +461,64 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     @Order(4)
+    @SneakyThrows
+    void getProgramsUsersMultipleUsersSingleRoleSuccess() {
+
+        // create a second user to test with
+        // don't have test database setup yet so doing it this way for now
+        String validProgramId = validProgram.getId().toString();
+
+        UserIdRequest userRequest = UserIdRequest.builder().name("Test2").email("test2@test.com").build();
+        RoleRequest roleRequest = RoleRequest.builder().id(validRole.getId()).build();
+        ArrayList<RoleRequest> rolesList = new ArrayList<>();
+        rolesList.add(roleRequest);
+
+        ProgramUserRequest request = ProgramUserRequest.builder().user(userRequest).roles(rolesList).build();
+        ProgramUser test2 = programUserService.addProgramUser(testUser, validProgram.getId(), request);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 2, "Wrong totalCount");
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        // may be brittle relying on the ordering
+        JsonObject programUser = data.get(1).getAsJsonObject();
+        JsonObject user = programUser.getAsJsonObject("user");
+        assertEquals(user.get("id").getAsString(),validUser.getId().toString(), "Wrong user id");
+        assertEquals(user.get("name").getAsString(),validUser.getName(), "Wrong name");
+        assertEquals(user.get("email").getAsString(),validUser.getEmail(), "Wrong email");
+        JsonArray roles = programUser.getAsJsonArray("roles");
+        JsonObject role = roles.get(0).getAsJsonObject();
+        assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
+        assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+
+        JsonObject programUser2 = data.get(0).getAsJsonObject();
+        JsonObject user2 = programUser2.getAsJsonObject("user");
+        assertEquals(user2.get("id").getAsString(),test2.getUser().getId().toString(), "Wrong user id");
+        assertEquals(user2.get("name").getAsString(),test2.getUser().getName(), "Wrong name");
+        assertEquals(user2.get("email").getAsString(),test2.getUser().getEmail(), "Wrong email");
+        JsonArray roles2 = programUser2.getAsJsonArray("roles");
+        JsonObject role2 = roles2.get(0).getAsJsonObject();
+        assertEquals(role2.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
+        assertEquals(role2.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+
+        // remove user from program and delete user from system
+        programUserService.removeProgramUser(validProgram.getId(), test2.getUser().getId());
+        userService.delete(test2.getUser().getId());
+    }
+
+    @Test
+    @Order(5)
     public void putProgramsUsersOnlyIdSuccess() {
         JsonObject requestBody = new JsonObject();
         JsonObject user = new JsonObject();
@@ -515,7 +569,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     public void deleteProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
         String validUserId = validUser.getId().toString();
