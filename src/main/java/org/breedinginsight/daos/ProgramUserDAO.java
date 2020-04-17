@@ -87,7 +87,8 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
             ProgramUser programUser = ProgramUser.parseSQLRecord(record);
             Role role = Role.parseSQLRecord(record);
             Optional<ProgramUser> existingUser = resultProgramsUsers.stream()
-                    .filter(p -> p.getProgramId().equals(programUser.getProgramId()))
+                    .filter(p -> p.getProgramId().equals(programUser.getProgramId()) &&
+                                 p.getUserId().equals(programUser.getUserId()))
                     .findFirst();
 
             if (existingUser.isPresent()) {
