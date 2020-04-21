@@ -18,7 +18,8 @@ VALUES
 insert into role
 (domain, created_by, updated_by)
 VALUES
-('member', user_id, user_id);
+('member', user_id, user_id),
+('breeder', user_id, user_id);
 
 insert into environment_type
 (name, created_by, updated_by)
