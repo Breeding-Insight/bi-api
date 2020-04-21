@@ -486,7 +486,7 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
-        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 2, "Wrong totalCount");
+        assertEquals(2, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), "Wrong totalCount");
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
@@ -494,23 +494,23 @@ public class ProgramControllerIntegrationTest {
         // may be brittle relying on the ordering
         JsonObject programUser = data.get(1).getAsJsonObject();
         JsonObject user = programUser.getAsJsonObject("user");
-        assertEquals(user.get("id").getAsString(),validUser.getId().toString(), "Wrong user id");
-        assertEquals(user.get("name").getAsString(),validUser.getName(), "Wrong name");
-        assertEquals(user.get("email").getAsString(),validUser.getEmail(), "Wrong email");
+        assertEquals(validUser.getId().toString(), user.get("id").getAsString(), "Wrong user id");
+        assertEquals(validUser.getName(), user.get("name").getAsString(), "Wrong name");
+        assertEquals(validUser.getEmail(), user.get("email").getAsString(), "Wrong email");
         JsonArray roles = programUser.getAsJsonArray("roles");
         JsonObject role = roles.get(0).getAsJsonObject();
-        assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
-        assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+        assertEquals(validRole.getId().toString(), role.get("id").getAsString(), "Wrong role id");
+        assertEquals(validRole.getDomain(), role.get("domain").getAsString(), "Wrong domain");
 
         JsonObject programUser2 = data.get(0).getAsJsonObject();
         JsonObject user2 = programUser2.getAsJsonObject("user");
-        assertEquals(user2.get("id").getAsString(),test2.getUser().getId().toString(), "Wrong user id");
-        assertEquals(user2.get("name").getAsString(),test2.getUser().getName(), "Wrong name");
-        assertEquals(user2.get("email").getAsString(),test2.getUser().getEmail(), "Wrong email");
+        assertEquals(test2.getUser().getId().toString(), user2.get("id").getAsString(), "Wrong user id");
+        assertEquals(test2.getUser().getName(), user2.get("name").getAsString(), "Wrong name");
+        assertEquals(test2.getUser().getEmail(), user2.get("email").getAsString(),"Wrong email");
         JsonArray roles2 = programUser2.getAsJsonArray("roles");
         JsonObject role2 = roles2.get(0).getAsJsonObject();
-        assertEquals(role2.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
-        assertEquals(role2.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+        assertEquals(validRole.getId().toString(), role2.get("id").getAsString(), "Wrong role id");
+        assertEquals(validRole.getDomain(), role2.get("domain").getAsString(), "Wrong domain");
 
         // remove user from program and delete user from system
         programUserService.removeProgramUser(validProgram.getId(), test2.getUser().getId());
