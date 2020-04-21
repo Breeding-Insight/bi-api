@@ -51,22 +51,16 @@ public class ProgramController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Program>>> getPrograms() {
 
-        try {
-            List<Program> programs = programService.getAll();
+        List<Program> programs = programService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
-
+        Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
+        return HttpResponse.ok(response);
     }
 
     @Get("/programs/{programId}")
@@ -75,20 +69,13 @@ public class ProgramController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
-        try {
-            Optional<Program> program = programService.getById(programId);
-            if(program.isPresent()) {
-                Response<Program> response = new Response(program.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<Program> program = programService.getById(programId);
+        if(program.isPresent()) {
+            Response<Program> response = new Response(program.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
-
     }
 
     @Post("/programs")
