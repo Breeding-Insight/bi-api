@@ -17,6 +17,7 @@ import org.junit.jupiter.api.TestInstance;
 import javax.inject.Inject;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,7 +41,8 @@ public class DSLTransactionResultIntegrationTest {
 
     @BeforeAll
     void setup() throws Exception {
-        actingUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        Optional<User> userOptional = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        actingUser = userOptional.get();
     }
 
     @Test
