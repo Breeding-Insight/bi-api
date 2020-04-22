@@ -45,19 +45,20 @@ public class UserController {
     public HttpResponse<Response<User>> userinfo(Principal principal) {
 
         try {
-
             String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
+            Optional<User> user = userService.getByOrcid(orcid);
 
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.unauthorized();
+            if (user.isPresent()) {
+                Response<User> response = new Response<>(user.get());
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (DataAccessException e) {
             log.error("Error executing query: {}", e.getMessage());
             return HttpResponse.serverError();
         }
+        
     }
 
     @Get("/users/{userId}")
