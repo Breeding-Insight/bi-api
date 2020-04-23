@@ -19,6 +19,7 @@ import org.breedinginsight.model.Location;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
@@ -45,6 +46,8 @@ public class ProgramController {
     private UserService userService;
     @Inject
     private ProgramUserService programUserService;
+    @Inject
+    private ProgramLocationService programLocationService;
 
     @Get("/programs")
     @Produces(MediaType.APPLICATION_JSON)
@@ -273,7 +276,7 @@ public class ProgramController {
     public HttpResponse<Response<DataResponse<Location>>> getProgramLocations(@PathVariable UUID programId) {
 
         try {
-            List<Location> programLocations = programService.getProgramLocations(programId);
+            List<Location> programLocations = programLocationService.getProgramLocations(programId);
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
@@ -301,7 +304,7 @@ public class ProgramController {
     public HttpResponse<Response<Location>> getProgramLocations(@PathVariable UUID programId, @PathVariable UUID locationId) {
 
         try {
-            Location programLocation = programService.getProgramLocation(programId, locationId);
+            Location programLocation = programLocationService.getProgramLocation(programId, locationId);
             Response response = new Response(programLocation);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -321,7 +324,7 @@ public class ProgramController {
     public HttpResponse<Response<Location>> addProgramLocation(@PathVariable UUID programId, @Valid @Body ProgramLocationRequest locationRequest) {
 
         try {
-            Location programLocation = programService.addProgramLocation(programId, locationRequest);
+            Location programLocation = programLocationService.addProgramLocation(programId, locationRequest);
             Response response = new Response(programLocation);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -341,7 +344,7 @@ public class ProgramController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse removeProgramLocation(@PathVariable UUID programId, @PathVariable UUID locationId) {
         try {
-            programService.removeProgramLocation(programId, locationId);
+            programLocationService.removeProgramLocation(programId, locationId);
             return HttpResponse.ok();
         } catch (DoesNotExistException e){
             log.info(e.getMessage());

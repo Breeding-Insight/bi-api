@@ -10,6 +10,7 @@ import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
@@ -37,6 +38,8 @@ public class ProgramControllerUnitTest {
     ProgramService programService;
     @Mock
     ProgramUserService programUserService;
+    @Mock
+    ProgramLocationService programLocationService;
     @Mock
     UserService userService;
 
@@ -124,28 +127,28 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void getProgramLocationsAllDataAccessException() throws DoesNotExistException {
-        when(programService.getProgramLocations(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(programLocationService.getProgramLocations(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.getProgramLocations(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void getProgramLocationsSingleDataAccessException() throws DoesNotExistException {
-        when(programService.getProgramLocation(any(UUID.class), any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(programLocationService.getProgramLocation(any(UUID.class), any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.getProgramLocations(UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void postProgramLocationsDataAccessException() throws DoesNotExistException, AlreadyExistsException {
-        when(programService.addProgramLocation(any(UUID.class), any(ProgramLocationRequest.class))).thenThrow(new DataAccessException("TEST"));
+        when(programLocationService.addProgramLocation(any(UUID.class), any(ProgramLocationRequest.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.addProgramLocation(UUID.randomUUID(), new ProgramLocationRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void deleteProgramLocationsDataAccessException() throws DoesNotExistException {
-        doThrow(new DataAccessException("TEST")).when(programService).removeProgramLocation(any(UUID.class), any(UUID.class));
+        doThrow(new DataAccessException("TEST")).when(programLocationService).removeProgramLocation(any(UUID.class), any(UUID.class));
         HttpResponse response = programController.removeProgramLocation(UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
