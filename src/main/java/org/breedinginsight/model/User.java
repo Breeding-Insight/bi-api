@@ -26,7 +26,7 @@ public class User extends BiUserEntity{
 
     @JsonInclude(value= JsonInclude.Include.ALWAYS)
     @NotNull
-    private List<String> systemRoles;
+    private List<SystemRole> systemRoles;
 
     public User(BiUserEntity biUser) {
         this.setId(biUser.getId());
@@ -53,7 +53,7 @@ public class User extends BiUserEntity{
         return parseSQLRecord(record, BI_USER);
     }
 
-    public void addRole(String role) {
+    public void addRole(SystemRole role) {
         systemRoles.add(role);
     }
 }

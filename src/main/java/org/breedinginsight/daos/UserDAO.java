@@ -91,7 +91,7 @@ public class UserDAO extends BiUserDao {
             }
 
             if (systemRole.getDomain() != null) {
-                user.addRole(systemRole.getDomain());
+                user.addRole(systemRole);
             }
         }
 

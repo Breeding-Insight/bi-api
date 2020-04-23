@@ -21,7 +21,7 @@ import static org.breedinginsight.dao.db.Tables.SYSTEM_ROLE;
 @NoArgsConstructor
 public class SystemRole extends SystemRoleEntity {
 
-    public SystemRole(RoleEntity roleEntity){
+    public SystemRole(SystemRoleEntity roleEntity){
         this.setId(roleEntity.getId());
         this.setDomain(roleEntity.getDomain());
     }
