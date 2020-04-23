@@ -2,7 +2,11 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.UserRequest;
+import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
+import org.breedinginsight.dao.db.tables.daos.SystemUserRoleDao;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
+import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
+import org.breedinginsight.dao.db.tables.pojos.SystemUserRoleEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
@@ -15,6 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -22,11 +28,15 @@ public class UserService {
 
     @Inject
     private UserDAO dao;
+    @Inject
+    private SystemUserRoleDao systemUserRoleDao;
+    @Inject
+    private SystemRoleDao systemRoleDao;
 
     public Optional<User> getByOrcid(String orcid) {
 
         // User has been authenticated against orcid, check they have a bi account.
-        List<BiUserEntity> users = dao.fetchByOrcid(orcid);
+        Optional<User> users = dao.getUserByOrcId(orcid);
 
         if (users.isEmpty()) {
             return Optional.empty();
@@ -39,31 +49,20 @@ public class UserService {
     public List<User> getAll() {
 
         // Get our users
-        List<BiUserEntity> users = dao.findAll();
-
-        List<User> resultBody = new ArrayList<>();
-        for (BiUserEntity queriedUser : users) {
-            // We don't have roles right now
-            List<String> roles = new ArrayList<>();
-            // Generate our response class from db record
-            User user = new User(queriedUser);
-
-            resultBody.add(user);
-        }
-
-        return resultBody;
+        List<User> users = dao.getUsers();
+        return users;
     }
 
     public Optional<User> getById(UUID userId) {
 
         // User has been authenticated against orcid, check they have a bi account.
-        BiUserEntity biUser = dao.fetchOneById(userId);
+        Optional<User> user = dao.getUser(userId);
 
-        if (biUser == null) {
+        if (!user.isPresent()) {
             return Optional.empty();
         }
 
-        return Optional.of(new User(biUser));
+        return user;
     }
 
     public User create(User actingUser, UserRequest user) throws AlreadyExistsException {
@@ -144,5 +143,22 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    private List<String> getUserSystemRoles(User user) {
+
+        List<SystemUserRoleEntity> systemUserRoleEntities = systemUserRoleDao.fetchByBiUserId(user.getId());
+        if (systemUserRoleEntities.size() > 0){
+            List<UUID> userRoleIds = systemUserRoleEntities.stream()
+                    .map((systemUserRoleEntity) -> systemUserRoleEntity.getSystemRoleId())
+                    .collect(Collectors.toList());
+            List<SystemRoleEntity> systemRoleEntities = systemRoleDao.fetchById(userRoleIds.toArray(new UUID[userRoleIds.size()]));
+            List<String> userRoles = systemRoleEntities.stream()
+                    .map(systemRoleEntity -> systemRoleEntity.getDomain())
+                    .collect(Collectors.toList());
+            return userRoles;
+        } else {
+            return new ArrayList<>();
+        }
     }
 }
