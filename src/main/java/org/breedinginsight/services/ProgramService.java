@@ -133,26 +133,5 @@ public class ProgramService {
         dao.delete(programEntity);
     }
 
-    public List<Location> getProgramLocations(UUID programId) throws DoesNotExistException {
-        /* Get the locations associated with a program. */
-        //TODO
-        return new ArrayList<>();
-    }
 
-    public Location getProgramLocation(UUID programId, UUID locationId) throws DoesNotExistException {
-        /* Get a specific location for a program. */
-        //TODO
-        return null;
-    }
-
-    public Location addProgramLocation(UUID programId, ProgramLocationRequest programLocationRequest) throws DoesNotExistException, AlreadyExistsException {
-        /* Add a location to a program. */
-        //TODO
-        return null;
-    }
-
-    public void removeProgramLocation(UUID programId, UUID locationId) throws DoesNotExistException {
-        /* Removes a location from a program. Does not delete the location object. */
-        //TODO
-    }
 }
