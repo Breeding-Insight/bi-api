@@ -28,7 +28,7 @@ public class UserService {
         // User has been authenticated against orcid, check they have a bi account.
         List<BiUserEntity> users = dao.fetchByOrcid(orcid);
 
-        if (users.size() < 1) {
+        if (users.isEmpty()) {
             return Optional.empty();
         } else {
             User newUser = new User(users.get(0));
@@ -128,7 +128,7 @@ public class UserService {
     private boolean userEmailInUse(String email) {
 
         List<BiUserEntity> existingUsers = dao.fetchByEmail(email);
-        if (existingUsers.size() > 0) {
+        if (!existingUsers.isEmpty()) {
             return true;
         } else {
             return false;
