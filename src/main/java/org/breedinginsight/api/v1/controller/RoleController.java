@@ -72,7 +72,7 @@ public class RoleController {
     @Get("/roles")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<Role>>> getSystemRoles() {
+    public HttpResponse<Response<DataResponse<SystemRole>>> getSystemRoles() {
         try {
             List<SystemRole> roles = systemRoleService.getAll();
 
@@ -82,7 +82,7 @@ public class RoleController {
             Pagination pagination = new Pagination(roles.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<Role>> response = new Response(metadata, new DataResponse<>(roles));
+            Response<DataResponse<SystemRole>> response = new Response(metadata, new DataResponse<>(roles));
             return HttpResponse.ok(response);
         } catch (DataAccessException e){
             log.error("Error executing query: {}", e.getMessage());
@@ -94,12 +94,12 @@ public class RoleController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Role>> getSystemRole(@PathVariable UUID roleId) {
+    public HttpResponse<Response<SystemRole>> getSystemRole(@PathVariable UUID roleId) {
 
         try {
-            Optional<Role> role = roleService.getById(roleId);
+            Optional<SystemRole> role = systemRoleService.getById(roleId);
             if(role.isPresent()) {
-                Response<Role> response = new Response(role.get());
+                Response<SystemRole> response = new Response(role.get());
                 return HttpResponse.ok(response);
             } else {
                 return HttpResponse.notFound();
