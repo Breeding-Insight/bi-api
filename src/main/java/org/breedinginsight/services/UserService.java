@@ -73,7 +73,7 @@ public class UserService {
     public User create(User actingUser, UserRequest userRequest) throws AlreadyExistsException, DoesNotExistException {
 
         try {
-            User updatedUser = dsl.transactionResult(configuration -> {
+            User user = dsl.transactionResult(configuration -> {
 
                 Optional<User> created = createOptional(actingUser, userRequest);
 
@@ -81,14 +81,18 @@ public class UserService {
                     throw new AlreadyExistsException("Email already exists");
                 }
 
+                // Check that roles are valid
+                List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest);
+
                 // Update roles
                 User newUser = created.get();
-                User user = updateSystemRoles(actingUser, newUser.getId(), userRequest);
+                deleteSystemRoles(newUser.getId());
+                insertSystemRoles(actingUser.getId(), newUser.getId(), systemRoles);
 
-                return user;
+                return getById(newUser.getId()).get();
             });
 
-            return updatedUser;
+            return user;
 
         } catch(DataAccessException e) {
             if (e.getCause() instanceof AlreadyExistsException) {
@@ -117,7 +121,7 @@ public class UserService {
     }
 
 
-    public User update(User actingUser, UUID userId, UserRequest user) throws DoesNotExistException, AlreadyExistsException {
+    public User update(User actingUser, UUID userId, UserRequest userRequest) throws DoesNotExistException, AlreadyExistsException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -125,69 +129,30 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        if (userEmailInUseExcludingUser(user.getEmail(), userId)) {
+        if (userEmailInUseExcludingUser(userRequest.getEmail(), userId)) {
             throw new AlreadyExistsException("Email already exists");
-        }
-        biUser.setEmail(user.getEmail());
-        biUser.setName(user.getName());
-        biUser.setCreatedBy(actingUser.getId());
-        biUser.setUpdatedBy(actingUser.getId());
-
-        dao.update(biUser);
-        Optional<User> newUser = dao.getUser(biUser.getId());
-
-        return newUser.get();
-    }
-
-    public User updateSystemRoles(User actingUser, UUID userId, UserRequest userRequest) throws DoesNotExistException {
-
-        BiUserEntity biUserEntity = dao.fetchOneById(userId);
-        if (biUserEntity == null){
-            throw new DoesNotExistException("Could not find user.");
         }
 
         List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest);
 
         User user = dsl.transactionResult(configuration -> {
+            biUser.setEmail(userRequest.getEmail());
+            biUser.setName(userRequest.getName());
+            biUser.setCreatedBy(actingUser.getId());
+            biUser.setUpdatedBy(actingUser.getId());
 
-            // Delete the old roles
-            List<SystemUserRoleEntity> currentSystemRoles = systemUserRoleDao.fetchByBiUserId(biUserEntity.getId());
-            systemUserRoleDao.delete(currentSystemRoles);
+            dao.update(biUser);
 
-            // Add all the passed roles
-            List<SystemUserRoleEntity> newSystemUserRoles = new ArrayList<>();
-            for (SystemRoleEntity systemRoleEntity : systemRoles) {
-                SystemUserRoleEntity systemUserRoleEntity = SystemUserRoleEntity.builder()
-                        .biUserId(biUserEntity.getId())
-                        .systemRoleId(systemRoleEntity.getId())
-                        .createdBy(actingUser.getId())
-                        .updatedBy(actingUser.getId())
-                        .build();
-                newSystemUserRoles.add(systemUserRoleEntity);
+            // Update system roles. User can't modify their own roles.
+            if (!actingUser.getId().toString().equals(userId.toString())) {
+                deleteSystemRoles(userId);
+                insertSystemRoles(actingUser.getId(), userId, systemRoles);
             }
 
-            if (!newSystemUserRoles.isEmpty()) {
-                systemUserRoleDao.insert(newSystemUserRoles);
-            }
-
-            return getById(biUserEntity.getId()).get();
+            return getById(userId).get();
         });
 
         return user;
-    }
-
-    private List<SystemRole> validateAndGetSystemRoles(UserRequest userRequest) throws DoesNotExistException {
-
-        Set<UUID> roleIds = userRequest.getSystemRoles().stream().map(role -> role.getId()).collect(Collectors.toSet());
-
-        List<SystemRoleEntity> roles = systemRoleDao.fetchById(roleIds.toArray(new UUID[roleIds.size()]));
-        if (roles.size() != roleIds.size()) {
-            throw new DoesNotExistException("Role does not exist");
-        }
-
-        List<SystemRole> systemRoles = roles.stream().map(role -> new SystemRole(role)).collect(Collectors.toList());
-
-        return systemRoles;
     }
 
     public void delete(UUID userId) throws DoesNotExistException {
@@ -198,7 +163,10 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        dao.deleteById(userId);
+        dsl.transaction(configuration -> {
+            deleteSystemRoles(userId);
+            dao.deleteById(userId);
+        });
     }
 
     private boolean userEmailInUse(String email) {
@@ -220,5 +188,43 @@ public class UserService {
             }
         }
         return false;
+    }
+
+    private void deleteSystemRoles(UUID userId) {
+        List<SystemUserRoleEntity> currentSystemRoles = systemUserRoleDao.fetchByBiUserId(userId);
+        systemUserRoleDao.delete(currentSystemRoles);
+    }
+
+    private void insertSystemRoles(UUID actingUserId, UUID userId, List<SystemRole> systemRoles) {
+
+        List<SystemUserRoleEntity> newSystemUserRoles = new ArrayList<>();
+        for (SystemRole systemRoleEntity : systemRoles) {
+            SystemUserRoleEntity systemUserRoleEntity = SystemUserRoleEntity.builder()
+                    .biUserId(userId)
+                    .systemRoleId(systemRoleEntity.getId())
+                    .createdBy(actingUserId)
+                    .updatedBy(actingUserId)
+                    .build();
+            newSystemUserRoles.add(systemUserRoleEntity);
+        }
+
+        if (!newSystemUserRoles.isEmpty()) {
+            systemUserRoleDao.insert(newSystemUserRoles);
+        }
+
+    }
+
+    private List<SystemRole> validateAndGetSystemRoles(UserRequest userRequest) throws DoesNotExistException {
+
+        Set<UUID> roleIds = userRequest.getSystemRoles().stream().map(role -> role.getId()).collect(Collectors.toSet());
+
+        List<SystemRoleEntity> roles = systemRoleDao.fetchById(roleIds.toArray(new UUID[roleIds.size()]));
+        if (roles.size() != roleIds.size()) {
+            throw new DoesNotExistException("Role does not exist");
+        }
+
+        List<SystemRole> systemRoles = roles.stream().map(role -> new SystemRole(role)).collect(Collectors.toList());
+
+        return systemRoles;
     }
 }
