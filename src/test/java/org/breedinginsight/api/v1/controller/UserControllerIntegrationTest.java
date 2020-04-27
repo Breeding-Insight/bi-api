@@ -77,7 +77,10 @@ public class UserControllerIntegrationTest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
-        //TODO: Check empty role list
+
+        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+        assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
     }
 
     @Test
@@ -106,6 +109,10 @@ public class UserControllerIntegrationTest {
 
         // TODO: depends on db setup
         assertTrue(data.size() >= 1, "Wrong number users");
+
+        JsonObject exampleUser = (JsonObject) data.get(0);
+        JsonArray resultRoles = (JsonArray) exampleUser.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Roles list was not returned.");
     }
 
     @Test
@@ -124,6 +131,7 @@ public class UserControllerIntegrationTest {
         assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
         assertEquals("test@test.com", result.get("email").getAsString(), "Wrong email");
         assertEquals("test@test.com", result.get("email").getAsString(), "Wrong email");
+
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
         assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
@@ -251,42 +259,6 @@ public class UserControllerIntegrationTest {
 
     @Test
     @Order(3)
-    public void putUsersNoRolesSuccess() {
-
-        String name = "Test Update";
-        String email = "testedited@test.com";
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", name);
-        requestBody.addProperty("email", email);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT("/users/" + testUserUUID, requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        try {
-            JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
-
-            assertEquals(name, result.get("name").getAsString(), "Wrong name");
-            assertEquals(email, result.get("email").getAsString(), "Wrong email");
-
-            JsonArray resultRoles = (JsonArray) result.get("systemRoles");
-            assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
-            assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
-
-
-        } catch (IllegalStateException e) {
-            Assert.fail(e.getMessage());
-        }
-    }
-
-    @Test
-    @Order(4)
     public void putUsersEmailAlreadyExists() {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", "Test User2");
@@ -305,7 +277,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(4)
     public void putUsersOwnEmailAlreadyExists() {
         String name = "Test Update 5";
         String email = "testedited@test.com";
@@ -340,7 +312,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(6)
+    @Order(5)
     public void putUsersEmptyBody() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -356,7 +328,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(7)
+    @Order(6)
     public void putUsersEmptyName() {
 
         JsonObject requestBody = new JsonObject();
@@ -378,35 +350,232 @@ public class UserControllerIntegrationTest {
     @SneakyThrows
     void putUsersRolesNotExist() {
 
+        String name = "Test User4";
+        String email = "test4@test.com";
+        String orcid = "0000-0000-0000-0000";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+        requestBody.addProperty("orcid", orcid);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", invalidUUID);
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("systemRoles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + testUserUUID, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "other-test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
     }
 
     @Test
     @SneakyThrows
+    @Order(7)
     void putUsersSuccessOwnRoles() {
         // Roles should not change
+        String name = "Test User4";
+        String email = "test4@test.com";
+        String orcid = "0000-0000-0000-0000";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+        requestBody.addProperty("orcid", orcid);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validSystemRoleId.toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("systemRoles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "other-test-registered-user")), String.class
+        );
+
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        assertEquals(name, result.get("name").getAsString(), "Wrong name");
+        assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+        // System roles should not be modified
+        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+        assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
     }
 
     @Test
     @SneakyThrows
+    @Order(8)
     void putUsersSuccessOtherRolesSuccess() {
         // Roles should change
+        String name = "Test User5";
+        String email = "test5@test.com";
+        String orcid = "0000-0000-0000-0000";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+        requestBody.addProperty("orcid", orcid);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validSystemRoleId.toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("systemRoles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        assertEquals(name, result.get("name").getAsString(), "Wrong name");
+        assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+        // System roles should not be modified
+        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+        assertEquals(true, resultRoles.size() == 1, "Roles list was not empty.");
+        JsonObject resultRole = (JsonObject) resultRoles.get(0);
+        assertEquals(validSystemRoleId.toString(), resultRole.get("id").getAsString(), "Wrong role id was returned.");
+    }
+
+    @Test
+    @Order(9)
+    public void putUsersNoRolesSuccess() {
+        // Will not modify roles
+        String name = "Test Update";
+        String email = "testedited@test.com";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + testUserUUID, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        try {
+            JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+            assertEquals(name, result.get("name").getAsString(), "Wrong name");
+            assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+            JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+            assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+            assertEquals(true, resultRoles.size() == 1, "Wrong number of roles was returned.");
+
+
+        } catch (IllegalStateException e) {
+            Assert.fail(e.getMessage());
+        }
     }
 
     @Test
     @SneakyThrows
+    @Order(10)
     void putUsersSuccessOtherRolesEmptyRoles() {
         // Roles should be deleted
+        String name = "Test User5";
+        String email = "test5@test.com";
+        String orcid = "0000-0000-0000-0000";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+        requestBody.addProperty("orcid", orcid);
+        JsonArray roles = new JsonArray();
+        requestBody.add("systemRoles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        assertEquals(name, result.get("name").getAsString(), "Wrong name");
+        assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+        // System roles should not be modified
+        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+        assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
     }
 
     @Test
     @SneakyThrows
+    @Order(12)
     void putUsersSuccessOtherRolesDuplicateRoles() {
         // Roles should be unique set
+        String name = "Test User5";
+        String email = "test5@test.com";
+        String orcid = "0000-0000-0000-0000";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+        requestBody.addProperty("orcid", orcid);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validSystemRoleId.toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        roles.add(role);
+        requestBody.add("systemRoles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        assertEquals(name, result.get("name").getAsString(), "Wrong name");
+        assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+        // System roles should not be modified
+        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+        assertEquals(true, resultRoles.size() == 1, "More than one role was returned.");
     }
 
     @Test
-    @Order(8)
+    @Order(13)
     public void deleteUsersExisting() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
