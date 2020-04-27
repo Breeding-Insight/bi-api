@@ -86,8 +86,10 @@ public class UserService {
 
                 // Update roles
                 User newUser = created.get();
-                deleteSystemRoles(newUser.getId());
-                insertSystemRoles(actingUser.getId(), newUser.getId(), systemRoles);
+                if (userRequest.getSystemRoles() != null){
+                    deleteSystemRoles(newUser.getId());
+                    insertSystemRoles(actingUser.getId(), newUser.getId(), systemRoles);
+                }
 
                 return getById(newUser.getId()).get();
             });
@@ -144,7 +146,7 @@ public class UserService {
             dao.update(biUser);
 
             // Update system roles. User can't modify their own roles.
-            if (!actingUser.getId().toString().equals(userId.toString())) {
+            if (!actingUser.getId().toString().equals(userId.toString()) && userRequest.getSystemRoles() != null) {
                 deleteSystemRoles(userId);
                 insertSystemRoles(actingUser.getId(), userId, systemRoles);
             }
@@ -209,12 +211,16 @@ public class UserService {
         }
 
         if (!newSystemUserRoles.isEmpty()) {
-            systemUserRoleDao.insert(newSystemUserRoles);
+            systemUserRoleDao.insert(newSystemUserRoles.toArray(new SystemUserRoleEntity[newSystemUserRoles.size()]));
         }
 
     }
 
     private List<SystemRole> validateAndGetSystemRoles(UserRequest userRequest) throws DoesNotExistException {
+
+        if ( userRequest.getSystemRoles() == null){
+            return new ArrayList<>();
+        }
 
         Set<UUID> roleIds = userRequest.getSystemRoles().stream().map(role -> role.getId()).collect(Collectors.toSet());
 

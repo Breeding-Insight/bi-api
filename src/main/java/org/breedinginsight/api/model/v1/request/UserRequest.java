@@ -1,5 +1,7 @@
 package org.breedinginsight.api.model.v1.request;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import org.breedinginsight.model.SystemRole;
