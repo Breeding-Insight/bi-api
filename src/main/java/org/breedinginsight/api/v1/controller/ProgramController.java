@@ -92,7 +92,7 @@ public class ProgramController {
                 Response<Program> response = new Response(program);
                 return HttpResponse.ok(response);
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
@@ -114,7 +114,7 @@ public class ProgramController {
                 Response<Program> response = new Response(program);
                 return HttpResponse.ok(response);
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
@@ -137,7 +137,7 @@ public class ProgramController {
                 programService.archive(programId, user.get());
                 return HttpResponse.ok();
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch(DoesNotExistException e){
             log.info(e.getMessage());
@@ -199,7 +199,7 @@ public class ProgramController {
                 Response<ProgramUser> response = new Response<>(programUser);
                 return HttpResponse.ok(response);
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
@@ -227,7 +227,7 @@ public class ProgramController {
                 Response response = new Response(programUser);
                 return HttpResponse.ok(response);
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch (DoesNotExistException e){
             log.info(e.getMessage());

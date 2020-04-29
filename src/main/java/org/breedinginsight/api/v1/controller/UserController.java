@@ -103,7 +103,7 @@ public class UserController {
                 Response<User> response = new Response<>(user);
                 return HttpResponse.ok(response);
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
@@ -125,7 +125,7 @@ public class UserController {
                 Response<User> response = new Response<>(user);
                 return HttpResponse.ok(response);
             } else {
-                throw new InternalServerException("Acting user does not exist");
+                return HttpResponse.unauthorized();
             }
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
