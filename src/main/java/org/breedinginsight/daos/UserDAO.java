@@ -2,7 +2,6 @@ package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.BiUserDao;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.jooq.*;

@@ -9,6 +9,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -20,6 +21,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
@@ -172,4 +174,29 @@ public class UserController {
             return HttpResponse.notFound();
         }
     }
+
+    @Put("users/{userId}/roles")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<User>> updateUserSystemRoles(Principal principal, @PathVariable UUID userId, @Body @Valid SystemRolesRequest requestUser) {
+
+        try {
+            String orcid = principal.getName();
+            User actingUser = userService.getByOrcid(orcid);
+            User user = userService.updateRoles(actingUser, userId, requestUser);
+            Response<User> response = new Response<>(user);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.unauthorized();
+        } catch (DataAccessException e) {
+            log.error("Error executing query: {}", e.getMessage());
+            return HttpResponse.serverError();
+        }
+    }
+
 }

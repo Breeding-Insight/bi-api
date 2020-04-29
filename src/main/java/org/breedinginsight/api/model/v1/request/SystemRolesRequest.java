@@ -4,8 +4,6 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import org.breedinginsight.model.SystemRole;
 
-import javax.validation.constraints.Email;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.util.List;
 
@@ -16,14 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Introspected
-public class UserRequest {
-
-    @NotBlank
-    private String name;
-
+public class SystemRolesRequest {
     @NotNull
-    @Email
-    private String email;
-
-    List<SystemRole> systemRoles;
+    private List<SystemRole> systemRoles;
 }

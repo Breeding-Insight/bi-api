@@ -6,11 +6,9 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
 import org.jooq.Record;
 
-import static org.breedinginsight.dao.db.Tables.ROLE;
 import static org.breedinginsight.dao.db.Tables.SYSTEM_ROLE;
 
 @Getter

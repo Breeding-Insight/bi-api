@@ -1,16 +1,12 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.dao.db.tables.daos.RoleDao;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
-import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.model.SystemRole;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

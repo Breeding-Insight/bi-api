@@ -1,7 +1,7 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
+import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
 import org.breedinginsight.dao.db.tables.daos.SystemUserRoleDao;
@@ -9,11 +9,10 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemUserRoleEntity;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -22,7 +21,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import java.util.*;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -81,15 +79,14 @@ public class UserService {
                     throw new AlreadyExistsException("Email already exists");
                 }
 
-                // Check that roles are valid
-                List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest);
-
-                // Update roles
                 User newUser = created.get();
-                if (userRequest.getSystemRoles() != null){
-                    deleteSystemRoles(newUser.getId());
+                // Check that roles are valid
+                if ( userRequest.getSystemRoles() != null){
+                    List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest.getSystemRoles());
+                    // Update roles
                     insertSystemRoles(actingUser.getId(), newUser.getId(), systemRoles);
                 }
+
 
                 return getById(newUser.getId()).get();
             });
@@ -135,26 +132,13 @@ public class UserService {
             throw new AlreadyExistsException("Email already exists");
         }
 
-        List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest);
+        biUser.setEmail(userRequest.getEmail());
+        biUser.setName(userRequest.getName());
+        biUser.setCreatedBy(actingUser.getId());
+        biUser.setUpdatedBy(actingUser.getId());
+        dao.update(biUser);
 
-        User user = dsl.transactionResult(configuration -> {
-            biUser.setEmail(userRequest.getEmail());
-            biUser.setName(userRequest.getName());
-            biUser.setCreatedBy(actingUser.getId());
-            biUser.setUpdatedBy(actingUser.getId());
-
-            dao.update(biUser);
-
-            // Update system roles. User can't modify their own roles.
-            if (!actingUser.getId().toString().equals(userId.toString()) && userRequest.getSystemRoles() != null) {
-                deleteSystemRoles(userId);
-                insertSystemRoles(actingUser.getId(), userId, systemRoles);
-            }
-
-            return getById(userId).get();
-        });
-
-        return user;
+        return getById(userId).get();
     }
 
     public void delete(UUID userId) throws DoesNotExistException {
@@ -216,21 +200,47 @@ public class UserService {
 
     }
 
-    private List<SystemRole> validateAndGetSystemRoles(UserRequest userRequest) throws DoesNotExistException {
+    public User updateRoles(User actingUser, UUID userId, SystemRolesRequest systemRolesRequest) throws DoesNotExistException, AuthorizationException {
 
-        if ( userRequest.getSystemRoles() == null){
-            return new ArrayList<>();
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        Set<UUID> roleIds = userRequest.getSystemRoles().stream().map(role -> role.getId()).collect(Collectors.toSet());
+        if (actingUser.getId().toString().equals(userId.toString())){
+            throw new AuthorizationException("User cannot update own roles.");
+        }
+
+        List<SystemRole> systemRoles = validateAndGetSystemRoles(systemRolesRequest.getSystemRoles());
+
+        try {
+            User user = dsl.transactionResult(configuration -> {
+                deleteSystemRoles(userId);
+                insertSystemRoles(actingUser.getId(), userId, systemRoles);
+                return getById(userId).get();
+            });
+            return user;
+        } catch(DataAccessException e) {
+            if (e.getCause() instanceof DoesNotExistException) {
+                throw (DoesNotExistException) e.getCause();
+            } else {
+                throw e;
+            }
+        }
+    }
+
+    private List<SystemRole> validateAndGetSystemRoles(List<SystemRole> systemRoles) throws DoesNotExistException {
+
+        Set<UUID> roleIds = systemRoles.stream().map(role -> role.getId()).collect(Collectors.toSet());
 
         List<SystemRoleEntity> roles = systemRoleDao.fetchById(roleIds.toArray(new UUID[roleIds.size()]));
         if (roles.size() != roleIds.size()) {
             throw new DoesNotExistException("Role does not exist");
         }
 
-        List<SystemRole> systemRoles = roles.stream().map(role -> new SystemRole(role)).collect(Collectors.toList());
+        List<SystemRole> queriedSystemRoles = roles.stream().map(role -> new SystemRole(role)).collect(Collectors.toList());
 
-        return systemRoles;
+        return queriedSystemRoles;
     }
 }
