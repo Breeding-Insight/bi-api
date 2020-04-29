@@ -4,6 +4,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +26,6 @@ import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -86,21 +86,18 @@ public class ProgramController {
 
         try {
             String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            Program program = programService.create(programRequest, user);
-            Response<Program> response = new Response(program);
-            return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+            Optional<User> user = userService.getByOrcid(orcid);
+            if (user.isPresent()){
+                Program program = programService.create(programRequest, user.get());
+                Response<Program> response = new Response(program);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Put("/programs/{programId}")
@@ -111,21 +108,21 @@ public class ProgramController {
 
         try {
             String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            Program program = programService.update(programId, programRequest, user);
-            Response<Program> response = new Response(program);
-            return HttpResponse.ok(response);
+            Optional<User> user = userService.getByOrcid(orcid);
+            if (user.isPresent()){
+                Program program = programService.update(programId, programRequest, user.get());
+                Response<Program> response = new Response(program);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Delete("/programs/archive/{programId}")
@@ -135,16 +132,17 @@ public class ProgramController {
         /* Archive a program */
         try {
             String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            programService.archive(programId, user);
+            Optional<User> user = userService.getByOrcid(orcid);
+            if (user.isPresent()){
+                programService.archive(programId, user.get());
+                return HttpResponse.ok();
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch(DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch(DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-        return HttpResponse.ok();
     }
 
     @Get("/programs/{programId}/users")
@@ -166,9 +164,6 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 
@@ -178,20 +173,14 @@ public class ProgramController {
     @AddMetadata
     public HttpResponse<Response<ProgramUser>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
-        try {
-            Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, userId);
+        Optional<ProgramUser> programUser = programUserService.getProgramUserbyId(programId, userId);
 
-            if(programUser.isPresent()) {
-                Response<ProgramUser> response = new Response(programUser.get());
-                return HttpResponse.ok(response);
-            } else {
-                log.info("Program user not found");
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        if(programUser.isPresent()) {
+            Response<ProgramUser> response = new Response(programUser.get());
+            return HttpResponse.ok(response);
+        } else {
+            log.info("Program user not found");
+            return HttpResponse.notFound();
         }
     }
 
@@ -204,10 +193,14 @@ public class ProgramController {
 
         try {
             String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            ProgramUser programUser = programUserService.addProgramUser(user, programId, programUserRequest);
-            Response<ProgramUser> response = new Response<>(programUser);
-            return HttpResponse.ok(response);
+            Optional<User> user = userService.getByOrcid(orcid);
+            if (user.isPresent()){
+                ProgramUser programUser = programUserService.addProgramUser(user.get(), programId, programUserRequest);
+                Response<ProgramUser> response = new Response<>(programUser);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -217,9 +210,6 @@ public class ProgramController {
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 
@@ -231,19 +221,20 @@ public class ProgramController {
                                                                  @Valid @Body ProgramUserRequest programUserRequest) {
         try {
             String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            ProgramUser programUser = programUserService.editProgramUser(user, programId, programUserRequest);
-            Response response = new Response(programUser);
-            return HttpResponse.ok(response);
+            Optional<User> user = userService.getByOrcid(orcid);
+            if (user.isPresent()){
+                ProgramUser programUser = programUserService.editProgramUser(user.get(), programId, programUserRequest);
+                Response response = new Response(programUser);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (AlreadyExistsException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 
@@ -260,11 +251,7 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Get("/programs/{programId}/locations")
@@ -287,11 +274,7 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Get("/programs/{programId}/locations/{locationId}")
@@ -307,11 +290,7 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Post("/programs/{programId}/locations")
@@ -330,9 +309,6 @@ public class ProgramController {
         } catch (AlreadyExistsException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 
@@ -346,9 +322,6 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 

@@ -23,17 +23,17 @@ public class UserService {
     @Inject
     private UserDAO dao;
 
-    public User getByOrcid(String orcid) throws DoesNotExistException {
+    public Optional<User> getByOrcid(String orcid) {
 
         // User has been authenticated against orcid, check they have a bi account.
         List<BiUserEntity> users = dao.fetchByOrcid(orcid);
 
-        if (users.size() != 1) {
-            throw new DoesNotExistException("ORCID not associated with registered user");
+        if (users.isEmpty()) {
+            return Optional.empty();
+        } else {
+            User newUser = new User(users.get(0));
+            return Optional.of(newUser);
         }
-
-        // For now, if we have found a record, let them through
-        return new User(users.get(0));
     }
 
     public List<User> getAll() {
@@ -128,7 +128,7 @@ public class UserService {
     private boolean userEmailInUse(String email) {
 
         List<BiUserEntity> existingUsers = dao.fetchByEmail(email);
-        if (existingUsers.size() > 0) {
+        if (!existingUsers.isEmpty()) {
             return true;
         } else {
             return false;

@@ -5,6 +5,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Delete;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
@@ -29,8 +30,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.jooq.exception.DataAccessException;
-
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 public class UserController {
@@ -44,19 +43,14 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<User>> userinfo(Principal principal) {
 
-        try {
+        String orcid = principal.getName();
+        Optional<User> user = userService.getByOrcid(orcid);
 
-            String orcid = principal.getName();
-            User user = userService.getByOrcid(orcid);
-            Response<User> response = new Response<>(user);
+        if (user.isPresent()) {
+            Response<User> response = new Response<>(user.get());
             return HttpResponse.ok(response);
-
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+        } else {
             return HttpResponse.unauthorized();
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 
@@ -66,20 +60,14 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<User>> users(@PathVariable UUID userId) {
 
-        try {
-            Optional<User> user = userService.getById(userId);
+        Optional<User> user = userService.getById(userId);
 
-            if(user.isPresent()) {
-                Response<User> response = new Response(user.get());
-                return HttpResponse.ok(response);
-            } else {
-                log.info("User not found");
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        if(user.isPresent()) {
+            Response<User> response = new Response(user.get());
+            return HttpResponse.ok(response);
+        } else {
+            log.info("User not found");
+            return HttpResponse.notFound();
         }
     }
 
@@ -88,24 +76,17 @@ public class UserController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<User>>> users() {
 
-        try {
-
-            List<User> users = userService.getAll();
-            //TODO: Add in pagination
-            List<Status> metadataStatus = new ArrayList<>();
-            // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            // Construct our metadata and response
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(users.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<DataResponse<User>> response = new Response<>(metadata, new DataResponse<>(users));
-            return HttpResponse.ok(response);
-
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        List<User> users = userService.getAll();
+        //TODO: Add in pagination
+        List<Status> metadataStatus = new ArrayList<>();
+        // Users query successfully
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        // Construct our metadata and response
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(users.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<DataResponse<User>> response = new Response<>(metadata, new DataResponse<>(users));
+        return HttpResponse.ok(response);
     }
 
     @Post("/users")
@@ -116,22 +97,18 @@ public class UserController {
 
         try {
             String orcid = principal.getName();
-            User actingUser = userService.getByOrcid(orcid);
-            User user = userService.create(actingUser, requestUser);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
-
+            Optional<User> actingUser = userService.getByOrcid(orcid);
+            if (actingUser.isPresent()){
+                User user = userService.create(actingUser.get(), requestUser);
+                Response<User> response = new Response<>(user);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
-        } catch(DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Put("/users/{userId}")
@@ -142,22 +119,21 @@ public class UserController {
 
         try {
             String orcid = principal.getName();
-            User actingUser = userService.getByOrcid(orcid);
-            User user = userService.update(actingUser, userId, requestUser);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
-
+            Optional<User> actingUser = userService.getByOrcid(orcid);
+            if (actingUser.isPresent()){
+                User user = userService.update(actingUser.get(), userId, requestUser);
+                Response<User> response = new Response<>(user);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
-
     }
 
     @Delete("/users/{userId}")
@@ -171,10 +147,6 @@ public class UserController {
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
-
 }

@@ -18,7 +18,6 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
-import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -37,22 +36,17 @@ public class SpeciesController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Species>>> getSpecies() {
-        try {
-            List<Species> species = speciesService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(species.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<Species> species = speciesService.getAll();
 
-            Response response = new Response(metadata, new DataResponse<>(species));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(species.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
 
+        Response response = new Response(metadata, new DataResponse<>(species));
+        return HttpResponse.ok(response);
     }
 
     @Get("/species/{speciesId}")
@@ -61,18 +55,12 @@ public class SpeciesController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Species>> getSpecies(@PathVariable UUID speciesId) {
 
-        try {
-            Optional<Species> species = speciesService.getById(speciesId);
-            if(species.isPresent()) {
-                Response<Species> response = new Response(species.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<Species> species = speciesService.getById(speciesId);
+        if(species.isPresent()) {
+            Response<Species> response = new Response(species.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
     }
 }

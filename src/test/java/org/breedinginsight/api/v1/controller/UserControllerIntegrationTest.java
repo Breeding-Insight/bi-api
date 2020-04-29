@@ -20,6 +20,7 @@ import org.breedinginsight.services.UserService;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
+import java.util.Optional;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -46,7 +47,8 @@ public class UserControllerIntegrationTest {
     @BeforeAll
     void setup() throws Exception {
 
-        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        Optional<User> optionalUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        testUser = optionalUser.get();
     }
 
     @Test

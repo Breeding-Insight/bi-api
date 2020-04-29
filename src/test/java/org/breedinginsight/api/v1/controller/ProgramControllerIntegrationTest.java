@@ -1,5 +1,7 @@
 package org.breedinginsight.api.v1.controller;
 
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -17,7 +19,6 @@ import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.junit.jupiter.api.*;
@@ -50,6 +51,7 @@ public class ProgramControllerIntegrationTest {
     String invalidSpecies = invalidUUID;
 
     Gson gson = new Gson();
+    ListAppender<ILoggingEvent> loggingEventListAppender;
 
     @Inject
     UserService userService;
@@ -69,7 +71,9 @@ public class ProgramControllerIntegrationTest {
     @BeforeAll
     void setup() throws Exception {
 
-        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        Optional<User> optionalUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        testUser = optionalUser.get();
+
         // Get species for tests
         Species species = getTestSpecies();
         validSpecies = species;
@@ -122,13 +126,11 @@ public class ProgramControllerIntegrationTest {
 
     public User fetchTestUser() throws Exception{
 
-        try {
-            User user = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
-            return user;
-        } catch (DoesNotExistException e) {
-            throw new Exception("Failed to insert test user" + e.toString());
+        Optional<User> user = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
+        if (!user.isPresent()){
+            throw new Exception("Failed to insert test user");
         }
-
+        return user.get();
     }
 
     public Species getTestSpecies() {
