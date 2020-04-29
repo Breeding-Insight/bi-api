@@ -15,7 +15,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.model.Location;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
@@ -273,10 +273,10 @@ public class ProgramController {
     @Get("/programs/{programId}/locations")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<Location>>> getProgramLocations(@PathVariable UUID programId) {
+    public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(@PathVariable UUID programId) {
 
         try {
-            List<Location> programLocations = programLocationService.getProgramLocations(programId);
+            List<ProgramLocation> programLocations = programLocationService.getProgramLocations(programId);
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
@@ -301,10 +301,10 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     @AddMetadata
-    public HttpResponse<Response<Location>> getProgramLocations(@PathVariable UUID programId, @PathVariable UUID locationId) {
+    public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId, @PathVariable UUID locationId) {
 
         try {
-            Location programLocation = programLocationService.getProgramLocation(programId, locationId);
+            ProgramLocation programLocation = programLocationService.getProgramLocation(programId, locationId);
             Response response = new Response(programLocation);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -321,11 +321,13 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Location>> addProgramLocation(@PathVariable UUID programId, @Valid @Body ProgramLocationRequest locationRequest) {
+    public HttpResponse<Response<ProgramLocation>> addProgramLocation(Principal principal, @PathVariable UUID programId, @Valid @Body ProgramLocationRequest locationRequest) {
 
         try {
-            Location programLocation = programLocationService.addProgramLocation(programId, locationRequest);
-            Response response = new Response(programLocation);
+            String orcid = principal.getName();
+            User user = userService.getByOrcid(orcid);
+            ProgramLocation programLocation = programLocationService.addProgramLocation(user, programId, locationRequest);
+            Response<ProgramLocation> response = new Response(programLocation);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
@@ -333,9 +335,9 @@ public class ProgramController {
         } catch (AlreadyExistsException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         }
     }
 
@@ -344,7 +346,7 @@ public class ProgramController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse removeProgramLocation(@PathVariable UUID programId, @PathVariable UUID locationId) {
         try {
-            programLocationService.removeProgramLocation(programId, locationId);
+            programLocationService.delete(locationId);
             return HttpResponse.ok();
         } catch (DoesNotExistException e){
             log.info(e.getMessage());

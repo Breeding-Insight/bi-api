@@ -140,15 +140,15 @@ public class ProgramControllerUnitTest {
     }
 
     @Test
-    public void postProgramLocationsDataAccessException() throws DoesNotExistException, AlreadyExistsException {
-        when(programLocationService.addProgramLocation(any(UUID.class), any(ProgramLocationRequest.class))).thenThrow(new DataAccessException("TEST"));
-        HttpResponse response = programController.addProgramLocation(UUID.randomUUID(), new ProgramLocationRequest());
+    public void postProgramLocationsDataAccessException() throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
+        when(programLocationService.addProgramLocation(any(User.class), any(UUID.class), any(ProgramLocationRequest.class))).thenThrow(new DataAccessException("TEST"));
+        HttpResponse response = programController.addProgramLocation(principal, UUID.randomUUID(), new ProgramLocationRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void deleteProgramLocationsDataAccessException() throws DoesNotExistException {
-        doThrow(new DataAccessException("TEST")).when(programLocationService).removeProgramLocation(any(UUID.class), any(UUID.class));
+        doThrow(new DataAccessException("TEST")).when(programLocationService).delete(any(UUID.class));
         HttpResponse response = programController.removeProgramLocation(UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }

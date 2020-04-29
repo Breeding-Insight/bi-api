@@ -2,10 +2,9 @@ package org.breedinginsight.api.model.v1.request;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
+import org.geojson.Feature;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
 import java.math.BigDecimal;
 
 @Getter
@@ -25,7 +24,7 @@ public class ProgramLocationRequest {
     @NotBlank
     private String name;
     private String abbreviation;
-    private Object coordinates;
+    private Feature coordinates;
     private BigDecimal coordinateUncertainty;
     private String coordinateDescription;
     private BigDecimal slope;

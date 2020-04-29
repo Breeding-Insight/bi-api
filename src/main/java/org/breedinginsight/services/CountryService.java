@@ -38,4 +38,8 @@ public class CountryService {
         return Optional.of(new Country(country));
     }
 
+    public boolean exists(UUID countryId){
+        return dao.existsById(countryId);
+    }
+
 }
