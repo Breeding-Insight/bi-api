@@ -20,7 +20,6 @@ import org.breedinginsight.model.Role;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.services.RoleService;
 import org.breedinginsight.services.SystemRoleService;
-import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import java.util.ArrayList;

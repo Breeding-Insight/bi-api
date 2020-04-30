@@ -20,9 +20,6 @@ import org.breedinginsight.services.UserService;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
-import java.util.Optional;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.UUID;
 
 /*
@@ -255,6 +252,75 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    public void postUsersMissingEmail() {
+        String name = "Test User2";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    public void postUsersMissingName() {
+        String email = "test@test.com";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("email", email);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users", requestBody.toString())
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    public void postUsersEmptyBody() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users", "")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    public void postUsersEmailAlreadyExists() {
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Test User");
+        requestBody.addProperty("email", "test@test.com");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users", requestBody.toString())
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
+
+    @Test
     @Order(3)
     public void putUsersEmailAlreadyExists() {
         JsonObject requestBody = new JsonObject();
@@ -391,7 +457,7 @@ public class UserControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatus(), "Unauthorized exception not returned.");
+        assertEquals(HttpStatus.FORBIDDEN, e.getStatus(), "Unauthorized exception not returned.");
     }
 
     @Test
@@ -503,19 +569,6 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(12)
-    public void deleteUsersExisting() {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/users/"+testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-    }
-
-    @Test
     public void putUsersNotExistingId() {
 
         JsonObject requestBody = new JsonObject();
@@ -535,6 +588,19 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @Order(12)
+    public void deleteUsersExisting() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/users/"+testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+    }
+
+    @Test
     public void deleteUsersNotExistingId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/users/e91f816b-b7aa-4e89-9d00-3e25fdc00e14").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -545,75 +611,4 @@ public class UserControllerIntegrationTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
-
-    @Test
-    public void postUsersMissingEmail() {
-        String name = "Test User2";
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", name);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
-    }
-
-    @Test
-    public void postUsersMissingName() {
-        String email = "test@test.com";
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("email", email);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", requestBody.toString())
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
-    }
-
-    @Test
-    public void postUsersEmptyBody() {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", "")
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
-    }
-
-    @Test
-    public void postUsersEmailAlreadyExists() {
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", "Test User");
-        requestBody.addProperty("email", "test@test.com");
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", requestBody.toString())
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.CONFLICT, e.getStatus());
-    }
-
-
 }

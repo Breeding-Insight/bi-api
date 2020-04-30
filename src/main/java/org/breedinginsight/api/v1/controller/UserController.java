@@ -5,7 +5,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
@@ -179,7 +178,7 @@ public class UserController {
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
             log.info(e.getMessage());
-            return HttpResponse.unauthorized();
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }
 
