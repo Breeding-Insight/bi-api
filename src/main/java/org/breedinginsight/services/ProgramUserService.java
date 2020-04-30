@@ -71,7 +71,7 @@ public class ProgramUserService {
                             .name(programUserRequest.getUser().getName())
                             .email(programUserRequest.getUser().getEmail())
                             .build();
-                    user = userService.create(actingUser, userRequest);
+                    user = userService.create(actingUser, userRequest, configuration);
                 }
 
                 return updateProgramUser(actingUser, programId, user.getId(), roles);

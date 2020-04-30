@@ -14,8 +14,10 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
+import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -44,7 +46,7 @@ public class UserService {
         if (users.isEmpty()) {
             return Optional.empty();
         } else {
-            User newUser = new User(users.get(0));
+            User newUser = new User(users.get());
             return Optional.of(newUser);
         }
     }
@@ -69,9 +71,13 @@ public class UserService {
     }
 
     public User create(User actingUser, UserRequest userRequest) throws AlreadyExistsException, DoesNotExistException {
+        return create(actingUser, userRequest, dsl.configuration());
+    }
+
+    public User create(User actingUser, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, DoesNotExistException {
 
         try {
-            User user = dsl.transactionResult(configuration -> {
+            User user = DSL.using(dslConfiguration).transactionResult(configuration -> {
 
                 Optional<User> created = createOptional(actingUser, userRequest);
 

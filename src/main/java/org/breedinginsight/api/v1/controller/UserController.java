@@ -110,6 +110,9 @@ public class UserController {
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.NOT_FOUND);
         }
     }
 
@@ -138,29 +141,6 @@ public class UserController {
         }
     }
 
-    @Put("/users/{userId}/roles")
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> updateSystemUserRoles(Principal principal, @PathVariable UUID userId, @Body @Valid UserRequest requestUser){
-
-        try {
-            String orcid = principal.getName();
-            User actingUser = userService.getByOrcid(orcid);
-            User user = userService.updateSystemRoles(actingUser, userId, requestUser);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
-
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
-
-    }
-
     @Delete("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
@@ -183,19 +163,23 @@ public class UserController {
 
         try {
             String orcid = principal.getName();
-            User actingUser = userService.getByOrcid(orcid);
-            User user = userService.updateRoles(actingUser, userId, requestUser);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
+            Optional<User> actingUser = userService.getByOrcid(orcid);
+
+            if (actingUser.isPresent()) {
+                User user = userService.updateRoles(actingUser.get(), userId, requestUser);
+                Response<User> response = new Response<>(user);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
+
+
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
             log.info(e.getMessage());
             return HttpResponse.unauthorized();
-        } catch (DataAccessException e) {
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
         }
     }
 

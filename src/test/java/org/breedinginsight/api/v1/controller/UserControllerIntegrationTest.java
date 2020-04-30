@@ -57,10 +57,9 @@ public class UserControllerIntegrationTest {
     @BeforeAll
     void setup() throws Exception {
 
-        Optional<User> optionalUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
-        testUser = optionalUser.get();
-        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
-        otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID);
+        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
+        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
+        otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
         validSystemRoleId = systemRoleService.getAll().get(0).getId();
     }
 

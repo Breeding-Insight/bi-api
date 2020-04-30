@@ -73,21 +73,17 @@ public class RoleController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<SystemRole>>> getSystemRoles() {
-        try {
-            List<SystemRole> roles = systemRoleService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(roles.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<SystemRole> roles = systemRoleService.getAll();
 
-            Response<DataResponse<SystemRole>> response = new Response(metadata, new DataResponse<>(roles));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(roles.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+
+        Response<DataResponse<SystemRole>> response = new Response(metadata, new DataResponse<>(roles));
+        return HttpResponse.ok(response);
     }
 
     @Get("/roles/{roleId}")
@@ -96,18 +92,12 @@ public class RoleController {
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<SystemRole>> getSystemRole(@PathVariable UUID roleId) {
 
-        try {
-            Optional<SystemRole> role = systemRoleService.getById(roleId);
-            if(role.isPresent()) {
-                Response<SystemRole> response = new Response(role.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<SystemRole> role = systemRoleService.getById(roleId);
+        if(role.isPresent()) {
+            Response<SystemRole> response = new Response(role.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
     }
 }
