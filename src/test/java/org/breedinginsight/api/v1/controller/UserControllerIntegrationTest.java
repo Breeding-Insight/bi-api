@@ -247,7 +247,7 @@ public class UserControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
     }
 
@@ -430,7 +430,7 @@ public class UserControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
     }
 

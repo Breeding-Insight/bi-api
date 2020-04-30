@@ -22,6 +22,7 @@ import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -109,9 +110,9 @@ public class UserController {
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
-        } catch (DoesNotExistException e) {
+        } catch (UnprocessableEntityException e) {
             log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.NOT_FOUND);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY);
         }
     }
 
@@ -176,6 +177,9 @@ public class UserController {
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (AuthorizationException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());

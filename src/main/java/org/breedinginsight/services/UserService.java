@@ -14,6 +14,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -70,11 +71,11 @@ public class UserService {
         return user;
     }
 
-    public User create(User actingUser, UserRequest userRequest) throws AlreadyExistsException, DoesNotExistException {
+    public User create(User actingUser, UserRequest userRequest) throws AlreadyExistsException, UnprocessableEntityException {
         return create(actingUser, userRequest, dsl.configuration());
     }
 
-    public User create(User actingUser, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, DoesNotExistException {
+    public User create(User actingUser, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, UnprocessableEntityException {
 
         try {
             User user = DSL.using(dslConfiguration).transactionResult(configuration -> {
@@ -102,8 +103,8 @@ public class UserService {
         } catch(DataAccessException e) {
             if (e.getCause() instanceof AlreadyExistsException) {
                 throw (AlreadyExistsException) e.getCause();
-            } else if (e.getCause() instanceof DoesNotExistException) {
-                throw (DoesNotExistException) e.getCause();
+            } else if (e.getCause() instanceof UnprocessableEntityException) {
+                throw (UnprocessableEntityException) e.getCause();
             } else {
                 throw e;
             }
@@ -206,7 +207,8 @@ public class UserService {
 
     }
 
-    public User updateRoles(User actingUser, UUID userId, SystemRolesRequest systemRolesRequest) throws DoesNotExistException, AuthorizationException {
+    public User updateRoles(User actingUser, UUID userId, SystemRolesRequest systemRolesRequest)
+            throws DoesNotExistException, AuthorizationException, UnprocessableEntityException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -236,13 +238,13 @@ public class UserService {
         }
     }
 
-    private List<SystemRole> validateAndGetSystemRoles(List<SystemRole> systemRoles) throws DoesNotExistException {
+    private List<SystemRole> validateAndGetSystemRoles(List<SystemRole> systemRoles) throws UnprocessableEntityException {
 
         Set<UUID> roleIds = systemRoles.stream().map(role -> role.getId()).collect(Collectors.toSet());
 
         List<SystemRoleEntity> roles = systemRoleDao.fetchById(roleIds.toArray(new UUID[roleIds.size()]));
         if (roles.size() != roleIds.size()) {
-            throw new DoesNotExistException("Role does not exist");
+            throw new UnprocessableEntityException("Role does not exist");
         }
 
         List<SystemRole> queriedSystemRoles = roles.stream().map(role -> new SystemRole(role)).collect(Collectors.toList());
