@@ -41,6 +41,7 @@ public class User extends BiUserEntity{
     public static User parseSQLRecord(Record record, @NotNull BiUserTable tableName){
         return User.builder()
                 .id(record.getValue(tableName.ID))
+                .orcid(record.getValue(tableName.ORCID))
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .systemRoles(new ArrayList<>())

@@ -71,6 +71,9 @@ public class UserControllerIntegrationTest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
+        assertEquals(testUser.getOrcid(), result.get("orcid").getAsString(), "Wrong orcid");
+        assertEquals(testUser.getEmail(), result.get("email").getAsString(), "Wrong email");
+        assertEquals(testUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
 
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
@@ -123,7 +126,7 @@ public class UserControllerIntegrationTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(testUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
         assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
-        assertEquals("test@test.com", result.get("email").getAsString(), "Wrong email");
+        assertEquals(testUser.getOrcid(), result.get("orcid").getAsString(), "Wrong orcid");
         assertEquals("test@test.com", result.get("email").getAsString(), "Wrong email");
 
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
