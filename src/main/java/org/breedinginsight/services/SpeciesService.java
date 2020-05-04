@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.model.Species;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

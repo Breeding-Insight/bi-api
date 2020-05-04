@@ -71,7 +71,7 @@ public class ProgramUserService {
                             .name(programUserRequest.getUser().getName())
                             .email(programUserRequest.getUser().getEmail())
                             .build();
-                    user = userService.create(actingUser, userRequest);
+                    user = userService.create(actingUser, userRequest, configuration);
                 }
 
                 return updateProgramUser(actingUser, programId, user.getId(), roles);
@@ -95,13 +95,13 @@ public class ProgramUserService {
         }
     }
 
-    private List<Role> validateAndGetRoles(ProgramUserRequest programUserRequest) throws AlreadyExistsException, DoesNotExistException {
+    private List<Role> validateAndGetRoles(ProgramUserRequest programUserRequest) throws UnprocessableEntityException {
 
         Set<UUID> roleIds = programUserRequest.getRoles().stream().map(role -> role.getId()).collect(Collectors.toSet());
 
         List<Role> roles = roleService.getRolesByIds(new ArrayList<>(roleIds));
         if (roles.isEmpty() || roles.size() != roleIds.size()) {
-            throw new DoesNotExistException("Role does not exist");
+            throw new UnprocessableEntityException("Role does not exist");
         }
 
         return roles;
@@ -134,7 +134,8 @@ public class ProgramUserService {
         return programUser.get();
     }
 
-    public ProgramUser editProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException {
+    public ProgramUser editProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest)
+            throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
 
         try {
             ProgramUser programUser = dsl.transactionResult(configuration -> {
@@ -170,11 +171,11 @@ public class ProgramUserService {
         } catch(DataAccessException e) {
             if (e.getCause() instanceof AlreadyExistsException) {
                 throw (AlreadyExistsException)e.getCause();
-            }
-            else if (e.getCause() instanceof DoesNotExistException) {
+            } else if (e.getCause() instanceof DoesNotExistException) {
                 throw (DoesNotExistException)e.getCause();
-            }
-            else {
+            } else if (e.getCause() instanceof UnprocessableEntityException) {
+                throw (UnprocessableEntityException) e.getCause();
+            } else {
                 throw e;
             }
         }

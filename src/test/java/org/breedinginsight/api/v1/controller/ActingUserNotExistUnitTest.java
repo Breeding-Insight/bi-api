@@ -2,15 +2,10 @@ package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
-import org.breedinginsight.api.v1.controller.ProgramController;
-import org.breedinginsight.api.v1.controller.TestTokenValidator;
-import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +19,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 

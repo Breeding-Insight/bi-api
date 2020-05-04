@@ -290,7 +290,7 @@ public class ProgramControllerIntegrationTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
@@ -344,7 +344,7 @@ public class ProgramControllerIntegrationTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     public JsonObject validProgramUserRequest() {

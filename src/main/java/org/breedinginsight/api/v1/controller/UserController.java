@@ -5,10 +5,10 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Delete;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -20,7 +20,9 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -108,6 +110,9 @@ public class UserController {
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY);
         }
     }
 
@@ -149,4 +154,36 @@ public class UserController {
             return HttpResponse.notFound();
         }
     }
+
+    @Put("users/{userId}/roles")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<User>> updateUserSystemRoles(Principal principal, @PathVariable UUID userId, @Body @Valid SystemRolesRequest requestUser) {
+
+        try {
+            String orcid = principal.getName();
+            Optional<User> actingUser = userService.getByOrcid(orcid);
+
+            if (actingUser.isPresent()) {
+                User user = userService.updateRoles(actingUser.get(), userId, requestUser);
+                Response<User> response = new Response<>(user);
+                return HttpResponse.ok(response);
+            } else {
+                return HttpResponse.unauthorized();
+            }
+
+
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        }
+    }
+
 }

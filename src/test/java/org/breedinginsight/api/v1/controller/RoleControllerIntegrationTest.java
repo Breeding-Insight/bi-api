@@ -25,8 +25,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RoleControllerIntegrationTest {
 
-    private String validRoleId;
-    private String validRoleDomain;
+    private String validProgramRoleId;
+    private String validProgramRoleDomain;
+    private String validSystemRoleId;
+    private String validSystemRoleDomain;
     private String invalidRoleId = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @Inject
@@ -36,7 +38,65 @@ public class RoleControllerIntegrationTest {
     @Test
     @Order(1)
     // Expects at least one valid role in the database to pass
-    void getRolesSuccess() {
+    void getProgramRolesSuccess() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("programs/roles")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject role = data.get(0).getAsJsonObject();
+
+        assertNotEquals(role.get("id").getAsString(),null, "Missing role id");
+        assertNotEquals(role.get("domain").getAsString(), null, "Missing role domain");
+
+        validProgramRoleId = role.get("id").getAsString();
+        validProgramRoleDomain = role.get("domain").getAsString();
+    }
+
+    @Test
+    @Order(2)
+    void getProgramRolesSingleSuccess() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("programs/roles/"+validProgramRoleId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        assertEquals(result.get("id").getAsString(), validProgramRoleId, "Wrong role id");
+        assertEquals(result.get("domain").getAsString(), validProgramRoleDomain, "Wrong domain");
+    }
+
+    @Test
+    void getProgramRolesSingleInvalid() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("programs/roles/"+invalidRoleId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @Order(3)
+    void getSystemRolesSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/roles")
@@ -54,16 +114,16 @@ public class RoleControllerIntegrationTest {
         assertNotEquals(role.get("id").getAsString(),null, "Missing role id");
         assertNotEquals(role.get("domain").getAsString(), null, "Missing role domain");
 
-        validRoleId = role.get("id").getAsString();
-        validRoleDomain = role.get("domain").getAsString();
+        validSystemRoleId = role.get("id").getAsString();
+        validSystemRoleDomain = role.get("domain").getAsString();
     }
 
     @Test
-    @Order(2)
-    void getRolesSingleSuccess() {
+    @Order(4)
+    void getSystemRolesSingleSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/roles/"+validRoleId)
+                GET("roles/"+validSystemRoleId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -73,15 +133,15 @@ public class RoleControllerIntegrationTest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
 
-        assertEquals(result.get("id").getAsString(), validRoleId, "Wrong role id");
-        assertEquals(result.get("domain").getAsString(), validRoleDomain, "Wrong domain");
+        assertEquals(result.get("id").getAsString(), validSystemRoleId, "Wrong role id");
+        assertEquals(result.get("domain").getAsString(), validSystemRoleDomain, "Wrong domain");
     }
 
     @Test
-    void getRolesSingleInvalid() {
+    void getSystemRolesSingleInvalid() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/roles/"+invalidRoleId)
+                GET("roles/"+invalidRoleId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -91,5 +151,4 @@ public class RoleControllerIntegrationTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
-
 }
