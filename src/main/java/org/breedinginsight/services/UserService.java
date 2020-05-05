@@ -47,7 +47,7 @@ public class UserService {
         if (users.isEmpty()) {
             return Optional.empty();
         } else {
-            User newUser = new User(users.get());
+            User newUser = users.get();
             return Optional.of(newUser);
         }
     }

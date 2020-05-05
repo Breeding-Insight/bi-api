@@ -14,6 +14,8 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Role;
+import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.SystemRoleService;
 import org.breedinginsight.services.UserService;
@@ -48,7 +50,7 @@ public class UserControllerIntegrationTest {
 
     private User testUser;
     private User otherTestUser;
-    private UUID validSystemRoleId;
+    private SystemRole validSystemRole;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @BeforeAll
@@ -57,39 +59,7 @@ public class UserControllerIntegrationTest {
         testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
         testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
         otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
-        validSystemRoleId = systemRoleService.getAll().get(0).getId();
-    }
-
-    @Test
-    public void getUserInfoRegisteredUser() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/userinfo").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        assertEquals("Test User", result.get("name").getAsString(), "Wrong name");
-        assertEquals(testUser.getOrcid(), result.get("orcid").getAsString(), "Wrong orcid");
-        assertEquals(testUser.getEmail(), result.get("email").getAsString(), "Wrong email");
-        assertEquals(testUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
-
-        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
-        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
-        assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
-    }
-
-    @Test
-    public void getUserInfoUnregisteredUser() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/userinfo").cookie(new NettyCookie("phylo-token", "test-unregistered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatus());
+        validSystemRole = systemRoleService.getAll().get(0);
     }
 
     @Test
@@ -192,7 +162,7 @@ public class UserControllerIntegrationTest {
         requestBody.addProperty("name", name);
         requestBody.addProperty("email", email);
         JsonObject role = new JsonObject();
-        role.addProperty("id", validSystemRoleId.toString());
+        role.addProperty("id", validSystemRole.getId().toString());
         JsonArray roles = new JsonArray();
         roles.add(role);
         requestBody.add("systemRoles", roles);
@@ -215,7 +185,7 @@ public class UserControllerIntegrationTest {
             JsonArray resultRoles = (JsonArray) result.get("systemRoles");
             assertEquals(true, resultRoles.size() == 1, "Wrong number of roles attached to user");
             JsonObject adminRole = (JsonObject) resultRoles.get(0);
-            assertEquals(validSystemRoleId.toString(), adminRole.get("id").getAsString(), "Inserted role id doesn't match what was passed.");
+            assertEquals(validSystemRole.getId().toString(), adminRole.get("id").getAsString(), "Inserted role id doesn't match what was passed.");
 
         } catch (IllegalStateException e) {
             Assert.fail(e.getMessage());
@@ -444,7 +414,7 @@ public class UserControllerIntegrationTest {
 
         JsonObject requestBody = new JsonObject();
         JsonObject role = new JsonObject();
-        role.addProperty("id", validSystemRoleId.toString());
+        role.addProperty("id", validSystemRole.getId().toString());
         JsonArray roles = new JsonArray();
         roles.add(role);
         requestBody.add("systemRoles", roles);
@@ -470,7 +440,7 @@ public class UserControllerIntegrationTest {
 
         JsonObject requestBody = new JsonObject();
         JsonObject role = new JsonObject();
-        role.addProperty("id", validSystemRoleId.toString());
+        role.addProperty("id", validSystemRole.getId().toString());
         JsonArray roles = new JsonArray();
         roles.add(role);
         requestBody.add("systemRoles", roles);
@@ -492,11 +462,47 @@ public class UserControllerIntegrationTest {
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
         assertEquals(true, resultRoles.size() == 1, "Roles list has wrong number of entries.");
         JsonObject resultRole = (JsonObject) resultRoles.get(0);
-        assertEquals(validSystemRoleId.toString(), resultRole.get("id").getAsString(), "Wrong role id was returned.");
+        assertEquals(validSystemRole.getId().toString(), resultRole.get("id").getAsString(), "Wrong role id was returned.");
     }
 
     @Test
     @Order(9)
+    public void getUserInfoRegisteredUser() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/userinfo").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(otherTestUser.getName(), result.get("name").getAsString(), "Wrong name");
+        assertEquals(otherTestUser.getOrcid(), result.get("orcid").getAsString(), "Wrong orcid");
+        assertEquals(otherTestUser.getEmail(), result.get("email").getAsString(), "Wrong email");
+        assertEquals(otherTestUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
+
+        JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+        assertEquals(true, resultRoles.size() == 1, "One role was not returned in response");
+        JsonObject role = (JsonObject) resultRoles.get(0);
+        assertEquals(validSystemRole.getId().toString(), role.get("id").getAsString(), "Role id was incorrect");
+        assertEquals(validSystemRole.getDomain(), role.get("domain").getAsString(), "Role domain was incorrect");
+    }
+
+    @Test
+    public void getUserInfoUnregisteredUser() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/userinfo").cookie(new NettyCookie("phylo-token", "test-unregistered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatus());
+    }
+
+    @Test
+    @Order(10)
     public void putUserRolesNullSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -515,12 +521,12 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(10)
+    @Order(11)
     void putUserRolesDuplicateRoles() {
 
         JsonObject requestBody = new JsonObject();
         JsonObject role = new JsonObject();
-        role.addProperty("id", validSystemRoleId.toString());
+        role.addProperty("id", validSystemRole.getId().toString());
         JsonArray roles = new JsonArray();
         roles.add(role);
         roles.add(role);
@@ -546,7 +552,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(11)
+    @Order(12)
     void putUsersRolesEmptyRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -591,7 +597,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     public void deleteUsersExisting() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
