@@ -10,14 +10,17 @@ import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.*;
 import org.jooq.JSONB;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -37,59 +40,73 @@ public class ProgramLocationService {
     @Inject
     private TopographyService topographyService;
 
-    public List<ProgramLocation> getProgramLocations(UUID programId) throws DoesNotExistException {
-        /* Get the locations associated with a program. */
-        //TODO
-        return new ArrayList<>();
-    }
+    public List<ProgramLocation> getByProgramId(UUID programId) throws DoesNotExistException {
 
-    public ProgramLocation getProgramLocation(UUID programId, UUID locationId) throws DoesNotExistException {
-        /* Get a specific location for a program. */
-        //TODO
-        return null;
-    }
-
-    public ProgramLocation addProgramLocation(User actingUser, UUID programId, ProgramLocationRequest programLocationRequest) throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
-
-        UUID countryId = null;
-        UUID environmentTypeId = null;
-        UUID accessibilityId = null;
-        UUID topographyId = null;
-        String coordinates = null;
-
-        // check if programId exists
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        // check if ids for optional fields exist in system
+        return programLocationDao.getByProgramId(programId);
+    }
+
+    public Optional<ProgramLocation> getById(UUID locationId) {
+
+        List<ProgramLocation> locations = programLocationDao.getById(locationId);
+
+        if (locations.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.of(locations.get(0));
+    }
+
+    private UUID validateCountryId(ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException {
+        UUID countryId = null;
         if (programLocationRequest.getCountry() != null) {
             countryId = programLocationRequest.getCountry().getId();
             if (!countryService.exists(countryId)) {
                 throw new UnprocessableEntityException("Country does not exist");
             }
         }
+        return countryId;
+    }
 
+    private UUID validateEnvironmentTypeId(ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException {
+        UUID environmentTypeId = null;
         if (programLocationRequest.getEnvironmentType() != null) {
             environmentTypeId = programLocationRequest.getEnvironmentType().getId();
             if (!environmentTypeService.exists(environmentTypeId)) {
                 throw new UnprocessableEntityException("Environment type does not exist");
             }
         }
+        return environmentTypeId;
+    }
 
+    private UUID validateAccessibilityId(ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException {
+        UUID accessibilityId = null;
         if (programLocationRequest.getAccessibility() != null) {
             accessibilityId = programLocationRequest.getAccessibility().getId();
             if (!accessibilityService.exists(accessibilityId)) {
                 throw new UnprocessableEntityException("Accessibility option does not exist");
             }
         }
+        return accessibilityId;
+    }
 
+    private UUID validateTopographyId(ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException {
+        UUID topographyId = null;
         if (programLocationRequest.getTopography() != null) {
             topographyId = programLocationRequest.getTopography().getId();
             if (!topographyService.exists(topographyId)) {
                 throw new UnprocessableEntityException("Topography option does not exist");
             }
         }
+        return topographyId;
+    }
+
+    private String validateCoordinates(ProgramLocationRequest programLocationRequest) throws MissingRequiredInfoException, UnprocessableEntityException {
+
+        String coordinates = null;
 
         // geojson coordinate validation, not exhaustive just basic sanity checks
         if (programLocationRequest.getCoordinates() != null) {
@@ -104,6 +121,9 @@ public class ProgramLocationService {
             if (geometry instanceof Point) {
                 Point point = (Point)geometry;
                 LngLatAlt coords = point.getCoordinates();
+                if (coords == null ) {
+                    throw new MissingRequiredInfoException("Point missing coordinates");
+                }
                 if (!isValidLatitude(coords.getLatitude())) {
                     throw new UnprocessableEntityException("Invalid point latitude");
                 }
@@ -114,9 +134,13 @@ public class ProgramLocationService {
 
             if (geometry instanceof Polygon) {
                 Polygon polygon = (Polygon)geometry;
-                List<LngLatAlt> points = polygon.getExteriorRing();
-                if (!isListPointsLatLngValid(points)) {
-                    throw new UnprocessableEntityException("Invalid polygon exterior latitude or longitude");
+                try {
+                    List<LngLatAlt> points = polygon.getExteriorRing();
+                    if (!isListPointsLatLngValid(points)) {
+                        throw new UnprocessableEntityException("Invalid polygon exterior latitude or longitude");
+                    }
+                } catch (RuntimeException e) {
+                    throw new UnprocessableEntityException("Polygon missing coordinates");
                 }
             }
 
@@ -127,6 +151,52 @@ public class ProgramLocationService {
                 throw new UnprocessableEntityException("Problem parsing geojson coordinates");
             }
         }
+
+        return coordinates;
+    }
+
+    // coordinate system
+    boolean isValidLatitude(double latitude) {
+        return latitude >= -90 && latitude <= 90;
+    }
+
+    boolean isValidLongitude(double longitude) {
+        return longitude >= -180 && longitude <= 180;
+    }
+
+    boolean isListPointsLatLngValid(List<LngLatAlt> points) {
+
+        for (LngLatAlt point : points) {
+            if (!(isValidLatitude(point.getLatitude()) && isValidLongitude(point.getLongitude()))) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public ProgramLocation create(User actingUser,
+                                              UUID programId,
+                                              ProgramLocationRequest programLocationRequest)
+            throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
+
+        UUID countryId;
+        UUID environmentTypeId;
+        UUID accessibilityId;
+        UUID topographyId;
+        String coordinates;
+
+        // check if programId exists
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        // validate fields
+        countryId = validateCountryId(programLocationRequest);
+        environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
+        accessibilityId = validateAccessibilityId(programLocationRequest);
+        topographyId = validateTopographyId(programLocationRequest);
+        coordinates = validateCoordinates(programLocationRequest);
 
         // parse and create the program location object
         PlaceEntity placeEntity = PlaceEntity.builder()
@@ -149,34 +219,69 @@ public class ProgramLocationService {
 
         // Insert and update
         programLocationDao.insert(placeEntity);
-        ProgramLocation location = programLocationDao.get(placeEntity.getId()).get(0);
+        ProgramLocation location = programLocationDao.getById(placeEntity.getId()).get(0);
 
         return location;
     }
 
+    public ProgramLocation update(User actingUser,
+                                  UUID programId,
+                                  UUID locationId,
+                                  ProgramLocationRequest programLocationRequest)
+            throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
-    // coordinate system
-    boolean isValidLatitude(double latitude) {
-        return latitude >= -90 && latitude <= 90;
-    }
+        UUID countryId;
+        UUID environmentTypeId;
+        UUID accessibilityId;
+        UUID topographyId;
+        String coordinates;
 
-    boolean isValidLongitude(double longitude) {
-        return longitude >= -180 && longitude <= 180;
-    }
-
-    boolean isListPointsLatLngValid(List<LngLatAlt> points) {
-
-        for (LngLatAlt point : points) {
-            if (!(isValidLatitude(point.getLatitude()) && isValidLongitude(point.getLongitude()))) {
-                return false;
-            }
+        PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
+        if (placeEntity == null){
+            throw new DoesNotExistException("Program location does not exist");
         }
 
-        return true;
+        // validate fields
+        countryId = validateCountryId(programLocationRequest);
+        environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
+        accessibilityId = validateAccessibilityId(programLocationRequest);
+        topographyId = validateTopographyId(programLocationRequest);
+        coordinates = validateCoordinates(programLocationRequest);
+
+        placeEntity.setName(programLocationRequest.getName());
+        placeEntity.setCountryId(countryId);
+        placeEntity.setEnvironmentTypeId(environmentTypeId);
+        placeEntity.setAccessibilityId(accessibilityId);
+        placeEntity.setTopographyId(topographyId);
+        placeEntity.setAbbreviation(programLocationRequest.getAbbreviation());
+        placeEntity.setCoordinates(JSONB.valueOf(coordinates));
+        placeEntity.setCoordinateUncertainty(programLocationRequest.getCoordinateUncertainty());
+        placeEntity.setCoordinateDescription(programLocationRequest.getCoordinateDescription());
+        placeEntity.setSlope(programLocationRequest.getSlope());
+        placeEntity.setExposure(programLocationRequest.getExposure());
+        placeEntity.setDocumentationUrl(programLocationRequest.getDocumentationUrl());
+        placeEntity.setUpdatedBy(actingUser.getId());
+
+        programLocationDao.update(placeEntity);
+        ProgramLocation location = programLocationDao.getById(placeEntity.getId()).get(0);
+
+        return location;
+    }
+
+    public void archive(User actingUser, UUID locationId) throws DoesNotExistException {
+
+        PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
+        if (placeEntity == null){
+            throw new DoesNotExistException("Program location does not exist");
+        }
+
+        placeEntity.setActive(false);
+        placeEntity.setUpdatedBy(actingUser.getId());
+        placeEntity.setUpdatedAt(OffsetDateTime.now());
+        programLocationDao.update(placeEntity);
     }
 
     public void delete(UUID locationId) throws DoesNotExistException {
-        /* Deletes an existing program */
 
         PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
         if (placeEntity == null){

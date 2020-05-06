@@ -1,6 +1,8 @@
 package org.breedinginsight.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -8,7 +10,10 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.*;
+import org.geojson.Feature;
+import org.geojson.GeoJsonObject;
 import org.jooq.Record;
+import org.jooq.exception.DataAccessException;
 
 import static org.breedinginsight.dao.db.Tables.PLACE;
 
@@ -18,20 +23,29 @@ import static org.breedinginsight.dao.db.Tables.PLACE;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "speciesId" })
+@JsonIgnoreProperties(value = { "createdBy", "updatedBy"})
 public class ProgramLocation extends PlaceEntity {
 
     private CountryEntity country;
     private AccessibilityOptionEntity accessibility;
-    private EnvironmentTypeEntity environment;
+    private EnvironmentTypeEntity environmentType;
     private TopographyOptionEntity topography;
 
     private User createdByUser;
     private User updatedByUser;
 
+    // JSONB not working with jackson
+    @JsonProperty("coordinates")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public Feature getCoordinatesJson() throws JsonProcessingException {
+        ObjectMapper objMapper = new ObjectMapper();
+        return objMapper.readValue(super.getCoordinates().data(), Feature.class);
+    }
+
     public ProgramLocation(PlaceEntity placeEntity) {
 
         this.setId(placeEntity.getId());
+        this.setProgramId(placeEntity.getProgramId());
         this.setCountryId(placeEntity.getCountryId());
         this.setAccessibilityId(placeEntity.getAccessibilityId());
         this.setEnvironmentTypeId(placeEntity.getEnvironmentTypeId());
@@ -56,6 +70,7 @@ public class ProgramLocation extends PlaceEntity {
         // Generate our location record
         ProgramLocation location = ProgramLocation.builder()
                 .id(record.getValue(PLACE.ID))
+                .programId(record.getValue(PLACE.PROGRAM_ID))
                 .name(record.getValue(PLACE.NAME))
                 .abbreviation(record.getValue(PLACE.ABBREVIATION))
                 .coordinates(record.getValue(PLACE.COORDINATES))

@@ -16,6 +16,7 @@ import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.BeforeEach;
@@ -127,21 +128,21 @@ public class ProgramControllerUnitTest {
 
     @Test
     public void getProgramLocationsAllDataAccessException() throws DoesNotExistException {
-        when(programLocationService.getProgramLocations(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(programLocationService.getById(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.getProgramLocations(UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
     public void getProgramLocationsSingleDataAccessException() throws DoesNotExistException {
-        when(programLocationService.getProgramLocation(any(UUID.class), any(UUID.class))).thenThrow(new DataAccessException("TEST"));
+        when(programLocationService.getByProgramId(any(UUID.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.getProgramLocations(UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 
     @Test
-    public void postProgramLocationsDataAccessException() throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
-        when(programLocationService.addProgramLocation(any(User.class), any(UUID.class), any(ProgramLocationRequest.class))).thenThrow(new DataAccessException("TEST"));
+    public void postProgramLocationsDataAccessException() throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
+        when(programLocationService.create(any(User.class), any(UUID.class), any(ProgramLocationRequest.class))).thenThrow(new DataAccessException("TEST"));
         HttpResponse response = programController.addProgramLocation(principal, UUID.randomUUID(), new ProgramLocationRequest());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
@@ -149,7 +150,7 @@ public class ProgramControllerUnitTest {
     @Test
     public void deleteProgramLocationsDataAccessException() throws DoesNotExistException {
         doThrow(new DataAccessException("TEST")).when(programLocationService).delete(any(UUID.class));
-        HttpResponse response = programController.removeProgramLocation(UUID.randomUUID(), UUID.randomUUID());
+        HttpResponse response = programController.removeProgramLocation(principal, UUID.randomUUID(), UUID.randomUUID());
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatus());
     }
 

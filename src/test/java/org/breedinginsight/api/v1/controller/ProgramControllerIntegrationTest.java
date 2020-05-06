@@ -2,10 +2,7 @@ package org.breedinginsight.api.v1.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -28,6 +25,7 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -45,6 +43,13 @@ public class ProgramControllerIntegrationTest {
     User validUser;
     Species validSpecies;
     Role validRole;
+
+    ProgramLocation validLocation;
+    Country validCountry;
+    EnvironmentType validEnvironment;
+    Accessibility validAccessibility;
+    Topography validTopography;
+
     User testUser;
 
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -52,6 +57,11 @@ public class ProgramControllerIntegrationTest {
     String invalidUser = invalidUUID;
     String invalidRole = invalidUUID;
     String invalidSpecies = invalidUUID;
+    String invalidLocation= invalidUUID;
+    String invalidCountry = invalidUUID;
+    String invalidEnvironment = invalidUUID;
+    String invalidAccessibility = invalidUUID;
+    String invalidTopography = invalidUUID;
 
     Gson gson = new Gson();
 
@@ -67,6 +77,14 @@ public class ProgramControllerIntegrationTest {
     ProgramUserService programUserService;
     @Inject
     ProgramLocationService programLocationService;
+    @Inject
+    CountryService countryService;
+    @Inject
+    AccessibilityService accessibilityService;
+    @Inject
+    EnvironmentTypeService environmentTypeService;
+    @Inject
+    TopographyService topographyService;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -80,8 +98,11 @@ public class ProgramControllerIntegrationTest {
         Species species = getTestSpecies();
         validSpecies = species;
         // Get role for tests
-        Role role = getTestRole();
-        validRole = role;
+        validRole = getTestRole();
+        validCountry = getTestCountry();
+        validAccessibility = getTestAccessibility();
+        validEnvironment = getTestEnvironment();
+        validTopography = getTestTopography();
 
         // Insert and get user for tests
         try {
@@ -95,15 +116,69 @@ public class ProgramControllerIntegrationTest {
         } catch (Exception e){
             throw new Exception(e.toString());
         }
+        // Insert and get location for tests
+        try {
+            validLocation = insertAndFetchTestLocation();
+        } catch (Exception e){
+            throw new Exception(e.toString());
+        }
 
     }
 
     @AfterAll
     void teardown() throws Exception{
+
+        try {
+            programLocationService.delete(validLocation.getId());
+        } catch (DoesNotExistException e){
+            throw new Exception("Unable to delete test location");
+        }
+
         try {
             programService.delete(validProgram.getId());
         } catch (DoesNotExistException e){
             throw new Exception("Unable to delete test program");
+        }
+    }
+
+    public ProgramLocation insertAndFetchTestLocation() throws Exception {
+
+        CountryRequest countryRequest = CountryRequest.builder()
+                .id(validCountry.getId())
+                .build();
+        NameIdRequest accessibilityRequest = NameIdRequest.builder()
+                .id(validAccessibility.getId())
+                .build();
+        NameIdRequest environmentRequest = NameIdRequest.builder()
+                .id(validEnvironment.getId())
+                .build();
+        NameIdRequest topographyRequest = NameIdRequest.builder()
+                .id(validTopography.getId())
+                .build();
+        Feature coordinates = new Feature();
+        Point point = new Point(-76.506042, 42.417373, 123);
+        coordinates.setGeometry(point);
+
+        ProgramLocationRequest locationRequest = ProgramLocationRequest.builder()
+                .country(countryRequest)
+                .accessibility(accessibilityRequest)
+                .environmentType(environmentRequest)
+                .topography(topographyRequest)
+                .name("Test Location")
+                .abbreviation("TL")
+                .coordinates(coordinates)
+                .coordinateDescription("Test Point")
+                .coordinateUncertainty(BigDecimal.ZERO)
+                .documentationUrl("http://www.test.com")
+                .exposure("Test")
+                .slope(BigDecimal.ZERO)
+                .build();
+
+        try {
+            ProgramLocation location = programLocationService.create(testUser, validProgram.getId(), locationRequest);
+            return location;
+        } catch (UnprocessableEntityException e){
+            throw new Exception("Unable to create test location");
         }
     }
 
@@ -147,6 +222,26 @@ public class ProgramControllerIntegrationTest {
         return roles.get(0);
     }
 
+    public Country getTestCountry() {
+        List<Country> countries = countryService.getAll();
+        return countries.get(0);
+    }
+
+    public EnvironmentType getTestEnvironment() {
+        List<EnvironmentType> environments = environmentTypeService.getAll();
+        return environments.get(0);
+    }
+
+    public Accessibility getTestAccessibility() {
+        List<Accessibility> accessibilities = accessibilityService.getAll();
+        return accessibilities.get(0);
+    }
+
+    public Topography getTestTopography() {
+        List<Topography> topographies = topographyService.getAll();
+        return topographies.get(0);
+    }
+
     //region Program Location Tests
     @Test
     public void postProgramsLocationsInvalidProgram() {
@@ -162,6 +257,86 @@ public class ProgramControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void postProgramsLocationsInvalidCountry() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject country = new JsonObject();
+        country.addProperty("id", invalidCountry);
+        requestBody.add("country", country);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId().toString()+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void postProgramsLocationsInvalidEnvironmentType() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject environmentType = new JsonObject();
+        environmentType.addProperty("id", invalidEnvironment);
+        requestBody.add("environmentType", environmentType);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId().toString()+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void postProgramsLocationsInvalidTopography() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject topography = new JsonObject();
+        topography.addProperty("id", invalidTopography);
+        requestBody.add("topography", topography);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId().toString()+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void postProgramsLocationsInvalidAccessibility() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject accessibility = new JsonObject();
+        accessibility.addProperty("id", invalidAccessibility);
+        requestBody.add("accessibility", accessibility);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId().toString()+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
@@ -208,23 +383,95 @@ public class ProgramControllerIntegrationTest {
         programLocationService.delete(UUID.fromString(locationId));
     }
 
-    public JsonObject validProgramLocationCoordinateRequest() throws JsonProcessingException {
+    public JsonObject validProgramLocationCoordinatePointRequest() {
         JsonObject requestBody = new JsonObject();
         requestBody.addProperty("name", "Field 1");
-        Feature feature = new Feature();
-        Point point = new Point(-76.506042, 42.417373, 123);
-        feature.setGeometry(point);
+        JsonObject coordinates = new JsonObject();
+        JsonObject geometry = new JsonObject();
+        JsonArray coordinatesArray = new JsonArray();
+        coordinatesArray.add(-76.506042);
+        coordinatesArray.add(42.417373);
+        coordinatesArray.add(123);
+        geometry.add("coordinates", coordinatesArray);
+        geometry.addProperty("type", "Point");
+        coordinates.add("geometry", geometry);
+        coordinates.addProperty("type", "Feature");
+        requestBody.add("coordinates", coordinates);
+        return requestBody;
+    }
 
-        ObjectMapper objMapper = new ObjectMapper();
-        String jsonString = objMapper.writeValueAsString(feature);
-        //requestBody.addProperty("coordinates", feature.toString());
+    public JsonObject validProgramLocationCoordinatePolygonRequest() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject coordinates = new JsonObject();
+        JsonObject geometry = new JsonObject();
+        JsonArray coordinatesArray = new JsonArray();
+        JsonArray polyArray = new JsonArray();
+        JsonArray coordinate1 = new JsonArray();
+        coordinate1.add(-76.5);
+        coordinate1.add(42.4);
+        JsonArray coordinate2 = new JsonArray();
+        coordinate2.add(-76.6);
+        coordinate2.add(42.5);
+        JsonArray coordinate3 = new JsonArray();
+        coordinate3.add(-76.4);
+        coordinate3.add(42.3);
+        polyArray.add(coordinate1);
+        polyArray.add(coordinate2);
+        polyArray.add(coordinate3);
+        polyArray.add(coordinate1);
+        coordinatesArray.add(polyArray);
+        geometry.add("coordinates", coordinatesArray);
+        geometry.addProperty("type", "Polygon");
+        coordinates.add("geometry", geometry);
+        coordinates.addProperty("type", "Feature");
+        requestBody.add("coordinates", coordinates);
+        return requestBody;
+    }
+
+    public JsonObject validProgramLocationCoordinateLineStringRequest() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject coordinates = new JsonObject();
+        JsonObject geometry = new JsonObject();
+        JsonArray coordinatesArray = new JsonArray();
+        JsonArray coordinate1 = new JsonArray();
+        coordinate1.add(-76.5);
+        coordinate1.add(42.4);
+        JsonArray coordinate2 = new JsonArray();
+        coordinate2.add(-76.6);
+        coordinate2.add(42.5);
+        coordinatesArray.add(coordinate1);
+        coordinatesArray.add(coordinate2);
+        geometry.add("coordinates", coordinatesArray);
+        geometry.addProperty("type", "LineString");
+        coordinates.add("geometry", geometry);
+        coordinates.addProperty("type", "Feature");
+        requestBody.add("coordinates", coordinates);
+        return requestBody;
+    }
+
+    public JsonObject validProgramLocationCoordinatePointBadLatRequest() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject coordinates = new JsonObject();
+        JsonObject geometry = new JsonObject();
+        JsonArray coordinatesArray = new JsonArray();
+        coordinatesArray.add(-76.506042);
+        coordinatesArray.add(100.417373);
+        coordinatesArray.add(123);
+        geometry.add("coordinates", coordinatesArray);
+        geometry.addProperty("type", "Point");
+        coordinates.add("geometry", geometry);
+        coordinates.addProperty("type", "Feature");
+        requestBody.add("coordinates", coordinates);
         return requestBody;
     }
 
     @Test
     @SneakyThrows
-    public void postProgramsLocationsCoordinatesSuccess() {
-        JsonObject requestBody = validProgramLocationCoordinateRequest();
+    public void postProgramsLocationsCoordinatesPointSuccess() {
+        JsonObject requestBody = validProgramLocationCoordinatePointRequest();
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -236,11 +483,180 @@ public class ProgramControllerIntegrationTest {
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+
         String locationId = result.get("id").getAsString();
         programLocationService.delete(UUID.fromString(locationId));
+    }
+
+    @Test
+    @SneakyThrows
+    public void postProgramsLocationsCoordinatesPolygonSuccess() {
+        JsonObject requestBody = validProgramLocationCoordinatePolygonRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+
+        String locationId = result.get("id").getAsString();
+        programLocationService.delete(UUID.fromString(locationId));
+    }
+
+    @Test
+    public void postProgramsLocationsCoordinatesLineStringFailed() {
+        JsonObject requestBody = validProgramLocationCoordinateLineStringRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void postProgramsLocationsCoordinatesInvalidLatLonFailed() {
+        JsonObject requestBody = validProgramLocationCoordinatePointBadLatRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
     }
 
+    @Test
+    public void getProgramsLocationsSuccess() {
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/locations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject programLocation = data.get(0).getAsJsonObject();
+        JsonObject country = programLocation.getAsJsonObject("country");
+        assertEquals(validLocation.getCountry().getId().toString(), country.get("id").getAsString(), "Wrong country id");
+        assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
+        assertEquals(validLocation.getCountry().getAlpha_2Code(), country.get("alpha2Code").getAsString(), "Wrong country alpha 2 code");
+        assertEquals(validLocation.getCountry().getAlpha_3Code(), country.get("alpha3Code").getAsString(), "Wrong country alpha 3 code");
+        JsonObject accessibility = programLocation.getAsJsonObject("accessibility");
+        assertEquals(validLocation.getAccessibility().getId().toString(), accessibility.get("id").getAsString(), "Wrong accessibility id");
+        assertEquals(validLocation.getAccessibility().getName(), accessibility.get("name").getAsString(), "Wrong accessibility name");
+        JsonObject environment = programLocation.getAsJsonObject("environmentType");
+        assertEquals(validLocation.getEnvironmentType().getId().toString(), environment.get("id").getAsString(), "Wrong environment type id");
+        assertEquals(validLocation.getEnvironmentType().getName(), environment.get("name").getAsString(), "Wrong environment type name");
+        JsonObject topography = programLocation.getAsJsonObject("topography");
+        assertEquals(validLocation.getTopography().getId().toString(), topography.get("id").getAsString(), "Wrong topography id");
+        assertEquals(validLocation.getTopography().getName(), topography.get("name").getAsString(), "Wrong topography type name");
+        assertEquals(validLocation.getId().toString(), programLocation.get("id").getAsString(), "Wrong location id");
+        assertEquals(validLocation.getProgramId().toString(), programLocation.get("programId").getAsString(), "Wrong program id");
+        assertEquals(validLocation.getName(), programLocation.get("name").getAsString(), "Wrong name");
+
+
+    }
+
+    @Test
+    public void getProgramsLocationsSingleSuccess() {
+        String validProgramId = validProgram.getId().toString();
+        String validLocationId = validLocation.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/locations/"+validLocationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonObject country = result.getAsJsonObject("country");
+        assertEquals(validLocation.getCountry().getId().toString(), country.get("id").getAsString(), "Wrong country id");
+        assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
+        assertEquals(validLocation.getCountry().getAlpha_2Code(), country.get("alpha2Code").getAsString(), "Wrong country alpha 2 code");
+        assertEquals(validLocation.getCountry().getAlpha_3Code(), country.get("alpha3Code").getAsString(), "Wrong country alpha 3 code");
+    }
+
+    @Test
+    public void getProgramsLocationsSingleInvalidId() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgram.getId().toString()+"/locations/"+invalidLocation)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void getProgramsLocationsInvalidProgramId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+invalidProgram+"/locations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void archiveProgramsLocationsNotExistingLocationId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+validProgram.getId().toString()+"/users/"+validLocation.getId().toString())
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void archiveProgramsLocations() {
+
+
+    }
 
 
     //endregion
