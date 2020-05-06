@@ -24,13 +24,17 @@ public class ProgramLocationDAO extends PlaceDao {
         this.dsl = dsl;
     }
 
-    public List<ProgramLocation> get(UUID locationId) {
-        List<UUID> locations = new ArrayList<>();
-        locations.add(locationId);
-        return getLocations(locations);
+    public List<ProgramLocation> getByProgramId(UUID programId) {
+        return getLocations(programId, null);
     }
 
-    private List<ProgramLocation> getLocations(List<UUID> locationIds) {
+    public List<ProgramLocation> getById(UUID locationId) {
+        List<UUID> locations = new ArrayList<>();
+        locations.add(locationId);
+        return getLocations(null, locations);
+    }
+
+    private List<ProgramLocation> getLocations(UUID programId, List<UUID> locationIds) {
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
@@ -46,9 +50,13 @@ public class ProgramLocationDAO extends PlaceDao {
                 .leftJoin(createdByUser).on(PLACE.CREATED_BY.eq(createdByUser.ID))
                 .leftJoin(updatedByUser).on(PLACE.UPDATED_BY.eq(updatedByUser.ID));
 
-        if (locationIds != null){
+        if (locationIds != null) {
             queryResult = query
                     .where(PLACE.ID.in(locationIds))
+                    .fetch();
+        } else if (programId != null) {
+            queryResult = query
+                    .where(PLACE.PROGRAM_ID.eq(programId))
                     .fetch();
         } else {
             queryResult = query.fetch();
@@ -58,7 +66,7 @@ public class ProgramLocationDAO extends PlaceDao {
         for (Record record: queryResult){
             ProgramLocation location = ProgramLocation.parseSQLRecord(record);
             location.setCountry(Country.parseSQLRecord(record));
-            location.setEnvironment(EnvironmentType.parseSQLRecord(record));
+            location.setEnvironmentType(EnvironmentType.parseSQLRecord(record));
             location.setAccessibility(Accessibility.parseSQLRecord(record));
             location.setTopography(Topography.parseSQLRecord(record));
             location.setCreatedByUser(org.breedinginsight.model.User.parseSQLRecord(record, createdByUser));
@@ -70,4 +78,3 @@ public class ProgramLocationDAO extends PlaceDao {
     }
 
 }
-

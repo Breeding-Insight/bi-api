@@ -1,5 +1,6 @@
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -17,9 +18,28 @@ import static org.breedinginsight.dao.db.Tables.COUNTRY;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@JsonIgnoreProperties(value = { "alpha_2Code", "alpha_3Code" })
 public class Country extends CountryEntity {
 
-    public Country(CountryEntity countryEntity){
+    // these getters/setters are to get correct camel case to/from json
+    // jooq generator puts weird underscores in naming we have to deal with
+    public String getAlpha2Code() {
+        return super.getAlpha_2Code();
+    }
+
+    public String getAlpha3Code() {
+        return super.getAlpha_3Code();
+    }
+
+    public void setAlpha2Code(String alpha2Code) {
+        super.setAlpha_2Code(alpha2Code);
+    }
+
+    public void setAlpha3Code(String alpha3Code) {
+        super.setAlpha_3Code(alpha3Code);
+    }
+
+    public Country(CountryEntity countryEntity) {
         this.setId(countryEntity.getId());
         this.setName(countryEntity.getName());
         this.setAlpha_2Code(countryEntity.getAlpha_2Code());
