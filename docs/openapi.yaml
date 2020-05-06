@@ -51,12 +51,17 @@ paths:
                       orcid: 1234-4312-4352-6314
                       name: Bob Smith
                       email: bob.smith@mail.com
-                      roles: []
+                      systemRoles: [
+                      {
+                        id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                        domain: "admin"
+                      }
+                      ]
                     - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
                       orcid: 1234-4312-4352-6314
                       name: Fred Brown
                       email: null
-                      roles: []
+                      systemRoles: []
         "400":
           description: Bad Request
           content:
@@ -117,7 +122,12 @@ paths:
                   orcid: null
                   name: Bob Smith
                   email: bob@bob.com
-                  roles: []
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
         "400":
           description: Bad Request
           content:
@@ -188,7 +198,12 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
-                  roles: []
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
         "400":
           description: Bad Request
           content:
@@ -267,7 +282,12 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
-                  roles: []
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
         "400":
           description: Bad Request
           content:
@@ -361,7 +381,95 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-
+  /users/{id}/roles:
+    put:
+      tags:
+        - users
+      summary: Update user system roles
+      description: Update user system roles
+      operationId: updateUserRoles
+      parameters:
+        - name: id
+          in: path
+          description: id of user to be updated
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: Updated system roles
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateSystemRolesRequest'
+            example:
+              systemRoles: [
+              {
+                id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                domain: "admin"
+              }
+              ]
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: 1111-2222-3333-4444
+                  name: Bob Smith
+                  email: bob@bob.com
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
   /programs:
     get:
       tags:
@@ -1362,7 +1470,7 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /roles:
+  /programs/roles:
     get:
       tags:
         - roles
@@ -1405,7 +1513,7 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /roles/{id}:
+  /programs/roles/{id}:
     get:
       tags:
         - roles
@@ -1431,6 +1539,109 @@ paths:
               examples:
                 singleRole:
                   $ref: '#/components/examples/singleRole'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /roles:
+    get:
+      tags:
+        - roles
+      summary: Get list of all system roles in the system.
+      description: Get list of all system roles
+      operationId: getSystemRoles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponse'
+              examples:
+                arrayOfRoles:
+                  $ref: '#/components/examples/arrayOfSystemRoles'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /roles/{id}:
+    get:
+      tags:
+        - roles
+      summary: Get system role information
+      description: Get a specific system role
+      operationId: getSystemRoleById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the system role information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponseSingle'
+              examples:
+                singleSystemRole:
+                  $ref: '#/components/examples/singleSystemRole'
         "400":
           description: Bad Request
           content:
@@ -1515,6 +1726,14 @@ components:
         email:
           type: string
     role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        domain:
+          type: string
+    systemRole:
       type: object
       properties:
         id:
@@ -1668,6 +1887,11 @@ components:
         email:
           type: string
           description: email address of this user
+        systemRoles:
+          type: array
+          description: Array of system role objects
+          items:
+            $ref: '#/components/schemas/systemRole'
     newProgramUserRequest:
       type: object
       properties:
@@ -1693,6 +1917,14 @@ components:
       required:
         - user
         - roles
+    updateSystemRolesRequest:
+      type: object
+      properties:
+        systemRoles:
+          type: array
+          description: Array of system role objects
+          items:
+            $ref: '#/components/schemas/systemRole'
     newProgramLocationRequest:
       type: object
       properties:
@@ -2166,6 +2398,22 @@ components:
               domain: Breeder
             - id: a2d6c5c3-4064-4afe-abd6-0af90fbf2245
               domain: Member
+    arrayOfSystemRoles:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: admin
+            - id: a2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: user
     singleRole:
       value:
         metadata:
@@ -2179,6 +2427,19 @@ components:
         result:
           id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
           domain: Field Manager
+    singleSystemRole:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+          domain: admin
     arrayOfLocations:
       value:
         metadata:
