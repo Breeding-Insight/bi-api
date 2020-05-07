@@ -2,6 +2,7 @@ package org.breedinginsight.api.v1.controller;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -549,11 +550,207 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    public void getProgramsLocationsSuccess() {
+    public void putProgramsLocationsInvalidLocation() {
+        JsonObject requestBody = validProgramLocationRequest();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+invalidProgram+"/locations/"+invalidLocation, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsInvalidCountry() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject country = new JsonObject();
+        country.addProperty("id", invalidCountry);
+        requestBody.add("country", country);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgram.getId().toString()+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsInvalidEnvironmentType() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject environmentType = new JsonObject();
+        environmentType.addProperty("id", invalidEnvironment);
+        requestBody.add("environmentType", environmentType);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgram.getId().toString()+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsInvalidTopography() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject topography = new JsonObject();
+        topography.addProperty("id", invalidTopography);
+        requestBody.add("topography", topography);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgram.getId().toString()+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsInvalidAccessibility() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        JsonObject accessibility = new JsonObject();
+        accessibility.addProperty("id", invalidAccessibility);
+        requestBody.add("accessibility", accessibility);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgram.getId().toString()+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsMissingBody() {
+        JsonObject requestBody = new JsonObject();
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/"+validProgramId+"/locations")
+                PUT("/programs/"+validProgramId+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsCoordinatesLineStringFailed() {
+        JsonObject requestBody = validProgramLocationCoordinateLineStringRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsLocationsCoordinatesInvalidLatLonFailed() {
+        JsonObject requestBody = validProgramLocationCoordinatePointBadLatRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+validLocation.getId().toString(), requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    public void putProgramsLocationsCoordinatesPointSuccess() {
+
+        ProgramLocation location = insertAndFetchTestLocation();
+        String locationId = location.getId().toString();
+
+        JsonObject requestBody = validProgramLocationCoordinatePointRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+locationId, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        programLocationService.delete(UUID.fromString(locationId));
+    }
+
+    @Test
+    @SneakyThrows
+    public void putProgramsLocationsCoordinatesPolygonSuccess() {
+        ProgramLocation location = insertAndFetchTestLocation();
+        String locationId = location.getId().toString();
+
+        JsonObject requestBody = validProgramLocationCoordinatePolygonRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+locationId, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        programLocationService.delete(UUID.fromString(locationId));
+
+    }
+
+    @Test
+    @SneakyThrows
+    public void putProgramsLocationsOnlyIdSuccess() {
+        ProgramLocation location = insertAndFetchTestLocation();
+        String locationId = location.getId().toString();
+
+        JsonObject requestBody = validProgramLocationRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+locationId, requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -562,11 +759,17 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
-        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
+        assertEquals(1, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(),"Wrong totalCount");
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        JsonObject programLocation = data.get(0).getAsJsonObject();
+        assertEquals("Field 1", result.get("name").getAsString(), "Wrong name");
+
+        programLocationService.delete(UUID.fromString(locationId));
+    }
+
+    @SneakyThrows
+    public void checkValidLocation(JsonObject programLocation) {
+
         JsonObject country = programLocation.getAsJsonObject("country");
         assertEquals(validLocation.getCountry().getId().toString(), country.get("id").getAsString(), "Wrong country id");
         assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
@@ -584,8 +787,42 @@ public class ProgramControllerIntegrationTest {
         assertEquals(validLocation.getId().toString(), programLocation.get("id").getAsString(), "Wrong location id");
         assertEquals(validLocation.getProgramId().toString(), programLocation.get("programId").getAsString(), "Wrong program id");
         assertEquals(validLocation.getName(), programLocation.get("name").getAsString(), "Wrong name");
+        assertEquals(validLocation.getAbbreviation(), programLocation.get("abbreviation").getAsString(), "Wrong abbreviation");
 
+        assertEquals(validLocation.getCoordinateDescription(), programLocation.get("coordinateDescription").getAsString(), "Wrong coordinate description");
+        assertEquals(validLocation.getCoordinateUncertainty(), programLocation.get("coordinateUncertainty").getAsBigDecimal(), "Wrong coordinate uncertainty");
+        assertEquals(validLocation.getDocumentationUrl(), programLocation.get("documentationUrl").getAsString(), "Wrong documentation url");
+        assertEquals(validLocation.getExposure(), programLocation.get("exposure").getAsString(), "Wrong exposure");
+        assertEquals(validLocation.getSlope(), programLocation.get("slope").getAsBigDecimal(), "Wrong slope");
 
+        JsonObject coords = programLocation.get("coordinates").getAsJsonObject();
+        ObjectMapper objMapper = new ObjectMapper();
+        Feature feature = objMapper.readValue(new Gson().toJson(coords), Feature.class);
+        assertEquals(validLocation.getCoordinatesJson(), feature, "Wrong coordinates");
+
+    }
+
+    @Test
+    @Order(1)
+    public void getProgramsLocationsSuccess() {
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/locations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(1, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), "Wrong totalCount");
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject programLocation = data.get(0).getAsJsonObject();
+        checkValidLocation(programLocation);
     }
 
     @Test
@@ -603,14 +840,10 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
-        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
+        assertEquals(1, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(),"Wrong totalCount");
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonObject country = result.getAsJsonObject("country");
-        assertEquals(validLocation.getCountry().getId().toString(), country.get("id").getAsString(), "Wrong country id");
-        assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
-        assertEquals(validLocation.getCountry().getAlpha_2Code(), country.get("alpha2Code").getAsString(), "Wrong country alpha 2 code");
-        assertEquals(validLocation.getCountry().getAlpha_3Code(), country.get("alpha3Code").getAsString(), "Wrong country alpha 3 code");
+        checkValidLocation(result);
     }
 
     @Test
@@ -645,7 +878,7 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void archiveProgramsLocationsNotExistingLocationId() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/programs/"+validProgram.getId().toString()+"/users/"+validLocation.getId().toString())
+                DELETE("/programs/"+validProgram.getId().toString()+"/locations/"+invalidLocation)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
@@ -656,9 +889,50 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
     public void archiveProgramsLocations() {
 
+        ProgramLocation location = insertAndFetchTestLocation();
+        String validProgramId = validProgram.getId().toString();
+        String locationId = location.getId().toString();
 
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+validProgramId+"/locations/"+locationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String>  response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // GET single to make sure active flag is changed
+        call = client.exchange(
+                GET("/programs/"+validProgramId+"/locations/"+locationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(false, result.get("active").getAsBoolean(), "active should be false");
+
+        // GET all to make sure it doesn't show in list
+        call = client.exchange(
+                GET("/programs/"+validProgramId+"/locations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        // will have validLocation only for other tests but not the location added in this test
+        assertEquals(1, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), "Should only be one location for valid");
+
+        programLocationService.delete(UUID.fromString(locationId));
     }
 
 

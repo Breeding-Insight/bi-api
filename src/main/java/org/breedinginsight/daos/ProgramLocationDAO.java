@@ -11,6 +11,7 @@ import javax.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
@@ -24,17 +25,22 @@ public class ProgramLocationDAO extends PlaceDao {
         this.dsl = dsl;
     }
 
+    // get all active locations by program id
     public List<ProgramLocation> getByProgramId(UUID programId) {
-        return getLocations(programId, null);
+        return getLocations(Optional.of(programId), Optional.empty());
     }
 
+    // get specified location regardless of active status
     public List<ProgramLocation> getById(UUID locationId) {
         List<UUID> locations = new ArrayList<>();
         locations.add(locationId);
-        return getLocations(null, locations);
+        return getLocations(Optional.empty(), Optional.of(locations));
     }
 
-    private List<ProgramLocation> getLocations(UUID programId, List<UUID> locationIds) {
+    // if no parameters specified, get all locations regardless of program or active status
+    // if locationIds specified, get only those locations regardless of active status
+    // if programId specified, get active locations for that program
+    private List<ProgramLocation> getLocations(Optional<UUID> programId, Optional<List<UUID>> locationIds) {
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
@@ -50,13 +56,13 @@ public class ProgramLocationDAO extends PlaceDao {
                 .leftJoin(createdByUser).on(PLACE.CREATED_BY.eq(createdByUser.ID))
                 .leftJoin(updatedByUser).on(PLACE.UPDATED_BY.eq(updatedByUser.ID));
 
-        if (locationIds != null) {
+        if (locationIds.isPresent()) {
             queryResult = query
-                    .where(PLACE.ID.in(locationIds))
+                    .where(PLACE.ID.in(locationIds.get()))
                     .fetch();
-        } else if (programId != null) {
+        } else if (programId.isPresent()) {
             queryResult = query
-                    .where(PLACE.PROGRAM_ID.eq(programId))
+                    .where(PLACE.PROGRAM_ID.eq(programId.get()).and(PLACE.ACTIVE.eq(true)))
                     .fetch();
         } else {
             queryResult = query.fetch();
