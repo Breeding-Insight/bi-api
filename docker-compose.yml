@@ -33,7 +33,7 @@ services:
     networks:
       - backend
   bidb:
-    image: postgis/postgis:12-3.0
+    image: postgres:11.4
     container_name: bidb
     environment:
       - POSTGRES_DB=${DB_NAME}
