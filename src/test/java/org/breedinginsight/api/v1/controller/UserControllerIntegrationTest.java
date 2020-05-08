@@ -57,7 +57,6 @@ public class UserControllerIntegrationTest {
     void setup() throws Exception {
 
         testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
-        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
         otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
         validSystemRole = systemRoleService.getAll().get(0);
     }
