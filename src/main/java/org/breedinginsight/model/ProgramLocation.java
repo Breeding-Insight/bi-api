@@ -26,10 +26,10 @@ import static org.breedinginsight.dao.db.Tables.PLACE;
 @JsonIgnoreProperties(value = { "createdBy", "updatedBy"})
 public class ProgramLocation extends PlaceEntity {
 
-    private CountryEntity country;
-    private AccessibilityOptionEntity accessibility;
-    private EnvironmentTypeEntity environmentType;
-    private TopographyOptionEntity topography;
+    private Country country;
+    private Accessibility accessibility;
+    private EnvironmentType environmentType;
+    private Topography topography;
 
     private User createdByUser;
     private User updatedByUser;
