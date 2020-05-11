@@ -552,9 +552,10 @@ public class ProgramControllerIntegrationTest {
     @Test
     public void putProgramsLocationsInvalidLocation() {
         JsonObject requestBody = validProgramLocationRequest();
+        String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                PUT("/programs/"+invalidProgram+"/locations/"+invalidLocation, requestBody.toString())
+                PUT("/programs/"+validProgramId+"/locations/"+invalidLocation, requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
