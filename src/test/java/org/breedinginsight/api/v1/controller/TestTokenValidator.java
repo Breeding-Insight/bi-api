@@ -28,11 +28,12 @@ public class TestTokenValidator extends JwtTokenValidator {
 
     public Publisher<Authentication> validateToken(String token) {
         if (token.equals("test-registered-user")) {
-            return Flowable.just(new DefaultAuthentication("1111-2222-3333-4444", new HashMap<>()));
+            return Flowable.just(new DefaultAuthentication(TEST_USER_ORCID, new HashMap<>()));
+        } else if (token.equals("other-registered-user")) {
+            return Flowable.just(new DefaultAuthentication(OTHER_TEST_USER_ORCID, new HashMap<>()));
         } else {
             return Flowable.just(new DefaultAuthentication("1111-1111-1111-1111", new HashMap<>()));
         }
-
     }
 
 }
