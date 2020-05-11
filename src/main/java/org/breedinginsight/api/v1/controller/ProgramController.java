@@ -365,7 +365,7 @@ public class ProgramController {
     @Delete("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse removeProgramLocation(Principal principal,
+    public HttpResponse archiveProgramLocation(Principal principal,
                                               @PathVariable UUID programId,
                                               @PathVariable UUID locationId) {
 
