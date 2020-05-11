@@ -130,9 +130,7 @@ public class ProgramLocationService {
                 if (!isValidLongitude(coords.getLongitude())) {
                     throw new UnprocessableEntityException("Invalid point longitude");
                 }
-            }
-
-            if (geometry instanceof Polygon) {
+            } else if (geometry instanceof Polygon) {
                 Polygon polygon = (Polygon)geometry;
                 try {
                     List<LngLatAlt> points = polygon.getExteriorRing();
