@@ -368,7 +368,7 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    public void postProgramsLocationsOnlyIdSuccess() {
+    public void postProgramsLocationsOnlyNameSuccess() {
         JsonObject requestBody = validProgramLocationRequest();
         String validProgramId = validProgram.getId().toString();
 
@@ -742,7 +742,7 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    public void putProgramsLocationsOnlyIdSuccess() {
+    public void putProgramsLocationsOnlyNameSuccess() {
         ProgramLocation location = insertAndFetchTestLocation();
         String locationId = location.getId().toString();
 
