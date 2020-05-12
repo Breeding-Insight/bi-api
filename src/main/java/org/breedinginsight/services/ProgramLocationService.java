@@ -178,23 +178,17 @@ public class ProgramLocationService {
                                               ProgramLocationRequest programLocationRequest)
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
-        UUID countryId;
-        UUID environmentTypeId;
-        UUID accessibilityId;
-        UUID topographyId;
-        String coordinates;
-
         // check if programId exists
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program id does not exist");
         }
 
         // validate fields
-        countryId = validateCountryId(programLocationRequest);
-        environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
-        accessibilityId = validateAccessibilityId(programLocationRequest);
-        topographyId = validateTopographyId(programLocationRequest);
-        coordinates = validateCoordinates(programLocationRequest);
+        UUID countryId = validateCountryId(programLocationRequest);
+        UUID environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
+        UUID accessibilityId = validateAccessibilityId(programLocationRequest);
+        UUID topographyId = validateTopographyId(programLocationRequest);
+        String coordinates = validateCoordinates(programLocationRequest);
 
         // parse and create the program location object
         PlaceEntity placeEntity = PlaceEntity.builder()
@@ -228,23 +222,17 @@ public class ProgramLocationService {
                                   ProgramLocationRequest programLocationRequest)
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
-        UUID countryId;
-        UUID environmentTypeId;
-        UUID accessibilityId;
-        UUID topographyId;
-        String coordinates;
-
         PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
         if (placeEntity == null){
             throw new DoesNotExistException("Program location does not exist");
         }
 
         // validate fields
-        countryId = validateCountryId(programLocationRequest);
-        environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
-        accessibilityId = validateAccessibilityId(programLocationRequest);
-        topographyId = validateTopographyId(programLocationRequest);
-        coordinates = validateCoordinates(programLocationRequest);
+        UUID countryId = validateCountryId(programLocationRequest);
+        UUID environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
+        UUID accessibilityId = validateAccessibilityId(programLocationRequest);
+        UUID topographyId = validateTopographyId(programLocationRequest);
+        String coordinates = validateCoordinates(programLocationRequest);
 
         placeEntity.setName(programLocationRequest.getName());
         placeEntity.setCountryId(countryId);
