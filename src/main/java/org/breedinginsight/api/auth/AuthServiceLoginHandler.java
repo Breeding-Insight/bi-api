@@ -4,17 +4,29 @@ import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.security.authentication.AuthenticationFailed;
+import io.micronaut.security.authentication.AuthenticationFailureReason;
 import io.micronaut.security.authentication.UserDetails;
 import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
+import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Role;
+import org.breedinginsight.model.SystemRole;
+import org.breedinginsight.model.User;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Replaces(JwtCookieLoginHandler.class)
 @Singleton
 public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
+
+    @Inject
+    private UserDAO dao;
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -24,9 +36,27 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
     @Override
     public HttpResponse loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
-        // If we want to hook code into the login process in the future we can put it here, for now just
-        // passes through to JwtCookieLoginHandler
-        return super.loginSuccess(userDetails, request);
+        // Called when login to orcid is successful.
+        // Check if our login to our system is successful.
+
+        Optional<User> user = dao.getUserByOrcId(userDetails.getUsername());
+
+        if (user.isPresent()){
+
+            List<SystemRole> systemRoles = user.get().getSystemRoles();
+            List<String> systemRoleStrings = systemRoles.stream().map((systemRole -> {
+                return String.format("SYSTEM_%s", systemRole.getDomain());
+            })).collect(Collectors.toList());
+
+            //TODO: Get the program roles
+
+            BiUserDetails biUserDetails = new BiUserDetails(userDetails.getUsername(), systemRoleStrings, user.get().getId());
+            return super.loginSuccess(biUserDetails, request);
+        } else {
+            AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
+            return super.loginFailed(authenticationFailed);
+        }
+
     }
 
     @Override

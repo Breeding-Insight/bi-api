@@ -6,6 +6,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.annotation.Delete;
 import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
@@ -43,9 +44,10 @@ public class UserController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> userinfo(Principal principal) {
+    public HttpResponse<Response<User>> userinfo(Authentication authentication) {
 
-        String orcid = principal.getName();
+        String orcid = authentication.getName();
+        List<String> systemRoles = (List<String>) authentication.getAttributes().get("roles");
         Optional<User> user = userService.getByOrcid(orcid);
 
         if (user.isPresent()) {
