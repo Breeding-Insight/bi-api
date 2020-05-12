@@ -63,8 +63,8 @@ public class ActingUserNotExistUnitTest {
         assertEquals(HttpStatus.UNAUTHORIZED, updateProgramUserHttpResponse.getStatus());
 
         // User endpoints
-        HttpResponse createUserHttpResponse = userController.createUser(principal, new UserRequest());
-        assertEquals(HttpStatus.UNAUTHORIZED, createUserHttpResponse.getStatus());
+        //HttpResponse createUserHttpResponse = userController.createUser(principal, new UserRequest());
+        //assertEquals(HttpStatus.UNAUTHORIZED, createUserHttpResponse.getStatus());
         HttpResponse updateUserHttpResponse = userController.updateUser(principal, UUID.randomUUID(), new UserRequest());
         assertEquals(HttpStatus.UNAUTHORIZED, updateUserHttpResponse.getStatus());
     }
