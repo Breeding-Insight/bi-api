@@ -71,16 +71,16 @@ public class UserService {
         return user;
     }
 
-    public User create(User actingUser, UserRequest userRequest) throws AlreadyExistsException, UnprocessableEntityException {
-        return create(actingUser, userRequest, dsl.configuration());
+    public User create(UUID actingUserId, UserRequest userRequest) throws AlreadyExistsException, UnprocessableEntityException {
+        return create(actingUserId, userRequest, dsl.configuration());
     }
 
-    public User create(User actingUser, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, UnprocessableEntityException {
+    public User create(UUID actingUserId, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, UnprocessableEntityException {
 
         try {
             User user = DSL.using(dslConfiguration).transactionResult(configuration -> {
 
-                Optional<User> created = createOptional(actingUser, userRequest);
+                Optional<User> created = createOptional(actingUserId, userRequest);
 
                 if (created.isEmpty()) {
                     throw new AlreadyExistsException("Email already exists");
@@ -91,7 +91,7 @@ public class UserService {
                 if ( userRequest.getSystemRoles() != null){
                     List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest.getSystemRoles());
                     // Update roles
-                    insertSystemRoles(actingUser.getId(), newUser.getId(), systemRoles);
+                    insertSystemRoles(actingUserId, newUser.getId(), systemRoles);
                 }
 
 
@@ -111,7 +111,7 @@ public class UserService {
         }
     }
 
-    private Optional<User> createOptional(User actingUser, UserRequest user) {
+    private Optional<User> createOptional(UUID actingUserId, UserRequest user) {
 
         if (userEmailInUse(user.getEmail())) {
             return Optional.empty();
@@ -120,8 +120,8 @@ public class UserService {
         BiUserEntity jooqUser = new BiUserEntity();
         jooqUser.setName(user.getName());
         jooqUser.setEmail(user.getEmail());
-        jooqUser.setCreatedBy(actingUser.getId());
-        jooqUser.setUpdatedBy(actingUser.getId());
+        jooqUser.setCreatedBy(actingUserId);
+        jooqUser.setUpdatedBy(actingUserId);
         dao.insert(jooqUser);
         return Optional.of(new User(jooqUser));
     }
@@ -250,5 +250,9 @@ public class UserService {
         List<SystemRole> queriedSystemRoles = roles.stream().map(role -> new SystemRole(role)).collect(Collectors.toList());
 
         return queriedSystemRoles;
+    }
+
+    public boolean exists(UUID id){
+        return dao.existsById(id);
     }
 }

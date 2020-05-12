@@ -9,6 +9,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.BiSecurityService;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -39,16 +40,18 @@ public class UserController {
 
     @Inject
     private UserService userService;
+    @Inject
+    private BiSecurityService securityService;
 
     @Get("/userinfo")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> userinfo(Authentication authentication) {
+    @Secured({SecurityRule.IS_AUTHENTICATED})
+    public HttpResponse<Response<User>> userinfo() {
 
-        String orcid = authentication.getName();
-        List<String> systemRoles = (List<String>) authentication.getAttributes().get("roles");
-        Optional<User> user = userService.getByOrcid(orcid);
+        //UUID testUser = authentication.getId();
+        UUID actingUserId = securityService.getId();
+        Optional<User> user = userService.getById(actingUserId);
 
         if (user.isPresent()) {
             Response<User> response = new Response<>(user.get());
@@ -97,18 +100,13 @@ public class UserController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> createUser(Principal principal, @Body @Valid UserRequest requestUser){
+    public HttpResponse<Response<User>> createUser(Authentication authentication, @Body @Valid UserRequest requestUser){
 
         try {
-            String orcid = principal.getName();
-            Optional<User> actingUser = userService.getByOrcid(orcid);
-            if (actingUser.isPresent()){
-                User user = userService.create(actingUser.get(), requestUser);
-                Response<User> response = new Response<>(user);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            UUID actingUserId = UUID.fromString(authentication.getAttributes().get("id").toString());
+            User user = userService.create(actingUserId, requestUser);
+            Response<User> response = new Response<>(user);
+            return HttpResponse.ok(response);
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
