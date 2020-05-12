@@ -8,7 +8,6 @@ import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
 import org.breedinginsight.daos.ProgramLocationDAO;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -18,7 +17,6 @@ import org.jooq.JSONB;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -49,15 +47,9 @@ public class ProgramLocationService {
         return programLocationDao.getByProgramId(programId);
     }
 
-    public Optional<ProgramLocation> getById(UUID locationId) {
+    public Optional<ProgramLocation> getById(UUID programId, UUID locationId) {
 
-        List<ProgramLocation> locations = programLocationDao.getById(locationId);
-
-        if (locations.isEmpty()) {
-            return Optional.empty();
-        }
-
-        return Optional.of(locations.get(0));
+        return programLocationDao.getById(programId, locationId);
     }
 
     private UUID validateCountryId(ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException {
@@ -174,8 +166,8 @@ public class ProgramLocationService {
     }
 
     public ProgramLocation create(User actingUser,
-                                              UUID programId,
-                                              ProgramLocationRequest programLocationRequest)
+                                  UUID programId,
+                                  ProgramLocationRequest programLocationRequest)
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
         // check if programId exists
@@ -211,7 +203,7 @@ public class ProgramLocationService {
 
         // Insert and update
         programLocationDao.insert(placeEntity);
-        ProgramLocation location = programLocationDao.getById(placeEntity.getId()).get(0);
+        ProgramLocation location = programLocationDao.getById(programId, placeEntity.getId()).get();
 
         return location;
     }
@@ -222,8 +214,12 @@ public class ProgramLocationService {
                                   ProgramLocationRequest programLocationRequest)
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
         PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
-        if (placeEntity == null){
+        if (placeEntity == null || (!placeEntity.getProgramId().equals(programId))){
             throw new DoesNotExistException("Program location does not exist");
         }
 
@@ -249,15 +245,20 @@ public class ProgramLocationService {
         placeEntity.setUpdatedBy(actingUser.getId());
 
         programLocationDao.update(placeEntity);
-        ProgramLocation location = programLocationDao.getById(placeEntity.getId()).get(0);
+        ProgramLocation location = programLocationDao.getById(programId, placeEntity.getId()).get();
 
         return location;
     }
 
-    public void archive(User actingUser, UUID locationId) throws DoesNotExistException {
+    public void archive(User actingUser, UUID programId, UUID locationId) throws DoesNotExistException {
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
 
         PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
-        if (placeEntity == null){
+        if (placeEntity == null || (!placeEntity.getProgramId().equals(programId))){
             throw new DoesNotExistException("Program location does not exist");
         }
 

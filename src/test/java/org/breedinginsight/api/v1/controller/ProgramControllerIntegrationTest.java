@@ -368,6 +368,31 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     @SneakyThrows
+    public void postProgramsLocationsIgnoresBodyProgramId() {
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        requestBody.addProperty("programId", invalidLocation);
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(requestBody.get("name").getAsString(), result.get("name").getAsString(),"Wrong name");
+        assertEquals(validProgramId, result.get("programId").getAsString(), "programId does not match path programId");
+
+        String locationId = result.get("id").getAsString();
+        programLocationService.delete(UUID.fromString(locationId));
+    }
+
+    @Test
+    @SneakyThrows
     public void postProgramsLocationsOnlyNameSuccess() {
         JsonObject requestBody = validProgramLocationRequest();
         String validProgramId = validProgram.getId().toString();
@@ -743,6 +768,34 @@ public class ProgramControllerIntegrationTest {
 
     @Test
     @SneakyThrows
+    public void putProgramsLocationsIgnoresBodyProgramId() {
+        ProgramLocation location = insertAndFetchTestLocation();
+        String locationId = location.getId().toString();
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", "Field 1");
+        requestBody.addProperty("programId", invalidLocation);
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+locationId, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(requestBody.get("name").getAsString(), result.get("name").getAsString(),"Wrong name");
+        assertEquals(validProgramId, result.get("programId").getAsString(), "programId does not match path programId");
+
+        programLocationService.delete(UUID.fromString(locationId));
+    }
+
+
+    @Test
+    @SneakyThrows
     public void putProgramsLocationsOnlyNameSuccess() {
         ProgramLocation location = insertAndFetchTestLocation();
         String locationId = location.getId().toString();
@@ -863,6 +916,29 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
+    public void getProgramsLocationsSingleWrongProgramId() {
+
+        Program wrongProgram = insertAndFetchTestProgram();
+        String programId = wrongProgram.getId().toString();
+        String validLocationId = validLocation.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+programId+"/locations/"+validLocationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+
+        programService.delete(wrongProgram.getId());
+
+    }
+
+    @Test
     public void getProgramsLocationsInvalidProgramId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/"+invalidProgram+"/locations")
@@ -876,6 +952,8 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
+
+
     @Test
     public void archiveProgramsLocationsNotExistingLocationId() {
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -887,6 +965,40 @@ public class ProgramControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    public void archiveProgramsLocationsNotExistingProgramId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+invalidProgram+"/locations/"+validLocation.getId().toString())
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    public void archiveProgramsLocationsWrongProgramId() {
+        Program wrongProgram = insertAndFetchTestProgram();
+        String programId = wrongProgram.getId().toString();
+        String validLocationId = validLocation.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+programId+"/locations/"+validLocationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+
+        programService.delete(wrongProgram.getId());
     }
 
     @Test

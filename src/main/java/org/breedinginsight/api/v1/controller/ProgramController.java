@@ -288,7 +288,7 @@ public class ProgramController {
     public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId,
                                                                        @PathVariable UUID locationId) {
 
-        Optional<ProgramLocation> programLocation = programLocationService.getById(locationId);
+        Optional<ProgramLocation> programLocation = programLocationService.getById(programId, locationId);
 
         if(programLocation.isPresent()) {
             Response<ProgramLocation> response = new Response(programLocation.get());
@@ -374,7 +374,7 @@ public class ProgramController {
         Optional<User> user = userService.getByOrcid(orcid);
         if (user.isPresent()) {
             try {
-                programLocationService.archive(user.get(), locationId);
+                programLocationService.archive(user.get(), programId, locationId);
                 return HttpResponse.ok();
             } catch (DoesNotExistException e){
                 log.info(e.getMessage());
