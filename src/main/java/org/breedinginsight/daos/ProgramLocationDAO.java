@@ -11,6 +11,7 @@ import javax.inject.Singleton;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
@@ -26,27 +27,39 @@ public class ProgramLocationDAO extends PlaceDao {
 
     // get all active locations by program id
     public List<ProgramLocation> getByProgramId(UUID programId) {
-        return getLocations(programId, null);
+
+        List<Record> records = getProgramLocationsQuery()
+                .where(PLACE.PROGRAM_ID.eq(programId).and(PLACE.ACTIVE.eq(true)))
+                .fetch();
+
+        return parseRecords(records);
+
     }
 
-    // get specified location regardless of active status
-    public List<ProgramLocation> getById(UUID locationId) {
-        List<UUID> locations = new ArrayList<>();
-        locations.add(locationId);
-        return getLocations(null, locations);
+    // get specified program location regardless of active status
+    // path programId must match programId in location
+    public Optional<ProgramLocation> getById(UUID programId, UUID locationId) {
+
+        List<Record> records = getProgramLocationsQuery()
+                .where(PLACE.ID.eq(locationId).and(PLACE.PROGRAM_ID.eq(programId)))
+                .fetch();
+
+        List<ProgramLocation> locations = parseRecords(records);
+
+        if (locations.size() > 0){
+            return Optional.of(locations.get(0));
+        } else {
+            return Optional.empty();
+        }
+
     }
 
-    // if no parameters specified, get all locations regardless of program or active status
-    // if locationIds specified, get only those locations regardless of active status
-    // if programId specified, get active locations for that program
-    private List<ProgramLocation> getLocations(UUID programId, List<UUID> locationIds) {
+    private SelectOnConditionStep<Record> getProgramLocationsQuery(){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
-        Result<Record> queryResult;
-        List<ProgramLocation> resultLocations = new ArrayList<>();
 
-        SelectOnConditionStep<Record> query = dsl.select()
+        return dsl.select()
                 .from(PLACE)
                 .leftJoin(COUNTRY).on(PLACE.COUNTRY_ID.eq(COUNTRY.ID))
                 .leftJoin(ENVIRONMENT_TYPE).on(PLACE.ENVIRONMENT_TYPE_ID.eq(ENVIRONMENT_TYPE.ID))
@@ -54,21 +67,16 @@ public class ProgramLocationDAO extends PlaceDao {
                 .leftJoin(TOPOGRAPHY_OPTION).on(PLACE.TOPOGRAPHY_ID.eq(TOPOGRAPHY_OPTION.ID))
                 .leftJoin(createdByUser).on(PLACE.CREATED_BY.eq(createdByUser.ID))
                 .leftJoin(updatedByUser).on(PLACE.UPDATED_BY.eq(updatedByUser.ID));
+    }
 
-        if (locationIds != null) {
-            queryResult = query
-                    .where(PLACE.ID.in(locationIds))
-                    .fetch();
-        } else if (programId != null) {
-            queryResult = query
-                    .where(PLACE.PROGRAM_ID.eq(programId).and(PLACE.ACTIVE.eq(true)))
-                    .fetch();
-        } else {
-            queryResult = query.fetch();
-        }
+    private List<ProgramLocation> parseRecords(List<Record> records) {
+
+        List<ProgramLocation> resultLocations = new ArrayList<>();
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
 
         // Parse the result
-        for (Record record: queryResult){
+        for (Record record : records) {
             ProgramLocation location = ProgramLocation.parseSQLRecord(record);
             location.setCountry(Country.parseSQLRecord(record));
             location.setEnvironmentType(EnvironmentType.parseSQLRecord(record));
