@@ -15,15 +15,17 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.model.Location;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
@@ -44,6 +46,8 @@ public class ProgramController {
     private UserService userService;
     @Inject
     private ProgramUserService programUserService;
+    @Inject
+    private ProgramLocationService programLocationService;
 
     @Get("/programs")
     @Produces(MediaType.APPLICATION_JSON)
@@ -240,8 +244,6 @@ public class ProgramController {
         }
     }
 
-
-
     @Delete("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
@@ -259,10 +261,10 @@ public class ProgramController {
     @Get("/programs/{programId}/locations")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<Location>>> getProgramLocations(@PathVariable UUID programId) {
+    public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(@PathVariable UUID programId) {
 
         try {
-            List<Location> programLocations = programService.getProgramLocations(programId);
+            List<ProgramLocation> programLocations = programLocationService.getByProgramId(programId);
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
@@ -270,7 +272,7 @@ public class ProgramController {
             Pagination pagination = new Pagination(programLocations.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response response = new Response(metadata, new DataResponse<>(programLocations));
+            Response<DataResponse<ProgramLocation>> response = new Response(metadata, new DataResponse<>(programLocations));
             return HttpResponse.ok(response);
 
         } catch (DoesNotExistException e){
@@ -283,14 +285,16 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     @AddMetadata
-    public HttpResponse<Response<Location>> getProgramLocations(@PathVariable UUID programId, @PathVariable UUID locationId) {
+    public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId,
+                                                                       @PathVariable UUID locationId) {
 
-        try {
-            Location programLocation = programService.getProgramLocation(programId, locationId);
-            Response response = new Response(programLocation);
+        Optional<ProgramLocation> programLocation = programLocationService.getById(programId, locationId);
+
+        if(programLocation.isPresent()) {
+            Response<ProgramLocation> response = new Response(programLocation.get());
             return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
+        } else {
+            log.info("Program location not found");
             return HttpResponse.notFound();
         }
     }
@@ -299,31 +303,86 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Location>> addProgramLocation(@PathVariable UUID programId, @Valid @Body ProgramLocationRequest locationRequest) {
+    public HttpResponse<Response<ProgramLocation>> addProgramLocation(Principal principal,
+                                                                      @PathVariable UUID programId,
+                                                                      @Valid @Body ProgramLocationRequest locationRequest) {
 
-        try {
-            Location programLocation = programService.addProgramLocation(programId, locationRequest);
-            Response response = new Response(programLocation);
-            return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
-        } catch (AlreadyExistsException e){
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        String orcid = principal.getName();
+        Optional<User> user = userService.getByOrcid(orcid);
+        if (user.isPresent()) {
+            try {
+                ProgramLocation programLocation = programLocationService.create(user.get(), programId, locationRequest);
+                Response<ProgramLocation> response = new Response(programLocation);
+                return HttpResponse.ok(response);
+            } catch (DoesNotExistException e){
+                log.info(e.getMessage());
+                return HttpResponse.notFound();
+            } catch (MissingRequiredInfoException e){
+                log.info(e.getMessage());
+                return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+            } catch (UnprocessableEntityException e) {
+                log.info(e.getMessage());
+                return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+            }
+        }
+        else {
+            return HttpResponse.unauthorized();
+        }
+    }
+
+    @Put("/programs/{programId}/locations/{locationId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<Program>> updateProgramLocation(Principal principal,
+                                                                 @PathVariable UUID programId,
+                                                                 @PathVariable UUID locationId,
+                                                                 @Valid @Body ProgramLocationRequest locationRequest) {
+
+        String orcid = principal.getName();
+        Optional<User> user = userService.getByOrcid(orcid);
+        if (user.isPresent()) {
+            try {
+                ProgramLocation location = programLocationService.update(user.get(), programId, locationId, locationRequest);
+                Response<Program> response = new Response(location);
+                return HttpResponse.ok(response);
+            } catch (DoesNotExistException e) {
+                log.info(e.getMessage());
+                return HttpResponse.notFound();
+            } catch (MissingRequiredInfoException e) {
+                log.info(e.getMessage());
+                return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+            } catch (UnprocessableEntityException e) {
+                log.info(e.getMessage());
+                return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+            }
+
+        } else {
+            return HttpResponse.unauthorized();
         }
     }
 
     @Delete("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse removeProgramLocation(@PathVariable UUID programId, @PathVariable UUID locationId) {
-        try {
-            programService.removeProgramLocation(programId, locationId);
-            return HttpResponse.ok();
-        } catch (DoesNotExistException e){
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
+    public HttpResponse archiveProgramLocation(Principal principal,
+                                              @PathVariable UUID programId,
+                                              @PathVariable UUID locationId) {
+
+
+        String orcid = principal.getName();
+        Optional<User> user = userService.getByOrcid(orcid);
+        if (user.isPresent()) {
+            try {
+                programLocationService.archive(user.get(), programId, locationId);
+                return HttpResponse.ok();
+            } catch (DoesNotExistException e){
+                log.info(e.getMessage());
+                return HttpResponse.notFound();
+            }
+        }
+        else {
+            return HttpResponse.unauthorized();
         }
     }
 

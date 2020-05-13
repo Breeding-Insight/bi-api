@@ -47,12 +47,13 @@ CREATE TABLE place (
   topography_id UUID,
   name text NOT NULL,
   abbreviation text,
-  coordinates geography(POINT, 4326),
+  coordinates jsonb,
   coordinate_uncertainty numeric,
   coordinate_description text,
   slope numeric,
   exposure text,
   documentation_url text,
+  active boolean NOT NULL DEFAULT true,
   like base_edit_track_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES
 );
 ALTER TABLE place ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
