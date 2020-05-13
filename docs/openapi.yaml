@@ -2533,9 +2533,19 @@ components:
         result:
           id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
           domain: Field Manager
-<<<<<<< HEAD
     singleSystemRole:
-=======
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+          domain: admin
     arrayOfLocations:
       value:
         metadata:
@@ -2633,7 +2643,6 @@ components:
               exposure: none
               documentationUrl: http://www.nick.com
     singleLocation:
->>>>>>> Updated program locations api docs
       value:
         metadata:
           datafiles: []
@@ -2644,10 +2653,6 @@ components:
             totalPages: 1
           status: []
         result:
-<<<<<<< HEAD
-          id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
-          domain: admin
-=======
           createdAt: "2020-03-09T09:59:35-04:00"
           updatedAt: "2020-03-09T09:59:35-04:00"
           createdByUser:
@@ -2690,4 +2695,3 @@ components:
           slope: 1
           exposure: none
           documentationUrl: http://www.nick.com
->>>>>>> Updated program locations api docs
