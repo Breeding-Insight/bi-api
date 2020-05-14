@@ -4,24 +4,28 @@ import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.DefaultSecurityService;
 
 import javax.inject.Singleton;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 @Singleton
-public class BiSecurityService extends DefaultSecurityService {
+public class SecurityService extends DefaultSecurityService {
 
-    public UUID getId() {
-         Optional<Authentication> optionalAuthentication = super.getAuthentication();
-         if (optionalAuthentication.isPresent()){
-             Authentication authentication = optionalAuthentication.get();
-             if (authentication.getAttributes() != null){
-                 Object id = authentication.getAttributes().get("id");
-                 if (id != null){
-                     return UUID.fromString(id.toString());
-                 }
-             }
-         }
+    public AuthenticatedUser getUser() {
+        Optional<Authentication> optionalAuthentication = super.getAuthentication();
+        if (optionalAuthentication.isPresent()) {
+            Authentication authentication = optionalAuthentication.get();
+            if (authentication.getAttributes() != null) {
+                Object jwtId = authentication.getAttributes().get("id");
+                UUID id = jwtId != null ? UUID.fromString(jwtId.toString()) : null;
+                Object jwtRoles = authentication.getAttributes().get("roles");
+                List<String> roles = (List<String>) jwtRoles;
+                AuthenticatedUser authenticatedUser = new AuthenticatedUser(authentication.getName(), roles, id);
+                return authenticatedUser;
+            }
+        }
 
-         return null;
+        return null;
     }
 }

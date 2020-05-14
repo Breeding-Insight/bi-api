@@ -11,7 +11,6 @@ import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 
@@ -41,22 +40,22 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
         Optional<User> user = dao.getUserByOrcId(userDetails.getUsername());
 
-        if (user.isPresent()){
+        if (user.isPresent()) {
+            if (user.get().getActive()) {
+                List<SystemRole> systemRoles = user.get().getSystemRoles();
+                List<String> systemRoleStrings = systemRoles.stream().map((systemRole -> {
+                    return systemRole.getDomain().toUpperCase();
+                })).collect(Collectors.toList());
 
-            List<SystemRole> systemRoles = user.get().getSystemRoles();
-            List<String> systemRoleStrings = systemRoles.stream().map((systemRole -> {
-                return String.format("SYSTEM_%s", systemRole.getDomain());
-            })).collect(Collectors.toList());
+                //TODO: Get the program roles
 
-            //TODO: Get the program roles
-
-            BiUserDetails biUserDetails = new BiUserDetails(userDetails.getUsername(), systemRoleStrings, user.get().getId());
-            return super.loginSuccess(biUserDetails, request);
-        } else {
-            AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
-            return super.loginFailed(authenticationFailed);
+                AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(), systemRoleStrings, user.get().getId());
+                return super.loginSuccess(authenticatedUser, request);
+            }
         }
 
+        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
+        return super.loginFailed(authenticationFailed);
     }
 
     @Override

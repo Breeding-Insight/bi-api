@@ -32,6 +32,7 @@ public class User extends BiUserEntity{
         this.setName(biUser.getName());
         this.setEmail(biUser.getEmail());
         this.setSystemRoles(new ArrayList<>());
+        this.setActive(biUser.getActive());
     }
 
     public User() {
@@ -45,6 +46,7 @@ public class User extends BiUserEntity{
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .systemRoles(new ArrayList<>())
+                .active(record.getValue(tableName.ACTIVE))
                 .build();
     }
 

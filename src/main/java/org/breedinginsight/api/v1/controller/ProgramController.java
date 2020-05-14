@@ -7,6 +7,8 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -22,7 +24,6 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
-import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
@@ -30,7 +31,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -43,11 +43,11 @@ public class ProgramController {
     @Inject
     private ProgramService programService;
     @Inject
-    private UserService userService;
-    @Inject
     private ProgramUserService programUserService;
     @Inject
     private ProgramLocationService programLocationService;
+    @Inject
+    private SecurityService securityService;
 
     @Get("/programs")
     @Produces(MediaType.APPLICATION_JSON)
@@ -84,19 +84,14 @@ public class ProgramController {
     @Post("/programs")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Program>> createProgram(Principal principal, @Valid @Body ProgramRequest programRequest) {
+    @Secured({"ADMIN"})
+    public HttpResponse<Response<Program>> createProgram(@Valid @Body ProgramRequest programRequest) {
 
         try {
-            String orcid = principal.getName();
-            Optional<User> user = userService.getByOrcid(orcid);
-            if (user.isPresent()){
-                Program program = programService.create(programRequest, user.get());
-                Response<Program> response = new Response(program);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            Program program = programService.create(programRequest, actingUser);
+            Response<Program> response = new Response(program);
+            return HttpResponse.ok(response);
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
@@ -106,19 +101,14 @@ public class ProgramController {
     @Put("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Program>> updateProgram(Principal principal, @PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
+    @Secured({"ADMIN"})
+    public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
         try {
-            String orcid = principal.getName();
-            Optional<User> user = userService.getByOrcid(orcid);
-            if (user.isPresent()){
-                Program program = programService.update(programId, programRequest, user.get());
-                Response<Program> response = new Response(program);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            Program program = programService.update(programId, programRequest, actingUser);
+            Response<Program> response = new Response(program);
+            return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -130,18 +120,13 @@ public class ProgramController {
 
     @Delete("/programs/archive/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse archiveProgram(Principal principal, @PathVariable UUID programId) {
+    @Secured({"ADMIN"})
+    public HttpResponse archiveProgram(@PathVariable UUID programId) {
         /* Archive a program */
         try {
-            String orcid = principal.getName();
-            Optional<User> user = userService.getByOrcid(orcid);
-            if (user.isPresent()){
-                programService.archive(programId, user.get());
-                return HttpResponse.ok();
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            programService.archive(programId, actingUser);
+            return HttpResponse.ok();
         } catch(DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -191,19 +176,14 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<ProgramUser>> addProgramUser(Principal principal, @PathVariable UUID programId, @Valid @Body ProgramUserRequest programUserRequest) {
+    public HttpResponse<Response<ProgramUser>> addProgramUser(@PathVariable UUID programId, @Valid @Body ProgramUserRequest programUserRequest) {
         /* Add a user to a program. Create the user if they don't exist. */
 
         try {
-            String orcid = principal.getName();
-            Optional<User> user = userService.getByOrcid(orcid);
-            if (user.isPresent()){
-                ProgramUser programUser = programUserService.addProgramUser(user.get(), programId, programUserRequest);
-                Response<ProgramUser> response = new Response<>(programUser);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            ProgramUser programUser = programUserService.addProgramUser(actingUser, programId, programUserRequest);
+            Response<ProgramUser> response = new Response<>(programUser);
+            return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -220,18 +200,13 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<ProgramUser>> updateProgramUser(Principal principal, @PathVariable UUID programId, @PathVariable UUID userId,
+    public HttpResponse<Response<ProgramUser>> updateProgramUser(@PathVariable UUID programId, @PathVariable UUID userId,
                                                                  @Valid @Body ProgramUserRequest programUserRequest) {
         try {
-            String orcid = principal.getName();
-            Optional<User> user = userService.getByOrcid(orcid);
-            if (user.isPresent()){
-                ProgramUser programUser = programUserService.editProgramUser(user.get(), programId, programUserRequest);
-                Response response = new Response(programUser);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            ProgramUser programUser = programUserService.editProgramUser(actingUser, programId, programUserRequest);
+            Response response = new Response(programUser);
+            return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();

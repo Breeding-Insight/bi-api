@@ -8,28 +8,27 @@ import io.micronaut.security.token.config.TokenConfiguration;
 import io.micronaut.security.token.jwt.generator.claims.ClaimsAudienceProvider;
 import io.micronaut.security.token.jwt.generator.claims.JWTClaimsSetGenerator;
 import io.micronaut.security.token.jwt.generator.claims.JwtIdGenerator;
-import org.jooq.tools.json.JSONObject;
 
 import javax.annotation.Nullable;
 import javax.inject.Singleton;
 
 @Singleton
 @Replaces(bean = JWTClaimsSetGenerator.class)
-public class BiJWTClaimsGenerator extends JWTClaimsSetGenerator {
+public class JWTClaimsGenerator extends JWTClaimsSetGenerator {
 
 
-    public BiJWTClaimsGenerator(TokenConfiguration tokenConfiguration,
-                                @Nullable JwtIdGenerator jwtIdGenerator,
-                                @Nullable ClaimsAudienceProvider claimsAudienceProvider,
-                                @Nullable ApplicationConfiguration applicationConfiguration) {
+    public JWTClaimsGenerator(TokenConfiguration tokenConfiguration,
+                              @Nullable JwtIdGenerator jwtIdGenerator,
+                              @Nullable ClaimsAudienceProvider claimsAudienceProvider,
+                              @Nullable ApplicationConfiguration applicationConfiguration) {
         super(tokenConfiguration, jwtIdGenerator, claimsAudienceProvider, applicationConfiguration);
     }
 
     @Override
     protected void populateWithUserDetails(JWTClaimsSet.Builder builder, UserDetails userDetails) {
         super.populateWithUserDetails(builder, userDetails);
-        if (userDetails instanceof BiUserDetails) {
-            builder.claim("id", ((BiUserDetails)userDetails).getId().toString());
+        if (userDetails instanceof AuthenticatedUser) {
+            builder.claim("id", ((AuthenticatedUser)userDetails).getId().toString());
         }
     }
 }
