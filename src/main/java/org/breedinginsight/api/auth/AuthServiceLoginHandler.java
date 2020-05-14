@@ -13,6 +13,7 @@ import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.UserService;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
     @Inject
-    private UserDAO dao;
+    private UserService userService;
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -38,7 +39,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         // Called when login to orcid is successful.
         // Check if our login to our system is successful.
 
-        Optional<User> user = dao.getUserByOrcId(userDetails.getUsername());
+        Optional<User> user = userService.getByOrcid(userDetails.getUsername());
 
         if (user.isPresent()) {
             if (user.get().getActive()) {

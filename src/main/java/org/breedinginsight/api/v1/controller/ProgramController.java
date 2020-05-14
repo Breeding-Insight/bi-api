@@ -101,7 +101,7 @@ public class ProgramController {
     @Put("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured({"ADMIN"})
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
         try {
