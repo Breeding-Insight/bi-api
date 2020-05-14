@@ -1,6 +1,7 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
@@ -35,7 +36,7 @@ public class ProgramUserService {
     @Inject
     private DSLContext dsl;
 
-    public ProgramUser addProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
+    public ProgramUser addProgramUser(AuthenticatedUser actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
         /* Add a user to a program. Create the user if they don't exist. */
 
         try {
@@ -71,7 +72,7 @@ public class ProgramUserService {
                             .name(programUserRequest.getUser().getName())
                             .email(programUserRequest.getUser().getEmail())
                             .build();
-                    user = userService.create(actingUser.getId(), userRequest, configuration);
+                    user = userService.create(actingUser, userRequest, configuration);
                 }
 
                 return updateProgramUser(actingUser, programId, user.getId(), roles);
@@ -107,7 +108,7 @@ public class ProgramUserService {
         return roles;
     }
 
-    private ProgramUser updateProgramUser(User actingUser, UUID programId, UUID userId, List<Role> roles) throws DoesNotExistException {
+    private ProgramUser updateProgramUser(AuthenticatedUser actingUser, UUID programId, UUID userId, List<Role> roles) throws DoesNotExistException {
 
         List<ProgramUserRoleEntity> programUserRoles = new ArrayList<>();
 
@@ -134,7 +135,7 @@ public class ProgramUserService {
         return programUser.get();
     }
 
-    public ProgramUser editProgramUser(User actingUser, UUID programId, ProgramUserRequest programUserRequest)
+    public ProgramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, ProgramUserRequest programUserRequest)
             throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
 
         try {

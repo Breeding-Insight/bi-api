@@ -1,6 +1,7 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
@@ -48,7 +49,7 @@ public class ProgramService {
         return programs;
     }
 
-    public Program create(ProgramRequest programRequest, User actingUser) throws UnprocessableEntityException {
+    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws UnprocessableEntityException {
         /* Create a program from a request object */
 
         // Check that our species exists
@@ -75,7 +76,7 @@ public class ProgramService {
         return program;
     }
 
-    public Program update(UUID programId, ProgramRequest programRequest, User actingUser) throws DoesNotExistException, UnprocessableEntityException {
+    public Program update(UUID programId, ProgramRequest programRequest, AuthenticatedUser actingUser) throws DoesNotExistException, UnprocessableEntityException {
         /* Update an existing program */
 
         ProgramEntity programEntity = dao.fetchOneById(programId);
@@ -104,7 +105,7 @@ public class ProgramService {
         return program;
     }
 
-    public void archive(UUID programId, User actingUser) throws DoesNotExistException {
+    public void archive(UUID programId, AuthenticatedUser actingUser) throws DoesNotExistException {
         /* Archive an existing program */
 
         ProgramEntity programEntity = dao.fetchOneById(programId);

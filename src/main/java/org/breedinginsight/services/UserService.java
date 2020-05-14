@@ -1,6 +1,7 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -71,16 +72,16 @@ public class UserService {
         return user;
     }
 
-    public User create(UUID actingUserId, UserRequest userRequest) throws AlreadyExistsException, UnprocessableEntityException {
-        return create(actingUserId, userRequest, dsl.configuration());
+    public User create(AuthenticatedUser actingUser, UserRequest userRequest) throws AlreadyExistsException, UnprocessableEntityException {
+        return create(actingUser, userRequest, dsl.configuration());
     }
 
-    public User create(UUID actingUserId, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, UnprocessableEntityException {
+    public User create(AuthenticatedUser actingUser, UserRequest userRequest, Configuration dslConfiguration) throws AlreadyExistsException, UnprocessableEntityException {
 
         try {
             User user = DSL.using(dslConfiguration).transactionResult(configuration -> {
 
-                Optional<User> created = createOptional(actingUserId, userRequest);
+                Optional<User> created = createOptional(actingUser, userRequest);
 
                 if (created.isEmpty()) {
                     throw new AlreadyExistsException("Email already exists");
@@ -91,7 +92,7 @@ public class UserService {
                 if ( userRequest.getSystemRoles() != null){
                     List<SystemRole> systemRoles = validateAndGetSystemRoles(userRequest.getSystemRoles());
                     // Update roles
-                    insertSystemRoles(actingUserId, newUser.getId(), systemRoles);
+                    insertSystemRoles(actingUser, newUser.getId(), systemRoles);
                 }
 
 
@@ -111,7 +112,7 @@ public class UserService {
         }
     }
 
-    private Optional<User> createOptional(UUID actingUserId, UserRequest user) {
+    private Optional<User> createOptional(AuthenticatedUser actingUser, UserRequest user) {
 
         if (userEmailInUse(user.getEmail())) {
             return Optional.empty();
@@ -120,14 +121,14 @@ public class UserService {
         BiUserEntity jooqUser = new BiUserEntity();
         jooqUser.setName(user.getName());
         jooqUser.setEmail(user.getEmail());
-        jooqUser.setCreatedBy(actingUserId);
-        jooqUser.setUpdatedBy(actingUserId);
+        jooqUser.setCreatedBy(actingUser.getId());
+        jooqUser.setUpdatedBy(actingUser.getId());
         dao.insert(jooqUser);
         return Optional.of(new User(jooqUser));
     }
 
 
-    public User update(User actingUser, UUID userId, UserRequest userRequest) throws DoesNotExistException, AlreadyExistsException {
+    public User update(AuthenticatedUser actingUser, UUID userId, UserRequest userRequest) throws DoesNotExistException, AlreadyExistsException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -188,15 +189,15 @@ public class UserService {
         systemUserRoleDao.delete(currentSystemRoles);
     }
 
-    private void insertSystemRoles(UUID actingUserId, UUID userId, List<SystemRole> systemRoles) {
+    private void insertSystemRoles(AuthenticatedUser actingUser, UUID userId, List<SystemRole> systemRoles) {
 
         List<SystemUserRoleEntity> newSystemUserRoles = new ArrayList<>();
         for (SystemRole systemRoleEntity : systemRoles) {
             SystemUserRoleEntity systemUserRoleEntity = SystemUserRoleEntity.builder()
                     .biUserId(userId)
                     .systemRoleId(systemRoleEntity.getId())
-                    .createdBy(actingUserId)
-                    .updatedBy(actingUserId)
+                    .createdBy(actingUser.getId())
+                    .updatedBy(actingUser.getId())
                     .build();
             newSystemUserRoles.add(systemUserRoleEntity);
         }
@@ -207,7 +208,7 @@ public class UserService {
 
     }
 
-    public User updateRoles(User actingUser, UUID userId, SystemRolesRequest systemRolesRequest)
+    public User updateRoles(AuthenticatedUser actingUser, UUID userId, SystemRolesRequest systemRolesRequest)
             throws DoesNotExistException, AuthorizationException, UnprocessableEntityException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
@@ -225,7 +226,7 @@ public class UserService {
         try {
             User user = dsl.transactionResult(configuration -> {
                 deleteSystemRoles(userId);
-                insertSystemRoles(actingUser.getId(), userId, systemRoles);
+                insertSystemRoles(actingUser, userId, systemRoles);
                 return getById(userId).get();
             });
             return user;

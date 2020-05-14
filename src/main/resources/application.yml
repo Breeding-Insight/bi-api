@@ -43,8 +43,8 @@ micronaut:
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
           cookie-domain: ${jwt.cookie.domain}
-          login-success-target-url: ${web.login.url}
-          login-failure-target-url: ${web.login.url}
+          login-success-target-url: ${web.login.success.url}
+          login-failure-target-url: ${web.login.failure.url}
           logout-target-url: ${web.logout.url}
         bearer:
           enabled: false
@@ -87,6 +87,9 @@ datasources:
 #
 web:
   login:
-    url: ${web.loginUrl:`http://localhost:8080?new-login=true`}
+    success:
+      url: ${web.loginUrl:`http://localhost:8080/program-selection`}
+    failure:
+      url: ${web.loginSuccessUrl:`http://localhost:8080/401`}
   logout:
     url: ${web.logoutUrl:`http://localhost:8080`}
