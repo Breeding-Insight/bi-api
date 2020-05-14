@@ -278,30 +278,23 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<ProgramLocation>> addProgramLocation(Principal principal,
-                                                                      @PathVariable UUID programId,
+    public HttpResponse<Response<ProgramLocation>> addProgramLocation(@PathVariable UUID programId,
                                                                       @Valid @Body ProgramLocationRequest locationRequest) {
 
-        String orcid = principal.getName();
-        Optional<User> user = userService.getByOrcid(orcid);
-        if (user.isPresent()) {
-            try {
-                ProgramLocation programLocation = programLocationService.create(user.get(), programId, locationRequest);
-                Response<ProgramLocation> response = new Response(programLocation);
-                return HttpResponse.ok(response);
-            } catch (DoesNotExistException e){
-                log.info(e.getMessage());
-                return HttpResponse.notFound();
-            } catch (MissingRequiredInfoException e){
-                log.info(e.getMessage());
-                return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
-            } catch (UnprocessableEntityException e) {
-                log.info(e.getMessage());
-                return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-            }
-        }
-        else {
-            return HttpResponse.unauthorized();
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            ProgramLocation programLocation = programLocationService.create(actingUser, programId, locationRequest);
+            Response<ProgramLocation> response = new Response(programLocation);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (MissingRequiredInfoException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         }
     }
 
@@ -309,55 +302,40 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<Program>> updateProgramLocation(Principal principal,
-                                                                 @PathVariable UUID programId,
+    public HttpResponse<Response<Program>> updateProgramLocation(@PathVariable UUID programId,
                                                                  @PathVariable UUID locationId,
                                                                  @Valid @Body ProgramLocationRequest locationRequest) {
 
-        String orcid = principal.getName();
-        Optional<User> user = userService.getByOrcid(orcid);
-        if (user.isPresent()) {
-            try {
-                ProgramLocation location = programLocationService.update(user.get(), programId, locationId, locationRequest);
-                Response<Program> response = new Response(location);
-                return HttpResponse.ok(response);
-            } catch (DoesNotExistException e) {
-                log.info(e.getMessage());
-                return HttpResponse.notFound();
-            } catch (MissingRequiredInfoException e) {
-                log.info(e.getMessage());
-                return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
-            } catch (UnprocessableEntityException e) {
-                log.info(e.getMessage());
-                return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-            }
-
-        } else {
-            return HttpResponse.unauthorized();
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            ProgramLocation location = programLocationService.update(actingUser, programId, locationId, locationRequest);
+            Response<Program> response = new Response(location);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (MissingRequiredInfoException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         }
     }
 
     @Delete("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse archiveProgramLocation(Principal principal,
-                                              @PathVariable UUID programId,
+    public HttpResponse archiveProgramLocation(@PathVariable UUID programId,
                                               @PathVariable UUID locationId) {
 
-
-        String orcid = principal.getName();
-        Optional<User> user = userService.getByOrcid(orcid);
-        if (user.isPresent()) {
-            try {
-                programLocationService.archive(user.get(), programId, locationId);
-                return HttpResponse.ok();
-            } catch (DoesNotExistException e){
-                log.info(e.getMessage());
-                return HttpResponse.notFound();
-            }
-        }
-        else {
-            return HttpResponse.unauthorized();
+         try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            programLocationService.archive(actingUser, programId, locationId);
+            return HttpResponse.ok();
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
         }
     }
 

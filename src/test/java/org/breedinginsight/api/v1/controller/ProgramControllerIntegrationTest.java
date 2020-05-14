@@ -186,7 +186,7 @@ public class ProgramControllerIntegrationTest {
                 .build();
 
         try {
-            ProgramLocation location = programLocationService.create(testUser, validProgram.getId(), locationRequest);
+            ProgramLocation location = programLocationService.create(actingUser, validProgram.getId(), locationRequest);
             return location;
         } catch (UnprocessableEntityException e){
             throw new Exception("Unable to create test location");
@@ -249,6 +249,13 @@ public class ProgramControllerIntegrationTest {
     public Topography getTestTopography() {
         List<Topography> topographies = topographyService.getAll();
         return topographies.get(0);
+    }
+
+    public AuthenticatedUser getActingUser() {
+        UUID id = validUser.getId();
+        List<String> systemRoles = new ArrayList<>();
+        systemRoles.add(validRole.getDomain());
+        return new AuthenticatedUser("test_user", systemRoles, id);
     }
 
     //region Program Location Tests
@@ -580,6 +587,23 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    public void postProgramsLocationsNonExistentActiveUser(){
+        JsonObject requestBody = validProgramLocationCoordinatePointRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgramId+"/locations", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+    }
+
+    @Test
     public void putProgramsLocationsInvalidLocation() {
         JsonObject requestBody = validProgramLocationRequest();
         String validProgramId = validProgram.getId().toString();
@@ -826,6 +850,30 @@ public class ProgramControllerIntegrationTest {
         programLocationService.delete(UUID.fromString(locationId));
     }
 
+    @Test
+    @SneakyThrows
+    public void putProgramsLocationsNonExistentActiveUser() {
+
+        ProgramLocation location = insertAndFetchTestLocation();
+        String locationId = location.getId().toString();
+
+        JsonObject requestBody = validProgramLocationRequest();
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+validProgramId+"/locations/"+locationId, requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+
+        programLocationService.delete(UUID.fromString(locationId));
+    }
+
     @SneakyThrows
     public void checkValidLocation(JsonObject programLocation) {
 
@@ -1053,15 +1101,29 @@ public class ProgramControllerIntegrationTest {
         programLocationService.delete(UUID.fromString(locationId));
     }
 
+    @Test
+    @SneakyThrows
+    public void archiveProgramsLocationsNonExistentActiveUser() {
 
+        ProgramLocation location = insertAndFetchTestLocation();
+        String validProgramId = validProgram.getId().toString();
+        String locationId = location.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+validProgramId+"/locations/"+locationId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+
+        programLocationService.delete(UUID.fromString(locationId));
+    }
     //endregion
 
-    public AuthenticatedUser getActingUser() {
-        UUID id = validUser.getId();
-        List<String> systemRoles = new ArrayList<>();
-        systemRoles.add(validRole.getDomain());
-        return new AuthenticatedUser("test_user", systemRoles, id);
-    }
     //region Program User Tests
     @Test
     public void postProgramsUsersInvalidProgram() {
