@@ -1844,13 +1844,14 @@ components:
         abbreviation:
           type: string
         coordinates:
-          $ref: '#/components/schemas/geoJSON'
+          type: string
+          format: geojson
         coordinateUncertainty:
-          type: number
+          type: string
         coordinateDescription:
           type: string
         slope:
-          type: number
+          type: string
         exposure:
           type: string
         documentationUrl:
@@ -2079,13 +2080,14 @@ components:
         abbreviation:
           type: string
         coordinates:
-          $ref: '#/components/schemas/geoJSON'
+          type: string
+          format: geojson
         coordinateUncertainty:
-          type: number
+          type: string
         coordinateDescription:
           type: string
         slope:
-          type: number
+          type: string
         exposure:
           type: string
         documentationUrl:
