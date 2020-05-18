@@ -1858,14 +1858,13 @@ components:
         abbreviation:
           type: string
         coordinates:
-          type: string
-          format: geojson
+          $ref: '#/components/schemas/geoJSON'
         coordinateUncertainty:
-          type: string
+          type: number
         coordinateDescription:
           type: string
         slope:
-          type: string
+          type: number
         exposure:
           type: string
         documentationUrl:
@@ -1892,6 +1891,108 @@ components:
               format: uuid
             name:
               type: string
+    geoJSON:
+      description: 'One geometry as defined by GeoJSON (RFC 7946). All coordinates are decimal values on the WGS84 geographic coordinate reference system.
+        Copied from RFC 7946 Section 3.1.1
+        A position is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or
+        easting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element.'
+      properties:
+        geometry:
+          description: A geometry as defined by GeoJSON (RFC 7946). In this context, only Point or Polygon geometry are allowed.
+          discriminator:
+            mapping:
+              Point: '#/components/schemas/pointGeometry'
+              Polygon: '#/components/schemas/polygonGeometry'
+            propertyName: type
+          example:
+            coordinates:
+              - -76.506042
+              - 42.417373
+              - 123
+            type: Point
+          oneOf:
+            - $ref: '#/components/schemas/pointGeometry'
+            - $ref: '#/components/schemas/polygonGeometry'
+          title: GeoJSON Geometry
+          type: object
+        type:
+          default: Feature
+          description: The literal string "Feature"
+          example: Feature
+          type: string
+      title: GeoJSON
+      type: object
+    pointGeometry:
+      description: 'Copied from RFC 7946 Section 3.1.1
+        A position is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or
+        easting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element.'
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/position'
+        type:
+          default: Point
+          description: The literal string "Point"
+          example: Point
+          type: string
+      type: object
+    polygon:
+      description: An array of linear rings
+      example:
+        - - - -77.456654
+            - 42.241133
+            - 494
+          - - -75.414133
+            - 41.508282
+            - 571
+          - - -76.506042
+            - 42.417373
+            - 123
+          - - -77.456654
+            - 42.241133
+            - 346
+      items:
+        $ref: '#/components/schemas/linearRing'
+      type: array
+    polygonGeometry:
+      description: "An array of Linear Rings. Each Linear Ring is an array of Points. \n\nA Point is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or\neasting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element."
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/polygon'
+        type:
+          default: Polygon
+          description: The literal string "Polygon"
+          example: Polygon
+          type: string
+      type: object
+    position:
+      description: A single position
+      example:
+        - -76.506042
+        - 42.417373
+        - 123
+      items:
+        type: number
+      minItems: 2
+      type: array
+    linearRing:
+      description: An array of at least four positions where the first equals the last
+      example:
+        - - -77.456654
+          - 42.241133
+          - 494
+        - - -75.414133
+          - 41.508282
+          - 571
+        - - -76.506042
+          - 42.417373
+          - 123
+        - - -77.456654
+          - 42.241133
+          - 346
+      items:
+        $ref: '#/components/schemas/position'
+      minItems: 4
+      type: array
     newUserRequest:
       type: object
       properties:
@@ -1986,14 +2087,13 @@ components:
         abbreviation:
           type: string
         coordinates:
-          type: string
-          format: geojson
+          $ref: '#/components/schemas/geoJSON'
         coordinateUncertainty:
-          type: string
+          type: number
         coordinateDescription:
           type: string
         slope:
-          type: string
+          type: number
         exposure:
           type: string
         documentationUrl:
