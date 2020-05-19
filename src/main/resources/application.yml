@@ -90,6 +90,6 @@ web:
     success:
       url: ${web.loginSuccessUrl:`http://localhost:8080/program-selection`}
     failure:
-      url: ${web.loginFailureUrl:`http://localhost:8080/401`}
+      url: ${web.loginFailureUrl:`http://localhost:8080/login-failed`}
   logout:
     url: ${web.logoutUrl:`http://localhost:8080`}
