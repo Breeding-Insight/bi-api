@@ -14,7 +14,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.SystemRoleService;
@@ -22,7 +21,6 @@ import org.breedinginsight.services.UserService;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
-import java.util.UUID;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -293,27 +291,6 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    public void postUsersNonExistingActingUser() {
-        String name = "Test User2";
-        String email = "test2@test.com";
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", name);
-        requestBody.addProperty("email", email);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-
-    @Test
     @Order(3)
     public void putUsersEmailAlreadyExists() {
         JsonObject requestBody = new JsonObject();
@@ -403,26 +380,6 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(7)
-    public void putUsersNonExistingActingUser() {
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", "Test User2");
-        requestBody.addProperty("email", "test@test123.com");
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT("/users/" + testUserUUID, requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-
-    @Test
     @SneakyThrows
     void putUsersRolesNotExist() {
 
@@ -449,7 +406,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(8)
+    @Order(7)
     void putUserRolesOwnRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -475,7 +432,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(9)
+    @Order(8)
     void putUserRolesOtherUserSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -506,29 +463,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    public void putUserRolesNonExistingActingUser() {
-
-        JsonObject requestBody = new JsonObject();
-        JsonObject role = new JsonObject();
-        role.addProperty("id", validSystemRole.getId().toString());
-        JsonArray roles = new JsonArray();
-        roles.add(role);
-        requestBody.add("systemRoles", roles);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT("/users/" + otherTestUser.getId().toString() + "/roles", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-
-    @Test
-    @Order(10)
+    @Order(9)
     public void getUserInfoRegisteredUser() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/userinfo").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
@@ -552,7 +487,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(11)
+    @Order(10)
     public void putUserRolesNullSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -571,7 +506,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(12)
+    @Order(11)
     void putUserRolesDuplicateRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -602,7 +537,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(13)
+    @Order(12)
     void putUsersRolesEmptyRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -647,7 +582,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(14)
+    @Order(13)
     public void deleteUsersExisting() {
 
         Flowable<HttpResponse<String>> call = client.exchange(

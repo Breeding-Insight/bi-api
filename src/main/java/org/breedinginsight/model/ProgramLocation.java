@@ -11,9 +11,7 @@ import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.geojson.Feature;
-import org.geojson.GeoJsonObject;
 import org.jooq.Record;
-import org.jooq.exception.DataAccessException;
 
 import static org.breedinginsight.dao.db.Tables.PLACE;
 

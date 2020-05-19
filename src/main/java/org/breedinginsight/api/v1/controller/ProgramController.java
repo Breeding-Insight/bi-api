@@ -20,7 +20,6 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;

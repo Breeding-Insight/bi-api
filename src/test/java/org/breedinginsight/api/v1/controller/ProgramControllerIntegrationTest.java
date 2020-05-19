@@ -587,23 +587,6 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    public void postProgramsLocationsNonExistentActiveUser(){
-        JsonObject requestBody = validProgramLocationCoordinatePointRequest();
-        String validProgramId = validProgram.getId().toString();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgramId+"/locations", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-
-    @Test
     public void putProgramsLocationsInvalidLocation() {
         JsonObject requestBody = validProgramLocationRequest();
         String validProgramId = validProgram.getId().toString();
@@ -850,30 +833,6 @@ public class ProgramControllerIntegrationTest {
         programLocationService.delete(UUID.fromString(locationId));
     }
 
-    @Test
-    @SneakyThrows
-    public void putProgramsLocationsNonExistentActiveUser() {
-
-        ProgramLocation location = insertAndFetchTestLocation();
-        String locationId = location.getId().toString();
-
-        JsonObject requestBody = validProgramLocationRequest();
-        String validProgramId = validProgram.getId().toString();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT("/programs/"+validProgramId+"/locations/"+locationId, requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-
-        programLocationService.delete(UUID.fromString(locationId));
-    }
-
     @SneakyThrows
     public void checkValidLocation(JsonObject programLocation) {
 
@@ -1101,27 +1060,6 @@ public class ProgramControllerIntegrationTest {
         programLocationService.delete(UUID.fromString(locationId));
     }
 
-    @Test
-    @SneakyThrows
-    public void archiveProgramsLocationsNonExistentActiveUser() {
-
-        ProgramLocation location = insertAndFetchTestLocation();
-        String validProgramId = validProgram.getId().toString();
-        String locationId = location.getId().toString();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/programs/"+validProgramId+"/locations/"+locationId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-
-        programLocationService.delete(UUID.fromString(locationId));
-    }
     //endregion
 
     //region Program User Tests
@@ -1272,23 +1210,6 @@ public class ProgramControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-    }
-
-    @Test
-    public void postProgramsUsersNonExistentActiveUser() {
-        JsonObject requestBody = validProgramUserRequest();
-        String validProgramId = validProgram.getId().toString();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgramId+"/users", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
     }
 
     @Test
@@ -1916,28 +1837,6 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    public void postProgramsNonExistentActiveUser() {
-        SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                .id(validSpecies.getId())
-                .build();
-
-        ProgramRequest validRequest = ProgramRequest.builder()
-                .name(validProgram.getName())
-                .species(speciesRequest)
-                .build();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs", gson.toJson(validRequest))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-    @Test
     public void putProgramsInvalidSpecies() {
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
@@ -2097,31 +1996,6 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    public void putProgramsActiveUserSuccess() {
-        SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                .id(validSpecies.getId())
-                .build();
-
-        Program alteredProgram = validProgram;
-        alteredProgram.setName("changed");
-        ProgramRequest validRequest = ProgramRequest.builder()
-                .name(alteredProgram.getName())
-                .species(speciesRequest)
-                .build();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT(String.format("/programs/%s", validProgram.getId()) , gson.toJson(validRequest))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-
-    @Test
     public void archiveProgramsInvalidId() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -2185,27 +2059,5 @@ public class ProgramControllerIntegrationTest {
         programService.delete(UUID.fromString(newProgramId));
     }
 
-    @Test
-    public void archiveProgramsNonExistentActiveUser(){
-        SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                .id(validSpecies.getId())
-                .build();
-
-        ProgramRequest validRequest = ProgramRequest.builder()
-                .name(validProgram.getName())
-                .species(speciesRequest)
-                .build();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs", gson.toJson(validRequest))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "non-existent-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
     //endregion
 }

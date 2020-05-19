@@ -2,20 +2,17 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.*;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

@@ -8,7 +8,6 @@ import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
 import org.breedinginsight.daos.ProgramLocationDAO;
 import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;

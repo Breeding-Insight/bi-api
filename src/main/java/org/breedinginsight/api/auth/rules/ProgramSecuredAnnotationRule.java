@@ -27,23 +27,29 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
     @Override
     public SecurityRuleResult check(HttpRequest request, @Nullable RouteMatch routeMatch, @Nullable Map<String, Object> claims) {
-        //check the system role first
-        var systemAuth = super.check(request, routeMatch, claims);
+        // Does not approve request so that checks after it can check. Only rejects on fail.
 
-        if (systemAuth == SecurityRuleResult.ALLOWED) {
-            //if successful, then go ahead with checking the program role
-            if (routeMatch instanceof MethodBasedRouteMatch) {
-                MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
+        if (routeMatch instanceof MethodBasedRouteMatch) {
+            MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
 
-                String programId = (String) routeMatch.getVariableValues()
-                        .get("programId");
-                if (methodRoute.hasAnnotation(ProgramSecured.class)) {
+            String programId = (String) routeMatch.getVariableValues()
+                    .get("programId");
+            if (methodRoute.hasAnnotation(ProgramSecured.class)) {
+
+                if (claims != null){
                     Optional<String[]> programRoles = methodRoute.getValue(ProgramSecured.class, String[].class);
                     if (programRoles.isEmpty()) {
                         programRoles = Optional.of(new String[]{"MEMBER"});
                     }
-                    return compareRoles(Arrays.asList(programRoles.get()), getUserProgramRoles(claims, programId));
+                    SecurityRuleResult result = compareRoles(Arrays.asList(programRoles.get()), getUserProgramRoles(claims, programId));
+
+                    if (result == SecurityRuleResult.ALLOWED){
+                        return SecurityRuleResult.UNKNOWN;
+                    }
                 }
+
+                // Rejects if no claims, or does not have correct roles
+                return SecurityRuleResult.REJECTED;
             }
         }
 
@@ -51,6 +57,8 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
     }
 
     private List<String> getUserProgramRoles(Map<String, Object> claims, String programId) {
+        //TODO: Write test for claims that does not have programRoles in it
+        //TODO: Write test for a program id that does not have program id in it
         var userAllProgRoles = (Map<String, Object>) claims.get("programRoles");
         List<String> userProgRoles = (List<String>) userAllProgRoles.get(programId);
 
