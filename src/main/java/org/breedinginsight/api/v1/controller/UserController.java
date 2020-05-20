@@ -137,10 +137,10 @@ public class UserController {
     @Delete("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({"ADMIN"})
-    public HttpResponse deleteUser(@PathVariable UUID userId){
+    public HttpResponse archiveUser(@PathVariable UUID userId){
 
         try {
-            userService.delete(userId);
+            userService.archive(userId);
             return HttpResponse.ok();
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());

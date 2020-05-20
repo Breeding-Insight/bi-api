@@ -182,6 +182,22 @@ public class ProgramUserService {
         }
     }
 
+    public void archiveProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
+        /* Remove a user from a program, but don't delete the user. */
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        if (userService.getById(userId).isEmpty())
+        {
+            throw new DoesNotExistException("User id does not exist");
+        }
+
+        programUserDao.archiveProgramUserRoles(programId, userId);
+    }
+
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
         /* Remove a user from a program, but don't delete the user. */
 

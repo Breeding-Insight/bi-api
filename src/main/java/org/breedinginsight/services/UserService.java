@@ -163,6 +163,18 @@ public class UserService {
         });
     }
 
+    public void archive(UUID userId) throws DoesNotExistException {
+
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        biUser.setActive(false);
+        dao.update(biUser);
+    }
+
     private boolean userEmailInUse(String email) {
 
         List<BiUserEntity> existingUsers = dao.fetchByEmail(email);

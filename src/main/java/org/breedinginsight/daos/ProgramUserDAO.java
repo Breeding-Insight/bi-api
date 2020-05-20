@@ -31,6 +31,13 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                 .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId).and(PROGRAM_USER_ROLE.USER_ID.eq(userId))).execute();
     }
 
+    public void archiveProgramUserRoles(UUID programId, UUID userId) {
+        dsl.update(PROGRAM_USER_ROLE)
+                .set(PROGRAM_USER_ROLE.ACTIVE, false)
+                .where(PROGRAM_USER_ROLE.USER_ID.eq(userId)).and(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
+                .execute();
+    }
+
     public ProgramUser getProgramUser(UUID programId, UUID userId) {
         ProgramUser user = null;
 

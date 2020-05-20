@@ -332,8 +332,8 @@ paths:
     delete:
       tags:
         - users
-      summary: Delete user
-      description: This can only be done by the logged in user.
+      summary: Deactivate user
+      description: Deactivate User
       operationId: deleteUser
       parameters:
         - name: id
@@ -1058,8 +1058,8 @@ paths:
           explode: false
           schema:
             type: string
-      summary: Remove user from the specified program
-      description: Remove user from the specified program
+      summary: Deactivates the user in the specified program
+      description: Deactivates the user in the specified program
       operationId: deleteProgramUser
       responses:
         "200":
