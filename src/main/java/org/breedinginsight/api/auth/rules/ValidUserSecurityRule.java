@@ -1,7 +1,7 @@
 package org.breedinginsight.api.auth.rules;
 
+import io.micronaut.http.HttpMethod;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.annotation.Get;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.AbstractSecurityRule;
 import io.micronaut.security.rules.SecurityRuleResult;
@@ -37,8 +37,7 @@ public class ValidUserSecurityRule extends AbstractSecurityRule {
         // Check user if the route is secured
         if (routeMatch instanceof MethodBasedRouteMatch) {
             MethodBasedRouteMatch methodRoute = ((MethodBasedRouteMatch) routeMatch);
-            if (methodRoute.hasAnnotation(Secured.class) && !methodRoute.hasAnnotation(Get.class)) {
-
+            if (methodRoute.hasAnnotation(Secured.class) && request.getMethod() != HttpMethod.GET) {
                 if (claims != null){
                     String requestId = (String) claims.get("id");
                     if (requestId != null) {
@@ -53,7 +52,6 @@ public class ValidUserSecurityRule extends AbstractSecurityRule {
                         }
                     }
                 }
-
                 // Reject if no claims, no id in claims, user doesn't exist, or user is inactive
                 return SecurityRuleResult.REJECTED;
             }
