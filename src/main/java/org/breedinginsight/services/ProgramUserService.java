@@ -135,7 +135,7 @@ public class ProgramUserService {
         return programUser.get();
     }
 
-    public ProgramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, ProgramUserRequest programUserRequest)
+    public ProgramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, UUID userId, ProgramUserRequest programUserRequest)
             throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
 
         try {
@@ -148,7 +148,7 @@ public class ProgramUserService {
                 User user;
                 List<Role> roles = validateAndGetRoles(programUserRequest);
 
-                Optional<User> optUser = userService.getById(programUserRequest.getUser().getId());
+                Optional<User> optUser = userService.getById(userId);
 
                 if (optUser.isPresent()) {
                     user = optUser.get();

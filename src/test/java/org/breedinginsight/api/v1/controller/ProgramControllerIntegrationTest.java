@@ -1505,6 +1505,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
     @Order(6)
     public void deleteProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
@@ -1516,6 +1517,9 @@ public class ProgramControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Remove program user for following tests since endpoint only archives it.
+        programUserService.removeProgramUser(validProgram.getId(), validUser.getId());
     }
 
     @Test

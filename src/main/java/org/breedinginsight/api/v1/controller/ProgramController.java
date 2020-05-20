@@ -203,7 +203,7 @@ public class ProgramController {
                                                                  @Valid @Body ProgramUserRequest programUserRequest) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ProgramUser programUser = programUserService.editProgramUser(actingUser, programId, programUserRequest);
+            ProgramUser programUser = programUserService.editProgramUser(actingUser, programId, userId, programUserRequest);
             Response response = new Response(programUser);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
