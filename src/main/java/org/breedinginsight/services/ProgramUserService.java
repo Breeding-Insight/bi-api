@@ -190,7 +190,7 @@ public class ProgramUserService {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        if (userService.getById(userId).isEmpty())
+        if (!userService.exists(userId))
         {
             throw new DoesNotExistException("User id does not exist");
         }

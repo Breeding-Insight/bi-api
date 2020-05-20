@@ -9,7 +9,9 @@ import org.breedinginsight.dao.db.tables.daos.SystemUserRoleDao;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemUserRoleEntity;
+import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
@@ -37,6 +39,8 @@ public class UserService {
     private SystemUserRoleDao systemUserRoleDao;
     @Inject
     private SystemRoleDao systemRoleDao;
+    @Inject
+    private ProgramUserDAO programUserDAO;
     @Inject
     private DSLContext dsl;
 
@@ -163,12 +167,18 @@ public class UserService {
         });
     }
 
-    public void archive(UUID userId) throws DoesNotExistException {
+    public void archive(UUID userId) throws DoesNotExistException, UnprocessableEntityException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        // Check the user is not active in any programs
+        List<ProgramUser> programUsers = programUserDAO.getProgramUsersByUserId(userId);
+        if (programUsers.size() > 0){
+            throw new UnprocessableEntityException("User is active in programs. Cannot archive.");
         }
 
         biUser.setActive(false);

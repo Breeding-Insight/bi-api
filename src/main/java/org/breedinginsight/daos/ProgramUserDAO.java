@@ -44,13 +44,9 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         if (programId != null && userId != null) {
             BiUserTable createdByUser = BI_USER.as("createdByUser");
             BiUserTable updatedByUser = BI_USER.as("updatedByUser");
-            Result<Record> records = dsl.select()
-                    .from(PROGRAM_USER_ROLE)
-                    .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
-                    .join(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
-                    .join(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
-                    .join(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
-                    .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId).and(PROGRAM_USER_ROLE.USER_ID.eq(userId)))
+            Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
+                    .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId)
+                    .and(PROGRAM_USER_ROLE.USER_ID.eq(userId)))
                     .fetch();
 
             // populate program, user info
@@ -80,12 +76,7 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         List<ProgramUser> resultProgramsUsers = new ArrayList<>();
 
         // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
-        Result<Record> records = dsl.select()
-                .from(PROGRAM_USER_ROLE)
-                .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
-                .join(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
-                .join(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
-                .join(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
+        Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
                 .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
                 .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
                 .fetch();
@@ -118,4 +109,40 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         return resultProgramsUsers;
     }
 
+    public List<ProgramUser> getProgramUsersByUserId(UUID userId) {
+
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+        List<ProgramUser> resultProgramsUsers = new ArrayList<>();
+
+        // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
+        Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
+                .where(PROGRAM_USER_ROLE.USER_ID.eq(userId))
+                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
+                .fetch();
+
+        // Parse the result
+        for (Record record: records){
+            // program user exists
+            ProgramUser programUser = ProgramUser.parseSQLRecord(record);
+            Role role = Role.parseSQLRecord(record);
+            programUser.setUser(User.parseSQLRecord(record));
+            programUser.addRole(role);
+            programUser.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
+            programUser.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
+            resultProgramsUsers.add(programUser);
+        }
+
+        return resultProgramsUsers;
+    }
+
+    public SelectOnConditionStep<Record> getProgramUsersQuery(BiUserTable createdByTableAlias, BiUserTable updatedByTableAlias) {
+
+        return dsl.select()
+                .from(PROGRAM_USER_ROLE)
+                .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
+                .join(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
+                .join(createdByTableAlias).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByTableAlias.ID))
+                .join(updatedByTableAlias).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByTableAlias.ID));
+    }
 }
