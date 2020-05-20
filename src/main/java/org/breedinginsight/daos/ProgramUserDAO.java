@@ -79,6 +79,7 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
         List<ProgramUser> resultProgramsUsers = new ArrayList<>();
 
+        // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
         Result<Record> records = dsl.select()
                 .from(PROGRAM_USER_ROLE)
                 .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
@@ -86,6 +87,7 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                 .join(createdByUser).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByUser.ID))
                 .join(updatedByUser).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByUser.ID))
                 .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId))
+                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
                 .fetch();
 
         // Parse the result
