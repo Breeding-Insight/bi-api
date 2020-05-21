@@ -13,14 +13,18 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.SystemRole;
-import org.breedinginsight.model.User;
-import org.breedinginsight.services.SystemRoleService;
-import org.breedinginsight.services.UserService;
+import org.breedinginsight.model.*;
+import org.breedinginsight.services.*;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -32,6 +36,10 @@ import javax.inject.Inject;
 public class UserControllerIntegrationTest {
 
     private String testUserUUID;
+    Program validProgram;
+    Species validSpecies;
+    Role validRole;
+    AuthenticatedUser actingUser;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -45,6 +53,14 @@ public class UserControllerIntegrationTest {
     UserService userService;
     @Inject
     SystemRoleService systemRoleService;
+    @Inject
+    ProgramService programService;
+    @Inject
+    SpeciesService speciesService;
+    @Inject
+    RoleService roleService;
+    @Inject
+    ProgramUserService programUserService;
 
     private User testUser;
     private User otherTestUser;
@@ -57,6 +73,56 @@ public class UserControllerIntegrationTest {
         testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
         otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
         validSystemRole = systemRoleService.getAll().get(0);
+
+        //TODO: All of this can go away when we can run sql statements before tests
+        // Get species for tests
+        Species species = getTestSpecies();
+        validSpecies = species;
+        // Get role for tests
+        validRole = getTestRole();
+        actingUser = getActingUser();
+        // Insert and get program for tests
+        try {
+            validProgram = insertAndFetchTestProgram();
+        } catch (Exception e){
+            throw new Exception(e.toString());
+        }
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
+    }
+
+    public Program insertAndFetchTestProgram() throws Exception{
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+        ProgramRequest programRequest = ProgramRequest.builder()
+                .name("Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .build();
+        try {
+            Program program = programService.create(programRequest, actingUser);
+            return program;
+        } catch (UnprocessableEntityException e){
+            throw new Exception("Unable to create test program");
+        }
+    }
+
+    public Role getTestRole() {
+        List<Role> roles = roleService.getAll();
+        return roles.get(0);
+    }
+
+    public AuthenticatedUser getActingUser() {
+        UUID id = testUser.getId();
+        List<String> systemRoles = new ArrayList<>();
+        systemRoles.add(validRole.getDomain());
+        return new AuthenticatedUser("test_user", systemRoles, id);
     }
 
     @Test
@@ -581,21 +647,55 @@ public class UserControllerIntegrationTest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
+
     @Test
+    @SneakyThrows
     @Order(13)
-    public void deleteUsersExisting() {
+    public void archiveUserActiveInProgram() {
+        // Add test user to that program
+        List<RoleRequest> roleRequests = new ArrayList<>();
+        RoleRequest role = RoleRequest.builder()
+                .id(validRole.getId())
+                .build();
+        roleRequests.add(role);
+        UserIdRequest userIdRequest = UserIdRequest.builder()
+                .id(otherTestUser.getId())
+                .build();
+        ProgramUserRequest programUserRequest = ProgramUserRequest.builder()
+                .roles(roleRequests)
+                .user(userIdRequest)
+                .build();
+
+        programUserService.addProgramUser(actingUser, validProgram.getId(), programUserRequest);
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/users/"+testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/users/" + otherTestUser.getId().toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Remove test user from the program
+        programUserService.removeProgramUser(validProgram.getId(), otherTestUser.getId());
+    }
+
+
+    @Test
+    @Order(14)
+    public void archiveUsersExisting() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/users/"+otherTestUser.getId().toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
-
     }
 
     @Test
-    public void deleteUsersNotExistingId() {
+    public void archiveUsersNotExistingId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/users/e91f816b-b7aa-4e89-9d00-3e25fdc00e14").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );

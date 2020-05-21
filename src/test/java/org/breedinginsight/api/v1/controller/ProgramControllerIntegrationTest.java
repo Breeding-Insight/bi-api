@@ -1479,7 +1479,7 @@ public class ProgramControllerIntegrationTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
     }
     @Test
-    public void deleteProgramsUsersNotExistingProgramId() {
+    public void archiveProgramsUsersNotExistingProgramId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/programs/"+invalidProgram+"/users/"+invalidProgram).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -1491,7 +1491,7 @@ public class ProgramControllerIntegrationTest {
     }
 
     @Test
-    public void deleteProgramsUsersNotExistingUserId() {
+    public void archiveProgramsUsersNotExistingUserId() {
         String validProgramId = validProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -1507,7 +1507,7 @@ public class ProgramControllerIntegrationTest {
     @Test
     @SneakyThrows
     @Order(6)
-    public void deleteProgramsUsersSuccess() {
+    public void archiveProgramsUsersSuccess() {
         String validProgramId = validProgram.getId().toString();
         String validUserId = validUser.getId().toString();
 
@@ -2064,4 +2064,6 @@ public class ProgramControllerIntegrationTest {
     }
 
     //endregion
+
+
 }
