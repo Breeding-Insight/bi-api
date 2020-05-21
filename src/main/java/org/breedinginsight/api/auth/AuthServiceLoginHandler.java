@@ -54,7 +54,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             }
         }
 
-        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
+        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.UNKNOWN);
         return super.loginFailed(authenticationFailed);
     }
 
