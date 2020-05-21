@@ -1,5 +1,7 @@
 package org.breedinginsight.api.auth;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.DefaultSecurityService;
 
@@ -25,6 +27,6 @@ public class SecurityService extends DefaultSecurityService {
             }
         }
 
-        return null;
+        throw new HttpStatusException(HttpStatus.UNAUTHORIZED, null);
     }
 }
