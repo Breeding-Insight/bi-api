@@ -109,7 +109,4 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         return resultProgramsUsers;
     }
 
-
-
-
 }

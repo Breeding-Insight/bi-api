@@ -3,11 +3,11 @@ package org.breedinginsight.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
 import org.breedinginsight.daos.ProgramLocationDAO;
 import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -165,7 +165,7 @@ public class ProgramLocationService {
         return true;
     }
 
-    public ProgramLocation create(User actingUser,
+    public ProgramLocation create(AuthenticatedUser actingUser,
                                   UUID programId,
                                   ProgramLocationRequest programLocationRequest)
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
@@ -208,7 +208,7 @@ public class ProgramLocationService {
         return location;
     }
 
-    public ProgramLocation update(User actingUser,
+    public ProgramLocation update(AuthenticatedUser actingUser,
                                   UUID programId,
                                   UUID locationId,
                                   ProgramLocationRequest programLocationRequest)
@@ -250,7 +250,7 @@ public class ProgramLocationService {
         return location;
     }
 
-    public void archive(User actingUser, UUID programId, UUID locationId) throws DoesNotExistException {
+    public void archive(AuthenticatedUser actingUser, UUID programId, UUID locationId) throws DoesNotExistException {
 
         if (!programService.exists(programId))
         {

@@ -8,6 +8,8 @@ import io.micronaut.http.annotation.Delete;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -26,7 +28,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,15 +39,17 @@ public class UserController {
 
     @Inject
     private UserService userService;
+    @Inject
+    private SecurityService securityService;
 
     @Get("/userinfo")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> userinfo(Principal principal) {
+    @Secured({SecurityRule.IS_AUTHENTICATED})
+    public HttpResponse<Response<User>> userinfo() {
 
-        String orcid = principal.getName();
-        Optional<User> user = userService.getByOrcid(orcid);
+        AuthenticatedUser actingUser = securityService.getUser();
+        Optional<User> user = userService.getById(actingUser.getId());
 
         if (user.isPresent()) {
             Response<User> response = new Response<>(user.get());
@@ -94,19 +97,14 @@ public class UserController {
     @Post("/users")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> createUser(Principal principal, @Body @Valid UserRequest requestUser){
+    @Secured({"ADMIN"})
+    public HttpResponse<Response<User>> createUser(@Body @Valid UserRequest requestUser){
 
         try {
-            String orcid = principal.getName();
-            Optional<User> actingUser = userService.getByOrcid(orcid);
-            if (actingUser.isPresent()){
-                User user = userService.create(actingUser.get(), requestUser);
-                Response<User> response = new Response<>(user);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            User user = userService.create(actingUser, requestUser);
+            Response<User> response = new Response<>(user);
+            return HttpResponse.ok(response);
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
@@ -120,18 +118,13 @@ public class UserController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> updateUser(Principal principal, @PathVariable UUID userId, @Body @Valid UserRequest requestUser){
+    public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body @Valid UserRequest requestUser){
 
         try {
-            String orcid = principal.getName();
-            Optional<User> actingUser = userService.getByOrcid(orcid);
-            if (actingUser.isPresent()){
-                User user = userService.update(actingUser.get(), userId, requestUser);
-                Response<User> response = new Response<>(user);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
+            AuthenticatedUser actingUser = securityService.getUser();
+            User user = userService.update(actingUser, userId, requestUser);
+            Response<User> response = new Response<>(user);
+            return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -143,7 +136,7 @@ public class UserController {
 
     @Delete("/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @Secured({"ADMIN"})
     public HttpResponse deleteUser(@PathVariable UUID userId){
 
         try {
@@ -158,22 +151,14 @@ public class UserController {
     @Put("users/{userId}/roles")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> updateUserSystemRoles(Principal principal, @PathVariable UUID userId, @Body @Valid SystemRolesRequest requestUser) {
+    @Secured({"ADMIN"})
+    public HttpResponse<Response<User>> updateUserSystemRoles(@PathVariable UUID userId, @Body @Valid SystemRolesRequest requestUser) {
 
         try {
-            String orcid = principal.getName();
-            Optional<User> actingUser = userService.getByOrcid(orcid);
-
-            if (actingUser.isPresent()) {
-                User user = userService.updateRoles(actingUser.get(), userId, requestUser);
-                Response<User> response = new Response<>(user);
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.unauthorized();
-            }
-
-
+            AuthenticatedUser actingUser = securityService.getUser();
+            User user = userService.updateRoles(actingUser, userId, requestUser);
+            Response<User> response = new Response<>(user);
+            return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();

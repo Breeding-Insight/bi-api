@@ -14,7 +14,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.Role;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.SystemRoleService;
@@ -22,7 +21,6 @@ import org.breedinginsight.services.UserService;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
-import java.util.UUID;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -486,18 +484,6 @@ public class UserControllerIntegrationTest {
         JsonObject role = (JsonObject) resultRoles.get(0);
         assertEquals(validSystemRole.getId().toString(), role.get("id").getAsString(), "Role id was incorrect");
         assertEquals(validSystemRole.getDomain(), role.get("domain").getAsString(), "Role domain was incorrect");
-    }
-
-    @Test
-    public void getUserInfoUnregisteredUser() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/userinfo").cookie(new NettyCookie("phylo-token", "test-unregistered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatus());
     }
 
     @Test

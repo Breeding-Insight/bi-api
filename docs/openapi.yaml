@@ -1676,6 +1676,20 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /health:
+    get:
+      tags:
+        - server management
+      summary: checks if the server is up and able to be contacted
+      description: checks if the server is up and able to be contacted
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                status: "UP"
 components:
   schemas:
     metadata:
@@ -1879,11 +1893,8 @@ components:
               type: string
     geoJSON:
       description: 'One geometry as defined by GeoJSON (RFC 7946). All coordinates are decimal values on the WGS84 geographic coordinate reference system.
-
         Copied from RFC 7946 Section 3.1.1
-
         A position is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or
-
         easting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element.'
       properties:
         geometry:
@@ -1913,10 +1924,7 @@ components:
       type: object
     pointGeometry:
       description: 'Copied from RFC 7946 Section 3.1.1
-
-
         A position is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or
-
         easting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element.'
       properties:
         coordinates:
