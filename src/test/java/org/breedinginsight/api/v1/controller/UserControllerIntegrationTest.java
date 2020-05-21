@@ -659,7 +659,7 @@ public class UserControllerIntegrationTest {
                 .build();
         roleRequests.add(role);
         UserIdRequest userIdRequest = UserIdRequest.builder()
-                .id(otherTestUser.getId())
+                .id(UUID.fromString(testUserUUID))
                 .build();
         ProgramUserRequest programUserRequest = ProgramUserRequest.builder()
                 .roles(roleRequests)
@@ -669,7 +669,7 @@ public class UserControllerIntegrationTest {
         programUserService.addProgramUser(actingUser, validProgram.getId(), programUserRequest);
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/users/" + otherTestUser.getId().toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/users/" + testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
@@ -678,7 +678,7 @@ public class UserControllerIntegrationTest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
         // Remove test user from the program
-        programUserService.removeProgramUser(validProgram.getId(), otherTestUser.getId());
+        programUserService.removeProgramUser(validProgram.getId(), UUID.fromString(testUserUUID));
     }
 
 
@@ -687,7 +687,7 @@ public class UserControllerIntegrationTest {
     public void archiveUsersExisting() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE("/users/"+otherTestUser.getId().toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE("/users/"+testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
