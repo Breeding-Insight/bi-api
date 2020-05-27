@@ -1697,6 +1697,418 @@ paths:
             application/json:
               example:
                 status: "UP"
+  /countries:
+    get:
+      tags:
+        - countries
+      summary: Get list of all countries in the system.
+      description: Get list of all countries
+      operationId: getCountries
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/countriesResponse'
+              examples:
+                arrayOfCountries:
+                  $ref: '#/components/examples/arrayOfCountries'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /countries/{id}:
+    get:
+      tags:
+        - countries
+      summary: Get country information
+      description: Get a specific country
+      operationId: getCountryById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the country information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/countriesResponseSingle'
+              examples:
+                singleCountry:
+                  $ref: '#/components/examples/singleCountry'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /topographies:
+    get:
+      tags:
+        - topographies
+      summary: Get list of all topographies in the system.
+      description: Get list of all topographies
+      operationId: getTopographies
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/topographiesResponse'
+              examples:
+                arrayOfTopographies:
+                  $ref: '#/components/examples/arrayOfTopographies'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /topographies/{id}:
+    get:
+      tags:
+        - topographies
+      summary: Get topography information
+      description: Get a specific topography
+      operationId: getTopographyById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the topography information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/topographiesResponseSingle'
+              examples:
+                singleTopography:
+                  $ref: '#/components/examples/singleTopography'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /accessibilities:
+    get:
+      tags:
+        - accessibilities
+      summary: Get list of all accessibilities in the system.
+      description: Get list of all accessibilities
+      operationId: getAccessibilities
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accessibilitiesResponse'
+              examples:
+                arrayOfAccessibilities:
+                  $ref: '#/components/examples/arrayOfAccessibilities'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /accessibilities/{id}:
+    get:
+      tags:
+        - accessibilities
+      summary: Get accessibility information
+      description: Get a specific accessibility
+      operationId: getAccessibilityById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the accessibility information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accessibilitiesResponseSingle'
+              examples:
+                singleAccessibility:
+                  $ref: '#/components/examples/singleAccessibility'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /environmentTypes:
+    get:
+      tags:
+        - environmentTypes
+      summary: Get list of all environment yypes in the system.
+      description: Get list of all environment yypes
+      operationId: getEnvironmentTypes
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/environmentTypesResponse'
+              examples:
+                arrayOfEnvironmentTypes:
+                  $ref: '#/components/examples/arrayOfEnvironmentTypes'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /environmentTypes/{id}:
+    get:
+      tags:
+        - environmentTypes
+      summary: Get environment type information
+      description: Get a specific environment type
+      operationId: getEnvironmentTypeById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the environment type information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/environmentTypesResponseSingle'
+              examples:
+                singleEnvironmentType:
+                  $ref: '#/components/examples/singleEnvironmentType'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
 components:
   schemas:
     metadata:
@@ -1745,6 +2157,42 @@ components:
         name:
           type: string
         email:
+          type: string
+    country:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        alpha2Code:
+          type: string
+        alpha3Code:
+          type: string
+    topography:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    accessibility:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    environmentType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
           type: string
     role:
       type: object
@@ -2167,6 +2615,134 @@ components:
       required:
         - species
         - name
+    countriesResponse:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/countriesResponseResult'
+    countriesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of countries
+          items:
+            $ref: '#/components/schemas/country'
+    countriesResponseSingle:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/country'
+    topographiesResponse:
+      title: topographiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographiesResponseResult'
+    topographiesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of topographies
+          items:
+            $ref: '#/components/schemas/topography'
+    topographiesResponseSingle:
+      title: topographiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topography'
+    accessibilitiesResponse:
+      title: accessibilitiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilitiesResponseResult'
+    accessibilitiesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of accessibilities
+          items:
+            $ref: '#/components/schemas/accessibility'
+    accessibilitiesResponseSingle:
+      title: accessibilitiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibility'
+    environmentTypesResponse:
+      title: environmentTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentTypesResponseResult'
+    environmentTypesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of environemnt types
+          items:
+            $ref: '#/components/schemas/environmentType'
+    environmentTypesResponseSingle:
+      title: environmentTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentType'
     rolesResponse:
       title: rolesResponse
       required:
@@ -2503,6 +3079,128 @@ components:
           roles:
             - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
               domain: Field Manager
+    arrayOfCountries:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: 75a9e07f-1f00-45ff-a7e9-17eeddd35122
+              name: United States of America
+              alpha2Code: US
+              alpha3Code: USA
+            - id: 8f6018d9-054e-45a2-bcfa-3f31940431d0
+              name: United Kingdom of Great Britain and Northern Ireland
+              alpha2Code: GB
+              alpha3Code: GBR
+    singleCountry:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: 75a9e07f-1f00-45ff-a7e9-17eeddd35122
+          name: United States of America
+          alpha2Code: US
+          alpha3Code: USA
+    arrayOfTopographies:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: 60a5b049-064c-4550-b5cd-2a7394724bdc
+              name: plateau
+            - id: 8cc0390e-e490-443a-948b-e2fde4a7627e
+              name: cirque
+    singleTopography:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: 60a5b049-064c-4550-b5cd-2a7394724bdc
+          name: plateau
+    arrayOfAccessibilities:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: 1eab0b9d-400f-4e85-97cb-9071ab95c6a4
+              name: private
+            - id: 59f6652d-ec2e-4db0-b748-02302656ec1c
+              name: public
+    singleAccessibility:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: 1eab0b9d-400f-4e85-97cb-9071ab95c6a4
+          name: private
+    arrayOfEnvironmentTypes:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: bda2c118-fe26-4776-a106-e3cf2a0c7b59
+              name: forest
+            - id: aa887f61-a831-4663-9d12-7368c1961590
+              name: field
+    singleEnvironmentType:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: bda2c118-fe26-4776-a106-e3cf2a0c7b59
+          name: forest
     arrayOfRoles:
       value:
         metadata:
