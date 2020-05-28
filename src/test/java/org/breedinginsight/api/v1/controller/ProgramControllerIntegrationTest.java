@@ -3,10 +3,7 @@ package org.breedinginsight.api.v1.controller;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -16,6 +13,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
@@ -1413,25 +1411,35 @@ public class ProgramControllerIntegrationTest {
         JsonArray data = result.getAsJsonArray("data");
 
         // may be brittle relying on the ordering
-        JsonObject programUser = data.get(1).getAsJsonObject();
-        JsonObject user = programUser.getAsJsonObject("user");
-        assertEquals(validUser.getId().toString(), user.get("id").getAsString(), "Wrong user id");
-        assertEquals(validUser.getName(), user.get("name").getAsString(), "Wrong name");
-        assertEquals(validUser.getEmail(), user.get("email").getAsString(), "Wrong email");
-        JsonArray roles = programUser.getAsJsonArray("roles");
-        JsonObject role = roles.get(0).getAsJsonObject();
-        assertEquals(validRole.getId().toString(), role.get("id").getAsString(), "Wrong role id");
-        assertEquals(validRole.getDomain(), role.get("domain").getAsString(), "Wrong domain");
+        //JsonObject programUser = data.get(1).getAsJsonObject();
+        Boolean validUserSeen = false;
+        Boolean test2Seen = false;
+        for (JsonElement jsonProgramUser: data.getAsJsonArray()) {
+            JsonObject programUser = (JsonObject) jsonProgramUser;
+            JsonObject user = programUser.getAsJsonObject("user");
+            User checkUser;
+            if (user.get("id").getAsString().equals(validUser.getId().toString())){
+                validUserSeen = true;
+                checkUser = validUser;
+            } else if (user.get("id").getAsString().equals(test2.getUser().getId().toString())) {
+                test2Seen = true;
+                checkUser = test2.getUser();
+            } else {
+                throw new AssertionFailedError("Unexpected user was returned.");
+            }
 
-        JsonObject programUser2 = data.get(0).getAsJsonObject();
-        JsonObject user2 = programUser2.getAsJsonObject("user");
-        assertEquals(test2.getUser().getId().toString(), user2.get("id").getAsString(), "Wrong user id");
-        assertEquals(test2.getUser().getName(), user2.get("name").getAsString(), "Wrong name");
-        assertEquals(test2.getUser().getEmail(), user2.get("email").getAsString(),"Wrong email");
-        JsonArray roles2 = programUser2.getAsJsonArray("roles");
-        JsonObject role2 = roles2.get(0).getAsJsonObject();
-        assertEquals(validRole.getId().toString(), role2.get("id").getAsString(), "Wrong role id");
-        assertEquals(validRole.getDomain(), role2.get("domain").getAsString(), "Wrong domain");
+            assertEquals(checkUser.getId().toString(), user.get("id").getAsString(), "Wrong user id");
+            assertEquals(checkUser.getName(), user.get("name").getAsString(), "Wrong name");
+            assertEquals(checkUser.getEmail(), user.get("email").getAsString(), "Wrong email");
+            JsonArray roles = programUser.getAsJsonArray("roles");
+            JsonObject role = roles.get(0).getAsJsonObject();
+            assertEquals(validRole.getId().toString(), role.get("id").getAsString(), "Wrong role id");
+            assertEquals(validRole.getDomain(), role.get("domain").getAsString(), "Wrong domain");
+        }
+
+        if (!validUserSeen || !test2Seen){
+            throw new AssertionFailedError("Both users were not returned");
+        }
 
         // remove user from program and delete user from system
         programUserService.removeProgramUser(validProgram.getId(), test2.getUser().getId());
@@ -1520,6 +1528,25 @@ public class ProgramControllerIntegrationTest {
 
         // Remove program user for following tests since endpoint only archives it.
         programUserService.removeProgramUser(validProgram.getId(), validUser.getId());
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(7)
+    public void getUsersInactiveNotReturned() {
+        String validProgramId = validProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId+"/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 0, "Wrong totalCount");
     }
 
     @Test

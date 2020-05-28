@@ -21,7 +21,7 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId" })
+@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId", "id" })
 public class ProgramUser extends ProgramUserRoleEntity {
 
     private User createdByUser;

@@ -145,9 +145,6 @@ public class UserController {
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (UnprocessableEntityException e){
-            log.info(e.getMessage());
-            return HttpResponse.unprocessableEntity();
         }
     }
 

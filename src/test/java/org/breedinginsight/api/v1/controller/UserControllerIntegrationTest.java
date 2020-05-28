@@ -376,7 +376,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     public void putUsersOwnEmailAlreadyExists() {
         String name = "Test Update 5";
         String email = "testedited@test.com";
@@ -411,7 +411,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(3)
     public void putUsersEmptyBody() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -427,7 +427,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(6)
+    @Order(3)
     public void putUsersEmptyName() {
 
         JsonObject requestBody = new JsonObject();
@@ -472,7 +472,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(7)
+    @Order(3)
     void putUserRolesOwnRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -498,7 +498,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(8)
+    @Order(3)
     void putUserRolesOtherUserSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -529,7 +529,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(9)
+    @Order(4)
     public void getUserInfoRegisteredUser() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/userinfo").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
@@ -553,7 +553,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(10)
+    @Order(4)
     public void putUserRolesNullSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -572,7 +572,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(11)
+    @Order(4)
     void putUserRolesDuplicateRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -603,7 +603,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(12)
+    @Order(4)
     void putUsersRolesEmptyRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -650,7 +650,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(13)
+    @Order(4)
     public void archiveUserActiveInProgram() {
         // Add test user to that program
         List<RoleRequest> roleRequests = new ArrayList<>();
@@ -672,10 +672,8 @@ public class UserControllerIntegrationTest {
                 DELETE("/users/" + testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
 
         // Remove test user from the program
         programUserService.removeProgramUser(validProgram.getId(), UUID.fromString(testUserUUID));
@@ -683,8 +681,10 @@ public class UserControllerIntegrationTest {
 
 
     @Test
-    @Order(14)
-    public void archiveUsersExisting() {
+    @Order(4)
+    public void archiveUsersNoActivePrograms() {
+
+        // Add test user to that program
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/users/"+testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

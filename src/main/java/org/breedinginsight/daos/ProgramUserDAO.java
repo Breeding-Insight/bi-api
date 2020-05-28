@@ -38,6 +38,13 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                 .execute();
     }
 
+    public void archiveProgramUsersByUserId(UUID userId) {
+        dsl.update(PROGRAM_USER_ROLE)
+                .set(PROGRAM_USER_ROLE.ACTIVE, false)
+                .where(PROGRAM_USER_ROLE.USER_ID.eq(userId))
+                .execute();
+    }
+
     public ProgramUser getProgramUser(UUID programId, UUID userId) {
         ProgramUser user = null;
 
@@ -136,7 +143,7 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         return resultProgramsUsers;
     }
 
-    public SelectOnConditionStep<Record> getProgramUsersQuery(BiUserTable createdByTableAlias, BiUserTable updatedByTableAlias) {
+    private SelectOnConditionStep<Record> getProgramUsersQuery(BiUserTable createdByTableAlias, BiUserTable updatedByTableAlias) {
 
         return dsl.select()
                 .from(PROGRAM_USER_ROLE)

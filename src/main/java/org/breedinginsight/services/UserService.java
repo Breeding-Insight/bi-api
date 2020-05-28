@@ -167,7 +167,7 @@ public class UserService {
         });
     }
 
-    public void archive(UUID userId) throws DoesNotExistException, UnprocessableEntityException {
+    public void archive(UUID userId) throws DoesNotExistException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -175,14 +175,11 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        // Check the user is not active in any programs
-        List<ProgramUser> programUsers = programUserDAO.getProgramUsersByUserId(userId);
-        if (programUsers.size() > 0){
-            throw new UnprocessableEntityException("User is active in programs. Cannot archive.");
-        }
-
-        biUser.setActive(false);
-        dao.update(biUser);
+        dsl.transaction(configuration -> {
+            programUserDAO.archiveProgramUsersByUserId(userId);
+            biUser.setActive(false);
+            dao.update(biUser);
+        });
     }
 
     private boolean userEmailInUse(String email) {
