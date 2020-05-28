@@ -21,9 +21,12 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import org.brapi.v2.core.model.BrApiProgram;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.jooq.Record;
+
+import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
 

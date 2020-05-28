@@ -39,6 +39,11 @@
                     <name>GitHub Breeding Insight Apache Maven Packages</name>
                     <url>https://maven.pkg.github.com/Breeding-Insight/bi-jooq-codegen</url>
                 </pluginRepository>
+                <pluginRepository>
+                    <id>github</id>
+                    <name>GitHub Breeding Insight Apache Maven Packages</name>
+                    <url>https://maven.pkg.github.com/Breeding-Insight/brapi</url>
+                </pluginRepository>
             </pluginRepositories>
         </profile>
     </profiles>

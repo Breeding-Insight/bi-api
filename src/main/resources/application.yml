@@ -27,6 +27,9 @@ micronaut:
   bi:
     api:
       version: v1
+  brapi:
+    server:
+      url: ${brapi.server.url:`https://test-server.brapi.org/`}
   security:
     enabled: true
     oauth2:
