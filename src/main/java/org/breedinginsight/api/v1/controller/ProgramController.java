@@ -203,7 +203,7 @@ public class ProgramController {
                                                                  @Valid @Body ProgramUserRequest programUserRequest) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ProgramUser programUser = programUserService.editProgramUser(actingUser, programId, programUserRequest);
+            ProgramUser programUser = programUserService.editProgramUser(actingUser, programId, userId, programUserRequest);
             Response response = new Response(programUser);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e){
@@ -221,10 +221,10 @@ public class ProgramController {
     @Delete("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse removeProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
+    public HttpResponse archiveProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
         try {
-            programUserService.removeProgramUser(programId, userId);
+            programUserService.archiveProgramUser(programId, userId);
             return HttpResponse.ok();
         } catch (DoesNotExistException e){
             log.info(e.getMessage());

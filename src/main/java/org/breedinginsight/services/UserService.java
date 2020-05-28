@@ -9,7 +9,9 @@ import org.breedinginsight.dao.db.tables.daos.SystemUserRoleDao;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemUserRoleEntity;
+import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
@@ -37,6 +39,8 @@ public class UserService {
     private SystemUserRoleDao systemUserRoleDao;
     @Inject
     private SystemRoleDao systemRoleDao;
+    @Inject
+    private ProgramUserDAO programUserDAO;
     @Inject
     private DSLContext dsl;
 
@@ -160,6 +164,21 @@ public class UserService {
         dsl.transaction(configuration -> {
             deleteSystemRoles(userId);
             dao.deleteById(userId);
+        });
+    }
+
+    public void archive(UUID userId) throws DoesNotExistException {
+
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        dsl.transaction(configuration -> {
+            programUserDAO.archiveProgramUsersByUserId(userId);
+            biUser.setActive(false);
+            dao.update(biUser);
         });
     }
 

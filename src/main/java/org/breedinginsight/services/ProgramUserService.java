@@ -135,7 +135,7 @@ public class ProgramUserService {
         return programUser.get();
     }
 
-    public ProgramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, ProgramUserRequest programUserRequest)
+    public ProgramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, UUID userId, ProgramUserRequest programUserRequest)
             throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
 
         try {
@@ -148,7 +148,7 @@ public class ProgramUserService {
                 User user;
                 List<Role> roles = validateAndGetRoles(programUserRequest);
 
-                Optional<User> optUser = userService.getById(programUserRequest.getUser().getId());
+                Optional<User> optUser = userService.getById(userId);
 
                 if (optUser.isPresent()) {
                     user = optUser.get();
@@ -180,6 +180,22 @@ public class ProgramUserService {
                 throw e;
             }
         }
+    }
+
+    public void archiveProgramUser(UUID programId, UUID userId) throws DoesNotExistException {
+        /* Remove a user from a program, but don't delete the user. */
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        if (!userService.exists(userId))
+        {
+            throw new DoesNotExistException("User id does not exist");
+        }
+
+        programUserDao.archiveProgramUserRoles(programId, userId);
     }
 
     public void removeProgramUser(UUID programId, UUID userId) throws DoesNotExistException {

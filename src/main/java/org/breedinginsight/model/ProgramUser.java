@@ -21,7 +21,7 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId" })
+@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId", "id" })
 public class ProgramUser extends ProgramUserRoleEntity {
 
     private User createdByUser;
@@ -33,6 +33,7 @@ public class ProgramUser extends ProgramUserRoleEntity {
     public static ProgramUser parseSQLRecord(Record record){
         // Generate our program record
         ProgramUser programUser = ProgramUser.builder()
+                .id(record.getValue(PROGRAM_USER_ROLE.ID))
                 .roles(new ArrayList<>())
                 .programId(record.getValue(PROGRAM_USER_ROLE.PROGRAM_ID))
                 .userId(record.getValue(PROGRAM_USER_ROLE.USER_ID))
@@ -40,6 +41,7 @@ public class ProgramUser extends ProgramUserRoleEntity {
                 .updatedAt(record.getValue(PROGRAM_USER_ROLE.UPDATED_AT))
                 .createdBy(record.getValue(PROGRAM_USER_ROLE.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM_USER_ROLE.UPDATED_BY))
+                .active(record.getValue(PROGRAM_USER_ROLE.ACTIVE))
                 .build();
 
         return programUser;

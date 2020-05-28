@@ -27,7 +27,8 @@ public class UserDAO extends BiUserDao {
     }
 
     public List<User> getUsers() {
-        List<Record> records = getUsersQuery().fetch();
+        List<Record> records = getUsersQuery()
+                .where(BI_USER.ACTIVE.eq(true)).fetch();
         return parseRecords(records);
     }
 

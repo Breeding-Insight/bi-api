@@ -1,8 +1,7 @@
 package org.breedinginsight.api.v1.controller;
 
 import static io.micronaut.http.HttpRequest.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.*;
 import io.micronaut.http.*;
@@ -13,14 +12,18 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.SystemRole;
-import org.breedinginsight.model.User;
-import org.breedinginsight.services.SystemRoleService;
-import org.breedinginsight.services.UserService;
+import org.breedinginsight.model.*;
+import org.breedinginsight.services.*;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -32,6 +35,11 @@ import javax.inject.Inject;
 public class UserControllerIntegrationTest {
 
     private String testUserUUID;
+    Program validProgram;
+    Species validSpecies;
+    Role validRole;
+    AuthenticatedUser actingUser;
+    Integer numUsers;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -45,6 +53,14 @@ public class UserControllerIntegrationTest {
     UserService userService;
     @Inject
     SystemRoleService systemRoleService;
+    @Inject
+    ProgramService programService;
+    @Inject
+    SpeciesService speciesService;
+    @Inject
+    RoleService roleService;
+    @Inject
+    ProgramUserService programUserService;
 
     private User testUser;
     private User otherTestUser;
@@ -57,26 +73,56 @@ public class UserControllerIntegrationTest {
         testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
         otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
         validSystemRole = systemRoleService.getAll().get(0);
+
+        //TODO: All of this can go away when we can run sql statements before tests
+        // Get species for tests
+        Species species = getTestSpecies();
+        validSpecies = species;
+        // Get role for tests
+        validRole = getTestRole();
+        actingUser = getActingUser();
+        // Insert and get program for tests
+        try {
+            validProgram = insertAndFetchTestProgram();
+        } catch (Exception e){
+            throw new Exception(e.toString());
+        }
     }
 
-    @Test
-    @Order(1)
-    public void getUsersAllExisting() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
+    }
 
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
+    public Program insertAndFetchTestProgram() throws Exception{
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+        ProgramRequest programRequest = ProgramRequest.builder()
+                .name("Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .build();
+        try {
+            Program program = programService.create(programRequest, actingUser);
+            return program;
+        } catch (UnprocessableEntityException e){
+            throw new Exception("Unable to create test program");
+        }
+    }
 
-        JsonArray data = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").getAsJsonArray("data");
+    public Role getTestRole() {
+        List<Role> roles = roleService.getAll();
+        return roles.get(0);
+    }
 
-        // TODO: depends on db setup
-        assertTrue(data.size() >= 1, "Wrong number users");
-
-        JsonObject exampleUser = (JsonObject) data.get(0);
-        JsonArray resultRoles = (JsonArray) exampleUser.get("systemRoles");
-        assertEquals(true, resultRoles != null, "Roles list was not returned.");
+    public AuthenticatedUser getActingUser() {
+        UUID id = testUser.getId();
+        List<String> systemRoles = new ArrayList<>();
+        systemRoles.add(validRole.getDomain());
+        return new AuthenticatedUser("test_user", systemRoles, id);
     }
 
     @Test
@@ -111,82 +157,6 @@ public class UserControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
-    }
-
-    @Test
-    @Order(2)
-    public void postUsersNoRolesSuccess() {
-        String name = "Test User2";
-        String email = "test2@test.com";
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", name);
-        requestBody.addProperty("email", email);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        try {
-            JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
-
-            assertEquals(name, result.get("name").getAsString(), "Wrong name");
-            assertEquals(email, result.get("email").getAsString(), "Wrong email");
-
-            JsonArray resultRoles = (JsonArray) result.get("systemRoles");
-            assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
-            assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
-
-            testUserUUID = result.get("id").getAsString();
-
-        } catch (IllegalStateException e) {
-            Assert.fail(e.getMessage());
-        }
-    }
-
-    @Test
-    @SneakyThrows
-    void postUsersWithRolesSuccess() {
-        String name = "Test User3";
-        String email = "test3@test.com";
-
-        JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("name", name);
-        requestBody.addProperty("email", email);
-        JsonObject role = new JsonObject();
-        role.addProperty("id", validSystemRole.getId().toString());
-        JsonArray roles = new JsonArray();
-        roles.add(role);
-        requestBody.add("systemRoles", roles);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/users", requestBody.toString())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        try {
-            JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
-
-            assertEquals(name, result.get("name").getAsString(), "Wrong name");
-            assertEquals(email, result.get("email").getAsString(), "Wrong email");
-
-            JsonArray resultRoles = (JsonArray) result.get("systemRoles");
-            assertEquals(true, resultRoles.size() == 1, "Wrong number of roles attached to user");
-            JsonObject adminRole = (JsonObject) resultRoles.get(0);
-            assertEquals(validSystemRole.getId().toString(), adminRole.get("id").getAsString(), "Inserted role id doesn't match what was passed.");
-
-        } catch (IllegalStateException e) {
-            Assert.fail(e.getMessage());
-        }
     }
 
     @Test
@@ -291,6 +261,105 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @SneakyThrows
+    @Order(1)
+    void postUsersWithRolesSuccess() {
+        String name = "Test User3";
+        String email = "test3@test.com";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+        JsonObject role = new JsonObject();
+        role.addProperty("id", validSystemRole.getId().toString());
+        JsonArray roles = new JsonArray();
+        roles.add(role);
+        requestBody.add("systemRoles", roles);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        try {
+            JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+            assertEquals(name, result.get("name").getAsString(), "Wrong name");
+            assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+            JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+            assertEquals(true, resultRoles.size() == 1, "Wrong number of roles attached to user");
+            JsonObject adminRole = (JsonObject) resultRoles.get(0);
+            assertEquals(validSystemRole.getId().toString(), adminRole.get("id").getAsString(), "Inserted role id doesn't match what was passed.");
+
+        } catch (IllegalStateException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test
+    @Order(1)
+    public void postUsersNoRolesSuccess() {
+        String name = "Test User2";
+        String email = "test2@test.com";
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("name", name);
+        requestBody.addProperty("email", email);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        try {
+            JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+            assertEquals(name, result.get("name").getAsString(), "Wrong name");
+            assertEquals(email, result.get("email").getAsString(), "Wrong email");
+
+            JsonArray resultRoles = (JsonArray) result.get("systemRoles");
+            assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
+            assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
+
+            testUserUUID = result.get("id").getAsString();
+
+        } catch (IllegalStateException e) {
+            Assert.fail(e.getMessage());
+        }
+    }
+
+    @Test
+    @Order(2)
+    public void getUsersAllExisting() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonArray data = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").getAsJsonArray("data");
+
+        // TODO: depends on db setup
+        assertTrue(data.size() >= 1, "Wrong number users");
+
+        JsonObject exampleUser = (JsonObject) data.get(0);
+        JsonArray resultRoles = (JsonArray) exampleUser.get("systemRoles");
+        assertEquals(true, resultRoles != null, "Roles list was not returned.");
+
+        numUsers = data.size();
+    }
+
+    @Test
     @Order(3)
     public void putUsersEmailAlreadyExists() {
         JsonObject requestBody = new JsonObject();
@@ -310,7 +379,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     public void putUsersOwnEmailAlreadyExists() {
         String name = "Test Update 5";
         String email = "testedited@test.com";
@@ -345,7 +414,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(3)
     public void putUsersEmptyBody() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -361,7 +430,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(6)
+    @Order(3)
     public void putUsersEmptyName() {
 
         JsonObject requestBody = new JsonObject();
@@ -406,7 +475,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(7)
+    @Order(3)
     void putUserRolesOwnRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -432,7 +501,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(8)
+    @Order(3)
     void putUserRolesOtherUserSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -463,7 +532,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(9)
+    @Order(4)
     public void getUserInfoRegisteredUser() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/userinfo").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
@@ -487,7 +556,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(10)
+    @Order(4)
     public void putUserRolesNullSuccess() {
 
         JsonObject requestBody = new JsonObject();
@@ -506,7 +575,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(11)
+    @Order(4)
     void putUserRolesDuplicateRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -537,7 +606,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    @Order(12)
+    @Order(4)
     void putUsersRolesEmptyRoles() {
 
         JsonObject requestBody = new JsonObject();
@@ -582,8 +651,42 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
-    @Order(13)
-    public void deleteUsersExisting() {
+    @SneakyThrows
+    @Order(4)
+    public void archiveUserActiveInProgram() {
+        // Add test user to that program
+        List<RoleRequest> roleRequests = new ArrayList<>();
+        RoleRequest role = RoleRequest.builder()
+                .id(validRole.getId())
+                .build();
+        roleRequests.add(role);
+        UserIdRequest userIdRequest = UserIdRequest.builder()
+                .id(UUID.fromString(testUserUUID))
+                .build();
+        ProgramUserRequest programUserRequest = ProgramUserRequest.builder()
+                .roles(roleRequests)
+                .user(userIdRequest)
+                .build();
+
+        programUserService.addProgramUser(actingUser, validProgram.getId(), programUserRequest);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/users/" + testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Remove test user from the program
+        programUserService.removeProgramUser(validProgram.getId(), UUID.fromString(testUserUUID));
+    }
+
+
+    @Test
+    @Order(4)
+    public void archiveUsersNoActivePrograms() {
+
+        // Add test user to that program
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/users/"+testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -591,11 +694,10 @@ public class UserControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
-
     }
 
     @Test
-    public void deleteUsersNotExistingId() {
+    public void archiveUsersNotExistingId() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/users/e91f816b-b7aa-4e89-9d00-3e25fdc00e14").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -605,4 +707,30 @@ public class UserControllerIntegrationTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
+
+    @Test
+    @Order(5)
+    public void getUsersInactiveNotReturned() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonArray data = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").getAsJsonArray("data");
+
+        // TODO: depends on db setup
+        assertTrue(data.size() == numUsers - 1, "Wrong number users");
+
+        for (JsonElement jsonUser : data.getAsJsonArray()){
+            JsonObject exampleUser = (JsonObject) jsonUser;
+            // Work around for the system user
+            if (exampleUser.get("id") != null){
+                assertNotEquals(testUserUUID, exampleUser.get("id").toString(), "Inactive user was returned");
+            }
+        }
+    }
+
 }

@@ -332,8 +332,8 @@ paths:
     delete:
       tags:
         - users
-      summary: Delete user
-      description: This can only be done by the logged in user.
+      summary: Deactivate user
+      description: Deactivate User
       operationId: deleteUser
       parameters:
         - name: id
@@ -381,6 +381,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: string
+
   /users/{id}/roles:
     put:
       tags:
@@ -1058,8 +1065,8 @@ paths:
           explode: false
           schema:
             type: string
-      summary: Remove user from the specified program
-      description: Remove user from the specified program
+      summary: Deactivates the user in the specified program
+      description: Deactivates the user in the specified program
       operationId: deleteProgramUser
       responses:
         "200":
