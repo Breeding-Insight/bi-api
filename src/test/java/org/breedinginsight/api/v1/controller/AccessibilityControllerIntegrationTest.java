@@ -39,7 +39,7 @@ public class AccessibilityControllerIntegrationTest {
     void getAccessibilitiesSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/accessibilities")
+                                                              GET("/accessibility_options")
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -63,7 +63,7 @@ public class AccessibilityControllerIntegrationTest {
     void getAccessibilitiesSingleSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/accessibilities/"+validAccessibilityId)
+                                                              GET("/accessibility_options/"+validAccessibilityId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );

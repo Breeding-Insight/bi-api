@@ -39,7 +39,7 @@ public class EnvironmentTypeControllerIntegrationTest {
     void getEnvironmentTypesSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/environmentTypes")
+                                                              GET("/environment_data_types")
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -63,7 +63,7 @@ public class EnvironmentTypeControllerIntegrationTest {
     void getEnvironmentTypesSingleSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/environmentTypes/"+validEnvironmentTypeId)
+                                                              GET("/environment_data_types/"+validEnvironmentTypeId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -81,7 +81,7 @@ public class EnvironmentTypeControllerIntegrationTest {
     void getEnvironmentTypesSingleInvalid() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/environmentTypes/"+invalidEnvironmentTypeId)
+                                                              GET("/environment_data_types/"+invalidEnvironmentTypeId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );

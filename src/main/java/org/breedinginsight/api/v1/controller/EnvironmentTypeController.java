@@ -33,7 +33,7 @@ public class EnvironmentTypeController {
     @Inject
     private EnvironmentTypeService environmentTypeService;
 
-    @Get("/environmentTypes")
+    @Get("/environment_data_types")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<EnvironmentType>>> getEnvironmentTypes() {
@@ -54,7 +54,7 @@ public class EnvironmentTypeController {
         }
     }
 
-    @Get("/environmentTypes/{environmentTypeId}")
+    @Get("/environment_data_types/{environmentTypeId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)

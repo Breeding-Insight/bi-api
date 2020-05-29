@@ -33,7 +33,7 @@ public class TopographyController {
     @Inject
     private TopographyService topographyService;
 
-    @Get("/topographies")
+    @Get("/topography_options")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Topography>>> getTopographies() {
@@ -54,7 +54,7 @@ public class TopographyController {
         }
     }
 
-    @Get("/topographies/{topographyId}")
+    @Get("/topography_options/{topographyId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)

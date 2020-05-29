@@ -33,7 +33,7 @@ public class AccessibilityController {
     @Inject
     private AccessibilityService accessibilityService;
 
-    @Get("/accessibilities")
+    @Get("/accessibility_options")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Accessibility>>> getAccessibilities() {
@@ -54,7 +54,7 @@ public class AccessibilityController {
         }
     }
 
-    @Get("/accessibilities/{accessibilityId}")
+    @Get("/accessibility_options/{accessibilityId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)

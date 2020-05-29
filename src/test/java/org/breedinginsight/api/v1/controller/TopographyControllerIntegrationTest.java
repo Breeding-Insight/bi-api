@@ -39,7 +39,7 @@ public class TopographyControllerIntegrationTest {
     void getTopographiesSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/topographies")
+                                                              GET("/topography_options")
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -63,7 +63,7 @@ public class TopographyControllerIntegrationTest {
     void getTopographiesSingleSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/topographies/"+validTopographyId)
+                                                              GET("/topography_options/"+validTopographyId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -81,7 +81,7 @@ public class TopographyControllerIntegrationTest {
     void getTopographiesSingleInvalid() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/topographies/"+invalidTopographyId)
+                                                              GET("/topography_options/"+invalidTopographyId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
