@@ -5,7 +5,6 @@ import lombok.Getter;
 import org.brapi.client.v2.BrAPIClient;
 
 @RequestScope
-@Getter
 public class BrAPIClientProvider {
 
     private BrAPIClient coreClient;
@@ -22,6 +21,12 @@ public class BrAPIClientProvider {
 
     public void setGenoClient(String url){
         this.genoClient = new BrAPIClient(url);
+    }
+
+    public BrAPIClient getClient(BrAPiClientType clientType){
+        if (clientType == BrAPiClientType.CORE){ return coreClient; }
+        else if (clientType == BrAPiClientType.PHENO){ return phenoClient; }
+        else { return genoClient; }
     }
 
 }

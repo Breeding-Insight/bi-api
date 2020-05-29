@@ -4,6 +4,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -16,6 +17,7 @@ import org.breedinginsight.model.User;
 
 import javax.inject.Inject;
 import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -24,11 +26,12 @@ public class TraitController {
     @Inject
     TraitDAO traitDAO;
 
-    @Get("/traits")
+    @Get("programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
+    @BrAPIService
     @Secured({SecurityRule.IS_AUTHENTICATED})
-    public HttpResponse<Response<User>> userinfo() {
+    public HttpResponse<Response<User>> getTraits(@PathVariable UUID programId) {
 
         traitDAO.getTraitsFull();
         return HttpResponse.ok();

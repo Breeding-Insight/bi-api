@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Trait extends TraitEntity {
 
-    List<ProgramObservationLevel> observationLevels;
+    ProgramObservationLevel observationLevels;
     Method method;
     Scale scale;
     ProgramOntology programOntology;

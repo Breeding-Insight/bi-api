@@ -1,17 +1,15 @@
 package org.breedinginsight.daos;
 
 import lombok.SneakyThrows;
-import org.brapi.client.v2.BrAPIClient;
-import org.brapi.client.v2.modules.core.ProgramsAPI;
 import org.brapi.v2.phenotyping.model.BrApiTrait;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
-import org.breedinginsight.model.BrAPIClientProvider;
+import org.breedinginsight.model.BrAPIProvider;
+import org.breedinginsight.model.BrAPiClientType;
 import org.breedinginsight.model.Trait;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.UUID;
@@ -21,9 +19,7 @@ public class TraitDAO extends TraitDao {
 
     private DSLContext dsl;
     @Inject
-    ProgramsAPI programsAPI;
-    @Inject
-    BrAPIClientProvider brAPIClientProvider;
+    BrAPIProvider brAPIProvider;
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl) {
@@ -33,25 +29,7 @@ public class TraitDAO extends TraitDao {
 
     @SneakyThrows
     public List<Trait> getTraitsFull() {
-        // Get the db traits
-        //TODO: Inject this and pass BrAPIClient as injectable
-        programsAPI.getPrograms();
-
-        brAPIClientProvider.getProgramsAPI().getPrograms();
-
-        /*ProgramsAPI programsAPI2 = new ProgramsAPI(phenoClient);
-        programsAPI2.getPrograms();
-
-        ProgramsAPI programsAPI3 = new ProgramsAPI(genoClient);
-        programsAPI.getPrograms();*/
-
-        // Get the brapi traits
-
-        // TODO: Check what the brapi server is
-        // Check if the brapi server supports variables endpoint
-
-        // Process the brapi traits to the db traits
-
+        brAPIProvider.getTraitsAPI(BrAPiClientType.PHENO).getTraits();
         return null;
     }
 

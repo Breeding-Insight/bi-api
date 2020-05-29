@@ -21,6 +21,7 @@ import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
 import org.jooq.*;
@@ -97,6 +98,10 @@ public class ProgramDAO extends ProgramDao {
         }
 
         return resultPrograms;
+    }
+
+    public ProgramBrAPIEndpoints getProgramBrAPIEndpoints() {
+        return new ProgramBrAPIEndpoints();
     }
 }
 

@@ -148,5 +148,8 @@ public class ProgramService {
         dao.delete(programEntity);
     }
 
+    public ProgramBrAPIEndpoints getBrapiEndpoints(UUID programId) {
+        return dao.getProgramBrAPIEndpoints();
+    }
 
 }
