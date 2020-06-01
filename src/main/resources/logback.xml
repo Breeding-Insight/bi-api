@@ -9,7 +9,7 @@
         </encoder>
     </appender>
 
-    <logger name="org.breedinginsight" level="INFO"/>
+    <logger name="org.breedinginsight" level="DEBUG"/>
 
     <root level="INFO">
         <appender-ref ref="STDOUT" />
