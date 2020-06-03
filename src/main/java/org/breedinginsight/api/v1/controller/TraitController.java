@@ -6,6 +6,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.model.v1.request.query.TraitsQuery;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
@@ -18,6 +19,7 @@ import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
+import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -30,18 +32,18 @@ public class TraitController {
     @Inject
     TraitService traitService;
 
-    @Get("/programs/{programId}/traits")
+    @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @BrAPIService
     @Secured({SecurityRule.IS_AUTHENTICATED})
     public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId,
-                                                   @QueryValue(value="full", defaultValue = "false") Boolean full) {
+                                                                 @Valid TraitsQuery traitsQuery) {
 
         try {
 
             List<Trait> traits;
-            traits = traitService.getByProgramId(programId, full);
+            traits = traitService.getByProgramId(programId, traitsQuery.getFull());
 
             //TODO: Add in pagination
             List<Status> metadataStatus = new ArrayList<>();

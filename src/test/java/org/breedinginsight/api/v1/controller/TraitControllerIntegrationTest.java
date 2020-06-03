@@ -228,11 +228,10 @@ public class TraitControllerIntegrationTest {
                 GET("/programs/" + validProgram.getId() + "/traits?full=no").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
-        HttpResponse<String> response = call.blockingFirst();
-        /*HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
-        });*/
-        assertEquals(HttpStatus.OK, response.getStatus());
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
