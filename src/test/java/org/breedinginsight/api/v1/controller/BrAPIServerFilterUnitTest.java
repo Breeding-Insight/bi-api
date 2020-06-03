@@ -107,8 +107,8 @@ public class BrAPIServerFilterUnitTest {
 
         String errorId1 = e1.getResponse().body().toString();
         String logMsg1 = getLogEvent(errorId1);
-        //TODO: Check that our incorrect url was referenced
 
+        // Check that our incorrect url was referenced
         assertEquals(true, logMsg1.contains(phenoUrl1), "Wrong endpoint contacted");
     }
 

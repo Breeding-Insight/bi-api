@@ -34,7 +34,6 @@ public class TraitController {
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @BrAPIService
     @Secured({SecurityRule.IS_AUTHENTICATED})
     public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId,
