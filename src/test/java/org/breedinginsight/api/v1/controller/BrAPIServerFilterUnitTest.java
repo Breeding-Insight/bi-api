@@ -1,12 +1,8 @@
 package org.breedinginsight.api.v1.controller;
 
-import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import ch.qos.logback.classic.spi.LoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
-import io.micronaut.context.ApplicationContext;
-import io.micronaut.context.DefaultApplicationContext;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -17,29 +13,13 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.*;
-import io.reactivex.functions.Action;
-import io.reactivex.schedulers.Schedulers;
-import lombok.SneakyThrows;
-import org.brapi.client.v2.BrAPIClient;
-import org.brapi.client.v2.modules.phenotype.TraitsAPI;
-import org.breedinginsight.daos.TraitDAO;
-import org.breedinginsight.model.BrAPIClientProvider;
-import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.ProgramService;
 import org.junit.jupiter.api.*;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.Spy;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,7 +27,6 @@ import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -60,14 +39,8 @@ public class BrAPIServerFilterUnitTest {
     ListAppender<ILoggingEvent> loggingEventListAppender;
     @Inject
     ProgramService programService;
-    //@MockBean(TraitController.class)
-    //TraitController traitController() { return mock(TraitController.class);}
-    //@MockBean(BrAPIClientProvider.class)
-    //BrAPIClientProvider brAPIClientProvider() { return mock(BrAPIClientProvider.class);}
     @MockBean(ProgramService.class)
     ProgramService programService() { return mock(ProgramService.class);}
-    @Spy
-    BrAPIClientProvider brAPIClientProviderSpy;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -108,9 +81,9 @@ public class BrAPIServerFilterUnitTest {
         });
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
+        // Check that our incorrect url was referenced
         String errorId = e.getResponse().body().toString();
         String logMsg = getLogEvent(errorId);
-        //TODO: Check that our incorrect url was referenced
 
         assertEquals(true, logMsg.contains(phenoUrl), "Wrong endpoint contacted");
 

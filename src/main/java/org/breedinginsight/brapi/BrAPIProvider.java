@@ -1,7 +1,8 @@
-package org.breedinginsight.model;
+package org.breedinginsight.brapi;
 
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.modules.phenotype.TraitsAPI;
+import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -17,4 +18,10 @@ public class BrAPIProvider {
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
         return new TraitsAPI(brAPIClient);
     }
+
+    public VariablesAPI getVariablesAPI(BrAPiClientType clientType){
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new VariablesAPI(brAPIClient);
+    }
+
 }

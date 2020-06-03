@@ -1,7 +1,6 @@
-package org.breedinginsight.model;
+package org.breedinginsight.brapi;
 
 import io.micronaut.runtime.http.scope.RequestScope;
-import lombok.Getter;
 import org.brapi.client.v2.BrAPIClient;
 
 @RequestScope

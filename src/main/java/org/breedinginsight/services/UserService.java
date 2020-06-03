@@ -28,7 +28,6 @@ import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
 import org.breedinginsight.dao.db.tables.pojos.SystemUserRoleEntity;
 import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;

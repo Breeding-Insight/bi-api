@@ -1,4 +1,4 @@
-package org.breedinginsight.model;
+package org.breedinginsight.brapi;
 
 public enum BrAPiClientType {
     CORE,
