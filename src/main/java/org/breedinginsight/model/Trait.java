@@ -22,14 +22,16 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
 @SuperBuilder
 @NoArgsConstructor
 @JsonIgnoreProperties(value = { "methodId", "scaleId",
-        "programOntologyId", "programObservationLevelId" })
+        "programOntologyId", "programObservationLevelId"})
 public class Trait extends TraitEntity {
 
     ProgramObservationLevel programObservationLevel;
     Method method;
     Scale scale;
     ProgramOntology programOntology;
+    @JsonIgnoreProperties("systemRoles")
     User createdByUser;
+    @JsonIgnoreProperties("systemRoles")
     User updatedByUser;
 
     // Properties from brapi
