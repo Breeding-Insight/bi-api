@@ -255,6 +255,62 @@ public class TraitControllerIntegrationTest {
 
     @Test
     @SneakyThrows
+    public void getTraitsNotExistInBrAPI() {
+
+        BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
+                validTraits.get(0).getScaleId());
+
+        List<BrApiVariable> brApiVariables = List.of(brApiVariable1);
+
+        // Mock brapi response
+        reset(variablesAPI);
+        when(variablesAPI.getVariables()).thenReturn(brApiVariables);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    public void getTraitsExistsInBrAPINotInSystem() {
+
+        BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
+                validTraits.get(0).getScaleId());
+        BrApiVariable brApiVariable2 = getTestBrApiVariable(validTraits.get(1).getId(), validTraits.get(1).getMethodId(),
+                validTraits.get(1).getScaleId());
+        BrApiVariable brApiVariable3 = getTestBrApiVariable(UUID.randomUUID(), UUID.randomUUID(),
+                UUID.randomUUID());
+
+        List<BrApiVariable> brApiVariables = List.of(brApiVariable1, brApiVariable2, brApiVariable3);
+
+        // Mock brapi response
+        reset(variablesAPI);
+        when(variablesAPI.getVariables()).thenReturn(brApiVariables);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        checkTraitFullResponse(data.get(0).getAsJsonObject(), validTraits.get(0), brApiVariable1);
+        checkTraitFullResponse(data.get(1).getAsJsonObject(), validTraits.get(1), brApiVariable1);
+    }
+
+    @Test
+    @SneakyThrows
     public void getTraitSingleSuccess() {
 
         BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
@@ -289,6 +345,55 @@ public class TraitControllerIntegrationTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    public void getTraitSingleNoExistInBrAPI() {
+
+        BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
+                validTraits.get(0).getScaleId());
+        List<BrApiVariable> brApiVariables = List.of(brApiVariable1);
+
+        // Mock brapi response
+        reset(variablesAPI);
+        when(variablesAPI.getVariables(any(VariablesRequest.class))).thenReturn(brApiVariables);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(1).getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    public void getTraitSingleExistsInBrapiNotInSystem() {
+
+        BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
+                validTraits.get(0).getScaleId());
+        BrApiVariable brApiVariable2 = getTestBrApiVariable(validTraits.get(1).getId(), validTraits.get(1).getMethodId(),
+                validTraits.get(1).getScaleId());
+        List<BrApiVariable> brApiVariables = List.of(brApiVariable1, brApiVariable2);
+
+        // Mock brapi response
+        reset(variablesAPI);
+        when(variablesAPI.getVariables(any(VariablesRequest.class))).thenReturn(brApiVariables);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkTraitFullResponse(result, validTraits.get(0), brApiVariable1);
     }
 
     @Test

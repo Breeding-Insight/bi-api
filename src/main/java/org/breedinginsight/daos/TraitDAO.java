@@ -4,6 +4,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.NonNull;
 import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
+import org.brapi.v2.core.model.BrApiExternalReference;
 import org.brapi.v2.phenotyping.model.BrApiVariable;
 import org.brapi.v2.phenotyping.model.request.VariablesRequest;
 import org.breedinginsight.services.brapi.BrAPIProvider;
@@ -52,12 +53,21 @@ public class TraitDAO extends TraitDao {
             throw new InternalServerException(e.getMessage());
         }
 
-        // Parse only the traits that are also in our database
+        Map<String, BrApiVariable> brApiVariableMap = new HashMap<>();
         for (BrApiVariable brApiVariable: brApiVariables) {
+            List<BrApiExternalReference> brApiExternalReferences = brApiVariable.getExternalReferences();
+            for (BrApiExternalReference brApiExternalReference: brApiExternalReferences){
+                if (brApiExternalReference.getReferenceID() != null) {
+                    brApiVariableMap.put(brApiExternalReference.getReferenceID(), brApiVariable);
+                }
+            }
+        }
 
-            Optional<Trait> optionalTrait = BrAPIUtilities.findMatchingBrAPIObject(brApiVariable.getExternalReferences(), dbVariablesMap);
-            if (optionalTrait.isPresent()){
-                Trait trait = optionalTrait.get();
+        List<Trait> saturatedTraits = new ArrayList<>();
+        for (Trait trait: dbVariables) {
+            // assumes external reference id is unique to each brapi variable
+            if (brApiVariableMap.containsKey(trait.getId().toString())){
+                BrApiVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
                 trait.setBrAPIProperties(brApiVariable);
 
                 Method method = trait.getMethod();
@@ -68,14 +78,13 @@ public class TraitDAO extends TraitDao {
                 scale.setBrAPIProperties(brApiVariable.getScale());
                 trait.setScale(scale);
 
-                dbVariablesMap.put(trait.getId(), trait);
+                saturatedTraits.add(trait);
             } else {
-                throw new InternalServerException("Could not find trait from returned brapi server results");
+                throw new InternalServerException("Could not find trait in returned brapi server results");
             }
         }
 
-        List<Trait> result = dbVariablesMap.values().stream().collect(Collectors.toList());
-        return result;
+        return saturatedTraits;
     }
 
     public List<Trait> getTraitsByProgramId(@NonNull UUID programId) {

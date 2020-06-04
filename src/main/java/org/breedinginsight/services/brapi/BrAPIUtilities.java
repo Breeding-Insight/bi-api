@@ -1,11 +1,9 @@
 package org.breedinginsight.services.brapi;
 
 import org.brapi.v2.core.model.BrApiExternalReference;
+import org.brapi.v2.phenotyping.model.BrApiVariable;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 public class BrAPIUtilities {
 
@@ -27,20 +25,5 @@ public class BrAPIUtilities {
         }
 
         return false;
-    }
-
-    public static <T> Optional<T> findMatchingBrAPIObject(List<BrApiExternalReference> externalReferences, Map<UUID, T> dbMap) {
-
-        for (BrApiExternalReference externalReference: externalReferences){
-            if (isUUIDFormatted(externalReference.getReferenceID())) {
-
-                UUID externalTraitId = UUID.fromString(externalReference.getReferenceID());
-                if (dbMap.containsKey(externalTraitId)) {
-                    return Optional.of(dbMap.get(externalTraitId));
-                }
-            }
-        }
-
-        return Optional.empty();
     }
 }
