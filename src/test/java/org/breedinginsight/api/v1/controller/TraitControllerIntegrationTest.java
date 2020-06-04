@@ -21,8 +21,8 @@ import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 import org.brapi.v2.core.model.BrApiExternalReference;
 import org.brapi.v2.phenotyping.model.*;
 import org.brapi.v2.phenotyping.model.request.VariablesRequest;
-import org.breedinginsight.brapi.BrAPIProvider;
-import org.breedinginsight.brapi.BrAPiClientType;
+import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.model.*;
@@ -33,6 +33,7 @@ import org.mockito.MockitoAnnotations;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -83,7 +84,6 @@ public class TraitControllerIntegrationTest {
         MockitoAnnotations.initMocks(this);
 
         // Insert our traits into the db
-        //TODO: Replace with TraitService when implemented
         var fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
 
         // Insert program
@@ -176,7 +176,7 @@ public class TraitControllerIntegrationTest {
         // Mock brapi response
         reset(variablesAPI);
         when(variablesAPI.getVariables()).thenReturn(brApiVariables);
-        when(brAPIProvider.getVariablesAPI(BrAPiClientType.PHENO)).thenReturn(variablesAPI);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -223,7 +223,7 @@ public class TraitControllerIntegrationTest {
 
     @Test
     public void getTraitsBadFullQueryParam() {
-        //TODO: Need to fix this
+
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=no").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -240,7 +240,7 @@ public class TraitControllerIntegrationTest {
 
         reset(variablesAPI);
         when(variablesAPI.getVariables()).thenThrow(new HttpNotFoundException("test"));
-        when(brAPIProvider.getVariablesAPI(BrAPiClientType.PHENO)).thenReturn(variablesAPI);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -264,7 +264,7 @@ public class TraitControllerIntegrationTest {
         // Mock brapi response
         reset(variablesAPI);
         when(variablesAPI.getVariables(any(VariablesRequest.class))).thenReturn(brApiVariables);
-        when(brAPIProvider.getVariablesAPI(BrAPiClientType.PHENO)).thenReturn(variablesAPI);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -297,7 +297,7 @@ public class TraitControllerIntegrationTest {
 
         reset(variablesAPI);
         when(variablesAPI.getVariables()).thenThrow(new HttpNotFoundException("test"));
-        when(brAPIProvider.getVariablesAPI(BrAPiClientType.PHENO)).thenReturn(variablesAPI);
+        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -361,9 +361,16 @@ public class TraitControllerIntegrationTest {
                 .referenceID(scaleId.toString())
                 .build();
         List<BrApiExternalReference> externalReferenceList = List.of(externalReference);
+        BrApiScaleValidValues brApiScaleValidValues = BrApiScaleValidValues.builder()
+                .categories(List.of(
+                        BrApiScaleCategories.builder().label("test1").value("value1").build(),
+                        BrApiScaleCategories.builder().label("test2").value("value2").build()
+                ))
+                .build();
         BrApiScale brApiScale = BrApiScale.builder()
                 .decimalPlaces(3)
                 .dataType(BrApiTraitDataType.TEXT)
+                .validValues(brApiScaleValidValues)
                 .externalReferences(externalReferenceList)
                 .build();
         return brApiScale;
@@ -425,12 +432,20 @@ public class TraitControllerIntegrationTest {
 
         // Check method
         JsonObject methodJson = traitJson.getAsJsonObject("method");
-        assertEquals(methodJson.get("methodClass").getAsString(), brApiVariable.getMethod().getMethodClass(), "Trait main abbreviations don't match");
+        assertEquals(methodJson.get("methodClass").getAsString(), brApiVariable.getMethod().getMethodClass(), "Method classes don't match");
 
         // Check scale
         JsonObject scaleJson = traitJson.getAsJsonObject("scale");
-        assertEquals(scaleJson.get("decimalPlaces").getAsInt(), brApiVariable.getScale().getDecimalPlaces(), "Trait main abbreviations don't match");
-        assertEquals(scaleJson.get("dataType").getAsString(), brApiVariable.getScale().getDataType().toString(), "Trait main abbreviations don't match");
+        assertEquals(scaleJson.get("decimalPlaces").getAsInt(), brApiVariable.getScale().getDecimalPlaces(), "Scale decimal places don't match");
+        assertEquals(scaleJson.get("dataType").getAsString(), brApiVariable.getScale().getDataType().toString(), "Scale data types don't match");
+        List<JsonObject> jsonCategories = new ArrayList<>();
+        scaleJson.get("categories").getAsJsonArray().iterator().forEachRemaining(element -> jsonCategories.add(element.getAsJsonObject()));
+        Iterator<BrApiScaleCategories> categories = brApiVariable.getScale().getValidValues().getCategories().iterator();
+        for (JsonObject jsonCategory: jsonCategories){
+            BrApiScaleCategories category = categories.next();
+            assertEquals(category.getLabel(), jsonCategory.get("label").getAsString(), "Category label does not match");
+            assertEquals(category.getValue(), jsonCategory.get("value").getAsString(), "Category label does not match");
+        }
     }
 
 }

@@ -1,4 +1,4 @@
-package org.breedinginsight.brapi;
+package org.breedinginsight.services.brapi;
 
 import io.micronaut.runtime.http.scope.RequestScope;
 import org.brapi.client.v2.BrAPIClient;
@@ -22,9 +22,9 @@ public class BrAPIClientProvider {
         this.genoClient = new BrAPIClient(url);
     }
 
-    public BrAPIClient getClient(BrAPiClientType clientType){
-        if (clientType == BrAPiClientType.CORE){ return coreClient; }
-        else if (clientType == BrAPiClientType.PHENO){ return phenoClient; }
+    public BrAPIClient getClient(BrAPIClientType clientType){
+        if (clientType == BrAPIClientType.CORE){ return coreClient; }
+        else if (clientType == BrAPIClientType.PHENO){ return phenoClient; }
         else { return genoClient; }
     }
 

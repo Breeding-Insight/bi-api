@@ -6,9 +6,9 @@ import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
 import org.brapi.v2.phenotyping.model.BrApiVariable;
 import org.brapi.v2.phenotyping.model.request.VariablesRequest;
-import org.breedinginsight.brapi.BrAPIProvider;
-import org.breedinginsight.brapi.BrAPIUtilities;
-import org.breedinginsight.brapi.BrAPiClientType;
+import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.brapi.BrAPIUtilities;
+import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.model.*;
@@ -47,7 +47,7 @@ public class TraitDAO extends TraitDao {
         // Get brapi variables
         List<BrApiVariable> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPiClientType.PHENO).getVariables();
+            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables();
         } catch (HttpException | APIException e) {
             throw new InternalServerException(e.getMessage());
         }
@@ -110,7 +110,7 @@ public class TraitDAO extends TraitDao {
                 .externalReferenceID(traitId.toString())
                 .build();
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPiClientType.PHENO).getVariables(variablesRequest);
+            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables(variablesRequest);
         } catch (HttpException | APIException e) {
             // If variable is not found, is still a server exception
             throw new InternalServerException(e.getMessage());

@@ -21,8 +21,8 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "method_id", "scale_id",
-        "program_ontology_id", "program_observation_level_id", "updated_by", "created_by" })
+@JsonIgnoreProperties(value = { "methodId", "scaleId",
+        "programOntologyId", "programObservationLevelId" })
 public class Trait extends TraitEntity {
 
     ProgramObservationLevel programObservationLevel;

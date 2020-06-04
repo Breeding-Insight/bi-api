@@ -1,4 +1,4 @@
-package org.breedinginsight.api.v1.controller;
+package org.breedinginsight.api.v1.controller.brapi;
 
 import io.micronaut.context.annotation.Value;
 import io.micronaut.core.order.Ordered;
@@ -13,7 +13,7 @@ import io.micronaut.web.router.RouteMatch;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
-import org.breedinginsight.brapi.BrAPIClientProvider;
+import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.reactivestreams.Publisher;

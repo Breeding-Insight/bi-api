@@ -1,4 +1,4 @@
-package org.breedinginsight.api.v1.controller;
+package org.breedinginsight.api.v1.controller.brapi;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

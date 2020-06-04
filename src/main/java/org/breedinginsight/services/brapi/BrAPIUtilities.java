@@ -1,4 +1,4 @@
-package org.breedinginsight.brapi;
+package org.breedinginsight.services.brapi;
 
 import org.brapi.v2.core.model.BrApiExternalReference;
 

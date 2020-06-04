@@ -18,7 +18,7 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_ONTOLOGY;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "updated_by", "created_by", "updated_at", "created_at" })
+@JsonIgnoreProperties(value = { "updatedBy", "createdBy" })
 public class ProgramOntology extends ProgramOntologyEntity {
 
     Program program;

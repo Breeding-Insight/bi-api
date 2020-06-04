@@ -13,6 +13,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.api.v1.controller.brapi.BrAPIService;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
@@ -41,8 +42,7 @@ public class TraitController {
 
         try {
 
-            List<Trait> traits;
-            traits = traitService.getByProgramId(programId, traitsQuery.getFull());
+            List<Trait> traits = traitService.getByProgramId(programId, traitsQuery.getFull());
 
             //TODO: Add in pagination
             List<Status> metadataStatus = new ArrayList<>();

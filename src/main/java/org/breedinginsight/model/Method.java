@@ -19,7 +19,7 @@ import static org.breedinginsight.dao.db.Tables.METHOD;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "id", "program_ontology_id", "updated_by", "created_by", "updated_at", "created_at" })
+@JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
 public class Method extends MethodEntity {
 
     ProgramOntology programOntology;
