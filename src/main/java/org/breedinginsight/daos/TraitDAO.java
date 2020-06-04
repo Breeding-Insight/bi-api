@@ -36,7 +36,7 @@ public class TraitDAO extends TraitDao {
         this.dsl = dsl;
     }
 
-    public List<Trait> getTraitsFullByProgramId(@NonNull UUID programId) {
+    public List<Trait> getTraitsFullByProgramId(UUID programId) {
 
         // Get our db traits (equivalent to brapi variables)
         List<Trait> dbVariables = getTraitsByProgramId(programId);
@@ -87,7 +87,7 @@ public class TraitDAO extends TraitDao {
         return saturatedTraits;
     }
 
-    public List<Trait> getTraitsByProgramId(@NonNull UUID programId) {
+    public List<Trait> getTraitsByProgramId(UUID programId) {
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
