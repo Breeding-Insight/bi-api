@@ -35,7 +35,7 @@ still work fine without the docker socket mounted, but tests will fail.
 
 To run the tests, use the following command:
 
-```docker exec -it biapi mvn test```
+```docker exec -it biapi mvn test -settings settings.xml```
 
 ## Pull Request Criteria
 
@@ -157,14 +157,14 @@ NOTE: if you used option c to configure the project's variables, replace `-Dmicr
 If you have run the project and the database once already, you will need to make sure your database is up to date by running: 
 
 ```
-mvn validate flyway:migrate -X
+mvn validate flyway:migrate -X --settings settings.xml
 ```
 
 
 If you don't care about losing any of the data in the database, run:
 
 ```
-mvn validate flyway:clean flyway:migrate -X
+mvn validate flyway:clean flyway:migrate -X --settings settings.xml
 ```
 
 ### Generating Java Classes via JOOQ
@@ -172,7 +172,7 @@ mvn validate flyway:clean flyway:migrate -X
 As structural database changes are made, you will need to re-generate Java classes via JOOQ (data model, base DAOs).  To do so, run:
 
 ```
-mvn clean generate-sources
+mvn clean generate-sources --settings settings.xml
 ```
 
 NOTE: This step is not necessary if a `mvn clean install` is run (see section Install Project Dependencies above).
@@ -204,12 +204,12 @@ This method uses the values set in the `build.properties` or `build.dev.properti
 To run the tests, use the command:
 
 ```
-mvn test
+mvn test --settings settings.xml
 
 or 
 
 ```
-mvn test -P dev
+mvn test -P dev --settings settings.xml
 ```
 
 Maven tests are also run as part of the install profile (if specified). 
