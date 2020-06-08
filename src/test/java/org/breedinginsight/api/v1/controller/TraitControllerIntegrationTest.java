@@ -47,33 +47,33 @@ import static org.mockito.Mockito.*;
 public class TraitControllerIntegrationTest {
 
     @Inject
-    DSLContext dsl;
+    private DSLContext dsl;
     @Inject
-    ProgramDao programDao;
+    private ProgramDao programDao;
     @Inject
-    TraitDao traitDao;
+    private TraitDao traitDao;
     @Inject
-    ProgramOntologyDao programOntologyDao;
+    private ProgramOntologyDao programOntologyDao;
     @Inject
-    MethodDao methodDao;
+    private MethodDao methodDao;
     @Inject
-    ScaleDao scaleDao;
+    private ScaleDao scaleDao;
     @Mock
-    VariablesAPI variablesAPI;
+    private VariablesAPI variablesAPI;
 
     @Inject
-    BrAPIProvider brAPIProvider;
+    private BrAPIProvider brAPIProvider;
     @MockBean(BrAPIProvider.class)
     BrAPIProvider brAPIProvider() { return mock(BrAPIProvider.class); }
 
-    Trait validTrait;
-    List<Trait> validTraits;
-    ProgramEntity validProgram;
-    String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    private Trait validTrait;
+    private List<Trait> validTraits;
+    private ProgramEntity validProgram;
+    private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
 
     @BeforeAll
     @SneakyThrows
