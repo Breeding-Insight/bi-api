@@ -21,7 +21,7 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_ONTOLOGY;
 @JsonIgnoreProperties(value = { "updatedBy", "createdBy" })
 public class ProgramOntology extends ProgramOntologyEntity {
 
-    Program program;
+    private Program program;
 
     public ProgramOntology(ProgramOntologyEntity programOntologyEntity){
         this.setId(programOntologyEntity.getId());

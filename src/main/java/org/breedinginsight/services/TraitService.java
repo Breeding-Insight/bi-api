@@ -16,9 +16,9 @@ import java.util.UUID;
 public class TraitService {
 
     @Inject
-    TraitDAO traitDAO;
+    private TraitDAO traitDAO;
     @Inject
-    ProgramService programService;
+    private ProgramService programService;
 
     public List<Trait> getByProgramId(UUID programId, Boolean getFullTrait) throws DoesNotExistException {
 

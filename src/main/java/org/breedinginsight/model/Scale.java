@@ -26,13 +26,13 @@ import static org.breedinginsight.dao.db.Tables.SCALE;
 @JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
 public class Scale extends ScaleEntity {
 
-    ProgramOntology programOntology;
+    private ProgramOntology programOntology;
 
     // BrAPI properties
-    Integer validValueMax;
-    Integer validValueMin;
-    Integer decimalPlaces;
-    List<BrApiScaleCategories> categories;
+    private Integer validValueMax;
+    private Integer validValueMin;
+    private Integer decimalPlaces;
+    private List<BrApiScaleCategories> categories;
 
     public Scale(ScaleEntity scaleEntity){
         this.setId(scaleEntity.getId());

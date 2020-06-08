@@ -22,12 +22,12 @@ import static org.breedinginsight.dao.db.Tables.METHOD;
 @JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
 public class Method extends MethodEntity {
 
-    ProgramOntology programOntology;
+    private ProgramOntology programOntology;
 
     // BrAPI Properties
-    String methodClass;
-    String description;
-    String formula;
+    private String methodClass;
+    private String description;
+    private String formula;
 
     public Method(MethodEntity methodEntity) {
         this.setId(methodEntity.getId());

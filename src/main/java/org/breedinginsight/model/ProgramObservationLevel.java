@@ -21,8 +21,8 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_OBSERVATION_LEVEL;
 @JsonIgnoreProperties(value = { "updatedBy", "createdBy" })
 public class ProgramObservationLevel extends ProgramObservationLevelEntity {
 
-    ProgramObservationLevel parentObservationLevel;
-    ProgramObservationLevel childObservationLevel;
+    private ProgramObservationLevel parentObservationLevel;
+    private ProgramObservationLevel childObservationLevel;
 
     public ProgramObservationLevel(ProgramObservationLevelEntity observationLevelEntity) {
         this.setId(observationLevelEntity.getId());

@@ -16,6 +16,7 @@ import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.brapi.client.v2.model.exceptions.HttpInternalServerError;
 import org.brapi.client.v2.model.exceptions.HttpNotFoundException;
 import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 import org.brapi.v2.core.model.BrApiExternalReference;
@@ -32,10 +33,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -60,18 +58,18 @@ public class TraitControllerIntegrationTest {
     MethodDao methodDao;
     @Inject
     ScaleDao scaleDao;
-    @Inject
-    BrAPIProvider brAPIProvider;
     @Mock
     VariablesAPI variablesAPI;
+
+    @Inject
+    BrAPIProvider brAPIProvider;
+    @MockBean(BrAPIProvider.class)
+    BrAPIProvider brAPIProvider() { return mock(BrAPIProvider.class); }
 
     Trait validTrait;
     List<Trait> validTraits;
     ProgramEntity validProgram;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-
-    @MockBean(BrAPIProvider.class)
-    public BrAPIProvider brAPIProvider() { return mock(BrAPIProvider.class); }
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -305,6 +303,7 @@ public class TraitControllerIntegrationTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
+        assertEquals(2, data.size(), "Number of traits returned is incorrect.");
         checkTraitFullResponse(data.get(0).getAsJsonObject(), validTraits.get(0), brApiVariable1);
         checkTraitFullResponse(data.get(1).getAsJsonObject(), validTraits.get(1), brApiVariable1);
     }
@@ -372,36 +371,10 @@ public class TraitControllerIntegrationTest {
 
     @Test
     @SneakyThrows
-    public void getTraitSingleExistsInBrapiNotInSystem() {
-
-        BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
-                validTraits.get(0).getScaleId());
-        BrApiVariable brApiVariable2 = getTestBrApiVariable(validTraits.get(1).getId(), validTraits.get(1).getMethodId(),
-                validTraits.get(1).getScaleId());
-        List<BrApiVariable> brApiVariables = List.of(brApiVariable1, brApiVariable2);
-
-        // Mock brapi response
-        reset(variablesAPI);
-        when(variablesAPI.getVariables(any(VariablesRequest.class))).thenReturn(brApiVariables);
-        when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        checkTraitFullResponse(result, validTraits.get(0), brApiVariable1);
-    }
-
-    @Test
-    @SneakyThrows
     public void getTraitSingleBrAPIError() {
 
         reset(variablesAPI);
-        when(variablesAPI.getVariables()).thenThrow(new HttpNotFoundException("test"));
+        when(variablesAPI.getVariables()).thenThrow(new HttpInternalServerError("test"));
         when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -468,8 +441,8 @@ public class TraitControllerIntegrationTest {
         List<BrApiExternalReference> externalReferenceList = List.of(externalReference);
         BrApiScaleValidValues brApiScaleValidValues = BrApiScaleValidValues.builder()
                 .categories(List.of(
-                        BrApiScaleCategories.builder().label("test1").value("value1").build(),
-                        BrApiScaleCategories.builder().label("test2").value("value2").build()
+                        BrApiScaleCategories.builder().label("test2").value("value1").build(),
+                        BrApiScaleCategories.builder().label("test1").value("value2").build()
                 ))
                 .build();
         BrApiScale brApiScale = BrApiScale.builder()
@@ -490,7 +463,7 @@ public class TraitControllerIntegrationTest {
                 .attribute("height")
                 .entity("stalk")
                 .status("active")
-                .synonyms(List.of("stalk height"))
+                .synonyms(List.of("stalk height", "stalk tallness"))
                 .build();
 
         return brApiTrait;
@@ -523,7 +496,10 @@ public class TraitControllerIntegrationTest {
 
         List<String> jsonAlternativeAbbreviations = new ArrayList<>();
         traitJson.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
-        assertLinesMatch(jsonAlternativeAbbreviations, brApiVariable.getTrait().getAlternativeAbbreviations(), "Alternative abbreviations don't match");
+        List<String> traitAbbreviations = new ArrayList<>(brApiVariable.getTrait().getAlternativeAbbreviations());
+        Collections.sort(jsonAlternativeAbbreviations);
+        Collections.sort(traitAbbreviations);
+        assertLinesMatch(jsonAlternativeAbbreviations, traitAbbreviations, "Alternative abbreviations don't match");
 
         assertEquals(traitJson.get("mainAbbreviation").getAsString(), brApiVariable.getTrait().getMainAbbreviation(), "Trait main abbreviations don't match");
         assertEquals(traitJson.get("attribute").getAsString(), brApiVariable.getTrait().getAttribute(), "Trait attributes don't match");
@@ -533,7 +509,10 @@ public class TraitControllerIntegrationTest {
 
         List<String> jsonSynonyms = new ArrayList<>();
         traitJson.get("synonyms").getAsJsonArray().iterator().forEachRemaining(element -> jsonSynonyms.add(element.getAsString()));
-        assertLinesMatch(jsonSynonyms, brApiVariable.getTrait().getSynonyms(), "Synonyms don't match");
+        List<String> traitSynonyms = new ArrayList<>(brApiVariable.getTrait().getSynonyms());
+        Collections.sort(jsonSynonyms);
+        Collections.sort(traitSynonyms);
+        assertLinesMatch(jsonSynonyms, traitSynonyms, "Synonyms don't match");
 
         // Check method
         JsonObject methodJson = traitJson.getAsJsonObject("method");
@@ -543,9 +522,13 @@ public class TraitControllerIntegrationTest {
         JsonObject scaleJson = traitJson.getAsJsonObject("scale");
         assertEquals(scaleJson.get("decimalPlaces").getAsInt(), brApiVariable.getScale().getDecimalPlaces(), "Scale decimal places don't match");
         assertEquals(scaleJson.get("dataType").getAsString(), brApiVariable.getScale().getDataType().toString(), "Scale data types don't match");
+
         List<JsonObject> jsonCategories = new ArrayList<>();
         scaleJson.get("categories").getAsJsonArray().iterator().forEachRemaining(element -> jsonCategories.add(element.getAsJsonObject()));
-        Iterator<BrApiScaleCategories> categories = brApiVariable.getScale().getValidValues().getCategories().iterator();
+        Collections.sort(jsonCategories, Comparator.comparing((x) -> x.get("label").getAsString()));
+        List<BrApiScaleCategories> brApiScaleCategories = new ArrayList<>(brApiVariable.getScale().getValidValues().getCategories());
+        Collections.sort(brApiScaleCategories, Comparator.comparing(BrApiScaleCategories::getLabel));
+        Iterator<BrApiScaleCategories> categories = brApiScaleCategories.iterator();
         for (JsonObject jsonCategory: jsonCategories){
             BrApiScaleCategories category = categories.next();
             assertEquals(category.getLabel(), jsonCategory.get("label").getAsString(), "Category label does not match");

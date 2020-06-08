@@ -27,11 +27,11 @@ public class BrAPIServerFilter extends OncePerRequestHttpServerFilter {
 
 
     @Value("${micronaut.brapi.server.url}")
-    String defaultBrAPIUrl;
+    private String defaultBrAPIUrl;
     @Inject
-    ProgramService programService;
+    private ProgramService programService;
     @Inject
-    BrAPIClientProvider brAPIClientProvider;
+    private BrAPIClientProvider brAPIClientProvider;
 
     @Override
     public int getOrder() {

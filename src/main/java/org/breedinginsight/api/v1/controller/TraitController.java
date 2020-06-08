@@ -31,7 +31,7 @@ import java.util.UUID;
 public class TraitController {
 
     @Inject
-    TraitService traitService;
+    private TraitService traitService;
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)

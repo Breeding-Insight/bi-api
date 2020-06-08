@@ -25,24 +25,24 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
         "programOntologyId", "programObservationLevelId"})
 public class Trait extends TraitEntity {
 
-    ProgramObservationLevel programObservationLevel;
-    Method method;
-    Scale scale;
-    ProgramOntology programOntology;
+    private ProgramObservationLevel programObservationLevel;
+    private Method method;
+    private Scale scale;
+    private ProgramOntology programOntology;
     @JsonIgnoreProperties("systemRoles")
-    User createdByUser;
+    private User createdByUser;
     @JsonIgnoreProperties("systemRoles")
-    User updatedByUser;
+    private User updatedByUser;
 
     // Properties from brapi
-    String description;
-    String traitClass;
-    String attribute;
-    String defaultValue;
-    String entity;
-    String mainAbbreviation;
-    List<String> abbreviations;
-    List<String> synonyms;
+    private String description;
+    private String traitClass;
+    private String attribute;
+    private String defaultValue;
+    private String entity;
+    private String mainAbbreviation;
+    private List<String> abbreviations;
+    private List<String> synonyms;
 
     public Trait(TraitEntity traitEntity) {
         this.setId(traitEntity.getId());

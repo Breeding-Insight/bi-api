@@ -28,7 +28,7 @@ public class TraitDAO extends TraitDao {
 
     private DSLContext dsl;
     @Inject
-    BrAPIProvider brAPIProvider;
+    private BrAPIProvider brAPIProvider;
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl) {
@@ -72,11 +72,9 @@ public class TraitDAO extends TraitDao {
 
                 Method method = trait.getMethod();
                 method.setBrAPIProperties(brApiVariable.getMethod());
-                trait.setMethod(method);
 
                 Scale scale = trait.getScale();
                 scale.setBrAPIProperties(brApiVariable.getScale());
-                trait.setScale(scale);
 
                 saturatedTraits.add(trait);
             } else {

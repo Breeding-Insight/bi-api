@@ -12,11 +12,14 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.*;
-import lombok.SneakyThrows;
+import junit.framework.AssertionFailedError;
 import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.ResponseHandlerFunction;
+import org.brapi.client.v2.model.BrAPIRequest;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.dao.db.tables.daos.*;
@@ -31,50 +34,60 @@ import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.GET;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+
+// These tests are a little hacky, but should be dependable.
+// Spies on the BrAPIClient to check the url at the time the brapi service is called.
+// Because of that, the assert is checked in the micronaut scope and assertions failures are
+// handled as server errors. So, we need to check the logs to see if an assertion error was thrown.
+// TODO: This could be made less hacky if there BrAPICLient returned actual data. Right now we expect
+// the tests to fail so we handle the internal server exception. If they were supposed to fail, the
+// only errors would be assertion failure errors.
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class BrAPIServerFilterIntegrationTest {
 
-    ProgramEntity validProgram;
-    @Value("${micronaut.brapi.server.url}")
-    String defaultBrAPIUrl;
+    private ProgramEntity validProgram;
+    private TraitEntity validVariable;
 
-    ListAppender<ILoggingEvent> loggingEventListAppender;
+    private ListAppender<ILoggingEvent> loggingEventListAppender;
     @Inject
-    ProgramService programService;
+    private ProgramService programService;
     @MockBean(ProgramService.class)
     ProgramService programService() { return mock(ProgramService.class);}
     @Inject
-    BrAPIClientProvider brAPIClientProvider;
+    private BrAPIClientProvider brAPIClientProvider;
     @MockBean(BrAPIClientProvider.class)
     BrAPIClientProvider brAPIClientProvider() { return mock(BrAPIClientProvider.class, CALLS_REAL_METHODS); }
 
     @Inject
-    DSLContext dsl;
+    private DSLContext dsl;
     @Inject
-    ProgramDao programDao;
+    private ProgramDao programDao;
+    @Inject
+    private TraitDao traitDao;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
 
     @BeforeAll
     public void setup() {
 
         insertTestData();
         retrieveTestData();
+    }
 
+    @BeforeEach
+    public void resetLogger() {
         Logger logger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
         ListAppender<ILoggingEvent> loggingEventListAppender = new ListAppender<>();
         loggingEventListAppender.start();
@@ -103,39 +116,31 @@ public class BrAPIServerFilterIntegrationTest {
 
         // Insert trait
         dsl.execute(fp.get("InsertTrait"));
-
-        // Insert method
-        dsl.execute(fp.get("InsertMethod1"));
-
-        // Insert scale
-        dsl.execute(fp.get("InsertScale1"));
-
-        // Insert trait
-        dsl.execute(fp.get("InsertTrait1"));
     }
 
     public void retrieveTestData() {
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
+        validVariable = traitDao.findAll().get(0);
     }
 
     @Test
-    @SneakyThrows
     @Order(1)
-    public void urlChangesForDifferentRequests() {
+    public void urlChangesForDifferentRequestsCallOne() {
         // Checks that two requests sent to the same micronaut instance will have different
-        // urls.
-        // Brittle test. Relies on checking the error logs for a mentioned url. Might be able to
-        // be improved.
+        // urls. Could use some improvements
 
-        String coreUrl = "core-test" + UUID.randomUUID().toString();
-        String phenoUrl = "pheno-test" + UUID.randomUUID().toString();
-        String genoUrl = "geno-test" + UUID.randomUUID().toString();
+        String coreUrl = "http://core-test" + UUID.randomUUID().toString();
+        String phenoUrl = "http://pheno-test" + UUID.randomUUID().toString();
+        String genoUrl = "http://geno-test" + UUID.randomUUID().toString();
         ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(coreUrl, phenoUrl, genoUrl);
 
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
+        // Assert our brapi url was used
+        checkBrAPIClientExecution(phenoUrl);
+
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -145,54 +150,28 @@ public class BrAPIServerFilterIntegrationTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
+
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
-        // Check that our incorrect url was referenced
-        String errorId = e.getResponse().body().toString();
-        String logMsg = getLogEvent(errorId);
-
-        assertEquals(true, logMsg.contains(phenoUrl), "Wrong endpoint contacted");
-
-        String coreUrl1 = "core-test" + UUID.randomUUID().toString();
-        String phenoUrl1 = "pheno-test" + UUID.randomUUID().toString();
-        String genoUrl1 = "geno-test" + UUID.randomUUID().toString();
-        ProgramBrAPIEndpoints programBrAPIEndpoints1 = getBrAPIEndpoints(coreUrl1, phenoUrl1, genoUrl1);
-
-        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints1);
-
-        Flowable<HttpResponse<String>> call1 = client.exchange(
-                GET("/programs/" + validProgram.getId() + "/traits?full=true")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e1 = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
-
-        String errorId1 = e1.getResponse().body().toString();
-        String logMsg1 = getLogEvent(errorId1);
-
-        // Check that our incorrect url was referenced
-        assertEquals(true, logMsg1.contains(phenoUrl1), "Wrong endpoint contacted");
+        // Check that our error is not an assertion error
+        assertLogEvent(InternalServerException.class.getName());
     }
 
     @Test
-    public void programEndpointsEmpty() {
-        // Tests that the default url is set if no program endpoints are specified
-        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(new ProgramBrAPIEndpoints());
+    @Order(2)
+    public void urlChangesForDifferentRequestsCallTwo() {
+
+        String coreUrl1 = "http://core-test" + UUID.randomUUID().toString();
+        String phenoUrl1 = "http://pheno-test" + UUID.randomUUID().toString();
+        String genoUrl1 = "http://geno-test" + UUID.randomUUID().toString();
+        ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(coreUrl1, phenoUrl1, genoUrl1);
+
+        reset(programService);
+        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        String traceUrl = UUID.randomUUID().toString();
-        when(brAPIClientProvider.getClient(BrAPIClientType.PHENO)).thenAnswer(new Answer<BrAPIClient>() {
-            @Override
-            public BrAPIClient answer(InvocationOnMock invocation) throws Throwable {
-                BrAPIClient brAPIClient = (BrAPIClient) invocation.callRealMethod();
-                assertEquals(defaultBrAPIUrl, brAPIClient.brapiURI(), "Default url was not used");
-                return new BrAPIClient("http://" + traceUrl);
-            }
-        });
+        // Assert our brapi url was used
+        checkBrAPIClientExecution(phenoUrl1);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -200,33 +179,118 @@ public class BrAPIServerFilterIntegrationTest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
+        // Expect error because brapi results will not be returned
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
+
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
-        // See if our mock answer was called
-        String errorId = e.getResponse().body().toString();
-        String logMsg = getLogEvent(errorId);
-
-        // Check that our incorrect url was referenced
-        assertEquals(true, logMsg.contains(traceUrl), "Wrong endpoint contacted");
+        // Check that our error is not an assertion error
+        assertLogEvent(InternalServerException.class.getName());
     }
 
-    public String getLogEvent(String expectedMsg) {
+    @Test
+    public void getTraitsUsesFilter() {
 
-        List<ILoggingEvent> loggingEvents = loggingEventListAppender.list.stream().filter(loggingEvent -> {
-            return loggingEvent.getMessage().equals(expectedMsg);
-        }).collect(Collectors.toList());
-        ILoggingEvent apiErrorEvent = loggingEvents.get(0);
-        return apiErrorEvent.getThrowableProxy().getMessage();
+        String phenoUrl = "http://getTraits" + UUID.randomUUID().toString();
+        ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints("", phenoUrl, "");
+
+        reset(programService);
+        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
+        when(programService.exists(any(UUID.class))).thenReturn(true);
+
+        checkBrAPIClientExecution(phenoUrl);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits?full=true")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Expect error because brapi results will not be returned
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+
+        assertLogEvent(InternalServerException.class.getName());
+    }
+
+    @Test
+    public void getTraitSingleUsesFilter() {
+
+        String phenoUrl = "http://getTraitSingle" + UUID.randomUUID().toString();
+        ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(null, phenoUrl, null);
+
+        reset(programService);
+        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
+        when(programService.exists(any(UUID.class))).thenReturn(true);
+
+        checkBrAPIClientExecution(phenoUrl);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validVariable.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        // Expect error because brapi results will not be returned
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+
+        assertLogEvent(InternalServerException.class.getName());
+    }
+
+    public void assertLogEvent(String failureClass) {
+        // Our other assertions are thrown inside the micronaut code. We need to catch them in the logs
+        String assertionClassName = org.opentest4j.AssertionFailedError.class.getName();
+        for (ILoggingEvent loggingEvent: loggingEventListAppender.list){
+            assertEquals(failureClass, loggingEvent.getThrowableProxy().getClassName(), "Was not expected failure reason");
+        }
     }
 
     public ProgramBrAPIEndpoints getBrAPIEndpoints(String coreUrl, String phenoUrl, String genoUrl){
         return ProgramBrAPIEndpoints.builder()
-                .coreUrl(Optional.of("http://" + coreUrl))
-                .genoUrl(Optional.of("http://" + genoUrl))
-                .phenoUrl(Optional.of("http://" + phenoUrl))
+                .coreUrl(coreUrl == null ? Optional.empty() : Optional.of(coreUrl))
+                .genoUrl(genoUrl == null ? Optional.empty() : Optional.of(genoUrl))
+                .phenoUrl(phenoUrl == null ? Optional.empty() : Optional.of(phenoUrl))
                 .build();
     }
+
+    public void checkBrAPIClientExecution(String expectedUrl) throws AssertionFailedError {
+
+        // Takes advantage of brapi library code to mimic no return results from api.
+        Answer<Optional<Object>> checkBrAPIExecution = new Answer<Optional<Object>>() {
+            @Override
+            public Optional<Object> answer(InvocationOnMock invocation) throws AssertionFailedError {
+                BrAPIClient executingBrAPIClient = (BrAPIClient) invocation.getMock();
+                // Check that our url is correct
+                assertEquals(expectedUrl, executingBrAPIClient.brapiURI(), "Expected url was not used");
+                return Optional.empty();
+            }
+        };
+
+        // Test the correct url was set for our provider
+        reset(brAPIClientProvider);
+        when(brAPIClientProvider.getClient(BrAPIClientType.PHENO)).thenAnswer(new Answer<BrAPIClient>() {
+            @Override
+            public BrAPIClient answer(InvocationOnMock invocation) throws Throwable {
+                // Create a spy on our real brapi client to see what url was ultimately used
+                BrAPIClient realBrAPIClient = (BrAPIClient) invocation.callRealMethod();
+                BrAPIClient brAPIClientSpy = spy(realBrAPIClient);
+                doAnswer(checkBrAPIExecution)
+                        .when(brAPIClientSpy)
+                        .execute(any(BrAPIRequest.class), any(ResponseHandlerFunction.class));
+
+                return brAPIClientSpy;
+            }
+        });
+
+    }
+
 }
