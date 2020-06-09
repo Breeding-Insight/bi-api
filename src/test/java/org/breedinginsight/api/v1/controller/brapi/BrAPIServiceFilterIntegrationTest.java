@@ -53,7 +53,7 @@ import static org.mockito.Mockito.*;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BrAPIServerFilterIntegrationTest {
+public class BrAPIServiceFilterIntegrationTest {
 
     private ProgramEntity validProgram;
     private TraitEntity validVariable;

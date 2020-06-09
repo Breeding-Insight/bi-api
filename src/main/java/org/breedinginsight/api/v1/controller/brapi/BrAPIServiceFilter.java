@@ -6,6 +6,7 @@ import io.micronaut.http.HttpAttributes;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
+import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import io.micronaut.web.router.MethodBasedRouteMatch;
@@ -13,6 +14,8 @@ import io.micronaut.web.router.RouteMatch;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
+import org.brapi.client.v2.model.exceptions.HttpInternalServerError;
+import org.brapi.client.v2.model.exceptions.HttpNotFoundException;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
@@ -22,8 +25,8 @@ import javax.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
 
-@Filter("/**")
-public class BrAPIServerFilter extends OncePerRequestHttpServerFilter {
+@Filter("/**/programs/**")
+public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
 
 
     @Value("${micronaut.brapi.server.url}")
@@ -48,27 +51,34 @@ public class BrAPIServerFilter extends OncePerRequestHttpServerFilter {
                 .switchMap(aBoolean -> {
 
                     RouteMatch routeMatch = request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse(null);
-                    if (routeMatch instanceof MethodBasedRouteMatch){
-                        var methodRoute = ((MethodBasedRouteMatch) routeMatch);
-                        if (methodRoute.hasAnnotation(BrAPIService.class)) {
+                    Map<String, Object> params = routeMatch.getVariableValues();
+                    if (params.get("programId") != null) {
+                        if (routeMatch instanceof MethodBasedRouteMatch) {
 
-                            Map<String, Object> params = routeMatch.getVariableValues();
-                            if (params.get("programId") != null) {
-                                UUID programId = UUID.fromString(params.get("programId").toString());
-                                ProgramBrAPIEndpoints programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
-                                String coreUrl = getCoreUrl(programBrAPIEndpoints);
-                                brAPIClientProvider.setCoreClient(coreUrl);
-                                String phenoUrl = getPhenoUrl(programBrAPIEndpoints);
-                                brAPIClientProvider.setPhenoClient(phenoUrl);
-                                String genoUrl = getGenoUrl(programBrAPIEndpoints);
-                                brAPIClientProvider.setGenoClient(genoUrl);
-                            } else {
-                                return Flowable.error(new HttpBadRequestException(""));
+                            UUID programId;
+                            try {
+                                programId = UUID.fromString(params.get("programId").toString());
+                            } catch (IllegalArgumentException e) {
+                                return Flowable.error(new HttpNotFoundException("Program does not exist"));
                             }
-                        }
-                    }
 
-                    return chain.proceed(request);
+                            //TODO: This service method should return a 404 if program isn't found
+                            ProgramBrAPIEndpoints programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
+                            String coreUrl = getCoreUrl(programBrAPIEndpoints);
+                            brAPIClientProvider.setCoreClient(coreUrl);
+                            String phenoUrl = getPhenoUrl(programBrAPIEndpoints);
+                            brAPIClientProvider.setPhenoClient(phenoUrl);
+                            String genoUrl = getGenoUrl(programBrAPIEndpoints);
+                            brAPIClientProvider.setGenoClient(genoUrl);
+                            return chain.proceed(request);
+                        } else {
+                            // We shouldn't get here
+                            return Flowable.error(new HttpInternalServerError("Unable to process request"));
+                        }
+                    } else {
+                        // The filter is not meant for this request
+                        return chain.proceed(request);
+                    }
                 });
     }
 

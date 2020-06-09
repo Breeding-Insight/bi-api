@@ -13,7 +13,6 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
-import org.breedinginsight.api.v1.controller.brapi.BrAPIService;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
@@ -35,7 +34,6 @@ public class TraitController {
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @BrAPIService
     @Secured({SecurityRule.IS_AUTHENTICATED})
     public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId,
                                                                  @Valid TraitsQuery traitsQuery) {
@@ -63,7 +61,6 @@ public class TraitController {
     @Get("/programs/{programId}/traits/{traitId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @BrAPIService
     @Secured({SecurityRule.IS_AUTHENTICATED})
     public HttpResponse<Response<Trait>> getTraits(@PathVariable UUID programId, @PathVariable UUID traitId) {
 
