@@ -173,7 +173,7 @@ public class TraitControllerIntegrationTest {
 
         // Mock brapi response
         reset(variablesAPI);
-        when(variablesAPI.getVariables()).thenReturn(brApiVariables);
+        when(variablesAPI.getVariables(any(VariablesRequest.class))).thenReturn(brApiVariables);
         when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -290,7 +290,7 @@ public class TraitControllerIntegrationTest {
 
         // Mock brapi response
         reset(variablesAPI);
-        when(variablesAPI.getVariables()).thenReturn(brApiVariables);
+        when(variablesAPI.getVariables(any(VariablesRequest.class))).thenReturn(brApiVariables);
         when(brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO)).thenReturn(variablesAPI);
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -352,7 +352,7 @@ public class TraitControllerIntegrationTest {
 
         BrApiVariable brApiVariable1 = getTestBrApiVariable(validTraits.get(0).getId(), validTraits.get(0).getMethodId(),
                 validTraits.get(0).getScaleId());
-        List<BrApiVariable> brApiVariables = List.of(brApiVariable1);
+        List<BrApiVariable> brApiVariables = new ArrayList<>();
 
         // Mock brapi response
         reset(variablesAPI);

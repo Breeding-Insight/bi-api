@@ -1,14 +1,13 @@
 package org.breedinginsight.daos;
 
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import lombok.NonNull;
 import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
 import org.brapi.v2.core.model.BrApiExternalReference;
 import org.brapi.v2.phenotyping.model.BrApiVariable;
 import org.brapi.v2.phenotyping.model.request.VariablesRequest;
 import org.breedinginsight.services.brapi.BrAPIProvider;
-import org.breedinginsight.services.brapi.BrAPIUtilities;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
@@ -29,6 +28,8 @@ public class TraitDAO extends TraitDao {
     private DSLContext dsl;
     @Inject
     private BrAPIProvider brAPIProvider;
+    @Value("${micronaut.brapi.server.reference-source}")
+    private String referenceSource;
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl) {
@@ -46,9 +47,12 @@ public class TraitDAO extends TraitDao {
         Map<UUID, Trait> dbVariablesMap = dbVariables.stream().collect(Collectors.toMap(Trait::getId, p -> p));
 
         // Get brapi variables
+        VariablesRequest variablesRequest = VariablesRequest.builder()
+                .externalReferenceSource(referenceSource)
+                .build();
         List<BrApiVariable> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables();
+            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables(variablesRequest);
         } catch (HttpException | APIException e) {
             throw new InternalServerException(e.getMessage());
         }
@@ -115,6 +119,7 @@ public class TraitDAO extends TraitDao {
         //TODO: We might want to add a source too
         VariablesRequest variablesRequest = VariablesRequest.builder()
                 .externalReferenceID(traitId.toString())
+                .externalReferenceSource(referenceSource)
                 .build();
         try {
             brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables(variablesRequest);
@@ -130,19 +135,14 @@ public class TraitDAO extends TraitDao {
             throw new InternalServerException("No variable found in brapi server");
         }
 
-        Boolean matches = BrAPIUtilities.hasMatchingExternalReference(brApiVariable.getExternalReferences(), dbTrait.getId());
-        if (matches) {
-            dbTrait.setBrAPIProperties(brApiVariable);
-            Method method = dbTrait.getMethod();
-            method.setBrAPIProperties(brApiVariable.getMethod());
-            dbTrait.setMethod(method);
+        dbTrait.setBrAPIProperties(brApiVariable);
+        Method method = dbTrait.getMethod();
+        method.setBrAPIProperties(brApiVariable.getMethod());
+        dbTrait.setMethod(method);
 
-            Scale scale = dbTrait.getScale();
-            scale.setBrAPIProperties(brApiVariable.getScale());
-            dbTrait.setScale(scale);
-        } else {
-            throw new InternalServerException("Returned variable did not match db variable.");
-        }
+        Scale scale = dbTrait.getScale();
+        scale.setBrAPIProperties(brApiVariable.getScale());
+        dbTrait.setScale(scale);
 
         return Optional.of(dbTrait);
     }

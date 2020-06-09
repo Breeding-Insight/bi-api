@@ -30,6 +30,7 @@ micronaut:
   brapi:
     server:
       url: ${brapi.server.url:`https://test-server.brapi.org/`}
+      reference-source: ${brapi.server.reference-source:`breeding-insight.org`}
   security:
     enabled: true
     oauth2:
