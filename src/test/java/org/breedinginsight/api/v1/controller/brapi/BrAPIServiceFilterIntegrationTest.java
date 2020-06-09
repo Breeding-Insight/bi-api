@@ -11,11 +11,11 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.*;
 import junit.framework.AssertionFailedError;
+import lombok.SneakyThrows;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.ResponseHandlerFunction;
 import org.brapi.client.v2.model.BrAPIRequest;
@@ -35,19 +35,12 @@ import javax.inject.Inject;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
-
-// These tests are a little hacky, but should be dependable.
-// Spies on the BrAPIClient to check the url at the time the brapi service is called.
-// Because of that, the assert is checked in the micronaut scope and assertions failures are
-// handled as server errors. So, we need to check the logs to see if an assertion error was thrown.
-// TODO: This could be made less hacky if there BrAPICLient returned actual data. Right now we expect
-// the tests to fail so we handle the internal server exception. If they were supposed to fail, the
-// only errors would be assertion failure errors.
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -57,7 +50,6 @@ public class BrAPIServiceFilterIntegrationTest {
     private ProgramEntity validProgram;
     private TraitEntity validVariable;
 
-    private ListAppender<ILoggingEvent> loggingEventListAppender;
     @Inject
     private ProgramService programService;
     @MockBean(ProgramService.class)
@@ -83,15 +75,6 @@ public class BrAPIServiceFilterIntegrationTest {
 
         insertTestData();
         retrieveTestData();
-    }
-
-    @BeforeEach
-    public void resetLogger() {
-        Logger logger = (Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME);
-        ListAppender<ILoggingEvent> loggingEventListAppender = new ListAppender<>();
-        loggingEventListAppender.start();
-        logger.addAppender(loggingEventListAppender);
-        this.loggingEventListAppender = loggingEventListAppender;
     }
 
     public void insertTestData() {
@@ -125,6 +108,7 @@ public class BrAPIServiceFilterIntegrationTest {
 
     @Test
     @Order(1)
+    @SneakyThrows
     public void urlChangesForDifferentRequestsCallOne() {
         // Checks that two requests sent to the same micronaut instance will have different
         // urls. Could use some improvements
@@ -138,7 +122,7 @@ public class BrAPIServiceFilterIntegrationTest {
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
         // Assert our brapi url was used
-        checkBrAPIClientExecution(phenoUrl);
+        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -153,11 +137,12 @@ public class BrAPIServiceFilterIntegrationTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
         // Check that our error is not an assertion error
-        assertLogEvent(InternalServerException.class.getName());
+        assertTrue(urlCheckFuture.get(), "Url was not as expected");
     }
 
     @Test
     @Order(2)
+    @SneakyThrows
     public void urlChangesForDifferentRequestsCallTwo() {
 
         String coreUrl1 = "http://core-test" + UUID.randomUUID().toString();
@@ -170,7 +155,7 @@ public class BrAPIServiceFilterIntegrationTest {
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
         // Assert our brapi url was used
-        checkBrAPIClientExecution(phenoUrl1);
+        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl1);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -186,10 +171,11 @@ public class BrAPIServiceFilterIntegrationTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
         // Check that our error is not an assertion error
-        assertLogEvent(InternalServerException.class.getName());
+        assertTrue(urlCheckFuture.get(), "Url was not as expected");
     }
 
     @Test
+    @SneakyThrows
     public void getTraitsUsesFilter() {
 
         String phenoUrl = "http://getTraits" + UUID.randomUUID().toString();
@@ -199,7 +185,7 @@ public class BrAPIServiceFilterIntegrationTest {
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        checkBrAPIClientExecution(phenoUrl);
+        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -214,10 +200,11 @@ public class BrAPIServiceFilterIntegrationTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
-        assertLogEvent(InternalServerException.class.getName());
+        assertTrue(urlCheckFuture.get(), "Url was not as expected");
     }
 
     @Test
+    @SneakyThrows
     public void getTraitSingleUsesFilter() {
 
         String phenoUrl = "http://getTraitSingle" + UUID.randomUUID().toString();
@@ -227,7 +214,7 @@ public class BrAPIServiceFilterIntegrationTest {
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        checkBrAPIClientExecution(phenoUrl);
+        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits/" + validVariable.getId())
@@ -242,15 +229,7 @@ public class BrAPIServiceFilterIntegrationTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
-        assertLogEvent(InternalServerException.class.getName());
-    }
-
-    public void assertLogEvent(String failureClass) {
-        // Our other assertions are thrown inside the micronaut code. We need to catch them in the logs
-        String assertionClassName = org.opentest4j.AssertionFailedError.class.getName();
-        for (ILoggingEvent loggingEvent: loggingEventListAppender.list){
-            assertEquals(failureClass, loggingEvent.getThrowableProxy().getClassName(), "Was not expected failure reason");
-        }
+        assertTrue(urlCheckFuture.get(), "Url was not as expected");
     }
 
     public ProgramBrAPIEndpoints getBrAPIEndpoints(String coreUrl, String phenoUrl, String genoUrl){
@@ -261,7 +240,9 @@ public class BrAPIServiceFilterIntegrationTest {
                 .build();
     }
 
-    public void checkBrAPIClientExecution(String expectedUrl) throws AssertionFailedError {
+    public CompletableFuture<Boolean> checkBrAPIClientExecution(String expectedUrl) throws AssertionFailedError {
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
 
         // Takes advantage of brapi library code to mimic no return results from api.
         Answer<Optional<Object>> checkBrAPIExecution = new Answer<Optional<Object>>() {
@@ -269,7 +250,7 @@ public class BrAPIServiceFilterIntegrationTest {
             public Optional<Object> answer(InvocationOnMock invocation) throws AssertionFailedError {
                 BrAPIClient executingBrAPIClient = (BrAPIClient) invocation.getMock();
                 // Check that our url is correct
-                assertEquals(expectedUrl, executingBrAPIClient.brapiURI(), "Expected url was not used");
+                future.complete(expectedUrl.equals(executingBrAPIClient.brapiURI()));
                 return Optional.empty();
             }
         };
@@ -289,6 +270,8 @@ public class BrAPIServiceFilterIntegrationTest {
                 return brAPIClientSpy;
             }
         });
+
+        return future;
 
     }
 
