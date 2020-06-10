@@ -14,6 +14,10 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.CountryService;
+import org.breedinginsight.services.AccessibilityService;
+import org.breedinginsight.services.TopographyService;
+import org.breedinginsight.services.EnvironmentTypeService;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +46,22 @@ public class InternalServerErrorHandlerUnitTest {
     ProgramService programService;
     @Inject
     ProgramController programController;
+    @Inject
+    CountryService countryService;
+    @Inject
+    CountryController countryController;
+    @Inject
+    AccessibilityService accessibilityService;
+    @Inject
+    AccessibilityController accessibilityController;
+    @Inject
+    TopographyService topographyService;
+    @Inject
+    TopographyController topographyController;
+    @Inject
+    EnvironmentTypeService environmentTypeService;
+    @Inject
+    EnvironmentTypeController environmentTypeController;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -55,6 +75,46 @@ public class InternalServerErrorHandlerUnitTest {
     @MockBean(ProgramService.class)
     ProgramService programService() {
         return mock(ProgramService.class);
+    }
+
+    @MockBean(CountryController.class)
+    CountryController countryController() {
+        return mock(CountryController.class);
+    }
+
+    @MockBean(CountryService.class)
+    CountryService countryService() {
+        return mock(CountryService.class);
+    }
+
+    @MockBean(TopographyController.class)
+    TopographyController topographyController() {
+        return mock(TopographyController.class);
+    }
+
+    @MockBean(TopographyService.class)
+    TopographyService topographyService() {
+        return mock(TopographyService.class);
+    }
+
+    @MockBean(AccessibilityController.class)
+    AccessibilityController accessibilityController() {
+        return mock(AccessibilityController.class);
+    }
+
+    @MockBean(AccessibilityService.class)
+    AccessibilityService accessibilityService() {
+        return mock(AccessibilityService.class);
+    }
+
+    @MockBean(EnvironmentTypeController.class)
+    EnvironmentTypeController environmentTypeController() {
+        return mock(EnvironmentTypeController.class);
+    }
+
+    @MockBean(EnvironmentTypeService.class)
+    EnvironmentTypeService environmentTypeService() {
+        return mock(EnvironmentTypeService.class);
     }
 
     @BeforeEach
@@ -107,4 +167,169 @@ public class InternalServerErrorHandlerUnitTest {
 
         assertEquals(0, loggingEventListAppender.list.size(), "Logs were entered, but shouldn't have been.");
     }
+
+    @Test
+    public void getCountriesInternalServerError() {
+
+        when(countryController.getCountries()).thenThrow(new DataAccessException("Query 123 failed"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/countries").cookie(new NettyCookie("phylo-token", "test-country")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+
+        // Check that we can find our error id in logs
+        String errorId = e.getResponse().body().toString();
+        ILoggingEvent loggingEvent = loggingEventListAppender.list.get(0);
+        assertEquals(Level.ERROR, loggingEvent.getLevel(), "Wrong logging level was used");
+        assertEquals(errorId, loggingEvent.getMessage(), "Id returned doesn't match logging id");
+
+    }
+
+    @Test
+    public void countryControllerHandledExceptionIgnored() {
+
+        when(countryService.getById(any(UUID.class))).thenReturn(Optional.empty());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/countries/" + UUID.randomUUID()).cookie(new NettyCookie("phylo-token", "test-country")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus(), "Response status is incorrect");
+
+        assertEquals(0, loggingEventListAppender.list.size(), "Logs were entered, but shouldn't have been.");
+    }
+
+    @Test
+    public void getTopographiesInternalServerError() {
+
+        when(topographyController.getTopographies()).thenThrow(new DataAccessException("Query 123 failed"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/topography-options").cookie(new NettyCookie("phylo-token", "test-topography")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+
+        // Check that we can find our error id in logs
+        String errorId = e.getResponse().body().toString();
+        ILoggingEvent loggingEvent = loggingEventListAppender.list.get(0);
+        assertEquals(Level.ERROR, loggingEvent.getLevel(), "Wrong logging level was used");
+        assertEquals(errorId, loggingEvent.getMessage(), "Id returned doesn't match logging id");
+
+    }
+
+    @Test
+    public void topographyControllerHandledExceptionIgnored() {
+
+        when(topographyService.getById(any(UUID.class))).thenReturn(Optional.empty());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/topography-options/" + UUID.randomUUID()).cookie(new NettyCookie("phylo-token", "test-topography")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus(), "Response status is incorrect");
+
+        assertEquals(0, loggingEventListAppender.list.size(), "Logs were entered, but shouldn't have been.");
+    }
+
+    @Test
+    public void getAccessibilitiesInternalServerError() {
+
+        when(accessibilityController.getAccessibilities()).thenThrow(new DataAccessException("Query 123 failed"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/accessibility-options").cookie(new NettyCookie("phylo-token", "test-accessibility")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+
+        // Check that we can find our error id in logs
+        String errorId = e.getResponse().body().toString();
+        ILoggingEvent loggingEvent = loggingEventListAppender.list.get(0);
+        assertEquals(Level.ERROR, loggingEvent.getLevel(), "Wrong logging level was used");
+        assertEquals(errorId, loggingEvent.getMessage(), "Id returned doesn't match logging id");
+
+    }
+
+    @Test
+    public void accessibilityControllerHandledExceptionIgnored() {
+
+        when(accessibilityService.getById(any(UUID.class))).thenReturn(Optional.empty());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/accessibility-options/" + UUID.randomUUID()).cookie(new NettyCookie("phylo-token", "test-accessibility")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus(), "Response status is incorrect");
+
+        assertEquals(0, loggingEventListAppender.list.size(), "Logs were entered, but shouldn't have been.");
+    }
+
+    @Test
+    public void getEnvironmentTypesInternalServerError() {
+
+        when(environmentTypeController.getEnvironmentTypes()).thenThrow(new DataAccessException("Query 123 failed"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/environment-data-types").cookie(new NettyCookie("phylo-token", "test-environment-type")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+
+        // Check that we can find our error id in logs
+        String errorId = e.getResponse().body().toString();
+        ILoggingEvent loggingEvent = loggingEventListAppender.list.get(0);
+        assertEquals(Level.ERROR, loggingEvent.getLevel(), "Wrong logging level was used");
+        assertEquals(errorId, loggingEvent.getMessage(), "Id returned doesn't match logging id");
+
+    }
+
+    @Test
+    public void environmentTypeControllerHandledExceptionIgnored() {
+
+        when(environmentTypeService.getById(any(UUID.class))).thenReturn(Optional.empty());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/environment-data-types/" + UUID.randomUUID()).cookie(new NettyCookie("phylo-token", "test-environment-type")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus(), "Response status is incorrect");
+
+        assertEquals(0, loggingEventListAppender.list.size(), "Logs were entered, but shouldn't have been.");
+    }
+
 }
