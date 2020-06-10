@@ -471,19 +471,19 @@ public class TraitControllerIntegrationTest {
 
     public void checkTraitResponse(JsonObject traitJson, Trait trait) {
 
-        assertEquals(traitJson.get("id").getAsString(), trait.getId().toString(), "Ids don't match");
-        assertEquals(traitJson.get("traitName").getAsString(), trait.getTraitName(), "Names don't match");
-        assertEquals(traitJson.get("active").getAsString(), trait.getActive().toString(), "Actives don't match");
+        assertEquals(trait.getId().toString(), traitJson.get("id").getAsString(), "Ids don't match");
+        assertEquals(trait.getTraitName(), traitJson.get("traitName").getAsString(),"Names don't match");
+        assertEquals(trait.getActive().toString(), traitJson.get("active").getAsString(), "Actives don't match");
 
         JsonObject method = traitJson.getAsJsonObject("method");
-        assertEquals(method.get("methodName").getAsString(), trait.getMethod().getMethodName(), "Method names don't match");
+        assertEquals(trait.getMethod().getMethodName(), method.get("methodName").getAsString(), "Method names don't match");
 
         JsonObject scale = traitJson.getAsJsonObject("scale");
-        assertEquals(scale.get("scaleName").getAsString(), trait.getScale().getScaleName(), "Scale names don't match");
-        assertEquals(scale.get("dataType").getAsString(), trait.getScale().getDataType().toString(), "Scale data types don't match");
+        assertEquals(trait.getScale().getScaleName(), scale.get("scaleName").getAsString(), "Scale names don't match");
+        assertEquals(trait.getScale().getDataType().toString(), scale.get("dataType").getAsString(), "Scale data types don't match");
 
         JsonObject programOntology = traitJson.getAsJsonObject("programOntology");
-        assertEquals(programOntology.get("id").getAsString(), trait.getProgramOntologyId().toString(), "Program Ontology ids don't match");
+        assertEquals(trait.getProgramOntologyId().toString(), programOntology.get("id").getAsString(), "Program Ontology ids don't match");
     }
 
     public void checkTraitFullResponse(JsonObject traitJson, Trait trait, BrApiVariable brApiVariable) {
@@ -491,37 +491,37 @@ public class TraitControllerIntegrationTest {
         // Check values from our db
         checkTraitResponse(traitJson, trait);
 
-        assertEquals(traitJson.get("traitClass").getAsString(), brApiVariable.getTrait().getTraitClass(), "Trait classes don't match");
-        assertEquals(traitJson.get("description").getAsString(), brApiVariable.getTrait().getTraitDescription(), "Trait descriptions don't match");
+        assertEquals(brApiVariable.getTrait().getTraitClass(), traitJson.get("traitClass").getAsString(), "Trait classes don't match");
+        assertEquals(brApiVariable.getTrait().getTraitDescription(), traitJson.get("description").getAsString(), "Trait descriptions don't match");
 
         List<String> jsonAlternativeAbbreviations = new ArrayList<>();
         traitJson.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
         List<String> traitAbbreviations = new ArrayList<>(brApiVariable.getTrait().getAlternativeAbbreviations());
         Collections.sort(jsonAlternativeAbbreviations);
         Collections.sort(traitAbbreviations);
-        assertLinesMatch(jsonAlternativeAbbreviations, traitAbbreviations, "Alternative abbreviations don't match");
+        assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");
 
-        assertEquals(traitJson.get("mainAbbreviation").getAsString(), brApiVariable.getTrait().getMainAbbreviation(), "Trait main abbreviations don't match");
-        assertEquals(traitJson.get("attribute").getAsString(), brApiVariable.getTrait().getAttribute(), "Trait attributes don't match");
-        assertEquals(traitJson.get("entity").getAsString(), brApiVariable.getTrait().getEntity(), "Trait entities don't match");
+        assertEquals(brApiVariable.getTrait().getMainAbbreviation(), traitJson.get("mainAbbreviation").getAsString(), "Trait main abbreviations don't match");
+        assertEquals(brApiVariable.getTrait().getAttribute(), traitJson.get("attribute").getAsString(), "Trait attributes don't match");
+        assertEquals(brApiVariable.getTrait().getEntity(), traitJson.get("entity").getAsString(), "Trait entities don't match");
         String status = traitJson.get("active").getAsBoolean() ? "active" : "inactive";
-        assertEquals(status, brApiVariable.getStatus(), "Trait actives don't match");
+        assertEquals(brApiVariable.getStatus(), status, "Trait actives don't match");
 
         List<String> jsonSynonyms = new ArrayList<>();
         traitJson.get("synonyms").getAsJsonArray().iterator().forEachRemaining(element -> jsonSynonyms.add(element.getAsString()));
         List<String> traitSynonyms = new ArrayList<>(brApiVariable.getTrait().getSynonyms());
         Collections.sort(jsonSynonyms);
         Collections.sort(traitSynonyms);
-        assertLinesMatch(jsonSynonyms, traitSynonyms, "Synonyms don't match");
+        assertLinesMatch(traitSynonyms, jsonSynonyms, "Synonyms don't match");
 
         // Check method
         JsonObject methodJson = traitJson.getAsJsonObject("method");
-        assertEquals(methodJson.get("methodClass").getAsString(), brApiVariable.getMethod().getMethodClass(), "Method classes don't match");
+        assertEquals(brApiVariable.getMethod().getMethodClass(), methodJson.get("methodClass").getAsString(), "Method classes don't match");
 
         // Check scale
         JsonObject scaleJson = traitJson.getAsJsonObject("scale");
-        assertEquals(scaleJson.get("decimalPlaces").getAsInt(), brApiVariable.getScale().getDecimalPlaces(), "Scale decimal places don't match");
-        assertEquals(scaleJson.get("dataType").getAsString(), brApiVariable.getScale().getDataType().toString(), "Scale data types don't match");
+        assertEquals(brApiVariable.getScale().getDecimalPlaces(), scaleJson.get("decimalPlaces").getAsInt(), "Scale decimal places don't match");
+        assertEquals(brApiVariable.getScale().getDataType().toString(), scaleJson.get("dataType").getAsString(), "Scale data types don't match");
 
         List<JsonObject> jsonCategories = new ArrayList<>();
         scaleJson.get("categories").getAsJsonArray().iterator().forEachRemaining(element -> jsonCategories.add(element.getAsJsonObject()));

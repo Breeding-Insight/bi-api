@@ -1,6 +1,6 @@
 package org.breedinginsight.api.v1.controller.brapi;
 
-import io.micronaut.context.annotation.Value;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.core.order.Ordered;
 import io.micronaut.http.HttpAttributes;
 import io.micronaut.http.HttpRequest;
@@ -27,8 +27,12 @@ import java.util.UUID;
 public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
 
 
-    @Value("${micronaut.brapi.server.url}")
-    private String defaultBrAPIUrl;
+    @Property(name = "brapi.server.core-url")
+    private String defaultBrAPICoreUrl;
+    @Property(name = "brapi.server.pheno-url")
+    private String defaultBrAPIPhenoUrl;
+    @Property(name = "brapi.server.geno-url")
+    private String defaultBrAPIGenoUrl;
     @Inject
     private ProgramService programService;
     @Inject
@@ -84,7 +88,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
         if (programBrAPIEndpoints.getCoreUrl().isPresent()){
             return programBrAPIEndpoints.getCoreUrl().get();
         } else {
-            return defaultBrAPIUrl;
+            return defaultBrAPICoreUrl;
         }
     }
 
@@ -92,7 +96,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
         if (programBrAPIEndpoints.getPhenoUrl().isPresent()){
             return programBrAPIEndpoints.getPhenoUrl().get();
         } else {
-            return defaultBrAPIUrl;
+            return defaultBrAPIPhenoUrl;
         }
     }
 
@@ -100,7 +104,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
         if (programBrAPIEndpoints.getCoreUrl().isPresent()){
             return programBrAPIEndpoints.getGenoUrl().get();
         } else {
-            return defaultBrAPIUrl;
+            return defaultBrAPIGenoUrl;
         }
     }
 }

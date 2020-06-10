@@ -1,6 +1,6 @@
 package org.breedinginsight.daos;
 
-import io.micronaut.context.annotation.Value;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
@@ -28,7 +28,7 @@ public class TraitDAO extends TraitDao {
     private DSLContext dsl;
     @Inject
     private BrAPIProvider brAPIProvider;
-    @Value("${micronaut.brapi.server.reference-source}")
+    @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
     @Inject

@@ -27,10 +27,6 @@ micronaut:
   bi:
     api:
       version: v1
-  brapi:
-    server:
-      url: ${brapi.server.url:`https://test-server.brapi.org/`}
-      reference-source: ${brapi.server.reference-source:`breeding-insight.org`}
   security:
     enabled: true
     oauth2:
@@ -114,3 +110,10 @@ web:
       url: ${web.loginFailureUrl:`http://localhost:8080/401`}
   logout:
     url: ${web.logoutUrl:`http://localhost:8080`}
+
+brapi:
+  server:
+    core-url: ${brapi.server.core-url}
+    pheno-url: ${brapi.server.pheno-url}
+    geno-url: ${brapi.server.geno-url}
+    reference-source: ${brapi.server.reference-source}

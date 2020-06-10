@@ -510,6 +510,10 @@
                             <db.default.name>${DB_NAME}</db.default.name>
                             <db.default.username>${DB_USER}</db.default.username>
                             <db.default.password>${DB_PASSWORD}</db.default.password>
+                            <brapi.server.core-url>${BRAPI_CORE_URL}</brapi.server.core-url>
+                            <brapi.server.pheno-url>${BRAPI_PHENO_URL}</brapi.server.pheno-url>
+                            <brapi.server.geno-url>${BRAPI_GENO_URL}</brapi.server.geno-url>
+                            <brapi.server.reference-source>breeding-insight.org</brapi.server.reference-source>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>
