@@ -33,45 +33,33 @@ public class AccessibilityController {
     @Inject
     private AccessibilityService accessibilityService;
 
-    @Get("/accessibility_options")
+    @Get("/accessibility-options")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Accessibility>>> getAccessibilities() {
-        try {
-            List<Accessibility> accessibilities = accessibilityService.getAll();
+        List<Accessibility> accessibilities = accessibilityService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(accessibilities.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(accessibilities.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<Accessibility>> response = new Response(metadata, new DataResponse<>(accessibilities));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        Response<DataResponse<Accessibility>> response = new Response(metadata, new DataResponse<>(accessibilities));
+        return HttpResponse.ok(response);
     }
 
-    @Get("/accessibility_options/{accessibilityId}")
+    @Get("/accessibility-options/{accessibilityId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Accessibility>> getAccessibility(@PathVariable UUID accessibilityId) {
-
-        try {
-            Optional<Accessibility> accessibility = accessibilityService.getById(accessibilityId);
-            if(accessibility.isPresent()) {
-                Response<Accessibility> response = new Response(accessibility.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<Accessibility> accessibility = accessibilityService.getById(accessibilityId);
+        if(accessibility.isPresent()) {
+            Response<Accessibility> response = new Response(accessibility.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
     }
 }

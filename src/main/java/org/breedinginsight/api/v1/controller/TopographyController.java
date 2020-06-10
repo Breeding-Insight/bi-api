@@ -33,45 +33,33 @@ public class TopographyController {
     @Inject
     private TopographyService topographyService;
 
-    @Get("/topography_options")
+    @Get("/topography-options")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Topography>>> getTopographies() {
-        try {
-            List<Topography> topographies = topographyService.getAll();
+        List<Topography> topographies = topographyService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(topographies.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(topographies.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<Topography>> response = new Response(metadata, new DataResponse<>(topographies));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        Response<DataResponse<Topography>> response = new Response(metadata, new DataResponse<>(topographies));
+        return HttpResponse.ok(response);
     }
 
-    @Get("/topography_options/{topographyId}")
+    @Get("/topography-options/{topographyId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Topography>> getTopography(@PathVariable UUID topographyId) {
-
-        try {
-            Optional<Topography> topography = topographyService.getById(topographyId);
-            if(topography.isPresent()) {
-                Response<Topography> response = new Response(topography.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<Topography> topography = topographyService.getById(topographyId);
+        if(topography.isPresent()) {
+            Response<Topography> response = new Response(topography.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
     }
 }

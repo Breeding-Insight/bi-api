@@ -37,21 +37,16 @@ public class CountryController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Country>>> getCountries() {
-        try {
-            List<Country> countries = countryService.getAll();
+        List<Country> countries = countryService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(countries.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(countries.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<Country>> response = new Response(metadata, new DataResponse<>(countries));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        Response<DataResponse<Country>> response = new Response(metadata, new DataResponse<>(countries));
+        return HttpResponse.ok(response);
     }
 
     @Get("/countries/{countryId}")
@@ -59,19 +54,12 @@ public class CountryController {
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Country>> getCountry(@PathVariable UUID countryId) {
-
-        try {
-            Optional<Country> country = countryService.getById(countryId);
-            if(country.isPresent()) {
-                Response<Country> response = new Response(country.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<Country> country = countryService.getById(countryId);
+        if(country.isPresent()) {
+            Response<Country> response = new Response(country.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
     }
 }

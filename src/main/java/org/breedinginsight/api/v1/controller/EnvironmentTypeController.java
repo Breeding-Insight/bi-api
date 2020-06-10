@@ -33,45 +33,33 @@ public class EnvironmentTypeController {
     @Inject
     private EnvironmentTypeService environmentTypeService;
 
-    @Get("/environment_data_types")
+    @Get("/environment-data-types")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<EnvironmentType>>> getEnvironmentTypes() {
-        try {
-            List<EnvironmentType> environmentTypes = environmentTypeService.getAll();
+        List<EnvironmentType> environmentTypes = environmentTypeService.getAll();
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(environmentTypes.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(environmentTypes.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<EnvironmentType>> response = new Response(metadata, new DataResponse<>(environmentTypes));
-            return HttpResponse.ok(response);
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
-        }
+        Response<DataResponse<EnvironmentType>> response = new Response(metadata, new DataResponse<>(environmentTypes));
+        return HttpResponse.ok(response);
     }
 
-    @Get("/environment_data_types/{environmentTypeId}")
+    @Get("/environment-data-types/{environmentTypeId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<EnvironmentType>> getEnvironmentType(@PathVariable UUID environmentTypeId) {
-
-        try {
-            Optional<EnvironmentType> environmentType = environmentTypeService.getById(environmentTypeId);
-            if(environmentType.isPresent()) {
-                Response<EnvironmentType> response = new Response(environmentType.get());
-                return HttpResponse.ok(response);
-            } else {
-                return HttpResponse.notFound();
-            }
-
-        } catch (DataAccessException e){
-            log.error("Error executing query: {}", e.getMessage());
-            return HttpResponse.serverError();
+        Optional<EnvironmentType> environmentType = environmentTypeService.getById(environmentTypeId);
+        if(environmentType.isPresent()) {
+            Response<EnvironmentType> response = new Response(environmentType.get());
+            return HttpResponse.ok(response);
+        } else {
+            return HttpResponse.notFound();
         }
     }
 }
