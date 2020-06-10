@@ -39,7 +39,7 @@ public class AccessibilityControllerIntegrationTest {
     void getAccessibilitiesSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/accessibility_options")
+                                                              GET("/accessibility-options")
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -63,7 +63,7 @@ public class AccessibilityControllerIntegrationTest {
     void getAccessibilitiesSingleSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/accessibility_options/"+validAccessibilityId)
+                                                              GET("/accessibility-options/"+validAccessibilityId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
@@ -81,7 +81,7 @@ public class AccessibilityControllerIntegrationTest {
     void getAccessibilitiesSingleInvalid() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                                                              GET("/accessibilities/"+invalidAccessibilityId)
+                                                              GET("/accessibility-options/"+invalidAccessibilityId)
                                                               .contentType(MediaType.APPLICATION_JSON)
                                                               .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
                                                               );
