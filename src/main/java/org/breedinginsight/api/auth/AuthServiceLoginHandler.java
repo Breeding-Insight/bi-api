@@ -37,9 +37,7 @@ import org.breedinginsight.services.UserService;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
@@ -96,15 +94,16 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 if (request.getCookies().contains(loginSuccessUrlCookieName)){
                     Cookie loginSuccessCookie = request.getCookies().get(loginSuccessUrlCookieName);
                     String returnUrl = loginSuccessCookie.getValue();
-                    if (isValidURI(returnUrl)){
-                        try {
-                            locationUrl = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8.name());
-                        } catch (UnsupportedEncodingException e){}
-                    }
+                    try {
+                        returnUrl = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8.name());
+                        if (isValidURL(returnUrl)){
+                            locationUrl = returnUrl;
+                        }
+                    } catch (UnsupportedEncodingException e){}
                 }
             }
 
-            URI location = new URI(locationUrl).normalize();
+            URI location = new URI(locationUrl);
 
             MutableHttpResponse mutableHttpResponse = HttpResponse.seeOther(location);
 
@@ -126,11 +125,11 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         return super.loginFailed(authenticationFailed);
     }
 
-    private Boolean isValidURI(String url) {
+    private Boolean isValidURL(String urlString) {
         try {
-            new URI(url);
-            return true;
-        } catch (URISyntaxException e){
+            URL url = new URL(urlString);
+            return "https".equals(url.getProtocol()) || "http".equals(url.getProtocol());
+        } catch (MalformedURLException e){
             return false;
         }
     }
