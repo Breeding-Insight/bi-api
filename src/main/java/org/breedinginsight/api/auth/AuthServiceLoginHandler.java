@@ -20,6 +20,9 @@ package org.breedinginsight.api.auth;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MutableHttpResponse;
+import io.micronaut.http.context.ServerRequestContext;
+import io.micronaut.http.cookie.Cookie;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationFailureReason;
 import io.micronaut.security.authentication.UserDetails;
@@ -33,6 +36,12 @@ import org.breedinginsight.services.UserService;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -43,6 +52,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
     @Inject
     private UserService userService;
+    private String loginSuccessUrlCookieName = "redirect-login";
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -76,9 +86,52 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     }
 
     @Override
+    protected HttpResponse loginSuccessWithCookies(List<Cookie> cookies) {
+        try {
+            String locationUrl = this.jwtCookieConfiguration.getLoginSuccessTargetUrl();
+
+            Optional<HttpRequest<Object>> requestOptional = ServerRequestContext.currentRequest();
+            if (requestOptional.isPresent()){
+                HttpRequest<Object> request = requestOptional.get();
+                if (request.getCookies().contains(loginSuccessUrlCookieName)){
+                    Cookie loginSuccessCookie = request.getCookies().get(loginSuccessUrlCookieName);
+                    String returnUrl = loginSuccessCookie.getValue();
+                    if (isValidURI(returnUrl)){
+                        try {
+                            locationUrl = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8.name());
+                        } catch (UnsupportedEncodingException e){}
+                    }
+                }
+            }
+
+            URI location = new URI(locationUrl).normalize();
+
+            MutableHttpResponse mutableHttpResponse = HttpResponse.seeOther(location);
+
+            Cookie cookie;
+            for(Iterator var4 = cookies.iterator(); var4.hasNext(); mutableHttpResponse = mutableHttpResponse.cookie(cookie)) {
+                cookie = (Cookie)var4.next();
+            }
+
+            return mutableHttpResponse;
+        } catch (URISyntaxException var6) {
+            return HttpResponse.serverError();
+        }
+    }
+
+    @Override
     public HttpResponse loginFailed(AuthenticationFailed authenticationFailed) {
         // If we want to hook code into the login process in the future we can put it here, for now just
         // passes through to JwtCookieLoginHandler
         return super.loginFailed(authenticationFailed);
+    }
+
+    private Boolean isValidURI(String url) {
+        try {
+            new URI(url);
+            return true;
+        } catch (URISyntaxException e){
+            return false;
+        }
     }
 }
