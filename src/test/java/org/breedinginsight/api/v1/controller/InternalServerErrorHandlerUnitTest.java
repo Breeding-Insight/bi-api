@@ -30,6 +30,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
+import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.jooq.exception.DataAccessException;
 import org.junit.jupiter.api.Assertions;
@@ -46,8 +47,7 @@ import java.util.UUID;
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -77,6 +77,7 @@ public class InternalServerErrorHandlerUnitTest {
     @BeforeEach
     void setupErrorLogger() {
 
+        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(new ProgramBrAPIEndpoints());
         Logger logger = (Logger) LoggerFactory.getLogger(InternalServerErrorHandler.class);
         ListAppender<ILoggingEvent> loggingEventListAppender = new ListAppender<>();
         loggingEventListAppender.start();

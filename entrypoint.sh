@@ -17,7 +17,7 @@
 #    limitations under the License.
 #
 
-mvn validate flyway:migrate -X
+mvn validate flyway:migrate -X --settings settings.xml
 
 # create a jar file for br-api.
 #mvn clean install

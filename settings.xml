@@ -35,17 +35,51 @@
                     <snapshots><enabled>true</enabled></snapshots>
                 </pluginRepository>
                 <pluginRepository>
-                    <id>github</id>
+                    <id>github-jooq</id>
                     <name>GitHub Breeding Insight Apache Maven Packages</name>
                     <url>https://maven.pkg.github.com/Breeding-Insight/bi-jooq-codegen</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
                 </pluginRepository>
             </pluginRepositories>
+            <repositories>
+                <repository>
+                    <id>central</id>
+                    <url>https://repo1.maven.org/maven2</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                </repository>
+                <repository>
+                    <id>github-brapi</id>
+                    <name>GitHub Breeding Insight Apache Maven Packages</name>
+                    <url>https://maven.pkg.github.com/Breeding-Insight/brapi/develop</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                </repository>
+                <repository>
+                    <id>github-fannypack</id>
+                    <name>FannyPack github repository</name>
+                    <url>https://maven.pkg.github.com/Kowalski-IO/fannypack</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                </repository>
+            </repositories>
         </profile>
     </profiles>
 
     <servers>
         <server>
-            <id>github</id>
+            <id>github-jooq</id>
+            <username>${GITHUB_ACTOR}</username>
+            <password>${GITHUB_TOKEN}</password>
+        </server>
+        <server>
+            <id>github-brapi</id>
+            <username>${GITHUB_ACTOR}</username>
+            <password>${GITHUB_TOKEN}</password>
+        </server>
+        <server>
+            <id>github-fannypack</id>
             <username>${GITHUB_ACTOR}</username>
             <password>${GITHUB_TOKEN}</password>
         </server>
