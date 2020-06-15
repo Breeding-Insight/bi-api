@@ -66,7 +66,7 @@ public class AuthServiceLoginHandlerUnitTest {
     @Test
     public void returnsPassedUrlGoodHttpUrl() {
 
-        String expectedUrl = "http://localhost:8080/test";
+        String expectedUrl = "http://localhost:8080/test?testparam=true";
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
         Cookie returnUrlCookie = Cookie.of("redirect-login", expectedUrl);
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
@@ -85,7 +85,7 @@ public class AuthServiceLoginHandlerUnitTest {
     @Test
     public void returnsPassedUrlGoodHttpsUrl() {
 
-        String expectedUrl = "https://localhost:8080/test";
+        String expectedUrl = "https://localhost:8080/test?testparam=blueberry";
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
         Cookie returnUrlCookie = Cookie.of("redirect-login", expectedUrl);
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
