@@ -17,6 +17,7 @@
 
 package org.breedinginsight.api.auth;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
@@ -30,6 +31,7 @@ import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
@@ -46,11 +48,13 @@ import java.util.stream.Collectors;
 
 @Replaces(JwtCookieLoginHandler.class)
 @Singleton
+@Slf4j
 public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
     @Inject
     private UserService userService;
-    private String loginSuccessUrlCookieName = "redirect-login";
+    @Property(name = "web.cookies.login-redirect")
+    private String loginSuccessUrlCookieName;
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -98,8 +102,12 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                         returnUrl = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8.name());
                         if (isValidURL(returnUrl)){
                             locationUrl = returnUrl;
+                        } else {
+                            log.info("Invalid url: " + returnUrl);
                         }
-                    } catch (UnsupportedEncodingException e){}
+                    } catch (UnsupportedEncodingException e){
+                        log.info("Error decoding url: " + returnUrl);
+                    }
                 }
             }
 
@@ -108,12 +116,13 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             MutableHttpResponse mutableHttpResponse = HttpResponse.seeOther(location);
 
             Cookie cookie;
-            for(Iterator var4 = cookies.iterator(); var4.hasNext(); mutableHttpResponse = mutableHttpResponse.cookie(cookie)) {
-                cookie = (Cookie)var4.next();
+            for(Iterator cookieIterator = cookies.iterator(); cookieIterator.hasNext(); mutableHttpResponse = mutableHttpResponse.cookie(cookie)) {
+                cookie = (Cookie)cookieIterator.next();
             }
 
             return mutableHttpResponse;
-        } catch (URISyntaxException var6) {
+        } catch (URISyntaxException e) {
+            log.error(e.getMessage());
             return HttpResponse.serverError();
         }
     }

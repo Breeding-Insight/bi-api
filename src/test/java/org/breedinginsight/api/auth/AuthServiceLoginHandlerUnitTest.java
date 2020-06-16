@@ -26,6 +26,7 @@ import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
 import io.micronaut.test.annotation.MicronautTest;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.com.fasterxml.jackson.databind.annotation.JsonAppend;
 
 import javax.inject.Inject;
 import java.util.HashMap;
@@ -44,12 +45,14 @@ public class AuthServiceLoginHandlerUnitTest {
 
     @Property(name = "micronaut.security.token.jwt.cookie.login-success-target-url")
     String defaultUrl;
+    @Property(name = "web.cookies.login-redirect")
+    String loginRedirectCookieName;
 
     @Test
     public void returnsDefaultBadUrl() {
 
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
-        Cookie returnUrlCookie = Cookie.of("redirect-login", "localhost:8080/test");
+        Cookie returnUrlCookie = Cookie.of(loginRedirectCookieName, "localhost:8080/test");
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
@@ -68,7 +71,7 @@ public class AuthServiceLoginHandlerUnitTest {
 
         String expectedUrl = "http://localhost:8080/test?testparam=true";
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
-        Cookie returnUrlCookie = Cookie.of("redirect-login", expectedUrl);
+        Cookie returnUrlCookie = Cookie.of(loginRedirectCookieName, expectedUrl);
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
@@ -87,7 +90,7 @@ public class AuthServiceLoginHandlerUnitTest {
 
         String expectedUrl = "https://localhost:8080/test?testparam=blueberry";
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
-        Cookie returnUrlCookie = Cookie.of("redirect-login", expectedUrl);
+        Cookie returnUrlCookie = Cookie.of(loginRedirectCookieName, expectedUrl);
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();

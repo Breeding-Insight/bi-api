@@ -103,6 +103,8 @@ datasources:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
+  cookies:
+    login-redirect: redirect-login
   login:
     success:
       url: ${web.loginSuccessUrl:`http://localhost:8080/program-selection`}
