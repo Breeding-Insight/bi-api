@@ -1952,13 +1952,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /topographies:
+  /topography-options:
     get:
       tags:
-        - topographies
-      summary: Get list of all topographies in the system.
-      description: Get list of all topographies
-      operationId: getTopographies
+        - topography options
+      summary: Get list of all topography options in the system.
+      description: Get list of all topography options
+      operationId: getTopographyOptions
       responses:
         "200":
           description: OK
@@ -1968,7 +1968,7 @@ paths:
                 $ref: '#/components/schemas/topographiesResponse'
               examples:
                 arrayOfTopographies:
-                  $ref: '#/components/examples/arrayOfTopographies'
+                  $ref: '#/components/examples/arrayOfTopographyOptions'
         "400":
           description: Bad Request
           content:
@@ -1995,17 +1995,17 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /topographies/{id}:
+  /topography-options/{id}:
     get:
       tags:
-        - topographies
-      summary: Get topography information
-      description: Get a specific topography
-      operationId: getTopographyById
+        - topography options
+      summary: Get topography option information
+      description: Get a specific topography option
+      operationId: getTopographyOptionById
       parameters:
         - name: id
           in: path
-          description: The id of the topography information that needs to be fetched.
+          description: The id of the topography option information that needs to be fetched.
           required: true
           style: simple
           explode: false
@@ -2017,10 +2017,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/topographiesResponseSingle'
+                $ref: '#/components/schemas/topographyOptionsResponseSingle'
               examples:
                 singleTopography:
-                  $ref: '#/components/examples/singleTopography'
+                  $ref: '#/components/examples/singleTopographyOption'
         "400":
           description: Bad Request
           content:
@@ -2055,23 +2055,23 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /accessibilities:
+  /accessibility-options:
     get:
       tags:
-        - accessibilities
-      summary: Get list of all accessibilities in the system.
-      description: Get list of all accessibilities
-      operationId: getAccessibilities
+        - accessibility options
+      summary: Get list of all accessibility options in the system.
+      description: Get list of all accessibility options
+      operationId: getAccessibilityOptions
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/accessibilitiesResponse'
+                $ref: '#/components/schemas/accessibilityOptionsResponse'
               examples:
                 arrayOfAccessibilities:
-                  $ref: '#/components/examples/arrayOfAccessibilities'
+                  $ref: '#/components/examples/arrayOfAccessibilityOptions'
         "400":
           description: Bad Request
           content:
@@ -2098,17 +2098,17 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /accessibilities/{id}:
+  /accessibility-options/{id}:
     get:
       tags:
-        - accessibilities
-      summary: Get accessibility information
-      description: Get a specific accessibility
-      operationId: getAccessibilityById
+        - accessibility options
+      summary: Get accessibility option information
+      description: Get a specific accessibility option
+      operationId: getAccessibilityOptionById
       parameters:
         - name: id
           in: path
-          description: The id of the accessibility information that needs to be fetched.
+          description: The id of the accessibility option information that needs to be fetched.
           required: true
           style: simple
           explode: false
@@ -2120,10 +2120,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/accessibilitiesResponseSingle'
+                $ref: '#/components/schemas/accessibilityOptionsResponseSingle'
               examples:
                 singleAccessibility:
-                  $ref: '#/components/examples/singleAccessibility'
+                  $ref: '#/components/examples/singleAccessibilityOption'
         "400":
           description: Bad Request
           content:
@@ -2158,23 +2158,23 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /environmentTypes:
+  /environment-data-types:
     get:
       tags:
-        - environmentTypes
-      summary: Get list of all environment yypes in the system.
-      description: Get list of all environment yypes
-      operationId: getEnvironmentTypes
+        - environment data types
+      summary: Get list of all environment data types in the system.
+      description: Get list of all environment data types
+      operationId: getEnvironmentDataTypes
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/environmentTypesResponse'
+                $ref: '#/components/schemas/environmentDataTypesResponse'
               examples:
-                arrayOfEnvironmentTypes:
-                  $ref: '#/components/examples/arrayOfEnvironmentTypes'
+                arrayOfEnvironmentDataTypes:
+                  $ref: '#/components/examples/arrayOfEnvironmentDataTypes'
         "400":
           description: Bad Request
           content:
@@ -2201,17 +2201,17 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /environmentTypes/{id}:
+  /environment-data-types/{id}:
     get:
       tags:
-        - environmentTypes
-      summary: Get environment type information
-      description: Get a specific environment type
-      operationId: getEnvironmentTypeById
+        - environmentDataTypes
+      summary: Get environment data type information
+      description: Get a specific environment data type
+      operationId: getEnvironmentDataTypeById
       parameters:
         - name: id
           in: path
-          description: The id of the environment type information that needs to be fetched.
+          description: The id of the environment data type information that needs to be fetched.
           required: true
           style: simple
           explode: false
@@ -2223,10 +2223,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/environmentTypesResponseSingle'
+                $ref: '#/components/schemas/environmentDataTypesResponseSingle'
               examples:
-                singleEnvironmentType:
-                  $ref: '#/components/examples/singleEnvironmentType'
+                singleEnvironmentDataType:
+                  $ref: '#/components/examples/singleEnvironmentDataType'
         "400":
           description: Bad Request
           content:
@@ -2274,6 +2274,7 @@ components:
             The empty list should be returned if no additional data files are present.
           items:
             type: string
+
         pagination:
           $ref: '#/components/schemas/metadata_pagination'
         status:
@@ -2322,7 +2323,7 @@ components:
           type: string
         alpha3Code:
           type: string
-    topography:
+    topographyOption:
       type: object
       properties:
         id:
@@ -2330,7 +2331,7 @@ components:
           format: uuid
         name:
           type: string
-    accessibility:
+    accessibilityOption:
       type: object
       properties:
         id:
@@ -2338,7 +2339,7 @@ components:
           format: uuid
         name:
           type: string
-    environmentType:
+    environmentDataType:
       type: object
       properties:
         id:
@@ -2894,7 +2895,164 @@ components:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
-          $ref: '#/components/schemas/environmentType'
+          $ref: '#/components/schemas/location'
+    updateProgramRequest:
+      type: object
+      properties:
+        species:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Id of species to assign to program
+            commonName:
+              type: string
+              description: Name of species
+          required:
+            - id
+        name:
+          type: string
+          description: name of program
+        abbreviation:
+          type: string
+          description: abbreviation for program name
+        objective:
+          type: string
+          description: program objective
+        documetation_url:
+          type: string
+          description: program documentation url
+      required:
+        - species
+        - name
+    countriesResponse:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/countriesResponseResult'
+    countriesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of countries
+          items:
+            $ref: '#/components/schemas/country'
+    countriesResponseSingle:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/country'
+    topographiesResponse:
+      title: topographyOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographyOptionsResponseResult'
+    topographyOptionsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of topographies
+          items:
+            $ref: '#/components/schemas/topographyOption'
+    topographyOptionsResponseSingle:
+      title: topographyOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographyOption'
+    accessibilityOptionsResponse:
+      title: accessibilityOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOptionsResponseResult'
+    accessibilityOptionsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of accessibility options
+          items:
+            $ref: '#/components/schemas/accessibilityOption'
+    accessibilityOptionsResponseSingle:
+      title: accessibilityOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOption'
+    environmentDataTypesResponse:
+      title: environmentDataTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentDataTypesResponseResult'
+    environmentDataTypesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of environemnt data types
+          items:
+            $ref: '#/components/schemas/environmentDataType'
+    environmentDataTypesResponseSingle:
+      title: environmentDataTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentDataType'
     rolesResponse:
       title: rolesResponse
       required:
@@ -3413,7 +3571,7 @@ components:
           name: United States of America
           alpha2Code: US
           alpha3Code: USA
-    arrayOfTopographies:
+    arrayOfTopographyOptions:
       value:
         metadata:
           datafiles: []
@@ -3429,7 +3587,7 @@ components:
               name: plateau
             - id: 8cc0390e-e490-443a-948b-e2fde4a7627e
               name: cirque
-    singleTopography:
+    singleTopographyOption:
       value:
         metadata:
           datafiles: []
@@ -3442,7 +3600,7 @@ components:
         result:
           id: 60a5b049-064c-4550-b5cd-2a7394724bdc
           name: plateau
-    arrayOfAccessibilities:
+    arrayOfAccessibilityOptions:
       value:
         metadata:
           datafiles: []
@@ -3458,7 +3616,7 @@ components:
               name: private
             - id: 59f6652d-ec2e-4db0-b748-02302656ec1c
               name: public
-    singleAccessibility:
+    singleAccessibilityOption:
       value:
         metadata:
           datafiles: []
@@ -3471,7 +3629,7 @@ components:
         result:
           id: 1eab0b9d-400f-4e85-97cb-9071ab95c6a4
           name: private
-    arrayOfEnvironmentTypes:
+    arrayOfEnvironmentDataTypes:
       value:
         metadata:
           datafiles: []
@@ -3487,7 +3645,7 @@ components:
               name: forest
             - id: aa887f61-a831-4663-9d12-7368c1961590
               name: field
-    singleEnvironmentType:
+    singleEnvironmentDataType:
       value:
         metadata:
           datafiles: []
