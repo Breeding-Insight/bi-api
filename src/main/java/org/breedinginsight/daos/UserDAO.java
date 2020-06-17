@@ -85,8 +85,7 @@ public class UserDAO extends BiUserDao {
                 .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID))
                 .leftJoin(PROGRAM_USER_ROLE).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
                 .leftJoin(PROGRAM).on(PROGRAM_USER_ROLE.PROGRAM_ID.eq(PROGRAM.ID))
-                    .and(PROGRAM.ACTIVE.eq(true))
-                    .and(PROGRAM_USER_ROLE.ACTIVE.eq(true));
+                    .and(PROGRAM.ACTIVE.eq(true));
     }
 
     private List<User> parseRecords(List<Record> records) {

@@ -29,6 +29,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
@@ -62,7 +63,7 @@ import java.util.UUID;
 public class UserControllerIntegrationTest {
 
     private String testUserUUID;
-    ProgramEntity validProgram;
+    List<ProgramEntity> validPrograms;
     RoleEntity validRole;
     AuthenticatedUser actingUser;
     Integer numUsers;
@@ -99,7 +100,7 @@ public class UserControllerIntegrationTest {
         otherTestUser = biUserDao.fetchByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
         validSystemRole = systemRoleDao.findAll().get(0);
         validRole = roleDao.findAll().get(0);
-        validProgram = programDao.findAll().get(0);
+        validPrograms = programDao.findAll();
         actingUser = getActingUser();
 
     }
@@ -134,8 +135,31 @@ public class UserControllerIntegrationTest {
 
         JsonArray resultPrograms = (JsonArray) result.get("activePrograms");
         assertEquals(true, resultPrograms != null, "Empty programs list was not returned.");
-        assertEquals(true, resultPrograms.size() == 1, "Wrong number of programs. Inactive program associations may have been returned.");
+        assertEquals(true, resultPrograms.size() == 2, "Wrong number of programs.");
+        
+        Boolean programOneSeen = false;
+        Boolean programTwoSeen = false;
+        for (JsonElement resultProgram: resultPrograms) {
+            JsonObject jsonProgram = resultProgram.getAsJsonObject();
+            ProgramEntity programEntity;
 
+            if (jsonProgram.get("id").getAsString().equals(validPrograms.get(0).getId().toString())){
+                programOneSeen = true;
+                programEntity = validPrograms.get(0);
+            } else if (jsonProgram.get("id").getAsString().equals(validPrograms.get(1).getId().toString())) {
+                programTwoSeen = true;
+                programEntity = validPrograms.get(1);
+            } else {
+                throw new AssertionFailedError("Program does not match any programs in database");
+            }
+
+            assertEquals(programEntity.getName(), jsonProgram.get("name").getAsString(), "Program names do not match");
+            assertEquals(programEntity.getActive(), jsonProgram.get("active").getAsBoolean(), "Program active fields do not match");
+        }
+
+        if (!programOneSeen || !programTwoSeen) {
+            throw new AssertionFailedError("Both programs were not returned");
+        }
     }
 
     @Test
@@ -550,9 +574,31 @@ public class UserControllerIntegrationTest {
 
         JsonArray resultPrograms = (JsonArray) result.get("activePrograms");
         assertEquals(true, resultPrograms != null, "Empty roles list was not returned.");
-        assertEquals(true, resultPrograms.size() == 1, "Wrong number of programs. Inactive programs may have been returned.");
+        assertEquals(2, resultPrograms.size(), "Wrong number of programs.");
 
+        Boolean programOneSeen = false;
+        Boolean programTwoSeen = false;
+        for (JsonElement resultProgram: resultPrograms) {
+            JsonObject jsonProgram = resultProgram.getAsJsonObject();
+            ProgramEntity programEntity;
 
+            if (jsonProgram.get("id").getAsString().equals(validPrograms.get(0).getId().toString())){
+                programOneSeen = true;
+                programEntity = validPrograms.get(0);
+            } else if (jsonProgram.get("id").getAsString().equals(validPrograms.get(1).getId().toString())) {
+                programTwoSeen = true;
+                programEntity = validPrograms.get(1);
+            } else {
+                throw new AssertionFailedError("Program does not match any programs in database");
+            }
+
+            assertEquals(programEntity.getName(), jsonProgram.get("name").getAsString(), "Program names do not match");
+            assertEquals(programEntity.getActive(), jsonProgram.get("active").getAsBoolean(), "Program active fields do not match");
+        }
+
+        if (!programOneSeen || !programTwoSeen) {
+            throw new AssertionFailedError("Both programs were not returned");
+        }
     }
 
     @Test

@@ -44,7 +44,7 @@ public class User extends BiUserEntity{
     @NotNull
     private List<SystemRole> systemRoles;
     @JsonInclude(value = JsonInclude.Include.ALWAYS)
-    @JsonIgnoreProperties(value = {"createdAt", "updatedAt", "active"})
+    @JsonIgnoreProperties(value = {"createdAt", "updatedAt"})
     @NotNull
     private List<Program> activePrograms;
 
