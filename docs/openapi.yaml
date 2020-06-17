@@ -74,11 +74,18 @@ paths:
                         domain: "admin"
                       }
                       ]
+                      activePrograms: [
+                      {
+                        id: eac1f9ba-c0da-48aa-bac6-16e178dbbbcc,
+                        name: My Program
+                      }
+                      ]
                     - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
                       orcid: 1234-4312-4352-6314
                       name: Fred Brown
                       email: null
                       systemRoles: []
+                      activePrograms: []
         "400":
           description: Bad Request
           content:
@@ -145,6 +152,7 @@ paths:
                     domain: "admin"
                   }
                   ]
+                  activePrograms: []
         "400":
           description: Bad Request
           content:
@@ -219,6 +227,12 @@ paths:
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                     domain: "admin"
+                  }
+                  ]
+                  activePrograms: [
+                  {
+                    id: eac1f9ba-c0da-48aa-bac6-16e178dbbbcc,
+                    name: My Program
                   }
                   ]
         "400":
@@ -303,6 +317,12 @@ paths:
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                     domain: "admin"
+                  }
+                  ]
+                  activePrograms: [
+                  {
+                    id: eac1f9ba-c0da-48aa-bac6-16e178dbbbcc,
+                    name: My Program
                   }
                   ]
         "400":
@@ -2307,10 +2327,28 @@ components:
         id:
           type: string
           format: uuid
+        orcid:
+          type: string
         name:
           type: string
         email:
           type: string
+        systemRoles:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            domain:
+              type: string
+        activePrograms:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
     country:
       type: object
       properties:

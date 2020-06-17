@@ -19,16 +19,15 @@ package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.BiUserDao;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.breedinginsight.dao.db.Tables.*;
 
@@ -83,36 +82,53 @@ public class UserDAO extends BiUserDao {
         return dsl.select()
                 .from(BI_USER)
                 .leftJoin(SYSTEM_USER_ROLE).on(BI_USER.ID.eq(SYSTEM_USER_ROLE.BI_USER_ID))
-                .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID));
+                .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID))
+                .leftJoin(PROGRAM_USER_ROLE).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
+                .leftJoin(PROGRAM).on(PROGRAM_USER_ROLE.PROGRAM_ID.eq(PROGRAM.ID))
+                    .and(PROGRAM.ACTIVE.eq(true))
+                    .and(PROGRAM_USER_ROLE.ACTIVE.eq(true));
     }
 
     private List<User> parseRecords(List<Record> records) {
 
-        List<User> resultUsers = new ArrayList<>();
+        Map<String, User> userMap = new HashMap<>();
 
         // Parse the result
         for (Record record : records) {
             // program user exists
             User userRecord = User.parseSQLRecord(record);
             SystemRole systemRole = SystemRole.parseSQLRecord(record);
-            Optional<User> existingUser = resultUsers.stream()
-                    .filter(p -> p.getId().equals(userRecord.getId()))
-                    .findFirst();
+            Program program = Program.parseSQLRecord(record);
 
-            User user;
-            if (!existingUser.isPresent()) {
-                resultUsers.add(userRecord);
-                user = userRecord;
+            User existingUser;
+            if (userMap.containsKey(userRecord.getId().toString())) {
+                existingUser = userMap.get(userRecord.getId().toString());
             } else {
-                user = existingUser.get();
+                userMap.put(userRecord.getId().toString(), userRecord);
+                existingUser = userRecord;
             }
 
+            // Add our system role
             if (systemRole.getDomain() != null) {
-                user.addRole(systemRole);
+                Boolean systemRoleExists = Utilities.existsInList(existingUser.getSystemRoles(),
+                        systemRole, SystemRole::getId);
+                if (!systemRoleExists){
+                    existingUser.addRole(systemRole);
+                }
             }
+
+            // Add our program
+            if (program.getId() != null){
+                Boolean programExists = Utilities.existsInList(existingUser.getActivePrograms(),
+                        program, Program::getId);
+                if (!programExists) {
+                    existingUser.addActiveProgram(program);
+                }
+            }
+
         }
 
-        return resultUsers;
+        return new ArrayList<>(userMap.values());
     }
 
 }

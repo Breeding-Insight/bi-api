@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -42,6 +43,10 @@ public class User extends BiUserEntity{
     @JsonInclude(value= JsonInclude.Include.ALWAYS)
     @NotNull
     private List<SystemRole> systemRoles;
+    @JsonInclude(value = JsonInclude.Include.ALWAYS)
+    @JsonIgnoreProperties(value = {"createdAt", "updatedAt", "active"})
+    @NotNull
+    private List<Program> activePrograms;
 
     public User(BiUserEntity biUser) {
         this.setId(biUser.getId());
@@ -49,6 +54,7 @@ public class User extends BiUserEntity{
         this.setName(biUser.getName());
         this.setEmail(biUser.getEmail());
         this.setSystemRoles(new ArrayList<>());
+        this.setActivePrograms(new ArrayList<>());
         this.setActive(biUser.getActive());
     }
 
@@ -63,6 +69,7 @@ public class User extends BiUserEntity{
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .systemRoles(new ArrayList<>())
+                .activePrograms(new ArrayList<>())
                 .active(record.getValue(tableName.ACTIVE))
                 .build();
     }
@@ -74,4 +81,6 @@ public class User extends BiUserEntity{
     public void addRole(SystemRole role) {
         systemRoles.add(role);
     }
+
+    public void addActiveProgram(Program program) {activePrograms.add(program); }
 }
