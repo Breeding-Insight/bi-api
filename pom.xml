@@ -1,4 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ See the NOTICE file distributed with this work for additional information
+  ~ regarding copyright ownership.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.breedinginsight</groupId>
@@ -271,13 +288,32 @@
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>${gson.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <version>1.13.0</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.kowalski</groupId>
+            <artifactId>fannypack</artifactId>
+            <version>1.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.brapi</groupId>
+            <artifactId>brapi-client</artifactId>
+            <version>2.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.brapi</groupId>
+            <artifactId>brapi-pheno-model</artifactId>
+            <version>2.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.brapi</groupId>
+            <artifactId>brapi-core-model</artifactId>
+            <version>2.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
     <build>
@@ -473,6 +509,10 @@
                             <db.default.name>${DB_NAME}</db.default.name>
                             <db.default.username>${DB_USER}</db.default.username>
                             <db.default.password>${DB_PASSWORD}</db.default.password>
+                            <brapi.server.core-url>${BRAPI_CORE_URL}</brapi.server.core-url>
+                            <brapi.server.pheno-url>${BRAPI_PHENO_URL}</brapi.server.pheno-url>
+                            <brapi.server.geno-url>${BRAPI_GENO_URL}</brapi.server.geno-url>
+                            <brapi.server.reference-source>breeding-insight.org</brapi.server.reference-source>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>

@@ -1,3 +1,20 @@
+#
+# See the NOTICE file distributed with this work for additional information
+# regarding copyright ownership.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
 openapi: 3.0.2
 info:
   title: Breeding Insight API
@@ -1683,6 +1700,141 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /programs/{programId}/traits:
+    get:
+      tags:
+        - traits
+      summary: Get all traits in a given program
+      description: Get all traits in a given program
+      operationId: getTraits
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get traits for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: full
+          in: query
+          description: True = get detailed properties of traits. False = get only base properties of trait.
+          required: false
+          explode: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/multipleTraitsResponse'
+              examples:
+                multipleTraitsResponse:
+                  $ref: '#/components/examples/arrayOfTraits'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /programs/{programId}/traits/{traitId}:
+    get:
+      tags:
+        - traits
+      summary: Get a single trait by traitId
+      description: Gets a single trait with full level of detail
+      operationId: getTrait
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait in
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: traitId
+          in: path
+          description: Id of trait to get trait for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/singleTraitResponse'
+              examples:
+                singleTraitResponse:
+                  $ref: '#/components/examples/singleTrait'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
   /health:
     get:
       tags:
@@ -2122,6 +2274,7 @@ components:
             The empty list should be returned if no additional data files are present.
           items:
             type: string
+
         pagination:
           $ref: '#/components/schemas/metadata_pagination'
         status:
@@ -2648,6 +2801,163 @@ components:
         result:
           $ref: '#/components/schemas/country'
     topographiesResponse:
+      title: topographiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographiesResponseResult'
+    topographiesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of topographies
+          items:
+            $ref: '#/components/schemas/topography'
+    topographiesResponseSingle:
+      title: topographiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topography'
+    accessibilitiesResponse:
+      title: accessibilitiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilitiesResponseResult'
+    accessibilitiesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of accessibilities
+          items:
+            $ref: '#/components/schemas/accessibility'
+    accessibilitiesResponseSingle:
+      title: accessibilitiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibility'
+    environmentTypesResponse:
+      title: environmentTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentTypesResponseResult'
+    environmentTypesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of environemnt types
+          items:
+            $ref: '#/components/schemas/environmentType'
+    environmentTypesResponseSingle:
+      title: environmentTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/location'
+    updateProgramRequest:
+      type: object
+      properties:
+        species:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Id of species to assign to program
+            commonName:
+              type: string
+              description: Name of species
+          required:
+            - id
+        name:
+          type: string
+          description: name of program
+        abbreviation:
+          type: string
+          description: abbreviation for program name
+        objective:
+          type: string
+          description: program objective
+        documetation_url:
+          type: string
+          description: program documentation url
+      required:
+        - species
+        - name
+    countriesResponse:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/countriesResponseResult'
+    countriesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of countries
+          items:
+            $ref: '#/components/schemas/country'
+    countriesResponseSingle:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/country'
+    topographiesResponse:
       title: topographyOptionsResponse
       required:
         - metadata
@@ -2873,6 +3183,153 @@ components:
           description: Array of programs
           items:
             $ref: '#/components/schemas/program'
+    multipleTraitsResponse:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of traits
+          items:
+            $ref: '#/components/schemas/trait'
+    singleTraitResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/trait'
+    trait:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: System id of the trait
+        traitName:
+          type: string
+          description: Trait display name
+        active:
+          type: boolean
+          description: Trait active status
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        description:
+          type: string
+        traitClass:
+          type: string
+          example: "morphological"
+        attribute:
+          type: string
+          description: Attribute the trait is describing
+          example: height
+        defaultValue:
+          type: string
+          description: Default value of the trait
+        entity:
+          type: string
+          description: Entity the trait is for
+          example: stalk
+        mainAbbreviation:
+          type: string
+        abbreviations:
+          type: array
+          items:
+            type: string
+        synonyms:
+          type: array
+          items:
+            type: string
+        programObservationLevel:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: System id of the observation level
+            name:
+              type: string
+              description: Name of the observation level
+            active:
+              type: boolean
+            createdAt:
+              type: string
+              format: datetime
+            updatedAt:
+              type: string
+              format: datetime
+        method:
+          type: object
+          properties:
+            methodName:
+              type: string
+            methodClass:
+              type: string
+            description:
+              type: string
+            formula:
+              type: string
+        scale:
+          type: object
+          properties:
+            scaleName:
+              type: string
+            dataType:
+              type: string
+            decimalPlaces:
+              type: integer
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  value:
+                    type: string
+            validValueMax:
+              type: integer
+            validValueMin:
+              type: integer
+        programOntology:
+          type: object
+          properties:
+            id:
+              type: string
+              format: UUID
+            programId:
+              type: string
+              format: UUID
+            createdAt:
+              type: string
+              format: datetime
+            updatedAt:
+              type: string
+              format: datetime
   responses:
     "400BadRequest":
       description: Bad Request
@@ -3408,3 +3865,152 @@ components:
           slope: 1
           exposure: none
           documentationUrl: http://www.nick.com
+    arrayOfTraits:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          data:
+            [
+            {
+              id: "00385063-01c8-4afc-a684-3c84b90b2de9",
+              traitName: "Test Trait",
+              active: true,
+              createdAt: "2020-06-04T11:05:48-04:00",
+              updatedAt: "2020-06-04T11:05:48-04:00",
+              description: "A trait",
+              traitClass: "morphological",
+              attribute: "height",
+              defaultValue: "defaultValue",
+              entity: "stalk",
+              mainAbbreviation: "t1",
+              abbreviations: ["t1","t2"],
+              synonyms: ["stalk height"],
+              programObservationLevel:
+                {
+                  id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
+                  name: "Plant",
+                  active: true,
+                  createdAt: "2020-06-04T11:05:48-04:00",
+                  updatedAt: "2020-06-04T11:05:48-04:00",
+                },
+              method:
+                {
+                  methodName: "Test Method",
+                  methodClass: "Counting"
+                },
+              scale:
+                {
+                  scaleName: "Test Scale",
+                  dataType: "TEXT",
+                  decimalPlaces: 3,
+                  categories:
+                    [
+                    {
+                      label: "test1",
+                      value: "value1"
+                    },
+                    {
+                      label: "test2",
+                      value: "value2"
+                    }
+                    ]
+                },
+              programOntology:
+                {
+                  id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                  programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                  createdAt: "2020-06-04T11:05:48-04:00",
+                  updatedAt: "2020-06-04T11:05:48-04:00"
+                },
+              createdByUser:
+                {
+                  name: "Tester",
+                  active: true
+                },
+              updatedByUser:
+                {
+                  name: "Tester",
+                  active: true
+                }
+            }
+            ]
+    singleTrait:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          {
+            id: "00385063-01c8-4afc-a684-3c84b90b2de9",
+            traitName: "Test Trait",
+            active: true,
+            createdAt: "2020-06-04T11:05:48-04:00",
+            updatedAt: "2020-06-04T11:05:48-04:00",
+            description: "A trait",
+            traitClass: "morphological",
+            attribute: "height",
+            defaultValue: "defaultValue",
+            entity: "stalk",
+            mainAbbreviation: "t1",
+            abbreviations: ["t1","t2"],
+            synonyms: ["stalk height"],
+            programObservationLevel:
+              {
+                id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
+                name: "Plant",
+                active: true,
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00",
+              },
+            method:
+              {
+                methodName: "Test Method",
+                methodClass: "Counting"
+              },
+            scale:
+              {
+                scaleName: "Test Scale",
+                dataType: "TEXT",
+                decimalPlaces: 3,
+                categories:
+                  [
+                  {
+                    label: "test1",
+                    value: "value1"
+                  },
+                  {
+                    label: "test2",
+                    value: "value2"
+                  }
+                  ]
+              },
+            programOntology:
+              {
+                id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00"
+              },
+            createdByUser:
+              {
+                name: "Tester",
+                active: true
+              },
+            updatedByUser:
+              {
+                name: "Tester",
+                active: true
+              }
+          }
