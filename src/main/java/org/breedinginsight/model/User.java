@@ -46,7 +46,7 @@ public class User extends BiUserEntity{
     @JsonInclude(value = JsonInclude.Include.ALWAYS)
     @JsonIgnoreProperties(value = {"createdAt", "updatedAt"})
     @NotNull
-    private List<Program> activePrograms;
+    private List<ProgramUser> programRoles;
 
     public User(BiUserEntity biUser) {
         this.setId(biUser.getId());
@@ -54,7 +54,7 @@ public class User extends BiUserEntity{
         this.setName(biUser.getName());
         this.setEmail(biUser.getEmail());
         this.setSystemRoles(new ArrayList<>());
-        this.setActivePrograms(new ArrayList<>());
+        this.setProgramRoles(new ArrayList<>());
         this.setActive(biUser.getActive());
     }
 
@@ -69,7 +69,7 @@ public class User extends BiUserEntity{
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .systemRoles(new ArrayList<>())
-                .activePrograms(new ArrayList<>())
+                .programRoles(new ArrayList<>())
                 .active(record.getValue(tableName.ACTIVE))
                 .build();
     }
@@ -82,5 +82,5 @@ public class User extends BiUserEntity{
         systemRoles.add(role);
     }
 
-    public void addActiveProgram(Program program) {activePrograms.add(program); }
+    public void addProgramUser(ProgramUser programUser) {programRoles.add(programUser); }
 }

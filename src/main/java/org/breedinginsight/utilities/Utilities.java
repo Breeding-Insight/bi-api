@@ -27,15 +27,11 @@ import java.util.function.Function;
 
 public class Utilities {
 
-    public static <T> Boolean existsInList(List<T> checkList, T objectToCheck, Function<T, UUID> getterMethod){
+    public static <T> Optional<T> findInList(List<T> checkList, T objectToCheck, Function<T, UUID> getterMethod){
 
         Optional<T> existingObject = checkList.stream()
                 .filter(p -> getterMethod.apply(p).equals(getterMethod.apply(objectToCheck)))
                 .findFirst();
-        if (existingObject.isPresent()){
-            return true;
-        } else {
-            return false;
-        }
+        return existingObject;
     }
 }

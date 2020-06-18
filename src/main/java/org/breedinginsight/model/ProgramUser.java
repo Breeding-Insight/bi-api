@@ -18,6 +18,7 @@
 package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonView;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -46,6 +47,8 @@ public class ProgramUser extends ProgramUserRoleEntity {
 
     private User user;
     private List<Role> roles;
+    @JsonIgnoreProperties(value={"createdAt", "createdBy", "updatedAt", "updatedBy", "active"})
+    private Program program;
 
     public static ProgramUser parseSQLRecord(Record record){
         // Generate our program record

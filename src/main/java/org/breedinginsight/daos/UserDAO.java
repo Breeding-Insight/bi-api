@@ -20,9 +20,11 @@ package org.breedinginsight.daos;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.BiUserDao;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
+import org.breedinginsight.model.Role;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -85,7 +87,9 @@ public class UserDAO extends BiUserDao {
                 .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID))
                 .leftJoin(PROGRAM_USER_ROLE).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
                 .leftJoin(PROGRAM).on(PROGRAM_USER_ROLE.PROGRAM_ID.eq(PROGRAM.ID))
+                .leftJoin(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
                     .and(PROGRAM.ACTIVE.eq(true));
+
     }
 
     private List<User> parseRecords(List<Record> records) {
@@ -97,6 +101,8 @@ public class UserDAO extends BiUserDao {
             // program user exists
             User userRecord = User.parseSQLRecord(record);
             SystemRole systemRole = SystemRole.parseSQLRecord(record);
+            ProgramUser programUser = ProgramUser.parseSQLRecord(record);
+            Role programRole = Role.parseSQLRecord(record);
             Program program = Program.parseSQLRecord(record);
 
             User existingUser;
@@ -109,19 +115,40 @@ public class UserDAO extends BiUserDao {
 
             // Add our system role
             if (systemRole.getDomain() != null) {
-                Boolean systemRoleExists = Utilities.existsInList(existingUser.getSystemRoles(),
+                Optional<SystemRole> systemRoleExists = Utilities.findInList(existingUser.getSystemRoles(),
                         systemRole, SystemRole::getId);
-                if (!systemRoleExists){
+                if (!systemRoleExists.isPresent()){
                     existingUser.addRole(systemRole);
                 }
             }
 
             // Add our program
-            if (program.getId() != null){
-                Boolean programExists = Utilities.existsInList(existingUser.getActivePrograms(),
-                        program, Program::getId);
-                if (!programExists) {
-                    existingUser.addActiveProgram(program);
+            if (programUser.getId() != null){
+                Optional<ProgramUser> programUserExists = Utilities.findInList(existingUser.getProgramRoles(),
+                        programUser, ProgramUser::getId);
+                if (programUserExists.isPresent()) {
+
+                    ProgramUser existingProgramUser = programUserExists.get();
+
+                    // Set role
+                    Optional<Role> roleExists = Utilities.findInList(existingProgramUser.getRoles(),
+                            programRole, Role::getId);
+                    if (!roleExists.isPresent()){
+                        programUser.addRole(programRole);
+                    }
+                } else {
+
+                    // Set program
+                    if (program.getId() != null){
+                        programUser.setProgram(program);
+                    }
+
+                    // Set role
+                    if (programRole.getId() != null){
+                        programUser.addRole(programRole);
+                    }
+
+                    existingUser.addProgramUser(programUser);
                 }
             }
 
