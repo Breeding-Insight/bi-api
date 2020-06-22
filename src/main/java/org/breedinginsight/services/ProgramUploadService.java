@@ -23,9 +23,13 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.request.ProgramUploadRequest;
+import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
+import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramUpload;
+import org.breedinginsight.model.Scale;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
@@ -33,6 +37,15 @@ import javax.inject.Singleton;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
+import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
+import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.parsers.ParsingException;
+import org.breedinginsight.services.parsers.trait.TraitFileParser;
+import org.jooq.JSONB;
+
+import java.io.IOException;
+import java.util.*;
 
 @Slf4j
 @Singleton
@@ -43,20 +56,23 @@ public class ProgramUploadService {
 
     @Inject
     private ProgramUploadDAO programUploadDao;
+    @Inject
+    private ProgramService programService;
+    @Inject
+    private ProgramUserService programUserService;
+    @Inject
+    private TraitFileParser parser;
 
-    public ProgramUpload create(UUID programId, String programUploadRequest, CompletedFileUpload file, AuthenticatedUser actingUser) throws UnprocessableEntityException {
+    public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
+            throws UnprocessableEntityException, DoesNotExistException {
 
-        // TODO: see if we can get micronaut deserialization working so we don't have to do this
-        ProgramUploadRequest request;
-        ObjectMapper objMapper = new ObjectMapper();
-        try {
-            request = objMapper.readValue(programUploadRequest, ProgramUploadRequest.class);
-        } catch (JsonProcessingException e) {
-            // TODO: 400
-            throw new UnprocessableEntityException("Problem deserializing body");
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
         }
 
-        log.info(request.getType());
+        programUserService.getProgramUserbyId(programId, actingUser.getId())
+                .orElseThrow(() -> new DoesNotExistException("user not in program"));
 
         Optional<MediaType> type = file.getContentType();
         MediaType mediaType = type.orElseThrow(() -> new UnprocessableEntityException("File upload must have MediaType"));
@@ -71,7 +87,126 @@ public class ProgramUploadService {
             throw new UnprocessableEntityException("Unsupported mime type");
         }
 
-        return new ProgramUpload();
+        List<Trait> traits = new ArrayList<>();
+
+        // TODO: parse based on file extension and mimeType
+
+        try {
+            traits = parser.parseCsv(file.getInputStream());
+        } catch(IOException e) {
+            log.error(e.getMessage());
+        } catch(ParsingException e) {
+            log.error(e.getMessage());
+        }
+
+        for (Trait trait : traits) {
+            checkRequiredTraitFields(trait);
+            checkTraitDataConsistency(trait);
+        }
+
+        String json = null;
+
+        ObjectMapper objMapper = new ObjectMapper();
+        try {
+            json = objMapper.writeValueAsString(traits);
+        } catch(JsonProcessingException e) {
+            log.error(e.getMessage());
+        }
+
+        // delete any existing records for traits since we only want to allow one at a time
+        // if there is some failure in writing the new, the old will be wiped out but that's ok
+        // because by making the PUT call the client already expected an overwrite
+        programUploadDao.deleteUploads(programId, actingUser.getId(), UploadType.TRAIT);
+
+        // do not autopopulate fields, that will be done on actual trait creation
+        BatchUploadEntity uploadEntity = BatchUploadEntity.builder()
+                .type(UploadType.TRAIT)
+                .programId(programId)
+                .userId(actingUser.getId())
+                .data(JSONB.valueOf(json))
+                .createdBy(actingUser.getId())
+                .updatedBy(actingUser.getId())
+                .build();
+
+        // Insert and update
+        programUploadDao.insert(uploadEntity);
+        ProgramUpload upload = new ProgramUpload(programUploadDao.fetchById(uploadEntity.getId()).get(0));
+
+        return upload;
+    }
+
+    private void checkRequiredTraitFields(Trait trait) throws UnprocessableEntityException {
+        if (trait.getTraitName() == null) {
+            throw new UnprocessableEntityException("Missing trait name");
+        }
+        if (trait.getDescription() == null) {
+            throw new UnprocessableEntityException("Missing trait description");
+        }
+        if (trait.getProgramObservationLevel() == null || trait.getProgramObservationLevel().getName() == null) {
+            throw new UnprocessableEntityException("Missing trait level");
+        }
+        if (trait.getMethod() == null || trait.getMethod().getMethodName() == null) {
+            throw new UnprocessableEntityException("Missing method name");
+        }
+        if (trait.getMethod() == null || trait.getMethod().getDescription() == null) {
+            throw new UnprocessableEntityException("Missing method description");
+        }
+        if (trait.getMethod() == null || trait.getMethod().getMethodClass() == null) {
+            throw new UnprocessableEntityException("Missing method class");
+        }
+        if (trait.getScale() == null || trait.getScale().getScaleName() == null) {
+            throw new UnprocessableEntityException("Missing scale name");
+        }
+        if (trait.getScale() == null || trait.getScale().getDataType() == null) {
+            throw new UnprocessableEntityException("Missing scale type");
+        }
+    }
+
+    private void checkTraitDataConsistency(Trait trait) throws UnprocessableEntityException {
+
+        Method method = trait.getMethod();
+        Scale scale = trait.getScale();
+
+        if (method != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
+            if (method.getFormula() == null) {
+                throw new UnprocessableEntityException("Missing formula for Computation method");
+            }
+        }
+
+        if (scale != null && scale.getDataType() == DataType.ORDINAL) {
+            if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
+                throw new UnprocessableEntityException("Missing categories for Ordinal scale");
+            }
+        }
+    }
+
+
+    public Optional<ProgramUpload> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
+
+        List<ProgramUpload> uploads = programUploadDao.getUploads(programId, actingUser.getId(), UploadType.TRAIT);
+
+        if (uploads.isEmpty()) {
+            return Optional.empty();
+        } else if (uploads.size() > 1) {
+            throw new IllegalStateException("Trait upload had more than 1 record, only 1 allowed");
+        }
+
+        return Optional.of(uploads.get(0));
+    }
+
+
+    public void deleteTraitUpload(UUID programId, AuthenticatedUser actingUser) throws DoesNotExistException {
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        programUserService.getProgramUserbyId(programId, actingUser.getId())
+                .orElseThrow(() -> new DoesNotExistException("user not in program"));
+
+        programUploadDao.deleteUploads(programId, actingUser.getId(), UploadType.TRAIT);
+
     }
 
 

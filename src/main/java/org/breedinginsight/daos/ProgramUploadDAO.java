@@ -16,12 +16,20 @@
  */
 package org.breedinginsight.daos;
 
+import org.breedinginsight.dao.db.enums.UploadType;
+import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.BatchUploadDao;
-import org.jooq.Configuration;
-import org.jooq.DSLContext;
+import org.breedinginsight.model.*;
+import org.breedinginsight.model.User;
+import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
 public class ProgramUploadDAO extends BatchUploadDao {
@@ -34,6 +42,57 @@ public class ProgramUploadDAO extends BatchUploadDao {
         this.dsl = dsl;
     }
 
+    public List<ProgramUpload> getUploads(UUID programId, UUID userId, UploadType type) {
+
+        List<Record> records = getUploadsQuery()
+                .where(BATCH_UPLOAD.PROGRAM_ID.eq(programId)
+                        .and(BATCH_UPLOAD.USER_ID.eq(userId))
+                        .and(BATCH_UPLOAD.TYPE.eq(type)))
+                .fetch();
+
+        return parseRecords(records);
+
+    }
+
+    private SelectOnConditionStep<Record> getUploadsQuery() {
+
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        return dsl.select()
+                .from(BATCH_UPLOAD)
+                .leftJoin(PROGRAM).on(BATCH_UPLOAD.PROGRAM_ID.eq(PROGRAM.ID))
+                .leftJoin(BI_USER).on(BATCH_UPLOAD.USER_ID.eq(BI_USER.ID))
+                .leftJoin(createdByUser).on(PLACE.CREATED_BY.eq(createdByUser.ID))
+                .leftJoin(updatedByUser).on(PLACE.UPDATED_BY.eq(updatedByUser.ID));
+    }
+
+    private List<ProgramUpload> parseRecords(List<Record> records) {
+
+        List<ProgramUpload> resultUploads = new ArrayList<>();
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        // Parse the result
+        for (Record record : records) {
+            ProgramUpload upload = ProgramUpload.parseSQLRecord(record);
+            upload.setProgram(Program.parseSQLRecord(record));
+            upload.setUser(User.parseSQLRecord(record));
+            upload.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
+            upload.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
+            resultUploads.add(upload);
+        }
+
+        return resultUploads;
+    }
+
+    public void deleteUploads(UUID programId, UUID userId, UploadType type) {
+        dsl.delete(BATCH_UPLOAD)
+                .where(BATCH_UPLOAD.PROGRAM_ID.eq(programId)
+                        .and(BATCH_UPLOAD.USER_ID.eq(userId))
+                        .and(BATCH_UPLOAD.TYPE.eq(type)))
+                .execute();
+    }
 
 
 }
