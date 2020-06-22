@@ -26,7 +26,6 @@ import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import lombok.SneakyThrows;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.jooq.DSLContext;
@@ -36,7 +35,7 @@ import javax.inject.Inject;
 
 import java.io.File;
 
-import static io.micronaut.http.HttpRequest.POST;
+import static io.micronaut.http.HttpRequest.PUT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -64,31 +63,38 @@ public class UploadControllerIntegrationTest {
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
 
+        // Insert user into program
+        dsl.execute(fp.get("InsertProgramUser"));
+
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
+
     }
 
     @Test
-    @SneakyThrows
     void postProgramUploadsXlsSuccess() {
 
-        File file = new File("src/test/resources/files/bi_traits_import_template_v01.xls");
+    }
 
+    @Test
+    void putTraitUploadCsvSuccess() {
+
+        File file = new File("src/test/resources/files/data_one_row.csv");
         MultipartBody requestBody = MultipartBody.builder()
-                .addPart("body",
-                        MediaType.APPLICATION_JSON,
-                        "{\"type\":\"trait\"}".getBytes()
-                ).addPart("file",
+                .addPart("file",
                         file
                 ).build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/"+validProgram.getId()+"/uploads", requestBody)
+                PUT("/programs/"+validProgram.getId()+"/trait-upload", requestBody)
                         .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
+
     }
+
+
 }
