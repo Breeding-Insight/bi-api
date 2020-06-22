@@ -67,9 +67,8 @@ public class TraitFileParserUnitTest {
     void parseCsvEmptyFile() {
         File file = new File("src/test/resources/files/empty.csv");
         InputStream inputStream = new FileInputStream(file);
-        List<Trait> traits = parser.parseCsv(inputStream);
 
-        assertEquals(true, traits.isEmpty(), "traits were not empty");
+        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
     }
 
     @Test
@@ -117,6 +116,27 @@ public class TraitFileParserUnitTest {
         assertEquals(2, scale.getDecimalPlaces(), "wrong scale decimal places");
         assertEquals(2, scale.getValidValueMin(), "wrong scale min value");
         assertEquals(9999, scale.getValidValueMax(), "wrong scale max value");
+    }
+
+
+    @Test
+    @SneakyThrows
+    void parseXlsSuccess() {
+        File file = new File("src/test/resources/files/data_one_row.xls");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(1, traits.size(), "number of traits different than expected");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsxSuccess() {
+        File file = new File("src/test/resources/files/data_one_row.xlsx");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(1, traits.size(), "number of traits different than expected");
     }
 
 }
