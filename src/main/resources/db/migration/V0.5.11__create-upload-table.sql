@@ -15,9 +15,14 @@
  * limitations under the License.
  */
 
+CREATE TYPE "upload_type" AS ENUM (
+  'TRAIT',
+  'INVENTORY'
+);
+
 CREATE TABLE batch_upload (
     like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
-    type text NOT NULL,
+    type upload_type NOT NULL,
     program_id UUID NOT NULL,
     user_id UUID NOT NULL,
     data jsonb NOT NULL,
