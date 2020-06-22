@@ -20,6 +20,10 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ss.usermodel.*;
+
 import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Method;
@@ -32,17 +36,146 @@ import java.io.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import javax.inject.Singleton;
+
 import java.util.stream.Collectors;
 
 
 // can read file, columns with set of allowable values checked or requirement of particular data format
 // data consistency not checked, must be done by caller
 @Slf4j
+@Singleton
 public class TraitFileParser {
 
     private static final String LIST_DELIMITER = ";";
     private static final String CATEGORY_DELIMITER = "=";
     private static final String TRAIT_STATUS_ARCHIVED = "archived";
+    private static final String EXCEL_DATA_SHEET_NAME = "Template";
+
+    public List<Trait> parseExcel(@NonNull InputStream inputStream) throws ParsingException {
+
+        Workbook workbook = null;
+        try {
+            workbook = WorkbookFactory.create(inputStream);
+        } catch (IOException | EncryptedDocumentException e) {
+            log.error(e.getMessage());
+            throw new ParsingException("Error reading file");
+        }
+
+        Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
+        if (sheet == null) {
+            throw new ParsingException("Missing sheet" + EXCEL_DATA_SHEET_NAME);
+        }
+
+        ExcelParser parser = new ExcelParser();
+        List<ExcelRecord> records = parser.parse(sheet);
+        return excelRecordsToTraits(records);
+    }
+
+    private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) {
+        List<Trait> traits = new ArrayList<>();
+
+        for (ExcelRecord record : records) {
+
+            ProgramObservationLevel level = ProgramObservationLevel.builder()
+                    .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_LEVEL))
+                    .build();
+
+            // TODO: throw if not active/archived/empty
+
+            Boolean active = !parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS).equals(TRAIT_STATUS_ARCHIVED);
+
+            Method method = Method.builder()
+                    .methodName(parseExcelValueAsString(record, TraitFileColumns.METHOD_NAME))
+                    .description(parseExcelValueAsString(record, TraitFileColumns.METHOD_DESCRIPTION))
+                    .methodClass(parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS))
+                    .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
+                    .build();
+
+            // TODO: throw if not valid datatype
+            // null check?
+            DataType dataType = null;
+
+            try {
+                dataType = DataType.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS).toUpperCase());
+            } catch (IllegalArgumentException e) {
+                log.error(e.getMessage());
+            }
+
+            // TODO: throw if bad format
+            List<BrApiScaleCategories> categories = parseListValue(parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES)).stream()
+                    .map(value -> parseCategory(value))
+                    .collect(Collectors.toList());
+
+            Integer decimalPlaces = null;
+            Integer validValueMin = null;
+            Integer validValueMax = null;
+
+            try {
+                decimalPlaces = Integer.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_DECIMAL_PLACES));
+                validValueMin = Integer.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_LOWER_LIMIT));
+                validValueMax = Integer.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_UPPER_LIMIT));
+            } catch (NumberFormatException e) {
+                log.info(e.getMessage());
+            }
+
+            Scale scale = Scale.builder()
+                    .scaleName(parseExcelValueAsString(record, TraitFileColumns.SCALE_NAME))
+                    .dataType(dataType)
+                    .decimalPlaces(decimalPlaces)
+                    .validValueMin(validValueMin)
+                    .validValueMax(validValueMax)
+                    .categories(categories)
+                    .build();
+
+            Trait trait = Trait.builder()
+                    .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
+                    .abbreviations(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS)))
+                    .synonyms(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS)))
+                    .description(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
+                    .programObservationLevel(level)
+                    .active(active)
+                    // TODO: trait lists
+                    .method(method)
+                    .scale(scale)
+                    .build();
+
+            traits.add(trait);
+
+        }
+
+        return traits;
+
+    }
+
+    private String parseExcelValueAsString(ExcelRecord record, TraitFileColumns column) {
+        DataFormatter formatter = new DataFormatter();
+        return formatter.formatCellValue(record.get(column)).trim(); //record.get(column).getStringCellValue().trim();
+    }
+
+    private Sheet convertCsvToExcel(Iterable<CSVRecord> records) {
+        Workbook workbook = null;
+        Sheet sheet = null;
+
+        try {
+            workbook = WorkbookFactory.create(false);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+
+        sheet = workbook.createSheet(EXCEL_DATA_SHEET_NAME);
+        int rowIndex = 0;
+
+        for (CSVRecord record : records) {
+            Row row = sheet.createRow(rowIndex++);
+            for (int colIndex=0; colIndex<record.size(); colIndex++) {
+                row.createCell(colIndex).setCellValue(record.get(colIndex));
+            }
+        }
+
+        return sheet;
+    }
 
     // no sheets RFC4180
     public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException {
@@ -54,96 +187,17 @@ public class TraitFileParser {
         try {
             // withHeader for enum uses name() internally so we have to give string array instead
             records = CSVFormat.DEFAULT
-                    .withHeader(TraitFileColumns.getColumns())
-                    .withFirstRecordAsHeader()
                     .parse(in);
         } catch (IOException e) {
             log.error(e.getMessage());
             throw new ParsingException("Error reading file");
         }
 
-        for (CSVRecord record : records) {
+        Sheet excelSheet = convertCsvToExcel(records);
+        ExcelParser parser = new ExcelParser();
+        List<ExcelRecord> excelRecords = parser.parse(excelSheet);
+        return excelRecordsToTraits(excelRecords);
 
-            ProgramObservationLevel level = ProgramObservationLevel.builder()
-                    .name(parseValue(record, TraitFileColumns.TRAIT_LEVEL))
-                    .build();
-
-            // TODO: throw if not active/archived/empty
-
-            Boolean active = !parseValue(record, TraitFileColumns.TRAIT_STATUS).equals(TRAIT_STATUS_ARCHIVED);
-
-            Method method = Method.builder()
-                    .methodName(parseValue(record, TraitFileColumns.METHOD_NAME))
-                    .description(parseValue(record, TraitFileColumns.METHOD_DESCRIPTION))
-                    .methodClass(parseValue(record, TraitFileColumns.METHOD_CLASS))
-                    .formula(parseValue(record, TraitFileColumns.METHOD_FORMULA))
-                    .build();
-
-            // TODO: throw if not valid datatype
-            // null check?
-            DataType dataType = null;
-
-            try {
-                dataType = DataType.valueOf(parseValue(record, TraitFileColumns.SCALE_CLASS).toUpperCase());
-            } catch (IllegalArgumentException e) {
-                log.error(e.getMessage());
-            }
-
-            // TODO: throw if bad format
-            List<BrApiScaleCategories> categories = parseListValue(record.get(TraitFileColumns.SCALE_CATEGORIES)).stream()
-                    .map(value -> parseCategory(value))
-                    .collect(Collectors.toList());
-
-            Integer decimalPlaces = null;
-            Integer validValueMin = null;
-            Integer validValueMax = null;
-
-            try {
-                decimalPlaces = Integer.valueOf(parseValue(record, TraitFileColumns.SCALE_DECIMAL_PLACES));
-                validValueMin = Integer.valueOf(parseValue(record, TraitFileColumns.SCALE_LOWER_LIMIT));
-                validValueMax = Integer.valueOf(parseValue(record, TraitFileColumns.SCALE_UPPER_LIMIT));
-            } catch (NumberFormatException e) {
-                log.info(e.getMessage());
-            }
-
-            Scale scale = Scale.builder()
-                    .scaleName(parseValue(record, TraitFileColumns.SCALE_NAME))
-                    .dataType(dataType)
-                    .decimalPlaces(decimalPlaces)
-                    .validValueMin(validValueMin)
-                    .validValueMax(validValueMax)
-                    .categories(categories)
-                    .build();
-
-            Trait trait = Trait.builder()
-                    .traitName(parseValue(record, TraitFileColumns.TRAIT_NAME))
-                    .abbreviations(parseListValue(record.get(TraitFileColumns.TRAIT_ABBREVIATIONS)))
-                    .synonyms(parseListValue(record.get(TraitFileColumns.TRAIT_SYNONYMS)))
-                    .description(parseValue(record, TraitFileColumns.TRAIT_DESCRIPTION))
-                    .programObservationLevel(level)
-                    .active(active)
-                    // TODO: trait lists
-                    .method(method)
-                    .scale(scale)
-                    .build();
-
-            traits.add(trait);
-        }
-
-        return traits;
-    }
-
-    private String parseValue(CSVRecord record, TraitFileColumns column) throws ParsingException {
-        String value = null;
-
-        try {
-            value =  record.get(column).trim();
-        } catch(IllegalArgumentException | IllegalStateException e) {
-            log.error(e.getMessage());
-            throw new ParsingException("Error reading value");
-        }
-
-        return value;
     }
 
     private List<String> parseListValue(String value) {
@@ -169,3 +223,4 @@ public class TraitFileParser {
     }
 
 }
+
