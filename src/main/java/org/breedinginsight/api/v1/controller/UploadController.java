@@ -31,9 +31,11 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.ProgramUploadService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -45,23 +47,63 @@ public class UploadController {
     @Inject
     private SecurityService securityService;
 
-    @Post("/programs/{programId}/uploads")
+    // only allowing one trait upload to exist (per user per program) so put is more appropriate than post
+    // singleton resource since only one trait upload can exist
+    // no need for an id, trait-upload is the resource identifier
+    @Put("/programs/{programId}/trait-upload")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    // TODO: can't get micronaut to deserialize body json into programUploadRequest so using string for now and deserializing manually in service
-    public HttpResponse<Response<DataResponse<ProgramUpload>>> uploadCompleted(@PathVariable UUID programId, @Part String body, @Part CompletedFileUpload file) {
+    public HttpResponse<Response<DataResponse<ProgramUpload>>> putTraitUpload(@PathVariable UUID programId, @Part CompletedFileUpload file) {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ProgramUpload programUpload = uploadService.create(programId, body, file, actingUser);
+            ProgramUpload programUpload = uploadService.updateTraitUpload(programId, file, actingUser);
             Response<DataResponse<ProgramUpload>> response = new Response(programUpload);
             return HttpResponse.ok(response);
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
         }
     }
+
+    @Get("/programs/{programId}/trait-upload")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<ProgramUpload>> getTraitUpload(@PathVariable UUID programId) {
+
+        AuthenticatedUser actingUser = securityService.getUser();
+        Optional<ProgramUpload> programUpload = uploadService.getTraitUpload(programId, actingUser);
+
+        if(programUpload.isPresent()) {
+            Response<ProgramUpload> response = new Response(programUpload.get());
+            return HttpResponse.ok(response);
+        } else {
+            log.info("Program location not found");
+            return HttpResponse.notFound();
+        }
+
+    }
+
+    @Delete("/programs/{programId}/trait-upload")
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse deleteTraitUpload(@PathVariable UUID programId) {
+
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            uploadService.deleteTraitUpload(programId, actingUser);
+            return HttpResponse.ok();
+        } catch(DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        }
+
+    }
+
 
 }

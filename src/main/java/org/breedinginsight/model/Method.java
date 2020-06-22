@@ -39,6 +39,8 @@ import static org.breedinginsight.dao.db.Tables.METHOD;
 @JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
 public class Method extends MethodEntity {
 
+    public static final String COMPUTATION_TYPE = "Computation";
+
     private ProgramOntology programOntology;
 
     // BrAPI Properties

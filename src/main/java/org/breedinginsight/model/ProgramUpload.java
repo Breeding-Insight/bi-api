@@ -34,8 +34,13 @@ import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "createdBy", "updatedBy"})
+@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId"})
 public class ProgramUpload extends BatchUploadEntity {
+
+    private Program program;
+    private User user;
+    private User createdByUser;
+    private User updatedByUser;
 
     public ProgramUpload(BatchUploadEntity uploadEntity) {
         this.setId(uploadEntity.getId());
