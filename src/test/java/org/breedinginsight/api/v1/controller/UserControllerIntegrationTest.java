@@ -32,19 +32,8 @@ import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.request.*;
-import org.breedinginsight.dao.db.tables.daos.BiUserDao;
-import org.breedinginsight.dao.db.tables.daos.ProgramDao;
-import org.breedinginsight.dao.db.tables.daos.RoleDao;
-import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
-import org.breedinginsight.dao.db.tables.pojos.SystemRoleEntity;
-import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.*;
-import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.dao.db.tables.daos.*;
+import org.breedinginsight.dao.db.tables.pojos.*;
 import org.jooq.DSLContext;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
@@ -52,6 +41,7 @@ import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -67,6 +57,7 @@ public class UserControllerIntegrationTest {
     RoleEntity validRole;
     AuthenticatedUser actingUser;
     Integer numUsers;
+    List<ProgramUserRoleEntity> validProgramRoles;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -82,6 +73,8 @@ public class UserControllerIntegrationTest {
     RoleDao roleDao;
     @Inject
     ProgramDao programDao;
+    @Inject
+    ProgramUserRoleDao programUserRoleDao;
 
     private BiUserEntity testUser;
     private BiUserEntity otherTestUser;
@@ -101,6 +94,7 @@ public class UserControllerIntegrationTest {
         validSystemRole = systemRoleDao.findAll().get(0);
         validRole = roleDao.findAll().get(0);
         validPrograms = programDao.findAll();
+        validProgramRoles = programUserRoleDao.fetchByUserId(testUser.getId());
         actingUser = getActingUser();
 
     }
@@ -133,15 +127,16 @@ public class UserControllerIntegrationTest {
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
         assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
 
-        JsonArray resultPrograms = (JsonArray) result.get("activePrograms");
-        assertEquals(true, resultPrograms != null, "Empty programs list was not returned.");
-        assertEquals(true, resultPrograms.size() == 2, "Wrong number of programs.");
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty programs list was not returned.");
+        assertEquals(true, resultProgramRoles.size() == 2, "Wrong number of programs.");
         
         Boolean programOneSeen = false;
         Boolean programTwoSeen = false;
-        for (JsonElement resultProgram: resultPrograms) {
-            JsonObject jsonProgram = resultProgram.getAsJsonObject();
+        for (JsonElement resultProgramRole: resultProgramRoles) {
+            JsonObject jsonProgram = resultProgramRole.getAsJsonObject().get("program").getAsJsonObject();
             ProgramEntity programEntity;
+            ProgramUserRoleEntity programUserRoleEntity;
 
             if (jsonProgram.get("id").getAsString().equals(validPrograms.get(0).getId().toString())){
                 programOneSeen = true;
@@ -153,8 +148,12 @@ public class UserControllerIntegrationTest {
                 throw new AssertionFailedError("Program does not match any programs in database");
             }
 
+            programUserRoleEntity = validProgramRoles.stream().filter((programUserRoleEntity1 ->
+                    programUserRoleEntity1.getProgramId().toString().equals(programEntity.getId().toString())))
+                    .collect(Collectors.toList()).get(0);
+
             assertEquals(programEntity.getName(), jsonProgram.get("name").getAsString(), "Program names do not match");
-            assertEquals(programEntity.getActive(), jsonProgram.get("active").getAsBoolean(), "Program active fields do not match");
+            assertEquals(programUserRoleEntity.getActive(), resultProgramRole.getAsJsonObject().get("active").getAsBoolean(), "Role active status does not match");
         }
 
         if (!programOneSeen || !programTwoSeen) {
@@ -371,8 +370,8 @@ public class UserControllerIntegrationTest {
         JsonArray resultRoles = (JsonArray) exampleUser.get("systemRoles");
         assertEquals(true, resultRoles != null, "Roles list was not returned.");
 
-        JsonArray resultPrograms = (JsonArray) exampleUser.get("activePrograms");
-        assertEquals(true, resultPrograms != null, "Empty programs list was not returned.");
+        JsonArray resultProgramRoles = (JsonArray) exampleUser.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty programs list was not returned.");
 
         numUsers = data.size();
     }
@@ -572,15 +571,16 @@ public class UserControllerIntegrationTest {
         assertEquals(validSystemRole.getId().toString(), role.get("id").getAsString(), "Role id was incorrect");
         assertEquals(validSystemRole.getDomain(), role.get("domain").getAsString(), "Role domain was incorrect");
 
-        JsonArray resultPrograms = (JsonArray) result.get("activePrograms");
-        assertEquals(true, resultPrograms != null, "Empty roles list was not returned.");
-        assertEquals(2, resultPrograms.size(), "Wrong number of programs.");
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty roles list was not returned.");
+        assertEquals(2, resultProgramRoles.size(), "Wrong number of program roles.");
 
         Boolean programOneSeen = false;
         Boolean programTwoSeen = false;
-        for (JsonElement resultProgram: resultPrograms) {
-            JsonObject jsonProgram = resultProgram.getAsJsonObject();
+        for (JsonElement resultProgramRole: resultProgramRoles) {
+            JsonObject jsonProgram = resultProgramRole.getAsJsonObject().get("program").getAsJsonObject();
             ProgramEntity programEntity;
+            ProgramUserRoleEntity programUserRoleEntity;
 
             if (jsonProgram.get("id").getAsString().equals(validPrograms.get(0).getId().toString())){
                 programOneSeen = true;
@@ -592,8 +592,12 @@ public class UserControllerIntegrationTest {
                 throw new AssertionFailedError("Program does not match any programs in database");
             }
 
+            programUserRoleEntity = validProgramRoles.stream().filter((programUserRoleEntity1 ->
+                    programUserRoleEntity1.getProgramId().toString().equals(programEntity.getId().toString())))
+                    .collect(Collectors.toList()).get(0);
+
             assertEquals(programEntity.getName(), jsonProgram.get("name").getAsString(), "Program names do not match");
-            assertEquals(programEntity.getActive(), jsonProgram.get("active").getAsBoolean(), "Program active fields do not match");
+            assertEquals(programUserRoleEntity.getActive(), resultProgramRole.getAsJsonObject().get("active").getAsBoolean(), "Role active status does not match");
         }
 
         if (!programOneSeen || !programTwoSeen) {
