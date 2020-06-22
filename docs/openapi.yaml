@@ -74,10 +74,36 @@ paths:
                         domain: "admin"
                       }
                       ]
-                      activePrograms: [
+                      programRoles: [
                       {
-                        id: eac1f9ba-c0da-48aa-bac6-16e178dbbbcc,
-                        name: My Program
+                        active: false,
+                        roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                        ],
+                        program: {
+                          id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                          name: Test Program1,
+                          abbreviation: test1,
+                          objective: To test all the things
+                        }
+                      },
+                      {
+                        active: true,
+                        roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                        ],
+                        program: {
+                          id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                          name: Test Program,
+                          abbreviation: test,
+                          objective: To test things
+                        }
                       }
                       ]
                     - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
@@ -85,7 +111,7 @@ paths:
                       name: Fred Brown
                       email: null
                       systemRoles: []
-                      activePrograms: []
+                      programRoles: []
         "400":
           description: Bad Request
           content:
@@ -152,7 +178,7 @@ paths:
                     domain: "admin"
                   }
                   ]
-                  activePrograms: []
+                  programRoles: []
         "400":
           description: Bad Request
           content:
@@ -229,10 +255,21 @@ paths:
                     domain: "admin"
                   }
                   ]
-                  activePrograms: [
+                  programRoles: [
                   {
-                    id: eac1f9ba-c0da-48aa-bac6-16e178dbbbcc,
-                    name: My Program
+                    active: false,
+                    roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                    ],
+                    program: {
+                      id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                      name: Test Program1,
+                      abbreviation: test1,
+                      objective: To test all the things
+                    }
                   }
                   ]
         "400":
@@ -319,10 +356,21 @@ paths:
                     domain: "admin"
                   }
                   ]
-                  activePrograms: [
+                  programRoles: [
                   {
-                    id: eac1f9ba-c0da-48aa-bac6-16e178dbbbcc,
-                    name: My Program
+                    active: true,
+                    roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                    ],
+                    program: {
+                      id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                      name: Test Program,
+                      abbreviation: test,
+                      objective: To test things
+                    }
                   }
                   ]
         "400":
@@ -480,6 +528,7 @@ paths:
                     domain: "admin"
                   }
                   ]
+                  programRoles: []
         "400":
           description: Bad Request
           content:
@@ -2341,14 +2390,33 @@ components:
               format: uuid
             domain:
               type: string
-        activePrograms:
+        programRoles:
           type: object
           properties:
-            id:
-              type: string
-              format: uuid
-            name:
-              type: string
+            active:
+              type: boolean
+            roles:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  domain:
+                    type: string
+            program:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                abbreviation:
+                  type: string
+                objective:
+                  type: string
     country:
       type: object
       properties:
@@ -2858,7 +2926,7 @@ components:
           type: array
           description: Array of topographies
           items:
-            $ref: '#/components/schemas/topography'
+            $ref: '#/components/schemas/topographyOption'
     topographiesResponseSingle:
       title: topographiesResponse
       required:
@@ -2869,7 +2937,7 @@ components:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
-          $ref: '#/components/schemas/topography'
+          $ref: '#/components/schemas/topographyOption'
     accessibilitiesResponse:
       title: accessibilitiesResponse
       required:
@@ -2890,7 +2958,7 @@ components:
           type: array
           description: Array of accessibilities
           items:
-            $ref: '#/components/schemas/accessibility'
+            $ref: '#/components/schemas/accessibilityOption'
     accessibilitiesResponseSingle:
       title: accessibilitiesResponse
       required:
@@ -2901,7 +2969,7 @@ components:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
-          $ref: '#/components/schemas/accessibility'
+          $ref: '#/components/schemas/accessibilityOption'
     environmentTypesResponse:
       title: environmentTypesResponse
       required:
@@ -2922,7 +2990,7 @@ components:
           type: array
           description: Array of environemnt types
           items:
-            $ref: '#/components/schemas/environmentType'
+            $ref: '#/components/schemas/environmentDataType'
     environmentTypesResponseSingle:
       title: environmentTypesResponse
       required:
@@ -2934,78 +3002,6 @@ components:
           $ref: '#/components/schemas/metadata'
         result:
           $ref: '#/components/schemas/location'
-    updateProgramRequest:
-      type: object
-      properties:
-        species:
-          type: object
-          properties:
-            id:
-              type: string
-              description: Id of species to assign to program
-            commonName:
-              type: string
-              description: Name of species
-          required:
-            - id
-        name:
-          type: string
-          description: name of program
-        abbreviation:
-          type: string
-          description: abbreviation for program name
-        objective:
-          type: string
-          description: program objective
-        documetation_url:
-          type: string
-          description: program documentation url
-      required:
-        - species
-        - name
-    countriesResponse:
-      title: countriesResponse
-      required:
-        - metadata
-        - result
-      type: object
-      properties:
-        metadata:
-          $ref: '#/components/schemas/metadata'
-        result:
-          $ref: '#/components/schemas/countriesResponseResult'
-    countriesResponseResult:
-      required:
-        - data
-      type: object
-      properties:
-        data:
-          type: array
-          description: Array of countries
-          items:
-            $ref: '#/components/schemas/country'
-    countriesResponseSingle:
-      title: countriesResponse
-      required:
-        - metadata
-        - result
-      type: object
-      properties:
-        metadata:
-          $ref: '#/components/schemas/metadata'
-        result:
-          $ref: '#/components/schemas/country'
-    topographiesResponse:
-      title: topographyOptionsResponse
-      required:
-        - metadata
-        - result
-      type: object
-      properties:
-        metadata:
-          $ref: '#/components/schemas/metadata'
-        result:
-          $ref: '#/components/schemas/topographyOptionsResponseResult'
     topographyOptionsResponseResult:
       required:
         - data
