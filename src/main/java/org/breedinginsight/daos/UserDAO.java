@@ -123,9 +123,9 @@ public class UserDAO extends BiUserDao {
             }
 
             // Add our program
-            if (programUser.getId() != null){
+            if (programUser.getProgramId() != null){
                 Optional<ProgramUser> programUserExists = Utilities.findInList(existingUser.getProgramRoles(),
-                        programUser, ProgramUser::getId);
+                        programUser, ProgramUser::getProgramId);
                 if (programUserExists.isPresent()) {
 
                     ProgramUser existingProgramUser = programUserExists.get();
@@ -134,7 +134,7 @@ public class UserDAO extends BiUserDao {
                     Optional<Role> roleExists = Utilities.findInList(existingProgramUser.getRoles(),
                             programRole, Role::getId);
                     if (!roleExists.isPresent()){
-                        programUser.addRole(programRole);
+                        existingProgramUser.addRole(programRole);
                     }
                 } else {
 
