@@ -63,8 +63,8 @@ public class ProgramUploadDAO extends BatchUploadDao {
                 .from(BATCH_UPLOAD)
                 .leftJoin(PROGRAM).on(BATCH_UPLOAD.PROGRAM_ID.eq(PROGRAM.ID))
                 .leftJoin(BI_USER).on(BATCH_UPLOAD.USER_ID.eq(BI_USER.ID))
-                .leftJoin(createdByUser).on(PLACE.CREATED_BY.eq(createdByUser.ID))
-                .leftJoin(updatedByUser).on(PLACE.UPDATED_BY.eq(updatedByUser.ID));
+                .leftJoin(createdByUser).on(BATCH_UPLOAD.CREATED_BY.eq(createdByUser.ID))
+                .leftJoin(updatedByUser).on(BATCH_UPLOAD.UPDATED_BY.eq(updatedByUser.ID));
     }
 
     private List<ProgramUpload> parseRecords(List<Record> records) {
