@@ -18,7 +18,7 @@ package org.breedinginsight.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micronaut.context.annotation.Value;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
@@ -35,7 +35,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
@@ -51,8 +50,12 @@ import java.util.*;
 @Singleton
 public class ProgramUploadService {
 
-    @Value("${trait.upload.mime.types}")
-    private Set<String> mimeTypes;
+    @Property(name = "trait.upload.mime.types.csv")
+    protected String csvMimeType;
+    @Property(name = "trait.upload.mime.types.xls")
+    protected String xlsMimeType;
+    @Property(name = "trait.upload.mime.types.xlsx")
+    protected String xlsxMimeType;
 
     @Inject
     private ProgramUploadDAO programUploadDao;
@@ -62,6 +65,9 @@ public class ProgramUploadService {
     private ProgramUserService programUserService;
     @Inject
     private TraitFileParser parser;
+
+    @Inject
+    private ObjectMapper objMapper;
 
     public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
             throws UnprocessableEntityException, DoesNotExistException {
@@ -77,26 +83,26 @@ public class ProgramUploadService {
         Optional<MediaType> type = file.getContentType();
         MediaType mediaType = type.orElseThrow(() -> new UnprocessableEntityException("File upload must have MediaType"));
 
-        log.info(mediaType.getName());
-        log.info(mediaType.getType());
-        log.info(mediaType.getExtension());
-        log.info(file.getFilename());
-
-        if (!mimeTypes.contains(mediaType.getName())) {
-            // TODO: 415
-            throw new UnprocessableEntityException("Unsupported mime type");
-        }
-
         List<Trait> traits = new ArrayList<>();
 
-        // TODO: parse based on file extension and mimeType
-
-        try {
-            traits = parser.parseCsv(file.getInputStream());
-        } catch(IOException e) {
-            log.error(e.getMessage());
-        } catch(ParsingException e) {
-            log.error(e.getMessage());
+        if (mediaType.getName().equals(csvMimeType)) {
+            try {
+                traits = parser.parseCsv(file.getInputStream());
+            } catch(IOException | ParsingException e) {
+                log.error(e.getMessage());
+                throw new UnprocessableEntityException("Error parsing csv: " + e.getMessage());
+            }
+        } else if (mediaType.getName().equals(xlsMimeType) ||
+                   mediaType.getName().equals(xlsxMimeType)) {
+            try {
+                traits = parser.parseExcel(file.getInputStream());
+            } catch(IOException | ParsingException e) {
+                log.error(e.getMessage());
+                throw new UnprocessableEntityException("Error parsing excel: " + e.getMessage());
+            }
+        } else {
+            // TODO: 415
+            throw new UnprocessableEntityException("Unsupported mime type");
         }
 
         for (Trait trait : traits) {
@@ -105,12 +111,11 @@ public class ProgramUploadService {
         }
 
         String json = null;
-
-        ObjectMapper objMapper = new ObjectMapper();
         try {
             json = objMapper.writeValueAsString(traits);
         } catch(JsonProcessingException e) {
             log.error(e.getMessage());
+            throw new UnprocessableEntityException("Problem converting traits json");
         }
 
         // delete any existing records for traits since we only want to allow one at a time
@@ -136,6 +141,10 @@ public class ProgramUploadService {
     }
 
     private void checkRequiredTraitFields(Trait trait) throws UnprocessableEntityException {
+
+        Method method = trait.getMethod();
+        Scale scale = trait.getScale();
+
         if (trait.getTraitName() == null) {
             throw new UnprocessableEntityException("Missing trait name");
         }
@@ -145,19 +154,19 @@ public class ProgramUploadService {
         if (trait.getProgramObservationLevel() == null || trait.getProgramObservationLevel().getName() == null) {
             throw new UnprocessableEntityException("Missing trait level");
         }
-        if (trait.getMethod() == null || trait.getMethod().getMethodName() == null) {
+        if (method == null || method.getMethodName() == null || method.getMethodName().isBlank()) {
             throw new UnprocessableEntityException("Missing method name");
         }
-        if (trait.getMethod() == null || trait.getMethod().getDescription() == null) {
+        if (method == null || method.getDescription() == null) {
             throw new UnprocessableEntityException("Missing method description");
         }
-        if (trait.getMethod() == null || trait.getMethod().getMethodClass() == null) {
+        if (method == null || method.getMethodClass() == null) {
             throw new UnprocessableEntityException("Missing method class");
         }
-        if (trait.getScale() == null || trait.getScale().getScaleName() == null) {
+        if (scale == null || scale.getScaleName() == null) {
             throw new UnprocessableEntityException("Missing scale name");
         }
-        if (trait.getScale() == null || trait.getScale().getDataType() == null) {
+        if (scale == null || scale.getDataType() == null) {
             throw new UnprocessableEntityException("Missing scale type");
         }
     }
@@ -180,7 +189,6 @@ public class ProgramUploadService {
         }
     }
 
-
     public Optional<ProgramUpload> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
 
         List<ProgramUpload> uploads = programUploadDao.getUploads(programId, actingUser.getId(), UploadType.TRAIT);
@@ -193,7 +201,6 @@ public class ProgramUploadService {
 
         return Optional.of(uploads.get(0));
     }
-
 
     public void deleteTraitUpload(UUID programId, AuthenticatedUser actingUser) throws DoesNotExistException {
 
