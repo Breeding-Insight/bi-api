@@ -84,7 +84,7 @@ public class UploadController {
             Response<ProgramUpload> response = new Response(programUpload.get());
             return HttpResponse.ok(response);
         } else {
-            log.info("Program location not found");
+            log.info("Trait upload not found");
             return HttpResponse.notFound();
         }
 
@@ -92,6 +92,7 @@ public class UploadController {
 
     @Delete("/programs/{programId}/trait-upload")
     @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse deleteTraitUpload(@PathVariable UUID programId) {
 
         try {
