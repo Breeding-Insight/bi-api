@@ -26,6 +26,8 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.jooq.Record;
 
+import java.util.UUID;
+
 import static org.breedinginsight.dao.db.Tables.ROLE;
 
 @Getter
@@ -45,6 +47,13 @@ public class Role extends RoleEntity {
         return Role.builder()
                 .id(record.getValue(ROLE.ID))
                 .domain(record.getValue(ROLE.DOMAIN))
+                .build();
+    }
+
+    public static Role parseSQLRecord(Record record, String alias){
+        return Role.builder()
+                .id(record.getValue(alias + ROLE.ID.getName(), UUID.class))
+                .domain(record.getValue(alias + ROLE.DOMAIN.getName(), String.class))
                 .build();
     }
 

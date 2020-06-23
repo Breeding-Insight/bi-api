@@ -27,8 +27,10 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
 import org.jooq.Record;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.PROGRAM_USER_ROLE;
 
@@ -61,6 +63,23 @@ public class ProgramUser extends ProgramUserRoleEntity {
                 .createdBy(record.getValue(PROGRAM_USER_ROLE.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM_USER_ROLE.UPDATED_BY))
                 .active(record.getValue(PROGRAM_USER_ROLE.ACTIVE))
+                .build();
+
+        return programUser;
+    }
+
+    public static ProgramUser parseSQLRecord(Record record, String alias){
+        // Generate our program record
+        ProgramUser programUser = ProgramUser.builder()
+                .id(record.getValue(alias + PROGRAM_USER_ROLE.ID.getName(), UUID.class))
+                .roles(new ArrayList<>())
+                .programId(record.getValue(alias + PROGRAM_USER_ROLE.PROGRAM_ID.getName(), UUID.class))
+                .userId(record.getValue(alias + PROGRAM_USER_ROLE.USER_ID.getName(), UUID.class))
+                .createdAt(record.getValue(alias + PROGRAM_USER_ROLE.CREATED_AT.getName(), OffsetDateTime.class))
+                .updatedAt(record.getValue(alias + PROGRAM_USER_ROLE.UPDATED_AT.getName(), OffsetDateTime.class))
+                .createdBy(record.getValue(alias + PROGRAM_USER_ROLE.CREATED_BY.getName(), UUID.class))
+                .updatedBy(record.getValue(alias + PROGRAM_USER_ROLE.UPDATED_BY.getName(), UUID.class))
+                .active(record.getValue(alias + PROGRAM_USER_ROLE.ACTIVE.getName(), Boolean.class))
                 .build();
 
         return programUser;

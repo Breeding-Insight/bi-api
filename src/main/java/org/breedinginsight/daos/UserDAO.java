@@ -30,6 +30,7 @@ import org.jooq.*;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.breedinginsight.dao.db.Tables.*;
 
@@ -38,6 +39,10 @@ import static org.breedinginsight.dao.db.Tables.*;
 public class UserDAO extends BiUserDao {
 
     private DSLContext dsl;
+
+    private String programUserTableAlias = "program_user_roles_";
+    private String programTableAlias = "program_";
+    private String roleTableAlias = "role_";
     @Inject
     public UserDAO(Configuration config, DSLContext dsl) {
         super(config);
@@ -45,16 +50,16 @@ public class UserDAO extends BiUserDao {
     }
 
     public List<User> getUsers() {
-        List<Record> records = getUsersQuery()
+        List<Record> records = getUsersQuery(programUserTableAlias, programTableAlias, roleTableAlias)
                 .where(BI_USER.ACTIVE.eq(true)).fetch();
-        return parseRecords(records);
+        return parseRecords(records, programUserTableAlias, programTableAlias, roleTableAlias);
     }
 
     public Optional<User> getUser(UUID id) {
-        List<Record> records = getUsersQuery()
+        List<Record> records = getUsersQuery(programUserTableAlias, programTableAlias, roleTableAlias)
                 .where(BI_USER.ID.eq(id))
                 .fetch();
-        List<User> users = parseRecords(records);
+        List<User> users = parseRecords(records, programUserTableAlias, programTableAlias, roleTableAlias);
 
         if (users.size() > 0){
             return Optional.of(users.get(0));
@@ -64,10 +69,10 @@ public class UserDAO extends BiUserDao {
     }
 
     public Optional<User> getUserByOrcId(String orcid) {
-        List<Record> records = getUsersQuery()
+        List<Record> records = getUsersQuery(programUserTableAlias, programTableAlias, roleTableAlias)
                 .where(BI_USER.ORCID.eq(orcid))
                 .fetch();
-        List<User> users = parseRecords(records);
+        List<User> users = parseRecords(records, programUserTableAlias, programTableAlias, roleTableAlias);
 
         if (users.size() > 0){
             return Optional.of(users.get(0));
@@ -76,23 +81,33 @@ public class UserDAO extends BiUserDao {
         }
     }
 
-    private SelectOnConditionStep<Record> getUsersQuery(){
+    private SelectOnConditionStep<Record> getUsersQuery(String programUserRoleTableAlias, String programTableAlias, String roleTableAlias){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        // Rename the columns for the inner join
+        List<String> tableColumns = PROGRAM_USER_ROLE.fieldStream().map(field -> programUserRoleTableAlias + field.getName()).collect(Collectors.toList());
+        tableColumns.addAll(PROGRAM.fieldStream().map(field -> programTableAlias + field.getName()).collect(Collectors.toList()));
+        tableColumns.addAll(ROLE.fieldStream().map(field -> roleTableAlias + field.getName()).collect(Collectors.toList()));
+
+        // Inner select statement
+        Table programRoles = dsl.select()
+                .from(PROGRAM_USER_ROLE)
+                .leftJoin(PROGRAM).on(PROGRAM_USER_ROLE.PROGRAM_ID.eq(PROGRAM.ID))
+                .leftJoin(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
+                .where(PROGRAM.ACTIVE.eq(true))
+                .asTable("programRoles", tableColumns.toArray(String[]::new));
 
         return dsl.select()
                 .from(BI_USER)
                 .leftJoin(SYSTEM_USER_ROLE).on(BI_USER.ID.eq(SYSTEM_USER_ROLE.BI_USER_ID))
                 .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID))
-                .leftJoin(PROGRAM_USER_ROLE).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
-                .leftJoin(PROGRAM).on(PROGRAM_USER_ROLE.PROGRAM_ID.eq(PROGRAM.ID))
-                .leftJoin(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
-                    .and(PROGRAM.ACTIVE.eq(true));
+                .leftJoin(programRoles).on(programRoles.field(programUserRoleTableAlias + "user_id").eq(BI_USER.ID));
 
     }
 
-    private List<User> parseRecords(List<Record> records) {
+    private List<User> parseRecords(List<Record> records, String programUserRoleTableAlias, String programTableAlias, String roleTableAlias) {
 
         Map<String, User> userMap = new HashMap<>();
 
@@ -101,9 +116,9 @@ public class UserDAO extends BiUserDao {
             // program user exists
             User userRecord = User.parseSQLRecord(record);
             SystemRole systemRole = SystemRole.parseSQLRecord(record);
-            ProgramUser programUser = ProgramUser.parseSQLRecord(record);
-            Role programRole = Role.parseSQLRecord(record);
-            Program program = Program.parseSQLRecord(record);
+            ProgramUser programUser = ProgramUser.parseSQLRecord(record, programUserRoleTableAlias);
+            Role programRole = Role.parseSQLRecord(record, roleTableAlias);
+            Program program = Program.parseSQLRecord(record, programTableAlias);
 
             User existingUser;
             if (userMap.containsKey(userRecord.getId().toString())) {

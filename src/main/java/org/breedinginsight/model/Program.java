@@ -26,6 +26,9 @@ import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.jooq.Record;
 
 
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
 import static org.breedinginsight.dao.db.Tables.*;
 
 @Getter
@@ -69,6 +72,25 @@ public class Program extends ProgramEntity {
                 .createdBy(record.getValue(PROGRAM.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM.UPDATED_BY))
                 .active(record.getValue(PROGRAM.ACTIVE))
+                .build();
+
+        return program;
+    }
+
+    public static Program parseSQLRecord(Record record, String alias){
+
+        // Generate our program record
+        Program program = Program.builder()
+                .id(record.getValue(alias + PROGRAM.ID.getName(), UUID.class))
+                .name(record.getValue(alias + PROGRAM.NAME.getName(), String.class))
+                .abbreviation(record.getValue(alias + PROGRAM.ABBREVIATION.getName(), String.class))
+                .objective(record.getValue(alias + PROGRAM.OBJECTIVE.getName(), String.class))
+                .documentationUrl(record.getValue(alias + PROGRAM.DOCUMENTATION_URL.getName(), String.class))
+                .createdAt(record.getValue(alias + PROGRAM.CREATED_AT.getName(), OffsetDateTime.class))
+                .updatedAt(record.getValue(alias + PROGRAM.UPDATED_AT.getName(), OffsetDateTime.class))
+                .createdBy(record.getValue(alias + PROGRAM.CREATED_BY.getName(), UUID.class))
+                .updatedBy(record.getValue(alias + PROGRAM.UPDATED_BY.getName(), UUID.class))
+                .active(record.getValue(alias + PROGRAM.ACTIVE.getName(), Boolean.class))
                 .build();
 
         return program;

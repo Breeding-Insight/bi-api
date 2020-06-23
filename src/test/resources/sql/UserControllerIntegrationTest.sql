@@ -41,3 +41,6 @@ join bi_user on bi_user.name = 'Test User' or bi_user.name = 'Other Test User'
 join role on role.domain = 'member'
 join bi_user as system_user on system_user.name = 'system'
 where program.name = 'Test Program1';
+
+-- name: DeactivateProgram
+update program set active = false where name = 'Test Program';

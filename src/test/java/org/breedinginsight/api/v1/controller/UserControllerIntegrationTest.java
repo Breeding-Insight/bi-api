@@ -62,6 +62,7 @@ public class UserControllerIntegrationTest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
+    private FannyPack fp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
 
     @Inject
     private DSLContext dsl;
@@ -85,7 +86,6 @@ public class UserControllerIntegrationTest {
     void setup() throws Exception {
 
         // Insert our traits into the db
-        var fp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
         dsl.execute(fp.get("InsertProgram"));
         dsl.execute(fp.get("InsertUserProgramAssociations"));
 
@@ -107,6 +107,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @Order(1)
     public void getUsersExistingId() {
 
         // TODO: depends on db setup
@@ -763,6 +764,31 @@ public class UserControllerIntegrationTest {
                 assertNotEquals(testUserUUID, exampleUser.get("id").toString(), "Inactive user was returned");
             }
         }
+    }
+
+    @Test
+    @Order(6)
+    public void getUsersInactiveProgramsNotReturned() {
+
+        String testProgramName = "Test Program";
+        // Deactive program
+        dsl.execute(fp.get("DeactivateProgram"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/userinfo").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty roles list was not returned.");
+        assertEquals(1, resultProgramRoles.size(), "Deactivated program was returned in roles");
+
+        JsonObject jsonProgram = resultProgramRoles.get(0).getAsJsonObject().get("program").getAsJsonObject();
+        assertNotEquals(testProgramName, jsonProgram.get("name").getAsString(), "Deactivated program was included in roles");
     }
 
 }

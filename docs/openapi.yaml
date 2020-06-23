@@ -68,6 +68,7 @@ paths:
                       orcid: 1234-4312-4352-6314
                       name: Bob Smith
                       email: bob.smith@mail.com
+                      active: true
                       systemRoles: [
                       {
                         id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
@@ -110,6 +111,7 @@ paths:
                       orcid: 1234-4312-4352-6314
                       name: Fred Brown
                       email: null
+                      active: true
                       systemRoles: []
                       programRoles: []
         "400":
@@ -249,6 +251,7 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
@@ -350,6 +353,7 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
@@ -522,6 +526,7 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
@@ -2382,6 +2387,8 @@ components:
           type: string
         email:
           type: string
+        active:
+          type: boolean
         systemRoles:
           type: object
           properties:
