@@ -16,18 +16,21 @@
  */
 package org.breedinginsight.api.v1.controller;
 
+import com.google.gson.JsonObject;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.model.Trait;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -35,7 +38,7 @@ import javax.inject.Inject;
 
 import java.io.File;
 
-import static io.micronaut.http.HttpRequest.PUT;
+import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -53,6 +56,9 @@ public class UploadControllerIntegrationTest {
     RxHttpClient client;
 
     private ProgramEntity validProgram;
+    private File validFile = new File("src/test/resources/files/data_one_row.csv");
+    String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    String invalidProgram = invalidUUID;
 
     @BeforeAll
     public void setup() {
@@ -72,18 +78,25 @@ public class UploadControllerIntegrationTest {
     }
 
     @Test
-    void postProgramUploadsXlsSuccess() {
-
+    void putTraitUploadInvalidProgramId() {
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(invalidProgram, validFile, "test-registered-user");
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
     @Test
-    void putTraitUploadCsvSuccess() {
+    void putTraitUploadUserNotInProgram() {
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), validFile, "other-registered-user");
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
 
-        File file = new File("src/test/resources/files/data_one_row.csv");
+    @Test
+    void putTraitUploadMissingMediaType() {
         MultipartBody requestBody = MultipartBody.builder()
-                .addPart("file",
-                        file
-                ).build();
+                .addPart("file","test", new byte[1]).build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 PUT("/programs/"+validProgram.getId()+"/trait-upload", requestBody)
@@ -91,10 +104,118 @@ public class UploadControllerIntegrationTest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
-        HttpResponse<String> response = call.blockingFirst();
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadUnsupportedMimeType() {
+        File file = new File("src/test/resources/files/unsupported.txt");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadMissingRequiredColumn() {
+        File file = new File("src/test/resources/files/missing_method_name_with_data.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    @Order(1)
+    void getTraitUploadDoesNotExist() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgram.getId()+"/trait-upload")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void deleteTraitUploadInvalidProgram() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+invalidProgram+"/trait-upload")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadXlsxSuccess() {
+        File file = new File("src/test/resources/files/data_one_row.xlsx");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    void putTraitUploadXlsSuccess() {
+        File file = new File("src/test/resources/files/data_one_row.xls");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(2)
+    void putTraitUploadCsvSuccess() {
+
+        File file = new File("src/test/resources/files/data_one_row.csv");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         assertEquals(HttpStatus.OK, response.getStatus());
 
     }
 
+    private HttpResponse<String> uploadFile(String programId, File file, String user) {
+        MultipartBody requestBody = MultipartBody.builder()
+                .addPart("file",
+                        file
+                ).build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/"+programId+"/trait-upload", requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", user)), String.class
+        );
+
+        return call.blockingFirst();
+    }
+
+    private void checkTraitEqual(Trait expected, Trait actual) {
+
+    }
+
+    @Test
+    @Order(3)
+    void getTraitUploadSuccess() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgram.getId()+"/trait-upload")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(4)
+    void deleteTraitUploadSuccess() {
+
+    }
 
 }
