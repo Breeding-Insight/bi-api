@@ -55,14 +55,14 @@ public class UploadController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<ProgramUpload>>> putTraitUpload(@PathVariable UUID programId, @Part CompletedFileUpload file) {
+    public HttpResponse<Response<ProgramUpload>> putTraitUpload(@PathVariable UUID programId, @Part CompletedFileUpload file) {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ProgramUpload programUpload = uploadService.updateTraitUpload(programId, file, actingUser);
-            Response<DataResponse<ProgramUpload>> response = new Response(programUpload);
+            Response<ProgramUpload> response = new Response(programUpload);
             return HttpResponse.ok(response);
-        } catch (UnprocessableEntityException e){
+        } catch (UnprocessableEntityException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
