@@ -19,6 +19,7 @@ package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramUserRoleDao;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.Role;
@@ -63,7 +64,6 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
     }
 
     public ProgramUser getProgramUser(UUID programId, UUID userId) {
-        ProgramUser user = null;
 
         if (programId != null && userId != null) {
             BiUserTable createdByUser = BI_USER.as("createdByUser");
@@ -73,31 +73,21 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                     .and(PROGRAM_USER_ROLE.USER_ID.eq(userId)))
                     .fetch();
 
-            // populate program, user info
-            if (records.isNotEmpty()) {
-                user = ProgramUser.parseSQLRecord(records.get(0));
-
-                // assumes created/edited is the same for all role records
-                user.setCreatedByUser(User.parseSQLRecord(records.get(0), createdByUser));
-                user.setUpdatedByUser(User.parseSQLRecord(records.get(0), updatedByUser));
-                user.setUser(User.parseSQLRecord(records.get(0)));
-
-                // populate roles
-                for (Record record : records) {
-                    Role role = Role.parseSQLRecord(record);
-                    user.addRole(role);
-                }
+            List<ProgramUser> programUsers = parseRecords(records, createdByUser, updatedByUser);
+            if (programUsers.size() == 1){
+                return programUsers.get(0);
+            } else {
+                return null;
             }
         }
 
-        return user;
+        return null;
     }
 
     public List<ProgramUser> getProgramUsers(UUID programId){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
-        List<ProgramUser> resultProgramsUsers = new ArrayList<>();
 
         // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
         Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
@@ -105,59 +95,35 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                 .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
                 .fetch();
 
-        // Parse the result
-        for (Record record: records){
-            // program user exists
-            ProgramUser programUser = ProgramUser.parseSQLRecord(record);
-            Role role = Role.parseSQLRecord(record);
-            Optional<ProgramUser> existingUser = resultProgramsUsers.stream()
-                    .filter(p -> p.getProgramId().equals(programUser.getProgramId()) &&
-                                 p.getUserId().equals(programUser.getUserId()))
-                    .findFirst();
-
-            if (existingUser.isPresent()) {
-                // add another role
-                ProgramUser user = existingUser.get();
-                user.addRole(role);
-            }
-            else {
-                // add new program user with role
-                programUser.setUser(User.parseSQLRecord(record));
-                programUser.addRole(role);
-                programUser.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
-                programUser.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
-                resultProgramsUsers.add(programUser);
-            }
-        }
-
-        return resultProgramsUsers;
+        return parseRecords(records, createdByUser, updatedByUser);
     }
 
     public List<ProgramUser> getProgramUsersByUserId(UUID userId) {
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
-        List<ProgramUser> resultProgramsUsers = new ArrayList<>();
 
         // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
         Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
                 .where(PROGRAM_USER_ROLE.USER_ID.eq(userId))
-                .and(PROGRAM_USER_ROLE.ACTIVE.eq(true))
+                .and(PROGRAM.ACTIVE.eq(true))
                 .fetch();
 
-        // Parse the result
-        for (Record record: records){
-            // program user exists
-            ProgramUser programUser = ProgramUser.parseSQLRecord(record);
-            Role role = Role.parseSQLRecord(record);
-            programUser.setUser(User.parseSQLRecord(record));
-            programUser.addRole(role);
-            programUser.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
-            programUser.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
-            resultProgramsUsers.add(programUser);
-        }
+        return parseRecords(records, createdByUser, updatedByUser);
+    }
 
-        return resultProgramsUsers;
+    public List<ProgramUser> getProgramUsersByOrcid(String orcid) {
+
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        // TODO: When we allow for pulling archived users, active condition won't be hardcoded.
+        Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
+                .where(BI_USER.ORCID.eq(orcid))
+                .and(PROGRAM.ACTIVE.eq(true))
+                .fetch();
+
+        return parseRecords(records, createdByUser, updatedByUser);
     }
 
     private SelectOnConditionStep<Record> getProgramUsersQuery(BiUserTable createdByTableAlias, BiUserTable updatedByTableAlias) {
@@ -166,7 +132,58 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
                 .from(PROGRAM_USER_ROLE)
                 .join(BI_USER).on(PROGRAM_USER_ROLE.USER_ID.eq(BI_USER.ID))
                 .join(ROLE).on(PROGRAM_USER_ROLE.ROLE_ID.eq(ROLE.ID))
+                .join(PROGRAM).on(PROGRAM_USER_ROLE.PROGRAM_ID.eq(PROGRAM.ID))
                 .join(createdByTableAlias).on(PROGRAM_USER_ROLE.CREATED_BY.eq(createdByTableAlias.ID))
                 .join(updatedByTableAlias).on(PROGRAM_USER_ROLE.UPDATED_BY.eq(updatedByTableAlias.ID));
+
+    }
+
+    public List<ProgramUser> getAllProgramUsers() {
+
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        Result<Record> records = getProgramUsersQuery(createdByUser, updatedByUser)
+                .where(PROGRAM.ACTIVE.eq(true))
+                .fetch();
+
+        return parseRecords(records, createdByUser, updatedByUser);
+    }
+
+    public List<ProgramUser> parseRecords(Result<Record> records, BiUserTable createdByUser, BiUserTable updatedByUser){
+
+        List<ProgramUser> resultProgramsUsers = new ArrayList<>();
+
+        for (Record record: records){
+            // program user exists
+            ProgramUser programUser = ProgramUser.parseSQLRecord(record);
+            Role role = Role.parseSQLRecord(record);
+            Program program = Program.parseSQLRecord(record);
+            Optional<ProgramUser> existingUser = resultProgramsUsers.stream()
+                    .filter(p -> p.getProgramId().equals(programUser.getProgramId()) &&
+                            p.getUserId().equals(programUser.getUserId()))
+                    .findFirst();
+
+            ProgramUser user;
+            if (existingUser.isPresent()) {
+                // add another role
+                user = existingUser.get();
+                user.addRole(role);
+            } else {
+                // add new program user with role
+                programUser.setUser(User.parseSQLRecord(record));
+                programUser.addRole(role);
+                programUser.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
+                programUser.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
+                user = programUser;
+                resultProgramsUsers.add(user);
+            }
+
+            if (user.getProgram() == null){
+                user.setProgram(program);
+            }
+        }
+
+        return resultProgramsUsers;
     }
 }

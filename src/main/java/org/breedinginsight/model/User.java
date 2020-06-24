@@ -40,12 +40,12 @@ import static org.breedinginsight.dao.db.Tables.BI_USER;
 @SuperBuilder
 public class User extends BiUserEntity{
 
-    @JsonInclude(value= JsonInclude.Include.ALWAYS)
+    @JsonInclude()
     @NotNull
     private List<SystemRole> systemRoles;
-    @JsonInclude(value = JsonInclude.Include.ALWAYS)
-    @JsonIgnoreProperties(value = {"createdAt", "updatedAt"})
+    @JsonInclude()
     @NotNull
+    @JsonIgnoreProperties(value = {"createdAt", "updatedAt", "createdByUser", "updatedByUser", "user"})
     private List<ProgramUser> programRoles;
 
     public User(BiUserEntity biUser) {

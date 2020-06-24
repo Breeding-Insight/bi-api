@@ -768,7 +768,7 @@ public class UserControllerIntegrationTest {
 
     @Test
     @Order(6)
-    public void getUsersInactiveProgramsNotReturned() {
+    public void getUserInfoInactiveProgramsNotReturned() {
 
         String testProgramName = "Test Program";
         // Deactive program
@@ -789,6 +789,53 @@ public class UserControllerIntegrationTest {
 
         JsonObject jsonProgram = resultProgramRoles.get(0).getAsJsonObject().get("program").getAsJsonObject();
         assertNotEquals(testProgramName, jsonProgram.get("name").getAsString(), "Deactivated program was included in roles");
+    }
+
+    @Test
+    @Order(7)
+    public void getUsersInactiveProgramsNotReturned() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        Boolean testUserSeen = false;
+        for (JsonElement resultUser: result.get("data").getAsJsonArray()) {
+            JsonObject jsonUser = (JsonObject) resultUser;
+            if (jsonUser.get("id") != null){
+                if (jsonUser.get("id").getAsString().equals(otherTestUser.getId().toString())){
+                    testUserSeen = true;
+                    assertEquals(1, jsonUser.get("programRoles").getAsJsonArray().size(), "Deactivated program was included in roles");
+                }
+            }
+        }
+
+        if (!testUserSeen) {
+            throw new AssertionFailedError("User was not seen in the response");
+        }
+    }
+
+    @Test
+    @Order(7)
+    public void getUserInactiveProgramsNotReturned() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users/" + otherTestUser.getId().toString()).cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty roles list was not returned.");
+        assertEquals(1, resultProgramRoles.size(), "Deactivated program was returned in roles");
     }
 
 }

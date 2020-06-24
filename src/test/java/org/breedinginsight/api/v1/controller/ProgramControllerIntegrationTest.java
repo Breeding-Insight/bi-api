@@ -1364,6 +1364,11 @@ public class ProgramControllerIntegrationTest {
         JsonObject role = roles.get(0).getAsJsonObject();
         assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
         assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+        JsonObject program = programUser.getAsJsonObject("program");
+        assertEquals(validProgram.getId().toString(), program.get("id").getAsString(), "Wrong program id");
+        assertEquals(validProgram.getName(), program.get("name").getAsString(), "Wrong program name");
+        assertEquals(validProgram.getAbbreviation(), program.get("abbreviation").getAsString(), "Wrong program abbreviation");
+        assertEquals(validProgram.getObjective(), program.get("objective").getAsString(), "Wrong program objective");
     }
 
     @Test
@@ -1393,6 +1398,11 @@ public class ProgramControllerIntegrationTest {
         JsonObject role = roles.get(0).getAsJsonObject();
         assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
         assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
+        JsonObject program = result.getAsJsonObject("program");
+        assertEquals(validProgram.getId().toString(), program.get("id").getAsString(), "Wrong program id");
+        assertEquals(validProgram.getName(), program.get("name").getAsString(), "Wrong program name");
+        assertEquals(validProgram.getAbbreviation(), program.get("abbreviation").getAsString(), "Wrong program abbreviation");
+        assertEquals(validProgram.getObjective(), program.get("objective").getAsString(), "Wrong program objective");
     }
 
     @Test

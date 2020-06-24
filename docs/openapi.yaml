@@ -949,7 +949,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/programUserResponse'
-              example:
+              examples:
                 programUserExample2:
                   $ref: '#/components/examples/singleProgramUser'
         "400":
@@ -2486,6 +2486,18 @@ components:
           description: Array of roles
           items:
             $ref: '#/components/schemas/role'
+        program:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            abbreviation:
+              type: string
+            objective:
+              type: string
     program:
       type: object
       properties:
@@ -3532,6 +3544,11 @@ components:
               roles:
                 - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
                   domain: Breeder
+              program:
+                id: 37935efa-4c0f-4269-8669-f78d21b26f04
+                name: Test Program
+                abbreviation: test,
+                objective: To test things
             - createdAt: "2020-02-09T09:57:35-04:00"
               updatedAt: "2020-02-09T09:57:35-04:00"
               createdByUser:
@@ -3548,7 +3565,12 @@ components:
                 email: tim.smith@mail.com
               roles:
                 - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
-                  domain: Breeder
+                  domain: Breeder'
+              program:
+                id: 37935efa-4c0f-4269-8669-f78d21b26f04
+                name: Test Program
+                abbreviation: test,
+                objective: To test things
     singleProgramUser:
       value:
         metadata:
@@ -3577,6 +3599,11 @@ components:
           roles:
             - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
               domain: Field Manager
+          program:
+            id: 37935efa-4c0f-4269-8669-f78d21b26f04
+            name: Test Program
+            abbreviation: test,
+            objective: To test things
     arrayOfCountries:
       value:
         metadata:

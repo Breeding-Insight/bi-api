@@ -50,11 +50,4 @@ public class Role extends RoleEntity {
                 .build();
     }
 
-    public static Role parseSQLRecord(Record record, String alias){
-        return Role.builder()
-                .id(record.getValue(alias + ROLE.ID.getName(), UUID.class))
-                .domain(record.getValue(alias + ROLE.DOMAIN.getName(), String.class))
-                .build();
-    }
-
 }
