@@ -17,6 +17,10 @@
 package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -24,6 +28,7 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
+import org.geojson.Feature;
 import org.jooq.Record;
 
 import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
@@ -34,13 +39,21 @@ import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId"})
+@JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId", "id"})
 public class ProgramUpload extends BatchUploadEntity {
 
     private Program program;
     private User user;
     private User createdByUser;
     private User updatedByUser;
+
+    // JSONB not working with jackson
+    @JsonProperty("data")
+    @JsonInclude(JsonInclude.Include.ALWAYS)
+    public Trait[] getDataJson() throws JsonProcessingException {
+        ObjectMapper objMapper = new ObjectMapper();
+        return objMapper.readValue(super.getData().data(), Trait[].class);
+    }
 
     public ProgramUpload(BatchUploadEntity uploadEntity) {
         this.setId(uploadEntity.getId());
