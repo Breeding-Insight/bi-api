@@ -38,6 +38,10 @@ tags:
     description: Program Management
   - name: roles
     description: Role Information
+  - name: traits
+    description: Trait Management
+  - name: uploads
+    description: Upload Management
 paths:
   /users:
     get:
@@ -1910,6 +1914,186 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /programs/{programId}/trait-upload:
+    put:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Upload the trait csv/xls/xlsx file data
+      description: Upload trait file data for the user making the request in the indicated program. Only one trait upload at a time can exist per user per program.
+      operationId: putTraitUpload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitUploadResponse'
+              examples:
+                traitUploadResponse:
+                  $ref: '#/components/examples/traitUploadData'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    get:
+      tags:
+        - uploads
+      summary: Get the trait upload data
+      description: Gets the trait upload data for the specified program and requesting user
+      operationId: getTraitUpload
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait upload in
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitUploadResponse'
+              examples:
+                traitUploadResponse:
+                  $ref: '#/components/examples/traitUploadData'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    delete:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to delete trait upload from
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Delete trait upload
+      description: Delete trait upload for the specified program and requesting user
+      operationId: deleteTraitUpload
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
   /health:
     get:
       tags:
@@ -3384,6 +3568,120 @@ components:
             updatedAt:
               type: string
               format: datetime
+    traitUploadResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/traitUpload'
+    traitUpload:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of upload
+        data:
+          type: object
+          properties:
+            traitName:
+              type: string
+              description: Trait display name
+            active:
+              type: boolean
+              description: Trait active status
+            programObservationLevel:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: System id of the observation level
+                name:
+                  type: string
+                  description: Name of the observation level
+                active:
+                  type: boolean
+                createdAt:
+                  type: string
+                  format: datetime
+                updatedAt:
+                  type: string
+                  format: datetime
+            method:
+              type: object
+              properties:
+                methodName:
+                  type: string
+                methodClass:
+                  type: string
+                description:
+                  type: string
+                formula:
+                  type: string
+            scale:
+              type: object
+              properties:
+                scaleName:
+                  type: string
+                dataType:
+                  type: string
+                decimalPlaces:
+                  type: integer
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      value:
+                        type: string
+                validValueMax:
+                  type: integer
+                validValueMin:
+                  type: integer
+            description:
+              type: string
+            mainAbbreviation:
+              type: string
+            abbreviations:
+              type: array
+              items:
+                type: string
+            synonyms:
+              type: array
+              items:
+                type: string
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        user:
+          $ref: '#/components/schemas/user'
+        program:
+          $ref: '#/components/schemas/program'
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
   responses:
     "400BadRequest":
       description: Bad Request
@@ -4083,3 +4381,81 @@ components:
                 active: true
               }
           }
+    traitUploadData:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          type: "TRAIT"
+          data:
+            [
+            {
+              traitName: "Test Trait",
+              active: true,
+              programObservationLevel:
+                {
+                  name: "Plant",
+                },
+              method:
+                {
+                  methodName: "Powdery Mildew severity, leaves - Estimation",
+                  methodClass: "Estimation",
+                  description: "Observed severity of Powdery Mildew on leaves",
+                  formula: "a^2 + b^2 = c^2"
+                },
+              scale:
+                {
+                  scaleName: "1-4 Parlier field response score",
+                  dataType: "ORDINAL",
+                  decimalPlaces: 2,
+                  categories:
+                    [
+                    {
+                      label: "test1",
+                      value: "value1"
+                    },
+                    {
+                      label: "test2",
+                      value: "value2"
+                    }
+                    ]
+                },
+              description: "A trait",
+              mainAbbreviation: "t1",
+              abbreviations: ["t1","t2"],
+              synonyms: ["stalk height"],
+            }
+            ]
+          program:
+            {
+              id: "20e1a888-050a-4f89-8fec-ffaa55289c1b",
+              name: "Nick's Microgreens",
+              active: true,
+              createdAt: "2020-06-24T11:36:01-04:00",
+              updatedAt: "2020-06-24T11:36:01-04:00"
+            }
+          user:
+            {
+              id: "285ebacc-3940-416b-8ffe-5bb5d8a843f3",
+              orcid: "0000-0000-0000-0000",
+              name: "Nick Palladino",
+              email: "n@n.com",
+              active: true,
+              systemRoles: []
+            }
+          createdByUser:
+            {
+              name: "Tester",
+              active: true
+            }
+          updatedByUser:
+            {
+              name: "Tester",
+              active: true
+            }
