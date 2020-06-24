@@ -26,8 +26,6 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.RoleEntity;
 import org.jooq.Record;
 
-import java.util.UUID;
-
 import static org.breedinginsight.dao.db.Tables.ROLE;
 
 @Getter
