@@ -33,6 +33,7 @@ import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.ProgramUploadService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 
 import javax.inject.Inject;
 import java.util.Optional;
@@ -68,6 +69,9 @@ public class UploadController {
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (UnsupportedTypeException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
         }
     }
 
