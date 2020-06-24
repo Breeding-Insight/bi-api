@@ -135,9 +135,7 @@ public class ProgramUploadService {
 
         // Insert and update
         programUploadDao.insert(uploadEntity);
-        ProgramUpload upload = new ProgramUpload(programUploadDao.fetchById(uploadEntity.getId()).get(0));
-
-        return upload;
+        return programUploadDao.getUploadById(uploadEntity.getId()).get();
     }
 
     private void checkRequiredTraitFields(Trait trait) throws UnprocessableEntityException {

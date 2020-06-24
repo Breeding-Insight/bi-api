@@ -27,6 +27,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
@@ -51,6 +52,19 @@ public class ProgramUploadDAO extends BatchUploadDao {
                 .fetch();
 
         return parseRecords(records);
+
+    }
+
+    public Optional<ProgramUpload> getUploadById(UUID id) {
+        List<Record> records = getUploadsQuery()
+                .where(BATCH_UPLOAD.ID.eq(id))
+                .fetch();
+
+        if (records.isEmpty()) {
+            return Optional.empty();
+        } else {
+            return Optional.of(parseRecords(records).get(0));
+        }
 
     }
 
