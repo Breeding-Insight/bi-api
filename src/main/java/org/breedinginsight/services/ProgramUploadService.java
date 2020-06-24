@@ -39,6 +39,7 @@ import java.util.UUID;
 
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.jooq.JSONB;
@@ -70,7 +71,7 @@ public class ProgramUploadService {
     private ObjectMapper objMapper;
 
     public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
-            throws UnprocessableEntityException, DoesNotExistException {
+            throws UnprocessableEntityException, DoesNotExistException, UnsupportedTypeException {
 
         if (!programService.exists(programId))
         {
@@ -81,7 +82,7 @@ public class ProgramUploadService {
                 .orElseThrow(() -> new DoesNotExistException("user not in program"));
 
         Optional<MediaType> type = file.getContentType();
-        MediaType mediaType = type.orElseThrow(() -> new UnprocessableEntityException("File upload must have MediaType"));
+        MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
 
         List<Trait> traits = new ArrayList<>();
 
@@ -101,8 +102,7 @@ public class ProgramUploadService {
                 throw new UnprocessableEntityException("Error parsing excel: " + e.getMessage());
             }
         } else {
-            // TODO: 415
-            throw new UnprocessableEntityException("Unsupported mime type");
+            throw new UnsupportedTypeException("Unsupported mime type");
         }
 
         for (Trait trait : traits) {

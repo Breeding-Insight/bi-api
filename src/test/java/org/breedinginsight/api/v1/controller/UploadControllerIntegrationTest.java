@@ -107,7 +107,7 @@ public class UploadControllerIntegrationTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getStatus());
     }
 
     @Test
@@ -116,7 +116,7 @@ public class UploadControllerIntegrationTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getStatus());
     }
 
     @Test
