@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.services.parsers.trait;
+package org.breedinginsight.services.parsers.excel;
 
 import lombok.NonNull;
 import org.apache.poi.ss.usermodel.Cell;
@@ -36,9 +36,7 @@ public class ExcelRecord {
 
     // null if value doesn't exist otherwise value
     public Cell get(String name) {
-
         return values.get(name);
-
     }
 
 }

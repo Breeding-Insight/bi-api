@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.services.parsers.trait;
+package org.breedinginsight.services.parsers.excel;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
@@ -28,15 +28,16 @@ import java.util.List;
 import java.util.Map;
 
 /*
- *
+ * This xls/xlsx parser expects spreadsheets with the first row as column names and subsequent rows
+ * as data. Only data in a column with a column name will be kept, data outside these columns is
+ * discarded.
  */
 @Slf4j
 public class ExcelParser {
 
     private static final int EXCEL_COLUMN_NAMES_ROW = 0;
 
-
-    List<ExcelRecord> parse(Sheet sheet) throws ParsingException {
+    public List<ExcelRecord> parse(Sheet sheet) throws ParsingException {
 
         List<ExcelRecord> records = new ArrayList<>();
 
