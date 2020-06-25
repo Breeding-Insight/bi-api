@@ -79,7 +79,7 @@ public class ProgramUploadService {
         }
 
         programUserService.getProgramUserbyId(programId, actingUser.getId())
-                .orElseThrow(() -> new DoesNotExistException("user not in program"));
+                .orElseThrow(() -> new DoesNotExistException("User not in program"));
 
         Optional<MediaType> type = file.getContentType();
         MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
@@ -143,30 +143,45 @@ public class ProgramUploadService {
         Method method = trait.getMethod();
         Scale scale = trait.getScale();
 
-        if (trait.getTraitName() == null) {
+        if (method == null) {
+            throw new UnprocessableEntityException("Missing method");
+        }
+
+        if (scale == null) {
+            throw new UnprocessableEntityException("Missing scale");
+        }
+
+        if (isBlank(trait.getTraitName())) {
             throw new UnprocessableEntityException("Missing trait name");
         }
-        if (trait.getDescription() == null) {
+        if (isBlank(trait.getDescription())) {
             throw new UnprocessableEntityException("Missing trait description");
         }
-        if (trait.getProgramObservationLevel() == null || trait.getProgramObservationLevel().getName() == null) {
+        if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
             throw new UnprocessableEntityException("Missing trait level");
         }
-        if (method == null || method.getMethodName() == null || method.getMethodName().isBlank()) {
+        if (isBlank(method.getMethodName())) {
             throw new UnprocessableEntityException("Missing method name");
         }
-        if (method == null || method.getDescription() == null) {
+        if (isBlank(method.getDescription())) {
             throw new UnprocessableEntityException("Missing method description");
         }
-        if (method == null || method.getMethodClass() == null) {
+        if (isBlank(method.getMethodClass())) {
             throw new UnprocessableEntityException("Missing method class");
         }
-        if (scale == null || scale.getScaleName() == null) {
+        if (isBlank(scale.getScaleName())) {
             throw new UnprocessableEntityException("Missing scale name");
         }
-        if (scale == null || scale.getDataType() == null) {
+        if (scale.getDataType() == null) {
             throw new UnprocessableEntityException("Missing scale type");
         }
+    }
+
+    private boolean isBlank(String field) {
+        if (field == null || field.isBlank()) {
+            return true;
+        }
+        return false;
     }
 
     private void checkTraitDataConsistency(Trait trait) throws UnprocessableEntityException {
@@ -175,7 +190,7 @@ public class ProgramUploadService {
         Scale scale = trait.getScale();
 
         if (method != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
-            if (method.getFormula() == null) {
+            if (isBlank(method.getFormula())) {
                 throw new UnprocessableEntityException("Missing formula for Computation method");
             }
         }

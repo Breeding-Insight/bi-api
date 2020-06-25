@@ -129,6 +129,24 @@ public class UploadControllerIntegrationTest {
     }
 
     @Test
+    void putTraitUploadMissingFormula() {
+        File file = new File("src/test/resources/files/missing_formula.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadMissingCategories() {
+        File file = new File("src/test/resources/files/missing_categories.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
     @Order(1)
     void getTraitUploadDoesNotExist() {
         Flowable<HttpResponse<String>> call = client.exchange(
