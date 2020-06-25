@@ -30,6 +30,8 @@ import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.parsers.excel.ExcelParser;
+import org.breedinginsight.services.parsers.excel.ExcelRecord;
 import org.breedinginsight.services.parsers.ParsingException;
 
 import java.io.*;
