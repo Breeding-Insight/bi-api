@@ -71,8 +71,31 @@ public class TraitFileParser {
         }
 
         ExcelParser parser = new ExcelParser();
-        List<ExcelRecord> records = parser.parse(sheet);
+        List<ExcelRecord> records = parser.parse(sheet, TraitFileColumns.getColumns());
         return excelRecordsToTraits(records);
+    }
+
+    // no sheets RFC4180
+    public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException {
+
+        ArrayList<Trait> traits = new ArrayList<>();
+        InputStreamReader in = new InputStreamReader(inputStream);
+
+        Iterable<CSVRecord> records = null;
+        try {
+            // withHeader for enum uses name() internally so we have to give string array instead
+            records = CSVFormat.DEFAULT
+                    .parse(in);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new ParsingException("Error reading file");
+        }
+
+        Sheet excelSheet = convertCsvToExcel(records);
+        ExcelParser parser = new ExcelParser();
+        List<ExcelRecord> excelRecords = parser.parse(excelSheet, TraitFileColumns.getColumns());
+        return excelRecordsToTraits(excelRecords);
+
     }
 
     private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) {
@@ -85,7 +108,6 @@ public class TraitFileParser {
                     .build();
 
             // TODO: throw if not active/archived/empty
-
             Boolean active = !parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS).equals(TRAIT_STATUS_ARCHIVED);
 
             Method method = Method.builder()
@@ -96,7 +118,6 @@ public class TraitFileParser {
                     .build();
 
             // TODO: throw if not valid datatype
-            // null check?
             DataType dataType = null;
 
             try {
@@ -153,7 +174,7 @@ public class TraitFileParser {
 
     private String parseExcelValueAsString(ExcelRecord record, TraitFileColumns column) {
         DataFormatter formatter = new DataFormatter();
-        return formatter.formatCellValue(record.get(column)).trim(); //record.get(column).getStringCellValue().trim();
+        return formatter.formatCellValue(record.get(column)).trim(); // will return "" for nulls
     }
 
     private Sheet convertCsvToExcel(Iterable<CSVRecord> records) {
@@ -179,30 +200,11 @@ public class TraitFileParser {
         return sheet;
     }
 
-    // no sheets RFC4180
-    public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException {
-
-        ArrayList<Trait> traits = new ArrayList<>();
-        InputStreamReader in = new InputStreamReader(inputStream);
-
-        Iterable<CSVRecord> records = null;
-        try {
-            // withHeader for enum uses name() internally so we have to give string array instead
-            records = CSVFormat.DEFAULT
-                    .parse(in);
-        } catch (IOException e) {
-            log.error(e.getMessage());
-            throw new ParsingException("Error reading file");
-        }
-
-        Sheet excelSheet = convertCsvToExcel(records);
-        ExcelParser parser = new ExcelParser();
-        List<ExcelRecord> excelRecords = parser.parse(excelSheet);
-        return excelRecordsToTraits(excelRecords);
-
-    }
-
     private List<String> parseListValue(String value) {
+
+        if (value == null || value.isBlank()) {
+            return new ArrayList<>();
+        }
         return Arrays.stream(value.split(LIST_DELIMITER))
                 .map(strVal -> strVal.trim())
                 .collect(Collectors.toList());
