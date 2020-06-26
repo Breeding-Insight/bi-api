@@ -16,7 +16,9 @@
  */
 package org.breedinginsight.api.v1.controller;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -28,9 +30,9 @@ import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.model.Trait;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -179,6 +181,8 @@ public class UploadControllerIntegrationTest {
         File file = new File("src/test/resources/files/data_one_row.xlsx");
         HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidTraitUpload(result);
     }
 
     @Test
@@ -186,6 +190,8 @@ public class UploadControllerIntegrationTest {
         File file = new File("src/test/resources/files/data_one_row.xls");
         HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidTraitUpload(result);
     }
 
     @Test
@@ -195,6 +201,8 @@ public class UploadControllerIntegrationTest {
         File file = new File("src/test/resources/files/data_one_row.csv");
         HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidTraitUpload(result);
 
     }
 
@@ -213,7 +221,57 @@ public class UploadControllerIntegrationTest {
         return call.blockingFirst();
     }
 
-    private void checkTraitEqual(Trait expected, Trait actual) {
+    private void checkValidTraitUpload(JsonObject traitUpload) {
+
+        assertEquals("TRAIT", traitUpload.get("type").getAsString(), "wrong type");
+
+        JsonArray data = traitUpload.getAsJsonArray("data");
+        JsonObject trait = data.get(0).getAsJsonObject();
+
+        JsonArray abbreviations = trait.getAsJsonArray("abbreviations");
+        String abb1 = abbreviations.get(0).getAsString();
+        String abb2 = abbreviations.get(1).getAsString();
+
+        assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
+        assertEquals("PMSevLeaf", abb1, "wrong abbreviation");
+        assertEquals("PM_LEAF_P4", abb2, "wrong abbreviation");
+
+        JsonArray synonyms = trait.getAsJsonArray("synonyms");
+        String syn1 = synonyms.get(0).getAsString();
+        String syn2 = synonyms.get(1).getAsString();
+
+        assertEquals(2, synonyms.size(), "number of synonyms different than expected");
+        assertEquals("Powdery Mildew", syn1, "wrong synonym");
+        assertEquals("Powdery Mildew Severity", syn2, "wrong synonym");
+
+        assertEquals("Powdery Mildew severity field, leaves", trait.get("traitName").getAsString(), "wrong trait name");
+
+        JsonObject observationLevel = trait.getAsJsonObject("programObservationLevel");
+        assertEquals("Plant", observationLevel.get("name").getAsString(), "wrong level name");
+
+        assertEquals("Powdery mildew (PM) due to Erysiphe necator severity in field, leaves only", trait.get("description").getAsString(), "wrong description");
+
+        assertEquals(true, trait.get("active").getAsBoolean(), "wrong status");
+        // TODO: trait lists
+
+        JsonObject method = trait.get("method").getAsJsonObject();
+        assertEquals("Powdery Mildew severity, leaves - Estimation", method.get("methodName").getAsString(), "wrong method name");
+        assertEquals("Observed severity of Powdery Mildew on leaves", method.get("description").getAsString(), "wrong method description");
+        assertEquals("Estimation", method.get("methodClass").getAsString(), "wrong method class");
+        assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
+
+        JsonObject scale = trait.get("scale").getAsJsonObject();
+        assertEquals("1-4 Parlier field response score", scale.get("scaleName").getAsString(), "wrong scale name");
+        assertEquals(DataType.ORDINAL.getLiteral(), scale.get("dataType").getAsString(), "wrong scale dataType");
+        assertEquals(2, scale.get("decimalPlaces").getAsInt(), "wrong scale decimal places");
+        assertEquals(2, scale.get("validValueMin").getAsInt(), "wrong scale min value");
+        assertEquals(9999, scale.get("validValueMax").getAsInt(), "wrong scale max value");
+
+        JsonObject program = traitUpload.get("program").getAsJsonObject();
+        assertEquals("Test Program", program.get("name").getAsString(), "wrong program name");
+
+        JsonObject user = traitUpload.get("user").getAsJsonObject();
+        assertEquals("Test User", user.get("name").getAsString(), "wrong user name");
 
     }
 
@@ -228,12 +286,20 @@ public class UploadControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidTraitUpload(result);
     }
 
     @Test
     @Order(4)
     void deleteTraitUploadSuccess() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/programs/"+validProgram.getId()+"/trait-upload")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
 
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
     }
 
 }
