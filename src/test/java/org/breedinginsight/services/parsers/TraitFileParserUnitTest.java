@@ -17,6 +17,7 @@
 package org.breedinginsight.services.parsers;
 
 import lombok.SneakyThrows;
+import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
@@ -76,10 +77,20 @@ public class TraitFileParserUnitTest {
     void parseCsvMissingColumnNoData() {
         File file = new File("src/test/resources/files/missing_column.csv");
         InputStream inputStream = new FileInputStream(file);
-        List<Trait> traits = parser.parseCsv(inputStream);
 
-        assertEquals(true, traits.isEmpty(), "traits were not empty");
+        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
     }
+
+    @Test
+    @SneakyThrows
+    void parseCsvDuplicateColumnName() {
+        File file = new File("src/test/resources/files/data_duplicate_method_name.csv");
+        InputStream inputStream = new FileInputStream(file);
+
+        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+    }
+
+    // Not repeating error tests for parseExcel in the interest of time and it using the same underlying parsing code
 
     @Test
     @SneakyThrows
@@ -91,6 +102,36 @@ public class TraitFileParserUnitTest {
         assertEquals(1, traits.size(), "number of traits different than expected");
 
         Trait trait = traits.get(0);
+        assertTestTraitEquals(trait);
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsSingleRowSuccess() {
+        File file = new File("src/test/resources/files/data_one_row.xls");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(1, traits.size(), "number of traits different than expected");
+
+        Trait trait = traits.get(0);
+        assertTestTraitEquals(trait);
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsxSingleRowSuccess() {
+        File file = new File("src/test/resources/files/data_one_row.xlsx");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(1, traits.size(), "number of traits different than expected");
+
+        Trait trait = traits.get(0);
+        assertTestTraitEquals(trait);
+    }
+
+    private void assertTestTraitEquals(Trait trait) {
         List<String> abbreviations = trait.getAbbreviations();
         assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
         List<String> synonyms = trait.getSynonyms();
@@ -118,25 +159,36 @@ public class TraitFileParserUnitTest {
         assertEquals(9999, scale.getValidValueMax(), "wrong scale max value");
     }
 
+    // didn't do tests for file with multiple rows for all data, just number of traits to save time
 
     @Test
     @SneakyThrows
-    void parseXlsSuccess() {
-        File file = new File("src/test/resources/files/data_one_row.xls");
+    void parseCsvMultipleRowsSuccess() {
+        File file = new File("src/test/resources/files/data_multiple_rows.csv");
         InputStream inputStream = new FileInputStream(file);
-        List<Trait> traits = parser.parseExcel(inputStream);
+        List<Trait> traits = parser.parseCsv(inputStream);
 
-        assertEquals(1, traits.size(), "number of traits different than expected");
+        assertEquals(3, traits.size(), "number of traits different than expected");
     }
 
     @Test
     @SneakyThrows
-    void parseXlsxSuccess() {
-        File file = new File("src/test/resources/files/data_one_row.xlsx");
+    void parseXlsMultipleRowsSuccess() {
+        File file = new File("src/test/resources/files/data_multiple_rows.xls");
         InputStream inputStream = new FileInputStream(file);
         List<Trait> traits = parser.parseExcel(inputStream);
 
-        assertEquals(1, traits.size(), "number of traits different than expected");
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsxMultipleRowsSuccess() {
+        File file = new File("src/test/resources/files/data_multiple_rows.xlsx");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
     }
 
 }

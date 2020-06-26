@@ -17,6 +17,7 @@
 package org.breedinginsight.services.parsers.trait;
 
 import java.util.Arrays;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public enum TraitFileColumns {
@@ -50,11 +51,9 @@ public enum TraitFileColumns {
         return value;
     }
 
-    // get array of enum values
-    public static String[] getColumns() {
-        return (String[]) Arrays.stream(TraitFileColumns.values())
+    public static Set<String> getColumns() {
+        return Arrays.stream(TraitFileColumns.values())
                 .map(value -> value.toString())
-                .collect(Collectors.toList())
-                .toArray(new String[TraitFileColumns.values().length]);
+                .collect(Collectors.toSet());
     }
 }

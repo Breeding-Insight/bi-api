@@ -18,14 +18,13 @@ package org.breedinginsight.services.parsers.excel;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.breedinginsight.services.parsers.ParsingException;
+import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /*
  * This xls/xlsx parser expects spreadsheets with the first row as column names and subsequent rows
@@ -37,7 +36,7 @@ public class ExcelParser {
 
     private static final int EXCEL_COLUMN_NAMES_ROW = 0;
 
-    public List<ExcelRecord> parse(Sheet sheet) throws ParsingException {
+    public List<ExcelRecord> parse(Sheet sheet, Set<String> columns) throws ParsingException {
 
         List<ExcelRecord> records = new ArrayList<>();
 
@@ -51,14 +50,28 @@ public class ExcelParser {
 
         // get column name to index mapping
         for(int colIndex=0; colIndex<columnNames.getLastCellNum(); colIndex++) {
-            Cell cell = columnNames.getCell(colIndex, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-            // TODO: exception if not text
+            Cell cell = columnNames.getCell(colIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
+            if (cell.getCellType() != CellType.STRING) {
+                throw new ParsingException("Column name must be string cell");
+            }
             if (cell != null) {
                 indexColNameMap.put(colIndex, cell.getStringCellValue());
             } else
             {
+                // not throwing an exception here in case they have empty cells to right of columns or even
+                // between as we're not enforcing that, just that all the expected columns are present
                 log.info("Ignoring blank header column");
             }
+        }
+
+        // check for duplicates
+        if (hasDuplicates(new ArrayList(indexColNameMap.values()))) {
+            throw new ParsingException("Found duplicate column names");
+        }
+
+        // check all column names were present
+        if (!columns.stream().allMatch(col -> indexColNameMap.containsValue(col))) {
+            throw new ParsingException("Missing expected columns");
         }
 
         // create a record for each row
@@ -75,5 +88,13 @@ public class ExcelParser {
         }
 
         return records;
+    }
+
+    private boolean hasDuplicates(List<String> values) {
+        Set<String> valuesSet = new HashSet<String>(values);
+        if (values.size() != valuesSet.size()) {
+            return true;
+        }
+        return false;
     }
 }
