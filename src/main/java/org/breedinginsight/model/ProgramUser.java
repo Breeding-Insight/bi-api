@@ -17,7 +17,7 @@
 
 package org.breedinginsight.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -44,6 +44,10 @@ public class ProgramUser extends ProgramUserRoleEntity {
     private User createdByUser;
     private User updatedByUser;
 
+    @JsonIgnoreProperties(value={"createdAt", "createdByUser", "updatedAt", "updatedByUser", "active", "species"})
+    private Program program;
+
+    @JsonIgnoreProperties(value={"programRoles", "systemRoles"})
     private User user;
     private List<Role> roles;
 
@@ -67,5 +71,4 @@ public class ProgramUser extends ProgramUserRoleEntity {
     public void addRole(Role role) {
         roles.add(role);
     }
-
 }

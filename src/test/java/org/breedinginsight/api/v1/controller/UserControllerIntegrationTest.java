@@ -21,6 +21,7 @@ import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.google.gson.*;
+import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.*;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
@@ -28,19 +29,19 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.request.*;
-import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.*;
-import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.dao.db.tables.daos.*;
+import org.breedinginsight.dao.db.tables.pojos.*;
+import org.jooq.DSLContext;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /*
  * Integration tests of UserController endpoints using test database and mocked Micronaut authentication
@@ -52,87 +53,50 @@ import java.util.UUID;
 public class UserControllerIntegrationTest {
 
     private String testUserUUID;
-    Program validProgram;
-    Species validSpecies;
-    Role validRole;
+    List<ProgramEntity> validPrograms;
+    RoleEntity validRole;
     AuthenticatedUser actingUser;
     Integer numUsers;
+    List<ProgramUserRoleEntity> validProgramRoles;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
+    private FannyPack fp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
 
-    Gson gson = new Gson();
+    @Inject
+    private DSLContext dsl;
+    @Inject
+    BiUserDao biUserDao;
+    @Inject
+    SystemRoleDao systemRoleDao;
+    @Inject
+    RoleDao roleDao;
+    @Inject
+    ProgramDao programDao;
+    @Inject
+    ProgramUserRoleDao programUserRoleDao;
 
-    @Inject
-    UserDAO userDAO;
-    @Inject
-    UserService userService;
-    @Inject
-    SystemRoleService systemRoleService;
-    @Inject
-    ProgramService programService;
-    @Inject
-    SpeciesService speciesService;
-    @Inject
-    RoleService roleService;
-    @Inject
-    ProgramUserService programUserService;
-
-    private User testUser;
-    private User otherTestUser;
-    private SystemRole validSystemRole;
+    private BiUserEntity testUser;
+    private BiUserEntity otherTestUser;
+    private SystemRoleEntity validSystemRole;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @BeforeAll
     void setup() throws Exception {
 
-        testUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID).get();
-        otherTestUser = userService.getByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
-        validSystemRole = systemRoleService.getAll().get(0);
+        // Insert our traits into the db
+        dsl.execute(fp.get("InsertProgram"));
+        dsl.execute(fp.get("InsertUserProgramAssociations"));
 
-        //TODO: All of this can go away when we can run sql statements before tests
-        // Get species for tests
-        Species species = getTestSpecies();
-        validSpecies = species;
-        // Get role for tests
-        validRole = getTestRole();
+        testUser = biUserDao.fetchByOrcid(TestTokenValidator.TEST_USER_ORCID).get(0);
+        otherTestUser = biUserDao.fetchByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
+        validSystemRole = systemRoleDao.findAll().get(0);
+        validRole = roleDao.findAll().get(0);
+        validPrograms = programDao.findAll();
+        validProgramRoles = programUserRoleDao.fetchByUserId(testUser.getId());
         actingUser = getActingUser();
-        // Insert and get program for tests
-        try {
-            validProgram = insertAndFetchTestProgram();
-        } catch (Exception e){
-            throw new Exception(e.toString());
-        }
-    }
 
-    public Species getTestSpecies() {
-        List<Species> species = speciesService.getAll();
-        return species.get(0);
-    }
-
-    public Program insertAndFetchTestProgram() throws Exception{
-        SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                .id(validSpecies.getId())
-                .build();
-        ProgramRequest programRequest = ProgramRequest.builder()
-                .name("Test Program")
-                .abbreviation("test")
-                .documentationUrl("localhost:8080")
-                .objective("To test things")
-                .species(speciesRequest)
-                .build();
-        try {
-            Program program = programService.create(programRequest, actingUser);
-            return program;
-        } catch (UnprocessableEntityException e){
-            throw new Exception("Unable to create test program");
-        }
-    }
-
-    public Role getTestRole() {
-        List<Role> roles = roleService.getAll();
-        return roles.get(0);
     }
 
     public AuthenticatedUser getActingUser() {
@@ -143,6 +107,7 @@ public class UserControllerIntegrationTest {
     }
 
     @Test
+    @Order(1)
     public void getUsersExistingId() {
 
         // TODO: depends on db setup
@@ -162,6 +127,39 @@ public class UserControllerIntegrationTest {
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
         assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
+
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty programs list was not returned.");
+        assertEquals(true, resultProgramRoles.size() == 2, "Wrong number of programs.");
+        
+        Boolean programOneSeen = false;
+        Boolean programTwoSeen = false;
+        for (JsonElement resultProgramRole: resultProgramRoles) {
+            JsonObject jsonProgram = resultProgramRole.getAsJsonObject().get("program").getAsJsonObject();
+            ProgramEntity programEntity;
+            ProgramUserRoleEntity programUserRoleEntity;
+
+            if (jsonProgram.get("id").getAsString().equals(validPrograms.get(0).getId().toString())){
+                programOneSeen = true;
+                programEntity = validPrograms.get(0);
+            } else if (jsonProgram.get("id").getAsString().equals(validPrograms.get(1).getId().toString())) {
+                programTwoSeen = true;
+                programEntity = validPrograms.get(1);
+            } else {
+                throw new AssertionFailedError("Program does not match any programs in database");
+            }
+
+            programUserRoleEntity = validProgramRoles.stream().filter((programUserRoleEntity1 ->
+                    programUserRoleEntity1.getProgramId().toString().equals(programEntity.getId().toString())))
+                    .collect(Collectors.toList()).get(0);
+
+            assertEquals(programEntity.getName(), jsonProgram.get("name").getAsString(), "Program names do not match");
+            assertEquals(programUserRoleEntity.getActive(), resultProgramRole.getAsJsonObject().get("active").getAsBoolean(), "Role active status does not match");
+        }
+
+        if (!programOneSeen || !programTwoSeen) {
+            throw new AssertionFailedError("Both programs were not returned");
+        }
     }
 
     @Test
@@ -373,6 +371,9 @@ public class UserControllerIntegrationTest {
         JsonArray resultRoles = (JsonArray) exampleUser.get("systemRoles");
         assertEquals(true, resultRoles != null, "Roles list was not returned.");
 
+        JsonArray resultProgramRoles = (JsonArray) exampleUser.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty programs list was not returned.");
+
         numUsers = data.size();
     }
 
@@ -570,6 +571,39 @@ public class UserControllerIntegrationTest {
         JsonObject role = (JsonObject) resultRoles.get(0);
         assertEquals(validSystemRole.getId().toString(), role.get("id").getAsString(), "Role id was incorrect");
         assertEquals(validSystemRole.getDomain(), role.get("domain").getAsString(), "Role domain was incorrect");
+
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty roles list was not returned.");
+        assertEquals(2, resultProgramRoles.size(), "Wrong number of program roles.");
+
+        Boolean programOneSeen = false;
+        Boolean programTwoSeen = false;
+        for (JsonElement resultProgramRole: resultProgramRoles) {
+            JsonObject jsonProgram = resultProgramRole.getAsJsonObject().get("program").getAsJsonObject();
+            ProgramEntity programEntity;
+            ProgramUserRoleEntity programUserRoleEntity;
+
+            if (jsonProgram.get("id").getAsString().equals(validPrograms.get(0).getId().toString())){
+                programOneSeen = true;
+                programEntity = validPrograms.get(0);
+            } else if (jsonProgram.get("id").getAsString().equals(validPrograms.get(1).getId().toString())) {
+                programTwoSeen = true;
+                programEntity = validPrograms.get(1);
+            } else {
+                throw new AssertionFailedError("Program does not match any programs in database");
+            }
+
+            programUserRoleEntity = validProgramRoles.stream().filter((programUserRoleEntity1 ->
+                    programUserRoleEntity1.getProgramId().toString().equals(programEntity.getId().toString())))
+                    .collect(Collectors.toList()).get(0);
+
+            assertEquals(programEntity.getName(), jsonProgram.get("name").getAsString(), "Program names do not match");
+            assertEquals(programUserRoleEntity.getActive(), resultProgramRole.getAsJsonObject().get("active").getAsBoolean(), "Role active status does not match");
+        }
+
+        if (!programOneSeen || !programTwoSeen) {
+            throw new AssertionFailedError("Both programs were not returned");
+        }
     }
 
     @Test
@@ -671,21 +705,6 @@ public class UserControllerIntegrationTest {
     @SneakyThrows
     @Order(4)
     public void archiveUserActiveInProgram() {
-        // Add test user to that program
-        List<RoleRequest> roleRequests = new ArrayList<>();
-        RoleRequest role = RoleRequest.builder()
-                .id(validRole.getId())
-                .build();
-        roleRequests.add(role);
-        UserIdRequest userIdRequest = UserIdRequest.builder()
-                .id(UUID.fromString(testUserUUID))
-                .build();
-        ProgramUserRequest programUserRequest = ProgramUserRequest.builder()
-                .roles(roleRequests)
-                .user(userIdRequest)
-                .build();
-
-        programUserService.addProgramUser(actingUser, validProgram.getId(), programUserRequest);
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/users/" + testUserUUID).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -693,9 +712,6 @@ public class UserControllerIntegrationTest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
-
-        // Remove test user from the program
-        programUserService.removeProgramUser(validProgram.getId(), UUID.fromString(testUserUUID));
     }
 
 
@@ -748,6 +764,78 @@ public class UserControllerIntegrationTest {
                 assertNotEquals(testUserUUID, exampleUser.get("id").toString(), "Inactive user was returned");
             }
         }
+    }
+
+    @Test
+    @Order(6)
+    public void getUserInfoInactiveProgramsNotReturned() {
+
+        String testProgramName = "Test Program";
+        // Deactive program
+        dsl.execute(fp.get("DeactivateProgram"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/userinfo").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty roles list was not returned.");
+        assertEquals(1, resultProgramRoles.size(), "Deactivated program was returned in roles");
+
+        JsonObject jsonProgram = resultProgramRoles.get(0).getAsJsonObject().get("program").getAsJsonObject();
+        assertNotEquals(testProgramName, jsonProgram.get("name").getAsString(), "Deactivated program was included in roles");
+    }
+
+    @Test
+    @Order(7)
+    public void getUsersInactiveProgramsNotReturned() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        Boolean testUserSeen = false;
+        for (JsonElement resultUser: result.get("data").getAsJsonArray()) {
+            JsonObject jsonUser = (JsonObject) resultUser;
+            if (jsonUser.get("id") != null){
+                if (jsonUser.get("id").getAsString().equals(otherTestUser.getId().toString())){
+                    testUserSeen = true;
+                    assertEquals(1, jsonUser.get("programRoles").getAsJsonArray().size(), "Deactivated program was included in roles");
+                }
+            }
+        }
+
+        if (!testUserSeen) {
+            throw new AssertionFailedError("User was not seen in the response");
+        }
+    }
+
+    @Test
+    @Order(7)
+    public void getUserInactiveProgramsNotReturned() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users/" + otherTestUser.getId().toString()).cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
+        assertEquals(true, resultProgramRoles != null, "Empty roles list was not returned.");
+        assertEquals(1, resultProgramRoles.size(), "Deactivated program was returned in roles");
     }
 
 }

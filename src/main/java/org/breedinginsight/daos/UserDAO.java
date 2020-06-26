@@ -19,16 +19,15 @@ package org.breedinginsight.daos;
 
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.BiUserDao;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.breedinginsight.dao.db.Tables.*;
 
@@ -38,6 +37,9 @@ public class UserDAO extends BiUserDao {
 
     private DSLContext dsl;
     @Inject
+    ProgramUserDAO programUserDAO;
+
+    @Inject
     public UserDAO(Configuration config, DSLContext dsl) {
         super(config);
         this.dsl = dsl;
@@ -46,14 +48,16 @@ public class UserDAO extends BiUserDao {
     public List<User> getUsers() {
         List<Record> records = getUsersQuery()
                 .where(BI_USER.ACTIVE.eq(true)).fetch();
-        return parseRecords(records);
+        List<ProgramUser> programUsers = programUserDAO.getAllProgramUsers();
+        return parseRecords(records, programUsers);
     }
 
     public Optional<User> getUser(UUID id) {
         List<Record> records = getUsersQuery()
                 .where(BI_USER.ID.eq(id))
                 .fetch();
-        List<User> users = parseRecords(records);
+        List<ProgramUser> programUsers = programUserDAO.getProgramUsersByUserId(id);
+        List<User> users = parseRecords(records, programUsers);
 
         if (users.size() > 0){
             return Optional.of(users.get(0));
@@ -66,7 +70,8 @@ public class UserDAO extends BiUserDao {
         List<Record> records = getUsersQuery()
                 .where(BI_USER.ORCID.eq(orcid))
                 .fetch();
-        List<User> users = parseRecords(records);
+        List<ProgramUser> programUsers = programUserDAO.getProgramUsersByOrcid(orcid);
+        List<User> users = parseRecords(records, programUsers);
 
         if (users.size() > 0){
             return Optional.of(users.get(0));
@@ -83,36 +88,50 @@ public class UserDAO extends BiUserDao {
         return dsl.select()
                 .from(BI_USER)
                 .leftJoin(SYSTEM_USER_ROLE).on(BI_USER.ID.eq(SYSTEM_USER_ROLE.BI_USER_ID))
-                .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID));
+                .leftJoin(SYSTEM_ROLE).on(SYSTEM_USER_ROLE.SYSTEM_ROLE_ID.eq(SYSTEM_ROLE.ID))
+                .join(createdByUser).on(BI_USER.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(BI_USER.UPDATED_BY.eq(updatedByUser.ID));
+
     }
 
-    private List<User> parseRecords(List<Record> records) {
 
-        List<User> resultUsers = new ArrayList<>();
+
+    private List<User> parseRecords(List<Record> userRecords, List<ProgramUser> programUsers) {
+
+        Map<String, User> userMap = new HashMap<>();
 
         // Parse the result
-        for (Record record : records) {
+        for (Record record : userRecords) {
             // program user exists
             User userRecord = User.parseSQLRecord(record);
             SystemRole systemRole = SystemRole.parseSQLRecord(record);
-            Optional<User> existingUser = resultUsers.stream()
-                    .filter(p -> p.getId().equals(userRecord.getId()))
-                    .findFirst();
 
-            User user;
-            if (!existingUser.isPresent()) {
-                resultUsers.add(userRecord);
-                user = userRecord;
+            User existingUser;
+            if (userMap.containsKey(userRecord.getId().toString())) {
+                existingUser = userMap.get(userRecord.getId().toString());
             } else {
-                user = existingUser.get();
+                userMap.put(userRecord.getId().toString(), userRecord);
+                existingUser = userRecord;
             }
 
+            // Add our system role
             if (systemRole.getDomain() != null) {
-                user.addRole(systemRole);
+                Optional<SystemRole> systemRoleExists = Utilities.findInList(existingUser.getSystemRoles(),
+                        systemRole, SystemRole::getId);
+                if (!systemRoleExists.isPresent()){
+                    existingUser.addRole(systemRole);
+                }
             }
         }
 
-        return resultUsers;
+        for (ProgramUser programUser: programUsers){
+            if (userMap.containsKey(programUser.getUserId().toString())){
+                User user = userMap.get(programUser.getUserId().toString());
+                user.addProgramUser(programUser);
+            }
+        }
+
+        return new ArrayList<>(userMap.values());
     }
 
 }

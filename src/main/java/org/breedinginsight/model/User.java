@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.Accessors;
@@ -39,9 +40,13 @@ import static org.breedinginsight.dao.db.Tables.BI_USER;
 @SuperBuilder
 public class User extends BiUserEntity{
 
-    @JsonInclude(value= JsonInclude.Include.ALWAYS)
+    @JsonInclude()
     @NotNull
     private List<SystemRole> systemRoles;
+    @JsonInclude()
+    @NotNull
+    @JsonIgnoreProperties(value = {"createdAt", "updatedAt", "createdByUser", "updatedByUser", "user"})
+    private List<ProgramUser> programRoles;
 
     public User(BiUserEntity biUser) {
         this.setId(biUser.getId());
@@ -49,6 +54,7 @@ public class User extends BiUserEntity{
         this.setName(biUser.getName());
         this.setEmail(biUser.getEmail());
         this.setSystemRoles(new ArrayList<>());
+        this.setProgramRoles(new ArrayList<>());
         this.setActive(biUser.getActive());
     }
 
@@ -63,6 +69,7 @@ public class User extends BiUserEntity{
                 .name(record.getValue(tableName.NAME))
                 .email(record.getValue(tableName.EMAIL))
                 .systemRoles(new ArrayList<>())
+                .programRoles(new ArrayList<>())
                 .active(record.getValue(tableName.ACTIVE))
                 .build();
     }
@@ -74,4 +81,6 @@ public class User extends BiUserEntity{
     public void addRole(SystemRole role) {
         systemRoles.add(role);
     }
+
+    public void addProgramUser(ProgramUser programUser) {programRoles.add(programUser); }
 }
