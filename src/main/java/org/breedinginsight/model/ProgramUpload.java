@@ -28,7 +28,6 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
-import org.geojson.Feature;
 import org.jooq.Record;
 
 import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;

@@ -22,7 +22,6 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.breedinginsight.services.parsers.ParsingException;
-import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 
 import java.util.*;
 
