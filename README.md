@@ -208,7 +208,6 @@ mvn test --settings settings.xml
 
 or 
 
-```
 mvn test -P dev --settings settings.xml
 ```
 
@@ -261,4 +260,4 @@ Placeholder ${SOME_VALUE} is not specified/found/valid.
 
 ## License
 
-[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api?ref=badge_shield)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api?ref=badge_large)
