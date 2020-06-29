@@ -258,3 +258,7 @@ Value ${SOME_VARIABLE} is not specified/found/valid.
 
 Placeholder ${SOME_VALUE} is not specified/found/valid.
 1. Make sure your application-dev.yml and application-test.yml files are up to date with makeApplication-dev.yml.sh and makeApplication-test.yml.sh files. 
+
+## License
+
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api?ref=badge_shield)
