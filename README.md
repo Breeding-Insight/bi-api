@@ -1,4 +1,5 @@
 # BI API
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FBreeding-Insight%2Fbi-api?ref=badge_shield)
 
 The BI API powers the BI Web, as well as BrAPI powered applications.
 
