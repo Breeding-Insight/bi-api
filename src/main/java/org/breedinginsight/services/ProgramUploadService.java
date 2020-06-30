@@ -204,7 +204,7 @@ public class ProgramUploadService {
         if (uploads.isEmpty()) {
             return Optional.empty();
         } else if (uploads.size() > 1) {
-            throw new IllegalStateException("Trait upload had more than 1 record, only 1 allowed");
+            throw new IllegalStateException("More than one trait upload found, only 1 allowed");
         }
 
         return Optional.of(uploads.get(0));
