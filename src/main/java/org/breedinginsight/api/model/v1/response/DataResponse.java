@@ -17,6 +17,7 @@
 
 package org.breedinginsight.api.model.v1.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import lombok.experimental.Accessors;
 
@@ -29,5 +30,6 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class DataResponse<T> {
+    @JsonInclude()
     private List<T> data;
 }
