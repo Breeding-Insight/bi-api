@@ -47,6 +47,8 @@ import org.jooq.JSONB;
 import java.io.IOException;
 import java.util.*;
 
+import static org.apache.commons.lang3.StringUtils.isBlank;
+
 @Slf4j
 @Singleton
 public class ProgramUploadService {
@@ -175,13 +177,6 @@ public class ProgramUploadService {
         if (scale.getDataType() == null) {
             throw new UnprocessableEntityException("Missing scale type");
         }
-    }
-
-    private boolean isBlank(String field) {
-        if (field == null || field.isBlank()) {
-            return true;
-        }
-        return false;
     }
 
     private void checkTraitDataConsistency(Trait trait) throws UnprocessableEntityException {
