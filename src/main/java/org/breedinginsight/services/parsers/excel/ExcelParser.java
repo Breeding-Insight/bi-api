@@ -35,7 +35,7 @@ public class ExcelParser {
 
     private static final int EXCEL_COLUMN_NAMES_ROW = 0;
 
-    public List<ExcelRecord> parse(Sheet sheet, Set<String> columns) throws ParsingException {
+    public static List<ExcelRecord> parse(Sheet sheet, Set<String> columns) throws ParsingException {
 
         List<ExcelRecord> records = new ArrayList<>();
 
@@ -89,7 +89,7 @@ public class ExcelParser {
         return records;
     }
 
-    private boolean hasDuplicates(List<String> values) {
+    private static boolean hasDuplicates(List<String> values) {
         Set<String> valuesSet = new HashSet<String>(values);
         if (values.size() != valuesSet.size()) {
             return true;
