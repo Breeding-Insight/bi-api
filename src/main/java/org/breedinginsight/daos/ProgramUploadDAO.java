@@ -75,10 +75,10 @@ public class ProgramUploadDAO extends BatchUploadDao {
 
         return dsl.select()
                 .from(BATCH_UPLOAD)
-                .leftJoin(PROGRAM).on(BATCH_UPLOAD.PROGRAM_ID.eq(PROGRAM.ID))
-                .leftJoin(BI_USER).on(BATCH_UPLOAD.USER_ID.eq(BI_USER.ID))
-                .leftJoin(createdByUser).on(BATCH_UPLOAD.CREATED_BY.eq(createdByUser.ID))
-                .leftJoin(updatedByUser).on(BATCH_UPLOAD.UPDATED_BY.eq(updatedByUser.ID));
+                .innerJoin(PROGRAM).on(BATCH_UPLOAD.PROGRAM_ID.eq(PROGRAM.ID))
+                .innerJoin(BI_USER).on(BATCH_UPLOAD.USER_ID.eq(BI_USER.ID))
+                .innerJoin(createdByUser).on(BATCH_UPLOAD.CREATED_BY.eq(createdByUser.ID))
+                .innerJoin(updatedByUser).on(BATCH_UPLOAD.UPDATED_BY.eq(updatedByUser.ID));
     }
 
     private List<ProgramUpload> parseRecords(List<Record> records) {
