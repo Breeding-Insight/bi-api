@@ -18,8 +18,6 @@ package org.breedinginsight.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micronaut.context.annotation.Property;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -29,6 +27,7 @@ import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.model.Scale;
+import org.breedinginsight.services.constants.MediaType;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
@@ -53,13 +52,6 @@ import static org.apache.commons.lang3.StringUtils.isBlank;
 @Singleton
 public class ProgramUploadService {
 
-    @Property(name = "trait.upload.mime.types.csv")
-    protected String csvMimeType;
-    @Property(name = "trait.upload.mime.types.xls")
-    protected String xlsMimeType;
-    @Property(name = "trait.upload.mime.types.xlsx")
-    protected String xlsxMimeType;
-
     @Inject
     private ProgramUploadDAO programUploadDao;
     @Inject
@@ -83,20 +75,20 @@ public class ProgramUploadService {
         programUserService.getProgramUserbyId(programId, actingUser.getId())
                 .orElseThrow(() -> new DoesNotExistException("User not in program"));
 
-        Optional<MediaType> type = file.getContentType();
-        MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
+        Optional<io.micronaut.http.MediaType> type = file.getContentType();
+        io.micronaut.http.MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
 
         List<Trait> traits = new ArrayList<>();
 
-        if (mediaType.getName().equals(csvMimeType)) {
+        if (mediaType.getName().equals(MediaType.CSV)) {
             try {
                 traits = parser.parseCsv(file.getInputStream());
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new UnprocessableEntityException("Error parsing csv: " + e.getMessage());
             }
-        } else if (mediaType.getName().equals(xlsMimeType) ||
-                   mediaType.getName().equals(xlsxMimeType)) {
+        } else if (mediaType.getName().equals(MediaType.XLS) ||
+                   mediaType.getName().equals(MediaType.XLSX)) {
             try {
                 traits = parser.parseExcel(file.getInputStream());
             } catch(IOException | ParsingException e) {
