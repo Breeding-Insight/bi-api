@@ -172,7 +172,8 @@ public class TraitFileParser {
 
     private String parseExcelValueAsString(ExcelRecord record, TraitFileColumns column) {
         DataFormatter formatter = new DataFormatter();
-        return formatter.formatCellValue(record.get(column)).trim(); // will return "" for nulls
+        String value = formatter.formatCellValue(record.get(column)).trim(); // will return "" for nulls
+        return value.equals("") ? null : value;
     }
 
     private Sheet convertCsvToExcel(Iterable<CSVRecord> records) {
