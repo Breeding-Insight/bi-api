@@ -21,12 +21,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
-import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramUpload;
-import org.breedinginsight.model.Scale;
 import org.breedinginsight.services.constants.MediaType;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -41,12 +38,11 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
+import org.breedinginsight.services.validators.TraitValidator;
 import org.jooq.JSONB;
 
 import java.io.IOException;
 import java.util.*;
-
-import static org.apache.commons.lang3.StringUtils.isBlank;
 
 @Slf4j
 @Singleton
@@ -78,7 +74,7 @@ public class ProgramUploadService {
         Optional<io.micronaut.http.MediaType> type = file.getContentType();
         io.micronaut.http.MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
 
-        List<Trait> traits = new ArrayList<>();
+        List<Trait> traits;
 
         if (mediaType.getName().equals(MediaType.CSV)) {
             try {
@@ -100,8 +96,8 @@ public class ProgramUploadService {
         }
 
         for (Trait trait : traits) {
-            checkRequiredTraitFields(trait);
-            checkTraitDataConsistency(trait);
+            TraitValidator.checkRequiredTraitFields(trait);
+            TraitValidator.checkTraitDataConsistency(trait);
         }
 
         String json = null;
@@ -130,63 +126,6 @@ public class ProgramUploadService {
         // Insert and update
         programUploadDao.insert(uploadEntity);
         return programUploadDao.getUploadById(uploadEntity.getId()).get();
-    }
-
-    private void checkRequiredTraitFields(Trait trait) throws UnprocessableEntityException {
-
-        Method method = trait.getMethod();
-        Scale scale = trait.getScale();
-
-        if (method == null) {
-            throw new UnprocessableEntityException("Missing method");
-        }
-
-        if (scale == null) {
-            throw new UnprocessableEntityException("Missing scale");
-        }
-
-        if (isBlank(trait.getTraitName())) {
-            throw new UnprocessableEntityException("Missing trait name");
-        }
-        if (isBlank(trait.getDescription())) {
-            throw new UnprocessableEntityException("Missing trait description");
-        }
-        if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
-            throw new UnprocessableEntityException("Missing trait level");
-        }
-        if (isBlank(method.getMethodName())) {
-            throw new UnprocessableEntityException("Missing method name");
-        }
-        if (isBlank(method.getDescription())) {
-            throw new UnprocessableEntityException("Missing method description");
-        }
-        if (isBlank(method.getMethodClass())) {
-            throw new UnprocessableEntityException("Missing method class");
-        }
-        if (isBlank(scale.getScaleName())) {
-            throw new UnprocessableEntityException("Missing scale name");
-        }
-        if (scale.getDataType() == null) {
-            throw new UnprocessableEntityException("Missing scale type");
-        }
-    }
-
-    private void checkTraitDataConsistency(Trait trait) throws UnprocessableEntityException {
-
-        Method method = trait.getMethod();
-        Scale scale = trait.getScale();
-
-        if (method != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
-            if (isBlank(method.getFormula())) {
-                throw new UnprocessableEntityException("Missing formula for Computation method");
-            }
-        }
-
-        if (scale != null && scale.getDataType() == DataType.ORDINAL) {
-            if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
-                throw new UnprocessableEntityException("Missing categories for Ordinal scale");
-            }
-        }
     }
 
     public Optional<ProgramUpload> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
