@@ -123,11 +123,3 @@ brapi:
     pheno-url: ${brapi.server.pheno-url}
     geno-url: ${brapi.server.geno-url}
     reference-source: ${brapi.server.reference-source}
-
-trait:
-  upload:
-    mime:
-      types:
-        csv: "text/csv"
-        xls: "application/vnd.ms-excel"
-        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
