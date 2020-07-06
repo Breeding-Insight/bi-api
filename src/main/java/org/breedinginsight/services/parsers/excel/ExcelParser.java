@@ -25,6 +25,8 @@ import org.breedinginsight.services.parsers.ParsingException;
 
 import java.util.*;
 
+import static org.apache.commons.lang3.StringUtils.*;
+
 /*
  * This xls/xlsx parser expects spreadsheets with the first row as column names and subsequent rows
  * as data. Only data in a column with a column name will be kept, data outside these columns is
@@ -49,11 +51,11 @@ public class ExcelParser {
 
         // get column name to index mapping
         for(int colIndex=0; colIndex<columnNames.getLastCellNum(); colIndex++) {
-            Cell cell = columnNames.getCell(colIndex, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-            if (cell.getCellType() != CellType.STRING) {
+            Cell cell = columnNames.getCell(colIndex);
+            if (cell.getCellType() != CellType.STRING && cell.getCellType() != CellType.BLANK) {
                 throw new ParsingException("Column name must be string cell");
             }
-            if (cell != null) {
+            if (cell != null && isNotBlank(cell.getStringCellValue())) {
                 indexColNameMap.put(colIndex, cell.getStringCellValue());
             } else
             {
@@ -78,12 +80,11 @@ public class ExcelParser {
             Row row = sheet.getRow(rowIndex);
             Map<String, Cell> data = new HashMap<>();
             for(int colIndex=0; colIndex<row.getLastCellNum(); colIndex++) {
-                Cell cell = row.getCell(colIndex, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+                Cell cell = row.getCell(colIndex);
                 data.put(indexColNameMap.get(colIndex), cell);
             }
 
-            ExcelRecord record = new ExcelRecord(data);
-            records.add(record);
+            records.add(new ExcelRecord(data));
         }
 
         return records;
