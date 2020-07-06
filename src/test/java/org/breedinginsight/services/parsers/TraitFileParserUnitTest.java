@@ -90,6 +90,38 @@ public class TraitFileParserUnitTest {
         assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
     }
 
+    @Test
+    @SneakyThrows
+    void parseCsvEmptyMultipleColumnNames() {
+        File file = new File("src/test/resources/files/data_one_row_empty_headers.csv");
+        InputStream inputStream = new FileInputStream(file);
+
+        List<Trait> traits = parser.parseCsv(inputStream);
+        assertEquals(1, traits.size(), "number of traits different than expected");
+    }
+
+    // repeating this test for excel because blanks must be mixed in with populated columns because the
+    // parser will not look at blanks past the end of populated columns in the excel format
+    @Test
+    @SneakyThrows
+    void parseExcelEmptyMultipleColumnNames() {
+        File file = new File("src/test/resources/files/data_one_row_empty_headers.xls");
+        InputStream inputStream = new FileInputStream(file);
+
+        List<Trait> traits = parser.parseExcel(inputStream);
+        assertEquals(1, traits.size(), "number of traits different than expected");
+    }
+
+    // will error out if a column name is not a string or blank type
+    @Test
+    @SneakyThrows
+    void parseExcelEmptyFormulaColumnNames() {
+        File file = new File("src/test/resources/files/data_one_row_empty_formula_headers.xls");
+        InputStream inputStream = new FileInputStream(file);
+
+        assertThrows(ParsingException.class, () -> parser.parseExcel(inputStream), "expected parsing exception");
+    }
+
     // Not repeating error tests for parseExcel in the interest of time and it using the same underlying parsing code
 
     @Test
