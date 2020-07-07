@@ -251,4 +251,8 @@ public class ProgramUserService {
         return Optional.of(user);
     }
 
+    public boolean existsAndActive(UUID programId, UUID userId) {
+        return programUserDao.existsAndActive(programId, userId);
+    }
+
 }

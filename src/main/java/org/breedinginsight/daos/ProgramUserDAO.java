@@ -44,6 +44,14 @@ public class ProgramUserDAO extends ProgramUserRoleDao {
         this.dsl = dsl;
     }
 
+    public boolean existsAndActive(UUID programId, UUID userId) {
+        return dsl.selectCount().from(PROGRAM_USER_ROLE)
+                .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId)
+                        .and(PROGRAM_USER_ROLE.USER_ID.eq(userId))
+                        .and(PROGRAM_USER_ROLE.ACTIVE.eq(true)))
+                .fetchOne(0, Integer.class) == 1;
+    }
+
     public void deleteProgramUserRoles(UUID programId, UUID userId) {
         dsl.delete(PROGRAM_USER_ROLE)
                 .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId).and(PROGRAM_USER_ROLE.USER_ID.eq(userId))).execute();

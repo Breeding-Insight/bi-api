@@ -43,6 +43,7 @@ public class TestTokenValidator extends JwtTokenValidator {
 
     public static final String TEST_USER_ORCID = "1111-2222-3333-4444";
     public static final String OTHER_TEST_USER_ORCID = "5555-6666-7777-8888";
+    public static final String ANOTHER_TEST_USER_ORCID = "2222-2222-2222-2222";
     public static final String NON_EXISTENT_USER_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     public static final String INACTIVE_USER_ORCID = "1111-1111-1111-1111";
 
@@ -66,6 +67,13 @@ public class TestTokenValidator extends JwtTokenValidator {
             userClaims.put("roles", roles);
             userClaims.put("id", otherTestUser.get().getId().toString());
             return Flowable.just(new DefaultAuthentication(OTHER_TEST_USER_ORCID, userClaims));
+        } else if (token.equals("another-registered-user")) {
+            Optional<User> anotherTestUser = userService.getByOrcid(ANOTHER_TEST_USER_ORCID);
+            Map<String, Object> userClaims = new HashMap<>();
+            List<String> roles = new ArrayList<>();
+            userClaims.put("roles", roles);
+            userClaims.put("id", anotherTestUser.get().getId().toString());
+            return Flowable.just(new DefaultAuthentication(ANOTHER_TEST_USER_ORCID, userClaims));
         } else if (token.equals("non-existent-user")){
             Map<String, Object> adminClaims = new HashMap<>();
             List<String> roles = new ArrayList<>();
