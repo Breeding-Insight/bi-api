@@ -44,7 +44,7 @@ import java.util.UUID;
 public class TraitUploadController {
 
     @Inject
-    private TraitUploadService uploadService;
+    private TraitUploadService traitUploadService;
     @Inject
     private SecurityService securityService;
 
@@ -60,7 +60,7 @@ public class TraitUploadController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ProgramUpload programUpload = uploadService.updateTraitUpload(programId, file, actingUser);
+            ProgramUpload programUpload = traitUploadService.updateTraitUpload(programId, file, actingUser);
             Response<ProgramUpload> response = new Response(programUpload);
             return HttpResponse.ok(response);
         } catch (UnprocessableEntityException e) {
@@ -85,7 +85,7 @@ public class TraitUploadController {
     public HttpResponse<Response<ProgramUpload>> getTraitUpload(@PathVariable UUID programId) {
 
         AuthenticatedUser actingUser = securityService.getUser();
-        Optional<ProgramUpload> programUpload = uploadService.getTraitUpload(programId, actingUser);
+        Optional<ProgramUpload> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
 
         if(programUpload.isPresent()) {
             Response<ProgramUpload> response = new Response(programUpload.get());
@@ -104,7 +104,7 @@ public class TraitUploadController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            uploadService.deleteTraitUpload(programId, actingUser);
+            traitUploadService.deleteTraitUpload(programId, actingUser);
             return HttpResponse.ok();
         } catch(DoesNotExistException e){
             log.info(e.getMessage());
