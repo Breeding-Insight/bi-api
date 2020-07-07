@@ -74,6 +74,9 @@ public class UploadControllerIntegrationTest {
         // Insert user into program
         dsl.execute(fp.get("InsertProgramUser"));
 
+        // Insert user into program as not active
+        dsl.execute(fp.get("InsertInactiveProgramUser"));
+
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
 
@@ -92,7 +95,16 @@ public class UploadControllerIntegrationTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), validFile, "other-registered-user");
         });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.FORBIDDEN, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadUserInactiveInProgram() {
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), validFile, "another-registered-user");
+        });
+        assertEquals(HttpStatus.FORBIDDEN, e.getStatus());
     }
 
     @Test

@@ -25,6 +25,7 @@ import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.constants.MediaType;
+import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
@@ -61,15 +62,16 @@ public class ProgramUploadService {
     private ObjectMapper objMapper;
 
     public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
-            throws UnprocessableEntityException, DoesNotExistException, UnsupportedTypeException {
+            throws UnprocessableEntityException, DoesNotExistException, UnsupportedTypeException, AuthorizationException {
 
         if (!programService.exists(programId))
         {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        programUserService.getProgramUserbyId(programId, actingUser.getId())
-                .orElseThrow(() -> new DoesNotExistException("User not in program"));
+        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
+            throw new AuthorizationException("User not in program");
+        }
 
         Optional<io.micronaut.http.MediaType> type = file.getContentType();
         io.micronaut.http.MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
