@@ -46,7 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class UploadControllerIntegrationTest {
+public class TraitUploadControllerIntegrationTest {
 
     @Inject
     private DSLContext dsl;
