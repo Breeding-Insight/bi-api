@@ -41,7 +41,7 @@ import java.util.UUID;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
-public class UploadController {
+public class TraitUploadController {
 
     @Inject
     private ProgramUploadService uploadService;
