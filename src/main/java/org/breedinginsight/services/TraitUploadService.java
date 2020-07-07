@@ -47,7 +47,7 @@ import java.util.*;
 
 @Slf4j
 @Singleton
-public class ProgramUploadService {
+public class TraitUploadService {
 
     @Inject
     private ProgramUploadDAO programUploadDao;
