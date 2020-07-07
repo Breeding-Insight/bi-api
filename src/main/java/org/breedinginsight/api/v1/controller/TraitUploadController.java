@@ -29,7 +29,7 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramUpload;
-import org.breedinginsight.services.ProgramUploadService;
+import org.breedinginsight.services.TraitUploadService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -44,7 +44,7 @@ import java.util.UUID;
 public class TraitUploadController {
 
     @Inject
-    private ProgramUploadService uploadService;
+    private TraitUploadService uploadService;
     @Inject
     private SecurityService securityService;
 
