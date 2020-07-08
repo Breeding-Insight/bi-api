@@ -126,13 +126,17 @@ public class TraitFileParser {
                     .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
                     .build();
 
-            // will throw IllegalArgumentException
             DataType dataType = null;
+            String dataTypeString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS);
+            if (dataTypeString == null) {
+                throw new ParsingException("Invalid scale class value");
+            }
 
             try {
-                dataType = DataType.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS).toUpperCase());
+                dataType = DataType.valueOf(dataTypeString.toUpperCase());
             } catch (IllegalArgumentException e) {
                 log.error(e.getMessage());
+                throw new ParsingException("Invalid scale class value");
             }
 
             // TODO: throw if bad format
