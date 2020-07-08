@@ -35,9 +35,7 @@ import org.breedinginsight.services.parsers.excel.ExcelRecord;
 import org.breedinginsight.services.parsers.ParsingException;
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 import javax.inject.Singleton;
 
@@ -52,8 +50,13 @@ public class TraitFileParser {
 
     private static final String LIST_DELIMITER = ";";
     private static final String CATEGORY_DELIMITER = "=";
-    private static final String TRAIT_STATUS_ARCHIVED = "archived";
     private static final String EXCEL_DATA_SHEET_NAME = "Template";
+
+    private static final String TRAIT_STATUS_ACTIVE = "active";
+    private static final String TRAIT_STATUS_ARCHIVED = "archived";
+
+    private final static Set TRAIT_STATUS_VALID_VALUES = Collections.unmodifiableSet(
+            Set.of(TRAIT_STATUS_ACTIVE, TRAIT_STATUS_ARCHIVED));
 
     public List<Trait> parseExcel(@NonNull InputStream inputStream) throws ParsingException {
 
@@ -96,7 +99,7 @@ public class TraitFileParser {
 
     }
 
-    private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) {
+    private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) throws ParsingException {
         List<Trait> traits = new ArrayList<>();
 
         for (ExcelRecord record : records) {
@@ -105,8 +108,16 @@ public class TraitFileParser {
                     .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_LEVEL))
                     .build();
 
-            // TODO: throw if not active/archived/empty
-            Boolean active = !parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS).equals(TRAIT_STATUS_ARCHIVED);
+            Boolean active;
+            String traitStatus = parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS);
+            if (traitStatus == null) {
+                active = true;
+            } else {
+                if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
+                    throw new ParsingException("Invalid trait status value");
+                }
+                active = !traitStatus.equals(TRAIT_STATUS_ARCHIVED);
+            }
 
             Method method = Method.builder()
                     .methodName(parseExcelValueAsString(record, TraitFileColumns.METHOD_NAME))
@@ -115,7 +126,7 @@ public class TraitFileParser {
                     .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
                     .build();
 
-            // TODO: throw if not valid datatype
+            // will throw IllegalArgumentException
             DataType dataType = null;
 
             try {

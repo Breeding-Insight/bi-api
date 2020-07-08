@@ -17,7 +17,6 @@
 package org.breedinginsight.services.parsers;
 
 import lombok.SneakyThrows;
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
@@ -121,6 +120,38 @@ public class TraitFileParserUnitTest {
 
         assertThrows(ParsingException.class, () -> parser.parseExcel(inputStream), "expected parsing exception");
     }
+
+    @Test
+    @SneakyThrows
+    void parseCsvActiveColumnInvalidValue() {
+        File file = new File("src/test/resources/files/data_one_row_invalid_active_value.csv");
+        InputStream inputStream = new FileInputStream(file);
+
+        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseCsvActiveColumnBlank() {
+        File file = new File("src/test/resources/files/data_one_row_blank_active_value.csv");
+        InputStream inputStream = new FileInputStream(file);
+
+        List<Trait> traits = parser.parseCsv(inputStream);
+        assertEquals(1, traits.size(), "number of traits different than expected");
+    }
+
+    // repeating for excel here just to make sure blanks are handled properly in case of any future regressions
+    @Test
+    @SneakyThrows
+    void parseExcelActiveColumnBlank() {
+        File file = new File("src/test/resources/files/data_one_row_empty_active_value.xls");
+        InputStream inputStream = new FileInputStream(file);
+
+        List<Trait> traits = parser.parseExcel(inputStream);
+        assertEquals(1, traits.size(), "number of traits different than expected");
+    }
+
+
 
     // Not repeating error tests for parseExcel in the interest of time and it using the same underlying parsing code
 
