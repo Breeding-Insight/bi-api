@@ -147,13 +147,36 @@ public class TraitFileParser {
             Integer decimalPlaces = null;
             Integer validValueMin = null;
             Integer validValueMax = null;
+            String decimalPlacesStr = parseExcelValueAsString(record, TraitFileColumns.SCALE_DECIMAL_PLACES);
+            String validValueMinStr = parseExcelValueAsString(record, TraitFileColumns.SCALE_LOWER_LIMIT);
+            String validValueMaxStr = parseExcelValueAsString(record, TraitFileColumns.SCALE_UPPER_LIMIT);
 
-            try {
-                decimalPlaces = Integer.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_DECIMAL_PLACES));
-                validValueMin = Integer.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_LOWER_LIMIT));
-                validValueMax = Integer.valueOf(parseExcelValueAsString(record, TraitFileColumns.SCALE_UPPER_LIMIT));
-            } catch (NumberFormatException e) {
-                log.info(e.getMessage());
+            // allow null since field can be blank
+            if (decimalPlacesStr != null) {
+                try {
+                    decimalPlaces = Integer.valueOf(decimalPlacesStr);
+                } catch (NumberFormatException e) {
+                    log.error(e.getMessage());
+                    throw new ParsingException("Invalid scale decimal places value");
+                }
+            }
+
+            if (validValueMinStr != null) {
+                try {
+                    validValueMin = Integer.valueOf(validValueMinStr);
+                } catch (NumberFormatException e) {
+                    log.error(e.getMessage());
+                    throw new ParsingException("Invalid scale lower limit value");
+                }
+            }
+
+            if (validValueMaxStr != null) {
+                try {
+                    validValueMax = Integer.valueOf(validValueMaxStr);
+                } catch (NumberFormatException e) {
+                    log.error(e.getMessage());
+                    throw new ParsingException("Invalid scale upper limit value");
+                }
             }
 
             Scale scale = Scale.builder()
