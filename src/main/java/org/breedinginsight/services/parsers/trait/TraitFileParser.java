@@ -139,7 +139,6 @@ public class TraitFileParser {
                 throw new ParsingException("Invalid scale class value");
             }
 
-            // TODO: throw if bad format
             List<BrApiScaleCategories> categories = parseListValue(parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES)).stream()
                     .map(value -> parseCategory(value))
                     .collect(Collectors.toList());

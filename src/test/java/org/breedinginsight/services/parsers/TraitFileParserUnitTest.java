@@ -188,6 +188,17 @@ public class TraitFileParserUnitTest {
         assertEquals(1, traits.size(), "number of traits different than expected");
     }
 
+    @Test
+    @SneakyThrows
+    void parseCsvScaleCategoriesBlank() {
+        File file = new File("src/test/resources/files/data_one_row_scale_categories_blank.csv");
+        InputStream inputStream = new FileInputStream(file);
+
+        List<Trait> traits = parser.parseCsv(inputStream);
+        assertEquals(1, traits.size(), "number of traits different than expected");
+    }
+
+
     // Not repeating error tests for parseExcel in the interest of time and it using the same underlying parsing code
 
     @Test
