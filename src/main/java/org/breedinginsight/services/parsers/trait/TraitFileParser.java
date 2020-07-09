@@ -30,6 +30,7 @@ import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.parsers.ParsingExceptionType;
 import org.breedinginsight.services.parsers.excel.ExcelParser;
 import org.breedinginsight.services.parsers.excel.ExcelRecord;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -65,12 +66,12 @@ public class TraitFileParser {
             workbook = WorkbookFactory.create(inputStream);
         } catch (IOException | EncryptedDocumentException e) {
             log.error(e.getMessage());
-            throw new ParsingException("Error reading file");
+            throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
 
         Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
         if (sheet == null) {
-            throw new ParsingException("Missing sheet" + EXCEL_DATA_SHEET_NAME);
+            throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
         }
 
         List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumns());
@@ -90,7 +91,7 @@ public class TraitFileParser {
                     .parse(in);
         } catch (IOException e) {
             log.error(e.getMessage());
-            throw new ParsingException("Error reading file");
+            throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
 
         Sheet excelSheet = convertCsvToExcel(records);
@@ -114,7 +115,7 @@ public class TraitFileParser {
                 active = true;
             } else {
                 if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
-                    throw new ParsingException("Invalid trait status value");
+                    throw new ParsingException(ParsingExceptionType.INVALID_TRAIT_STATUS);
                 }
                 active = !traitStatus.equals(TRAIT_STATUS_ARCHIVED);
             }
@@ -129,14 +130,14 @@ public class TraitFileParser {
             DataType dataType = null;
             String dataTypeString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS);
             if (dataTypeString == null) {
-                throw new ParsingException("Invalid scale class value");
+                throw new ParsingException(ParsingExceptionType.MISSING_SCALE_CLASS);
             }
 
             try {
                 dataType = DataType.valueOf(dataTypeString.toUpperCase());
             } catch (IllegalArgumentException e) {
                 log.error(e.getMessage());
-                throw new ParsingException("Invalid scale class value");
+                throw new ParsingException(ParsingExceptionType.INVALID_SCALE_CLASS);
             }
 
             List<BrApiScaleCategories> categories = parseListValue(parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES)).stream()
@@ -156,7 +157,7 @@ public class TraitFileParser {
                     decimalPlaces = Integer.valueOf(decimalPlacesStr);
                 } catch (NumberFormatException e) {
                     log.error(e.getMessage());
-                    throw new ParsingException("Invalid scale decimal places value");
+                    throw new ParsingException(ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES);
                 }
             }
 
@@ -165,7 +166,7 @@ public class TraitFileParser {
                     validValueMin = Integer.valueOf(validValueMinStr);
                 } catch (NumberFormatException e) {
                     log.error(e.getMessage());
-                    throw new ParsingException("Invalid scale lower limit value");
+                    throw new ParsingException(ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT);
                 }
             }
 
@@ -174,7 +175,7 @@ public class TraitFileParser {
                     validValueMax = Integer.valueOf(validValueMaxStr);
                 } catch (NumberFormatException e) {
                     log.error(e.getMessage());
-                    throw new ParsingException("Invalid scale upper limit value");
+                    throw new ParsingException(ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT);
                 }
             }
 

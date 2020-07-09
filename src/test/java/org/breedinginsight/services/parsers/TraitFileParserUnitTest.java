@@ -49,7 +49,8 @@ public class TraitFileParserUnitTest {
     void parseCsvMissingColumnData() {
         File file = new File("src/test/resources/files/missing_method_name_with_data.csv");
         InputStream inputStream = new FileInputStream(file);
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.MISSING_EXPECTED_COLUMNS, e.getType(), "Wrong type");
     }
 
     @Test
@@ -68,7 +69,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/empty.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.MISSING_COLUMN_NAMES, e.getType(), "Wrong type");
     }
 
     @Test
@@ -77,7 +79,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/missing_column.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.MISSING_EXPECTED_COLUMNS, e.getType(), "Wrong type");
     }
 
     @Test
@@ -86,7 +89,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/data_duplicate_method_name.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.DUPLICATE_COLUMN_NAMES, e.getType(), "Wrong type");
     }
 
     @Test
@@ -118,7 +122,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/data_one_row_empty_formula_headers.xls");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseExcel(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseExcel(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.COLUMN_NAME_NOT_STRING, e.getType(), "Wrong type");
     }
 
     @Test
@@ -127,7 +132,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/data_one_row_invalid_active_value.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.INVALID_TRAIT_STATUS, e.getType(), "Wrong type");
     }
 
     @Test
@@ -157,7 +163,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/data_one_row_invalid_scale_class.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.INVALID_SCALE_CLASS, e.getType(), "Wrong type");
     }
 
     @Test
@@ -166,7 +173,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/data_one_row_blank_scale_class.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.MISSING_SCALE_CLASS, e.getType(), "Wrong type");
     }
 
     @Test
@@ -175,7 +183,8 @@ public class TraitFileParserUnitTest {
         File file = new File("src/test/resources/files/data_one_row_scale_decimal_invalid.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+        assertEquals(ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES, e.getType(), "Wrong type");
     }
 
     @Test
@@ -197,7 +206,6 @@ public class TraitFileParserUnitTest {
         List<Trait> traits = parser.parseCsv(inputStream);
         assertEquals(1, traits.size(), "number of traits different than expected");
     }
-
 
     // Not repeating error tests for parseExcel in the interest of time and it using the same underlying parsing code
 
