@@ -22,6 +22,7 @@ import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.breedinginsight.services.parsers.ParsingException;
+import org.breedinginsight.services.parsers.ParsingExceptionType;
 
 import java.util.*;
 
@@ -44,7 +45,7 @@ public class ExcelParser {
         Row columnNames = sheet.getRow(EXCEL_COLUMN_NAMES_ROW);
 
         if (columnNames == null) {
-            throw new ParsingException("Missing column names row");
+            throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAMES);
         }
 
         Map<Integer, String> indexColNameMap = new HashMap<>();
@@ -53,7 +54,7 @@ public class ExcelParser {
         for(int colIndex=0; colIndex<columnNames.getLastCellNum(); colIndex++) {
             Cell cell = columnNames.getCell(colIndex);
             if (cell.getCellType() != CellType.STRING && cell.getCellType() != CellType.BLANK) {
-                throw new ParsingException("Column name must be string cell");
+                throw new ParsingException(ParsingExceptionType.COLUMN_NAME_NOT_STRING);
             }
             if (cell != null && isNotBlank(cell.getStringCellValue())) {
                 indexColNameMap.put(colIndex, cell.getStringCellValue());
@@ -67,12 +68,12 @@ public class ExcelParser {
 
         // check for duplicates
         if (hasDuplicates(new ArrayList(indexColNameMap.values()))) {
-            throw new ParsingException("Found duplicate column names");
+            throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
         }
 
         // check all column names were present
         if (!columns.stream().allMatch(col -> indexColNameMap.containsValue(col))) {
-            throw new ParsingException("Missing expected columns");
+            throw new ParsingException(ParsingExceptionType.MISSING_EXPECTED_COLUMNS);
         }
 
         // create a record for each row

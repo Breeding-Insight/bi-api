@@ -18,7 +18,14 @@ package org.breedinginsight.services.parsers;
 
 public class ParsingException extends Exception {
 
-    public ParsingException(String message) {
-        super(message);
+    private ParsingExceptionType type;
+
+    public ParsingException(ParsingExceptionType type) {
+        super(type.getMessage());
+        this.type = type;
+    }
+
+    public ParsingExceptionType getType() {
+        return type;
     }
 }
