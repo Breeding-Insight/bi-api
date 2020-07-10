@@ -475,7 +475,6 @@ public class TraitControllerIntegrationTest {
         BrApiTrait brApiTrait = BrApiTrait.builder()
                 .traitClass("morphological")
                 .traitDescription("A trait")
-                .alternativeAbbreviations(List.of("t1", "t2"))
                 .mainAbbreviation("t1")
                 .attribute("height")
                 .entity("stalk")
@@ -513,7 +512,7 @@ public class TraitControllerIntegrationTest {
 
         List<String> jsonAlternativeAbbreviations = new ArrayList<>();
         traitJson.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
-        List<String> traitAbbreviations = new ArrayList<>(brApiVariable.getTrait().getAlternativeAbbreviations());
+        List<String> traitAbbreviations = Arrays.asList(trait.getAbbreviations());
         Collections.sort(jsonAlternativeAbbreviations);
         Collections.sort(traitAbbreviations);
         assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");

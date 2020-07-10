@@ -39,28 +39,28 @@ public class TraitValidator {
             throw new UnprocessableEntityException("Missing scale");
         }
 
-        if (isBlank(trait.getTraitName())) {
+        if (isBlank(trait.getTraitName()) || trait.getTraitName() == null) {
             throw new UnprocessableEntityException("Missing trait name");
         }
-        if (isBlank(trait.getDescription())) {
+        if (isBlank(trait.getDescription()) || trait.getDescription() == null) {
             throw new UnprocessableEntityException("Missing trait description");
         }
         if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
             throw new UnprocessableEntityException("Missing trait level");
         }
-        if (isBlank(method.getMethodName())) {
+        if (isBlank(method.getMethodName()) || method.getMethodName() == null) {
             throw new UnprocessableEntityException("Missing method name");
         }
-        if (isBlank(method.getDescription())) {
+        if (isBlank(method.getDescription()) || method.getDescription() == null) {
             throw new UnprocessableEntityException("Missing method description");
         }
-        if (isBlank(method.getMethodClass())) {
+        if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
             throw new UnprocessableEntityException("Missing method class");
         }
-        if (isBlank(scale.getScaleName())) {
+        if (isBlank(scale.getScaleName()) || scale.getScaleName() == null) {
             throw new UnprocessableEntityException("Missing scale name");
         }
-        if (scale.getDataType() == null) {
+        if (scale.getDataType() == null || scale.getDataType() == null) {
             throw new UnprocessableEntityException("Missing scale type");
         }
     }
@@ -71,7 +71,7 @@ public class TraitValidator {
         Scale scale = trait.getScale();
 
         if (method != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
-            if (isBlank(method.getFormula())) {
+            if (isBlank(method.getFormula()) || method.getFormula() == null) {
                 throw new UnprocessableEntityException("Missing formula for Computation method");
             }
         }

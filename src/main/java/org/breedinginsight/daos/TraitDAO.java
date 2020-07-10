@@ -181,6 +181,16 @@ public class TraitDAO extends TraitDao {
         return Optional.of(parseTraitRecord(record, createdByUser, updatedByUser));
     }
 
+    public List<Trait> createTraits(UUID ontologyId, List<Trait> traits){
+
+        //TODO: Transaction
+        //TODO: Insert traits into our db
+        //TODO: Insert traits into brapi
+        //TODO: Convert brapi trait into our traits
+
+        return new ArrayList<>();
+    }
+
     private Trait parseTraitRecord(Record record, BiUserTable createdByUser, BiUserTable updatedByUser) {
         Trait trait = Trait.parseSqlRecord(record);
         Scale scale = Scale.parseSqlRecord(record);

@@ -45,8 +45,8 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join bi_user on bi_user.name = 'system' limit 1
 
 -- name: InsertTrait
-insert into trait (program_ontology_id, trait_name, method_id, scale_id, program_observation_level_id, created_by, updated_by)
-select program_ontology.id, 'Test Trait', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
+insert into trait (program_ontology_id, trait_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+select program_ontology.id, 'Test Trait', '{''t1'', ''t2''}', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
 join method on method.program_ontology_id = program_ontology.id and method.method_name = 'Test Method'
@@ -68,8 +68,8 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join bi_user on bi_user.name = 'system' limit 1
 
 -- name: InsertTrait1
-insert into trait (program_ontology_id, trait_name, method_id, scale_id, program_observation_level_id, created_by, updated_by)
-select program_ontology.id, 'Test Trait1', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
+insert into trait (program_ontology_id, trait_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+select program_ontology.id, 'Test Trait1', '{''t1'', ''t2''}', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
 join method on method.program_ontology_id = program_ontology.id and method.method_name = 'Test Method1'

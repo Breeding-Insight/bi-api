@@ -29,6 +29,8 @@ import org.junit.jupiter.api.TestInstance;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.lang.reflect.Array;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -249,7 +251,7 @@ public class TraitFileParserUnitTest {
     }
 
     private void assertTestTraitEquals(Trait trait) {
-        List<String> abbreviations = trait.getAbbreviations();
+        List<String> abbreviations = Arrays.asList(trait.getAbbreviations());
         assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
         List<String> synonyms = trait.getSynonyms();
         assertEquals(2, synonyms.size(), "number of synonyms different than expected");

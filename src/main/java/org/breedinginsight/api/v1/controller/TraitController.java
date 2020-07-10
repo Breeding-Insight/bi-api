@@ -18,11 +18,14 @@
 package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.query.TraitsQuery;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -34,6 +37,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -48,6 +52,8 @@ public class TraitController {
 
     @Inject
     private TraitService traitService;
+    @Inject
+    private SecurityService securityService;
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -94,5 +100,32 @@ public class TraitController {
             return HttpResponse.notFound();
         }
 
+    }
+
+    @Post("/programs/{programId}/traits")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured({SecurityRule.IS_AUTHENTICATED})
+    public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
+        AuthenticatedUser actingUser = securityService.getUser();
+        try {
+            List<Trait> createdTraits = traitService.createTraits(programId, traits);
+            //TODO: Add in pagination
+            List<Status> metadataStatus = new ArrayList<>();
+            // Users query successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            // Construct our metadata and response
+            //TODO: Put in the actual page size
+            Pagination pagination = new Pagination(traits.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(createdTraits));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (UnprocessableEntityException e){
+            log.info(e.getMessage());
+            // TODO: Add a row designation message?
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        }
     }
 }

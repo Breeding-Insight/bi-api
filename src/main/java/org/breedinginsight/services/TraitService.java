@@ -17,10 +17,15 @@
 
 package org.breedinginsight.services;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
+import org.breedinginsight.model.ProgramOntology;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.validators.TraitValidator;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,6 +41,8 @@ public class TraitService {
     private TraitDAO traitDAO;
     @Inject
     private ProgramService programService;
+    @Inject
+    private ProgramOntologyService programOntologyService;
 
     public List<Trait> getByProgramId(UUID programId, Boolean getFullTrait) throws DoesNotExistException {
 
@@ -58,5 +65,33 @@ public class TraitService {
         }
 
        return traitDAO.getTraitFull(programId, traitId);
+    }
+
+    public List<Trait> createTraits(UUID programId, List<Trait> traits) throws DoesNotExistException, UnprocessableEntityException {
+
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        // Get our ontology
+        Optional<ProgramOntology> programOntologyOptional = programOntologyService.getByProgramId(programId);
+        if (!programOntologyOptional.isPresent()){
+            throw new InternalServerException("Ontology does note exist for program");
+        }
+        ProgramOntology programOntology = programOntologyOptional.get();
+
+        // Check the traits are legit
+        //TODO: See if we need to specify data row that throws an error
+        for (Trait trait: traits) {
+            TraitValidator.checkRequiredTraitFields(trait);
+            TraitValidator.checkTraitDataConsistency(trait);
+        }
+
+        // Other checks to think about... Duplicates
+        //TODO: Check for existing trait name
+        //TODO: Check for duplicate trait abbreviations? Would have to be through brapi
+
+        // Create the traits
+        return traitDAO.createTraits(programOntology.getId(), traits);
     }
 }
