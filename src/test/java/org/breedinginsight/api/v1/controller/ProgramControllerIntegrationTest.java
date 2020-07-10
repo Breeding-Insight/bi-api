@@ -1603,7 +1603,7 @@ public class ProgramControllerIntegrationTest {
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
         assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 0, "Wrong totalCount");
 
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").getAsJsonArray("data");
         assertEquals(result.size(),0, "Wrong size");
 
     }
