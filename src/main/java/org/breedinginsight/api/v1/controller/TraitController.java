@@ -20,10 +20,14 @@ package org.breedinginsight.api.v1.controller;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
+import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.netty.NettyMutableHttpResponse;
+import io.micronaut.http.server.netty.NettyHttpResponseFactory;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.query.TraitsQuery;
@@ -38,6 +42,7 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -108,7 +113,7 @@ public class TraitController {
     public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
-            List<Trait> createdTraits = traitService.createTraits(programId, traits);
+            List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser);
             //TODO: Add in pagination
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
@@ -122,10 +127,10 @@ public class TraitController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (UnprocessableEntityException e){
+        } catch (ValidatorException e){
             log.info(e.getMessage());
-            // TODO: Add a row designation message?
-            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
         }
     }
 }

@@ -17,10 +17,8 @@
 
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -45,12 +43,14 @@ import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.model.*;
 import org.jooq.DSLContext;
+import org.jooq.tools.json.JSONArray;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -551,5 +551,90 @@ public class TraitControllerIntegrationTest {
             assertEquals(category.getValue(), jsonCategory.get("value").getAsString(), "Category label does not match");
         }
     }
+
+    //region POST traits
+
+    @Test
+    public void createTraitsMultiple() {}
+
+    @Test
+    public void createTraitsSingle() {
+        JsonArray requestBody = new JsonArray();
+        JsonObject jsonTrait = new JsonObject();
+
+    }
+
+    @Test
+    public void createTraitsTraitExistsByName() {}
+
+    @Test
+    public void createTraitsTraitExistsByAbbreviation() {}
+
+    @Test
+    public void createTraitUploadMissingFormula() {}
+
+    @Test
+    public void createTraitMissingCategories() {}
+
+    @Test
+    public void createTraitMissingMethod() {}
+
+    //TODO: BrAPI tests
+
+
+    public JsonArray constructTraitBody(List<Trait> traits) {
+        JsonArray requestBody = new JsonArray();
+        for (Trait trait: traits){
+            JsonObject jsonTrait = new JsonObject();
+            jsonTrait.addProperty("traitName", trait.getTraitName());
+            JsonArray abbreviations = (JsonArray) new Gson().toJsonTree(trait.getAbbreviations(),
+                    new TypeToken<List<String>>() {
+                    }.getType());
+            jsonTrait.add("abbreviations", abbreviations);
+            jsonTrait.addProperty("traitClass", trait.getTraitClass());
+            jsonTrait.addProperty("attribute", trait.getAttribute());
+            jsonTrait.addProperty("defaultValue", trait.getDefaultValue());
+            jsonTrait.addProperty("entity", trait.getEntity());
+            jsonTrait.addProperty("mainAbbreviation", trait.getMainAbbreviation());
+            JsonArray synonyms = (JsonArray) new Gson().toJsonTree(trait.getSynonyms(),
+                    new TypeToken<List<String>>() {
+                    }.getType());
+            jsonTrait.add("synonyms", synonyms);
+
+            // Add method
+            Method method = trait.getMethod();
+            JsonObject jsonMethod = new JsonObject();
+            jsonMethod.addProperty("methodName", method.getMethodName());
+            jsonMethod.addProperty("methodClass", method.getMethodClass());
+            jsonMethod.addProperty("description", method.getDescription());
+            jsonMethod.addProperty("formula", method.getFormula());
+            jsonTrait.add("method", jsonMethod);
+
+            // Add scale
+            Scale scale = trait.getScale();
+            JsonObject jsonScale = new JsonObject();
+            jsonScale.addProperty("scaleName", scale.getScaleName());
+            jsonScale.addProperty("dataType", scale.getDataType().toString());
+            jsonScale.addProperty("validValueMin", scale.getValidValueMin());
+            jsonScale.addProperty("validValueMax", scale.getValidValueMax());
+            jsonScale.addProperty("decimalPlaces", scale.getDecimalPlaces());
+            JsonArray categories = (JsonArray) new Gson().toJsonTree(scale.getCategories(),
+                    new TypeToken<List<BrApiScaleCategories>>() {
+                    }.getType());
+            jsonScale.add("categories", categories);
+            jsonTrait.add("scale", jsonScale);
+
+            // Add program observation level
+            ProgramObservationLevel programObservationLevel = trait.getProgramObservationLevel();
+            JsonObject jsonProgramObservationLevel = new JsonObject();
+            jsonProgramObservationLevel.addProperty("id", programObservationLevel.getId().toString());
+            jsonTrait.add("programObservationLevel", jsonProgramObservationLevel);
+
+            requestBody.add(jsonTrait);
+        }
+
+        return requestBody;
+    }
+    //endregion
 
 }

@@ -31,6 +31,7 @@ import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.jooq.*;
+import org.jooq.impl.SQLDataType;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -38,6 +39,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.dao.db.Tables.*;
+import static org.jooq.impl.DSL.row;
+import static org.jooq.impl.DSL.values;
 
 @Singleton
 public class TraitDAO extends TraitDao {
@@ -181,13 +184,10 @@ public class TraitDAO extends TraitDao {
         return Optional.of(parseTraitRecord(record, createdByUser, updatedByUser));
     }
 
-    public List<Trait> createTraits(UUID ontologyId, List<Trait> traits){
+    public List<Trait> createTraitsBrAPI(UUID ontologyId, List<Trait> traits){
 
-        //TODO: Transaction
-        //TODO: Insert traits into our db
         //TODO: Insert traits into brapi
         //TODO: Convert brapi trait into our traits
-
         return new ArrayList<>();
     }
 
@@ -219,6 +219,58 @@ public class TraitDAO extends TraitDao {
                 .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                 .join(createdByTableAlias).on(TRAIT.CREATED_BY.eq(createdByTableAlias.ID))
                 .join(updatedByTableAlias).on(TRAIT.UPDATED_BY.eq(updatedByTableAlias.ID));
+    }
+
+    public List<Trait> getTraitsByTraitMethodScaleName(List<Trait> traits){
+
+        //TODO: Get these from the query as well
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        RowN[] valueRows = traits.stream()
+                .filter(trait -> trait.getMethod() != null && trait.getScale() != null)
+                .map(trait -> (RowN) row(trait.getTraitName(), trait.getMethod().getMethodName(), trait.getScale().getScaleName()))
+                .collect(Collectors.toList()).toArray(RowN[]::new);
+
+        List<Trait> traitResults = new ArrayList<>();
+        if (valueRows.length > 0){
+            Table newTraits = dsl.select()
+                    .from(values(valueRows).as("newTraits", "new_trait_name", "new_method_name", "new_scale_name")).asTable("newTraits");
+
+            Result<Record> records = dsl.select()
+                    .from(newTraits)
+                    .join(TRAIT).on(TRAIT.TRAIT_NAME.like(newTraits.field("new_trait_name")))
+                    .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID)).and(METHOD.METHOD_NAME.like(newTraits.field("new_method_name")))
+                    .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID)).and(SCALE.SCALE_NAME.like(newTraits.field("new_scale_name")))
+                    .fetch();
+
+
+            for (Record record: records) {
+                Trait trait = Trait.parseSqlRecord(record);
+                Scale scale = Scale.parseSqlRecord(record);
+                Method method = Method.parseSqlRecord(record);
+                trait.setScale(scale);
+                trait.setMethod(method);
+                traitResults.add(trait);
+            }
+        }
+
+        return traitResults;
+    }
+
+    public List<Trait> getTraitsByAbbreviation(List<String> abbreviations) {
+
+        Result<Record> records = dsl.select()
+                .from(TRAIT).where(TRAIT.ABBREVIATIONS.cast(String[].class).contains(abbreviations.toArray(String[]::new)))
+                .fetch();
+
+        List<Trait> traitResults = new ArrayList<>();
+        for (Record record: records) {
+            Trait trait = Trait.parseSqlRecord(record);
+            traitResults.add(trait);
+        }
+
+        return traitResults;
     }
 
 }

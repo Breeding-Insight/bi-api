@@ -21,13 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.constants.MediaType;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,7 +35,6 @@ import java.util.UUID;
 
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.breedinginsight.services.validators.TraitValidator;
@@ -57,6 +55,8 @@ public class TraitUploadService {
     private ProgramUserService programUserService;
     @Inject
     private TraitFileParser parser;
+    @Inject
+    private TraitValidator traitValidator;
 
     @Inject
     private ObjectMapper objMapper;
@@ -97,9 +97,20 @@ public class TraitUploadService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        for (Trait trait : traits) {
-            TraitValidator.checkRequiredTraitFields(trait);
-            TraitValidator.checkTraitDataConsistency(trait);
+        //TODO: Replace this with multiple error code
+        // Validate the traits
+        ValidationErrors validationErrors = new ValidationErrors();
+        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits);
+        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits);
+        //TODO: Add these back in and add tests
+        //ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraits(traits);
+        //ValidationErrors dbConsistencyErrors = traitValidator.checkDatabaseCompatability(programId, traits);
+        //validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, dbConsistencyErrors);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors);
+
+        if (validationErrors.hasErrors()){
+            //throw new ValidatorException(validationErrors);
+            throw new UnprocessableEntityException("Temporary solution");
         }
 
         String json = null;
