@@ -16,39 +16,29 @@
  */
 package org.breedinginsight.services.validators;
 
-import com.fasterxml.jackson.databind.PropertyName;
 import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
-import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.ProgramObservationLevelService;
-import org.breedinginsight.services.TraitService;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.jooq.tools.reflect.Reflect;
-import org.yaml.snakeyaml.introspector.PropertyUtils;
 
 import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
-import static org.apache.commons.lang3.StringUtils.valueOf;
 
 public class TraitValidator {
 
     private TraitDAO traitDAO;
-    private ProgramObservationLevelService programObservationLevelService;
 
     @Inject
-    public TraitValidator(TraitDAO traitDAO, ProgramObservationLevelService programObservationLevelService){
+    public TraitValidator(TraitDAO traitDAO){
         this.traitDAO = traitDAO;
-        this.programObservationLevelService = programObservationLevelService;
     }
 
     public static ValidationErrors checkRequiredTraitFields(List<Trait> traits) {

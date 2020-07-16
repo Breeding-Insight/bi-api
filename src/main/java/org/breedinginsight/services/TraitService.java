@@ -27,13 +27,10 @@ import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
-import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.ProgramOntology;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidator;
 import org.jooq.DSLContext;
@@ -132,8 +129,6 @@ public class TraitService {
             throw new ValidatorException(validationErrors);
         }
 
-        //TODO: Check to make sure that a bad scale data type throws an error
-
         // Create the traits
         dsl.transaction(configuration -> {
 
@@ -147,6 +142,7 @@ public class TraitService {
                         .build();
                 //TODO: Test if this updates ID
                 methodDAO.insert(jooqMethod);
+                trait.getMethod().setId(jooqMethod.getId());
 
                 // Create scale
                 ScaleEntity jooqScale = ScaleEntity.builder()
@@ -157,6 +153,7 @@ public class TraitService {
                         .updatedBy(actingUser.getId())
                         .build();
                 scaleDAO.insert(jooqScale);
+                trait.getScale().setId(jooqScale.getId());
 
                 // Create trait
                 //TODO: Add program observation level
@@ -171,7 +168,6 @@ public class TraitService {
                         .updatedBy(actingUser.getId())
                         .build();
                 traitDAO.insert(jooqTrait);
-
                 trait.setId(jooqTrait.getId());
             }
         });

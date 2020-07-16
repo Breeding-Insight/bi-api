@@ -18,7 +18,6 @@
 package org.breedinginsight.api.model.v1.response;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpException;
 import lombok.*;
 import lombok.experimental.Accessors;
 

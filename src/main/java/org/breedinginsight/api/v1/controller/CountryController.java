@@ -35,7 +35,6 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Country;
 import org.breedinginsight.services.CountryService;
-import org.jooq.exception.DataAccessException;
 
 import javax.inject.Inject;
 import java.util.ArrayList;

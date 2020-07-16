@@ -26,7 +26,6 @@ import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
 import io.micronaut.test.annotation.MicronautTest;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.annotation.JsonAppend;
 
 import javax.inject.Inject;
 import java.util.HashMap;

@@ -17,7 +17,6 @@
 
 package org.breedinginsight.api.model.v1.response;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.*;
 import lombok.experimental.Accessors;
 

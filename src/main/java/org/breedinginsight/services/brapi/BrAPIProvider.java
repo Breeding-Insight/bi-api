@@ -24,6 +24,8 @@ import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.List;
 
 @Singleton
 public class BrAPIProvider {
@@ -40,5 +42,15 @@ public class BrAPIProvider {
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
         return new VariablesAPI(brAPIClient);
     }
+
+    public List<VariablesAPI> getAllUniqueVariablesAPI(){
+        List<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
+        List<VariablesAPI> variablesAPIS = new ArrayList<>();
+        for (BrAPIClient client: clients){
+            variablesAPIS.add(new VariablesAPI(client));
+        }
+        return variablesAPIS;
+    }
+
 
 }
