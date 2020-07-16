@@ -65,6 +65,16 @@ Run this docker command in terminal to start up a postgres docker container with
 docker-compose up -d bidb
 ```
 
+#### BrAPI Test Server
+
+A fork of the brapi test server is used for local development, 
+
+https://github.com/Breeding-Insight/brapi-Java-TestServer
+
+to run the brapi test server, update the proper variables in the .env file and then run the command:
+
+```docker-compose up -d brapi-server```
+
 ### Building the project
 
 Once you have the project pulled down and your database running, follow these steps to build the project.
