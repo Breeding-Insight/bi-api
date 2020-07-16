@@ -113,6 +113,7 @@ public class ProgramService {
             programObservationLevelDAO.insert(programObservationLevelEntity);
 
             //TODO: Add program and ontology to brapi services.
+            //TODO: Add species to brapi service if it doesn't exist
 
             return dao.get(programEntity.getId()).get(0);
         });

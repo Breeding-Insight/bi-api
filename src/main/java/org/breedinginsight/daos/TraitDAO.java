@@ -254,7 +254,7 @@ public class TraitDAO extends TraitDao {
                     .status("active")
                     .entity(trait.getProgramObservationLevel().getName())
                     .mainAbbreviation(trait.getMainAbbreviation())
-                    .alternativeAbbreviations(List.of(trait.getAbbreviations()))
+                    .alternativeAbbreviations(trait.getAbbreviations() != null ? List.of(trait.getAbbreviations()) : null)
                     .traitClass(trait.getTraitClass())
                     .externalReferences(List.of(traitReference))
                     .attribute(trait.getAttribute())

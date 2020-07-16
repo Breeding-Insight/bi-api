@@ -17,7 +17,9 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,6 +30,8 @@ import org.brapi.v2.phenotyping.model.BrApiVariable;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.breedinginsight.dao.db.Tables.TRAIT;
@@ -39,16 +43,18 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
 @SuperBuilder
 @NoArgsConstructor
 @JsonIgnoreProperties(value = { "methodId", "scaleId",
-        "programOntologyId", "programObservationLevelId"})
+        "programOntologyId", "programObservationLevelId", "createdBy", "updatedBy"})
 public class Trait extends TraitEntity {
 
+    @JsonIgnoreProperties({"createdAt", "updatedAt"})
     private ProgramObservationLevel programObservationLevel;
     private Method method;
     private Scale scale;
+    @JsonIgnore
     private ProgramOntology programOntology;
-    @JsonIgnoreProperties("systemRoles")
+    @JsonIgnoreProperties({"systemRoles", "programRoles"})
     private User createdByUser;
-    @JsonIgnoreProperties("systemRoles")
+    @JsonIgnoreProperties({"systemRoles", "programRoles"})
     private User updatedByUser;
 
     // Properties from brapi
@@ -56,6 +62,7 @@ public class Trait extends TraitEntity {
     private String traitClass;
     private String attribute;
     private String defaultValue;
+    @JsonIgnore
     private String entity;
     private String mainAbbreviation;
     private List<String> synonyms;

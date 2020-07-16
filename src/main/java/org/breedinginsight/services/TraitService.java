@@ -27,9 +27,7 @@ import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
-import org.breedinginsight.model.ProgramObservationLevel;
-import org.breedinginsight.model.ProgramOntology;
-import org.breedinginsight.model.Trait;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidator;
@@ -56,6 +54,8 @@ public class TraitService {
     private ProgramOntologyService programOntologyService;
     @Inject
     private ProgramObservationLevelService programObservationLevelService;
+    @Inject
+    private UserService userService;
     @Inject
     private TraitValidator traitValidator;
     @Inject
@@ -87,9 +87,18 @@ public class TraitService {
     public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
             throws DoesNotExistException, ValidatorException {
 
-        if (!programService.exists(programId)) {
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent()) {
             throw new DoesNotExistException("Program does not exist");
         }
+        Program program = optionalProgram.get();
+
+        Optional<User> optionalUser = userService.getById(actingUser.getId());
+        if (!optionalUser.isPresent()){
+            throw new InternalServerException("Could not find user in system");
+        }
+        User user = optionalUser.get();
+
 
         // Get our ontology
         Optional<ProgramOntology> programOntologyOptional = programOntologyService.getByProgramId(programId);
@@ -130,7 +139,7 @@ public class TraitService {
         }
 
         // Create the traits
-        dsl.transaction(configuration -> {
+        List<Trait> createdTraits = dsl.transactionResult(configuration -> {
 
             for (Trait trait: traits) {
                 // Create method
@@ -170,8 +179,11 @@ public class TraitService {
                 traitDAO.insert(jooqTrait);
                 trait.setId(jooqTrait.getId());
             }
+
+            return traitDAO.createTraitsBrAPI(traits, user, program);
         });
 
-        return traitDAO.createTraitsBrAPI(programOntology.getId(), traits);
+
+        return createdTraits;
     }
 }
