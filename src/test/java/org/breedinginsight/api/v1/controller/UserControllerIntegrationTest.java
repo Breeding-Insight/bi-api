@@ -31,6 +31,7 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
@@ -50,7 +51,7 @@ import java.util.stream.Collectors;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class UserControllerIntegrationTest {
+public class UserControllerIntegrationTest extends DatabaseTest {
 
     private String testUserUUID;
     List<ProgramEntity> validPrograms;

@@ -29,6 +29,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -40,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class RoleControllerIntegrationTest {
+public class RoleControllerIntegrationTest extends DatabaseTest {
 
     private String validProgramRoleId;
     private String validProgramRoleDomain;

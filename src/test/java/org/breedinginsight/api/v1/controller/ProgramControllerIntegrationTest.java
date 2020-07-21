@@ -32,6 +32,7 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.model.*;
@@ -56,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProgramControllerIntegrationTest {
+public class ProgramControllerIntegrationTest extends DatabaseTest {
 
     Program validProgram;
     User validUser;

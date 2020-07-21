@@ -30,6 +30,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.CountryService;
@@ -55,7 +56,7 @@ import static org.mockito.Mockito.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class InternalServerErrorHandlerUnitTest {
+public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
 
     ListAppender<ILoggingEvent> loggingEventListAppender;
 

@@ -25,6 +25,7 @@ import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
 import io.micronaut.test.annotation.MicronautTest;
+import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -37,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @MicronautTest
-public class AuthServiceLoginHandlerUnitTest {
+public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
 
     @Inject
     AuthServiceLoginHandler authServiceLoginHandler;

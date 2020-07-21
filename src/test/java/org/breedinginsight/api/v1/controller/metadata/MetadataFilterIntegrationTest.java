@@ -28,6 +28,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
@@ -50,7 +51,7 @@ import static org.mockito.Mockito.when;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class MetadataFilterIntegrationTest {
+public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Inject
     UserController userController;

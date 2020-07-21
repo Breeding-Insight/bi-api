@@ -30,6 +30,7 @@ import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -46,7 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TraitUploadControllerIntegrationTest {
+public class TraitUploadControllerIntegrationTest extends DatabaseTest {
 
     @Inject
     private DSLContext dsl;

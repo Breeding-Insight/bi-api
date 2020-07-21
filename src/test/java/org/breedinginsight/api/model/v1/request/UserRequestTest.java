@@ -19,6 +19,7 @@ package org.breedinginsight.api.model.v1.request;
 
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.validation.validator.Validator;
+import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.Test;
 
 import javax.inject.Inject;
@@ -28,7 +29,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
-public class UserRequestTest {
+public class UserRequestTest extends DatabaseTest {
     @Inject
     Validator validator;
 
