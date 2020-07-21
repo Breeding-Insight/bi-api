@@ -1,0 +1,123 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.breedinginsight.services.validators;
+
+import io.kowalski.fannypack.FannyPack;
+import io.micronaut.test.annotation.MicronautTest;
+import lombok.SneakyThrows;
+import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.api.model.v1.response.RowValidationErrors;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.model.Method;
+import org.breedinginsight.model.ProgramObservationLevel;
+import org.breedinginsight.model.Scale;
+import org.breedinginsight.model.Trait;
+import org.jooq.DSLContext;
+import org.junit.jupiter.api.*;
+
+import javax.inject.Inject;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+
+@MicronautTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class TraitValidatorIntegrationTest extends DatabaseTest {
+
+    ProgramEntity validProgram;
+
+    @Inject
+    private DSLContext dsl;
+    @Inject
+    ProgramDao programDao;
+    @Inject
+    TraitValidator traitValidator;
+
+    @BeforeAll
+    public void setup() {
+
+        // Insert our traits into the db
+        var fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
+
+        // Insert program
+        dsl.execute(fp.get("InsertProgram"));
+
+        // Insert program observation level
+        dsl.execute(fp.get("InsertProgramObservationLevel"));
+
+        // Insert program ontology sql
+        dsl.execute(fp.get("InsertProgramOntology"));
+
+        // Insert Trait
+        dsl.execute(fp.get("InsertMethod"));
+        dsl.execute(fp.get("InsertScale"));
+        dsl.execute(fp.get("InsertTrait"));
+
+        // Retrieve our new data
+        validProgram = programDao.findAll().get(0);
+    }
+
+    @Test
+    @SneakyThrows
+    public void duplicateTrait() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait");
+        trait1.setAbbreviations("t1", "t2");
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        Method method1 = new Method();
+        method1.setMethodName("Test Method");
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraits(List.of(trait1));
+
+        assertEquals(1, duplicateErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = duplicateErrors.getRowErrors().get(0);
+        assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        assertEquals(409, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
+        assertEquals(409, rowValidationErrors.getErrors().get(1).getHttpStatusCode(), "Wrong error code");
+    }
+
+    @Test
+    @SneakyThrows
+    public void uniqueTraitSuccess() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait Unique");
+        trait1.setAbbreviations(List.of("t1Unique", "t2Unique").toArray(String[]::new));
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        Method method1 = new Method();
+        method1.setMethodName("Test Method");
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraits(List.of(trait1));
+
+        assertEquals(0, duplicateErrors.getRowErrors().size(), "Errors returned when they should not");
+    }
+
+}

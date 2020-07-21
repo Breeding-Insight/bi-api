@@ -154,7 +154,7 @@ public class TraitDAO extends TraitDao {
         Trait dbTrait = optionalDbTrait.get();
 
         List<BrApiVariable> brApiVariables;
-        //TODO: We might want to add a source too
+
         VariablesRequest variablesRequest = VariablesRequest.builder()
                 .externalReferenceID(traitId.toString())
                 .externalReferenceSource(referenceSource)

@@ -141,6 +141,7 @@ public class TraitService {
         // Create the traits
         List<Trait> createdTraits = dsl.transactionResult(configuration -> {
 
+            //TODO: If one trait in brapi fails, roll back all others before it
             for (Trait trait: traits) {
                 // Create method
                 MethodEntity jooqMethod = MethodEntity.builder()

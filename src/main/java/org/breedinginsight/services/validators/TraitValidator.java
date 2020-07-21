@@ -101,7 +101,7 @@ public class TraitValidator {
                 errors.addError(i, error);
             }
             if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
-                ValidationError error = new ValidationError("programObservationLevel",
+                ValidationError error = new ValidationError("programObservationLevel.name",
                         "Missing trait level", HttpStatus.UNPROCESSABLE_ENTITY);
                 errors.addError(i, error);
             }
@@ -190,11 +190,11 @@ public class TraitValidator {
         return errors;
     }
 
-    public List<Trait> checkForDuplicateTraitsByNames(List<Trait> traits) {
+    private List<Trait> checkForDuplicateTraitsByNames(List<Trait> traits) {
         return traitDAO.getTraitsByTraitMethodScaleName(traits);
     }
 
-    public List<Trait> checkForDuplicatesTraitsByAbbreviation(List<Trait> traits) {
+    private List<Trait> checkForDuplicatesTraitsByAbbreviation(List<Trait> traits) {
         Map<String, Trait> abbreviationMap = new HashMap<>();
         for (Trait trait: traits) {
             if (trait.getAbbreviations() != null){

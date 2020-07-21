@@ -105,7 +105,7 @@ public class TraitController {
     @Post("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({SecurityRule.IS_AUTHENTICATED})
-    public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
+    public HttpResponse<Response<DataResponse<Trait>>> createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
             List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser);
@@ -123,7 +123,7 @@ public class TraitController {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (ValidatorException e){
-            log.info(e.getMessage());
+            log.info(e.getErrors().toString());
             HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
             return response;
         }
