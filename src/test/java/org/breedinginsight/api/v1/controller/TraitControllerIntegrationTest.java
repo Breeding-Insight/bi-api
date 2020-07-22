@@ -54,10 +54,15 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TraitControllerIntegrationTest extends BrAPITest {
 
+    TraitEntity validTrait;
+    FannyPack fp;
+
     @Inject
     private DSLContext dsl;
     @Inject
     ProgramDao programDao;
+    @Inject
+    TraitDao traitDao;
 
     private List<Trait> validTraits;
     private ProgramEntity validProgram;
@@ -72,7 +77,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void setup() {
 
         // Insert our traits into the db
-        var fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
+        fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -83,14 +88,92 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Insert program ontology sql
         dsl.execute(fp.get("InsertProgramOntology"));
 
+        // Insert Trait
+        dsl.execute(fp.get("InsertMethod"));
+        dsl.execute(fp.get("InsertScale"));
+        dsl.execute(fp.get("InsertTrait"));
+
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
+
+        // Retrieve our valid trait
+        validTrait = traitDao.findAll().get(0);
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(1)
+    public void getTraitsNoExistInBrAPI() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(2)
+    public void getTraitSingleNoExistInBrAPI() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTrait.getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
     }
 
     //region POST traits
     @Test
-    @Order(1)
+    @SneakyThrows
+    @Order(2)
+    public void createTraitsBrAPIError() {
+
+        // Turn off brapi container to fake error
+        Trait trait = new Trait();
+        trait.setTraitName("Test Trait3");
+        trait.setDescription("A trait1");
+        trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale = new Scale();
+        scale.setScaleName("Test Scale");
+        scale.setDataType(DataType.TEXT);
+        Method method = new Method();
+        method.setMethodName("Test Method");
+        trait.setScale(scale);
+        trait.setMethod(method);
+
+        setBrAPIProperties(trait);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+
+    }
+
+    @Test
+    @Order(3)
     public void postTraitsMultiple() {
+
+        // Add species to BrAPI server
+        var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
+
+        dsl.execute(fp.get("DeleteTrait"));
+
         Trait trait1 = new Trait();
         trait1.setTraitName("Test Trait");
         trait1.setDescription("A trait1");
@@ -161,6 +244,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    @Order(4)
     public void createTraitsDuplicate() {
         Trait trait1 = new Trait();
         trait1.setTraitName("Test Trait");
@@ -194,10 +278,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Wrong number of errors returned");
         JsonObject duplicateError = errors.get(0).getAsJsonObject();
-        assertEquals(409, duplicateError.get("httpStatusCode"), "Wrong error code returned");
+        assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
 
     @Test
+    @Order(4)
     public void createTraitsValidationError() {
 
         Trait trait1 = new Trait();
@@ -318,7 +403,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     //endregion
     //region GET Traits
     @Test
-    @Order(2)
+    @Order(5)
     public void getTraitsSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -352,7 +437,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    @Order(2)
+    @Order(5)
     public void getTraitsFullSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -386,7 +471,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(2)
+    @Order(5)
     public void getTraitsProgramNotExist() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -400,7 +485,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(2)
     public void getTraitsBadFullQueryParam() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -415,22 +499,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    @Order(2)
-    public void getTraitsNotExistInBrAPI() {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-    }
-
-    @Test
-    @SneakyThrows
-    @Order(2)
+    @Order(5)
     public void getTraitSingleSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -446,7 +515,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(2)
+    @Order(5)
     public void getTraitSingleNoExist() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -460,7 +529,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(2)
+    @Order(5)
     public void getTraitSingleProgramNotExist() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -471,6 +540,26 @@ public class TraitControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(6)
+    public void getTraitsExistsInBrAPINotInSystem() {
+
+        dsl.execute(fp.get("DeleteTrait"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(0, data.size(), "Number of traits returned is incorrect.");
     }
 
     public void checkTraitResponse(JsonObject traitJson, Trait trait) {

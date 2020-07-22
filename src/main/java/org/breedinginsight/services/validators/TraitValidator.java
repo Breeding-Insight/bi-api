@@ -24,7 +24,6 @@ import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.ProgramObservationLevelService;
 
 import javax.inject.Inject;
 import java.util.*;

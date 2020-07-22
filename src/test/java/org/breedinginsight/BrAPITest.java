@@ -18,7 +18,11 @@
 package org.breedinginsight;
 
 import io.micronaut.test.annotation.MicronautTest;
+import lombok.Getter;
 import lombok.SneakyThrows;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
@@ -26,14 +30,16 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
 
 import javax.annotation.Nonnull;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.HashMap;
 import java.util.Map;
 
-@MicronautTest
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class BrAPITest extends DatabaseTest {
 
     static GenericContainer brapiContainer;
+    @Getter
+    private DSLContext brapiDsl;
 
     @SneakyThrows
     public BrAPITest() {
@@ -49,9 +55,15 @@ public class BrAPITest extends DatabaseTest {
                 .withEnv("BRAPI_DB_USER", "postgres")
                 .withEnv("BRAPI_DB_PASSWORD", "postgres")
                 .withClasspathResourceMapping("brapi/properties/application.properties", "/home/brapi/properties/application.properties", BindMode.READ_ONLY)
-                .withClasspathResourceMapping("brapi/sql/", "/home/brapi/sql/", BindMode.READ_ONLY)
                 .waitingFor(Wait.forListeningPort());
         brapiContainer.start();
+
+        // Get a dsl connection for the brapi db
+        Connection con = DriverManager.
+                getConnection(String.format("jdbc:postgresql://%s:%s/postgres",
+                        super.getDbContainer().getContainerIpAddress(), super.getDbContainer().getMappedPort(5432)),
+                        "postgres", "postgres");
+        brapiDsl = DSL.using(con, SQLDialect.POSTGRES);
     }
 
     @Nonnull

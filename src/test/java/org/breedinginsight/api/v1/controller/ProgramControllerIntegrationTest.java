@@ -21,6 +21,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
+import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -41,6 +42,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.Feature;
 import org.geojson.Point;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -58,6 +60,8 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProgramControllerIntegrationTest extends DatabaseTest {
+
+    FannyPack fp;
 
     Program validProgram;
     User validUser;
@@ -107,6 +111,8 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     EnvironmentTypeService environmentTypeService;
     @Inject
     TopographyService topographyService;
+    @Inject
+    DSLContext dsl;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -114,6 +120,8 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
     @BeforeAll
     void setup() throws Exception {
+
+        fp = FannyPack.fill("src/test/resources/sql/ProgramControllerIntegrationTest.sql");
 
         Optional<User> optionalUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
         testUser = optionalUser.get();
@@ -150,22 +158,6 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
             throw new Exception(e.toString());
         }
 
-    }
-
-    @AfterAll
-    void teardown() throws Exception{
-
-        try {
-            programLocationService.delete(validLocation.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete test location");
-        }
-
-        try {
-            programService.delete(validProgram.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete test program");
-        }
     }
 
     public ProgramLocation insertAndFetchTestLocation() throws Exception {
@@ -971,8 +963,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        programService.delete(wrongProgram.getId());
-
+        dsl.execute(fp.get("DeleteProgram"), wrongProgram.getId().toString(), wrongProgram.getId().toString(), wrongProgram.getId().toString());
     }
 
     @Test
@@ -1035,7 +1026,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        programService.delete(wrongProgram.getId());
+        dsl.execute(fp.get("DeleteProgram"), wrongProgram.getId().toString(), wrongProgram.getId().toString(), wrongProgram.getId().toString());
     }
 
     @Test
@@ -1862,7 +1853,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
         checkMinimalValidProgram(program, result);
 
-        programService.delete(program.getId());
+        dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString());
     }
 
     @Test
@@ -1900,8 +1891,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
         checkMinimalValidProgram(program, result);
 
-        programService.delete(program.getId());
-
+        dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString());
     }
 
     @Test
@@ -2124,7 +2114,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
-        programService.delete(UUID.fromString(newProgramId));
+        dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);
     }
 
     //endregion

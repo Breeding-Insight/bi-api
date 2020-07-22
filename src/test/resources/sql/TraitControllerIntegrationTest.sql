@@ -53,3 +53,8 @@ join method on method.program_ontology_id = program_ontology.id and method.metho
 join scale on scale.program_ontology_id = program_ontology.id and scale.scale_name = 'Test Scale'
 join program_observation_level on program_ontology.program_id = program_observation_level.program_id and program_observation_level.name = 'Plant'
 join bi_user on bi_user.name = 'system' limit 1
+
+-- name: DeleteTrait
+delete from trait;
+delete from method;
+delete from scale;

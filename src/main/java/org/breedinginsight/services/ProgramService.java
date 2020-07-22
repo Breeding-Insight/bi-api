@@ -169,17 +169,6 @@ public class ProgramService {
         return dao.existsById(programId);
     }
 
-    public void delete(UUID programId) throws DoesNotExistException {
-        /* Deletes an existing program */
-
-        ProgramEntity programEntity = dao.fetchOneById(programId);
-        if (programEntity == null){
-            throw new DoesNotExistException("Program does not exist");
-        }
-
-        dao.delete(programEntity);
-    }
-
     public ProgramBrAPIEndpoints getBrapiEndpoints(UUID programId) {
         return dao.getProgramBrAPIEndpoints();
     }

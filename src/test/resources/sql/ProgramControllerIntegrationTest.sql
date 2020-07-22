@@ -16,9 +16,7 @@
  * limitations under the License.
  */
 
--- name: InsertSpecies
-INSERT INTO crop (id, crop_name) VALUES ('1', 'Blueberry');
-INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon');
-INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape');
-INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa');
-INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato');
+-- name: DeleteProgram
+delete from program_ontology where program_id = ?::uuid;
+delete from program_observation_level where program_id = ?::uuid;
+delete from program where id = ?::uuid;

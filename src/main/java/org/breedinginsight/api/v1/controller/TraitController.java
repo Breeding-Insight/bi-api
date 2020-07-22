@@ -85,7 +85,7 @@ public class TraitController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured({SecurityRule.IS_AUTHENTICATED})
-    public HttpResponse<Response<Trait>> getTraits(@PathVariable UUID programId, @PathVariable UUID traitId) {
+    public HttpResponse<Response<Trait>> getTrait(@PathVariable UUID programId, @PathVariable UUID traitId) {
 
         try {
             Optional<Trait> trait = traitService.getById(programId, traitId);
