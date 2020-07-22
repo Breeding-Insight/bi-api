@@ -109,12 +109,10 @@ public class TraitController {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
             List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser);
-            //TODO: Add in pagination
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             // Construct our metadata and response
-            //TODO: Put in the actual page size
             Pagination pagination = new Pagination(traits.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(createdTraits));
