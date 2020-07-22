@@ -103,9 +103,9 @@ public class TraitUploadService {
         ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits);
         ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits);
         //TODO: Add these back in and add tests
-        //ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraits(traits);
-        //ValidationErrors dbConsistencyErrors = traitValidator.checkDatabaseCompatability(programId, traits);
-        //validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, dbConsistencyErrors);
+        //ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
+        //ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);
+        //validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
         validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors);
 
         if (validationErrors.hasErrors()){

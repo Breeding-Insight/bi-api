@@ -289,14 +289,4 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
 
     }
 
-    //TODO
-    @Test
-    @SneakyThrows
-    public void getUnqiueClientsAllUnique() {}
-
-    //TODO
-    @Test
-    @SneakyThrows
-    public void getUniqueClientsTwoUnique() {}
-
 }

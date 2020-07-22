@@ -31,13 +31,6 @@ public class ProgramObservationLevelService {
     @Inject
     ProgramObservationLevelDAO programObservationLevelDAO;
 
-    public List<ProgramObservationLevel> findByNames(List<String> levelNames) {
-        List<ProgramObservationLevelEntity> matchingLevels = programObservationLevelDAO.fetchByName(levelNames.toArray(String[]::new));
-        return matchingLevels.stream()
-                .map(matchingLevel -> new ProgramObservationLevel(matchingLevel))
-                .collect(Collectors.toList());
-    }
-
     public List<ProgramObservationLevel> getByProgramId(UUID programId) {
         List<ProgramObservationLevelEntity> programLevels = programObservationLevelDAO.fetchByProgramId(programId);
         return programLevels.stream()

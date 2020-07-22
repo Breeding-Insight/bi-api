@@ -17,6 +17,7 @@
 package org.breedinginsight.services.validators;
 
 import io.micronaut.http.HttpStatus;
+import io.micronaut.security.authentication.$AuthenticationExceptionHandlerDefinitionClass;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -26,6 +27,7 @@ import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 
 import javax.inject.Inject;
+import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -140,7 +142,7 @@ public class TraitValidator {
         return errors;
     }
 
-    public ValidationErrors checkDuplicateTraits(List<Trait> traits) {
+    public ValidationErrors checkDuplicateTraitsExisting(List<Trait> traits) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -175,7 +177,6 @@ public class TraitValidator {
                 }
             }
 
-
             if (isDuplicateAbbrev) {
                 ValidationError validationError = new ValidationError("abbreviations",
                         "Trait abbreviation already exists",
@@ -189,23 +190,93 @@ public class TraitValidator {
         return errors;
     }
 
+    public static ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits){
+
+        ValidationErrors errors = new ValidationErrors();
+        // Check duplicate trait names
+        Map<String, List<Integer>> namesMap = new HashMap<>();
+        for (Integer i = 0; i < traits.size(); i++) {
+            Trait trait = traits.get(i);
+            if (trait.getTraitName() != null &&
+                    trait.getScale() != null && trait.getScale().getScaleName() != null &&
+                    trait.getMethod() != null && trait.getMethod().getMethodName() != null
+            ){
+                String key = String.format("%s-%s-%s", trait.getTraitName().toLowerCase(),
+                        trait.getScale().getScaleName().toLowerCase(), trait.getMethod().getMethodName().toLowerCase());
+                if (namesMap.containsKey(key)) {
+                    namesMap.get(key).add(i);
+                } else {
+                    List<Integer> indexArray = new ArrayList<>();
+                    indexArray.add(i);
+                    namesMap.put(key, indexArray);
+                }
+            }
+        }
+
+        // Generate duplicate name errors
+        for (String name: namesMap.keySet()){
+            if (namesMap.get(name).size() > 1){
+                for (Integer rowIndex: namesMap.get(name)){
+                    ValidationError validationError = new ValidationError("traitName",
+                            "traitName - scaleName - methodName combination is a duplicate. Duplicate set of traits are rows " + namesMap.get(name).toString(),
+                            HttpStatus.CONFLICT);
+                    errors.addError(Integer.valueOf(rowIndex), validationError);
+                }
+            }
+        }
+
+        // Check duplicate abbreviations
+        Map<String, List<Integer>> abbreviationMap = new HashMap<>();
+        for (Integer i = 0; i < traits.size(); i++){
+            Trait trait = traits.get(i);
+            if (trait.getAbbreviations() != null){
+                for (String abbreviation: trait.getAbbreviations()){
+                    if (abbreviationMap.containsKey(abbreviation)) {
+                        abbreviationMap.get(abbreviation).add(i);
+                    } else {
+                        List<Integer> indexArray = new ArrayList<>();
+                        indexArray.add(i);
+                        abbreviationMap.put(abbreviation, indexArray);
+                    }
+                }
+            }
+        }
+
+        // Generate duplicate abbreviation errors
+        for (Integer i = 0; i < traits.size(); i++) {
+            Trait trait = traits.get(i);
+            if (trait.getAbbreviations() != null) {
+                for (String abbreviation : trait.getAbbreviations()) {
+                    if (abbreviationMap.containsKey(abbreviation)) {
+                        ValidationError validationError = new ValidationError("abbreviations",
+                                "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + abbreviationMap.get(abbreviation).toString(),
+                                HttpStatus.CONFLICT);
+                        errors.addError(Integer.valueOf(i), validationError);
+                        break;
+                    }
+                }
+            }
+        }
+
+        return errors;
+    }
+
     private List<Trait> checkForDuplicateTraitsByNames(List<Trait> traits) {
         return traitDAO.getTraitsByTraitMethodScaleName(traits);
     }
 
     private List<Trait> checkForDuplicatesTraitsByAbbreviation(List<Trait> traits) {
-        Map<String, Trait> abbreviationMap = new HashMap<>();
+
+        Set<String> abbreviationSet = new HashSet<>();
         for (Trait trait: traits) {
-            if (trait.getAbbreviations() != null){
-                for (String abbreviation: trait.getAbbreviations()) {
-                    abbreviationMap.put(abbreviation, trait);
-                }
+            if (trait.getAbbreviations() != null) {
+                abbreviationSet.addAll(List.of(trait.getAbbreviations()));
             }
         }
 
         List<Trait> matchingTraits = new ArrayList<>();
-        if (abbreviationMap.size() > 0){
-            matchingTraits = traitDAO.getTraitsByAbbreviation(List.of(abbreviationMap.keySet().toArray(String[]::new)));
+        if (abbreviationSet.size() > 0){
+            matchingTraits = traitDAO.getTraitsByAbbreviation(List.of(abbreviationSet.toArray(String[]::new)));
         }
 
         return matchingTraits;

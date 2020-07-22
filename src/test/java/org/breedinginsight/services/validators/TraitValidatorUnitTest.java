@@ -190,4 +190,56 @@ public class TraitValidatorUnitTest {
             }
         }
     }
+
+    @Test
+    @SneakyThrows
+    public void duplicateTraitsInFile() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait");
+        trait1.setAbbreviations("t1", "t2");
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        Method method1 = new Method();
+        method1.setMethodName("Test Method");
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        Trait trait2 = new Trait();
+        trait2.setTraitName("Test Trait");
+        trait2.setAbbreviations("t1", "t2");
+        trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale2 = new Scale();
+        scale2.setScaleName("Test Scale");
+        Method method2 = new Method();
+        method2.setMethodName("Test Method");
+        trait2.setScale(scale2);
+        trait2.setMethod(method2);
+
+        Trait trait3 = new Trait();
+        trait3.setTraitName("Test Trait");
+        trait3.setAbbreviations("t1", "t2");
+        trait3.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale3 = new Scale();
+        scale3.setScaleName("Test Scale");
+        Method method3 = new Method();
+        method3.setMethodName("Test Method");
+        trait3.setScale(scale3);
+        trait3.setMethod(method3);
+
+        ValidationErrors validationErrors = TraitValidator.checkDuplicateTraitsInFile(List.of(trait1, trait2, trait3));
+
+        assertEquals(3, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors trait1Error = validationErrors.getRowErrors().get(0);
+        assertEquals(2, trait1Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(409, trait1Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
+        RowValidationErrors trait2Error = validationErrors.getRowErrors().get(0);
+        assertEquals(2, trait2Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(409, trait2Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
+        RowValidationErrors trait3Error = validationErrors.getRowErrors().get(0);
+        assertEquals(2, trait3Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(409, trait3Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
+    }
+
 }

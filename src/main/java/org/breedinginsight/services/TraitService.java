@@ -131,8 +131,9 @@ public class TraitService {
         // Validate the traits
         ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits);
         ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits);
-        ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraits(traits);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits);
+        ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
+        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
 
         if (validationErrors.hasErrors()){
             throw new ValidatorException(validationErrors);
@@ -150,7 +151,6 @@ public class TraitService {
                         .createdBy(actingUser.getId())
                         .updatedBy(actingUser.getId())
                         .build();
-                //TODO: Test if this updates ID
                 methodDAO.insert(jooqMethod);
                 trait.getMethod().setId(jooqMethod.getId());
 
@@ -166,7 +166,6 @@ public class TraitService {
                 trait.getScale().setId(jooqScale.getId());
 
                 // Create trait
-                //TODO: Add program observation level
                 TraitEntity jooqTrait = TraitEntity.builder()
                         .traitName(trait.getTraitName())
                         .abbreviations(trait.getAbbreviations())
