@@ -61,7 +61,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
     private RxHttpClient client;
 
     @MockBean(UserController.class)
-    private UserController userController() {
+    UserController userController() {
         return mock(UserController.class);
     }
 

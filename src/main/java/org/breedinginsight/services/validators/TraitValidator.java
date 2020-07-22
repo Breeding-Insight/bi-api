@@ -246,11 +246,13 @@ public class TraitValidator {
             if (trait.getAbbreviations() != null) {
                 for (String abbreviation : trait.getAbbreviations()) {
                     if (abbreviationMap.containsKey(abbreviation)) {
-                        ValidationError validationError = new ValidationError("abbreviations",
-                                "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + abbreviationMap.get(abbreviation).toString(),
-                                HttpStatus.CONFLICT);
-                        errors.addError(Integer.valueOf(i), validationError);
-                        break;
+                        if (abbreviationMap.get(abbreviation).size() > 1){
+                            ValidationError validationError = new ValidationError("abbreviations",
+                                    "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + abbreviationMap.get(abbreviation).toString(),
+                                    HttpStatus.CONFLICT);
+                            errors.addError(Integer.valueOf(i), validationError);
+                            break;
+                        }
                     }
                 }
             }

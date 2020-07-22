@@ -86,52 +86,52 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     private RxHttpClient client;
 
     @MockBean(ProgramController.class)
-    private ProgramController programController() {
+    ProgramController programController() {
         return mock(ProgramController.class);
     }
 
     @MockBean(ProgramService.class)
-    private ProgramService programService() {
+    ProgramService programService() {
         return mock(ProgramService.class);
     }
 
     @MockBean(CountryController.class)
-    private CountryController countryController() {
+    CountryController countryController() {
         return mock(CountryController.class);
     }
 
     @MockBean(CountryService.class)
-    private CountryService countryService() {
+    CountryService countryService() {
         return mock(CountryService.class);
     }
 
     @MockBean(TopographyController.class)
-    private TopographyController topographyController() {
+    TopographyController topographyController() {
         return mock(TopographyController.class);
     }
 
     @MockBean(TopographyService.class)
-    private TopographyService topographyService() {
+    TopographyService topographyService() {
         return mock(TopographyService.class);
     }
 
     @MockBean(AccessibilityController.class)
-    private AccessibilityController accessibilityController() {
+    AccessibilityController accessibilityController() {
         return mock(AccessibilityController.class);
     }
 
     @MockBean(AccessibilityService.class)
-    private AccessibilityService accessibilityService() {
+    AccessibilityService accessibilityService() {
         return mock(AccessibilityService.class);
     }
 
     @MockBean(EnvironmentTypeController.class)
-    private EnvironmentTypeController environmentTypeController() {
+    EnvironmentTypeController environmentTypeController() {
         return mock(EnvironmentTypeController.class);
     }
 
     @MockBean(EnvironmentTypeService.class)
-    private EnvironmentTypeService environmentTypeService() {
+    EnvironmentTypeService environmentTypeService() {
         return mock(EnvironmentTypeService.class);
     }
 

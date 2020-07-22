@@ -17,10 +17,9 @@ to be run in: e.g develop, test, staging, and production.  Each service contains
 under the environment key public values for environment variables used as params
 for the API configuration.
 
-Private values used in each environment are stored in Lastpass and are never
-placed in docker-compose.yml and never committed to the repo.  At the root level
-of the repo locally create a file called .env and save the Lastpass contents for
-"bi-api secrets" in this file.
+Private values used in each environment are never placed in docker-compose.yml 
+and never committed to the repo. Variables are passed into the docker-compose.yml
+from the .env file. The .env file should be modified to contain the secrets.
 
 ### Running tests in docker container
 

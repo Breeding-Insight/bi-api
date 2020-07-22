@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ValidUserSecurityRuleIntegrationTest extends DatabaseTest {
 
-    private String testUserUUID;
+    String testUserUUID;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
