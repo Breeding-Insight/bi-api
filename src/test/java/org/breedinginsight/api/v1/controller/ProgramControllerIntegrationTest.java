@@ -38,7 +38,6 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.Feature;
 import org.geojson.Point;
@@ -61,62 +60,62 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProgramControllerIntegrationTest extends DatabaseTest {
 
-    FannyPack fp;
+    private FannyPack fp;
 
-    Program validProgram;
-    User validUser;
-    Species validSpecies;
-    Role validRole;
+    private Program validProgram;
+    private User validUser;
+    private Species validSpecies;
+    private Role validRole;
 
-    ProgramLocation validLocation;
-    Country validCountry;
-    EnvironmentType validEnvironment;
-    Accessibility validAccessibility;
-    Topography validTopography;
+    private ProgramLocation validLocation;
+    private Country validCountry;
+    private EnvironmentType validEnvironment;
+    private Accessibility validAccessibility;
+    private Topography validTopography;
 
-    User testUser;
-    AuthenticatedUser actingUser;
+    private User testUser;
+    private AuthenticatedUser actingUser;
 
-    String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-    String invalidProgram = invalidUUID;
-    String invalidUser = invalidUUID;
-    String invalidRole = invalidUUID;
-    String invalidSpecies = invalidUUID;
-    String invalidLocation= invalidUUID;
-    String invalidCountry = invalidUUID;
-    String invalidEnvironment = invalidUUID;
-    String invalidAccessibility = invalidUUID;
-    String invalidTopography = invalidUUID;
+    private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    private String invalidProgram = invalidUUID;
+    private String invalidUser = invalidUUID;
+    private String invalidRole = invalidUUID;
+    private String invalidSpecies = invalidUUID;
+    private String invalidLocation= invalidUUID;
+    private String invalidCountry = invalidUUID;
+    private String invalidEnvironment = invalidUUID;
+    private String invalidAccessibility = invalidUUID;
+    private String invalidTopography = invalidUUID;
 
-    Gson gson = new Gson();
-    ListAppender<ILoggingEvent> loggingEventListAppender;
+    private Gson gson = new Gson();
+    private ListAppender<ILoggingEvent> loggingEventListAppender;
 
     @Inject
-    UserService userService;
+    private UserService userService;
     @Inject
-    ProgramService programService;
+    private ProgramService programService;
     @Inject
-    SpeciesService speciesService;
+    private SpeciesService speciesService;
     @Inject
-    RoleService roleService;
+    private RoleService roleService;
     @Inject
-    ProgramUserService programUserService;
+    private ProgramUserService programUserService;
     @Inject
-    ProgramLocationService programLocationService;
+    private ProgramLocationService programLocationService;
     @Inject
-    CountryService countryService;
+    private CountryService countryService;
     @Inject
-    AccessibilityService accessibilityService;
+    private AccessibilityService accessibilityService;
     @Inject
-    EnvironmentTypeService environmentTypeService;
+    private EnvironmentTypeService environmentTypeService;
     @Inject
-    TopographyService topographyService;
+    private TopographyService topographyService;
     @Inject
-    DSLContext dsl;
+    private DSLContext dsl;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
 
     @BeforeAll
     void setup() throws Exception {

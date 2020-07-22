@@ -29,7 +29,7 @@ import java.util.stream.Collectors;
 public class ProgramObservationLevelService {
 
     @Inject
-    ProgramObservationLevelDAO programObservationLevelDAO;
+    private ProgramObservationLevelDAO programObservationLevelDAO;
 
     public List<ProgramObservationLevel> getByProgramId(UUID programId) {
         List<ProgramObservationLevelEntity> programLevels = programObservationLevelDAO.fetchByProgramId(programId);

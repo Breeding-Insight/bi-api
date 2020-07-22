@@ -17,7 +17,6 @@
 package org.breedinginsight.services.validators;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.security.authentication.$AuthenticationExceptionHandlerDefinitionClass;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -27,7 +26,6 @@ import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 
 import javax.inject.Inject;
-import java.lang.reflect.Array;
 import java.util.*;
 import java.util.stream.Collectors;
 

@@ -43,12 +43,12 @@ import static org.mockito.Mockito.*;
 public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
 
     @Inject
-    AuthServiceLoginHandler authServiceLoginHandler;
+    private AuthServiceLoginHandler authServiceLoginHandler;
 
     @Property(name = "micronaut.security.token.jwt.cookie.login-success-target-url")
-    String defaultUrl;
+    private String defaultUrl;
     @Property(name = "web.cookies.login-redirect")
-    String loginRedirectCookieName;
+    private String loginRedirectCookieName;
 
     @Test
     public void returnsDefaultBadUrl() {

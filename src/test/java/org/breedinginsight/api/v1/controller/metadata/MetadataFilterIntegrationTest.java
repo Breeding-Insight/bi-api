@@ -54,14 +54,14 @@ import static org.mockito.Mockito.when;
 public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Inject
-    UserController userController;
+    private UserController userController;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
 
     @MockBean(UserController.class)
-    UserController userController() {
+    private UserController userController() {
         return mock(UserController.class);
     }
 

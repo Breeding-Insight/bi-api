@@ -28,7 +28,7 @@ import java.util.List;
 @Accessors(chain=true)
 @ToString
 public class ValidationErrors {
-    List<RowValidationErrors> rowErrors;
+    private List<RowValidationErrors> rowErrors;
 
     public ValidationErrors() {
         this.rowErrors = new ArrayList<>();
@@ -36,7 +36,7 @@ public class ValidationErrors {
 
     public void addError(Integer rowNumber, ValidationError validationError){
         for (RowValidationErrors row: rowErrors) {
-            if (row.rowIndex == rowNumber){
+            if (row.getRowIndex() == rowNumber){
                 row.addError(validationError);
                 return;
             }

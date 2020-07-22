@@ -48,14 +48,14 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DSLTransactionResultIntegrationTest extends DatabaseTest {
 
     @Inject
-    DSLContext dsl;
+    private DSLContext dsl;
 
     @Inject
-    UserDAO dao;
+    private UserDAO dao;
     @Inject
-    UserService userService;
+    private UserService userService;
 
-    User actingUser;
+    private User actingUser;
 
     @BeforeAll
     void setup() throws Exception {

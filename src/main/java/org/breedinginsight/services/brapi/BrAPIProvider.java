@@ -31,7 +31,7 @@ import java.util.List;
 public class BrAPIProvider {
 
     @Inject
-    Provider<BrAPIClientProvider> brAPIClientProvider;
+    private Provider<BrAPIClientProvider> brAPIClientProvider;
 
     public TraitsAPI getTraitsAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);

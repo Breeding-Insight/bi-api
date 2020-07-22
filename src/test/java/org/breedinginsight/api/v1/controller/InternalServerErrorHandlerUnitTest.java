@@ -58,80 +58,80 @@ import static org.mockito.Mockito.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
 
-    ListAppender<ILoggingEvent> loggingEventListAppender;
+    private ListAppender<ILoggingEvent> loggingEventListAppender;
 
     @Inject
-    ProgramService programService;
+    private ProgramService programService;
     @Inject
-    ProgramController programController;
+    private ProgramController programController;
     @Inject
-    CountryService countryService;
+    private CountryService countryService;
     @Inject
-    CountryController countryController;
+    private CountryController countryController;
     @Inject
-    AccessibilityService accessibilityService;
+    private AccessibilityService accessibilityService;
     @Inject
-    AccessibilityController accessibilityController;
+    private AccessibilityController accessibilityController;
     @Inject
-    TopographyService topographyService;
+    private TopographyService topographyService;
     @Inject
-    TopographyController topographyController;
+    private TopographyController topographyController;
     @Inject
-    EnvironmentTypeService environmentTypeService;
+    private EnvironmentTypeService environmentTypeService;
     @Inject
-    EnvironmentTypeController environmentTypeController;
+    private EnvironmentTypeController environmentTypeController;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
 
     @MockBean(ProgramController.class)
-    ProgramController programController() {
+    private ProgramController programController() {
         return mock(ProgramController.class);
     }
 
     @MockBean(ProgramService.class)
-    ProgramService programService() {
+    private ProgramService programService() {
         return mock(ProgramService.class);
     }
 
     @MockBean(CountryController.class)
-    CountryController countryController() {
+    private CountryController countryController() {
         return mock(CountryController.class);
     }
 
     @MockBean(CountryService.class)
-    CountryService countryService() {
+    private CountryService countryService() {
         return mock(CountryService.class);
     }
 
     @MockBean(TopographyController.class)
-    TopographyController topographyController() {
+    private TopographyController topographyController() {
         return mock(TopographyController.class);
     }
 
     @MockBean(TopographyService.class)
-    TopographyService topographyService() {
+    private TopographyService topographyService() {
         return mock(TopographyService.class);
     }
 
     @MockBean(AccessibilityController.class)
-    AccessibilityController accessibilityController() {
+    private AccessibilityController accessibilityController() {
         return mock(AccessibilityController.class);
     }
 
     @MockBean(AccessibilityService.class)
-    AccessibilityService accessibilityService() {
+    private AccessibilityService accessibilityService() {
         return mock(AccessibilityService.class);
     }
 
     @MockBean(EnvironmentTypeController.class)
-    EnvironmentTypeController environmentTypeController() {
+    private EnvironmentTypeController environmentTypeController() {
         return mock(EnvironmentTypeController.class);
     }
 
     @MockBean(EnvironmentTypeService.class)
-    EnvironmentTypeService environmentTypeService() {
+    private EnvironmentTypeService environmentTypeService() {
         return mock(EnvironmentTypeService.class);
     }
 

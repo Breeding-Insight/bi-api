@@ -17,30 +17,21 @@
 
 package org.breedinginsight;
 
-import com.zaxxer.hikari.HikariConfig;
 import io.micronaut.test.support.TestPropertyProvider;
 import lombok.Getter;
 import lombok.SneakyThrows;
-import org.jooq.Configuration;
-import org.jooq.DSLContext;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
-import org.postgresql.ds.PGSimpleDataSource;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
 
 import javax.annotation.Nonnull;
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 
 public class DatabaseTest implements TestPropertyProvider {
 
+    @Getter
     private static GenericContainer dbContainer;
     private final String dbName = "bitest";
     private final String dbPassword = "postgres";

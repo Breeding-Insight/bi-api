@@ -43,14 +43,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TraitValidatorIntegrationTest extends DatabaseTest {
 
-    ProgramEntity validProgram;
+    private ProgramEntity validProgram;
 
     @Inject
     private DSLContext dsl;
     @Inject
-    ProgramDao programDao;
+    private ProgramDao programDao;
     @Inject
-    TraitValidator traitValidator;
+    private TraitValidator traitValidator;
 
     @BeforeAll
     public void setup() {

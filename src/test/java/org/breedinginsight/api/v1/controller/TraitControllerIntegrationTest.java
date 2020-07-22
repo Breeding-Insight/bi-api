@@ -39,7 +39,6 @@ import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.model.*;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
-import org.mockito.MockitoAnnotations;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -54,15 +53,15 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TraitControllerIntegrationTest extends BrAPITest {
 
-    TraitEntity validTrait;
-    FannyPack fp;
+    private TraitEntity validTrait;
+    private FannyPack fp;
 
     @Inject
     private DSLContext dsl;
     @Inject
-    ProgramDao programDao;
+    private ProgramDao programDao;
     @Inject
-    TraitDao traitDao;
+    private TraitDao traitDao;
 
     private List<Trait> validTraits;
     private ProgramEntity validProgram;

@@ -30,9 +30,9 @@ import java.util.List;
 @ToString
 public class RowValidationErrors {
     @JsonInclude
-    Integer rowIndex;
+    private Integer rowIndex;
     @JsonInclude
-    List<ValidationError> errors;
+    private List<ValidationError> errors;
 
     public RowValidationErrors(Integer index) {
         this.rowIndex = index;

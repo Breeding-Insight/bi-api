@@ -33,7 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UserRequestTest extends DatabaseTest {
     @Inject
-    Validator validator;
+    private Validator validator;
 
     @Test
     void validRequest() {

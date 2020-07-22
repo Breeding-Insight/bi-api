@@ -28,8 +28,6 @@ import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.parsers.trait.TraitFileParser;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 

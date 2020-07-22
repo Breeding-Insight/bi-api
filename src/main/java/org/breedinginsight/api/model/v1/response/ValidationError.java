@@ -28,10 +28,10 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ValidationError {
-    String column;
-    String errorMessage;
-    HttpStatus httpStatus;
-    Integer httpStatusCode;
+    private String column;
+    private String errorMessage;
+    private HttpStatus httpStatus;
+    private Integer httpStatusCode;
 
     public ValidationError(String column, String errorMessage, HttpStatus httpStatus){
         this.column = column;

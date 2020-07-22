@@ -54,34 +54,34 @@ import java.util.stream.Collectors;
 public class UserControllerIntegrationTest extends DatabaseTest {
 
     private String testUserUUID;
-    List<ProgramEntity> validPrograms;
-    RoleEntity validRole;
-    AuthenticatedUser actingUser;
-    Integer numUsers;
-    List<ProgramUserRoleEntity> validProgramRoles;
+    private List<ProgramEntity> validPrograms;
+    private RoleEntity validRole;
+    private AuthenticatedUser actingUser;
+    private Integer numUsers;
+    private List<ProgramUserRoleEntity> validProgramRoles;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
     private FannyPack fp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
 
     @Inject
     private DSLContext dsl;
     @Inject
-    BiUserDao biUserDao;
+    private BiUserDao biUserDao;
     @Inject
-    SystemRoleDao systemRoleDao;
+    private SystemRoleDao systemRoleDao;
     @Inject
-    RoleDao roleDao;
+    private RoleDao roleDao;
     @Inject
-    ProgramDao programDao;
+    private ProgramDao programDao;
     @Inject
-    ProgramUserRoleDao programUserRoleDao;
+    private ProgramUserRoleDao programUserRoleDao;
 
     private BiUserEntity testUser;
     private BiUserEntity otherTestUser;
     private SystemRoleEntity validSystemRole;
-    String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @BeforeAll
     void setup() throws Exception {

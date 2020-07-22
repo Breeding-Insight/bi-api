@@ -17,13 +17,11 @@
 
 package org.breedinginsight;
 
-import io.micronaut.test.annotation.MicronautTest;
 import lombok.Getter;
 import lombok.SneakyThrows;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
-import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -37,7 +35,8 @@ import java.util.Map;
 
 public class BrAPITest extends DatabaseTest {
 
-    static GenericContainer brapiContainer;
+    @Getter
+    private static GenericContainer brapiContainer;
     @Getter
     private DSLContext brapiDsl;
 
