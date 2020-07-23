@@ -43,11 +43,14 @@ import java.io.File;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class TraitUploadControllerIntegrationTest extends DatabaseTest {
+
+    private FannyPack fp;
 
     @Inject
     private DSLContext dsl;
@@ -67,7 +70,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     public void setup() {
 
         // Insert test data into the db
-        var fp = FannyPack.fill("src/test/resources/sql/UploadControllerIntegrationTest.sql");
+        fp = FannyPack.fill("src/test/resources/sql/UploadControllerIntegrationTest.sql");
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -78,9 +81,38 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         // Insert user into program as not active
         dsl.execute(fp.get("InsertInactiveProgramUser"));
 
+        // Insert Trait
+        dsl.execute(fp.get("InsertProgramObservationLevel"));
+        dsl.execute(fp.get("InsertProgramOntology"));
+        dsl.execute(fp.get("InsertMethod"));
+        dsl.execute(fp.get("InsertScale"));
+        dsl.execute(fp.get("InsertTrait"));
+
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
 
+    }
+
+    @Test
+    @Order(1)
+    void putTraitUploadDuplicatesInDB() {
+
+        File file = new File("src/test/resources/files/data_one_row.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 2, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(409, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+
+        dsl.execute(fp.get("DeleteTrait"));
     }
 
     @Test
@@ -140,7 +172,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
@@ -150,6 +182,10 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Check for conflict response
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        checkMultiErrorResponse(rowErrors);
     }
 
     @Test
@@ -159,6 +195,35 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Check for conflict response
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        checkMultiErrorResponse(rowErrors);
+    }
+
+    @Test
+    void putTraitUploadDuplicatesInFile() {
+
+        File file = new File("src/test/resources/files/duplicatesInFile.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 2, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 2, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(409, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+
+        JsonObject rowError2 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors2 = rowError2.getAsJsonArray("errors");
+        assertTrue(errors2.size() == 2, "Not enough errors were returned");
+        JsonObject error2 = errors2.get(0).getAsJsonObject();
+        assertEquals(409, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
     }
 
     @Test
@@ -315,4 +380,17 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
+    void checkMultiErrorResponse(JsonArray rowErrors) {
+
+        assertTrue(rowErrors.size() > 0, "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertTrue(errors.size() > 0, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertTrue(error.has("column"), "Column field not included in return");
+        assertTrue(error.has("errorMessage"), "errorMessage field not included in return");
+        assertTrue(error.has("httpStatus"), "httpStatus field not included in return");
+        assertTrue(error.has("httpStatusCode"), "httpStatusCode field not included in return");
+    }
 }

@@ -66,7 +66,7 @@ public class ExcelParser {
             }
         }
 
-        // check for duplicates
+        // check for duplicate column names
         if (hasDuplicates(new ArrayList(indexColNameMap.values()))) {
             throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
         }
