@@ -16,29 +16,55 @@
  */
 package org.breedinginsight.services.parsers;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import groovy.util.MapEntry;
+import io.micronaut.context.annotation.Replaces;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.breedinginsight.api.model.v1.response.RowValidationErrors;
+import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.services.parsers.excel.ExcelParser;
+import org.breedinginsight.services.parsers.excel.ExcelRecord;
+import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.Mock;
+import org.mockito.Spy;
 
+import javax.validation.Validation;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TraitFileParserUnitTest {
 
     private TraitFileParser parser;
+    @Mock
+    TraitFileParser mockParser;
 
     @BeforeAll
     void setup() {
@@ -129,16 +155,6 @@ public class TraitFileParserUnitTest {
 
     @Test
     @SneakyThrows
-    void parseCsvActiveColumnInvalidValue() {
-        File file = new File("src/test/resources/files/data_one_row_invalid_active_value.csv");
-        InputStream inputStream = new FileInputStream(file);
-
-        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
-        assertEquals(ParsingExceptionType.INVALID_TRAIT_STATUS, e.getType(), "Wrong type");
-    }
-
-    @Test
-    @SneakyThrows
     void parseCsvActiveColumnBlank() {
         File file = new File("src/test/resources/files/data_one_row_blank_active_value.csv");
         InputStream inputStream = new FileInputStream(file);
@@ -158,34 +174,62 @@ public class TraitFileParserUnitTest {
         assertEquals(1, traits.size(), "number of traits different than expected");
     }
 
+
     @Test
     @SneakyThrows
-    void parseCsvScaleClassInvalidValue() {
-        File file = new File("src/test/resources/files/data_one_row_invalid_scale_class.csv");
+    void parseCsvConvertToTraitsError() {
+
+        File file = new File("src/test/resources/files/multiple_rows_parsing_errors.csv");
         InputStream inputStream = new FileInputStream(file);
 
-        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
-        assertEquals(ParsingExceptionType.INVALID_SCALE_CLASS, e.getType(), "Wrong type");
+        ValidatorException e = assertThrows(ValidatorException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
+
+        ValidationErrors rowErrors = e.getErrors();
+        assertTrue(rowErrors.getRowErrors().size() == 3, "Wrong number of row errors returned");
+
+        Map<String, ParsingExceptionType> expectedErrors1 = new HashMap<>();
+        expectedErrors1.put(TraitFileColumns.SCALE_CLASS.toString(), ParsingExceptionType.INVALID_SCALE_CLASS);
+        expectedErrors1.put(TraitFileColumns.TRAIT_STATUS.toString(), ParsingExceptionType.INVALID_TRAIT_STATUS);
+
+        Map<String, ParsingExceptionType> expectedErrors2 = new HashMap<>();
+        expectedErrors2.putAll(expectedErrors1);
+        expectedErrors2.put(TraitFileColumns.SCALE_CATEGORIES.toString(), ParsingExceptionType.INVALID_SCALE_CATEGORIES);
+        Map<String, ParsingExceptionType> expectedErrors3 = new HashMap<>();
+        expectedErrors3.putAll(expectedErrors1);
+        expectedErrors3.put(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(), ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES);
+        expectedErrors3.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT);
+        expectedErrors3.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT);
+
+        checkParsingExceptionErrors(rowErrors.getRowErrors().get(0), expectedErrors1);
+        checkParsingExceptionErrors(rowErrors.getRowErrors().get(1), expectedErrors2);
+        checkParsingExceptionErrors(rowErrors.getRowErrors().get(2), expectedErrors3);
     }
 
-    @Test
-    @SneakyThrows
-    void parseCsvScaleClassBlank() {
-        File file = new File("src/test/resources/files/data_one_row_blank_scale_class.csv");
-        InputStream inputStream = new FileInputStream(file);
+    void checkParsingExceptionErrors(RowValidationErrors rowError, Map<String, ParsingExceptionType> errorColumns) {
 
-        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
-        assertEquals(ParsingExceptionType.MISSING_SCALE_CLASS, e.getType(), "Wrong type");
-    }
+        Boolean unknownExceptionReturned = false;
+        Map<String,Boolean> seenMap = new HashMap<>();
+        errorColumns.keySet().forEach(e->seenMap.put(e,false));
 
-    @Test
-    @SneakyThrows
-    void parseCsvScaleDecimalPlacesInvalid() {
-        File file = new File("src/test/resources/files/data_one_row_scale_decimal_invalid.csv");
-        InputStream inputStream = new FileInputStream(file);
+        for (ValidationError error: rowError.getErrors()){
+            if (errorColumns.containsKey(error.getColumn())){
+                ParsingExceptionType exceptionType = errorColumns.get(error.getColumn());
+                assertEquals(422, error.getHttpStatusCode(), "Wrong status code");
+                assertEquals(exceptionType.toString(), error.getErrorMessage(), "Wrong error message");
+                seenMap.replace(error.getColumn(), true);
+            } else {
+                unknownExceptionReturned = true;
+            }
+        }
 
-        ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
-        assertEquals(ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES, e.getType(), "Wrong type");
+        if (unknownExceptionReturned){
+            throw new AssertionFailedError("Unknown exception was returned");
+        }
+
+        if (seenMap.values().contains(false)){
+            throw new AssertionFailedError("Not all exceptions were returned");
+        }
+
     }
 
     @Test

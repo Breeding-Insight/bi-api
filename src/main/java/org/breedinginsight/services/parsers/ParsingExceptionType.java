@@ -29,7 +29,8 @@ public enum ParsingExceptionType {
     MISSING_SCALE_CLASS("Missing scale class value"),
     INVALID_SCALE_DECIMAL_PLACES("Invalid scale decimal places value"),
     INVALID_SCALE_LOWER_LIMIT("Invalid scale lower limit value"),
-    INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value");
+    INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value"),
+    INVALID_SCALE_CATEGORIES("Invalid scale categories format");
 
     private String value;
 

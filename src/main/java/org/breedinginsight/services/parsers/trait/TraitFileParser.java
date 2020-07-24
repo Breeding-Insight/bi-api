@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.services.parsers.trait;
 
+import io.micronaut.http.HttpStatus;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
@@ -25,11 +26,15 @@ import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
 
 import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
 import org.breedinginsight.services.parsers.excel.ExcelParser;
 import org.breedinginsight.services.parsers.excel.ExcelRecord;
@@ -59,7 +64,7 @@ public class TraitFileParser {
     private final static Set TRAIT_STATUS_VALID_VALUES = Collections.unmodifiableSet(
             Set.of(TRAIT_STATUS_ACTIVE, TRAIT_STATUS_ARCHIVED));
 
-    public List<Trait> parseExcel(@NonNull InputStream inputStream) throws ParsingException {
+    public List<Trait> parseExcel(@NonNull InputStream inputStream) throws ParsingException, ValidatorException {
 
         Workbook workbook = null;
         try {
@@ -75,11 +80,17 @@ public class TraitFileParser {
         }
 
         List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumns());
-        return excelRecordsToTraits(records);
+
+        try {
+            return excelRecordsToTraits(records);
+        } catch (ValidatorException e){
+            throw e;
+        }
+
     }
 
     // no sheets RFC4180
-    public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException {
+    public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException, ValidatorException {
 
         ArrayList<Trait> traits = new ArrayList<>();
         InputStreamReader in = new InputStreamReader(inputStream);
@@ -96,18 +107,26 @@ public class TraitFileParser {
 
         Sheet excelSheet = convertCsvToExcel(records);
         List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumns());
-        return excelRecordsToTraits(excelRecords);
 
+        try {
+            return excelRecordsToTraits(excelRecords);
+        } catch (ValidatorException e){
+            throw e;
+        }
     }
 
-    private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) throws ParsingException {
+    private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) throws ValidatorException {
         List<Trait> traits = new ArrayList<>();
+        ValidationErrors validationErrors = new ValidationErrors();
 
-        for (ExcelRecord record : records) {
+        for (int i = 0; i < records.size(); i++) {
+
+            ExcelRecord record = records.get(i);
 
             ProgramObservationLevel level = ProgramObservationLevel.builder()
                     .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_LEVEL))
                     .build();
+
 
             Boolean active;
             String traitStatus = parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS);
@@ -115,7 +134,9 @@ public class TraitFileParser {
                 active = true;
             } else {
                 if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
-                    throw new ParsingException(ParsingExceptionType.INVALID_TRAIT_STATUS);
+                    ValidationError error = new ValidationError(TraitFileColumns.TRAIT_STATUS.toString(),
+                            ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(i, error);
                 }
                 active = !traitStatus.equals(TRAIT_STATUS_ARCHIVED);
             }
@@ -129,20 +150,31 @@ public class TraitFileParser {
 
             DataType dataType = null;
             String dataTypeString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS);
-            if (dataTypeString == null) {
-                throw new ParsingException(ParsingExceptionType.MISSING_SCALE_CLASS);
+
+            if (dataTypeString != null) {
+                try {
+                    dataType = DataType.valueOf(dataTypeString.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_CLASS.toString(),
+                            ParsingExceptionType.INVALID_SCALE_CLASS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(i, error);
+                }
             }
 
+            List<BrApiScaleCategories> categories = new ArrayList<>();
+            String categoriesString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES);
+            List<String> categoriesStringList = parseListValue(categoriesString);
             try {
-                dataType = DataType.valueOf(dataTypeString.toUpperCase());
-            } catch (IllegalArgumentException e) {
+                for (String value: categoriesStringList){
+                    categories.add(parseCategory(value));
+                }
+            } catch (UnprocessableEntityException e){
                 log.error(e.getMessage());
-                throw new ParsingException(ParsingExceptionType.INVALID_SCALE_CLASS);
+                ValidationError error = new ValidationError(TraitFileColumns.SCALE_CATEGORIES.toString(),
+                        ParsingExceptionType.INVALID_SCALE_CATEGORIES.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                validationErrors.addError(i, error);
             }
-
-            List<BrApiScaleCategories> categories = parseListValue(parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES)).stream()
-                    .map(value -> parseCategory(value))
-                    .collect(Collectors.toList());
 
             Integer decimalPlaces = null;
             Integer validValueMin = null;
@@ -157,7 +189,9 @@ public class TraitFileParser {
                     decimalPlaces = Integer.valueOf(decimalPlacesStr);
                 } catch (NumberFormatException e) {
                     log.error(e.getMessage());
-                    throw new ParsingException(ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES);
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(),
+                            ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(i, error);
                 }
             }
 
@@ -166,7 +200,9 @@ public class TraitFileParser {
                     validValueMin = Integer.valueOf(validValueMinStr);
                 } catch (NumberFormatException e) {
                     log.error(e.getMessage());
-                    throw new ParsingException(ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT);
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_LOWER_LIMIT.toString(),
+                            ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(i, error);
                 }
             }
 
@@ -175,7 +211,9 @@ public class TraitFileParser {
                     validValueMax = Integer.valueOf(validValueMaxStr);
                 } catch (NumberFormatException e) {
                     log.error(e.getMessage());
-                    throw new ParsingException(ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT);
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_UPPER_LIMIT.toString(),
+                            ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(i, error);
                 }
             }
 
@@ -188,10 +226,16 @@ public class TraitFileParser {
                     .categories(categories)
                     .build();
 
+            String abbreviationsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS);
+            List<String> traitAbbreviations = parseListValue(abbreviationsString);
+
+            String synonymsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS);
+            List<String> traitSynonyms = parseListValue(synonymsString);
+
             Trait trait = Trait.builder()
                     .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
-                    .abbreviations(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS)).toArray(String[]::new))
-                    .synonyms(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS)))
+                    .abbreviations(traitAbbreviations.toArray(String[]::new))
+                    .synonyms(traitSynonyms)
                     .description(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
                     .programObservationLevel(level)
                     .active(active)
@@ -202,6 +246,10 @@ public class TraitFileParser {
 
             traits.add(trait);
 
+        }
+
+        if (validationErrors.getRowErrors().size() > 0){
+            throw new ValidatorException(validationErrors);
         }
 
         return traits;
@@ -247,7 +295,7 @@ public class TraitFileParser {
                 .collect(Collectors.toList());
     }
 
-    private BrApiScaleCategories parseCategory(String value) {
+    private BrApiScaleCategories parseCategory(String value) throws UnprocessableEntityException {
 
         BrApiScaleCategories category = new BrApiScaleCategories();
 
@@ -258,6 +306,9 @@ public class TraitFileParser {
         }
         else if (labelMeaning.length == 1) {
             category.setValue(labelMeaning[0].trim());
+        } else if (labelMeaning.length > 2){
+            // The case where there are multiple category delimiters in a value. Could be cause by bad list delimeter.
+            throw new UnprocessableEntityException("Unable to parse categories");
         }
 
         return category;

@@ -101,6 +101,9 @@ public class TraitUploadService {
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
+            } catch (ValidatorException e){
+                log.info(e.getErrors().toString());
+                throw e;
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
