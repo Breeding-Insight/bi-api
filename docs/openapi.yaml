@@ -72,17 +72,52 @@ paths:
                       orcid: 1234-4312-4352-6314
                       name: Bob Smith
                       email: bob.smith@mail.com
+                      active: true
                       systemRoles: [
                       {
                         id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                         domain: "admin"
                       }
                       ]
+                      programRoles: [
+                      {
+                        active: false,
+                        roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                        ],
+                        program: {
+                          id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                          name: Test Program1,
+                          abbreviation: test1,
+                          objective: To test all the things
+                        }
+                      },
+                      {
+                        active: true,
+                        roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                        ],
+                        program: {
+                          id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                          name: Test Program,
+                          abbreviation: test,
+                          objective: To test things
+                        }
+                      }
+                      ]
                     - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
                       orcid: 1234-4312-4352-6314
                       name: Fred Brown
                       email: null
+                      active: true
                       systemRoles: []
+                      programRoles: []
         "400":
           description: Bad Request
           content:
@@ -143,12 +178,14 @@ paths:
                   orcid: null
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                     domain: "admin"
                   }
                   ]
+                  programRoles: []
         "400":
           description: Bad Request
           content:
@@ -219,10 +256,28 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                     domain: "admin"
+                  }
+                  ]
+                  programRoles: [
+                  {
+                    active: false,
+                    roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                    ],
+                    program: {
+                      id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                      name: Test Program1,
+                      abbreviation: test1,
+                      objective: To test all the things
+                    }
                   }
                   ]
         "400":
@@ -303,10 +358,28 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                     domain: "admin"
+                  }
+                  ]
+                  programRoles: [
+                  {
+                    active: true,
+                    roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                    ],
+                    program: {
+                      id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                      name: Test Program,
+                      abbreviation: test,
+                      objective: To test things
+                    }
                   }
                   ]
         "400":
@@ -458,12 +531,14 @@ paths:
                   orcid: 1111-2222-3333-4444
                   name: Bob Smith
                   email: bob@bob.com
+                  active: true
                   systemRoles: [
                   {
                     id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
                     domain: "admin"
                   }
                   ]
+                  programRoles: []
         "400":
           description: Bad Request
           content:
@@ -879,7 +954,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/programUserResponse'
-              example:
+              examples:
                 programUserExample2:
                   $ref: '#/components/examples/singleProgramUser'
         "400":
@@ -1979,6 +2054,9 @@ paths:
                 file:
                   type: string
                   format: binary
+            encoding:
+              file:
+                contentType: text/csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
       responses:
         "200":
           description: OK
@@ -2251,13 +2329,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /topographies:
+  /topography-options:
     get:
       tags:
-        - topographies
-      summary: Get list of all topographies in the system.
-      description: Get list of all topographies
-      operationId: getTopographies
+        - topography options
+      summary: Get list of all topography options in the system.
+      description: Get list of all topography options
+      operationId: getTopographyOptions
       responses:
         "200":
           description: OK
@@ -2267,7 +2345,7 @@ paths:
                 $ref: '#/components/schemas/topographiesResponse'
               examples:
                 arrayOfTopographies:
-                  $ref: '#/components/examples/arrayOfTopographies'
+                  $ref: '#/components/examples/arrayOfTopographyOptions'
         "400":
           description: Bad Request
           content:
@@ -2294,17 +2372,17 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /topographies/{id}:
+  /topography-options/{id}:
     get:
       tags:
-        - topographies
-      summary: Get topography information
-      description: Get a specific topography
-      operationId: getTopographyById
+        - topography options
+      summary: Get topography option information
+      description: Get a specific topography option
+      operationId: getTopographyOptionById
       parameters:
         - name: id
           in: path
-          description: The id of the topography information that needs to be fetched.
+          description: The id of the topography option information that needs to be fetched.
           required: true
           style: simple
           explode: false
@@ -2316,10 +2394,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/topographiesResponseSingle'
+                $ref: '#/components/schemas/topographyOptionsResponseSingle'
               examples:
                 singleTopography:
-                  $ref: '#/components/examples/singleTopography'
+                  $ref: '#/components/examples/singleTopographyOption'
         "400":
           description: Bad Request
           content:
@@ -2354,23 +2432,23 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /accessibilities:
+  /accessibility-options:
     get:
       tags:
-        - accessibilities
-      summary: Get list of all accessibilities in the system.
-      description: Get list of all accessibilities
-      operationId: getAccessibilities
+        - accessibility options
+      summary: Get list of all accessibility options in the system.
+      description: Get list of all accessibility options
+      operationId: getAccessibilityOptions
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/accessibilitiesResponse'
+                $ref: '#/components/schemas/accessibilityOptionsResponse'
               examples:
                 arrayOfAccessibilities:
-                  $ref: '#/components/examples/arrayOfAccessibilities'
+                  $ref: '#/components/examples/arrayOfAccessibilityOptions'
         "400":
           description: Bad Request
           content:
@@ -2397,17 +2475,17 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /accessibilities/{id}:
+  /accessibility-options/{id}:
     get:
       tags:
-        - accessibilities
-      summary: Get accessibility information
-      description: Get a specific accessibility
-      operationId: getAccessibilityById
+        - accessibility options
+      summary: Get accessibility option information
+      description: Get a specific accessibility option
+      operationId: getAccessibilityOptionById
       parameters:
         - name: id
           in: path
-          description: The id of the accessibility information that needs to be fetched.
+          description: The id of the accessibility option information that needs to be fetched.
           required: true
           style: simple
           explode: false
@@ -2419,10 +2497,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/accessibilitiesResponseSingle'
+                $ref: '#/components/schemas/accessibilityOptionsResponseSingle'
               examples:
                 singleAccessibility:
-                  $ref: '#/components/examples/singleAccessibility'
+                  $ref: '#/components/examples/singleAccessibilityOption'
         "400":
           description: Bad Request
           content:
@@ -2457,23 +2535,23 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-  /environmentTypes:
+  /environment-data-types:
     get:
       tags:
-        - environmentTypes
-      summary: Get list of all environment yypes in the system.
-      description: Get list of all environment yypes
-      operationId: getEnvironmentTypes
+        - environment data types
+      summary: Get list of all environment data types in the system.
+      description: Get list of all environment data types
+      operationId: getEnvironmentDataTypes
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/environmentTypesResponse'
+                $ref: '#/components/schemas/environmentDataTypesResponse'
               examples:
-                arrayOfEnvironmentTypes:
-                  $ref: '#/components/examples/arrayOfEnvironmentTypes'
+                arrayOfEnvironmentDataTypes:
+                  $ref: '#/components/examples/arrayOfEnvironmentDataTypes'
         "400":
           description: Bad Request
           content:
@@ -2500,17 +2578,17 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
                 to perform this action
-  /environmentTypes/{id}:
+  /environment-data-types/{id}:
     get:
       tags:
-        - environmentTypes
-      summary: Get environment type information
-      description: Get a specific environment type
-      operationId: getEnvironmentTypeById
+        - environmentDataTypes
+      summary: Get environment data type information
+      description: Get a specific environment data type
+      operationId: getEnvironmentDataTypeById
       parameters:
         - name: id
           in: path
-          description: The id of the environment type information that needs to be fetched.
+          description: The id of the environment data type information that needs to be fetched.
           required: true
           style: simple
           explode: false
@@ -2522,10 +2600,10 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/environmentTypesResponseSingle'
+                $ref: '#/components/schemas/environmentDataTypesResponseSingle'
               examples:
-                singleEnvironmentType:
-                  $ref: '#/components/examples/singleEnvironmentType'
+                singleEnvironmentDataType:
+                  $ref: '#/components/examples/singleEnvironmentDataType'
         "400":
           description: Bad Request
           content:
@@ -2573,6 +2651,7 @@ components:
             The empty list should be returned if no additional data files are present.
           items:
             type: string
+
         pagination:
           $ref: '#/components/schemas/metadata_pagination'
         status:
@@ -2605,10 +2684,49 @@ components:
         id:
           type: string
           format: uuid
+        orcid:
+          type: string
         name:
           type: string
         email:
           type: string
+        active:
+          type: boolean
+        systemRoles:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            domain:
+              type: string
+        programRoles:
+          type: object
+          properties:
+            active:
+              type: boolean
+            roles:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  domain:
+                    type: string
+            program:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                abbreviation:
+                  type: string
+                objective:
+                  type: string
     country:
       type: object
       properties:
@@ -2621,7 +2739,7 @@ components:
           type: string
         alpha3Code:
           type: string
-    topography:
+    topographyOption:
       type: object
       properties:
         id:
@@ -2629,7 +2747,7 @@ components:
           format: uuid
         name:
           type: string
-    accessibility:
+    accessibilityOption:
       type: object
       properties:
         id:
@@ -2637,7 +2755,7 @@ components:
           format: uuid
         name:
           type: string
-    environmentType:
+    environmentDataType:
       type: object
       properties:
         id:
@@ -2671,6 +2789,18 @@ components:
           description: Array of roles
           items:
             $ref: '#/components/schemas/role'
+        program:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            abbreviation:
+              type: string
+            objective:
+              type: string
     program:
       type: object
       properties:
@@ -3118,7 +3248,7 @@ components:
           type: array
           description: Array of topographies
           items:
-            $ref: '#/components/schemas/topography'
+            $ref: '#/components/schemas/topographyOption'
     topographiesResponseSingle:
       title: topographiesResponse
       required:
@@ -3129,7 +3259,7 @@ components:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
-          $ref: '#/components/schemas/topography'
+          $ref: '#/components/schemas/topographyOption'
     accessibilitiesResponse:
       title: accessibilitiesResponse
       required:
@@ -3150,7 +3280,7 @@ components:
           type: array
           description: Array of accessibilities
           items:
-            $ref: '#/components/schemas/accessibility'
+            $ref: '#/components/schemas/accessibilityOption'
     accessibilitiesResponseSingle:
       title: accessibilitiesResponse
       required:
@@ -3161,7 +3291,7 @@ components:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
-          $ref: '#/components/schemas/accessibility'
+          $ref: '#/components/schemas/accessibilityOption'
     environmentTypesResponse:
       title: environmentTypesResponse
       required:
@@ -3182,7 +3312,7 @@ components:
           type: array
           description: Array of environemnt types
           items:
-            $ref: '#/components/schemas/environmentType'
+            $ref: '#/components/schemas/environmentDataType'
     environmentTypesResponseSingle:
       title: environmentTypesResponse
       required:
@@ -3193,7 +3323,92 @@ components:
         metadata:
           $ref: '#/components/schemas/metadata'
         result:
-          $ref: '#/components/schemas/environmentType'
+          $ref: '#/components/schemas/location'
+    topographyOptionsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of topographies
+          items:
+            $ref: '#/components/schemas/topographyOption'
+    topographyOptionsResponseSingle:
+      title: topographyOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographyOption'
+    accessibilityOptionsResponse:
+      title: accessibilityOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOptionsResponseResult'
+    accessibilityOptionsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of accessibility options
+          items:
+            $ref: '#/components/schemas/accessibilityOption'
+    accessibilityOptionsResponseSingle:
+      title: accessibilityOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOption'
+    environmentDataTypesResponse:
+      title: environmentDataTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentDataTypesResponseResult'
+    environmentDataTypesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of environemnt data types
+          items:
+            $ref: '#/components/schemas/environmentDataType'
+    environmentDataTypesResponseSingle:
+      title: environmentDataTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentDataType'
     rolesResponse:
       title: rolesResponse
       required:
@@ -3411,79 +3626,6 @@ components:
             name:
               type: string
               description: Name of the observation level
-            active:
-              type: boolean
-        method:
-          type: object
-          properties:
-            methodName:
-              type: string
-            methodClass:
-              type: string
-            description:
-              type: string
-            formula:
-              type: string
-        scale:
-          type: object
-          properties:
-            scaleName:
-              type: string
-            dataType:
-              type: string
-            decimalPlaces:
-              type: integer
-            categories:
-              type: array
-              items:
-                type: object
-                properties:
-                  label:
-                    type: string
-                  value:
-                    type: string
-            validValueMax:
-              type: integer
-            validValueMin:
-              type: integer
-    arrayOfNewTraits:
-      type: array
-      items:
-        $ref: '#/components/schemas/newTrait'
-    newTrait:
-      type: object
-      properties:
-        traitName:
-          type: string
-          description: Trait display name
-        description:
-          type: string
-        traitClass:
-          type: string
-          example: "morphological"
-        attribute:
-          type: string
-          description: Attribute the trait is describing
-          example: height
-        defaultValue:
-          type: string
-          description: Default value of the trait
-        mainAbbreviation:
-          type: string
-        abbreviations:
-          type: array
-          items:
-            type: string
-        synonyms:
-          type: array
-          items:
-            type: string
-        programObservationLevel:
-          type: object
-          properties:
-            name:
-              type: string
-              description: Name of the observation level
         method:
           type: object
           properties:
@@ -3631,6 +3773,81 @@ components:
               format: uuid
             name:
               type: string
+    arrayOfNewTraits:
+      type: array
+      items:
+        $ref: '#/components/schemas/newTrait'
+    newTrait:
+      type: object
+      properties:
+        traitName:
+          type: string
+          description: Trait display name
+        description:
+          type: string
+        traitClass:
+          type: string
+          example: "morphological"
+        attribute:
+          type: string
+          description: Attribute the trait is describing
+          example: height
+        defaultValue:
+          type: string
+          description: Default value of the trait
+        mainAbbreviation:
+          type: string
+        abbreviations:
+          type: array
+          items:
+            type: string
+        synonyms:
+          type: array
+          items:
+            type: string
+        programObservationLevel:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the observation level
+        method:
+          type: object
+          properties:
+            methodName:
+              type: string
+            methodClass:
+              type: string
+            description:
+              type: string
+              format: UUID
+            formula:
+              type: string
+              format: UUID
+        scale:
+          type: object
+          properties:
+            scaleName:
+              type: string
+              format: datetime
+            dataType:
+              type: string
+              format: datetime
+            decimalPlaces:
+              type: integer
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  value:
+                    type: string
+            validValueMax:
+              type: integer
+            validValueMin:
+              type: integer
     validatorErrorResponse:
       type: object
       properties:
@@ -3819,6 +4036,11 @@ components:
               roles:
                 - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
                   domain: Breeder
+              program:
+                id: 37935efa-4c0f-4269-8669-f78d21b26f04
+                name: Test Program
+                abbreviation: test,
+                objective: To test things
             - createdAt: "2020-02-09T09:57:35-04:00"
               updatedAt: "2020-02-09T09:57:35-04:00"
               createdByUser:
@@ -3835,7 +4057,12 @@ components:
                 email: tim.smith@mail.com
               roles:
                 - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
-                  domain: Breeder
+                  domain: Breeder'
+              program:
+                id: 37935efa-4c0f-4269-8669-f78d21b26f04
+                name: Test Program
+                abbreviation: test,
+                objective: To test things
     singleProgramUser:
       value:
         metadata:
@@ -3864,6 +4091,11 @@ components:
           roles:
             - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
               domain: Field Manager
+          program:
+            id: 37935efa-4c0f-4269-8669-f78d21b26f04
+            name: Test Program
+            abbreviation: test,
+            objective: To test things
     arrayOfCountries:
       value:
         metadata:
@@ -3899,7 +4131,7 @@ components:
           name: United States of America
           alpha2Code: US
           alpha3Code: USA
-    arrayOfTopographies:
+    arrayOfTopographyOptions:
       value:
         metadata:
           datafiles: []
@@ -3915,7 +4147,7 @@ components:
               name: plateau
             - id: 8cc0390e-e490-443a-948b-e2fde4a7627e
               name: cirque
-    singleTopography:
+    singleTopographyOption:
       value:
         metadata:
           datafiles: []
@@ -3928,7 +4160,7 @@ components:
         result:
           id: 60a5b049-064c-4550-b5cd-2a7394724bdc
           name: plateau
-    arrayOfAccessibilities:
+    arrayOfAccessibilityOptions:
       value:
         metadata:
           datafiles: []
@@ -3944,7 +4176,7 @@ components:
               name: private
             - id: 59f6652d-ec2e-4db0-b748-02302656ec1c
               name: public
-    singleAccessibility:
+    singleAccessibilityOption:
       value:
         metadata:
           datafiles: []
@@ -3957,7 +4189,7 @@ components:
         result:
           id: 1eab0b9d-400f-4e85-97cb-9071ab95c6a4
           name: private
-    arrayOfEnvironmentTypes:
+    arrayOfEnvironmentDataTypes:
       value:
         metadata:
           datafiles: []
@@ -3973,7 +4205,7 @@ components:
               name: forest
             - id: aa887f61-a831-4663-9d12-7368c1961590
               name: field
-    singleEnvironmentType:
+    singleEnvironmentDataType:
       value:
         metadata:
           datafiles: []
@@ -4223,22 +4455,21 @@ components:
               programObservationLevel:
                 {
                   id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
-                  name: "Plant"
+                  name: "Plant",
+                  active: true,
+                  createdAt: "2020-06-04T11:05:48-04:00",
+                  updatedAt: "2020-06-04T11:05:48-04:00",
                 },
               method:
                 {
                   methodName: "Test Method",
-                  methodClass: "Counting",
-                  description: "A test method",
-                  formula: "a^2+b^2=c^2"
+                  methodClass: "Counting"
                 },
               scale:
                 {
                   scaleName: "Test Scale",
-                  dataType: "Numerical",
+                  dataType: "TEXT",
                   decimalPlaces: 3,
-                  validValueMax: 9999,
-                  validValueMin: 1,
                   categories:
                     [
                     {
@@ -4250,6 +4481,13 @@ components:
                       value: "value2"
                     }
                     ]
+                },
+              programOntology:
+                {
+                  id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                  programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                  createdAt: "2020-06-04T11:05:48-04:00",
+                  updatedAt: "2020-06-04T11:05:48-04:00"
                 },
               createdByUser:
                 {
@@ -4291,22 +4529,21 @@ components:
             programObservationLevel:
               {
                 id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
-                name: "Plant"
+                name: "Plant",
+                active: true,
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00",
               },
             method:
               {
                 methodName: "Test Method",
-                methodClass: "Counting",
-                description: "A test method",
-                formula: "a^2+b^2=c^2"
+                methodClass: "Counting"
               },
             scale:
               {
                 scaleName: "Test Scale",
-                dataType: "Numerical",
+                dataType: "TEXT",
                 decimalPlaces: 3,
-                validValueMax: 9999,
-                validValueMin: 1,
                 categories:
                   [
                   {
@@ -4318,6 +4555,13 @@ components:
                     value: "value2"
                   }
                   ]
+              },
+            programOntology:
+              {
+                id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00"
               },
             createdByUser:
               {
