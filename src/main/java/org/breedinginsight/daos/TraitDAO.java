@@ -46,15 +46,15 @@ import static org.jooq.impl.DSL.values;
 public class TraitDAO extends TraitDao {
 
     private DSLContext dsl;
-    @Inject
     private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider) {
         super(config);
         this.dsl = dsl;
+        this.brAPIProvider = brAPIProvider;
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {

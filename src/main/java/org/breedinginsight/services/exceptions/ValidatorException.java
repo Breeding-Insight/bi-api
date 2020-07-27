@@ -23,7 +23,7 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 @Getter
 public class ValidatorException extends Exception {
 
-    ValidationErrors errors;
+    private ValidationErrors errors;
 
     public ValidatorException(ValidationErrors errors) {
         this.errors = errors;

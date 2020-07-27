@@ -32,6 +32,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidator;
 import org.breedinginsight.services.validators.TraitValidatorError;
+import org.breedinginsight.services.validators.TraitValidatorErrorInterface;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
@@ -117,32 +118,16 @@ public class TraitService {
         ProgramOntology programOntology = programOntologyOptional.get();
 
         ValidationErrors validationErrors = new ValidationErrors();
-
-        // Get our program observation levels
-        List<ProgramObservationLevel> programLevels = programObservationLevelService.getByProgramId(programId);
-        for (int i = 0; i < traits.size(); i++) {
-            Trait trait = traits.get(i);
-            if (trait.getProgramObservationLevel() != null){
-                List<ProgramObservationLevel> matchingLevels = programLevels.stream()
-                        .filter(programObservationLevel -> programObservationLevel.getName().equals(trait.getProgramObservationLevel().getName()))
-                        .collect(Collectors.toList());
-                if (matchingLevels.size() == 0) {
-                    ValidationError validationError = new ValidationError("programObservationLevel.name",
-                            "Program Observation Level does not exist.", HttpStatus.NOT_FOUND);
-                    validationErrors.addError(i, validationError);
-                } else {
-                    ProgramObservationLevel dbLevel = matchingLevels.get(0);
-                    trait.getProgramObservationLevel().setId(dbLevel.getId());
-                }
-            }
+        try {
+            assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
+        } catch (ValidatorException e){
+            validationErrors.merge(e.getErrors());
         }
 
-        // Validate the traits
-        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
-        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
-        ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits, traitValidatorError);
-        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
+        Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
+        if (optionalValidationErrors.isPresent()){
+            validationErrors.merge(optionalValidationErrors.get());
+        }
 
         if (validationErrors.hasErrors()){
             throw new ValidatorException(validationErrors);
@@ -194,5 +179,33 @@ public class TraitService {
 
 
         return createdTraits;
+    }
+
+    public void assignTraitsProgramObservationLevel(List<Trait> traits, UUID programId, TraitValidatorErrorInterface traitValidatorError) throws ValidatorException {
+
+        ValidationErrors validationErrors = new ValidationErrors();
+
+        // Get our program observation levels
+        List<ProgramObservationLevel> programLevels = programObservationLevelService.getByProgramId(programId);
+        for (int i = 0; i < traits.size(); i++) {
+            Trait trait = traits.get(i);
+            if (trait.getProgramObservationLevel() != null){
+                List<ProgramObservationLevel> matchingLevels = programLevels.stream()
+                        .filter(programObservationLevel -> programObservationLevel.getName().equals(trait.getProgramObservationLevel().getName()))
+                        .collect(Collectors.toList());
+                if (matchingLevels.size() == 0) {
+                    ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist();
+                    validationErrors.addError(i, validationError);
+                } else {
+                    ProgramObservationLevel dbLevel = matchingLevels.get(0);
+                    trait.getProgramObservationLevel().setId(dbLevel.getId());
+                }
+            }
+        }
+
+        if (validationErrors.hasErrors()){
+            throw new ValidatorException(validationErrors);
+        }
+
     }
 }

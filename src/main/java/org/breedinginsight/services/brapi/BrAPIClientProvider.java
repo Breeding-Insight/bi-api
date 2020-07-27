@@ -20,8 +20,7 @@ package org.breedinginsight.services.brapi;
 import io.micronaut.runtime.http.scope.RequestScope;
 import org.brapi.client.v2.BrAPIClient;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 @RequestScope
 public class BrAPIClientProvider {
@@ -48,16 +47,12 @@ public class BrAPIClientProvider {
         else { return genoClient; }
     }
 
-    public List<BrAPIClient> getAllUniqueClients(){
+    public Set<BrAPIClient> getAllUniqueClients(){
 
-        List<BrAPIClient> clients = new ArrayList<>();
+        Set<BrAPIClient> clients = new TreeSet<>(Comparator.comparing(BrAPIClient::brapiURI));
         clients.add(coreClient);
-        if (!coreClient.brapiURI().equals(phenoClient.brapiURI())){
-            clients.add(phenoClient);
-        }
-        if (!coreClient.brapiURI().equals(genoClient.brapiURI()) && !phenoClient.brapiURI().equals(genoClient.brapiURI())) {
-            clients.add(genoClient);
-        }
+        clients.add(phenoClient);
+        clients.add(genoClient);
 
         return clients;
     }

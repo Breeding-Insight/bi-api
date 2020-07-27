@@ -30,7 +30,7 @@ services:
       - bidb
       - brapi-server
     volumes:
-      - /usr/local/bin/docker:/usr/bin/docker
+      - /usr/bin/docker:/usr/bin/docker
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - API_INTERNAL_PORT=${API_INTERNAL_PORT}
@@ -71,7 +71,7 @@ services:
     image: breedinginsight/brapi-java-server
     container_name: brapi-server
     environment:
-      - BRAPI_DB_SERVER=dbserver
+      - BRAPI_DB_SERVER=dbserver:5432
       - BRAPI_DB=postgres
       - BRAPI_DB_USER=postgres
       - BRAPI_DB_PASSWORD=${DB_PASSWORD}

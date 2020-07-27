@@ -282,6 +282,44 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(4)
+    public void createTraitsLevelDoesNotExist() {
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait that is unique");
+        trait1.setDescription("A trait1");
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Not Exist").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.TEXT);
+        Method method1 = new Method();
+        method1.setMethodName("Test Method");
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+        setBrAPIProperties(trait1);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait1))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Check for conflict response
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Wrong number of errors returned");
+        JsonObject duplicateError = errors.get(0).getAsJsonObject();
+        assertEquals(404, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
+    }
+
+    @Test
+    @Order(4)
     public void createTraitsValidationError() {
 
         Trait trait1 = new Trait();

@@ -110,5 +110,9 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
                 HttpStatus.CONFLICT);
     }
 
-
+    @Override
+    public ValidationError getTraitLevelDoesNotExist() {
+        return new ValidationError("Trait level",
+                "Trait level does not exist.", HttpStatus.NOT_FOUND);
+    }
 }

@@ -26,12 +26,17 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Singleton
 public class BrAPIProvider {
 
-    @Inject
     private Provider<BrAPIClientProvider> brAPIClientProvider;
+
+    @Inject
+    public BrAPIProvider(Provider<BrAPIClientProvider> brAPIClientProvider){
+        this.brAPIClientProvider = brAPIClientProvider;
+    }
 
     public TraitsAPI getTraitsAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
@@ -44,7 +49,7 @@ public class BrAPIProvider {
     }
 
     public List<VariablesAPI> getAllUniqueVariablesAPI(){
-        List<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
+        Set<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
         List<VariablesAPI> variablesAPIS = new ArrayList<>();
         for (BrAPIClient client: clients){
             variablesAPIS.add(new VariablesAPI(client));

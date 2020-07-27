@@ -50,10 +50,14 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class TraitController {
 
-    @Inject
     private TraitService traitService;
-    @Inject
     private SecurityService securityService;
+
+    @Inject
+    public TraitController(TraitService traitService, SecurityService securityService){
+        this.traitService = traitService;
+        this.securityService = securityService;
+    }
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)

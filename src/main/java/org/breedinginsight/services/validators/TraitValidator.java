@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.services.validators;
 
-import io.micronaut.http.HttpStatus;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -128,7 +127,7 @@ public class TraitValidator {
         return errors;
     }
 
-    public ValidationErrors checkDuplicateTraitsExisting(List<Trait> traits, TraitValidatorError traitValidatorError) {
+    public ValidationErrors checkDuplicateTraitsExisting(List<Trait> traits, TraitValidatorErrorInterface traitValidatorError) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -259,5 +258,22 @@ public class TraitValidator {
         }
 
         return matchingTraits;
+    }
+
+    public Optional<ValidationErrors> checkAllTraitValidations(List<Trait> traits, TraitValidatorErrorInterface traitValidatorError) {
+
+        ValidationErrors validationErrors = new ValidationErrors();
+        // Validate the traits
+        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
+        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
+        ValidationErrors duplicateTraits = checkDuplicateTraitsExisting(traits, traitValidatorError);
+        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits, traitValidatorError);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
+
+        if (validationErrors.hasErrors()){
+            return Optional.of(validationErrors);
+        } else {
+            return Optional.empty();
+        }
     }
 }

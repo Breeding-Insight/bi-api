@@ -48,19 +48,23 @@ import java.util.*;
 @Singleton
 public class TraitUploadService {
 
-    @Inject
     private ProgramUploadDAO programUploadDao;
-    @Inject
     private ProgramService programService;
-    @Inject
     private ProgramUserService programUserService;
-    @Inject
     private TraitFileParser parser;
-    @Inject
     private TraitValidator traitValidator;
-    @Inject
     private TraitFileValidatorError traitValidatorError;
 
+    @Inject
+    public TraitUploadService(ProgramUploadDAO programUploadDAO, ProgramService programService, ProgramUserService programUserService,
+                              TraitFileParser traitFileParser, TraitValidator traitValidator, TraitFileValidatorError traitFileValidatorError){
+        this.programUploadDao = programUploadDAO;
+        this.programService = programService;
+        this.programUserService = programUserService;
+        this.parser = traitFileParser;
+        this.traitValidator = traitValidator;
+        this.traitValidatorError = traitFileValidatorError;
+    }
     @Inject
     private ObjectMapper objMapper;
 
@@ -99,6 +103,13 @@ public class TraitUploadService {
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
+
+        //TODO: Uncomment this when multiple trait validation errors are returned
+        /*try {
+            traitService.assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
+        } catch (ValidatorException e){
+            validationErrors.merge(e.getErrors());
+        }*/
 
         //TODO: Replace this with multiple error code
         // Validate the traits

@@ -28,8 +28,12 @@ import java.util.UUID;
 
 public class ProgramOntologyService {
 
-    @Inject
     private ProgramOntologyDAO programOntologyDAO;
+
+    @Inject
+    public ProgramOntologyService(ProgramOntologyDAO programOntologyDAO){
+        this.programOntologyDAO = programOntologyDAO;
+    }
 
     public Optional<ProgramOntology> getByProgramId(UUID programId){
         List<ProgramOntologyEntity> programOntologyEntities = programOntologyDAO.fetchByProgramId(programId);

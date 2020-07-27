@@ -39,4 +39,5 @@ public interface TraitValidatorErrorInterface {
     ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);
     ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows);
+    ValidationError getTraitLevelDoesNotExist();
 }
