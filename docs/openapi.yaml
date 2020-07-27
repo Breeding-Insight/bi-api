@@ -1949,15 +1949,15 @@ paths:
                 rowErrors:
                   - rowIndex: 1
                     errors:
-                      - column: "programObservationLevel"
+                      - field: "programObservationLevel"
                         errorMessage: "Missing trait name"
                         httpStatus: "UNPROCESSABLE_ENTITY"
                         httpStatusCode: 422
-                      - column: "abbreviations"
+                      - field: "abbreviations"
                         errorMessage: "Abbreviations already exist"
                         httpStatus: "CONFLICT"
                         httpStatusCode: 409
-                      - column: "scale.dataType"
+                      - field: "scale.dataType"
                         errorMessage: "Missing scale data type"
                         httpStatus: "UNPROCESSABLE_ENTITY"
                         httpStatusCode: 422
@@ -3863,7 +3863,7 @@ components:
                 items:
                   type: object
                   properties:
-                    column:
+                    field:
                       type: string
                       description: "Field name that is the source of the error"
                     errorMessage:

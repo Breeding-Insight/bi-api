@@ -77,7 +77,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("method", rowValidationErrors.getErrors().get(0).getColumn(), "Wrong error column");
+        assertEquals("method", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
     }
 
     @Test
@@ -111,7 +111,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("scale", rowValidationErrors.getErrors().get(0).getColumn(), "Wrong error column");
+        assertEquals("scale", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
     }
 
     @Test
@@ -142,7 +142,7 @@ public class TraitValidatorUnitTest {
 
         Boolean unknownColumnReturned = false;
         for (ValidationError error: rowValidationErrors.getErrors()){
-            String column = error.getColumn();
+            String column = error.getField();
             if (expectedColumns.containsKey(column)){
                 assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
             } else {
@@ -180,7 +180,7 @@ public class TraitValidatorUnitTest {
 
         Boolean unknownColumnReturned = false;
         for (ValidationError error: rowValidationErrors.getErrors()){
-            String column = error.getColumn();
+            String column = error.getField();
             if (expectedColumns.containsKey(column)){
                 assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
             } else {

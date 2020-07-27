@@ -28,13 +28,13 @@ import lombok.experimental.Accessors;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ValidationError {
-    private String column;
+    private String field;
     private String errorMessage;
     private HttpStatus httpStatus;
     private Integer httpStatusCode;
 
-    public ValidationError(String column, String errorMessage, HttpStatus httpStatus){
-        this.column = column;
+    public ValidationError(String field, String errorMessage, HttpStatus httpStatus){
+        this.field = field;
         this.errorMessage = errorMessage;
         this.httpStatus = httpStatus;
         this.httpStatusCode = httpStatus.getCode();

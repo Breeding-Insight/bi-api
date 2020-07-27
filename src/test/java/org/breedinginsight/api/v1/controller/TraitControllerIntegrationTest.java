@@ -355,7 +355,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertTrue(errors.size() > 1, "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
-        assertTrue(error.has("column"), "Column field not included in return");
+        assertTrue(error.has("field"), "Column field not included in return");
         assertTrue(error.has("errorMessage"), "errorMessage field not included in return");
         assertTrue(error.has("httpStatus"), "httpStatus field not included in return");
         assertTrue(error.has("httpStatusCode"), "httpStatusCode field not included in return");
