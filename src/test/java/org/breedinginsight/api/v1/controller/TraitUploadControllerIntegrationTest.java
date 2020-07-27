@@ -116,6 +116,28 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
+    @Order(2)
+    void putTraitUploadTraitLevelDoesNotExist() {
+
+        File file = new File("src/test/resources/files/data_one_row_trait_level_not_exist.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(404, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+
+        dsl.execute(fp.get("DeleteTrait"));
+    }
+
+    @Test
     void putTraitUploadInvalidProgramId() {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(invalidProgram, validFile, "test-registered-user");
@@ -273,7 +295,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     void putTraitUploadCsvSuccess() {
 
         File file = new File("src/test/resources/files/data_one_row.csv");
@@ -354,7 +376,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void getTraitUploadSuccess() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/"+validProgram.getId()+"/trait-upload")
@@ -369,7 +391,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     void deleteTraitUploadSuccess() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE("/programs/"+validProgram.getId()+"/trait-upload")

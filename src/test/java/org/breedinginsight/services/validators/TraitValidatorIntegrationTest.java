@@ -50,7 +50,7 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
     @Inject
     private ProgramDao programDao;
     @Inject
-    private TraitValidator traitValidator;
+    private TraitValidatorService traitValidator;
 
     @BeforeAll
     public void setup() {

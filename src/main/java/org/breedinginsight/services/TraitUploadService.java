@@ -40,7 +40,7 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
-import org.breedinginsight.services.validators.TraitValidator;
+import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.JSONB;
 
 import java.io.IOException;
@@ -54,18 +54,21 @@ public class TraitUploadService {
     private ProgramService programService;
     private ProgramUserService programUserService;
     private TraitFileParser parser;
-    private TraitValidator traitValidator;
+    private TraitValidatorService traitValidator;
     private TraitFileValidatorError traitValidatorError;
+    private TraitService traitService;
 
     @Inject
     public TraitUploadService(ProgramUploadDAO programUploadDAO, ProgramService programService, ProgramUserService programUserService,
-                              TraitFileParser traitFileParser, TraitValidator traitValidator, TraitFileValidatorError traitFileValidatorError){
+                              TraitFileParser traitFileParser, TraitValidatorService traitValidator, TraitFileValidatorError traitFileValidatorError,
+                              TraitService traitService){
         this.programUploadDao = programUploadDAO;
         this.programService = programService;
         this.programUserService = programUserService;
         this.parser = traitFileParser;
         this.traitValidator = traitValidator;
         this.traitValidatorError = traitFileValidatorError;
+        this.traitService = traitService;
     }
     @Inject
     private ObjectMapper objMapper;
@@ -109,19 +112,17 @@ public class TraitUploadService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        //TODO: Uncomment this when multiple trait validation errors are returned
-        /*try {
+        ValidationErrors validationErrors = new ValidationErrors();
+        try {
             traitService.assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
         } catch (ValidatorException e){
             validationErrors.merge(e.getErrors());
-        }*/
+        }
 
-        ValidationErrors validationErrors = new ValidationErrors();
-        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits);
-        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits);
-        ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
-        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
+        Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
+        if (optionalValidationErrors.isPresent()){
+            validationErrors.merge(optionalValidationErrors.get());
+        }
 
         if (validationErrors.hasErrors()){
             throw new ValidatorException(validationErrors);
