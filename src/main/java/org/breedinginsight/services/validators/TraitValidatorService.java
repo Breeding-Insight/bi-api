@@ -30,16 +30,16 @@ import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
-public class TraitValidator {
+public class TraitValidatorService {
 
     private TraitDAO traitDAO;
 
     @Inject
-    public TraitValidator(TraitDAO traitDAO){
+    public TraitValidatorService(TraitDAO traitDAO){
         this.traitDAO = traitDAO;
     }
 
-    public static ValidationErrors checkRequiredTraitFields(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+    public ValidationErrors checkRequiredTraitFields(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -99,7 +99,7 @@ public class TraitValidator {
 
     }
 
-    public static ValidationErrors checkTraitDataConsistency(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+    public ValidationErrors checkTraitDataConsistency(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -180,7 +180,7 @@ public class TraitValidator {
         return duplicates;
     }
 
-    public static ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
+    public ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
 
         ValidationErrors errors = new ValidationErrors();
         // Check duplicate trait names
