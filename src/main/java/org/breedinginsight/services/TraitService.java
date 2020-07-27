@@ -31,6 +31,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidator;
+import org.breedinginsight.services.validators.TraitValidatorError;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
@@ -42,24 +43,32 @@ import java.util.stream.Collectors;
 @Singleton
 public class TraitService {
 
-    @Inject
     private TraitDAO traitDAO;
-    @Inject
     private MethodDAO methodDAO;
-    @Inject
     private ScaleDAO scaleDAO;
-    @Inject
     private ProgramService programService;
-    @Inject
     private ProgramOntologyService programOntologyService;
-    @Inject
     private ProgramObservationLevelService programObservationLevelService;
-    @Inject
     private UserService userService;
-    @Inject
     private TraitValidator traitValidator;
-    @Inject
     private DSLContext dsl;
+    private TraitValidatorError traitValidatorError;
+
+    @Inject
+    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramService programService,
+                        ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
+                        UserService userService, TraitValidator traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
+        this.traitDAO = traitDao;
+        this.methodDAO = methodDao;
+        this.scaleDAO = scaleDao;
+        this.programService = programService;
+        this.programOntologyService = programOntologyService;
+        this.programObservationLevelService = programObservationLevelService;
+        this.userService = userService;
+        this.traitValidator = traitValidator;
+        this.dsl = dsl;
+        this.traitValidatorError = traitValidatorError;
+    }
 
     public List<Trait> getByProgramId(UUID programId, Boolean getFullTrait) throws DoesNotExistException {
 
@@ -129,10 +138,10 @@ public class TraitService {
         }
 
         // Validate the traits
-        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits);
-        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits);
-        ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
-        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);
+        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
+        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
+        ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits, traitValidatorError);
+        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits, traitValidatorError);
         validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
 
         if (validationErrors.hasErrors()){

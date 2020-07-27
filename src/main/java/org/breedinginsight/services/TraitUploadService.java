@@ -37,6 +37,7 @@ import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
+import org.breedinginsight.services.validators.TraitFileValidatorError;
 import org.breedinginsight.services.validators.TraitValidator;
 import org.jooq.JSONB;
 
@@ -57,6 +58,8 @@ public class TraitUploadService {
     private TraitFileParser parser;
     @Inject
     private TraitValidator traitValidator;
+    @Inject
+    private TraitFileValidatorError traitValidatorError;
 
     @Inject
     private ObjectMapper objMapper;
@@ -100,8 +103,8 @@ public class TraitUploadService {
         //TODO: Replace this with multiple error code
         // Validate the traits
         ValidationErrors validationErrors = new ValidationErrors();
-        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits);
-        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits);
+        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
+        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
         //TODO: Add these back in and add tests
         //ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
         //ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);

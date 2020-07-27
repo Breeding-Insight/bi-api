@@ -71,12 +71,12 @@ public class TraitValidatorUnitTest {
                 BrApiScaleCategories.builder().label("label2").value("value2").build()));
 
 
-        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait));
+        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
-        assertEquals(422, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
+        assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
         assertEquals("method", rowValidationErrors.getErrors().get(0).getColumn(), "Wrong error column");
     }
 
@@ -105,12 +105,12 @@ public class TraitValidatorUnitTest {
         trait.getMethod().setDescription("A method");
         trait.getMethod().setFormula("a^2 + b^2 = c^2");
 
-        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait));
+        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
-        assertEquals(422, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
+        assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
         assertEquals("scale", rowValidationErrors.getErrors().get(0).getColumn(), "Wrong error column");
     }
 
@@ -124,20 +124,20 @@ public class TraitValidatorUnitTest {
         trait.setScale(scale);
         trait.setMethod(method);
 
-        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait));
+        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(8, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("traitName", 422);
-        expectedColumns.put("description", 422);
-        expectedColumns.put("programObservationLevel.name", 422);
-        expectedColumns.put("method.methodName", 422);
-        expectedColumns.put("method.description", 422);
-        expectedColumns.put("method.methodClass", 422);
-        expectedColumns.put("scale.scaleName", 422);
-        expectedColumns.put("scale.dataType", 422);
+        expectedColumns.put("traitName", 400);
+        expectedColumns.put("description", 400);
+        expectedColumns.put("programObservationLevel.name", 400);
+        expectedColumns.put("method.methodName", 400);
+        expectedColumns.put("method.description", 400);
+        expectedColumns.put("method.methodClass", 400);
+        expectedColumns.put("scale.scaleName", 400);
+        expectedColumns.put("scale.dataType", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -168,14 +168,14 @@ public class TraitValidatorUnitTest {
         trait.setScale(scale);
         trait.setMethod(method);
 
-        ValidationErrors validationErrors = TraitValidator.checkTraitDataConsistency(List.of(trait));
+        ValidationErrors validationErrors = TraitValidator.checkTraitDataConsistency(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("method.formula", 422);
-        expectedColumns.put("scale.categories", 422);
+        expectedColumns.put("method.formula", 400);
+        expectedColumns.put("scale.categories", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -186,6 +186,10 @@ public class TraitValidatorUnitTest {
             } else {
                 unknownColumnReturned = true;
             }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
         }
     }
 
@@ -226,7 +230,7 @@ public class TraitValidatorUnitTest {
         trait3.setScale(scale3);
         trait3.setMethod(method3);
 
-        ValidationErrors validationErrors = TraitValidator.checkDuplicateTraitsInFile(List.of(trait1, trait2, trait3));
+        ValidationErrors validationErrors = TraitValidator.checkDuplicateTraitsInFile(List.of(trait1, trait2, trait3), new TraitValidatorError());
 
         assertEquals(3, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors trait1Error = validationErrors.getRowErrors().get(0);

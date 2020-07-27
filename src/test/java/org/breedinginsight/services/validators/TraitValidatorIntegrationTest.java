@@ -91,7 +91,7 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
-        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraitsExisting(List.of(trait1));
+        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraitsExisting(List.of(trait1), new TraitValidatorError());
 
         assertEquals(1, duplicateErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = duplicateErrors.getRowErrors().get(0);
@@ -115,7 +115,7 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
-        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraitsExisting(List.of(trait1));
+        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraitsExisting(List.of(trait1), new TraitValidatorError());
 
         assertEquals(0, duplicateErrors.getRowErrors().size(), "Errors returned when they should not");
     }

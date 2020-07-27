@@ -40,7 +40,7 @@ public class TraitValidator {
         this.traitDAO = traitDAO;
     }
 
-    public static ValidationErrors checkRequiredTraitFields(List<Trait> traits) {
+    public static ValidationErrors checkRequiredTraitFields(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -51,57 +51,47 @@ public class TraitValidator {
             Scale scale = trait.getScale();
 
             if (method == null) {
-                ValidationError error = new ValidationError("method",
-                        "Missing method", HttpStatus.UNPROCESSABLE_ENTITY);
+                ValidationError error = traitValidatorErrors.getMissingMethodMsg();
                 errors.addError(i, error);
             } else {
                 if (isBlank(method.getMethodName()) || method.getMethodName() == null) {
-                    ValidationError error = new ValidationError("method.methodName",
-                            "Missing method name", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingMethodNameMsg();
                     errors.addError(i, error);
                 }
                 if (isBlank(method.getDescription()) || method.getDescription() == null) {
-                    ValidationError error = new ValidationError("method.description",
-                            "Missing method description", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingMethodDescriptionMsg();
                     errors.addError(i, error);
                 }
                 if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
-                    ValidationError error = new ValidationError("method.methodClass",
-                            "Missing method class", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingMethodClassMsg();
                     errors.addError(i, error);
                 }
             }
 
             if (scale == null) {
-                ValidationError error = new ValidationError("scale",
-                        "Missing scale", HttpStatus.UNPROCESSABLE_ENTITY);
+                ValidationError error = traitValidatorErrors.getMissingScaleMsg();
                 errors.addError(i, error);
             } else {
                 if (isBlank(scale.getScaleName()) || scale.getScaleName() == null) {
-                    ValidationError error = new ValidationError("scale.scaleName",
-                            "Missing scale name", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
                     errors.addError(i, error);
                 }
                 if (scale.getDataType() == null || scale.getDataType() == null) {
-                    ValidationError error = new ValidationError("scale.dataType",
-                            "Missing scale type", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingScaleDataTypeMsg();
                     errors.addError(i, error);
                 }
             }
 
             if (isBlank(trait.getTraitName()) || trait.getTraitName() == null) {
-                ValidationError error = new ValidationError("traitName",
-                        "Missing trait name", HttpStatus.UNPROCESSABLE_ENTITY);
+                ValidationError error = traitValidatorErrors.getMissingTraitNameMsg();
                 errors.addError(i, error);
             }
             if (isBlank(trait.getDescription()) || trait.getDescription() == null) {
-                ValidationError error = new ValidationError("description",
-                        "Missing trait description", HttpStatus.UNPROCESSABLE_ENTITY);
+                ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
                 errors.addError(i, error);
             }
             if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
-                ValidationError error = new ValidationError("programObservationLevel.name",
-                        "Missing trait level", HttpStatus.UNPROCESSABLE_ENTITY);
+                ValidationError error = traitValidatorErrors.getMissingProgramObservationLevelMsg();
                 errors.addError(i, error);
             }
         }
@@ -110,7 +100,7 @@ public class TraitValidator {
 
     }
 
-    public static ValidationErrors checkTraitDataConsistency(List<Trait> traits) {
+    public static ValidationErrors checkTraitDataConsistency(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -122,16 +112,14 @@ public class TraitValidator {
 
             if (method != null && method.getMethodClass() != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
                 if (isBlank(method.getFormula()) || method.getFormula() == null) {
-                    ValidationError error = new ValidationError("method.formula",
-                            "Missing formula for Computation method", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingMethodFormulaMsg();
                     errors.addError(i, error);
                 }
             }
 
             if (scale != null && scale.getDataType() != null && scale.getDataType() == DataType.ORDINAL) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
-                    ValidationError error = new ValidationError("scale.categories",
-                            "Missing categories for Ordinal scale", HttpStatus.UNPROCESSABLE_ENTITY);
+                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg();
                     errors.addError(i, error);
                 }
             }
@@ -140,7 +128,7 @@ public class TraitValidator {
         return errors;
     }
 
-    public ValidationErrors checkDuplicateTraitsExisting(List<Trait> traits) {
+    public ValidationErrors checkDuplicateTraitsExisting(List<Trait> traits, TraitValidatorError traitValidatorError) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -158,10 +146,7 @@ public class TraitValidator {
             ).collect(Collectors.toList()).size() > 0;
 
             if (isDuplicate){
-                //TODO: Figure out a better way to do field names
-                ValidationError validationError = new ValidationError("traitName",
-                        "Trait name - Scale name - Method name combination already exists",
-                        HttpStatus.CONFLICT);
+                ValidationError validationError = traitValidatorError.getDuplicateTraitByNamesMsg();
                 errors.addError(i, validationError);
             }
 
@@ -176,9 +161,7 @@ public class TraitValidator {
             }
 
             if (isDuplicateAbbrev) {
-                ValidationError validationError = new ValidationError("abbreviations",
-                        "Trait abbreviation already exists",
-                        HttpStatus.CONFLICT);
+                ValidationError validationError = traitValidatorError.getDuplicateTraitByAbbreviationsMsg();
                 errors.addError(i, validationError);
             }
 
@@ -188,7 +171,7 @@ public class TraitValidator {
         return errors;
     }
 
-    public static ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits){
+    public static ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
 
         ValidationErrors errors = new ValidationErrors();
         // Check duplicate trait names
@@ -215,9 +198,7 @@ public class TraitValidator {
         for (String name: namesMap.keySet()){
             if (namesMap.get(name).size() > 1){
                 for (Integer rowIndex: namesMap.get(name)){
-                    ValidationError validationError = new ValidationError("traitName",
-                            "traitName - scaleName - methodName combination is a duplicate. Duplicate set of traits are rows " + namesMap.get(name).toString(),
-                            HttpStatus.CONFLICT);
+                    ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByNameInFileMsg(namesMap.get(name));
                     errors.addError(Integer.valueOf(rowIndex), validationError);
                 }
             }
@@ -247,9 +228,7 @@ public class TraitValidator {
                 for (String abbreviation : trait.getAbbreviations()) {
                     if (abbreviationMap.containsKey(abbreviation)) {
                         if (abbreviationMap.get(abbreviation).size() > 1){
-                            ValidationError validationError = new ValidationError("abbreviations",
-                                    "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + abbreviationMap.get(abbreviation).toString(),
-                                    HttpStatus.CONFLICT);
+                            ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByAbbreviationInFileMsg(abbreviationMap.get(abbreviation));
                             errors.addError(Integer.valueOf(i), validationError);
                             break;
                         }
