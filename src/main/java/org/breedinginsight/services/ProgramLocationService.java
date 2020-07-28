@@ -208,7 +208,7 @@ public class ProgramLocationService {
                 .accessibilityId(accessibilityId)
                 .topographyId(topographyId)
                 .abbreviation(programLocationRequest.getAbbreviation())
-                .coordinates(JSONB.valueOf(coordinates))
+                .coordinates(coordinates != null ? JSONB.valueOf(coordinates) : null)
                 .coordinateUncertainty(programLocationRequest.getCoordinateUncertainty())
                 .coordinateDescription(programLocationRequest.getCoordinateDescription())
                 .slope(programLocationRequest.getSlope())

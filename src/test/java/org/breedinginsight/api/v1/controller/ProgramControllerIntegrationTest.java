@@ -436,6 +436,11 @@ public class ProgramControllerIntegrationTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(requestBody.get("name").getAsString(), result.get("name").getAsString(),"Wrong name");
         String locationId = result.get("id").getAsString();
+
+        // Check that the coordinates is [NULL] in DB
+        Optional<ProgramLocation> programLocation = programLocationService.getById(UUID.fromString(validProgramId), UUID.fromString(locationId));
+        assertNull(programLocation.get().getCoordinates());
+
         programLocationService.delete(UUID.fromString(locationId));
     }
 

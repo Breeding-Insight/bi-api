@@ -54,7 +54,7 @@ public class ProgramLocation extends PlaceEntity {
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public Feature getCoordinatesJson() throws JsonProcessingException {
         ObjectMapper objMapper = new ObjectMapper();
-        return objMapper.readValue(super.getCoordinates().data(), Feature.class);
+        return super.getCoordinates() != null ? objMapper.readValue(super.getCoordinates().data(), Feature.class) : null;
     }
 
     public ProgramLocation(PlaceEntity placeEntity) {
