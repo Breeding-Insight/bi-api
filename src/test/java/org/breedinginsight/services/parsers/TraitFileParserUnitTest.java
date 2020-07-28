@@ -212,11 +212,11 @@ public class TraitFileParserUnitTest {
         errorColumns.keySet().forEach(e->seenMap.put(e,false));
 
         for (ValidationError error: rowError.getErrors()){
-            if (errorColumns.containsKey(error.getColumn())){
-                ParsingExceptionType exceptionType = errorColumns.get(error.getColumn());
+            if (errorColumns.containsKey(error.getField())){
+                ParsingExceptionType exceptionType = errorColumns.get(error.getField());
                 assertEquals(422, error.getHttpStatusCode(), "Wrong status code");
                 assertEquals(exceptionType.toString(), error.getErrorMessage(), "Wrong error message");
-                seenMap.replace(error.getColumn(), true);
+                seenMap.replace(error.getField(), true);
             } else {
                 unknownExceptionReturned = true;
             }
