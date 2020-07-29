@@ -253,7 +253,7 @@ public class ProgramLocationService {
         placeEntity.setAccessibilityId(accessibilityId);
         placeEntity.setTopographyId(topographyId);
         placeEntity.setAbbreviation(programLocationRequest.getAbbreviation());
-        placeEntity.setCoordinates(JSONB.valueOf(coordinates));
+        placeEntity.setCoordinates(coordinates != null ? JSONB.valueOf(coordinates) : null);
         placeEntity.setCoordinateUncertainty(programLocationRequest.getCoordinateUncertainty());
         placeEntity.setCoordinateDescription(programLocationRequest.getCoordinateDescription());
         placeEntity.setSlope(programLocationRequest.getSlope());
