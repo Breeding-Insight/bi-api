@@ -96,21 +96,14 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     @Test
     @Order(1)
     void putTraitUploadDuplicatesInDB() {
+        // Database duplicates do not throw an error
 
         File file = new File("src/test/resources/files/data_one_row.csv");
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
-        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
-        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
-
-        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
-        JsonArray errors = rowError1.getAsJsonArray("errors");
-        assertTrue(errors.size() == 2, "Not enough errors were returned");
-        JsonObject error = errors.get(0).getAsJsonObject();
-        assertEquals(409, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidTraitUpload(result);
 
         dsl.execute(fp.get("DeleteTrait"));
     }
