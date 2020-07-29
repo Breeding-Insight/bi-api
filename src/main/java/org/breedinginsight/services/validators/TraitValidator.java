@@ -127,16 +127,14 @@ public class TraitValidator {
         return errors;
     }
 
-    public ValidationErrors checkDuplicateTraitsExisting(List<Trait> traits, TraitValidatorErrorInterface traitValidatorError) {
+    public List<Trait> checkDuplicateTraitsExistingByName(List<Trait> traits){
 
-        ValidationErrors errors = new ValidationErrors();
+        List<Trait> duplicates = new ArrayList<>();
 
         // Check for existing trait name
         List<Trait> duplicateNameTraits = checkForDuplicateTraitsByNames(traits);
-        // Check for existing trait abbreviations
-        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(traits);
 
-        for (int i = 0; i < traits.size(); i++){
+        for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             Boolean isDuplicate = duplicateNameTraits.stream().filter(duplicateTrait ->
                     duplicateTrait.getTraitName().toLowerCase().equals(trait.getTraitName().toLowerCase()) &&
@@ -144,10 +142,23 @@ public class TraitValidator {
                             duplicateTrait.getMethod().getMethodName().toLowerCase().equals(trait.getMethod().getMethodName().toLowerCase())
             ).collect(Collectors.toList()).size() > 0;
 
-            if (isDuplicate){
-                ValidationError validationError = traitValidatorError.getDuplicateTraitByNamesMsg();
-                errors.addError(i, validationError);
+            if (isDuplicate) {
+                duplicates.add(trait);
             }
+        }
+
+        return duplicates;
+    }
+
+    public List<Trait> checkDuplicateTraitsExistingByAbbreviation(List<Trait> traits){
+
+        List<Trait> duplicates = new ArrayList<>();
+
+        // Check for existing trait abbreviations
+        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(traits);
+
+        for (int i = 0; i < traits.size(); i++){
+            Trait trait = traits.get(i);
 
             Boolean isDuplicateAbbrev = false;
             if (trait.getAbbreviations() != null){
@@ -160,14 +171,13 @@ public class TraitValidator {
             }
 
             if (isDuplicateAbbrev) {
-                ValidationError validationError = traitValidatorError.getDuplicateTraitByAbbreviationsMsg();
-                errors.addError(i, validationError);
+                if (!duplicates.contains(trait)){
+                    duplicates.add(trait);
+                }
             }
-
-
         }
 
-        return errors;
+        return duplicates;
     }
 
     public static ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
@@ -266,9 +276,8 @@ public class TraitValidator {
         // Validate the traits
         ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
         ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
-        ValidationErrors duplicateTraits = checkDuplicateTraitsExisting(traits, traitValidatorError);
         ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile);
 
         if (validationErrors.hasErrors()){
             return Optional.of(validationErrors);

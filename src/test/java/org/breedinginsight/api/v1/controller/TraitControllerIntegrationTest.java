@@ -244,22 +244,32 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(4)
-    public void createTraitsDuplicate() {
-        Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait");
-        trait1.setDescription("A trait1");
-        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
-        Scale scale1 = new Scale();
-        scale1.setScaleName("Test Scale");
-        scale1.setDataType(DataType.TEXT);
-        Method method1 = new Method();
-        method1.setMethodName("Test Method");
-        trait1.setScale(scale1);
-        trait1.setMethod(method1);
-        setBrAPIProperties(trait1);
+    public void postTraitsMultipleExistInDb() {
+        // Both traits should be ignored because they are duplicates
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", validTraits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check return
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(0, data.size(), "Duplicate traits were not ignored");
+    }
+
+    @Test
+    @Order(4)
+    public void createTraitsDuplicateInRequest() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait1))
+                POST("/programs/" + validProgram.getId() + "/traits", List.of(validTraits.get(0), validTraits.get(0)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -271,11 +281,12 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Check for conflict response
         JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
-        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
         JsonObject rowError = rowErrors.get(0).getAsJsonObject();
 
+        // Returns an error for duplicate names in file, duplicate abbreviations in file, duplicate names in db, duplicate abbreviations in db
         JsonArray errors = rowError.getAsJsonArray("errors");
-        assertEquals(1, errors.size(), "Wrong number of errors returned");
+        assertEquals(4, errors.size(), "Wrong number of errors returned");
         JsonObject duplicateError = errors.get(0).getAsJsonObject();
         assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
@@ -383,60 +394,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 BrApiScaleCategories.builder().label("label2").value("value2").build()));
     }
 
-
-    public JsonArray constructTraitBody(List<Trait> traits) {
-        JsonArray requestBody = new JsonArray();
-        for (Trait trait: traits){
-            JsonObject jsonTrait = new JsonObject();
-            jsonTrait.addProperty("traitName", trait.getTraitName());
-            JsonArray abbreviations = (JsonArray) new Gson().toJsonTree(trait.getAbbreviations(),
-                    new TypeToken<List<String>>() {
-                    }.getType());
-            jsonTrait.add("abbreviations", abbreviations);
-            jsonTrait.addProperty("traitClass", trait.getTraitClass());
-            jsonTrait.addProperty("attribute", trait.getAttribute());
-            jsonTrait.addProperty("defaultValue", trait.getDefaultValue());
-            jsonTrait.addProperty("entity", trait.getEntity());
-            jsonTrait.addProperty("mainAbbreviation", trait.getMainAbbreviation());
-            JsonArray synonyms = (JsonArray) new Gson().toJsonTree(trait.getSynonyms(),
-                    new TypeToken<List<String>>() {
-                    }.getType());
-            jsonTrait.add("synonyms", synonyms);
-
-            // Add method
-            Method method = trait.getMethod();
-            JsonObject jsonMethod = new JsonObject();
-            jsonMethod.addProperty("methodName", method.getMethodName());
-            jsonMethod.addProperty("methodClass", method.getMethodClass());
-            jsonMethod.addProperty("description", method.getDescription());
-            jsonMethod.addProperty("formula", method.getFormula());
-            jsonTrait.add("method", jsonMethod);
-
-            // Add scale
-            Scale scale = trait.getScale();
-            JsonObject jsonScale = new JsonObject();
-            jsonScale.addProperty("scaleName", scale.getScaleName());
-            jsonScale.addProperty("dataType", scale.getDataType().toString());
-            jsonScale.addProperty("validValueMin", scale.getValidValueMin());
-            jsonScale.addProperty("validValueMax", scale.getValidValueMax());
-            jsonScale.addProperty("decimalPlaces", scale.getDecimalPlaces());
-            JsonArray categories = (JsonArray) new Gson().toJsonTree(scale.getCategories(),
-                    new TypeToken<List<BrApiScaleCategories>>() {
-                    }.getType());
-            jsonScale.add("categories", categories);
-            jsonTrait.add("scale", jsonScale);
-
-            // Add program observation level
-            ProgramObservationLevel programObservationLevel = trait.getProgramObservationLevel();
-            JsonObject jsonProgramObservationLevel = new JsonObject();
-            jsonProgramObservationLevel.addProperty("id", programObservationLevel.getId().toString());
-            jsonTrait.add("programObservationLevel", jsonProgramObservationLevel);
-
-            requestBody.add(jsonTrait);
-        }
-
-        return requestBody;
-    }
     //endregion
     //region GET Traits
     @Test

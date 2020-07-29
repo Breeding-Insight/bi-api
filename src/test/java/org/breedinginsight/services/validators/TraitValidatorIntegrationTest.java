@@ -91,13 +91,11 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
-        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraitsExisting(List.of(trait1), new TraitValidatorError());
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(List.of(trait1));
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(List.of(trait1));
 
-        assertEquals(1, duplicateErrors.getRowErrors().size(), "Wrong number of row errors returned");
-        RowValidationErrors rowValidationErrors = duplicateErrors.getRowErrors().get(0);
-        assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
-        assertEquals(409, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals(409, rowValidationErrors.getErrors().get(1).getHttpStatusCode(), "Wrong error code");
+        assertEquals(1, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
+        assertEquals(1, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
     }
 
     @Test
@@ -115,9 +113,11 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
-        ValidationErrors duplicateErrors = traitValidator.checkDuplicateTraitsExisting(List.of(trait1), new TraitValidatorError());
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(List.of(trait1));
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(List.of(trait1));
 
-        assertEquals(0, duplicateErrors.getRowErrors().size(), "Errors returned when they should not");
+        assertEquals(0, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
+        assertEquals(0, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
     }
 
 }

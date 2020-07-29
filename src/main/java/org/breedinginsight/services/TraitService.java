@@ -124,59 +124,98 @@ public class TraitService {
             validationErrors.merge(e.getErrors());
         }
 
+        // Ignore duplicate traits
+        ValidationErrors duplicateErrors = new ValidationErrors();
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(traits);
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(traits);
+        List<Integer> traitIndexToRemove = new ArrayList<>();
+        for (Trait duplicateTrait: duplicateTraits){
+
+            Integer i = traits.indexOf(duplicateTrait);
+            if (i == -1){
+                throw new InternalServerException("Duplicate trait was not referenced correctly");
+            } else {
+                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByNamesMsg());
+                traitIndexToRemove.add(i);
+            }
+        }
+
+        for (Trait duplicateTraitAbbrev: duplicateTraitsByAbbrev){
+
+            Integer i = traits.indexOf(duplicateTraitAbbrev);
+            if (i == -1){
+                throw new InternalServerException("Duplicate trait was not referenced correctly");
+            } else {
+                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
+                traitIndexToRemove.add(i);
+            }
+        }
+
+        // Check the rest of our validations
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
         if (optionalValidationErrors.isPresent()){
             validationErrors.merge(optionalValidationErrors.get());
         }
 
+        // Remove our duplicate traits
+        Set<Trait> duplicateTraitSet = new HashSet<>(duplicateTraits);
+        duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
+        traits.removeAll(duplicateTraitSet);
+
         if (validationErrors.hasErrors()){
+            // If there are other errors, show our duplicate errors
+            validationErrors.merge(duplicateErrors);
             throw new ValidatorException(validationErrors);
         }
 
         // Create the traits
-        List<Trait> createdTraits = dsl.transactionResult(configuration -> {
+        List<Trait> createdTraits = new ArrayList<>();
 
-            //TODO: If one trait in brapi fails, roll back all others before it
-            for (Trait trait: traits) {
-                // Create method
-                MethodEntity jooqMethod = MethodEntity.builder()
-                        .methodName(trait.getMethod().getMethodName())
-                        .programOntologyId(programOntology.getId())
-                        .createdBy(actingUser.getId())
-                        .updatedBy(actingUser.getId())
-                        .build();
-                methodDAO.insert(jooqMethod);
-                trait.getMethod().setId(jooqMethod.getId());
+        if (traits.size() > 0) {
 
-                // Create scale
-                ScaleEntity jooqScale = ScaleEntity.builder()
-                        .scaleName(trait.getScale().getScaleName())
-                        .dataType(trait.getScale().getDataType())
-                        .programOntologyId(programOntology.getId())
-                        .createdBy(actingUser.getId())
-                        .updatedBy(actingUser.getId())
-                        .build();
-                scaleDAO.insert(jooqScale);
-                trait.getScale().setId(jooqScale.getId());
+            createdTraits = dsl.transactionResult(configuration -> {
 
-                // Create trait
-                TraitEntity jooqTrait = TraitEntity.builder()
-                        .traitName(trait.getTraitName())
-                        .abbreviations(trait.getAbbreviations())
-                        .programOntologyId(programOntology.getId())
-                        .programObservationLevelId(trait.getProgramObservationLevel().getId())
-                        .methodId(jooqMethod.getId())
-                        .scaleId(jooqScale.getId())
-                        .createdBy(actingUser.getId())
-                        .updatedBy(actingUser.getId())
-                        .build();
-                traitDAO.insert(jooqTrait);
-                trait.setId(jooqTrait.getId());
-            }
+                //TODO: If one trait in brapi fails, roll back all others before it
+                for (Trait trait : traits) {
+                    // Create method
+                    MethodEntity jooqMethod = MethodEntity.builder()
+                            .methodName(trait.getMethod().getMethodName())
+                            .programOntologyId(programOntology.getId())
+                            .createdBy(actingUser.getId())
+                            .updatedBy(actingUser.getId())
+                            .build();
+                    methodDAO.insert(jooqMethod);
+                    trait.getMethod().setId(jooqMethod.getId());
 
-            return traitDAO.createTraitsBrAPI(traits, user, program);
-        });
+                    // Create scale
+                    ScaleEntity jooqScale = ScaleEntity.builder()
+                            .scaleName(trait.getScale().getScaleName())
+                            .dataType(trait.getScale().getDataType())
+                            .programOntologyId(programOntology.getId())
+                            .createdBy(actingUser.getId())
+                            .updatedBy(actingUser.getId())
+                            .build();
+                    scaleDAO.insert(jooqScale);
+                    trait.getScale().setId(jooqScale.getId());
 
+                    // Create trait
+                    TraitEntity jooqTrait = TraitEntity.builder()
+                            .traitName(trait.getTraitName())
+                            .abbreviations(trait.getAbbreviations())
+                            .programOntologyId(programOntology.getId())
+                            .programObservationLevelId(trait.getProgramObservationLevel().getId())
+                            .methodId(jooqMethod.getId())
+                            .scaleId(jooqScale.getId())
+                            .createdBy(actingUser.getId())
+                            .updatedBy(actingUser.getId())
+                            .build();
+                    traitDAO.insert(jooqTrait);
+                    trait.setId(jooqTrait.getId());
+                }
+
+                return traitDAO.createTraitsBrAPI(traits, user, program);
+            });
+        }
 
         return createdTraits;
     }
