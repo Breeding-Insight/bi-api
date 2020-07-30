@@ -204,6 +204,9 @@ public class UserController {
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (AlreadyExistsException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         }
     }
 

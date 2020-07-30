@@ -883,4 +883,45 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(orcid, result.get("orcid").getAsString(), "Wrong orcid");
         assertEquals(otherTestUser.getEmail(), result.get("email").getAsString(), "Wrong email");
     }
+
+    @Test
+    @Order(8)
+    public void putUserOrcidInUseBySelf() {
+
+        String orcid = "0000-0000-0000-0000";
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("orcid", orcid);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString() + "/orcid", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(8)
+    public void putUserOrcidInUseByOther() {
+
+        String orcid = TestTokenValidator.ANOTHER_TEST_USER_ORCID;
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("orcid", orcid);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString() + "/orcid", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
 }
+

@@ -293,7 +293,7 @@ public class UserService {
         return dao.existsById(id);
     }
 
-    public User updateOrcid(AuthenticatedUser activeUser, UUID userId, OrcidRequest orcidRequest) throws DoesNotExistException {
+    public User updateOrcid(AuthenticatedUser activeUser, UUID userId, OrcidRequest orcidRequest) throws DoesNotExistException, AlreadyExistsException {
 
         // This is a temporary fix so any authenticated user is able to update any users orcid.
 
@@ -301,6 +301,13 @@ public class UserService {
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcidRequest.getOrcid());
+        for (BiUserEntity biUserWithOrcid: biUserWithOrcidList){
+            if (!biUserWithOrcid.getId().toString().equals(userId.toString())){
+                throw new AlreadyExistsException("Orcid already in use");
+            }
         }
 
         biUser.setOrcid(orcidRequest.getOrcid());
