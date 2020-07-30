@@ -111,8 +111,8 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getTraitLevelDoesNotExist() {
+    public ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels) {
         return new ValidationError("Trait level",
-                "Trait level does not exist.", HttpStatus.NOT_FOUND);
+                "Trait level does not exist. Available levels are " + availableTraitLevels.toString(), HttpStatus.NOT_FOUND);
     }
 }

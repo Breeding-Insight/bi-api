@@ -110,8 +110,8 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getTraitLevelDoesNotExist() {
+    public ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels) {
         return new ValidationError("programObservationLevel.name",
-                "Program Observation Level does not exist.", HttpStatus.NOT_FOUND);
+                "Program Observation Level does not exist. Available levels are " + availableTraitLevels.toString(), HttpStatus.NOT_FOUND);
     }
 }

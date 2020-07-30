@@ -24,6 +24,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramObservationLevelEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
@@ -226,6 +227,7 @@ public class TraitService {
 
         // Get our program observation levels
         List<ProgramObservationLevel> programLevels = programObservationLevelService.getByProgramId(programId);
+        List<String> availableLevels = programLevels.stream().map(ProgramObservationLevelEntity::getName).collect(Collectors.toList());
         for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             if (trait.getProgramObservationLevel() != null){
@@ -233,7 +235,7 @@ public class TraitService {
                         .filter(programObservationLevel -> programObservationLevel.getName().equals(trait.getProgramObservationLevel().getName()))
                         .collect(Collectors.toList());
                 if (matchingLevels.size() == 0) {
-                    ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist();
+                    ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist(availableLevels);
                     validationErrors.addError(i, validationError);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
