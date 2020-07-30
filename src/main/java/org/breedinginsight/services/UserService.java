@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.OrcidRequest;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -290,5 +291,20 @@ public class UserService {
 
     public boolean exists(UUID id){
         return dao.existsById(id);
+    }
+
+    public User updateOrcid(AuthenticatedUser activeUser, UUID userId, OrcidRequest orcidRequest) throws DoesNotExistException {
+
+        // This is a temporary fix so any authenticated user is able to update any users orcid.
+
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        biUser.setOrcid(orcidRequest.getOrcid());
+        dao.update(biUser);
+        return new User(dao.fetchOneById(userId));
     }
 }

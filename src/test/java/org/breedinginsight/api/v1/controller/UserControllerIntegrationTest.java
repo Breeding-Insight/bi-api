@@ -839,4 +839,48 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(1, resultProgramRoles.size(), "Deactivated program was returned in roles");
     }
 
+    @Test
+    @Order(8)
+    public void putUserOrcidUserNotFound() {
+
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("orcid", "0000-0000-0000-0000");
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/e91f816b-b7aa-4444-9d00-3e25fdc00e15/orcid", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @Order(8)
+    public void putUserOrcidSuccess() {
+
+        String orcid = "0000-0000-0000-0000";
+        JsonObject requestBody = new JsonObject();
+        requestBody.addProperty("orcid", orcid);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/users/" + otherTestUser.getId().toString() + "/orcid", requestBody.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(otherTestUser.getId().toString(), result.get("id").getAsString(), "Wrong id");
+        assertEquals(otherTestUser.getName(), result.get("name").getAsString(), "Wrong name");
+        assertEquals(orcid, result.get("orcid").getAsString(), "Wrong orcid");
+        assertEquals(otherTestUser.getEmail(), result.get("email").getAsString(), "Wrong email");
+    }
 }
