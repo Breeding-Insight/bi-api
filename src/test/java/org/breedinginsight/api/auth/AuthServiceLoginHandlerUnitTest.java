@@ -25,8 +25,9 @@ import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
 import io.micronaut.test.annotation.MicronautTest;
+import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.com.fasterxml.jackson.databind.annotation.JsonAppend;
+import org.junit.jupiter.api.TestInstance;
 
 import javax.inject.Inject;
 import java.util.HashMap;
@@ -38,15 +39,16 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
 @MicronautTest
-public class AuthServiceLoginHandlerUnitTest {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
 
     @Inject
-    AuthServiceLoginHandler authServiceLoginHandler;
+    private AuthServiceLoginHandler authServiceLoginHandler;
 
     @Property(name = "micronaut.security.token.jwt.cookie.login-success-target-url")
-    String defaultUrl;
+    private String defaultUrl;
     @Property(name = "web.cookies.login-redirect")
-    String loginRedirectCookieName;
+    private String loginRedirectCookieName;
 
     @Test
     public void returnsDefaultBadUrl() {

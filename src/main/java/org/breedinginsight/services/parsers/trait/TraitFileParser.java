@@ -190,7 +190,7 @@ public class TraitFileParser {
 
             Trait trait = Trait.builder()
                     .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
-                    .abbreviations(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS)))
+                    .abbreviations(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS)).toArray(String[]::new))
                     .synonyms(parseListValue(parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS)))
                     .description(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
                     .programObservationLevel(level)

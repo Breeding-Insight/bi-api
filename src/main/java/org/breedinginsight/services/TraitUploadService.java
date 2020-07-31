@@ -21,13 +21,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.constants.MediaType;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,9 +35,9 @@ import java.util.UUID;
 
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
+import org.breedinginsight.services.validators.TraitFileValidatorError;
 import org.breedinginsight.services.validators.TraitValidator;
 import org.jooq.JSONB;
 
@@ -49,15 +48,23 @@ import java.util.*;
 @Singleton
 public class TraitUploadService {
 
-    @Inject
     private ProgramUploadDAO programUploadDao;
-    @Inject
     private ProgramService programService;
-    @Inject
     private ProgramUserService programUserService;
-    @Inject
     private TraitFileParser parser;
+    private TraitValidator traitValidator;
+    private TraitFileValidatorError traitValidatorError;
 
+    @Inject
+    public TraitUploadService(ProgramUploadDAO programUploadDAO, ProgramService programService, ProgramUserService programUserService,
+                              TraitFileParser traitFileParser, TraitValidator traitValidator, TraitFileValidatorError traitFileValidatorError){
+        this.programUploadDao = programUploadDAO;
+        this.programService = programService;
+        this.programUserService = programUserService;
+        this.parser = traitFileParser;
+        this.traitValidator = traitValidator;
+        this.traitValidatorError = traitFileValidatorError;
+    }
     @Inject
     private ObjectMapper objMapper;
 
@@ -97,9 +104,27 @@ public class TraitUploadService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        for (Trait trait : traits) {
-            TraitValidator.checkRequiredTraitFields(trait);
-            TraitValidator.checkTraitDataConsistency(trait);
+        //TODO: Uncomment this when multiple trait validation errors are returned
+        /*try {
+            traitService.assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
+        } catch (ValidatorException e){
+            validationErrors.merge(e.getErrors());
+        }*/
+
+        //TODO: Replace this with multiple error code
+        // Validate the traits
+        ValidationErrors validationErrors = new ValidationErrors();
+        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
+        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
+        //TODO: Add these back in and add tests
+        //ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
+        //ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);
+        //validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors);
+
+        if (validationErrors.hasErrors()){
+            //throw new ValidatorException(validationErrors);
+            throw new UnprocessableEntityException("Temporary solution");
         }
 
         String json = null;

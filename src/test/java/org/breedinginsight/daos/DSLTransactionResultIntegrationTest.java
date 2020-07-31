@@ -18,6 +18,7 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.test.annotation.MicronautTest;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.model.User;
@@ -44,17 +45,17 @@ import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class DSLTransactionResultIntegrationTest {
+public class DSLTransactionResultIntegrationTest extends DatabaseTest {
 
     @Inject
-    DSLContext dsl;
+    private DSLContext dsl;
 
     @Inject
-    UserDAO dao;
+    private UserDAO dao;
     @Inject
-    UserService userService;
+    private UserService userService;
 
-    User actingUser;
+    private User actingUser;
 
     @BeforeAll
     void setup() throws Exception {

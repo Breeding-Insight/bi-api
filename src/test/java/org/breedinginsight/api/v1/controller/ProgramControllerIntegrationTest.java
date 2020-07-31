@@ -21,6 +21,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
+import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -32,14 +33,15 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.Feature;
 import org.geojson.Point;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -56,63 +58,69 @@ import static org.junit.jupiter.api.Assertions.*;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProgramControllerIntegrationTest {
+public class ProgramControllerIntegrationTest extends DatabaseTest {
 
-    Program validProgram;
-    User validUser;
-    Species validSpecies;
-    Role validRole;
+    private FannyPack fp;
 
-    ProgramLocation validLocation;
-    Country validCountry;
-    EnvironmentType validEnvironment;
-    Accessibility validAccessibility;
-    Topography validTopography;
+    private Program validProgram;
+    private User validUser;
+    private Species validSpecies;
+    private Role validRole;
 
-    User testUser;
-    AuthenticatedUser actingUser;
+    private ProgramLocation validLocation;
+    private Country validCountry;
+    private EnvironmentType validEnvironment;
+    private Accessibility validAccessibility;
+    private Topography validTopography;
 
-    String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-    String invalidProgram = invalidUUID;
-    String invalidUser = invalidUUID;
-    String invalidRole = invalidUUID;
-    String invalidSpecies = invalidUUID;
-    String invalidLocation= invalidUUID;
-    String invalidCountry = invalidUUID;
-    String invalidEnvironment = invalidUUID;
-    String invalidAccessibility = invalidUUID;
-    String invalidTopography = invalidUUID;
+    private User testUser;
+    private AuthenticatedUser actingUser;
 
-    Gson gson = new Gson();
-    ListAppender<ILoggingEvent> loggingEventListAppender;
+    private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+    private String invalidProgram = invalidUUID;
+    private String invalidUser = invalidUUID;
+    private String invalidRole = invalidUUID;
+    private String invalidSpecies = invalidUUID;
+    private String invalidLocation= invalidUUID;
+    private String invalidCountry = invalidUUID;
+    private String invalidEnvironment = invalidUUID;
+    private String invalidAccessibility = invalidUUID;
+    private String invalidTopography = invalidUUID;
+
+    private Gson gson = new Gson();
+    private ListAppender<ILoggingEvent> loggingEventListAppender;
 
     @Inject
-    UserService userService;
+    private UserService userService;
     @Inject
-    ProgramService programService;
+    private ProgramService programService;
     @Inject
-    SpeciesService speciesService;
+    private SpeciesService speciesService;
     @Inject
-    RoleService roleService;
+    private RoleService roleService;
     @Inject
-    ProgramUserService programUserService;
+    private ProgramUserService programUserService;
     @Inject
-    ProgramLocationService programLocationService;
+    private ProgramLocationService programLocationService;
     @Inject
-    CountryService countryService;
+    private CountryService countryService;
     @Inject
-    AccessibilityService accessibilityService;
+    private AccessibilityService accessibilityService;
     @Inject
-    EnvironmentTypeService environmentTypeService;
+    private EnvironmentTypeService environmentTypeService;
     @Inject
-    TopographyService topographyService;
+    private TopographyService topographyService;
+    @Inject
+    private DSLContext dsl;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
-    RxHttpClient client;
+    private RxHttpClient client;
 
     @BeforeAll
     void setup() throws Exception {
+
+        fp = FannyPack.fill("src/test/resources/sql/ProgramControllerIntegrationTest.sql");
 
         Optional<User> optionalUser = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
         testUser = optionalUser.get();
@@ -149,22 +157,6 @@ public class ProgramControllerIntegrationTest {
             throw new Exception(e.toString());
         }
 
-    }
-
-    @AfterAll
-    void teardown() throws Exception{
-
-        try {
-            programLocationService.delete(validLocation.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete test location");
-        }
-
-        try {
-            programService.delete(validProgram.getId());
-        } catch (DoesNotExistException e){
-            throw new Exception("Unable to delete test program");
-        }
     }
 
     public ProgramLocation insertAndFetchTestLocation() throws Exception {
@@ -970,8 +962,7 @@ public class ProgramControllerIntegrationTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        programService.delete(wrongProgram.getId());
-
+        dsl.execute(fp.get("DeleteProgram"), wrongProgram.getId().toString(), wrongProgram.getId().toString(), wrongProgram.getId().toString());
     }
 
     @Test
@@ -1034,7 +1025,7 @@ public class ProgramControllerIntegrationTest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        programService.delete(wrongProgram.getId());
+        dsl.execute(fp.get("DeleteProgram"), wrongProgram.getId().toString(), wrongProgram.getId().toString(), wrongProgram.getId().toString());
     }
 
     @Test
@@ -1861,7 +1852,7 @@ public class ProgramControllerIntegrationTest {
 
         checkMinimalValidProgram(program, result);
 
-        programService.delete(program.getId());
+        dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString());
     }
 
     @Test
@@ -1899,8 +1890,7 @@ public class ProgramControllerIntegrationTest {
 
         checkMinimalValidProgram(program, result);
 
-        programService.delete(program.getId());
-
+        dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString());
     }
 
     @Test
@@ -2123,7 +2113,7 @@ public class ProgramControllerIntegrationTest {
 
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
-        programService.delete(UUID.fromString(newProgramId));
+        dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);
     }
 
     //endregion

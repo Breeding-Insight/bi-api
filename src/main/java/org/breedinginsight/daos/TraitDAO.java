@@ -21,8 +21,9 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
+import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 import org.brapi.v2.core.model.BrApiExternalReference;
-import org.brapi.v2.phenotyping.model.BrApiVariable;
+import org.brapi.v2.phenotyping.model.*;
 import org.brapi.v2.phenotyping.model.request.VariablesRequest;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
@@ -38,20 +39,22 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.dao.db.Tables.*;
+import static org.jooq.impl.DSL.row;
+import static org.jooq.impl.DSL.values;
 
 @Singleton
 public class TraitDAO extends TraitDao {
 
     private DSLContext dsl;
-    @Inject
     private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider) {
         super(config);
         this.dsl = dsl;
+        this.brAPIProvider = brAPIProvider;
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -124,6 +127,24 @@ public class TraitDAO extends TraitDao {
         return traitResults;
     }
 
+    public List<Trait> getTraitsById(UUID ...traitIds){
+
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        Result<Record> recordResult = getTraitSql(createdByUser, updatedByUser)
+                .and(TRAIT.ID.in(traitIds))
+                .fetch();
+
+        List<Trait> traitResults = new ArrayList<>();
+        for (Record record: recordResult) {
+            Trait trait = parseTraitRecord(record, createdByUser, updatedByUser);
+            traitResults.add(trait);
+        }
+
+        return traitResults;
+    }
+
     public Optional<Trait> getTraitFull(UUID programId, UUID traitId){
 
         Optional<Trait> optionalDbTrait = getTrait(programId, traitId);
@@ -133,7 +154,7 @@ public class TraitDAO extends TraitDao {
         Trait dbTrait = optionalDbTrait.get();
 
         List<BrApiVariable> brApiVariables;
-        //TODO: We might want to add a source too
+
         VariablesRequest variablesRequest = VariablesRequest.builder()
                 .externalReferenceID(traitId.toString())
                 .externalReferenceSource(referenceSource)
@@ -181,6 +202,130 @@ public class TraitDAO extends TraitDao {
         return Optional.of(parseTraitRecord(record, createdByUser, updatedByUser));
     }
 
+    public List<Trait> createTraitsBrAPI(List<Trait> traits, User actingUser, Program program){
+
+        //TODO: Pass ontology reference
+
+        // Convert our traits into BrAPI traits
+        List<BrApiVariable> brApiVariables = new ArrayList<>();
+        for (Trait trait: traits) {
+
+            // Construct method
+            BrApiExternalReference methodReference = BrApiExternalReference.builder()
+                    .referenceID(trait.getMethod().getId().toString())
+                    .referenceSource(referenceSource)
+                    .build();
+            BrApiMethod brApiMethod = BrApiMethod.builder()
+                    .methodName(trait.getMethod().getMethodName())
+                    .externalReferences(List.of(methodReference))
+                    .methodClass(trait.getMethod().getMethodClass())
+                    .description(trait.getMethod().getDescription())
+                    .formula(trait.getMethod().getFormula())
+                    .build();
+
+            // Construct scale
+            BrApiExternalReference scaleReference = BrApiExternalReference.builder()
+                    .referenceID(trait.getScale().getId().toString())
+                    .referenceSource(referenceSource)
+                    .build();
+            BrApiTraitDataType brApiTraitDataType = BrApiTraitDataType.valueOf(trait.getScale().getDataType().toString());
+            BrApiScaleValidValues brApiScaleValidValues = BrApiScaleValidValues.builder()
+                    .categories(trait.getScale().getCategories())
+                    .max(trait.getScale().getValidValueMax())
+                    .min(trait.getScale().getValidValueMin())
+                    .build();
+            BrApiScale brApiScale = BrApiScale.builder()
+                    .scaleName(trait.getScale().getScaleName())
+                    .externalReferences(List.of(scaleReference))
+                    .dataType(brApiTraitDataType)
+                    .decimalPlaces(trait.getScale().getDecimalPlaces())
+                    .validValues(brApiScaleValidValues)
+                    .build();
+
+            // Construct trait
+            BrApiExternalReference traitReference = BrApiExternalReference.builder()
+                    .referenceID(trait.getId().toString())
+                    .referenceSource(referenceSource)
+                    .build();
+            BrApiTrait brApiTrait = BrApiTrait.builder()
+                    .traitName(trait.getTraitName())
+                    .traitDescription(trait.getDescription())
+                    .synonyms(trait.getSynonyms())
+                    .status("active")
+                    .entity(trait.getProgramObservationLevel().getName())
+                    .mainAbbreviation(trait.getMainAbbreviation())
+                    .alternativeAbbreviations(trait.getAbbreviations() != null ? List.of(trait.getAbbreviations()) : null)
+                    .traitClass(trait.getTraitClass())
+                    .externalReferences(List.of(traitReference))
+                    .attribute(trait.getAttribute())
+                    .build();
+
+            BrApiExternalReference variableReference = BrApiExternalReference.builder()
+                    .referenceID(trait.getId().toString())
+                    .referenceSource(referenceSource)
+                    .build();
+            BrApiVariable brApiVariable = BrApiVariable.builder()
+                    .method(brApiMethod)
+                    .scale(brApiScale)
+                    .trait(brApiTrait)
+                    .externalReferences(List.of(variableReference))
+                    .observationVariableName(trait.getTraitName())
+                    .status("active")
+                    .language("english")
+                    .scientist(actingUser.getName())
+                    .defaultValue(trait.getDefaultValue())
+                    .synonyms(trait.getSynonyms())
+                    .institution(program.getName())
+                    .commonCropName(program.getSpecies().getCommonName())
+                    .build();
+
+                    // Unused
+                    //.contextOfUse()
+                    //.documentationURL()
+                    //.growthStage()
+
+            brApiVariables.add(brApiVariable);
+        }
+
+
+        // POST variables to each brapi service
+        // TODO: If there is a failure after the first brapi service, roll back all before the failure.
+        List<BrApiVariable> createdVariables = new ArrayList<>();
+        try {
+            List<VariablesAPI> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
+            for (VariablesAPI variablesAPI: variablesAPIS){
+                createdVariables = variablesAPI.createVariables(brApiVariables);
+            }
+        } catch (HttpException | APIException e) {
+            throw new InternalServerException(e.getMessage());
+        }
+
+        // Pull our traits from the db
+        List<UUID> traitIds = traits.stream().map(trait -> trait.getId()).collect(Collectors.toList());
+        List<Trait> createdTraits = getTraitsById(traitIds.toArray(UUID[]::new));
+
+        // Saturate our traits from the brapi return information
+        for (Trait trait: createdTraits){
+            for (BrApiVariable variable: createdVariables){
+                if (variable.getExternalReferences() != null) {
+                    for (BrApiExternalReference brApiExternalReference: variable.getExternalReferences()){
+                        if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
+                                brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
+
+                            trait.setBrAPIProperties(variable);
+                            Method method = trait.getMethod();
+                            method.setBrAPIProperties(variable.getMethod());
+                            Scale scale = trait.getScale();
+                            scale.setBrAPIProperties(variable.getScale());
+                        }
+                    }
+                }
+            }
+        }
+
+        return createdTraits;
+    }
+
     private Trait parseTraitRecord(Record record, BiUserTable createdByUser, BiUserTable updatedByUser) {
         Trait trait = Trait.parseSqlRecord(record);
         Scale scale = Scale.parseSqlRecord(record);
@@ -209,6 +354,58 @@ public class TraitDAO extends TraitDao {
                 .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                 .join(createdByTableAlias).on(TRAIT.CREATED_BY.eq(createdByTableAlias.ID))
                 .join(updatedByTableAlias).on(TRAIT.UPDATED_BY.eq(updatedByTableAlias.ID));
+    }
+
+    public List<Trait> getTraitsByTraitMethodScaleName(List<Trait> traits){
+
+        //TODO: Get these from the query as well
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+
+        RowN[] valueRows = traits.stream()
+                .filter(trait -> trait.getMethod() != null && trait.getScale() != null)
+                .map(trait -> (RowN) row(trait.getTraitName(), trait.getMethod().getMethodName(), trait.getScale().getScaleName()))
+                .collect(Collectors.toList()).toArray(RowN[]::new);
+
+        List<Trait> traitResults = new ArrayList<>();
+        if (valueRows.length > 0){
+            Table newTraits = dsl.select()
+                    .from(values(valueRows).as("newTraits", "new_trait_name", "new_method_name", "new_scale_name")).asTable("newTraits");
+
+            Result<Record> records = dsl.select()
+                    .from(newTraits)
+                    .join(TRAIT).on(TRAIT.TRAIT_NAME.like(newTraits.field("new_trait_name")))
+                    .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID)).and(METHOD.METHOD_NAME.like(newTraits.field("new_method_name")))
+                    .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID)).and(SCALE.SCALE_NAME.like(newTraits.field("new_scale_name")))
+                    .fetch();
+
+
+            for (Record record: records) {
+                Trait trait = Trait.parseSqlRecord(record);
+                Scale scale = Scale.parseSqlRecord(record);
+                Method method = Method.parseSqlRecord(record);
+                trait.setScale(scale);
+                trait.setMethod(method);
+                traitResults.add(trait);
+            }
+        }
+
+        return traitResults;
+    }
+
+    public List<Trait> getTraitsByAbbreviation(List<String> abbreviations) {
+
+        Result<Record> records = dsl.select()
+                .from(TRAIT).where(TRAIT.ABBREVIATIONS.cast(String[].class).contains(abbreviations.toArray(String[]::new)))
+                .fetch();
+
+        List<Trait> traitResults = new ArrayList<>();
+        for (Record record: records) {
+            Trait trait = Trait.parseSqlRecord(record);
+            traitResults.add(trait);
+        }
+
+        return traitResults;
     }
 
 }

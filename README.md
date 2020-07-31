@@ -17,10 +17,9 @@ to be run in: e.g develop, test, staging, and production.  Each service contains
 under the environment key public values for environment variables used as params
 for the API configuration.
 
-Private values used in each environment are stored in Lastpass and are never
-placed in docker-compose.yml and never committed to the repo.  At the root level
-of the repo locally create a file called .env and save the Lastpass contents for
-"bi-api secrets" in this file.
+Private values used in each environment are never placed in docker-compose.yml 
+and never committed to the repo. Variables are passed into the docker-compose.yml
+from the .env file. The .env file should be modified to contain the secrets.
 
 ### Running tests in docker container
 
@@ -64,6 +63,16 @@ Run this docker command in terminal to start up a postgres docker container with
 ```
 docker-compose up -d bidb
 ```
+
+#### BrAPI Test Server
+
+A fork of the brapi test server is used for local development, 
+
+https://github.com/Breeding-Insight/brapi-Java-TestServer
+
+to run the brapi test server, update the proper variables in the .env file and then run the command:
+
+```docker-compose up -d brapi-server```
 
 ### Building the project
 

@@ -23,9 +23,12 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.daos.ProgramObservationLevelDAO;
+import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -41,7 +44,13 @@ public class ProgramService {
     @Inject
     private ProgramDAO dao;
     @Inject
+    private ProgramOntologyDAO programOntologyDAO;
+    @Inject
+    private ProgramObservationLevelDAO programObservationLevelDAO;
+    @Inject
     private SpeciesService speciesService;
+    @Inject
+    private DSLContext dsl;
 
     public Optional<Program> getById(UUID programId) {
 
@@ -72,20 +81,43 @@ public class ProgramService {
             throw new UnprocessableEntityException("Species does not exist");
         }
 
-        // Parse and create the program object
-        ProgramEntity programEntity = ProgramEntity.builder()
-                .name(programRequest.getName())
-                .speciesId(speciesRequest.getId())
-                .abbreviation(programRequest.getAbbreviation())
-                .objective(programRequest.getObjective())
-                .documentationUrl(programRequest.getDocumentationUrl())
-                .createdBy(actingUser.getId())
-                .updatedBy(actingUser.getId())
-                .build();
+        Program program = dsl.transactionResult(configuration -> {
+            // Parse and create the program object
+            ProgramEntity programEntity = ProgramEntity.builder()
+                    .name(programRequest.getName())
+                    .speciesId(speciesRequest.getId())
+                    .abbreviation(programRequest.getAbbreviation())
+                    .objective(programRequest.getObjective())
+                    .documentationUrl(programRequest.getDocumentationUrl())
+                    .createdBy(actingUser.getId())
+                    .updatedBy(actingUser.getId())
+                    .build();
 
-        // Insert and update
-        dao.insert(programEntity);
-        Program program = dao.get(programEntity.getId()).get(0);
+            // Insert and update
+            dao.insert(programEntity);
+
+            ProgramOntologyEntity programOntologyEntity = ProgramOntology.builder()
+                    .programId(programEntity.getId())
+                    .createdBy(actingUser.getId())
+                    .updatedBy(actingUser.getId())
+                    .build();
+            programOntologyDAO.insert(programOntologyEntity);
+
+            //TODO: Remove this insert when we have an endpoint for it
+            ProgramObservationLevelEntity programObservationLevelEntity = ProgramObservationLevelEntity.builder()
+                    .name("Plant")
+                    .programId(programEntity.getId())
+                    .createdBy(actingUser.getId())
+                    .updatedBy(actingUser.getId())
+                    .build();
+            programObservationLevelDAO.insert(programObservationLevelEntity);
+
+            //TODO: Add program and ontology to brapi services.
+            //TODO: Add species to brapi service if it doesn't exist
+
+            return dao.get(programEntity.getId()).get(0);
+        });
+
 
         return program;
     }
@@ -135,17 +167,6 @@ public class ProgramService {
 
     public boolean exists(UUID programId) {
         return dao.existsById(programId);
-    }
-
-    public void delete(UUID programId) throws DoesNotExistException {
-        /* Deletes an existing program */
-
-        ProgramEntity programEntity = dao.fetchOneById(programId);
-        if (programEntity == null){
-            throw new DoesNotExistException("Program does not exist");
-        }
-
-        dao.delete(programEntity);
     }
 
     public ProgramBrAPIEndpoints getBrapiEndpoints(UUID programId) {

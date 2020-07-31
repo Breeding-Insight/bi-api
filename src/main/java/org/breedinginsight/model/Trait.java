@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,16 +40,18 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
 @SuperBuilder
 @NoArgsConstructor
 @JsonIgnoreProperties(value = { "methodId", "scaleId",
-        "programOntologyId", "programObservationLevelId"})
+        "programOntologyId", "programObservationLevelId", "createdBy", "updatedBy"})
 public class Trait extends TraitEntity {
 
+    @JsonIgnoreProperties({"createdAt", "updatedAt"})
     private ProgramObservationLevel programObservationLevel;
     private Method method;
     private Scale scale;
+    @JsonIgnore
     private ProgramOntology programOntology;
-    @JsonIgnoreProperties("systemRoles")
+    @JsonIgnoreProperties({"systemRoles", "programRoles"})
     private User createdByUser;
-    @JsonIgnoreProperties("systemRoles")
+    @JsonIgnoreProperties({"systemRoles", "programRoles"})
     private User updatedByUser;
 
     // Properties from brapi
@@ -56,9 +59,9 @@ public class Trait extends TraitEntity {
     private String traitClass;
     private String attribute;
     private String defaultValue;
+    @JsonIgnore
     private String entity;
     private String mainAbbreviation;
-    private List<String> abbreviations;
     private List<String> synonyms;
 
     public Trait(TraitEntity traitEntity) {
@@ -66,6 +69,7 @@ public class Trait extends TraitEntity {
         this.setMethodId(traitEntity.getMethodId());
         this.setScaleId(traitEntity.getScaleId());
         this.setTraitName(traitEntity.getTraitName());
+        this.setAbbreviations(traitEntity.getAbbreviations());
         this.setProgramOntologyId(traitEntity.getProgramOntologyId());
         this.setProgramObservationLevelId(traitEntity.getProgramObservationLevelId());
         this.setCreatedAt(traitEntity.getCreatedAt());
@@ -81,6 +85,7 @@ public class Trait extends TraitEntity {
             .methodId(record.getValue(TRAIT.METHOD_ID))
             .scaleId(record.getValue(TRAIT.SCALE_ID))
             .traitName(record.getValue(TRAIT.TRAIT_NAME))
+            .abbreviations(record.getValue(TRAIT.ABBREVIATIONS))
             .programOntologyId(record.getValue(TRAIT.PROGRAM_ONTOLOGY_ID))
             .programObservationLevelId(record.getValue(TRAIT.PROGRAM_OBSERVATION_LEVEL_ID))
             .createdAt(record.getValue(TRAIT.CREATED_AT))
@@ -98,7 +103,6 @@ public class Trait extends TraitEntity {
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
-            this.setAbbreviations(brApiVariable.getTrait().getAlternativeAbbreviations());
             this.setSynonyms(brApiVariable.getTrait().getSynonyms());
         }
 

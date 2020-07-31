@@ -17,25 +17,60 @@
 
 package org.breedinginsight.services;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.daos.TraitDAO;
-import org.breedinginsight.model.Trait;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramObservationLevelEntity;
+import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
+import org.breedinginsight.daos.*;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.services.validators.TraitValidator;
+import org.breedinginsight.services.validators.TraitValidatorError;
+import org.breedinginsight.services.validators.TraitValidatorErrorInterface;
+import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class TraitService {
 
-    @Inject
     private TraitDAO traitDAO;
-    @Inject
+    private MethodDAO methodDAO;
+    private ScaleDAO scaleDAO;
     private ProgramService programService;
+    private ProgramOntologyService programOntologyService;
+    private ProgramObservationLevelService programObservationLevelService;
+    private UserService userService;
+    private TraitValidator traitValidator;
+    private DSLContext dsl;
+    private TraitValidatorError traitValidatorError;
+
+    @Inject
+    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramService programService,
+                        ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
+                        UserService userService, TraitValidator traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
+        this.traitDAO = traitDao;
+        this.methodDAO = methodDao;
+        this.scaleDAO = scaleDao;
+        this.programService = programService;
+        this.programOntologyService = programOntologyService;
+        this.programObservationLevelService = programObservationLevelService;
+        this.userService = userService;
+        this.traitValidator = traitValidator;
+        this.dsl = dsl;
+        this.traitValidatorError = traitValidatorError;
+    }
 
     public List<Trait> getByProgramId(UUID programId, Boolean getFullTrait) throws DoesNotExistException {
 
@@ -58,5 +93,160 @@ public class TraitService {
         }
 
        return traitDAO.getTraitFull(programId, traitId);
+    }
+
+    public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
+            throws DoesNotExistException, ValidatorException {
+
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent()) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+        Program program = optionalProgram.get();
+
+        Optional<User> optionalUser = userService.getById(actingUser.getId());
+        if (!optionalUser.isPresent()){
+            throw new InternalServerException("Could not find user in system");
+        }
+        User user = optionalUser.get();
+
+
+        // Get our ontology
+        Optional<ProgramOntology> programOntologyOptional = programOntologyService.getByProgramId(programId);
+        if (!programOntologyOptional.isPresent()){
+            throw new InternalServerException("Ontology does not exist for program");
+        }
+        ProgramOntology programOntology = programOntologyOptional.get();
+
+        ValidationErrors validationErrors = new ValidationErrors();
+        try {
+            assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
+        } catch (ValidatorException e){
+            validationErrors.merge(e.getErrors());
+        }
+
+        // Ignore duplicate traits
+        ValidationErrors duplicateErrors = new ValidationErrors();
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(traits);
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(traits);
+        List<Integer> traitIndexToRemove = new ArrayList<>();
+        for (Trait duplicateTrait: duplicateTraits){
+
+            Integer i = traits.indexOf(duplicateTrait);
+            if (i == -1){
+                throw new InternalServerException("Duplicate trait was not referenced correctly");
+            } else {
+                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByNamesMsg());
+                traitIndexToRemove.add(i);
+            }
+        }
+
+        for (Trait duplicateTraitAbbrev: duplicateTraitsByAbbrev){
+
+            Integer i = traits.indexOf(duplicateTraitAbbrev);
+            if (i == -1){
+                throw new InternalServerException("Duplicate trait was not referenced correctly");
+            } else {
+                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
+                traitIndexToRemove.add(i);
+            }
+        }
+
+        // Check the rest of our validations
+        Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
+        if (optionalValidationErrors.isPresent()){
+            validationErrors.merge(optionalValidationErrors.get());
+        }
+
+        // Remove our duplicate traits
+        Set<Trait> duplicateTraitSet = new HashSet<>(duplicateTraits);
+        duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
+        traits.removeAll(duplicateTraitSet);
+
+        if (validationErrors.hasErrors()){
+            // If there are other errors, show our duplicate errors
+            validationErrors.merge(duplicateErrors);
+            throw new ValidatorException(validationErrors);
+        }
+
+        // Create the traits
+        List<Trait> createdTraits = new ArrayList<>();
+
+        if (traits.size() > 0) {
+
+            createdTraits = dsl.transactionResult(configuration -> {
+
+                //TODO: If one trait in brapi fails, roll back all others before it
+                for (Trait trait : traits) {
+                    // Create method
+                    MethodEntity jooqMethod = MethodEntity.builder()
+                            .methodName(trait.getMethod().getMethodName())
+                            .programOntologyId(programOntology.getId())
+                            .createdBy(actingUser.getId())
+                            .updatedBy(actingUser.getId())
+                            .build();
+                    methodDAO.insert(jooqMethod);
+                    trait.getMethod().setId(jooqMethod.getId());
+
+                    // Create scale
+                    ScaleEntity jooqScale = ScaleEntity.builder()
+                            .scaleName(trait.getScale().getScaleName())
+                            .dataType(trait.getScale().getDataType())
+                            .programOntologyId(programOntology.getId())
+                            .createdBy(actingUser.getId())
+                            .updatedBy(actingUser.getId())
+                            .build();
+                    scaleDAO.insert(jooqScale);
+                    trait.getScale().setId(jooqScale.getId());
+
+                    // Create trait
+                    TraitEntity jooqTrait = TraitEntity.builder()
+                            .traitName(trait.getTraitName())
+                            .abbreviations(trait.getAbbreviations())
+                            .programOntologyId(programOntology.getId())
+                            .programObservationLevelId(trait.getProgramObservationLevel().getId())
+                            .methodId(jooqMethod.getId())
+                            .scaleId(jooqScale.getId())
+                            .createdBy(actingUser.getId())
+                            .updatedBy(actingUser.getId())
+                            .build();
+                    traitDAO.insert(jooqTrait);
+                    trait.setId(jooqTrait.getId());
+                }
+
+                return traitDAO.createTraitsBrAPI(traits, user, program);
+            });
+        }
+
+        return createdTraits;
+    }
+
+    public void assignTraitsProgramObservationLevel(List<Trait> traits, UUID programId, TraitValidatorErrorInterface traitValidatorError) throws ValidatorException {
+
+        ValidationErrors validationErrors = new ValidationErrors();
+
+        // Get our program observation levels
+        List<ProgramObservationLevel> programLevels = programObservationLevelService.getByProgramId(programId);
+        List<String> availableLevels = programLevels.stream().map(ProgramObservationLevelEntity::getName).collect(Collectors.toList());
+        for (int i = 0; i < traits.size(); i++) {
+            Trait trait = traits.get(i);
+            if (trait.getProgramObservationLevel() != null){
+                List<ProgramObservationLevel> matchingLevels = programLevels.stream()
+                        .filter(programObservationLevel -> programObservationLevel.getName().equals(trait.getProgramObservationLevel().getName()))
+                        .collect(Collectors.toList());
+                if (matchingLevels.size() == 0) {
+                    ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist(availableLevels);
+                    validationErrors.addError(i, validationError);
+                } else {
+                    ProgramObservationLevel dbLevel = matchingLevels.get(0);
+                    trait.getProgramObservationLevel().setId(dbLevel.getId());
+                }
+            }
+        }
+
+        if (validationErrors.hasErrors()){
+            throw new ValidatorException(validationErrors);
+        }
+
     }
 }

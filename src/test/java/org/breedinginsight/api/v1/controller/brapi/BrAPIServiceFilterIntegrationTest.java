@@ -33,6 +33,7 @@ import lombok.SneakyThrows;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.ResponseHandlerFunction;
 import org.brapi.client.v2.model.BrAPIRequest;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.dao.db.tables.daos.*;
@@ -58,7 +59,7 @@ import static org.mockito.Mockito.*;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BrAPIServiceFilterIntegrationTest {
+public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
 
     private ProgramEntity validProgram;
     private TraitEntity validVariable;

@@ -45,8 +45,8 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join bi_user on bi_user.name = 'system' limit 1
 
 -- name: InsertTrait
-insert into trait (program_ontology_id, trait_name, method_id, scale_id, program_observation_level_id, created_by, updated_by)
-select program_ontology.id, 'Test Trait', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
+insert into trait (program_ontology_id, trait_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+select program_ontology.id, 'Test Trait', ARRAY['t1', 't2'], method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
 join method on method.program_ontology_id = program_ontology.id and method.method_name = 'Test Method'
@@ -54,25 +54,7 @@ join scale on scale.program_ontology_id = program_ontology.id and scale.scale_na
 join program_observation_level on program_ontology.program_id = program_observation_level.program_id and program_observation_level.name = 'Plant'
 join bi_user on bi_user.name = 'system' limit 1
 
--- name: InsertMethod1
-insert into method (program_ontology_id, method_name, created_by, updated_by)
-select program_ontology.id, 'Test Method1', bi_user.id, bi_user.id from program_ontology
-join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join bi_user on bi_user.name = 'system' limit 1
-
--- name: InsertScale1
-insert into scale (program_ontology_id, scale_name, data_type, created_by, updated_by)
-select program_ontology.id, 'Test Scale1', 'TEXT', bi_user.id, bi_user.id
-from program_ontology
-join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join bi_user on bi_user.name = 'system' limit 1
-
--- name: InsertTrait1
-insert into trait (program_ontology_id, trait_name, method_id, scale_id, program_observation_level_id, created_by, updated_by)
-select program_ontology.id, 'Test Trait1', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
-from program_ontology
-join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join method on method.program_ontology_id = program_ontology.id and method.method_name = 'Test Method1'
-join scale on scale.program_ontology_id = program_ontology.id and scale.scale_name = 'Test Scale1'
-join program_observation_level on program_ontology.program_id = program_observation_level.program_id and program_observation_level.name = 'Plant'
-join bi_user on bi_user.name = 'system' limit 1
+-- name: DeleteTrait
+delete from trait;
+delete from method;
+delete from scale;

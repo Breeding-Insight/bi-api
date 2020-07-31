@@ -17,40 +17,50 @@
 
 package org.breedinginsight;
 
-import com.zaxxer.hikari.HikariConfig;
-import io.micronaut.context.event.BeanInitializedEventListener;
-import io.micronaut.context.event.BeanInitializingEvent;
+import io.micronaut.test.support.TestPropertyProvider;
+import lombok.Getter;
+import lombok.SneakyThrows;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
 
-import javax.inject.Singleton;
+import javax.annotation.Nonnull;
+import java.util.HashMap;
+import java.util.Map;
 
-@Singleton
-public class HikariConfiguration implements BeanInitializedEventListener<HikariConfig> {
+public class DatabaseTest implements TestPropertyProvider {
 
-    @Override
-    public HikariConfig onInitialized(BeanInitializingEvent<HikariConfig> configurationEvent)
-    {
+    @Getter
+    private static GenericContainer dbContainer;
+    private final String dbName = "bitest";
+    private final String dbPassword = "postgres";
 
-        // Initialize container using TestContainers
-        GenericContainer dbContainer = new GenericContainer<>("postgres:11.4")
+    @SneakyThrows
+    public DatabaseTest() {
+        dbContainer = new GenericContainer<>("postgres:11.4")
+                .withNetwork(Network.newNetwork())
+                .withNetworkAliases("test-db")
                 .withImagePullPolicy(PullPolicy.defaultPolicy())
                 .withExposedPorts(5432)
-                .withEnv("POSTGRES_DB", "bitest")
-                .withEnv("POSTGRES_PASSWORD", "postgres")
+                .withEnv("POSTGRES_DB", dbName)
+                .withEnv("POSTGRES_PASSWORD", dbPassword)
                 .waitingFor(Wait.forListeningPort());
-
         dbContainer.start();
+    }
+
+    @Nonnull
+    @Override
+    public Map<String, String> getProperties() {
+        Map<String, String> properties = new HashMap<>();
         Integer containerPort = dbContainer.getMappedPort(5432);
         String containerIp = dbContainer.getContainerIpAddress();
 
-        HikariConfig configuration = configurationEvent.getBean();
-
-        configuration.setJdbcUrl(String.format("jdbc:postgresql://%s:%s/bitest", containerIp, containerPort));
-
-        return configuration;
+        properties.put("datasources.default.url", String.format("jdbc:postgresql://%s:%s/%s", containerIp, containerPort, dbName));
+        return properties;
     }
 
+    public GenericContainer getDbContainer() {
+        return dbContainer;
+    }
 }
-
