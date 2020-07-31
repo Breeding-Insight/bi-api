@@ -839,6 +839,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(1, resultProgramRoles.size(), "Deactivated program was returned in roles");
     }
 
+    //TODO: Remove once registration flow is complete
     @Test
     @Order(8)
     public void putUserOrcidUserNotFound() {
@@ -859,6 +860,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
+    //TODO: Remove once registration flow is complete
     @Test
     @Order(8)
     public void putUserOrcidSuccess() {
@@ -884,6 +886,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(otherTestUser.getEmail(), result.get("email").getAsString(), "Wrong email");
     }
 
+    //TODO: Remove once registration flow is complete
     @Test
     @Order(8)
     public void putUserOrcidInUseBySelf() {
@@ -903,6 +906,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
+    //TODO: Remove once registration flow is complete
     @Test
     @Order(8)
     public void putUserOrcidInUseByOther() {

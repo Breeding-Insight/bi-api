@@ -22,6 +22,7 @@ import lombok.*;
 
 import javax.validation.constraints.NotBlank;
 
+//TODO: Remove once registration flow is complete
 @Getter
 @Setter
 @Builder

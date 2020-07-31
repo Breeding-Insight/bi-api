@@ -293,6 +293,7 @@ public class UserService {
         return dao.existsById(id);
     }
 
+    //TODO: Remove once registration flow is complete
     public User updateOrcid(AuthenticatedUser activeUser, UUID userId, OrcidRequest orcidRequest) throws DoesNotExistException, AlreadyExistsException {
 
         // This is a temporary fix so any authenticated user is able to update any users orcid.
