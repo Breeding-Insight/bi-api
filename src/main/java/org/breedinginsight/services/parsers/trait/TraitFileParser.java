@@ -138,7 +138,7 @@ public class TraitFileParser {
                             ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
                     validationErrors.addError(i, error);
                 }
-                active = !traitStatus.equals(TRAIT_STATUS_ARCHIVED);
+                active = !traitStatus.toLowerCase().equals(TRAIT_STATUS_ARCHIVED);
             }
 
             Method method = Method.builder()
