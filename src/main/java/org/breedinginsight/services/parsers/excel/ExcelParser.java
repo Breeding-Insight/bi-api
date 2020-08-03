@@ -80,12 +80,16 @@ public class ExcelParser {
         for (int rowIndex=EXCEL_COLUMN_NAMES_ROW+1; rowIndex<=sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
             Map<String, Cell> data = new HashMap<>();
-            for(int colIndex=0; colIndex<row.getLastCellNum(); colIndex++) {
-                Cell cell = row.getCell(colIndex);
-                data.put(indexColNameMap.get(colIndex), cell);
+            // Ignore empty excel rows
+            if (row != null){
+                for(int colIndex=0; colIndex<row.getLastCellNum(); colIndex++) {
+                    Cell cell = row.getCell(colIndex);
+                    data.put(indexColNameMap.get(colIndex), cell);
+                }
+
+                records.add(new ExcelRecord(data));
             }
 
-            records.add(new ExcelRecord(data));
         }
 
         return records;

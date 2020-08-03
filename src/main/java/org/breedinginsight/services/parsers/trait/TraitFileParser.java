@@ -81,12 +81,7 @@ public class TraitFileParser {
 
         List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumns());
 
-        try {
-            return excelRecordsToTraits(records);
-        } catch (ValidatorException e){
-            throw e;
-        }
-
+        return excelRecordsToTraits(records);
     }
 
     // no sheets RFC4180
@@ -108,11 +103,7 @@ public class TraitFileParser {
         Sheet excelSheet = convertCsvToExcel(records);
         List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumns());
 
-        try {
-            return excelRecordsToTraits(excelRecords);
-        } catch (ValidatorException e){
-            throw e;
-        }
+        return excelRecordsToTraits(excelRecords);
     }
 
     private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) throws ValidatorException {

@@ -17,6 +17,7 @@
 package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.kowalski.fannypack.FannyPack;
@@ -30,7 +31,10 @@ import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import junit.framework.AssertionFailedError;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.api.model.v1.response.RowValidationErrors;
+import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -40,6 +44,10 @@ import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 
 import java.io.File;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -239,6 +247,57 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertTrue(errors2.size() == 2, "Not enough errors were returned");
         JsonObject error2 = errors2.get(0).getAsJsonObject();
         assertEquals(409, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+    }
+
+    @Test
+    public void putTraitUploadEmptyRowBetweenRows() {
+        // Empty rows should be ignored
+
+        File file = new File("src/test/resources/files/empty_then_2_rows.xlsx");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        checkValidTraitUpload(result);
+    }
+
+    @Test
+    public void putTraitUploadBadTypes() {
+        // Should only return parsing exceptions, not validation exceptions
+        // File also contains missing trait name and bad trait level
+
+        File file = new File("src/test/resources/files/parsing_exceptions.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+        assertEquals(6, rowValidationErrors.size(), "Wrong number of errors for row");
+        Map<String, Integer> expectedColumns = new HashMap<>();
+        expectedColumns.put("Trait status", 422);
+        expectedColumns.put("Scale categories", 422);
+        expectedColumns.put("Scale class", 422);
+        expectedColumns.put("Scale decimal places", 422);
+        expectedColumns.put("Scale lower limit", 422);
+        expectedColumns.put("Scale upper limit", 422);
+        List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
+
+        Boolean unknownColumnReturned = false;
+        for (JsonElement error: rowValidationErrors){
+            JsonObject jsonError = (JsonObject) error;
+            String column = jsonError.get("field").getAsString();
+            if (expectedColumns.containsKey(column)){
+                assertEquals(expectedColumns.get(column), jsonError.get("httpStatusCode").getAsInt(), "Wrong code was returned");
+            } else {
+                unknownColumnReturned = true;
+            }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
+        }
     }
 
     @Test
