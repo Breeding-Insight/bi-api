@@ -24,6 +24,7 @@ public enum ParsingExceptionType {
     MISSING_EXPECTED_COLUMNS("Missing expected columns"),
     ERROR_READING_FILE("Error reading file"),
     MISSING_SHEET("Missing sheet Template"),
+    EMPTY_ROW("Empty row"),
     INVALID_TRAIT_STATUS("Invalid trait status value"),
     INVALID_SCALE_CLASS("Invalid scale class value"),
     MISSING_SCALE_CLASS("Missing scale class value"),

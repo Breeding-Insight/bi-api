@@ -198,6 +198,18 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
+
+    @Test
+    public void putTraitUploadEmptyRowBetweenRows() {
+        // Empty row in middle of file should throw an error. Our error indices will be messed up otherwise.
+
+        File file = new File("src/test/resources/files/empty_then_2_rows.xlsx");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
     @Test
     void putTraitUploadMissingFormula() {
         File file = new File("src/test/resources/files/missing_formula.csv");
@@ -249,16 +261,6 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertEquals(409, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
     }
 
-    @Test
-    public void putTraitUploadEmptyRowBetweenRows() {
-        // Empty rows should be ignored
-
-        File file = new File("src/test/resources/files/empty_then_2_rows.xlsx");
-        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
-        assertEquals(HttpStatus.OK, response.getStatus());
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        checkValidTraitUpload(result);
-    }
 
     @Test
     public void putTraitUploadBadTypes() {
