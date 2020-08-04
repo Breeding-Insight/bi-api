@@ -39,6 +39,7 @@ import org.breedinginsight.services.parsers.excel.ExcelParser;
 import org.breedinginsight.services.parsers.excel.ExcelRecord;
 import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
+import org.breedinginsight.services.validators.TraitFileValidatorError;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -68,7 +69,7 @@ public class TraitFileParserUnitTest {
 
     @BeforeAll
     void setup() {
-        parser = new TraitFileParser();
+        parser = new TraitFileParser(new TraitFileValidatorError());
     }
 
     @Test

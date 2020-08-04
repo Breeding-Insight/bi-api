@@ -136,7 +136,7 @@ public class TraitService {
             if (i == -1){
                 throw new InternalServerException("Duplicate trait was not referenced correctly");
             } else {
-                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByNamesMsg());
+                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByNamesMsg());
                 traitIndexToRemove.add(i);
             }
         }
@@ -147,7 +147,7 @@ public class TraitService {
             if (i == -1){
                 throw new InternalServerException("Duplicate trait was not referenced correctly");
             } else {
-                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
+                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
                 traitIndexToRemove.add(i);
             }
         }
@@ -236,7 +236,7 @@ public class TraitService {
                         .collect(Collectors.toList());
                 if (matchingLevels.size() == 0) {
                     ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist(availableLevels);
-                    validationErrors.addError(i, validationError);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), validationError);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
