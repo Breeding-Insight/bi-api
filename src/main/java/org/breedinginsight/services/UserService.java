@@ -306,7 +306,7 @@ public class UserService {
 
         List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcidRequest.getOrcid());
         for (BiUserEntity biUserWithOrcid: biUserWithOrcidList){
-            if (!biUserWithOrcid.getId().toString().equals(userId.toString())){
+            if (!biUserWithOrcid.getId().equals(userId)){
                 throw new AlreadyExistsException("Orcid already in use");
             }
         }

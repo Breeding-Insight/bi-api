@@ -891,12 +891,11 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     @Order(8)
     public void putUserOrcidInUseBySelf() {
 
-        String orcid = "0000-0000-0000-0000";
         JsonObject requestBody = new JsonObject();
-        requestBody.addProperty("orcid", orcid);
+        requestBody.addProperty("orcid", testUser.getOrcid());
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                PUT("/users/" + otherTestUser.getId().toString() + "/orcid", requestBody.toString())
+                PUT("/users/" + testUser.getId().toString() + "/orcid", requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
