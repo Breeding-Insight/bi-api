@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.services.parsers;
 
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.model.Method;
@@ -309,4 +310,8 @@ public class TraitFileParserUnitTest {
         assertEquals(3, traits.size(), "number of traits different than expected");
     }
 
+    @Test
+    void intentionalBreak() {
+        throw new AssertionFailedError("test");
+    }
 }
