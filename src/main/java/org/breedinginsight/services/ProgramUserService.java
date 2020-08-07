@@ -152,7 +152,7 @@ public class ProgramUserService {
         return programUser.get();
     }
 
-    public rogramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, UUID userId, ProgramUserRequest programUserRequest)
+    public ProgramUser editProgramUser(AuthenticatedUser actingUser, UUID programId, UUID userId, ProgramUserRequest programUserRequest)
             throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
 
         try {
