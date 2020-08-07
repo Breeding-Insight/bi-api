@@ -25,6 +25,7 @@ import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -72,8 +73,9 @@ public class ExcelParser {
         }
 
         // check all column names were present
-        if (!columns.stream().allMatch(col -> indexColNameMap.containsValue(col))) {
-            throw new ParsingException(ParsingExceptionType.MISSING_EXPECTED_COLUMNS);
+        List<String> missingColumns = columns.stream().filter(col -> !indexColNameMap.containsValue(col)).collect(Collectors.toList());
+        if (missingColumns.size() > 0){
+            throw new ParsingException(ParsingExceptionType.MISSING_EXPECTED_COLUMNS, missingColumns);
         }
 
         // create a record for each row
