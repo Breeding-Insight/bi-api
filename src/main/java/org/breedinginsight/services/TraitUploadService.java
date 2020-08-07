@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.input.BOMInputStream;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -92,7 +93,7 @@ public class TraitUploadService {
 
         if (mediaType.getName().equals(MediaType.CSV)) {
             try {
-                traits = parser.parseCsv(file.getInputStream());
+                traits = parser.parseCsv(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
@@ -100,7 +101,7 @@ public class TraitUploadService {
         } else if (mediaType.getName().equals(MediaType.XLS) ||
                    mediaType.getName().equals(MediaType.XLSX)) {
             try {
-                traits = parser.parseExcel(file.getInputStream());
+                traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
