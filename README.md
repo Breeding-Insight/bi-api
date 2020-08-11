@@ -19,7 +19,12 @@ for the API configuration.
 
 Private values used in each environment are never placed in docker-compose.yml 
 and never committed to the repo. Variables are passed into the docker-compose.yml
-from the .env file. The .env file should be modified to contain the secrets.
+from the .env file. You can either modify the .env file to hold your secrets, or run 
+docker-compose with a custom .env file:
+
+```
+docker-compose --env-file .env.local up -d biapi-dev
+```
 
 ### Running tests in docker container
 

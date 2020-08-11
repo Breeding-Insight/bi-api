@@ -17,6 +17,7 @@
 
 package org.breedinginsight.services.validators;
 
+import io.micronaut.test.annotation.MockBean;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
@@ -24,12 +25,15 @@ import org.breedinginsight.api.model.v1.response.RowValidationErrors;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
+import org.mockito.Mock;
 
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +44,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TraitValidatorUnitTest {
+
+    TraitValidatorService traitValidatorService;
+    @Mock
+    TraitDAO traitDAO;
+
+
+
+    @BeforeAll
+    public void setup() {
+        traitValidatorService = new TraitValidatorService(traitDAO);
+    }
 
     @Test
     @SneakyThrows
@@ -71,7 +86,7 @@ public class TraitValidatorUnitTest {
                 BrApiScaleCategories.builder().label("label2").value("value2").build()));
 
 
-        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
+        ValidationErrors validationErrors = traitValidatorService.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
@@ -105,7 +120,7 @@ public class TraitValidatorUnitTest {
         trait.getMethod().setDescription("A method");
         trait.getMethod().setFormula("a^2 + b^2 = c^2");
 
-        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
+        ValidationErrors validationErrors = traitValidatorService.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
@@ -124,7 +139,7 @@ public class TraitValidatorUnitTest {
         trait.setScale(scale);
         trait.setMethod(method);
 
-        ValidationErrors validationErrors = TraitValidator.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
+        ValidationErrors validationErrors = traitValidatorService.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
@@ -168,7 +183,7 @@ public class TraitValidatorUnitTest {
         trait.setScale(scale);
         trait.setMethod(method);
 
-        ValidationErrors validationErrors = TraitValidator.checkTraitDataConsistency(List.of(trait), new TraitValidatorError());
+        ValidationErrors validationErrors = traitValidatorService.checkTraitDataConsistency(List.of(trait), new TraitValidatorError());
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
@@ -230,7 +245,7 @@ public class TraitValidatorUnitTest {
         trait3.setScale(scale3);
         trait3.setMethod(method3);
 
-        ValidationErrors validationErrors = TraitValidator.checkDuplicateTraitsInFile(List.of(trait1, trait2, trait3), new TraitValidatorError());
+        ValidationErrors validationErrors = traitValidatorService.checkDuplicateTraitsInFile(List.of(trait1, trait2, trait3), new TraitValidatorError());
 
         assertEquals(3, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors trait1Error = validationErrors.getRowErrors().get(0);

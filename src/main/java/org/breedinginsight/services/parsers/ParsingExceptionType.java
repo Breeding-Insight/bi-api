@@ -24,12 +24,14 @@ public enum ParsingExceptionType {
     MISSING_EXPECTED_COLUMNS("Missing expected columns"),
     ERROR_READING_FILE("Error reading file"),
     MISSING_SHEET("Missing sheet Template"),
+    EMPTY_ROW("Empty row"),
     INVALID_TRAIT_STATUS("Invalid trait status value"),
     INVALID_SCALE_CLASS("Invalid scale class value"),
     MISSING_SCALE_CLASS("Missing scale class value"),
     INVALID_SCALE_DECIMAL_PLACES("Invalid scale decimal places value"),
     INVALID_SCALE_LOWER_LIMIT("Invalid scale lower limit value"),
-    INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value");
+    INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value"),
+    INVALID_SCALE_CATEGORIES("Invalid scale categories format");
 
     private String value;
 

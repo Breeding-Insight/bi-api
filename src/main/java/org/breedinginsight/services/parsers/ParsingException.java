@@ -16,12 +16,19 @@
  */
 package org.breedinginsight.services.parsers;
 
+import java.util.List;
+
 public class ParsingException extends Exception {
 
     private ParsingExceptionType type;
 
     public ParsingException(ParsingExceptionType type) {
         super(type.getMessage());
+        this.type = type;
+    }
+
+    public ParsingException(ParsingExceptionType type, List<String> columns){
+        super(String.format("%s %s", type.getMessage(), columns.toString()));
         this.type = type;
     }
 

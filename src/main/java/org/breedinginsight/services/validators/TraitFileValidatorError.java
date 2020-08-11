@@ -22,9 +22,16 @@ import org.breedinginsight.api.model.v1.response.ValidationError;
 
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Singleton
 public class TraitFileValidatorError implements TraitValidatorErrorInterface {
+
+    @Override
+    public Integer getRowNumber(Integer row) {
+        // 1 indexed row, we skip the first for the header
+        return row + 2;
+    }
 
     @Override
     public ValidationError getMissingMethodMsg() {
@@ -98,6 +105,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
+        matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
         return new ValidationError("Trait name",
                 "traitName - scaleName - methodName combination is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
@@ -105,6 +113,8 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows) {
+        // Make rows match excel rows
+        matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
         return new ValidationError("Trait abbreviations",
                 "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);

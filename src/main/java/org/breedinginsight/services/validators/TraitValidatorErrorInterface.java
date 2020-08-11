@@ -23,6 +23,7 @@ import javax.validation.Validation;
 import java.util.List;
 
 public interface TraitValidatorErrorInterface {
+    Integer getRowNumber(Integer row);
     ValidationError getMissingMethodMsg();
     ValidationError getMissingMethodNameMsg();
     ValidationError getMissingMethodDescriptionMsg();

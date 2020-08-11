@@ -24,16 +24,14 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.TraitUploadService;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.UnsupportedTypeException;
+import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import java.util.Optional;
@@ -63,9 +61,9 @@ public class TraitUploadController {
             ProgramUpload programUpload = traitUploadService.updateTraitUpload(programId, file, actingUser);
             Response<ProgramUpload> response = new Response(programUpload);
             return HttpResponse.ok(response);
-        } catch (UnprocessableEntityException e) {
+        } catch (HttpBadRequestException e) {
             log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -75,6 +73,10 @@ public class TraitUploadController {
         } catch (UnsupportedTypeException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        } catch (ValidatorException e){
+            log.info(e.getErrors().toString());
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
         }
     }
 

@@ -30,16 +30,16 @@ import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.isBlank;
 
-public class TraitValidator {
+public class TraitValidatorService {
 
     private TraitDAO traitDAO;
 
     @Inject
-    public TraitValidator(TraitDAO traitDAO){
+    public TraitValidatorService(TraitDAO traitDAO){
         this.traitDAO = traitDAO;
     }
 
-    public static ValidationErrors checkRequiredTraitFields(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+    public ValidationErrors checkRequiredTraitFields(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -51,47 +51,47 @@ public class TraitValidator {
 
             if (method == null) {
                 ValidationError error = traitValidatorErrors.getMissingMethodMsg();
-                errors.addError(i, error);
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
                 if (isBlank(method.getMethodName()) || method.getMethodName() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodNameMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
                 if (isBlank(method.getDescription()) || method.getDescription() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodDescriptionMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
                 if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodClassMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
 
             if (scale == null) {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
-                errors.addError(i, error);
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
                 if (isBlank(scale.getScaleName()) || scale.getScaleName() == null) {
                     ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
                 if (scale.getDataType() == null || scale.getDataType() == null) {
                     ValidationError error = traitValidatorErrors.getMissingScaleDataTypeMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
 
             if (isBlank(trait.getTraitName()) || trait.getTraitName() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitNameMsg();
-                errors.addError(i, error);
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (isBlank(trait.getDescription()) || trait.getDescription() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
-                errors.addError(i, error);
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
                 ValidationError error = traitValidatorErrors.getMissingProgramObservationLevelMsg();
-                errors.addError(i, error);
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
         }
 
@@ -99,7 +99,7 @@ public class TraitValidator {
 
     }
 
-    public static ValidationErrors checkTraitDataConsistency(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+    public ValidationErrors checkTraitDataConsistency(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
 
         ValidationErrors errors = new ValidationErrors();
 
@@ -112,14 +112,14 @@ public class TraitValidator {
             if (method != null && method.getMethodClass() != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
                 if (isBlank(method.getFormula()) || method.getFormula() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodFormulaMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
 
             if (scale != null && scale.getDataType() != null && scale.getDataType() == DataType.ORDINAL) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
                     ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg();
-                    errors.addError(i, error);
+                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
         }
@@ -180,7 +180,7 @@ public class TraitValidator {
         return duplicates;
     }
 
-    public static ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
+    public ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
 
         ValidationErrors errors = new ValidationErrors();
         // Check duplicate trait names
@@ -208,7 +208,7 @@ public class TraitValidator {
             if (namesMap.get(name).size() > 1){
                 for (Integer rowIndex: namesMap.get(name)){
                     ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByNameInFileMsg(namesMap.get(name));
-                    errors.addError(Integer.valueOf(rowIndex), validationError);
+                    errors.addError(traitValidatorErrors.getRowNumber(rowIndex), validationError);
                 }
             }
         }
@@ -238,7 +238,7 @@ public class TraitValidator {
                     if (abbreviationMap.containsKey(abbreviation)) {
                         if (abbreviationMap.get(abbreviation).size() > 1){
                             ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByAbbreviationInFileMsg(abbreviationMap.get(abbreviation));
-                            errors.addError(Integer.valueOf(i), validationError);
+                            errors.addError(traitValidatorErrors.getRowNumber(i), validationError);
                             break;
                         }
                     }
@@ -274,9 +274,9 @@ public class TraitValidator {
 
         ValidationErrors validationErrors = new ValidationErrors();
         // Validate the traits
-        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
-        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
-        ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits, traitValidatorError);
+        ValidationErrors requiredFieldErrors = checkRequiredTraitFields(traits, traitValidatorError);
+        ValidationErrors dataConsistencyErrors = checkTraitDataConsistency(traits, traitValidatorError);
+        ValidationErrors duplicateTraitsInFile = checkDuplicateTraitsInFile(traits, traitValidatorError);
         validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile);
 
         if (validationErrors.hasErrors()){

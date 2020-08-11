@@ -25,6 +25,7 @@ import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static org.apache.commons.lang3.StringUtils.*;
 
@@ -66,26 +67,33 @@ public class ExcelParser {
             }
         }
 
-        // check for duplicates
+        // check for duplicate column names
         if (hasDuplicates(new ArrayList(indexColNameMap.values()))) {
             throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
         }
 
         // check all column names were present
-        if (!columns.stream().allMatch(col -> indexColNameMap.containsValue(col))) {
-            throw new ParsingException(ParsingExceptionType.MISSING_EXPECTED_COLUMNS);
+        List<String> missingColumns = columns.stream().filter(col -> !indexColNameMap.containsValue(col)).collect(Collectors.toList());
+        if (missingColumns.size() > 0){
+            throw new ParsingException(ParsingExceptionType.MISSING_EXPECTED_COLUMNS, missingColumns);
         }
 
         // create a record for each row
         for (int rowIndex=EXCEL_COLUMN_NAMES_ROW+1; rowIndex<=sheet.getLastRowNum(); rowIndex++) {
             Row row = sheet.getRow(rowIndex);
             Map<String, Cell> data = new HashMap<>();
+
+            if (row == null){
+                throw new ParsingException(ParsingExceptionType.EMPTY_ROW);
+            }
+
             for(int colIndex=0; colIndex<row.getLastCellNum(); colIndex++) {
                 Cell cell = row.getCell(colIndex);
                 data.put(indexColNameMap.get(colIndex), cell);
             }
 
             records.add(new ExcelRecord(data));
+
         }
 
         return records;

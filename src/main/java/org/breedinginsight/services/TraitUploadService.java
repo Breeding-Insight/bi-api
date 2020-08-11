@@ -19,7 +19,10 @@ package org.breedinginsight.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.input.BOMInputStream;
+import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.UploadType;
@@ -38,7 +41,7 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
-import org.breedinginsight.services.validators.TraitValidator;
+import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.JSONB;
 
 import java.io.IOException;
@@ -52,24 +55,27 @@ public class TraitUploadService {
     private ProgramService programService;
     private ProgramUserService programUserService;
     private TraitFileParser parser;
-    private TraitValidator traitValidator;
+    private TraitValidatorService traitValidator;
     private TraitFileValidatorError traitValidatorError;
+    private TraitService traitService;
 
     @Inject
     public TraitUploadService(ProgramUploadDAO programUploadDAO, ProgramService programService, ProgramUserService programUserService,
-                              TraitFileParser traitFileParser, TraitValidator traitValidator, TraitFileValidatorError traitFileValidatorError){
+                              TraitFileParser traitFileParser, TraitValidatorService traitValidator, TraitFileValidatorError traitFileValidatorError,
+                              TraitService traitService){
         this.programUploadDao = programUploadDAO;
         this.programService = programService;
         this.programUserService = programUserService;
         this.parser = traitFileParser;
         this.traitValidator = traitValidator;
         this.traitValidatorError = traitFileValidatorError;
+        this.traitService = traitService;
     }
     @Inject
     private ObjectMapper objMapper;
 
     public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
-            throws UnprocessableEntityException, DoesNotExistException, UnsupportedTypeException, AuthorizationException {
+            throws DoesNotExistException, UnsupportedTypeException, AuthorizationException, ValidatorException, HttpBadRequestException {
 
         if (!programService.exists(programId))
         {
@@ -87,44 +93,37 @@ public class TraitUploadService {
 
         if (mediaType.getName().equals(MediaType.CSV)) {
             try {
-                traits = parser.parseCsv(file.getInputStream());
+                traits = parser.parseCsv(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
-                throw new UnprocessableEntityException("Error parsing csv: " + e.getMessage());
+                throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
             }
         } else if (mediaType.getName().equals(MediaType.XLS) ||
                    mediaType.getName().equals(MediaType.XLSX)) {
             try {
-                traits = parser.parseExcel(file.getInputStream());
+                traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
-                throw new UnprocessableEntityException("Error parsing excel: " + e.getMessage());
+                throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        //TODO: Uncomment this when multiple trait validation errors are returned
-        /*try {
+        ValidationErrors validationErrors = new ValidationErrors();
+        try {
             traitService.assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
         } catch (ValidatorException e){
             validationErrors.merge(e.getErrors());
-        }*/
+        }
 
-        //TODO: Replace this with multiple error code
-        // Validate the traits
-        ValidationErrors validationErrors = new ValidationErrors();
-        ValidationErrors requiredFieldErrors = TraitValidator.checkRequiredTraitFields(traits, traitValidatorError);
-        ValidationErrors dataConsistencyErrors = TraitValidator.checkTraitDataConsistency(traits, traitValidatorError);
-        //TODO: Add these back in and add tests
-        //ValidationErrors duplicateTraits = traitValidator.checkDuplicateTraitsExisting(traits);
-        //ValidationErrors duplicateTraitsInFile = TraitValidator.checkDuplicateTraitsInFile(traits);
-        //validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraits, duplicateTraitsInFile);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors);
+        Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
+        if (optionalValidationErrors.isPresent()){
+            validationErrors.merge(optionalValidationErrors.get());
+        }
 
         if (validationErrors.hasErrors()){
-            //throw new ValidatorException(validationErrors);
-            throw new UnprocessableEntityException("Temporary solution");
+            throw new ValidatorException(validationErrors);
         }
 
         String json = null;
@@ -132,7 +131,8 @@ public class TraitUploadService {
             json = objMapper.writeValueAsString(traits);
         } catch(JsonProcessingException e) {
             log.error(e.getMessage());
-            throw new UnprocessableEntityException("Problem converting traits json");
+            // If we didn't catch this error in the validator, this is an unexpected server error.
+            throw new InternalServerException("Problem converting traits json");
         }
 
         // delete any existing records for traits since we only want to allow one at a time

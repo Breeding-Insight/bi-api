@@ -2101,6 +2101,28 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+        "422":
+          description: Multi-error UnprocessableEntity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/validatorErrorResponse"
+              example:
+                rowErrors:
+                  - rowIndex: 2
+                    errors:
+                      - column: "Trait level"
+                        errorMessage: "Missing trait name"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                      - column: "Trait abbreviations"
+                        errorMessage: "Abbreviations already exist"
+                        httpStatus: "CONFLICT"
+                        httpStatusCode: 409
+                      - column: "Scale class"
+                        errorMessage: "Missing scale class"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
     get:
       tags:
         - uploads
@@ -3858,6 +3880,7 @@ components:
             properties:
               rowIndex:
                 type: integer
+                description: "Row number in the uploaded file for the trait with errors."
               errors:
                 type: array
                 items:

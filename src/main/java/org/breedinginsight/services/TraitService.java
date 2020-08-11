@@ -31,9 +31,9 @@ import org.breedinginsight.daos.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
-import org.breedinginsight.services.validators.TraitValidator;
 import org.breedinginsight.services.validators.TraitValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorErrorInterface;
+import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
@@ -52,14 +52,14 @@ public class TraitService {
     private ProgramOntologyService programOntologyService;
     private ProgramObservationLevelService programObservationLevelService;
     private UserService userService;
-    private TraitValidator traitValidator;
+    private TraitValidatorService traitValidator;
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
 
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
-                        UserService userService, TraitValidator traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
+                        UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
@@ -136,7 +136,7 @@ public class TraitService {
             if (i == -1){
                 throw new InternalServerException("Duplicate trait was not referenced correctly");
             } else {
-                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByNamesMsg());
+                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByNamesMsg());
                 traitIndexToRemove.add(i);
             }
         }
@@ -147,7 +147,7 @@ public class TraitService {
             if (i == -1){
                 throw new InternalServerException("Duplicate trait was not referenced correctly");
             } else {
-                duplicateErrors.addError(i, traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
+                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
                 traitIndexToRemove.add(i);
             }
         }
@@ -236,7 +236,7 @@ public class TraitService {
                         .collect(Collectors.toList());
                 if (matchingLevels.size() == 0) {
                     ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist(availableLevels);
-                    validationErrors.addError(i, validationError);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), validationError);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
