@@ -184,12 +184,16 @@ public class UserService {
         });
     }
 
-    public void archive(UUID userId) throws DoesNotExistException {
+    public void archive(AuthenticatedUser actingUser, UUID userId) throws DoesNotExistException, AuthorizationException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        if (biUser.getId().equals(actingUser.getId())){
+            throw new AuthorizationException("User cannot deactivate themselves.");
         }
 
         dsl.transaction(configuration -> {

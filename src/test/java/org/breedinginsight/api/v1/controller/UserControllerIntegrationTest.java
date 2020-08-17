@@ -715,6 +715,21 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void archiveUserSelf() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE("/users/" + otherTestUser.getId()).cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.FORBIDDEN, e.getStatus());
+    }
+
 
     @Test
     @Order(4)

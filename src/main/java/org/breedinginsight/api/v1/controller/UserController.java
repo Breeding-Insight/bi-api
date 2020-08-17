@@ -157,11 +157,15 @@ public class UserController {
     public HttpResponse archiveUser(@PathVariable UUID userId){
 
         try {
-            userService.archive(userId);
+            AuthenticatedUser actingUser = securityService.getUser();
+            userService.archive(actingUser, userId);
             return HttpResponse.ok();
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }
 
