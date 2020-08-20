@@ -90,7 +90,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     @Override
     protected HttpResponse loginSuccessWithCookies(List<Cookie> cookies) {
         try {
-            String locationUrl = this.jwtCookieConfiguration.getLoginSuccessTargetUrl();
+            Stringg locationUrl = this.jwtCookieConfiguration.getLoginSuccessTargetUrl();
 
             Optional<HttpRequest<Object>> requestOptional = ServerRequestContext.currentRequest();
             if (requestOptional.isPresent()){
