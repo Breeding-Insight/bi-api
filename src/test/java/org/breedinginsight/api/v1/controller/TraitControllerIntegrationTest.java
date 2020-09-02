@@ -293,7 +293,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(validTraits.size(), data.size(), "Duplicate traits were not ignored");
+        assertEquals(validTraits.size(), data.size(), "Traits were ignored, but should not be");
 
     }
 
