@@ -65,6 +65,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     private List<Trait> validTraits;
     private ProgramEntity validProgram;
+    private ProgramEntity otherValidProgram;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @Inject
@@ -97,6 +98,14 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Retrieve our valid trait
         validTrait = traitDao.findAll().get(0);
+
+        // Insert other program
+        dsl.execute(fp.get("InsertOtherProgram"));
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
+        dsl.execute(fp.get("InsertOtherProgramOntology"));
+
+        otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
+
     }
 
     @Test
@@ -262,6 +271,30 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(0, data.size(), "Duplicate traits were not ignored");
+    }
+
+    @Test
+    @Order(4)
+    public void postTraitsNotSharedBetweenPrograms() {
+
+        // No traits should be ignored because duplicate traits are not shared between programs
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + otherValidProgram.getId() + "/traits", validTraits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check return
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(validTraits.size(), data.size(), "Duplicate traits were not ignored");
+
     }
 
     @Test
