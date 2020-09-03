@@ -25,6 +25,7 @@ import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
 import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.annotation.MockBean;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -33,6 +34,7 @@ import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -58,14 +60,16 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
-        ServerRequestContext.set(request);
+        AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
+        when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
         Cookie jwtToken = Cookie.of("phylo-token", "test");
         List<Cookie> securityCookies = List.of(jwtToken);
 
-        HttpResponse response = authServiceLoginHandler.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
 
         checkAssertions(response, jwtToken, defaultUrl);
+
     }
 
     @Test
@@ -77,13 +81,15 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
-        ServerRequestContext.set(request);
+        AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
+        when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
         Cookie jwtToken = Cookie.of("phylo-token", "test");
         List<Cookie> securityCookies = List.of(jwtToken);
 
-        HttpResponse response = authServiceLoginHandler.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
 
+        reset(request);
         checkAssertions(response, jwtToken, expectedUrl);
     }
 
@@ -96,13 +102,15 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
-        ServerRequestContext.set(request);
+        AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
+        when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
         Cookie jwtToken = Cookie.of("phylo-token", "test");
         List<Cookie> securityCookies = List.of(jwtToken);
 
-        HttpResponse response = authServiceLoginHandler.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
 
+        reset(request);
         checkAssertions(response, jwtToken, expectedUrl);
     }
 
@@ -112,13 +120,15 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         doReturn(cookies).when(request).getCookies();
-        ServerRequestContext.set(request);
+        AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
+        when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
         Cookie jwtToken = Cookie.of("phylo-token", "test");
         List<Cookie> securityCookies = List.of(jwtToken);
 
-        HttpResponse response = authServiceLoginHandler.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
 
+        reset(request);
         checkAssertions(response, jwtToken, defaultUrl);
     }
 
