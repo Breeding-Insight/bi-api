@@ -92,7 +92,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         try {
             String locationUrl = this.jwtCookieConfiguration.getLoginSuccessTargetUrl();
 
-            Optional<HttpRequest<Object>> requestOptional = ServerRequestContext.currentRequest();
+            Optional<HttpRequest<Object>> requestOptional = this.getCurrentRequest();
             if (requestOptional.isPresent()){
                 HttpRequest<Object> request = requestOptional.get();
                 if (request.getCookies().contains(loginSuccessUrlCookieName)){
@@ -142,4 +142,9 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             return false;
         }
     }
+
+    public Optional<HttpRequest<Object>> getCurrentRequest() {
+        return ServerRequestContext.currentRequest();
+    }
+
 }
