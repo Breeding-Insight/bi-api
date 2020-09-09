@@ -356,7 +356,7 @@ public class TraitDAO extends TraitDao {
                 .join(updatedByTableAlias).on(TRAIT.UPDATED_BY.eq(updatedByTableAlias.ID));
     }
 
-    public List<Trait> getTraitsByTraitMethodScaleName(List<Trait> traits){
+    public List<Trait> getTraitsByTraitMethodScaleName(UUID programId, List<Trait> traits){
 
         //TODO: Get these from the query as well
         BiUserTable createdByUser = BI_USER.as("createdByUser");
@@ -375,8 +375,11 @@ public class TraitDAO extends TraitDao {
             Result<Record> records = dsl.select()
                     .from(newTraits)
                     .join(TRAIT).on(TRAIT.TRAIT_NAME.like(newTraits.field("new_trait_name")))
+                    .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
+                    .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
                     .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID)).and(METHOD.METHOD_NAME.like(newTraits.field("new_method_name")))
                     .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID)).and(SCALE.SCALE_NAME.like(newTraits.field("new_scale_name")))
+                    .where(PROGRAM.ID.eq(programId))
                     .fetch();
 
 
@@ -393,10 +396,14 @@ public class TraitDAO extends TraitDao {
         return traitResults;
     }
 
-    public List<Trait> getTraitsByAbbreviation(List<String> abbreviations) {
+    public List<Trait> getTraitsByAbbreviation(UUID programId, List<String> abbreviations) {
 
         Result<Record> records = dsl.select()
-                .from(TRAIT).where(TRAIT.ABBREVIATIONS.cast(String[].class).contains(abbreviations.toArray(String[]::new)))
+                .from(TRAIT)
+                .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
+                .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
+                .where(TRAIT.ABBREVIATIONS.cast(String[].class).contains(abbreviations.toArray(String[]::new)))
+                .and(PROGRAM.ID.eq(programId))
                 .fetch();
 
         List<Trait> traitResults = new ArrayList<>();
