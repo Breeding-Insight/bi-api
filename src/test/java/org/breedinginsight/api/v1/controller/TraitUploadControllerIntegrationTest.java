@@ -33,8 +33,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.api.model.v1.response.RowValidationErrors;
-import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -183,6 +181,24 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     @Test
     void putTraitUploadUnsupportedMimeType() {
         File file = new File("src/test/resources/files/unsupported.txt");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadUnsupportedMimeTypePdf() {
+        File file = new File("src/test/resources/files/pdf_file.pdf");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadUnsupportedMaskedAsSupportedMimeType() {
+        File file = new File("src/test/resources/files/pdf_file_masked_as_csv.csv");
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
