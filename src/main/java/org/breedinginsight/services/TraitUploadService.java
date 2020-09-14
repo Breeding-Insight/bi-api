@@ -38,6 +38,7 @@ import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.print.attribute.standard.Media;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
@@ -45,6 +46,7 @@ import java.util.UUID;
 
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
@@ -64,11 +66,12 @@ public class TraitUploadService {
     private TraitValidatorService traitValidator;
     private TraitFileValidatorError traitValidatorError;
     private TraitService traitService;
+    private MimeTypeParser mimeTypeParser;
 
     @Inject
     public TraitUploadService(ProgramUploadDAO programUploadDAO, ProgramService programService, ProgramUserService programUserService,
                               TraitFileParser traitFileParser, TraitValidatorService traitValidator, TraitFileValidatorError traitFileValidatorError,
-                              TraitService traitService){
+                              TraitService traitService, MimeTypeParser mimeTypeParser){
         this.programUploadDao = programUploadDAO;
         this.programService = programService;
         this.programUserService = programUserService;
@@ -76,6 +79,7 @@ public class TraitUploadService {
         this.traitValidator = traitValidator;
         this.traitValidatorError = traitFileValidatorError;
         this.traitService = traitService;
+        this.mimeTypeParser = mimeTypeParser;
     }
     @Inject
     private ObjectMapper objMapper;
@@ -92,18 +96,9 @@ public class TraitUploadService {
             throw new AuthorizationException("User not in program");
         }
 
-        // Set up Mime type parser config
-        TikaConfig config = TikaConfig.getDefaultConfig();
-        Detector detector = config.getDetector();
-        org.apache.tika.metadata.Metadata metadata = new org.apache.tika.metadata.Metadata();
-        metadata.add(Metadata.RESOURCE_NAME_KEY, file.getFilename());
-
-        InputStream inputStream;
         MediaType mediaType;
         try {
-            inputStream = file.getInputStream();
-            TikaInputStream tikaStream = TikaInputStream.get(inputStream);
-            mediaType = detector.detect(tikaStream, metadata);
+            mediaType = mimeTypeParser.getMimeType(file);
         } catch (IOException e){
             throw new HttpBadRequestException("Could not read file");
         }
@@ -112,16 +107,16 @@ public class TraitUploadService {
 
         if (mediaType.toString().equals(SupportedMediaType.CSV)) {
             try {
-                traits = parser.parseCsv(new BOMInputStream(inputStream, false));
-            } catch(ParsingException e) {
+                traits = parser.parseCsv(new BOMInputStream(file.getInputStream(), false));
+            } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
             }
         } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
                    mediaType.toString().equals(SupportedMediaType.XLSX)) {
             try {
-                traits = parser.parseExcel(new BOMInputStream(inputStream, false));
-            } catch(ParsingException e) {
+                traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
+            } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
             }
