@@ -22,17 +22,24 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.BOMInputStream;
+import org.apache.tika.config.TikaConfig;
+import org.apache.tika.detect.Detector;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.ProgramUpload;
-import org.breedinginsight.services.constants.MediaType;
+import org.breedinginsight.services.constants.SupportedMediaType;
 import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -44,7 +51,6 @@ import org.breedinginsight.services.validators.TraitFileValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.JSONB;
 
-import java.io.IOException;
 import java.util.*;
 
 @Slf4j
@@ -86,23 +92,36 @@ public class TraitUploadService {
             throw new AuthorizationException("User not in program");
         }
 
-        Optional<io.micronaut.http.MediaType> type = file.getContentType();
-        io.micronaut.http.MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
+        // Set up Mime type parser config
+        TikaConfig config = TikaConfig.getDefaultConfig();
+        Detector detector = config.getDetector();
+        org.apache.tika.metadata.Metadata metadata = new org.apache.tika.metadata.Metadata();
+        metadata.add(Metadata.RESOURCE_NAME_KEY, file.getFilename());
+
+        InputStream inputStream;
+        MediaType mediaType;
+        try {
+            inputStream = file.getInputStream();
+            TikaInputStream tikaStream = TikaInputStream.get(inputStream);
+            mediaType = detector.detect(tikaStream, metadata);
+        } catch (IOException e){
+            throw new HttpBadRequestException("Could not read file");
+        }
 
         List<Trait> traits;
 
-        if (mediaType.getName().equals(MediaType.CSV)) {
+        if (mediaType.toString().equals(SupportedMediaType.CSV)) {
             try {
-                traits = parser.parseCsv(new BOMInputStream(file.getInputStream(), false));
-            } catch(IOException | ParsingException e) {
+                traits = parser.parseCsv(new BOMInputStream(inputStream, false));
+            } catch(ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
             }
-        } else if (mediaType.getName().equals(MediaType.XLS) ||
-                   mediaType.getName().equals(MediaType.XLSX)) {
+        } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
+                   mediaType.toString().equals(SupportedMediaType.XLSX)) {
             try {
-                traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
-            } catch(IOException | ParsingException e) {
+                traits = parser.parseExcel(new BOMInputStream(inputStream, false));
+            } catch(ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
             }
