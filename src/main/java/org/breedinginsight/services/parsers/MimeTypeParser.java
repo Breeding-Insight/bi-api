@@ -38,7 +38,7 @@ public class MimeTypeParser {
     }
 
     public MediaType getMimeType(CompletedFileUpload file) throws IOException {
-        org.apache.tika.metadata.Metadata metadata = new org.apache.tika.metadata.Metadata();
+        Metadata metadata = new Metadata();
         metadata.add(Metadata.RESOURCE_NAME_KEY, file.getFilename());
         TikaInputStream tikaStream = TikaInputStream.get(file.getInputStream());
         return detector.detect(tikaStream, metadata);
