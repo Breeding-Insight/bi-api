@@ -94,7 +94,7 @@ public class TraitUploadService {
         try {
             mediaType = mimeTypeParser.getMimeType(file);
         } catch (IOException e){
-            throw new HttpBadRequestException("Could not read file");
+            throw new HttpBadRequestException("Could not determine file type");
         }
 
         List<Trait> traits;
