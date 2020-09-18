@@ -29,7 +29,7 @@ CREATE TABLE entity (
     program_id UUID,
     name text NOT NULL,
     level entity_level,
-    cross_id UUID,
+    entity_cross_id UUID,
     active boolean DEFAULT true,
     status_date timestamptz(0),
     status_by UUID,
@@ -167,7 +167,7 @@ CREATE TABLE inventory_unit_type (
 ALTER TABLE inventory_unit_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
 ALTER TABLE inventory_unit_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
-ALTER TABLE entity ADD FOREIGN KEY (cross_id) REFERENCES entity_cross (id);
+ALTER TABLE entity ADD FOREIGN KEY (entity_cross_id) REFERENCES entity_cross (id);
 ALTER TABLE entity ADD FOREIGN KEY (status_by) REFERENCES bi_user (id);
 
 ALTER TABLE entity_relationship ADD FOREIGN KEY (relation_source_id) REFERENCES entity (id);
