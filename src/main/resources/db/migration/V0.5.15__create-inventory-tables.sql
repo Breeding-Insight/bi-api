@@ -54,8 +54,8 @@ ALTER TABLE entity_relationship ADD FOREIGN KEY (updated_by) REFERENCES bi_user 
 CREATE TABLE entity_cross (
     like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
     program_id UUID,
-    mother_entity UUID NOT NULL,
-    father_entity UUID,
+    mother_entity_id UUID NOT NULL,
+    father_entity_id UUID,
     name text,
     like base_edit_track_entity INCLUDING ALL
 );
@@ -69,7 +69,7 @@ CREATE TABLE inventory (
     program_id UUID,
     entity_id UUID NOT NULL,
     amount integer,
-    units UUID NOT NULL,
+    units_id UUID NOT NULL,
     acquisition_date timestamptz(0),
     inventory_type_id UUID NOT NULL,
     place_id UUID,
