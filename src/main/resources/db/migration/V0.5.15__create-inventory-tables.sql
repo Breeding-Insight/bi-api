@@ -105,6 +105,7 @@ CREATE TABLE inventory_position_details_type (
     like base_edit_track_entity INCLUDING ALL
 );
 
+ALTER TABLE inventory_position_details_type ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE inventory_position_details_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
 ALTER TABLE inventory_position_details_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
@@ -114,6 +115,7 @@ CREATE TABLE inventory_type (
     like base_edit_track_entity INCLUDING ALL
 );
 
+ALTER TABLE inventory_type ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE inventory_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
 ALTER TABLE inventory_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
@@ -134,6 +136,7 @@ CREATE TABLE inventory_relationship_type (
     like base_edit_track_entity INCLUDING ALL
 );
 
+ALTER TABLE inventory_relationship_type ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE inventory_relationship_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
 ALTER TABLE inventory_relationship_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
@@ -156,6 +159,7 @@ CREATE TABLE inventory_source_type (
     like base_edit_track_entity INCLUDING ALL
 );
 
+ALTER TABLE inventory_source_type ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE inventory_source_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
 ALTER TABLE inventory_source_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
@@ -165,18 +169,22 @@ CREATE TABLE inventory_unit_type (
     like base_edit_track_entity INCLUDING ALL
 );
 
+ALTER TABLE inventory_unit_type ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE inventory_unit_type ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
 ALTER TABLE inventory_unit_type ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 
+ALTER TABLE entity ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE entity ADD FOREIGN KEY (entity_cross_id) REFERENCES entity_cross (id);
 ALTER TABLE entity ADD FOREIGN KEY (status_by) REFERENCES bi_user (id);
 
 ALTER TABLE entity_relationship ADD FOREIGN KEY (relation_source_id) REFERENCES entity (id);
 ALTER TABLE entity_relationship ADD FOREIGN KEY (relation_target_id) REFERENCES entity (id);
 
+ALTER TABLE entity_cross ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE entity_cross ADD FOREIGN KEY (mother_entity_id) REFERENCES entity (id);
 ALTER TABLE entity_cross ADD FOREIGN KEY (father_entity_id) REFERENCES entity (id);
 
+ALTER TABLE inventory ADD FOREIGN KEY (program_id) REFERENCES program (id);
 ALTER TABLE inventory ADD FOREIGN KEY (entity_id) REFERENCES entity (id);
 ALTER TABLE inventory ADD FOREIGN KEY (units_id) REFERENCES inventory_unit_type (id);
 ALTER TABLE inventory ADD FOREIGN KEY (inventory_type_id) REFERENCES inventory_type (id);
