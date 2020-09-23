@@ -29,14 +29,12 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.v1.controller.metadata.PaginateSort;
 import org.breedinginsight.api.v1.controller.search.mappers.ProgramSearchMapper;
-import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
-import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.api.v1.controller.search.Search;
 import org.breedinginsight.model.ProgramLocation;
@@ -73,17 +71,11 @@ public class ProgramController {
     @Get("/programs")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @PaginateSort(using = ProgramSearchMapper.class)
     public HttpResponse<Response<DataResponse<Program>>> getPrograms() {
 
         List<Program> programs = programService.getAll();
-
-        List<Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        //TODO: Put in the actual page size
-        Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-
-        Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
+        Response<DataResponse<Program>> response = new Response(new DataResponse<>(programs));
         return HttpResponse.ok(response);
     }
 
@@ -92,24 +84,15 @@ public class ProgramController {
     @Secured(SecurityRule.IS_ANONYMOUS)
     @PaginateSort(using = ProgramSearchMapper.class)
     @Search(using = ProgramSearchMapper.class)
-    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
-            @Body @SearchValid(using = ProgramSearchMapper.class) SearchRequest searchBody) {
+    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch() {
 
         List<Program> programs = programService.getAll();
-
-        List<Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        //TODO: Put in the actual page size
-        Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-
-        Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
+        Response<DataResponse<Program>> response = new Response(new DataResponse<>(programs));
         return HttpResponse.ok(response);
     }
 
     @Get("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
@@ -124,7 +107,6 @@ public class ProgramController {
 
     @Post("/programs")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @Secured({"ADMIN"})
     public HttpResponse<Response<Program>> createProgram(@Valid @Body ProgramRequest programRequest) {
 
@@ -141,7 +123,6 @@ public class ProgramController {
 
     @Put("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 

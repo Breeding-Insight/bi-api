@@ -19,19 +19,14 @@ package org.breedinginsight.api.v1.controller.metadata;
 
 import io.micronaut.http.*;
 import io.micronaut.http.annotation.Filter;
-import io.micronaut.http.exceptions.HttpException;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import io.micronaut.http.server.exceptions.HttpServerException;
-import io.micronaut.security.rules.$ConfigurationInterceptUrlMapRuleDefinitionClass;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
 import io.reactivex.Flowable;
-import io.reactivex.functions.LongConsumer;
-import io.reactivex.functions.Predicate;
 import io.reactivex.schedulers.Schedulers;
-import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -42,7 +37,6 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.search.mappers.SearchMapper;
 import org.reactivestreams.Publisher;
 
-import javax.management.Query;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -104,9 +98,9 @@ public class MetadataFilter extends OncePerRequestHttpServerFilter {
                 if (metadata == null) {
                     metadata = new Metadata();
                 }
-                List<Status> metadataStatus = metadata.getStatus();
-                if (metadataStatus == null) {
-                    metadataStatus = new ArrayList<>();
+                List<Status> metadataStatus = new ArrayList<>();
+                if (metadata.getStatus() != null) {
+                    metadataStatus.addAll(metadata.getStatus());
                 }
 
                 if (body.getResult() instanceof DataResponse) {

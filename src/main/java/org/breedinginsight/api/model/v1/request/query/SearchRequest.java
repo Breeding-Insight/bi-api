@@ -19,12 +19,10 @@ package org.breedinginsight.api.model.v1.request.query;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
-import org.jooq.SortField;
 
 import java.util.List;
 
 @Getter
-@Introspected
 public class SearchRequest {
     private List<FilterRequest> filter;
 }
