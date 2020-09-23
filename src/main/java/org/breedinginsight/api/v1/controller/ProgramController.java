@@ -27,13 +27,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.*;
+import org.breedinginsight.api.v1.controller.metadata.PaginateSort;
+import org.breedinginsight.api.v1.controller.search.mappers.ProgramSearchMapper;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.api.v1.controller.search.Search;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
@@ -69,6 +74,26 @@ public class ProgramController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Program>>> getPrograms() {
+
+        List<Program> programs = programService.getAll();
+
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        //TODO: Put in the actual page size
+        Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+
+        Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
+        return HttpResponse.ok(response);
+    }
+
+    @Post("/programs/search")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    @PaginateSort(using = ProgramSearchMapper.class)
+    @Search(using = ProgramSearchMapper.class)
+    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
+            @Body @SearchValid(using = ProgramSearchMapper.class) SearchRequest searchBody) {
 
         List<Program> programs = programService.getAll();
 
