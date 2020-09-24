@@ -29,10 +29,11 @@ public abstract class SearchMapper<T> {
 
     public List<T> filter(List<T> target, List<FilterField> filterFields) {
         // Filter on a record matching all of the search filters
+        //TODO: Check why it is hitting each record twice
         return target.stream()
                 .filter(record ->
                         filterFields.stream().allMatch(filterField ->
-                                filterField.getField().apply(record).toString().contains(filterField.getValue())))
+                                filterField.getField().apply(record).toString().toLowerCase().contains(filterField.getValue().toLowerCase())))
                 .collect(Collectors.toList());
     }
 

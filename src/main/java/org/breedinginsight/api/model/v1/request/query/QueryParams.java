@@ -17,16 +17,32 @@
 
 package org.breedinginsight.api.model.v1.request.query;
 
+import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
+import javax.annotation.Nullable;
+
+
 @Getter
 @Setter
+@NoArgsConstructor
+@Nullable
+@Introspected
 public class QueryParams {
     private Integer pageSize = 50;
     private Integer page = 1;
     private boolean showAll = false;
     private String sortField;
     private SortOrder sortOrder = SortOrder.ASC;
+
+    public QueryParams(Integer pageSize, Integer page, Boolean showAll, String sortField, SortOrder sortOrder) {
+        if (pageSize != null) this.pageSize = pageSize;
+        if (page != null) this.page = page;
+        if (showAll != null) this.showAll = showAll;
+        if (sortField != null) this.sortField = sortField;
+        if (sortOrder != null) this.sortOrder = sortOrder;
+    }
 }

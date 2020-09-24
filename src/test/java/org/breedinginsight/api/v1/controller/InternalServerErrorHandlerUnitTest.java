@@ -149,7 +149,7 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     @Test
     public void getProgramsInternalServerError() {
 
-        when(programController.getPrograms()).thenThrow(new DataAccessException("Query 123 failed"));
+        when(programController.getPrograms(null)).thenThrow(new DataAccessException("Query 123 failed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

@@ -27,7 +27,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.*;
-import org.breedinginsight.api.v1.controller.metadata.PaginateSort;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.v1.controller.metadata.Query;
+import org.breedinginsight.api.v1.controller.metadata.QueryOption;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.api.v1.controller.search.mappers.ProgramSearchMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -36,18 +40,19 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.api.v1.controller.search.Search;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.services.ResponseService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.ArrayList;
@@ -68,27 +73,29 @@ public class ProgramController {
     @Inject
     private SecurityService securityService;
 
-    @Get("/programs")
+    @Get("/programs{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    @PaginateSort(using = ProgramSearchMapper.class)
-    public HttpResponse<Response<DataResponse<Program>>> getPrograms() {
+    @Query(options = {QueryOption.PAGINATE, QueryOption.SORT}, mapper = ProgramSearchMapper.class)
+    public HttpResponse<Response<DataResponse<Program>>> getPrograms(QueryParams queryParams) {
 
         List<Program> programs = programService.getAll();
-        Response<DataResponse<Program>> response = new Response(new DataResponse<>(programs));
-        return HttpResponse.ok(response);
+        return ResponseService.getQueryResponse(programs, new ProgramSearchMapper(), queryParams);
     }
 
     @Post("/programs/search")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
-    @PaginateSort(using = ProgramSearchMapper.class)
-    @Search(using = ProgramSearchMapper.class)
-    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch() {
+    @Query(options = {QueryOption.ALL}, mapper = ProgramSearchMapper.class)
+    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
+            @QueryValue @Nullable Integer page, @QueryValue @Nullable Integer pageSize,
+            @QueryValue @Nullable Boolean showAll, @QueryValue @Nullable String sortField,
+            @QueryValue @Nullable SortOrder sortOrder, @Body SearchRequest searchRequest) {
 
+        QueryParams queryParams = new QueryParams(pageSize, page, showAll, sortField, sortOrder);
+        // TODO: Test pagination in here instead of in filter
         List<Program> programs = programService.getAll();
-        Response<DataResponse<Program>> response = new Response(new DataResponse<>(programs));
-        return HttpResponse.ok(response);
+        return ResponseService.getQueryResponse(programs, new ProgramSearchMapper(), searchRequest, queryParams);
     }
 
     @Get("/programs/{programId}")

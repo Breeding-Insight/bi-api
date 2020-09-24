@@ -23,6 +23,7 @@ import lombok.Getter;
 import java.util.List;
 
 @Getter
+@Introspected
 public class SearchRequest {
     private List<FilterRequest> filter;
 }

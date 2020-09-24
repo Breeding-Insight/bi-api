@@ -27,11 +27,23 @@ import java.util.function.Function;
 @Getter
 public class ProgramSearchMapper extends SearchMapper {
 
-    private Map<String, Function> fields;
+    private Map<String, Function<Program, ?>> fields;
 
     public ProgramSearchMapper() {
         fields = Map.ofEntries(
-                Map.entry("name", ((Object program) -> ((Program) program).getName()))
+                Map.entry("name", Program::getName),
+                Map.entry("abbreviation", Program::getAbbreviation),
+                Map.entry("objective", Program::getObjective),
+                Map.entry("documentationUrl", Program::getDocumentationUrl),
+                Map.entry("active", Program::getActive),
+                Map.entry("createdAt", Program::getCreatedAt),
+                Map.entry("updatedAt", Program::getUpdatedAt),
+                Map.entry("speciesId", Program::getSpeciesId),
+                Map.entry("speciesName", (program) -> program.getSpecies() != null ? program.getSpecies().getCommonName() : null),
+                Map.entry("createdByUserId", (program) -> program.getCreatedByUser() != null ? program.getCreatedByUser().getId() : null),
+                Map.entry("createdByUserName", (program) -> program.getCreatedByUser() != null ? program.getCreatedByUser().getName() : null),
+                Map.entry("updatedByUserId", (program) -> program.getUpdatedByUser() != null ? program.getUpdatedByUser().getId() : null),
+                Map.entry("updatedByUserName", (program) -> program.getUpdatedByUser() != null ? program.getUpdatedByUser().getName() : null)
         );
     }
 
