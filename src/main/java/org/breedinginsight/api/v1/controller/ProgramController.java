@@ -29,10 +29,9 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
-import org.breedinginsight.api.v1.controller.metadata.Query;
-import org.breedinginsight.api.v1.controller.metadata.QueryOption;
-import org.breedinginsight.api.v1.controller.metadata.SortOrder;
-import org.breedinginsight.api.v1.controller.search.mappers.ProgramSearchMapper;
+import org.breedinginsight.api.model.v1.validators.QueryValid;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
+import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
@@ -46,13 +45,12 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
-import org.breedinginsight.services.ResponseService;
+import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.ArrayList;
@@ -76,31 +74,28 @@ public class ProgramController {
     @Get("/programs{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    @Query(options = {QueryOption.PAGINATE, QueryOption.SORT}, mapper = ProgramSearchMapper.class)
-    public HttpResponse<Response<DataResponse<Program>>> getPrograms(QueryParams queryParams) {
+    public HttpResponse<Response<DataResponse<Program>>> getPrograms(
+            @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams) {
 
         List<Program> programs = programService.getAll();
-        return ResponseService.getQueryResponse(programs, new ProgramSearchMapper(), queryParams);
+        return ResponseUtils.getQueryResponse(programs, new ProgramQueryMapper(), queryParams);
     }
 
-    @Post("/programs/search")
+    @Post("/programs/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
-    @Query(options = {QueryOption.ALL}, mapper = ProgramSearchMapper.class)
     public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
-            @QueryValue @Nullable Integer page, @QueryValue @Nullable Integer pageSize,
-            @QueryValue @Nullable Boolean showAll, @QueryValue @Nullable String sortField,
-            @QueryValue @Nullable SortOrder sortOrder, @Body SearchRequest searchRequest) {
+            @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using = ProgramQueryMapper.class) SearchRequest searchRequest) {
 
-        QueryParams queryParams = new QueryParams(pageSize, page, showAll, sortField, sortOrder);
-        // TODO: Test pagination in here instead of in filter
         List<Program> programs = programService.getAll();
-        return ResponseService.getQueryResponse(programs, new ProgramSearchMapper(), searchRequest, queryParams);
+        return ResponseUtils.getQueryResponse(programs, new ProgramQueryMapper(), searchRequest, queryParams);
     }
 
     @Get("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
         Optional<Program> program = programService.getById(programId);
@@ -115,6 +110,7 @@ public class ProgramController {
     @Post("/programs")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({"ADMIN"})
+    @AddMetadata
     public HttpResponse<Response<Program>> createProgram(@Valid @Body ProgramRequest programRequest) {
 
         try {
@@ -131,6 +127,7 @@ public class ProgramController {
     @Put("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
         try {
@@ -150,6 +147,7 @@ public class ProgramController {
     @Delete("/programs/archive/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({"ADMIN"})
+    @AddMetadata
     public HttpResponse archiveProgram(@PathVariable UUID programId) {
         /* Archive a program */
         try {
@@ -165,6 +163,7 @@ public class ProgramController {
     @Get("/programs/{programId}/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<ProgramUser>> getProgramUsers(@PathVariable UUID programId) {
 
         try {

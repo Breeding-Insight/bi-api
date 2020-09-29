@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.services;
+package org.breedinginsight.utilities.response;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -29,35 +29,48 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
-import org.breedinginsight.api.v1.controller.search.mappers.FilterField;
-import org.breedinginsight.api.v1.controller.search.mappers.SearchMapper;
+import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
+import org.breedinginsight.utilities.response.mappers.FilterField;
+import org.breedinginsight.utilities.response.mappers.MapperEntry;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-public class ResponseService {
+public class ResponseUtils {
+
+    // Transform all endpoints to the processSingleResponse
+    // Add validation for search body and query params
+    // Change processSingleResponse to be name something more consistent
+    // Checkout if you can get the query params into a body for POST programs/search
+    // Reorganize new files
+    //TODO: Test null sorting orders the correct way with real values
+    //TODO: Test breaking scenarios for pagination and search
+    //TODO: Write tests for pagination
+    //TODO: Write unit tests for ProgramSearchMapper
+    //TODO: Rename SearchMapper to QueryMapper
+    //TODO: Add BrAPI details query to QueryParams
 
     // All
     public static <T> HttpResponse<Response<DataResponse<T>>> getQueryResponse(
-            List data, SearchMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {
+            List data, AbstractQueryMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {
         return processSearchResponse(data, searchRequest, queryParams, mapper, new Metadata());
     }
 
     // Pagination and sort only
     public static <T> HttpResponse<Response<DataResponse<T>>> getQueryResponse(
-            List data, SearchMapper mapper, QueryParams queryParams) {
+            List data, AbstractQueryMapper mapper, QueryParams queryParams) {
         return processSearchResponse(data, null, queryParams, mapper, new Metadata());
     }
 
-    public static <T> HttpResponse<Response<T>> processSingleResponse(Object data) {
+    public static <T> HttpResponse<Response<T>> getSingleResponse(Object data) {
         Metadata metadata = constructMetadata(new Metadata(), new Pagination(1,1,1,1));
         return HttpResponse.ok(new Response(metadata, data));
     }
 
     private static <T> HttpResponse<Response<DataResponse<T>>> processSearchResponse(
-            List data, SearchRequest searchRequest, QueryParams queryParams, SearchMapper mapper, Metadata metadata) {
+            List data, SearchRequest searchRequest, QueryParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
 
         if (searchRequest != null){
             data = search(data, searchRequest, mapper);
@@ -68,12 +81,12 @@ public class ResponseService {
         return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
     }
 
-    private static List sort(List data, QueryParams queryParams, SearchMapper mapper) {
+    private static List sort(List data, QueryParams queryParams, AbstractQueryMapper mapper) {
 
         if (queryParams.getSortField() != null) {
-            Function field;
+            MapperEntry field;
             try {
-                field = mapper.getField(queryParams.getSortField());
+                field = mapper.getMapperEntry(queryParams.getSortField());
             } catch (NullPointerException e) {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Sort field does not exist");
             }
@@ -83,10 +96,10 @@ public class ResponseService {
         return data;
     }
 
-    private static List search(List<?> data, SearchRequest searchRequest, SearchMapper mapper) {
+    private static List search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
 
         List<FilterField> filterFields = searchRequest.getFilter().stream()
-                .map(filter -> new FilterField(mapper.getField(filter.getField()), filter.getValue()))
+                .map(filter -> new FilterField(mapper.getMapperEntry(filter.getField()).getGetter(), filter.getValue()))
                 .collect(Collectors.toList());
 
         if (filterFields.size() > 0){
@@ -107,11 +120,13 @@ public class ResponseService {
             Integer pageAdjustedByIndex = paginationRequest.getPage() - 1;
             Integer startIndex = pageAdjustedByIndex * paginationRequest.getPageSize();
             if (startIndex > data.size() || startIndex < 0) {
-                return Pair.of(new ArrayList<>(), new Pagination(0, 0, 1, 1));
+                return Pair.of(new ArrayList<>(),
+                        new Pagination(0, 0, 1, paginationRequest.getPage()));
             }
 
             Integer endIndex = startIndex + paginationRequest.getPageSize() >= data.size() ?
                     data.size() : startIndex + paginationRequest.getPageSize();
+
             data = data.subList(startIndex, endIndex);
         }
 

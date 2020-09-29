@@ -15,16 +15,18 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.search.mappers;
+package org.breedinginsight.api.model.v1.validators;
 
-import lombok.AllArgsConstructor;
-import lombok.Getter;
+import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
-import java.util.function.Function;
+import javax.validation.Constraint;
+import java.lang.annotation.Retention;
 
-@Getter
-@AllArgsConstructor
-public class FilterField {
-    Function field;
-    String value;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Retention(RUNTIME)
+@Constraint(validatedBy = {})
+public @interface QueryValid {
+    String message() default "invalid sort field";
+    Class<? extends AbstractQueryMapper> using();
 }

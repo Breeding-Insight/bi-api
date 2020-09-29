@@ -15,17 +15,18 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.search;
+package org.breedinginsight.api.model.v1.validators;
 
-import org.breedinginsight.api.v1.controller.search.mappers.SearchMapper;
+import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
-import java.lang.annotation.ElementType;
+import javax.validation.Constraint;
 import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface Search {
-    Class<? extends SearchMapper> using();
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Retention(RUNTIME)
+@Constraint(validatedBy = {})
+public @interface SearchValid {
+    String message() default "invalid search field";
+    Class<? extends AbstractQueryMapper> using();
 }

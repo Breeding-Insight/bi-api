@@ -17,6 +17,9 @@
 
 package org.breedinginsight.api.model.v1.request.query;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -24,24 +27,33 @@ import lombok.Setter;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import javax.annotation.Nullable;
+import javax.validation.Valid;
+import javax.validation.constraints.Positive;
 
 
 @Getter
 @Setter
-@NoArgsConstructor
-@Nullable
 @Introspected
 public class QueryParams {
+    @Positive
     private Integer pageSize = 50;
+    @Positive
     private Integer page = 1;
-    private boolean showAll = false;
+    @JsonIgnore
+    private boolean showAll = true;
     private String sortField;
     private SortOrder sortOrder = SortOrder.ASC;
 
-    public QueryParams(Integer pageSize, Integer page, Boolean showAll, String sortField, SortOrder sortOrder) {
+    @JsonCreator
+    public QueryParams(@JsonProperty(value = "pageSize") @Nullable Integer pageSize,
+                       @JsonProperty(value = "page") @Nullable Integer page,
+                       @JsonProperty("sortField") @Nullable String sortField,
+                       @JsonProperty(value = "sortOrder") @Nullable SortOrder sortOrder) {
         if (pageSize != null) this.pageSize = pageSize;
         if (page != null) this.page = page;
-        if (showAll != null) this.showAll = showAll;
+        if (pageSize != null || page != null) {
+            this.showAll = false;
+        }
         if (sortField != null) this.sortField = sortField;
         if (sortOrder != null) this.sortOrder = sortOrder;
     }
