@@ -31,6 +31,7 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -45,7 +46,6 @@ import javax.inject.Inject;
 
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static io.micronaut.http.HttpRequest.GET;
@@ -271,7 +271,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        checkStringSorting(data, "name", SortOrder.ASC);
+        TestUtils.checkStringSorting(data, "name", SortOrder.ASC);
     }
 
     // Get sort descending success
@@ -289,7 +289,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        checkStringSorting(data, "name", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "name", SortOrder.DESC);
     }
 
 
@@ -308,7 +308,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        checkNumericSorting(data, "slope", SortOrder.DESC);
+        TestUtils.checkNumericSorting(data, "slope", SortOrder.DESC);
     }
 
     // Get pagination column with nulls success
@@ -348,7 +348,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        checkDateSorting(data, "createdAt", SortOrder.ASC);
+        TestUtils.checkDateSorting(data, "createdAt", SortOrder.ASC);
     }
 
     // POST Sort success
@@ -368,7 +368,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        checkStringSorting(data, "name", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "name", SortOrder.DESC);
     }
 
     // POST Single search success
@@ -391,7 +391,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonArray data = result.getAsJsonArray("data");
         // Should be 11 results, place1, place10 -> place19
         assertEquals(11, data.size(), "Wrong number of results returned");
-        checkStringSorting(data, "name", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "name", SortOrder.DESC);
     }
 
     // POST Multiple search success
@@ -437,7 +437,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonArray data = result.getAsJsonArray("data");
         // Should be 5 out of 11 results, place1, place10 -> place19
         assertEquals(5, data.size(), "Wrong number of results returned");
-        checkStringSorting(data, "name", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "name", SortOrder.DESC);
 
         JsonObject metadata = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
@@ -445,58 +445,5 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
         assertEquals(5, pagination.get("pageSize").getAsInt(), "Wrong page size");
         assertEquals(11, pagination.get("totalCount").getAsInt(), "Wrong total count");
-    }
-
-
-    private void checkStringSorting(JsonArray data, String field, SortOrder sortOrder) {
-
-        for (int i = 0; i < data.size() - 2; i++){
-            String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
-            String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
-
-            if (sortOrder == SortOrder.ASC) {
-                assertEquals(true, firstValue.compareTo(secondValue) < 0, "Incorrect sorting");
-            } else {
-                assertEquals(true, firstValue.compareTo(secondValue) > 0, "Incorrect sorting");
-            }
-
-        }
-
-    }
-
-    private void checkNumericSorting(JsonArray data, String field, SortOrder sortOrder) {
-
-        for (int i = 0; i < data.size() - 2; i++){
-            if (!data.get(i).getAsJsonObject().has(field) || !data.get(i + 1).getAsJsonObject().has(field)) {
-                continue;
-            }
-            Float firstValue = data.get(i).getAsJsonObject().get(field).getAsFloat();
-            Float secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsFloat();
-
-            if (sortOrder == SortOrder.ASC) {
-                assertEquals(true, firstValue.compareTo(secondValue) < 0, "Incorrect sorting");
-            } else {
-                assertEquals(true, firstValue.compareTo(secondValue) > 0, "Incorrect sorting");
-            }
-        }
-
-    }
-
-    private void checkDateSorting(JsonArray data, String field, SortOrder sortOrder) {
-
-        for (int i = 0; i < data.size() - 2; i++){
-            String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
-            String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
-            OffsetDateTime firstDate = OffsetDateTime.parse(firstValue);
-            OffsetDateTime secondDate = OffsetDateTime.parse(secondValue);
-
-            if (sortOrder == SortOrder.ASC){
-                assertEquals(true, firstDate.compareTo(secondDate) < 0, "Incorrect sorting");
-            } else {
-                assertEquals(true, firstDate.compareTo(secondDate) > 0, "Incorrect sorting");
-            }
-
-        }
-
     }
 }

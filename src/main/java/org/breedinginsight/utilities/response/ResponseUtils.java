@@ -54,10 +54,12 @@ public class ResponseUtils {
     // Test integer values sort properly
     // Rename SearchMapper to QueryMapper
     // Test breaking scenarios for pagination and search
-    //TODO: Make sure negative numbers sort properly
-    //TODO: Write tests for ResponseUtils
-    //TODO: Write integration tests for controllers
-    //TODO: Write unit tests for QueryMappers
+    // Make sure negative numbers sort properly
+    // Write tests for ResponseUtils
+    // Write unit tests for QueryMappers
+    // TODO: Write integration tests for program location controllers
+    // TODO: Double check program location information capture in UI is represented
+
 
     // All
     public static <T> HttpResponse<Response<DataResponse<T>>> getQueryResponse(
