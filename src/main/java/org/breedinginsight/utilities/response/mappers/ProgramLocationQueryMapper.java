@@ -39,7 +39,10 @@ public class ProgramLocationQueryMapper extends AbstractQueryMapper {
                 Map.entry("abbreviation", new MapperEntry<>(ProgramLocation::getAbbreviation,
                         ProgramLocation.class.getMethod("getAbbreviation").getReturnType())),
                 Map.entry("slope", new MapperEntry<>(ProgramLocation::getSlope,
-                        ProgramLocation.class.getMethod("getSlope").getReturnType()))
+                        ProgramLocation.class.getMethod("getSlope").getReturnType())),
+                Map.entry("createdAt", new MapperEntry<>(ProgramLocation::getCreatedAt,
+                        ProgramLocation.class.getMethod("getCreatedAt").getReturnType()))
+
         );
     }
 

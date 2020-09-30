@@ -52,6 +52,7 @@ public class ValidatorFactory {
         return (value, annotationMetadata, context) -> {
             Class mapperClass = annotationMetadata.getRequiredValue("using", Class.class);
             List<FilterRequest> filterFields = value.getFilter();
+            if (filterFields == null) return true;
             List<String> fields = filterFields.stream().map(FilterRequest::getField).collect(Collectors.toList());
             return checkMappedFields(fields, mapperClass);
         };
@@ -62,7 +63,7 @@ public class ValidatorFactory {
 
         return (value, annotationMetadata, context) -> {
             Class mapperClass = annotationMetadata.getRequiredValue("using", Class.class);
-            if (value.getSortField() == null) {
+            if (value == null || value.getSortField() == null) {
                 return true;
             } else {
                 return checkMappedFields(List.of(value.getSortField()), mapperClass);

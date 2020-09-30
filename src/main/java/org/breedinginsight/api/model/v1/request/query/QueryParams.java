@@ -27,34 +27,20 @@ import lombok.Setter;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import javax.annotation.Nullable;
-import javax.validation.Valid;
 import javax.validation.constraints.Positive;
 
 
 @Getter
 @Setter
 @Introspected
+@NoArgsConstructor
 public class QueryParams {
     @Positive
-    private Integer pageSize = 50;
+    private Integer pageSize;
     @Positive
-    private Integer page = 1;
+    private Integer page;
     @JsonIgnore
-    private boolean showAll = true;
+    private boolean showAll;
     private String sortField;
-    private SortOrder sortOrder = SortOrder.ASC;
-
-    @JsonCreator
-    public QueryParams(@JsonProperty(value = "pageSize") @Nullable Integer pageSize,
-                       @JsonProperty(value = "page") @Nullable Integer page,
-                       @JsonProperty("sortField") @Nullable String sortField,
-                       @JsonProperty(value = "sortOrder") @Nullable SortOrder sortOrder) {
-        if (pageSize != null) this.pageSize = pageSize;
-        if (page != null) this.page = page;
-        if (pageSize != null || page != null) {
-            this.showAll = false;
-        }
-        if (sortField != null) this.sortField = sortField;
-        if (sortOrder != null) this.sortOrder = sortOrder;
-    }
+    private SortOrder sortOrder;
 }

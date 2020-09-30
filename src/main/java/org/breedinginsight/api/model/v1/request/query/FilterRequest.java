@@ -17,11 +17,14 @@
 
 package org.breedinginsight.api.model.v1.request.query;
 
-import lombok.Getter;
-import lombok.Setter;
+import io.micronaut.core.annotation.Introspected;
+import lombok.*;
 
 @Getter
 @Setter
+@Builder
+@AllArgsConstructor
+@Introspected
 public class FilterRequest {
     String field;
     String value;

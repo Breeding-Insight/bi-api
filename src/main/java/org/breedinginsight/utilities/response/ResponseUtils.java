@@ -20,6 +20,7 @@ package org.breedinginsight.utilities.response;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
+import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -39,6 +40,10 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class ResponseUtils {
+
+    public final static Integer DEFAULT_PAGE_SIZE = 50;
+    public final static Integer DEFAULT_PAGE = 1;
+    public final static SortOrder DEFAULT_SORT_ORDER = SortOrder.ASC;
 
     // Transform all endpoints to the processSingleResponse
     // Add validation for search body and query params
@@ -93,8 +98,8 @@ public class ResponseUtils {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Sort field does not exist");
             }
 
-            Boolean isNumeric = Float.class.isAssignableFrom(field.getFieldType());
-            SortOrder sortOrder = queryParams.getSortOrder();
+            Boolean isNumeric = Number.class.isAssignableFrom(field.getFieldType());
+            SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
             data.sort((a,b)-> {
                 // Cast to float for number and sort
@@ -102,7 +107,9 @@ public class ResponseUtils {
                     if (field.getGetter().apply(a) == null) return -1;
                     if (field.getGetter().apply(b) == null) return 1;
                     if (isNumeric) {
-                        return ((Float) field.getGetter().apply(a)).compareTo((Float) field.getGetter().apply(b));
+                        Float value1 = ((Number) field.getGetter().apply(a)).floatValue();
+                        Float value2 = ((Number) field.getGetter().apply(b)).floatValue();
+                        return value1.compareTo(value2);
                     } else {
                         return field.getGetter().apply(a).toString().compareTo(field.getGetter().apply(b).toString());
                     }
@@ -110,7 +117,9 @@ public class ResponseUtils {
                     if (field.getGetter().apply(a) == null) return 1;
                     if (field.getGetter().apply(b) == null) return -1;
                     if (isNumeric){
-                        return ((Float) field.getGetter().apply(b)).compareTo((Float) field.getGetter().apply(a));
+                        Float value1 = ((Number) field.getGetter().apply(a)).floatValue();
+                        Float value2 = ((Number) field.getGetter().apply(b)).floatValue();
+                        return value2.compareTo(value1);
                     } else {
                         return field.getGetter().apply(b).toString().compareTo(field.getGetter().apply(a).toString());
                     }
@@ -151,24 +160,32 @@ public class ResponseUtils {
         Pagination pagination = new Pagination();
         Integer originalCount = data.size();
 
-        if (!paginationRequest.isShowAll()) {
-            Integer pageAdjustedByIndex = paginationRequest.getPage() - 1;
-            Integer startIndex = pageAdjustedByIndex * paginationRequest.getPageSize();
+        // Show all by default
+        if (paginationRequest.getPageSize() != null || paginationRequest.getPage() != null) {
+
+            Integer page = paginationRequest.getPage() != null ? paginationRequest.getPage() : ResponseUtils.DEFAULT_PAGE;
+            Integer pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : ResponseUtils.DEFAULT_PAGE_SIZE;
+
+            Integer pageAdjustedByIndex = page - 1;
+            Integer startIndex = pageAdjustedByIndex * pageSize;
             if (startIndex > data.size() || startIndex < 0) {
                 return Pair.of(new ArrayList<>(),
-                        new Pagination(0, 0, 1, paginationRequest.getPage()));
+                        new Pagination(0, 0, 1, page));
             }
 
-            Integer endIndex = startIndex + paginationRequest.getPageSize() >= data.size() ?
-                    data.size() : startIndex + paginationRequest.getPageSize();
+            Integer endIndex = startIndex + pageSize >= data.size() ?
+                    data.size() : startIndex + pageSize;
 
             data = data.subList(startIndex, endIndex);
+
+            pagination.setCurrentPage(page);
+        } else {
+            pagination.setCurrentPage(1);
         }
 
         pagination.setPageSize(data.size());
         pagination.setTotalPages((int) Math.ceil(originalCount / (double) data.size()));
         pagination.setTotalCount(originalCount);
-        pagination.setCurrentPage(paginationRequest.getPage());
 
         return Pair.of(data, pagination);
     }

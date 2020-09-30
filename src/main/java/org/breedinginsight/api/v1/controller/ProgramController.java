@@ -52,6 +52,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.ArrayList;
@@ -272,7 +273,7 @@ public class ProgramController {
         }
     }
 
-    @Get("/programs/{programId}/locations")
+    @Get("/programs/{programId}/locations{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(
@@ -281,23 +282,14 @@ public class ProgramController {
 
         try {
             List<ProgramLocation> programLocations = programLocationService.getByProgramId(programId);
-
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(programLocations.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-
-            Response<DataResponse<ProgramLocation>> response = new Response(metadata, new DataResponse<>(programLocations));
-            return HttpResponse.ok(response);
-
+            return ResponseUtils.getQueryResponse(programLocations, programLocationQueryMapper, queryParams);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
         }
     }
 
-    @Post("/programs/{programId}/location/search{?queryParams*}")
+    @Post("/programs/{programId}/locations/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<ProgramLocation>>> postProgramLocationsSearch(
