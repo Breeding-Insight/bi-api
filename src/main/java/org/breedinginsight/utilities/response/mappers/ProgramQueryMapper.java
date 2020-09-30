@@ -17,46 +17,56 @@
 
 package org.breedinginsight.utilities.response.mappers;
 
+import io.micronaut.context.annotation.Context;
 import lombok.Getter;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
+import org.breedinginsight.model.User;
 
-import java.time.OffsetDateTime;
+import javax.inject.Singleton;
 import java.util.Map;
-import java.util.UUID;
-import java.util.function.Function;
 
 
 @Getter
+@Singleton
+@Context
 public class ProgramQueryMapper extends AbstractQueryMapper {
 
     private Map<String, MapperEntry<Program>> fields;
 
-    public ProgramQueryMapper() {
-        //TODO: Think about doing reflection here to get field class. This is prone to mistakes in field class
+    public ProgramQueryMapper() throws NoSuchMethodException {
         fields = Map.ofEntries(
-                Map.entry("name", new MapperEntry<>(Program::getName, String.class)),
-                Map.entry("abbreviation", new MapperEntry<>(Program::getAbbreviation, String.class)),
-                Map.entry("objective", new MapperEntry<>(Program::getObjective, String.class)),
-                Map.entry("documentationUrl", new MapperEntry<>(Program::getDocumentationUrl, String.class)),
-                Map.entry("active", new MapperEntry<>(Program::getActive, Boolean.class)),
-                Map.entry("createdAt", new MapperEntry<>(Program::getCreatedAt, OffsetDateTime.class)),
-                Map.entry("updatedAt", new MapperEntry<>(Program::getUpdatedAt, OffsetDateTime.class)),
-                Map.entry("speciesId", new MapperEntry<>(Program::getSpeciesId, UUID.class)),
+                Map.entry("name", new MapperEntry<>(Program::getName,
+                        Program.class.getMethod("getName").getReturnType())),
+                Map.entry("abbreviation", new MapperEntry<>(Program::getAbbreviation,
+                        Program.class.getMethod("getAbbreviation").getReturnType())),
+                Map.entry("objective", new MapperEntry<>(Program::getObjective,
+                        Program.class.getMethod("getObjective").getReturnType())),
+                Map.entry("documentationUrl", new MapperEntry<>(Program::getDocumentationUrl,
+                        Program.class.getMethod("getDocumentationUrl").getReturnType())),
+                Map.entry("active", new MapperEntry<>(Program::getActive,
+                        Program.class.getMethod("getActive").getReturnType())),
+                Map.entry("createdAt", new MapperEntry<>(Program::getCreatedAt,
+                        Program.class.getMethod("getCreatedAt").getReturnType())),
+                Map.entry("updatedAt", new MapperEntry<>(Program::getUpdatedAt,
+                        Program.class.getMethod("getUpdatedAt").getReturnType())),
+                Map.entry("speciesId", new MapperEntry<>(Program::getSpeciesId,
+                        Program.class.getMethod("getSpeciesId").getReturnType())),
                 Map.entry("speciesName",
                         new MapperEntry<>((program) -> program.getSpecies() != null ? program.getSpecies().getCommonName() : null,
-                        String.class)),
+                                Species.class.getMethod("getCommonName").getReturnType())),
                 Map.entry("createdByUserId",
                         new MapperEntry<>((program) -> program.getCreatedByUser() != null ? program.getCreatedByUser().getId() : null,
-                        UUID.class)),
+                                Species.class.getMethod("getCreatedBy").getReturnType())),
                 Map.entry("createdByUserName",
                         new MapperEntry<>((program) -> program.getCreatedByUser() != null ? program.getCreatedByUser().getName() : null,
-                        String.class)),
+                                User.class.getMethod("getName").getReturnType())),
                 Map.entry("updatedByUserId",
                         new MapperEntry<>((program) -> program.getUpdatedByUser() != null ? program.getUpdatedByUser().getId() : null,
-                        UUID.class)),
+                                User.class.getMethod("getId").getReturnType())),
                 Map.entry("updatedByUserName",
                         new MapperEntry<>((program) -> program.getUpdatedByUser() != null ? program.getUpdatedByUser().getName() : null,
-                        String.class))
+                                User.class.getMethod("getName").getReturnType()))
         );
     }
 

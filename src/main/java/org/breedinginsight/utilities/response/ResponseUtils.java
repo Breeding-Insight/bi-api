@@ -29,13 +29,13 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
 import org.breedinginsight.utilities.response.mappers.MapperEntry;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ResponseUtils {
@@ -45,12 +45,14 @@ public class ResponseUtils {
     // Change processSingleResponse to be name something more consistent
     // Checkout if you can get the query params into a body for POST programs/search
     // Reorganize new files
-    //TODO: Test null sorting orders the correct way with real values
-    //TODO: Test breaking scenarios for pagination and search
-    //TODO: Write tests for pagination
-    //TODO: Write unit tests for ProgramSearchMapper
-    //TODO: Rename SearchMapper to QueryMapper
-    //TODO: Add BrAPI details query to QueryParams
+    // Test null sorting orders the correct way with real values
+    // Test integer values sort properly
+    // Rename SearchMapper to QueryMapper
+    // Test breaking scenarios for pagination and search
+    //TODO: Make sure negative numbers sort properly
+    //TODO: Write tests for ResponseUtils
+    //TODO: Write integration tests for controllers
+    //TODO: Write unit tests for QueryMappers
 
     // All
     public static <T> HttpResponse<Response<DataResponse<T>>> getQueryResponse(
@@ -90,7 +92,30 @@ public class ResponseUtils {
             } catch (NullPointerException e) {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Sort field does not exist");
             }
-            data = mapper.sort(data, field, queryParams.getSortOrder());
+
+            Boolean isNumeric = Float.class.isAssignableFrom(field.getFieldType());
+            SortOrder sortOrder = queryParams.getSortOrder();
+
+            data.sort((a,b)-> {
+                // Cast to float for number and sort
+                if (sortOrder == SortOrder.ASC) {
+                    if (field.getGetter().apply(a) == null) return -1;
+                    if (field.getGetter().apply(b) == null) return 1;
+                    if (isNumeric) {
+                        return ((Float) field.getGetter().apply(a)).compareTo((Float) field.getGetter().apply(b));
+                    } else {
+                        return field.getGetter().apply(a).toString().compareTo(field.getGetter().apply(b).toString());
+                    }
+                } else {
+                    if (field.getGetter().apply(a) == null) return 1;
+                    if (field.getGetter().apply(b) == null) return -1;
+                    if (isNumeric){
+                        return ((Float) field.getGetter().apply(b)).compareTo((Float) field.getGetter().apply(a));
+                    } else {
+                        return field.getGetter().apply(b).toString().compareTo(field.getGetter().apply(a).toString());
+                    }
+                }
+            });
         }
 
         return data;
@@ -104,8 +129,18 @@ public class ResponseUtils {
 
         if (filterFields.size() > 0){
             // Apply filters
-            // TODO: Catch bad filtering
-            data = mapper.filter(data, filterFields);
+            return data.stream()
+                    .filter(record ->
+                            filterFields.stream().allMatch(filterField -> {
+                                if (filterField.getField().apply(record) == null) {
+                                    return false;
+                                } else {
+                                    return filterField.getField().apply(record).toString()
+                                            .toLowerCase().contains(filterField.getValue().toLowerCase());
+                                }
+                            })
+                    )
+                    .collect(Collectors.toList());
         }
 
         return data;
