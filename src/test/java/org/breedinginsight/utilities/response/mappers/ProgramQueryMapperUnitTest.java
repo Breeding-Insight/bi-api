@@ -19,7 +19,6 @@ package org.breedinginsight.utilities.response.mappers;
 
 import lombok.SneakyThrows;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
 import org.junit.jupiter.api.*;

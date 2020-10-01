@@ -20,7 +20,6 @@ package org.breedinginsight.utilities.response;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
-import lombok.Getter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
