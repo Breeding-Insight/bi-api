@@ -89,7 +89,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         assertEquals(1, data.getAsJsonPrimitive("totalPages").getAsInt(), "Default total pages is incorrect");
         assertEquals(1, data.getAsJsonPrimitive("totalCount").getAsInt(), "Default total count is incorrect");
         assertEquals(1, data.getAsJsonPrimitive("pageSize").getAsInt(), "Default page size is incorrect");
-        assertEquals(0, data.getAsJsonPrimitive("currentPage").getAsInt(), "Default current page is incorrect");
+        assertEquals(1, data.getAsJsonPrimitive("currentPage").getAsInt(), "Default current page is incorrect");
     }
 
     @Test

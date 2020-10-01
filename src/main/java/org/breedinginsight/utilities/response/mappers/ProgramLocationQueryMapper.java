@@ -20,6 +20,8 @@ package org.breedinginsight.utilities.response.mappers;
 import io.micronaut.context.annotation.Context;
 import lombok.Getter;
 import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.model.Species;
+import org.breedinginsight.model.User;
 
 import javax.inject.Singleton;
 import java.util.Map;
@@ -41,7 +43,22 @@ public class ProgramLocationQueryMapper extends AbstractQueryMapper {
                 Map.entry("slope", new MapperEntry<>(ProgramLocation::getSlope,
                         ProgramLocation.class.getMethod("getSlope").getReturnType())),
                 Map.entry("createdAt", new MapperEntry<>(ProgramLocation::getCreatedAt,
-                        ProgramLocation.class.getMethod("getCreatedAt").getReturnType()))
+                        ProgramLocation.class.getMethod("getCreatedAt").getReturnType())),
+                Map.entry("updatedAt", new MapperEntry<>(ProgramLocation::getUpdatedAt,
+                        ProgramLocation.class.getMethod("getUpdatedAt").getReturnType())),
+                Map.entry("createdByUserId",
+                        new MapperEntry<>((location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getId() : null,
+                                Species.class.getMethod("getCreatedBy").getReturnType())),
+                Map.entry("createdByUserName",
+                        new MapperEntry<>((location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getName() : null,
+                                User.class.getMethod("getName").getReturnType())),
+                Map.entry("updatedByUserId",
+                        new MapperEntry<>((location) -> location.getUpdatedByUser() != null ? location.getUpdatedByUser().getId() : null,
+                                User.class.getMethod("getId").getReturnType())),
+                Map.entry("updatedByUserName",
+                        new MapperEntry<>((location) -> location.getUpdatedByUser() != null ? location.getUpdatedByUser().getName() : null,
+                                User.class.getMethod("getName").getReturnType()))
+
 
         );
     }

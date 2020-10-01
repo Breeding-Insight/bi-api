@@ -19,9 +19,12 @@ package org.breedinginsight.utilities.response.mappers;
 
 import lombok.SneakyThrows;
 import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.model.User;
 import org.junit.jupiter.api.*;
 
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.util.UUID;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,11 +49,21 @@ public class ProgramLocationQueryMapperUnitTest {
                 .name("place1")
                 .slope(BigDecimal.valueOf(7.6))
                 .abbreviation("pla")
+                .createdAt(OffsetDateTime.now())
+                .updatedAt(OffsetDateTime.now())
+                .createdByUser(User.builder().id(UUID.randomUUID()).name("user1").build())
+                .updatedByUser(User.builder().id(UUID.randomUUID()).name("user2").build())
                 .build();
 
         checkMapping(programLocation.getName(), programLocation, "name");
         checkMapping(programLocation.getSlope(), programLocation, "slope");
         checkMapping(programLocation.getAbbreviation(), programLocation, "abbreviation");
+        checkMapping(programLocation.getCreatedAt(), programLocation, "createdAt");
+        checkMapping(programLocation.getUpdatedAt(), programLocation, "updatedAt");
+        checkMapping(programLocation.getCreatedByUser().getName(), programLocation, "createdByUserName");
+        checkMapping(programLocation.getCreatedByUser().getId(), programLocation, "createdByUserId");
+        checkMapping(programLocation.getUpdatedByUser().getName(), programLocation, "updatedByUserName");
+        checkMapping(programLocation.getUpdatedByUser().getId(), programLocation, "updatedByUserId");
     }
 
     private void checkMapping(Object field, ProgramLocation programLocation, String fieldName) {

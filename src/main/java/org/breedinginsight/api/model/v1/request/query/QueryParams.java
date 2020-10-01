@@ -17,9 +17,7 @@
 
 package org.breedinginsight.api.model.v1.request.query;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -36,8 +34,10 @@ import javax.validation.constraints.Positive;
 @NoArgsConstructor
 public class QueryParams {
     @Positive
+    @Nullable
     private Integer pageSize;
     @Positive
+    @Nullable
     private Integer page;
     @JsonIgnore
     private boolean showAll;
