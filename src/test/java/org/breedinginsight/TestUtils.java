@@ -32,6 +32,10 @@ public class TestUtils {
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
 
+            if (firstValue.compareTo(secondValue) == 0){
+                continue;
+            }
+            
             if (sortOrder == SortOrder.ASC) {
                 assertEquals(true, firstValue.compareTo(secondValue) < 0, "Incorrect sorting");
             } else {
@@ -51,6 +55,10 @@ public class TestUtils {
             Float firstValue = data.get(i).getAsJsonObject().get(field).getAsFloat();
             Float secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsFloat();
 
+            if (firstValue.compareTo(secondValue) == 0){
+                continue;
+            }
+
             if (sortOrder == SortOrder.ASC) {
                 assertEquals(true, firstValue.compareTo(secondValue) < 0, "Incorrect sorting");
             } else {
@@ -67,6 +75,10 @@ public class TestUtils {
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
             OffsetDateTime firstDate = OffsetDateTime.parse(firstValue);
             OffsetDateTime secondDate = OffsetDateTime.parse(secondValue);
+
+            if (firstDate.compareTo(secondDate) == 0){
+                continue;
+            }
 
             if (sortOrder == SortOrder.ASC){
                 assertEquals(true, firstDate.compareTo(secondDate) < 0, "Incorrect sorting");
