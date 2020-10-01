@@ -81,9 +81,11 @@ public class TestUtils {
             }
 
             if (sortOrder == SortOrder.ASC){
-                assertEquals(true, firstDate.compareTo(secondDate) < 0, "Incorrect sorting");
+                assertEquals(true, firstDate.compareTo(secondDate) < 0,
+                        String.format("Incorrect sorting. Sort order: %s, First Value: %s, Second Value: %s", sortOrder, firstDate, secondDate));
             } else {
-                assertEquals(true, firstDate.compareTo(secondDate) > 0, "Incorrect sorting");
+                assertEquals(true, firstDate.compareTo(secondDate) > 0,
+                        String.format("Incorrect sorting. Sort order: %s, First Value: %s, Second Value: %s", sortOrder, firstDate, secondDate));
             }
         }
 
