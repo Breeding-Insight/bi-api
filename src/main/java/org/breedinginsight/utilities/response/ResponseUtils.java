@@ -34,6 +34,7 @@ import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
 import org.breedinginsight.utilities.response.mappers.MapperEntry;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -84,6 +85,7 @@ public class ResponseUtils {
             }
 
             Boolean isNumeric = Number.class.isAssignableFrom(field.getFieldType());
+            Boolean isDate = field.getFieldType() == OffsetDateTime.class;
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
             data.sort((a,b)-> {
@@ -95,6 +97,10 @@ public class ResponseUtils {
                         Float value1 = ((Number) field.getGetter().apply(a)).floatValue();
                         Float value2 = ((Number) field.getGetter().apply(b)).floatValue();
                         return value1.compareTo(value2);
+                    } else if (isDate){
+                        OffsetDateTime value1 = ((OffsetDateTime) field.getGetter().apply(a));
+                        OffsetDateTime value2 = ((OffsetDateTime) field.getGetter().apply(b));
+                        return value1.compareTo(value2);
                     } else {
                         return field.getGetter().apply(a).toString().compareTo(field.getGetter().apply(b).toString());
                     }
@@ -104,6 +110,10 @@ public class ResponseUtils {
                     if (isNumeric){
                         Float value1 = ((Number) field.getGetter().apply(a)).floatValue();
                         Float value2 = ((Number) field.getGetter().apply(b)).floatValue();
+                        return value2.compareTo(value1);
+                    } else if (isDate) {
+                        OffsetDateTime value1 = ((OffsetDateTime) field.getGetter().apply(a));
+                        OffsetDateTime value2 = ((OffsetDateTime) field.getGetter().apply(b));
                         return value2.compareTo(value1);
                     } else {
                         return field.getGetter().apply(b).toString().compareTo(field.getGetter().apply(a).toString());
