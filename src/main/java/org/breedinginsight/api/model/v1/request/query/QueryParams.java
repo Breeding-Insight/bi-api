@@ -24,7 +24,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
-import javax.annotation.Nullable;
 import javax.validation.constraints.Positive;
 
 
@@ -34,10 +33,8 @@ import javax.validation.constraints.Positive;
 @NoArgsConstructor
 public class QueryParams {
     @Positive
-    @Nullable
     private Integer pageSize;
     @Positive
-    @Nullable
     private Integer page;
     @JsonIgnore
     private boolean showAll;

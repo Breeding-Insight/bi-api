@@ -2151,7 +2151,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    @Order(2)
+    @Order(3)
     public void searchPrograms() {
 
         List<ProgramEntity> allPrograms = programDao.findAll();

@@ -44,22 +44,6 @@ public class ResponseUtils {
     public final static Integer DEFAULT_PAGE = 1;
     public final static SortOrder DEFAULT_SORT_ORDER = SortOrder.ASC;
 
-    // Transform all endpoints to the processSingleResponse
-    // Add validation for search body and query params
-    // Change processSingleResponse to be name something more consistent
-    // Checkout if you can get the query params into a body for POST programs/search
-    // Reorganize new files
-    // Test null sorting orders the correct way with real values
-    // Test integer values sort properly
-    // Rename SearchMapper to QueryMapper
-    // Test breaking scenarios for pagination and search
-    // Make sure negative numbers sort properly
-    // Write tests for ResponseUtils
-    // Write unit tests for QueryMappers
-    // TODO: Write integration tests for program location controllers
-    // TODO: Double check program location information capture in UI is represented
-
-
     // All
     public static <T> HttpResponse<Response<DataResponse<T>>> getQueryResponse(
             List data, AbstractQueryMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {

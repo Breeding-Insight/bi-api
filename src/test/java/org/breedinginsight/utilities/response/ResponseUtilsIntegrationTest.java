@@ -190,7 +190,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         searchRequest.getFilter().add(FilterRequest.builder().field("no_exist").value("no_exist").build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/locations/search?sortOrder=UP_DOWN", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                POST("/programs/" + validProgram.getId() + "/locations/search", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
@@ -208,7 +208,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         searchRequest.getFilter().add(FilterRequest.builder().field("no_exist").value(null).build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/locations/search?sortOrder=UP_DOWN", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                POST("/programs/" + validProgram.getId() + "/locations/search", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
@@ -221,10 +221,9 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     // POST no body
     @Test
     public void postNoBody() {
-        SearchRequest searchRequest = new SearchRequest();
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/locations/search?sortOrder=UP_DOWN", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                POST("/programs/" + validProgram.getId() + "/locations/search", "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {

@@ -48,7 +48,7 @@ public class ProgramLocationQueryMapper extends AbstractQueryMapper {
                         ProgramLocation.class.getMethod("getUpdatedAt").getReturnType())),
                 Map.entry("createdByUserId",
                         new MapperEntry<>((location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getId() : null,
-                                Species.class.getMethod("getCreatedBy").getReturnType())),
+                                User.class.getMethod("getId").getReturnType())),
                 Map.entry("createdByUserName",
                         new MapperEntry<>((location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getName() : null,
                                 User.class.getMethod("getName").getReturnType())),

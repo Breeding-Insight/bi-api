@@ -57,7 +57,7 @@ public class ProgramQueryMapper extends AbstractQueryMapper {
                                 Species.class.getMethod("getCommonName").getReturnType())),
                 Map.entry("createdByUserId",
                         new MapperEntry<>((program) -> program.getCreatedByUser() != null ? program.getCreatedByUser().getId() : null,
-                                Species.class.getMethod("getCreatedBy").getReturnType())),
+                                User.class.getMethod("getId").getReturnType())),
                 Map.entry("createdByUserName",
                         new MapperEntry<>((program) -> program.getCreatedByUser() != null ? program.getCreatedByUser().getName() : null,
                                 User.class.getMethod("getName").getReturnType())),
