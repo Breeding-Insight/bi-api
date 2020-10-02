@@ -109,15 +109,16 @@ datasources:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
+  base-url: ${web.base-url}
   cookies:
     login-redirect: redirect-login
   login:
     success:
-      url: ${web.loginSuccessUrl:`http://localhost:8080/program-selection`}
+      url: ${web.base-url:`http://localhost:8080`}/program-selection
     failure:
-      url: ${web.loginFailureUrl:`http://localhost:8080/401`}
+      url: ${web.base-url:`http://localhost:8080`}/401
   logout:
-    url: ${web.logoutUrl:`http://localhost:8080`}
+    url: ${web.base-url:`http://localhost:8080`}
 
 brapi:
   server:

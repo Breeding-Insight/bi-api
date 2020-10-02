@@ -41,3 +41,6 @@ brapi:
     pheno-url: ${BRAPI_PHENO_URL:`https://test-server.brapi.org/`}
     geno-url: ${BRAPI_GENO_URL:`https://test-server.brapi.org/`}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breeding-insight.org}
+
+web:
+  base-url: ${WEB_BASE_URL:`http://localhost`}
