@@ -18,9 +18,11 @@
 package org.breedinginsight;
 
 import com.google.gson.JsonArray;
+import net.bytebuddy.TypeCache;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import java.time.OffsetDateTime;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -28,7 +30,7 @@ public class TestUtils {
 
     public static void checkStringSorting(JsonArray data, String field, SortOrder sortOrder) {
 
-        for (int i = 0; i < data.size() - 2; i++){
+        for (int i = 0; i < data.size() - 1; i++){
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
 
@@ -48,7 +50,7 @@ public class TestUtils {
 
     public static void checkNumericSorting(JsonArray data, String field, SortOrder sortOrder) {
 
-        for (int i = 0; i < data.size() - 2; i++){
+        for (int i = 0; i < data.size() - 1; i++){
             if (!data.get(i).getAsJsonObject().has(field) || !data.get(i + 1).getAsJsonObject().has(field)) {
                 continue;
             }
@@ -70,7 +72,7 @@ public class TestUtils {
 
     public static void checkDateSorting(JsonArray data, String field, SortOrder sortOrder) {
 
-        for (int i = 0; i < data.size() - 2; i++){
+        for (int i = 0; i < data.size() - 1; i++){
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
             OffsetDateTime firstDate = OffsetDateTime.parse(firstValue);
@@ -89,5 +91,30 @@ public class TestUtils {
             }
         }
 
+    }
+
+    public static void checkStringListSorting(List<List<String>> data, SortOrder sortOrder) {
+        for (int i = 0; i < data.size() - 1; i++){
+
+            if (data.get(i).size() == data.get(i + 1).size()){
+
+                int result = String.join("", data.get(i)).compareToIgnoreCase(String.join("", data.get(i + 1)));
+                if (result == 0){
+                    continue;
+                }
+
+                if (sortOrder == SortOrder.ASC) {
+                    assertEquals(true, result < 0, "Incorrect sorting");
+                } else {
+                    assertEquals(true, result > 0, "Incorrect sorting");
+                }
+            } else if (sortOrder == SortOrder.ASC){
+                assertEquals(true, data.get(i).size() < data.get(i+1).size(), "Incorrect sorting");
+            } else {
+                assertEquals(true, data.get(i).size() > data.get(i+1).size(), "Incorrect sorting");
+            }
+
+
+        }
     }
 }

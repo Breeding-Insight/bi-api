@@ -51,10 +51,10 @@ import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.response.mappers.ProgramUserQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -69,17 +69,20 @@ public class ProgramController {
     private SecurityService securityService;
     private ProgramQueryMapper programQueryMapper;
     private ProgramLocationQueryMapper programLocationQueryMapper;
+    private ProgramUserQueryMapper programUserQueryMapper;
 
     @Inject
     public ProgramController(ProgramService programService, ProgramUserService programUserService,
                              ProgramLocationService programLocationService, SecurityService securityService,
-                             ProgramQueryMapper programQueryMapper, ProgramLocationQueryMapper programLocationQueryMapper) {
+                             ProgramQueryMapper programQueryMapper, ProgramLocationQueryMapper programLocationQueryMapper,
+                             ProgramUserQueryMapper programUserQueryMapper) {
         this.programService = programService;
         this.programUserService = programUserService;
         this.programLocationService = programLocationService;
         this.securityService = securityService;
         this.programQueryMapper = programQueryMapper;
         this.programLocationQueryMapper = programLocationQueryMapper;
+        this.programUserQueryMapper = programUserQueryMapper;
     }
 
     @Get("/programs{?queryParams*}")
@@ -171,23 +174,33 @@ public class ProgramController {
         }
     }
 
-    @Get("/programs/{programId}/users")
+    @Get("/programs/{programId}/users{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    @AddMetadata
-    public HttpResponse<Response<ProgramUser>> getProgramUsers(@PathVariable UUID programId) {
+    public HttpResponse<Response<DataResponse<ProgramUser>>> getProgramUsers(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = ProgramUserQueryMapper.class) @Valid QueryParams queryParams) {
 
         try {
             List<ProgramUser> programUsers = programUserService.getProgramUsers(programId);
+            return ResponseUtils.getQueryResponse(programUsers, programUserQueryMapper, queryParams);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        }
+    }
 
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(programUsers.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
+    @Post("/programs/{programId}/users/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<DataResponse<ProgramUser>>> searchProgramUsers(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = ProgramUserQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using= ProgramUserQueryMapper.class) SearchRequest searchRequest) {
 
-            Response response = new Response(metadata, new DataResponse<>(programUsers));
-            return HttpResponse.ok(response);
+        try {
+            List<ProgramUser> programUsers = programUserService.getProgramUsers(programId);
+            return ResponseUtils.getQueryResponse(programUsers, programUserQueryMapper, searchRequest, queryParams);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();

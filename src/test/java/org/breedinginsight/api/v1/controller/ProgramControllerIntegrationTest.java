@@ -42,21 +42,21 @@ import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.Feature;
 import org.geojson.Point;
 import org.jooq.DSLContext;
+import org.jooq.Param;
+import org.jooq.QueryPart;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -120,6 +120,8 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     private DSLContext dsl;
     @Inject
     private ProgramDao programDao;
+    @Inject
+    private ProgramUserDAO programUserDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -1597,6 +1599,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
+    @Order(7)
     void getProgramsUsersNoUsers() {
         String validProgramId = validProgram.getId().toString();
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -1686,6 +1689,80 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    @Order(8)
+    public void getProgramUsersQuery() {
+        FannyPack userFp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
+        dsl.execute(userFp.get("InsertManyUsers"));
+        dsl.execute(fp.get("InsertManyProgramUsers"),
+                validProgram.getId().toString(), validProgram.getId().toString(),
+                validProgram.getId().toString(), validProgram.getId().toString());
+        List<ProgramUser> allProgramUsers = programUserDAO.getAllProgramUsers();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/users?page=1&pageSize=30&sortField=roles&sortOrder=ASC").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(allProgramUsers.size(), data.size(), "Wrong page size");
+        TestUtils.checkStringListSorting(getRoles(data), SortOrder.ASC);
+
+        JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals((int) Math.ceil(allProgramUsers.size()/30.0), pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(allProgramUsers.size(), pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    @Order(9)
+    public void searchProgramUsers() {
+
+        List<ProgramUser> allProgramUsers = programUserDAO.getAllProgramUsers();
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilter(new ArrayList<>());
+        searchRequest.getFilter().add(new FilterRequest("roles", "breed"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/users/search?page=1&pageSize=20&sortField=roles&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        // Expect 12, user12, user20->user29
+        assertEquals(12, data.size(), "Wrong page size");
+        TestUtils.checkStringListSorting(getRoles(data), SortOrder.ASC);
+
+        JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(12, pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    private List<List<String>> getRoles(JsonArray data) {
+        List<List<String>> roleResults = new ArrayList<>();
+        for (JsonElement el : data) {
+            JsonObject programUser = (JsonObject) el;
+            JsonArray roles = programUser.get("roles").getAsJsonArray();
+            List<String> userRoles = new ArrayList<>();
+            for (JsonElement roleEl : roles) {
+                JsonObject role = (JsonObject) roleEl;
+                userRoles.add(role.get("domain").getAsString());
+            }
+            Collections.sort(userRoles);
+            roleResults.add(userRoles);
+        }
+        return roleResults;
     }
 
     //endregion

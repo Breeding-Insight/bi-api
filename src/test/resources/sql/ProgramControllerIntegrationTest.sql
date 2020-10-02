@@ -61,3 +61,42 @@ insert into public.program (name, species_id, created_by, updated_by) values
 ('program27', species_id, user_id, user_id);
 
 END $$;
+
+-- name: InsertManyProgramUsers
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'member'
+where
+bi_user.name like 'user1%';
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'breeder'
+where
+bi_user.name like 'user2%';
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'member'
+where
+bi_user.name like 'user2%';
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+bi_user.id, ?::uuid, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'breeder'
+where
+bi_user.name like 'user9';
+

@@ -114,6 +114,10 @@ public class ResponseUtils {
                             filterFields.stream().allMatch(filterField -> {
                                 if (filterField.getField().apply(record) == null) {
                                     return false;
+                                } else if (filterField.getField().apply(record) instanceof List){
+                                    return ((List) filterField.getField().apply(record)).stream()
+                                            .anyMatch(listValue ->
+                                                    listValue.toString().toLowerCase().contains(filterField.getValue()));
                                 } else {
                                     return filterField.getField().apply(record).toString()
                                             .toLowerCase().contains(filterField.getValue().toLowerCase());
