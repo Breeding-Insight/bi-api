@@ -24,6 +24,7 @@ import org.breedinginsight.model.*;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Getter
@@ -31,36 +32,28 @@ import java.util.stream.Collectors;
 @Context
 public class ProgramUserQueryMapper  extends AbstractQueryMapper {
 
-    private Map<String, MapperEntry<ProgramUser>> fields;
+    private Map<String, Function<ProgramUser,?>> fields;
 
-    public ProgramUserQueryMapper() throws NoSuchMethodException {
+    public ProgramUserQueryMapper() {
         fields = Map.ofEntries(
-                Map.entry("name", new MapperEntry<>(programUser -> programUser.getUser() != null ? programUser.getUser().getName() : null,
-                        User.class.getMethod("getName").getReturnType())),
-                Map.entry("email", new MapperEntry<>(programUser -> programUser.getUser() != null ? programUser.getUser().getEmail() : null,
-                        User.class.getMethod("getEmail").getReturnType())),
-                Map.entry("roles", new MapperEntry<>(
+                Map.entry("name",
+                        (programUser) -> programUser.getUser() != null ? programUser.getUser().getName() : null),
+                Map.entry("email",
+                        programUser -> programUser.getUser() != null ? programUser.getUser().getEmail() : null),
+                Map.entry("roles",
                         programUser ->
-                                programUser.getRoles() != null ? programUser.getRoles().stream().map(Role::getDomain).collect(Collectors.toList()) : null,
-                        Role.class.getMethod("getDomain").getReturnType())),
-                Map.entry("active", new MapperEntry<>(ProgramUser::getActive,
-                        ProgramUser.class.getMethod("getActive").getReturnType())),
-                Map.entry("createdAt", new MapperEntry<>(ProgramUser::getCreatedAt,
-                        ProgramUser.class.getMethod("getCreatedAt").getReturnType())),
-                Map.entry("updatedAt", new MapperEntry<>(ProgramUser::getUpdatedAt,
-                        ProgramUser.class.getMethod("getUpdatedAt").getReturnType())),
+                                programUser.getRoles() != null ? programUser.getRoles().stream().map(Role::getDomain).collect(Collectors.toList()) : null),
+                Map.entry("active", ProgramUser::getActive),
+                Map.entry("createdAt", ProgramUser::getCreatedAt),
+                Map.entry("updatedAt", ProgramUser::getUpdatedAt),
                 Map.entry("createdByUserId",
-                        new MapperEntry<>(programUser -> programUser.getCreatedByUser() != null ? programUser.getCreatedByUser().getId() : null,
-                                User.class.getMethod("getId").getReturnType())),
+                        programUser -> programUser.getCreatedByUser() != null ? programUser.getCreatedByUser().getId() : null),
                 Map.entry("createdByUserName",
-                        new MapperEntry<>(programUser -> programUser.getCreatedByUser() != null ? programUser.getCreatedByUser().getName() : null,
-                                User.class.getMethod("getName").getReturnType())),
+                        programUser -> programUser.getCreatedByUser() != null ? programUser.getCreatedByUser().getName() : null),
                 Map.entry("updatedByUserId",
-                        new MapperEntry<>(programUser -> programUser.getUpdatedByUser() != null ? programUser.getUpdatedByUser().getId() : null,
-                                User.class.getMethod("getId").getReturnType())),
+                        programUser -> programUser.getUpdatedByUser() != null ? programUser.getUpdatedByUser().getId() : null),
                 Map.entry("updatedByUserName",
-                        new MapperEntry<>(programUser -> programUser.getUpdatedByUser() != null ? programUser.getUpdatedByUser().getName() : null,
-                                User.class.getMethod("getName").getReturnType()))
+                        programUser -> programUser.getUpdatedByUser() != null ? programUser.getUpdatedByUser().getName() : null)
         );
     }
 
@@ -70,7 +63,7 @@ public class ProgramUserQueryMapper  extends AbstractQueryMapper {
     }
 
     @Override
-    public MapperEntry<ProgramUser> getMapperEntry(String fieldName) throws NullPointerException {
+    public Function<ProgramUser, ?> getField(String fieldName) throws NullPointerException {
         if (fields.containsKey(fieldName)) return fields.get(fieldName);
         else throw new NullPointerException();
     }
