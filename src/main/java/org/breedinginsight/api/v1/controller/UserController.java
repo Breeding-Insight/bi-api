@@ -29,19 +29,27 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.OrcidRequest;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.api.model.v1.validators.QueryValid;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.response.ResponseUtils;
+import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
+import org.breedinginsight.utilities.response.mappers.UserQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -54,10 +62,17 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class UserController {
 
-    @Inject
     private UserService userService;
-    @Inject
     private SecurityService securityService;
+    private UserQueryMapper userQueryMapper;
+
+    @Inject
+    public UserController(UserService userService, SecurityService securityService,
+                          UserQueryMapper userQueryMapper) {
+        this.userService = userService;
+        this.securityService = securityService;
+        this.userQueryMapper = userQueryMapper;
+    }
 
     @Get("/userinfo")
     @Produces(MediaType.APPLICATION_JSON)
@@ -93,22 +108,26 @@ public class UserController {
         }
     }
 
-    @Get("/users")
+    @Get("/users{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<User>>> users() {
+    public HttpResponse<Response<DataResponse<User>>> users(
+            @QueryValue @QueryValid(using = UserQueryMapper.class) @Valid QueryParams queryParams
+    ) {
 
         List<User> users = userService.getAll();
-        //TODO: Add in pagination
-        List<Status> metadataStatus = new ArrayList<>();
-        // Users query successfully
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        // Construct our metadata and response
-        //TODO: Put in the actual page size
-        Pagination pagination = new Pagination(users.size(), 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<DataResponse<User>> response = new Response<>(metadata, new DataResponse<>(users));
-        return HttpResponse.ok(response);
+        return ResponseUtils.getQueryResponse(users, userQueryMapper, queryParams);
+    }
+
+    @Post("/users/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
+            @QueryValue @QueryValid(using = UserQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using = UserQueryMapper.class) SearchRequest searchRequest) {
+
+        List<User> users = userService.getAll();
+        return ResponseUtils.getQueryResponse(users, userQueryMapper, searchRequest, queryParams);
     }
 
     @Post("/users")

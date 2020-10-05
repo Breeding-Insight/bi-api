@@ -19,10 +19,7 @@ package org.breedinginsight.utilities.response;
 
 import lombok.NonNull;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 class GenericComparator<T> implements Comparator<Object> {
 

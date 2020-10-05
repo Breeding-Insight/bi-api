@@ -49,9 +49,18 @@ update program set active = false where name = 'Test Program';
 DO $$
 DECLARE
     user_id UUID;
+    program1 UUID;
+    program2 UUID;
 BEGIN
 
 user_id := (SELECT id from bi_user where name = 'system');
+program1 := (SELECT id from program where name = 'Test Program1');
+
+insert into program (species_id, name, abbreviation, objective, created_by, updated_by)
+select species.id, 'Test Program2', 'test', 'To test things', bi_user.id, bi_user.id from species
+join bi_user on bi_user.name = 'system' limit 1;
+
+program2 := (SELECT id from program where name = 'Test Program2');
 
 insert into bi_user (name, email, created_by, updated_by)
 values
@@ -90,5 +99,28 @@ values
 insert into system_user_role (bi_user_id, system_role_id, created_by, updated_by)
 select bi_user.id, system_role.id, user_id, user_id from bi_user
 join system_role on system_role.domain = 'admin' where bi_user.name like 'user1%';
+
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+bi_user.id, program1, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'member'
+where
+bi_user.name like 'user%';
+
+insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
+select
+bi_user.id, program2, role.id, bi_user.id, bi_user.id
+from
+bi_user
+join role on role.domain = 'breeder'
+where
+bi_user.name like 'user2%';
+
+delete from program_user_role where program_user_role.user_id in (
+    select id from bi_user where name = 'user9'
+);
 
 END $$;
