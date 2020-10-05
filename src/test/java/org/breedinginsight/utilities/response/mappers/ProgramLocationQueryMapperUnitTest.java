@@ -54,20 +54,15 @@ public class ProgramLocationQueryMapperUnitTest {
                 .updatedByUser(User.builder().id(UUID.randomUUID()).name("user2").build())
                 .build();
 
-        checkMapping(programLocation.getName(), programLocation, "name");
-        checkMapping(programLocation.getSlope(), programLocation, "slope");
-        checkMapping(programLocation.getAbbreviation(), programLocation, "abbreviation");
-        checkMapping(programLocation.getCreatedAt(), programLocation, "createdAt");
-        checkMapping(programLocation.getUpdatedAt(), programLocation, "updatedAt");
-        checkMapping(programLocation.getCreatedByUser().getName(), programLocation, "createdByUserName");
-        checkMapping(programLocation.getCreatedByUser().getId(), programLocation, "createdByUserId");
-        checkMapping(programLocation.getUpdatedByUser().getName(), programLocation, "updatedByUserName");
-        checkMapping(programLocation.getUpdatedByUser().getId(), programLocation, "updatedByUserId");
+        assertEquals(programLocation.getName(), programLocationQueryMapper.getField("name"), "Wrong getter");
+        assertEquals(programLocation.getSlope(), programLocationQueryMapper.getField("slope"), "Wrong getter");
+        assertEquals(programLocation.getAbbreviation(), programLocationQueryMapper.getField("abbreviation"), "Wrong getter");
+        assertEquals(programLocation.getCreatedAt(), programLocationQueryMapper.getField("createdAt"), "Wrong getter");
+        assertEquals(programLocation.getUpdatedAt(), programLocationQueryMapper.getField("updatedAt"), "Wrong getter");
+        assertEquals(programLocation.getCreatedByUser().getName(), programLocationQueryMapper.getField("createdByUserName"), "Wrong getter");
+        assertEquals(programLocation.getCreatedByUser().getId(), programLocationQueryMapper.getField("createdByUserId"), "Wrong getter");
+        assertEquals(programLocation.getUpdatedByUser().getName(), programLocationQueryMapper.getField("updatedByUserName"), "Wrong getter");
+        assertEquals(programLocation.getUpdatedByUser().getId(), programLocationQueryMapper.getField("updatedByUserId"), "Wrong getter");
     }
 
-    private void checkMapping(Object field, ProgramLocation programLocation, String fieldName) {
-        MapperEntry<ProgramLocation> mapperEntry = programLocationQueryMapper.getMapperEntry(fieldName);
-        assertEquals(field, mapperEntry.getGetter().apply(programLocation), "Wrong getter");
-        assertEquals(true, mapperEntry.getFieldType() == field.getClass(), "Wrong class");
-    }
 }

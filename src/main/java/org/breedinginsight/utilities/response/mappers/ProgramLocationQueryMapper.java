@@ -20,11 +20,10 @@ package org.breedinginsight.utilities.response.mappers;
 import io.micronaut.context.annotation.Context;
 import lombok.Getter;
 import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.model.Species;
-import org.breedinginsight.model.User;
 
 import javax.inject.Singleton;
 import java.util.Map;
+import java.util.function.Function;
 
 
 @Getter
@@ -32,34 +31,23 @@ import java.util.Map;
 @Context
 public class ProgramLocationQueryMapper extends AbstractQueryMapper {
 
-    private Map<String, MapperEntry<ProgramLocation>> fields;
+    private Map<String, Function<ProgramLocation, ?>> fields;
 
-    public ProgramLocationQueryMapper() throws NoSuchMethodException {
+    public ProgramLocationQueryMapper() {
         fields = Map.ofEntries(
-                Map.entry("name", new MapperEntry<>(ProgramLocation::getName,
-                        ProgramLocation.class.getMethod("getName").getReturnType())),
-                Map.entry("abbreviation", new MapperEntry<>(ProgramLocation::getAbbreviation,
-                        ProgramLocation.class.getMethod("getAbbreviation").getReturnType())),
-                Map.entry("slope", new MapperEntry<>(ProgramLocation::getSlope,
-                        ProgramLocation.class.getMethod("getSlope").getReturnType())),
-                Map.entry("createdAt", new MapperEntry<>(ProgramLocation::getCreatedAt,
-                        ProgramLocation.class.getMethod("getCreatedAt").getReturnType())),
-                Map.entry("updatedAt", new MapperEntry<>(ProgramLocation::getUpdatedAt,
-                        ProgramLocation.class.getMethod("getUpdatedAt").getReturnType())),
+                Map.entry("name", ProgramLocation::getName),
+                Map.entry("abbreviation", ProgramLocation::getAbbreviation),
+                Map.entry("slope", ProgramLocation::getSlope),
+                Map.entry("createdAt", ProgramLocation::getCreatedAt),
+                Map.entry("updatedAt", ProgramLocation::getUpdatedAt),
                 Map.entry("createdByUserId",
-                        new MapperEntry<>((location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getId() : null,
-                                User.class.getMethod("getId").getReturnType())),
+                        (location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getId() : null),
                 Map.entry("createdByUserName",
-                        new MapperEntry<>((location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getName() : null,
-                                User.class.getMethod("getName").getReturnType())),
+                        (location) -> location.getCreatedByUser() != null ? location.getCreatedByUser().getName() : null),
                 Map.entry("updatedByUserId",
-                        new MapperEntry<>((location) -> location.getUpdatedByUser() != null ? location.getUpdatedByUser().getId() : null,
-                                User.class.getMethod("getId").getReturnType())),
+                        (location) -> location.getUpdatedByUser() != null ? location.getUpdatedByUser().getId() : null),
                 Map.entry("updatedByUserName",
-                        new MapperEntry<>((location) -> location.getUpdatedByUser() != null ? location.getUpdatedByUser().getName() : null,
-                                User.class.getMethod("getName").getReturnType()))
-
-
+                        (location) -> location.getUpdatedByUser() != null ? location.getUpdatedByUser().getName() : null)
         );
     }
 
@@ -69,7 +57,7 @@ public class ProgramLocationQueryMapper extends AbstractQueryMapper {
     }
 
     @Override
-    public MapperEntry<ProgramLocation> getMapperEntry(String fieldName) throws NullPointerException {
+    public Function<ProgramLocation,?> getField(String fieldName) throws NullPointerException {
         if (fields.containsKey(fieldName)) return fields.get(fieldName);
         else throw new NullPointerException();
     }

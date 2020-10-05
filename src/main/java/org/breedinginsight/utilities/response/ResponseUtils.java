@@ -32,11 +32,12 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
-import org.breedinginsight.utilities.response.mappers.MapperEntry;
 
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 public class ResponseUtils {
@@ -77,49 +78,24 @@ public class ResponseUtils {
     private static List sort(List data, QueryParams queryParams, AbstractQueryMapper mapper) {
 
         if (queryParams.getSortField() != null) {
-            MapperEntry field;
+            Function field;
             try {
-                field = mapper.getMapperEntry(queryParams.getSortField());
+                field = mapper.getField(queryParams.getSortField());
             } catch (NullPointerException e) {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Sort field does not exist");
             }
 
-            Boolean isNumeric = Number.class.isAssignableFrom(field.getFieldType());
-            Boolean isDate = field.getFieldType() == OffsetDateTime.class;
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
-            data.sort((a,b)-> {
-                // Cast to float for number and sort
-                if (sortOrder == SortOrder.ASC) {
-                    if (field.getGetter().apply(a) == null) return -1;
-                    if (field.getGetter().apply(b) == null) return 1;
-                    if (isNumeric) {
-                        Float value1 = ((Number) field.getGetter().apply(a)).floatValue();
-                        Float value2 = ((Number) field.getGetter().apply(b)).floatValue();
-                        return value1.compareTo(value2);
-                    } else if (isDate){
-                        OffsetDateTime value1 = ((OffsetDateTime) field.getGetter().apply(a));
-                        OffsetDateTime value2 = ((OffsetDateTime) field.getGetter().apply(b));
-                        return value1.compareTo(value2);
-                    } else {
-                        return field.getGetter().apply(a).toString().compareTo(field.getGetter().apply(b).toString());
-                    }
-                } else {
-                    if (field.getGetter().apply(a) == null) return 1;
-                    if (field.getGetter().apply(b) == null) return -1;
-                    if (isNumeric){
-                        Float value1 = ((Number) field.getGetter().apply(a)).floatValue();
-                        Float value2 = ((Number) field.getGetter().apply(b)).floatValue();
-                        return value2.compareTo(value1);
-                    } else if (isDate) {
-                        OffsetDateTime value1 = ((OffsetDateTime) field.getGetter().apply(a));
-                        OffsetDateTime value2 = ((OffsetDateTime) field.getGetter().apply(b));
-                        return value2.compareTo(value1);
-                    } else {
-                        return field.getGetter().apply(b).toString().compareTo(field.getGetter().apply(a).toString());
-                    }
-                }
-            });
+            if (sortOrder == SortOrder.ASC) {
+                Collections.sort(data,
+                        Comparator.comparing(field,
+                                Comparator.nullsFirst(Comparator.naturalOrder())));
+            } else {
+                Collections.sort(data,
+                        Comparator.comparing(field,
+                                Comparator.nullsLast(Comparator.reverseOrder())));
+            }
         }
 
         return data;
@@ -128,7 +104,7 @@ public class ResponseUtils {
     private static List search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
 
         List<FilterField> filterFields = searchRequest.getFilter().stream()
-                .map(filter -> new FilterField(mapper.getMapperEntry(filter.getField()).getGetter(), filter.getValue()))
+                .map(filter -> new FilterField(mapper.getField(filter.getField()), filter.getValue()))
                 .collect(Collectors.toList());
 
         if (filterFields.size() > 0){

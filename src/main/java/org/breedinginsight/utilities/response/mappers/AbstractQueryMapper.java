@@ -17,7 +17,9 @@
 
 package org.breedinginsight.utilities.response.mappers;
 
+import java.util.function.Function;
+
 public abstract class AbstractQueryMapper<T> {
     public abstract boolean exists(String fieldName);
-    public abstract MapperEntry<T> getMapperEntry(String fieldName) throws NullPointerException;
+    public abstract Function<T, ?> getField(String fieldName) throws NullPointerException;
 }
