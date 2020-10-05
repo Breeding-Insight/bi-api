@@ -33,10 +33,8 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.lang.reflect.Array;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -115,8 +113,14 @@ public class ResponseUtils {
                             filterFields.stream().allMatch(filterField -> {
                                 if (filterField.getField().apply(record) == null) {
                                     return false;
-                                } else if (filterField.getField().apply(record) instanceof List){
-                                    return ((List) filterField.getField().apply(record)).stream()
+                                } else if (filterField.getField().apply(record) instanceof List ||
+                                        filterField.getField().apply(record) instanceof Object[]){
+
+                                    List recordList = filterField.getField().apply(record) instanceof Object[] ?
+                                            Arrays.asList((Object[]) filterField.getField().apply(record)) :
+                                            ((List) filterField.getField().apply(record));
+
+                                    return recordList.stream()
                                             .anyMatch(listValue ->
                                                     listValue.toString().toLowerCase().contains(filterField.getValue()));
                                 } else {

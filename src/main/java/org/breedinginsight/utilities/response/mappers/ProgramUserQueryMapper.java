@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 @Getter
 @Singleton
 @Context
-public class ProgramUserQueryMapper  extends AbstractQueryMapper {
+public class ProgramUserQueryMapper extends AbstractQueryMapper {
 
     private Map<String, Function<ProgramUser,?>> fields;
 

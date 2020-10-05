@@ -26,6 +26,8 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.request.query.TraitsQuery;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -33,11 +35,18 @@ import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
+import org.breedinginsight.api.model.v1.validators.QueryValid;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.response.ResponseUtils;
+import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
+import org.breedinginsight.utilities.response.mappers.UserQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -52,34 +61,42 @@ public class TraitController {
 
     private TraitService traitService;
     private SecurityService securityService;
+    private TraitQueryMapper traitQueryMapper;
 
     @Inject
-    public TraitController(TraitService traitService, SecurityService securityService){
+    public TraitController(TraitService traitService, SecurityService securityService,
+                           TraitQueryMapper traitQueryMapper){
         this.traitService = traitService;
         this.securityService = securityService;
+        this.traitQueryMapper = traitQueryMapper;
     }
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({SecurityRule.IS_AUTHENTICATED})
-    public HttpResponse<Response<DataResponse<Trait>>> getTraits(@PathVariable UUID programId,
-                                                                 @Valid TraitsQuery traitsQuery) {
+    public HttpResponse<Response<DataResponse<Trait>>> getTraits(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid TraitsQuery traitsQuery) {
 
         try {
-
             List<Trait> traits = traitService.getByProgramId(programId, traitsQuery.getFull());
+            return ResponseUtils.getQueryResponse(traits, traitQueryMapper, traitsQuery);
+        } catch (DoesNotExistException e) {
+            return HttpResponse.notFound();
+        }
+    }
 
-            //TODO: Add in pagination
-            List<Status> metadataStatus = new ArrayList<>();
-            // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            // Construct our metadata and response
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(traits.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-            Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(traits));
+    @Post("/programs/{programId}/traits/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<Program>>> postTraitsSearch(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using = TraitQueryMapper.class) SearchRequest searchRequest) {
 
-            return HttpResponse.ok(response);
+        try {
+            List<Trait> traits = traitService.getByProgramId(programId, true);
+            return ResponseUtils.getQueryResponse(traits, traitQueryMapper, searchRequest, queryParams);
         } catch (DoesNotExistException e) {
             return HttpResponse.notFound();
         }

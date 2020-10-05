@@ -48,12 +48,10 @@ import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.response.ResponseUtils;
-import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.utilities.response.mappers.UserQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -122,7 +120,7 @@ public class UserController {
     @Post("/users/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
+    public HttpResponse<Response<DataResponse<Program>>> postUsersSearch(
             @QueryValue @QueryValid(using = UserQueryMapper.class) @Valid QueryParams queryParams,
             @Body @SearchValid(using = UserQueryMapper.class) SearchRequest searchRequest) {
 
