@@ -54,15 +54,15 @@ public class ProgramLocationQueryMapperUnitTest {
                 .updatedByUser(User.builder().id(UUID.randomUUID()).name("user2").build())
                 .build();
 
-        assertEquals(programLocation.getName(), programLocationQueryMapper.getField("name"), "Wrong getter");
-        assertEquals(programLocation.getSlope(), programLocationQueryMapper.getField("slope"), "Wrong getter");
-        assertEquals(programLocation.getAbbreviation(), programLocationQueryMapper.getField("abbreviation"), "Wrong getter");
-        assertEquals(programLocation.getCreatedAt(), programLocationQueryMapper.getField("createdAt"), "Wrong getter");
-        assertEquals(programLocation.getUpdatedAt(), programLocationQueryMapper.getField("updatedAt"), "Wrong getter");
-        assertEquals(programLocation.getCreatedByUser().getName(), programLocationQueryMapper.getField("createdByUserName"), "Wrong getter");
-        assertEquals(programLocation.getCreatedByUser().getId(), programLocationQueryMapper.getField("createdByUserId"), "Wrong getter");
-        assertEquals(programLocation.getUpdatedByUser().getName(), programLocationQueryMapper.getField("updatedByUserName"), "Wrong getter");
-        assertEquals(programLocation.getUpdatedByUser().getId(), programLocationQueryMapper.getField("updatedByUserId"), "Wrong getter");
+        assertEquals(programLocation.getName(), programLocationQueryMapper.getField("name").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getSlope(), programLocationQueryMapper.getField("slope").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getAbbreviation(), programLocationQueryMapper.getField("abbreviation").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getCreatedAt(), programLocationQueryMapper.getField("createdAt").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getUpdatedAt(), programLocationQueryMapper.getField("updatedAt").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getCreatedByUser().getName(), programLocationQueryMapper.getField("createdByUserName").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getCreatedByUser().getId(), programLocationQueryMapper.getField("createdByUserId").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getUpdatedByUser().getName(), programLocationQueryMapper.getField("updatedByUserName").apply(programLocation), "Wrong getter");
+        assertEquals(programLocation.getUpdatedByUser().getId(), programLocationQueryMapper.getField("updatedByUserId").apply(programLocation), "Wrong getter");
     }
 
 }

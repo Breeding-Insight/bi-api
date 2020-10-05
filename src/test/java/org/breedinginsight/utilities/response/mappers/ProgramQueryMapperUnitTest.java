@@ -59,19 +59,19 @@ public class ProgramQueryMapperUnitTest {
 
                 .build();
 
-        assertEquals(program.getName(), programQueryMapper.getField("name"), "Wrong getter");
-        assertEquals(program.getAbbreviation(), programQueryMapper.getField("abbreviation"), "Wrong getter");
-        assertEquals(program.getObjective(), programQueryMapper.getField("objective"), "Wrong getter");
-        assertEquals(program.getDocumentationUrl(), programQueryMapper.getField("documentationUrl"), "Wrong getter");
-        assertEquals(program.getActive(), programQueryMapper.getField("active"), "Wrong getter");
-        assertEquals(program.getCreatedAt(), programQueryMapper.getField("createdAt"), "Wrong getter");
-        assertEquals(program.getUpdatedAt(), programQueryMapper.getField("updatedAt"), "Wrong getter");
-        assertEquals(program.getSpeciesId(), programQueryMapper.getField("speciesId"), "Wrong getter");
-        assertEquals(program.getSpecies().getCommonName(), programQueryMapper.getField("speciesName"), "Wrong getter");
-        assertEquals(program.getCreatedByUser().getId(), programQueryMapper.getField("createdByUserId"), "Wrong getter");
-        assertEquals(program.getCreatedByUser().getName(), programQueryMapper.getField("createdByUserName"), "Wrong getter");
-        assertEquals(program.getUpdatedByUser().getId(), programQueryMapper.getField("updatedByUserId"), "Wrong getter");
-        assertEquals(program.getUpdatedByUser().getName(), programQueryMapper.getField("updatedByUserName"), "Wrong getter");
+        assertEquals(program.getName(), programQueryMapper.getField("name").apply(program), "Wrong getter");
+        assertEquals(program.getAbbreviation(), programQueryMapper.getField("abbreviation").apply(program), "Wrong getter");
+        assertEquals(program.getObjective(), programQueryMapper.getField("objective").apply(program), "Wrong getter");
+        assertEquals(program.getDocumentationUrl(), programQueryMapper.getField("documentationUrl").apply(program), "Wrong getter");
+        assertEquals(program.getActive(), programQueryMapper.getField("active").apply(program), "Wrong getter");
+        assertEquals(program.getCreatedAt(), programQueryMapper.getField("createdAt").apply(program), "Wrong getter");
+        assertEquals(program.getUpdatedAt(), programQueryMapper.getField("updatedAt").apply(program), "Wrong getter");
+        assertEquals(program.getSpeciesId(), programQueryMapper.getField("speciesId").apply(program), "Wrong getter");
+        assertEquals(program.getSpecies().getCommonName(), programQueryMapper.getField("speciesName").apply(program), "Wrong getter");
+        assertEquals(program.getCreatedByUser().getId(), programQueryMapper.getField("createdByUserId").apply(program), "Wrong getter");
+        assertEquals(program.getCreatedByUser().getName(), programQueryMapper.getField("createdByUserName").apply(program), "Wrong getter");
+        assertEquals(program.getUpdatedByUser().getId(), programQueryMapper.getField("updatedByUserId").apply(program), "Wrong getter");
+        assertEquals(program.getUpdatedByUser().getName(), programQueryMapper.getField("updatedByUserName").apply(program), "Wrong getter");
     }
 
 }
