@@ -99,4 +99,3 @@ bi_user
 join role on role.domain = 'breeder'
 where
 bi_user.name like 'user9';
-

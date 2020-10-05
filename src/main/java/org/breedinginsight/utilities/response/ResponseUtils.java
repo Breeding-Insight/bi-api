@@ -87,14 +87,20 @@ public class ResponseUtils {
 
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
+
             if (sortOrder == SortOrder.ASC) {
+                GenericComparator comparator = new GenericComparator(
+                                Comparator.nullsFirst(Comparator.naturalOrder()));
+
                 Collections.sort(data,
                         Comparator.comparing(field,
-                                Comparator.nullsFirst(Comparator.naturalOrder())));
+                              comparator));
             } else {
+                GenericComparator comparator = new GenericComparator(
+                        Comparator.nullsLast(Comparator.reverseOrder()));
                 Collections.sort(data,
                         Comparator.comparing(field,
-                                Comparator.nullsLast(Comparator.reverseOrder())));
+                                comparator));
             }
         }
 
