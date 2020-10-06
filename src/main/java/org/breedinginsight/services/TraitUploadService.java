@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.BOMInputStream;
@@ -155,7 +156,7 @@ public class TraitUploadService {
         return programUploadDao.getUploadById(uploadEntity.getId()).get();
     }
 
-    public Optional<ProgramUpload> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
+    public Optional<ProgramUpload<Trait>> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
 
         List<ProgramUpload> uploads = programUploadDao.getUploads(programId, actingUser.getId(), UploadType.TRAIT);
 
@@ -165,7 +166,14 @@ public class TraitUploadService {
             throw new IllegalStateException("More than one trait upload found, only 1 allowed");
         }
 
-        return Optional.of(uploads.get(0));
+        ProgramUpload programUpload = (ProgramUpload<Trait>) uploads.get(0);
+        try {
+            programUpload.setParsedData(Arrays.asList(programUpload.getDataJson()));
+        } catch (JsonProcessingException e) {
+            throw new HttpServerException("Unable to parse traits json");
+        }
+
+        return Optional.of(programUpload);
     }
 
     public void deleteTraitUpload(UUID programId, AuthenticatedUser actingUser) throws DoesNotExistException {

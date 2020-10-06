@@ -30,6 +30,8 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.jooq.Record;
 
+import java.util.List;
+
 import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 
 @Getter
@@ -39,17 +41,22 @@ import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 @SuperBuilder
 @NoArgsConstructor
 @JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId", "id"})
-public class ProgramUpload extends BatchUploadEntity {
+public class ProgramUpload<T> extends BatchUploadEntity {
 
     private Program program;
     private User user;
     private User createdByUser;
     private User updatedByUser;
+    private List<T> parsedData;
 
     // JSONB not working with jackson
     @JsonProperty("data")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public Trait[] getDataJson() throws JsonProcessingException {
+        if (parsedData != null) {
+            return (Trait[]) parsedData.toArray();
+        }
+
         ObjectMapper objMapper = new ObjectMapper();
         return objMapper.readValue(super.getData().data(), Trait[].class);
     }
