@@ -1,0 +1,4 @@
+feature: feature/*
+bug: bug/*
+hotfix: hotfix/*
+release: release/*
