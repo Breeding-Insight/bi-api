@@ -127,8 +127,8 @@ public class TraitService {
 
         // Ignore duplicate traits
         ValidationErrors duplicateErrors = new ValidationErrors();
-        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(traits);
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(traits);
         List<Integer> traitIndexToRemove = new ArrayList<>();
         for (Trait duplicateTrait: duplicateTraits){
 

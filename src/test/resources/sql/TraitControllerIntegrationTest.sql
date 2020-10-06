@@ -58,18 +58,3 @@ join bi_user on bi_user.name = 'system' limit 1
 delete from trait;
 delete from method;
 delete from scale;
-
--- name: InsertOtherProgram
-insert into program (species_id, name, created_by, updated_by)
-select species.id, 'Other Test Program', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'system' limit 1
-
--- name: InsertOtherProgramObservationLevel
-insert into program_observation_level(program_id, name, created_by, updated_by)
-select program.id, 'Plant', bi_user.id, bi_user.id from program
-join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' limit 1
-
--- name: InsertOtherProgramOntology
-insert into program_ontology (program_id, created_by, updated_by)
-select program.id, bi_user.id, bi_user.id from program
-join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' limit 1
