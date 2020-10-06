@@ -18,7 +18,6 @@
 package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -34,7 +33,6 @@ import lombok.SneakyThrows;
 import org.brapi.v2.phenotyping.model.*;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
-import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -47,7 +45,6 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
-import java.lang.reflect.Array;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.GET;

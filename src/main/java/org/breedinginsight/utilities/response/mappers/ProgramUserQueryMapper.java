@@ -17,19 +17,16 @@
 
 package org.breedinginsight.utilities.response.mappers;
 
-import io.micronaut.context.annotation.Context;
 import lombok.Getter;
 import org.breedinginsight.model.*;
 
 import javax.inject.Singleton;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Getter
 @Singleton
-@Context
 public class ProgramUserQueryMapper extends AbstractQueryMapper {
 
     private Map<String, Function<ProgramUser,?>> fields;

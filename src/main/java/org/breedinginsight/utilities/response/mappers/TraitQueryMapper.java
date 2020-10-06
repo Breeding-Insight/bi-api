@@ -17,7 +17,6 @@
 
 package org.breedinginsight.utilities.response.mappers;
 
-import io.micronaut.context.annotation.Context;
 import lombok.Getter;
 import org.breedinginsight.model.Trait;
 
@@ -28,7 +27,6 @@ import java.util.stream.Collectors;
 
 @Getter
 @Singleton
-@Context
 public class TraitQueryMapper extends AbstractQueryMapper {
 
     private Map<String, Function<Trait,?>> fields;

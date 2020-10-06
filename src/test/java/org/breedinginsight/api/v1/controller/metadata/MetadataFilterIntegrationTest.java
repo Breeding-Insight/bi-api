@@ -39,7 +39,6 @@ import org.breedinginsight.model.User;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
-import javax.management.Query;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

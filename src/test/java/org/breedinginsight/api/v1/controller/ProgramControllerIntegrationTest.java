@@ -49,8 +49,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.Feature;
 import org.geojson.Point;
 import org.jooq.DSLContext;
-import org.jooq.Param;
-import org.jooq.QueryPart;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -1693,13 +1691,15 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
     @Test
     @Order(8)
+    @SneakyThrows
     public void getProgramUsersQuery() {
         FannyPack userFp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
+        dsl.execute(userFp.get("InsertProgram"));
         dsl.execute(userFp.get("InsertManyUsers"));
         dsl.execute(fp.get("InsertManyProgramUsers"),
                 validProgram.getId().toString(), validProgram.getId().toString(),
                 validProgram.getId().toString(), validProgram.getId().toString());
-        List<ProgramUser> allProgramUsers = programUserDAO.getAllProgramUsers();
+        List<ProgramUser> allProgramUsers = programUserService.getProgramUsers(validProgram.getId());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/users?page=1&pageSize=30&sortField=roles&sortOrder=ASC").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

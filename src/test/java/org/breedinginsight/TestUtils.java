@@ -18,7 +18,6 @@
 package org.breedinginsight;
 
 import com.google.gson.JsonArray;
-import net.bytebuddy.TypeCache;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import java.time.OffsetDateTime;

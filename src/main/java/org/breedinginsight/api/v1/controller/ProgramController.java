@@ -35,10 +35,6 @@ import org.breedinginsight.utilities.response.mappers.ProgramLocationQueryMapper
 import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
-import org.breedinginsight.api.model.v1.response.metadata.Metadata;
-import org.breedinginsight.api.model.v1.response.metadata.Pagination;
-import org.breedinginsight.api.model.v1.response.metadata.Status;
-import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Program;

@@ -40,13 +40,11 @@ import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.model.User;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
-import org.breedinginsight.utilities.response.mappers.UserQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;

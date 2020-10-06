@@ -39,7 +39,6 @@ import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
 import org.jooq.DSLContext;

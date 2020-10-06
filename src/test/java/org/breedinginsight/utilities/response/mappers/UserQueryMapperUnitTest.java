@@ -24,7 +24,6 @@ import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.junit.jupiter.api.*;
 
-import javax.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
