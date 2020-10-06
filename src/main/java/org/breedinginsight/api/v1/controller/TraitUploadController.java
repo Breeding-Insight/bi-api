@@ -28,8 +28,10 @@ import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.model.Trait;
@@ -100,20 +102,33 @@ public class TraitUploadController {
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams) {
 
         AuthenticatedUser actingUser = securityService.getUser();
-        Optional<ProgramUpload<Trait>> optionalProgramUpload = traitUploadService.getTraitUpload(programId, actingUser);
+        Optional<ProgramUpload<Trait>> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
 
-        if(optionalProgramUpload.isPresent()) {
-            ProgramUpload programUpload = optionalProgramUpload.get();
-
-            Response<ProgramUpload> response = new Response(programUpload);
-            ResponseUtils.getQueryResponse(programUpload.getParsedData(), traitQueryMapper, queryParams);
-
-            return HttpResponse.ok(response);
+        if(programUpload.isPresent()) {
+            return ResponseUtils.getQueryResponse(programUpload.get(), traitQueryMapper, queryParams);
         } else {
             log.info("Trait upload not found");
             return HttpResponse.notFound();
         }
+    }
 
+    @Post("/programs/{programId}/trait-upload/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<ProgramUpload>> searchTraitUpload(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using = TraitQueryMapper.class) SearchRequest searchRequest) {
+
+        AuthenticatedUser actingUser = securityService.getUser();
+        Optional<ProgramUpload<Trait>> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
+
+        if(programUpload.isPresent()) {
+            return ResponseUtils.getQueryResponse(programUpload.get(), traitQueryMapper, searchRequest, queryParams);
+        } else {
+            log.info("Trait upload not found");
+            return HttpResponse.notFound();
+        }
     }
 
     @Delete("/programs/{programId}/trait-upload")

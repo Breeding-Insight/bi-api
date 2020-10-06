@@ -153,7 +153,10 @@ public class TraitUploadService {
 
         // Insert and update
         programUploadDao.insert(uploadEntity);
-        return programUploadDao.getUploadById(uploadEntity.getId()).get();
+
+        ProgramUpload<Trait> programUpload = programUploadDao.getUploadById(uploadEntity.getId()).get();
+        programUpload.setParsedData(parseUpload(programUpload));
+        return programUpload;
     }
 
     public Optional<ProgramUpload<Trait>> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
@@ -167,12 +170,7 @@ public class TraitUploadService {
         }
 
         ProgramUpload programUpload = (ProgramUpload<Trait>) uploads.get(0);
-        try {
-            programUpload.setParsedData(Arrays.asList(programUpload.getDataJson()));
-        } catch (JsonProcessingException e) {
-            throw new HttpServerException("Unable to parse traits json");
-        }
-
+        programUpload.setParsedData(parseUpload(programUpload));
         return Optional.of(programUpload);
     }
 
@@ -187,6 +185,17 @@ public class TraitUploadService {
                 .orElseThrow(() -> new DoesNotExistException("user not in program"));
 
         programUploadDao.deleteUploads(programId, actingUser.getId(), UploadType.TRAIT);
+
+    }
+
+    private List<Trait> parseUpload(ProgramUpload<Trait> programUpload) {
+
+        try {
+            Trait[] traits = programUpload.getDataJson();
+            return Arrays.asList(traits);
+        } catch (JsonProcessingException e) {
+            throw new HttpServerException("Unable to parse traits json");
+        }
 
     }
 
