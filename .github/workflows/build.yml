@@ -53,4 +53,5 @@ jobs:
           DB_NAME: bidb
           GITHUB_ACTOR: $GITHUB_ACTOR
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEB_BASE_URL=http://localhost
           API_INTERNAL_TEST_PORT: 8081
