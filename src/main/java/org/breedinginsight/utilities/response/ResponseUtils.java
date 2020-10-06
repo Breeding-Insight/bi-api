@@ -121,7 +121,7 @@ public class ResponseUtils {
 
                                     return recordList.stream()
                                             .anyMatch(listValue ->
-                                                    listValue.toString().toLowerCase().contains(filterField.getValue()));
+                                                    listValue.toString().toLowerCase().contains(filterField.getValue().toLowerCase()));
                                 } else {
                                     return filterField.getField().apply(record).toString()
                                             .toLowerCase().contains(filterField.getValue().toLowerCase());
