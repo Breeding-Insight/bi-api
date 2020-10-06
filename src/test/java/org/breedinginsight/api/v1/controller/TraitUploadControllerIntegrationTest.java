@@ -33,8 +33,10 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.api.model.v1.response.RowValidationErrors;
-import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -44,6 +46,7 @@ import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -456,6 +459,66 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.OK, response.getStatus());
     }
 
+    @Test
+    @Order(6)
+    void getTraitUploadQuery() {
+
+        File file = new File("src/test/resources/files/data_multiple_rows.csv");
+
+        HttpResponse<String> uploadResponse = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, uploadResponse.getStatus());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgram.getId()+"/trait-upload?page=1&pageSize=2&sortField=name&sortOrder=DESC")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(2, data.size(), "Wrong number of results returned");
+        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+
+        JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        JsonObject pagination = metadata.getAsJsonObject("pagination");
+        assertEquals(2, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(3, pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    @Order(7)
+    void searchTraitUpload() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilter(new ArrayList<>());
+        searchRequest.getFilter().add(new FilterRequest("name", "leaves"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId()+"/trait-upload/search?page=1&pageSize=2&sortField=name&sortOrder=DESC", searchRequest)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of results returned");
+        TestUtils.checkStringSorting(data, "methodName", SortOrder.DESC);
+
+        JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
+        JsonObject pagination = metadata.getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(1, pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+
+    }
+
     void checkMultiErrorResponse(JsonArray rowErrors) {
 
         assertTrue(rowErrors.size() > 0, "Wrong number of row errors returned");
@@ -469,4 +532,6 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertTrue(error.has("httpStatus"), "httpStatus field not included in return");
         assertTrue(error.has("httpStatusCode"), "httpStatusCode field not included in return");
     }
+
+
 }
