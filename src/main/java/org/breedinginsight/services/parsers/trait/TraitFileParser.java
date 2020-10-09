@@ -1,0 +1,318 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package org.breedinginsight.services.parsers.trait;
+
+import io.micronaut.http.HttpStatus;
+import lombok.NonNull;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
+
+import org.apache.poi.EncryptedDocumentException;
+import org.apache.poi.ss.usermodel.*;
+
+import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.model.Method;
+import org.breedinginsight.model.ProgramObservationLevel;
+import org.breedinginsight.model.Scale;
+import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.services.parsers.ParsingExceptionType;
+import org.breedinginsight.services.parsers.excel.ExcelParser;
+import org.breedinginsight.services.parsers.excel.ExcelRecord;
+import org.breedinginsight.services.parsers.ParsingException;
+import org.breedinginsight.services.validators.TraitFileValidatorError;
+
+import java.io.*;
+import java.util.*;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+import java.util.stream.Collectors;
+
+
+// can read file, columns with set of allowable values checked or requirement of particular data format
+// data consistency not checked, must be done by caller
+@Slf4j
+@Singleton
+public class TraitFileParser {
+
+    private static final String LIST_DELIMITER = ";";
+    private static final String CATEGORY_DELIMITER = "=";
+    private static final String EXCEL_DATA_SHEET_NAME = "Template";
+
+    private static final String TRAIT_STATUS_ACTIVE = "active";
+    private static final String TRAIT_STATUS_ARCHIVED = "archived";
+
+    private final static Set TRAIT_STATUS_VALID_VALUES = Collections.unmodifiableSet(
+            Set.of(TRAIT_STATUS_ACTIVE, TRAIT_STATUS_ARCHIVED));
+
+    private TraitFileValidatorError traitValidatorError;
+
+    @Inject
+    public TraitFileParser(TraitFileValidatorError traitValidatorError){
+        this.traitValidatorError = traitValidatorError;
+    }
+
+    public List<Trait> parseExcel(@NonNull InputStream inputStream) throws ParsingException, ValidatorException {
+
+        Workbook workbook = null;
+        try {
+            workbook = WorkbookFactory.create(inputStream);
+        } catch (IOException | EncryptedDocumentException e) {
+            log.error(e.getMessage());
+            throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
+        }
+
+        Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
+        if (sheet == null) {
+            throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
+        }
+
+        List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumns());
+
+        return excelRecordsToTraits(records);
+    }
+
+    // no sheets RFC4180
+    public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException, ValidatorException {
+
+        ArrayList<Trait> traits = new ArrayList<>();
+        InputStreamReader in = new InputStreamReader(inputStream);
+
+        Iterable<CSVRecord> records = null;
+        try {
+            // withHeader for enum uses name() internally so we have to give string array instead
+            records = CSVFormat.DEFAULT
+                    .parse(in);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
+        }
+
+        Sheet excelSheet = convertCsvToExcel(records);
+        List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumns());
+
+        return excelRecordsToTraits(excelRecords);
+    }
+
+    private List<Trait> excelRecordsToTraits(List<ExcelRecord> records) throws ValidatorException {
+        List<Trait> traits = new ArrayList<>();
+        ValidationErrors validationErrors = new ValidationErrors();
+
+        for (int i = 0; i < records.size(); i++) {
+
+            ExcelRecord record = records.get(i);
+
+            ProgramObservationLevel level = ProgramObservationLevel.builder()
+                    .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_LEVEL))
+                    .build();
+
+
+            Boolean active;
+            String traitStatus = parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS);
+            if (traitStatus == null) {
+                active = true;
+            } else {
+                if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
+                    ValidationError error = new ValidationError(TraitFileColumns.TRAIT_STATUS.toString(),
+                            ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+                active = !traitStatus.toLowerCase().equals(TRAIT_STATUS_ARCHIVED);
+            }
+
+            Method method = Method.builder()
+                    .methodName(parseExcelValueAsString(record, TraitFileColumns.METHOD_NAME))
+                    .description(parseExcelValueAsString(record, TraitFileColumns.METHOD_DESCRIPTION))
+                    .methodClass(parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS))
+                    .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
+                    .build();
+
+            DataType dataType = null;
+            String dataTypeString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS);
+
+            if (dataTypeString != null) {
+                try {
+                    dataType = DataType.valueOf(dataTypeString.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_CLASS.toString(),
+                            ParsingExceptionType.INVALID_SCALE_CLASS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
+
+            List<BrApiScaleCategories> categories = new ArrayList<>();
+            String categoriesString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES);
+            List<String> categoriesStringList = parseListValue(categoriesString);
+            try {
+                for (String value: categoriesStringList){
+                    categories.add(parseCategory(value));
+                }
+            } catch (UnprocessableEntityException e){
+                log.error(e.getMessage());
+                ValidationError error = new ValidationError(TraitFileColumns.SCALE_CATEGORIES.toString(),
+                        ParsingExceptionType.INVALID_SCALE_CATEGORIES.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+            }
+
+            Integer decimalPlaces = null;
+            Integer validValueMin = null;
+            Integer validValueMax = null;
+            String decimalPlacesStr = parseExcelValueAsString(record, TraitFileColumns.SCALE_DECIMAL_PLACES);
+            String validValueMinStr = parseExcelValueAsString(record, TraitFileColumns.SCALE_LOWER_LIMIT);
+            String validValueMaxStr = parseExcelValueAsString(record, TraitFileColumns.SCALE_UPPER_LIMIT);
+
+            // allow null since field can be blank
+            if (decimalPlacesStr != null) {
+                try {
+                    decimalPlaces = Integer.valueOf(decimalPlacesStr);
+                } catch (NumberFormatException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(),
+                            ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
+
+            if (validValueMinStr != null) {
+                try {
+                    validValueMin = Integer.valueOf(validValueMinStr);
+                } catch (NumberFormatException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_LOWER_LIMIT.toString(),
+                            ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
+
+            if (validValueMaxStr != null) {
+                try {
+                    validValueMax = Integer.valueOf(validValueMaxStr);
+                } catch (NumberFormatException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.SCALE_UPPER_LIMIT.toString(),
+                            ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
+
+            Scale scale = Scale.builder()
+                    .scaleName(parseExcelValueAsString(record, TraitFileColumns.SCALE_NAME))
+                    .dataType(dataType)
+                    .decimalPlaces(decimalPlaces)
+                    .validValueMin(validValueMin)
+                    .validValueMax(validValueMax)
+                    .categories(categories)
+                    .build();
+
+            String abbreviationsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS);
+            List<String> traitAbbreviations = parseListValue(abbreviationsString);
+
+            String synonymsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS);
+            List<String> traitSynonyms = parseListValue(synonymsString);
+
+            Trait trait = Trait.builder()
+                    .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
+                    .abbreviations(traitAbbreviations.toArray(String[]::new))
+                    .synonyms(traitSynonyms)
+                    .description(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
+                    .programObservationLevel(level)
+                    .active(active)
+                    // TODO: trait lists
+                    .method(method)
+                    .scale(scale)
+                    .build();
+
+            traits.add(trait);
+
+        }
+
+        if (validationErrors.getRowErrors().size() > 0){
+            throw new ValidatorException(validationErrors);
+        }
+
+        return traits;
+
+    }
+
+    private String parseExcelValueAsString(ExcelRecord record, TraitFileColumns column) {
+        DataFormatter formatter = new DataFormatter();
+        String value = formatter.formatCellValue(record.get(column)).trim(); // will return "" for nulls
+        return value.equals("") ? null : value;
+    }
+
+    private Sheet convertCsvToExcel(Iterable<CSVRecord> records) {
+        Workbook workbook = null;
+        Sheet sheet = null;
+
+        try {
+            workbook = WorkbookFactory.create(false);
+        } catch (IOException e) {
+            log.error(e.getMessage());
+        }
+
+        sheet = workbook.createSheet(EXCEL_DATA_SHEET_NAME);
+        int rowIndex = 0;
+
+        for (CSVRecord record : records) {
+            Row row = sheet.createRow(rowIndex++);
+            for (int colIndex=0; colIndex<record.size(); colIndex++) {
+                row.createCell(colIndex).setCellValue(record.get(colIndex));
+            }
+        }
+
+        return sheet;
+    }
+
+    private List<String> parseListValue(String value) {
+
+        if (value == null || value.isBlank()) {
+            return new ArrayList<>();
+        }
+        return Arrays.stream(value.split(LIST_DELIMITER))
+                .map(strVal -> strVal.trim())
+                .collect(Collectors.toList());
+    }
+
+    private BrApiScaleCategories parseCategory(String value) throws UnprocessableEntityException {
+
+        BrApiScaleCategories category = new BrApiScaleCategories();
+
+        String[] labelMeaning = value.split(CATEGORY_DELIMITER);
+        if (labelMeaning.length == 2) {
+            category.setLabel(labelMeaning[0].trim());
+            category.setValue(labelMeaning[1].trim());
+        }
+        else if (labelMeaning.length == 1) {
+            category.setValue(labelMeaning[0].trim());
+        } else if (labelMeaning.length > 2){
+            // The case where there are multiple category delimiters in a value. Could be cause by bad list delimeter.
+            throw new UnprocessableEntityException("Unable to parse categories");
+        }
+
+        return category;
+    }
+
+}
+

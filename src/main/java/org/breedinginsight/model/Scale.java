@@ -1,0 +1,88 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.breedinginsight.model;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
+import org.brapi.v2.phenotyping.model.BrApiScale;
+import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.brapi.v2.phenotyping.model.BrApiScaleValidValues;
+import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
+import org.jooq.Record;
+
+import java.util.List;
+
+import static org.breedinginsight.dao.db.Tables.SCALE;
+
+@Getter
+@Setter
+@Accessors(chain=true)
+@ToString
+@SuperBuilder
+@NoArgsConstructor
+@JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
+public class Scale extends ScaleEntity {
+
+    private ProgramOntology programOntology;
+
+    // BrAPI properties
+    private Integer validValueMax;
+    private Integer validValueMin;
+    private Integer decimalPlaces;
+    private List<BrApiScaleCategories> categories;
+
+    public Scale(ScaleEntity scaleEntity){
+        this.setId(scaleEntity.getId());
+        this.setScaleName(scaleEntity.getScaleName());
+        this.setProgramOntologyId(scaleEntity.getProgramOntologyId());
+        this.setDataType(scaleEntity.getDataType());
+        this.setCreatedAt(scaleEntity.getCreatedAt());
+        this.setCreatedBy(scaleEntity.getCreatedBy());
+        this.setUpdatedAt(scaleEntity.getUpdatedAt());
+        this.setUpdatedBy(scaleEntity.getUpdatedBy());
+    }
+
+    public static Scale parseSqlRecord(Record record) {
+        return Scale.builder()
+            .id(record.getValue(SCALE.ID))
+            .scaleName(record.getValue(SCALE.SCALE_NAME))
+            .programOntologyId(record.getValue(SCALE.PROGRAM_ONTOLOGY_ID))
+            .dataType(record.getValue(SCALE.DATA_TYPE))
+            .createdAt(record.getValue(SCALE.CREATED_AT))
+            .updatedAt(record.getValue(SCALE.UPDATED_AT))
+            .createdBy(record.getValue(SCALE.CREATED_BY))
+            .updatedBy(record.getValue(SCALE.UPDATED_BY))
+            .build();
+    }
+
+    public void setBrAPIProperties(BrApiScale brApiScale) {
+        this.setDecimalPlaces(brApiScale.getDecimalPlaces());
+        if (brApiScale.getValidValues() != null){
+            BrApiScaleValidValues validValues = brApiScale.getValidValues();
+            this.setValidValueMax(validValues.getMax());
+            this.setValidValueMin(validValues.getMin());
+            this.setCategories(validValues.getCategories());
+        }
+    }
+
+}

@@ -1,11 +1,38 @@
+#
+#    See the NOTICE file distributed with this work for additional information
+#    regarding copyright ownership.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+
 micronaut:
   application:
     name: bi-api
     instance:
       id: ${random.shortuuid}
   server:
+    port: ${server.port}
     cors:
       enabled: true
+    multipart:
+      enabled: true
+      max-file-size: '100MB'
+      mixed: true
+      threshold: '10MB'
+    max-request-size: '100MB'
+  bi:
+    api:
+      version: v1
   security:
     enabled: true
     oauth2:
@@ -38,9 +65,10 @@ micronaut:
           cookie-name: phylo-token
           cookie-secure: ${jwt.cookie.secure:true}
           http-only: true
-          cookie-domain: ${jwt.cookie.domain:localhost}
-          login-success-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}/sso/success
-          login-failure-target-url: ${micronaut.server.host:localhost}:${micronaut.server.port:8080}/unauthorized
+          cookie-domain: ${jwt.cookie.domain}
+          login-success-target-url: ${web.login.success.url}
+          login-failure-target-url: ${web.login.failure.url}
+          logout-target-url: ${web.logout.url}
         bearer:
           enabled: false
         signatures:
@@ -48,6 +76,15 @@ micronaut:
             generator:
               secret: ${jwt.secret}
               jws-algorithm: HS256
+    endpoints:
+      login:
+        enabled: true
+      logout:
+        enabled: true
+        get-allowed: true
+        path: /logout
+jackson:
+  date-format: yyyy-MM-dd'T'HH:mm:ssZ
 flyway:
   datasources:
     default:
@@ -58,12 +95,12 @@ jooq:
     default:
       sql-dialect: 'POSTGRES'
 
-#datasources:
-#  default:
-#    url: jdbc:postgresql://${db.host}:${db.port}/${db.name}
-#    username: ${db.username}
-#    password: ${db.password}
-#    driverClassName: 'org.postgresql.Driver'
+datasources:
+  default:
+    url: jdbc:postgresql://${db.default.host}/${db.default.name}
+    username: ${db.default.username}
+    password: ${db.default.password}
+    driverClassName: 'org.postgresql.Driver'
 #
 #api:
 #  oauth:
@@ -72,4 +109,19 @@ jooq:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
-  url: ${webUrl:`http://localhost:3000`}
+  cookies:
+    login-redirect: redirect-login
+  login:
+    success:
+      url: ${web.loginSuccessUrl:`http://localhost:8080/program-selection`}
+    failure:
+      url: ${web.loginFailureUrl:`http://localhost:8080/401`}
+  logout:
+    url: ${web.logoutUrl:`http://localhost:8080`}
+
+brapi:
+  server:
+    core-url: ${brapi.server.core-url}
+    pheno-url: ${brapi.server.pheno-url}
+    geno-url: ${brapi.server.geno-url}
+    reference-source: ${brapi.server.reference-source}

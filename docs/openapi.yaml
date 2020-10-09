@@ -1,0 +1,4677 @@
+#
+# See the NOTICE file distributed with this work for additional information
+# regarding copyright ownership.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+
+openapi: 3.0.2
+info:
+  title: Breeding Insight API
+  description: API documentation for Breeding Insight
+  termsOfService: http://swagger.io/terms/
+  contact:
+    email: np398@cornell.edu
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  version: 1.0.0
+externalDocs:
+  description: Find out more about Breeding Insight
+  url: http://www.breedinginsight.org
+servers:
+  - url: http://localhost:8081/v1
+tags:
+  - name: users
+    description: User Management
+  - name: programs
+    description: Program Management
+  - name: roles
+    description: Role Information
+  - name: traits
+    description: Trait Management
+  - name: uploads
+    description: Upload Management
+paths:
+  /users:
+    get:
+      tags:
+        - users
+      summary: Get list of all users in the system.
+      description: Get list of all users
+      operationId: getUsers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 2
+                    totalPages: 1
+                  status: []
+                result:
+                  data:
+                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                      orcid: 1234-4312-4352-6314
+                      name: Bob Smith
+                      email: bob.smith@mail.com
+                      active: true
+                      systemRoles: [
+                      {
+                        id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                        domain: "admin"
+                      }
+                      ]
+                      programRoles: [
+                      {
+                        active: false,
+                        roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                        ],
+                        program: {
+                          id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                          name: Test Program1,
+                          abbreviation: test1,
+                          objective: To test all the things
+                        }
+                      },
+                      {
+                        active: true,
+                        roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                        ],
+                        program: {
+                          id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                          name: Test Program,
+                          abbreviation: test,
+                          objective: To test things
+                        }
+                      }
+                      ]
+                    - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
+                      orcid: 1234-4312-4352-6314
+                      name: Fred Brown
+                      email: null
+                      active: true
+                      systemRoles: []
+                      programRoles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+    post:
+      tags:
+        - users
+      summary: Create user
+      description: Create a new user.
+      operationId: createUser
+      requestBody:
+        description: User information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newUserRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: null
+                  name: Bob Smith
+                  email: bob@bob.com
+                  active: true
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
+                  programRoles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /users/{id}:
+    get:
+      tags:
+        - users
+      summary: Get user information
+      description: Get a specific user
+      operationId: getUserById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the user information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse_1'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: 1111-2222-3333-4444
+                  name: Bob Smith
+                  email: bob@bob.com
+                  active: true
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
+                  programRoles: [
+                  {
+                    active: false,
+                    roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                    ],
+                    program: {
+                      id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                      name: Test Program1,
+                      abbreviation: test1,
+                      objective: To test all the things
+                    }
+                  }
+                  ]
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    put:
+      tags:
+        - users
+      summary: Update user information
+      description: Update user information with specified data.
+      operationId: updateUser
+      parameters:
+        - name: id
+          in: path
+          description: id of user to be updated
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: Updated user object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newUserRequest'
+            example:
+              name: Bob Smith
+              email: bob@bob.com
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: 1111-2222-3333-4444
+                  name: Bob Smith
+                  email: bob@bob.com
+                  active: true
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
+                  programRoles: [
+                  {
+                    active: true,
+                    roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                    ],
+                    program: {
+                      id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                      name: Test Program,
+                      abbreviation: test,
+                      objective: To test things
+                    }
+                  }
+                  ]
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "409":
+          description: Conflict - Email Already Exists
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+    delete:
+      tags:
+        - users
+      summary: Deactivate user
+      description: Deactivate User
+      operationId: deleteUser
+      parameters:
+        - name: id
+          in: path
+          description: id of user to be deleted
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "422":
+          description: Unprocessable Entity
+          content:
+            application/json:
+              schema:
+                type: string
+
+  /users/{id}/roles:
+    put:
+      tags:
+        - users
+      summary: Update user system roles
+      description: Update user system roles
+      operationId: updateUserRoles
+      parameters:
+        - name: id
+          in: path
+          description: id of user to be updated
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: Updated system roles
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateSystemRolesRequest'
+            example:
+              systemRoles: [
+              {
+                id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                domain: "admin"
+              }
+              ]
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id: d4f23375-0033-4d16-a62f-072e3a9198fa
+                  orcid: 1111-2222-3333-4444
+                  name: Bob Smith
+                  email: bob@bob.com
+                  active: true
+                  systemRoles: [
+                  {
+                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                    domain: "admin"
+                  }
+                  ]
+                  programRoles: []
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /programs:
+    get:
+      tags:
+        - programs
+      summary: Get list of all programs in the system.
+      description: Get list of all programs
+      operationId: getPrograms
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseResult'
+              examples:
+                programExample1:
+                  $ref: '#/components/examples/arrayOfPrograms'
+
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+
+    post:
+      tags:
+        - programs
+      summary: Create program
+      description: Create a new program.
+      operationId: createProgram
+      requestBody:
+        description: Program information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateProgramRequest'
+            examples:
+              createProgramRequest:
+                $ref: '#/components/examples/updateProgramRequestExample'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseSingle'
+              examples:
+                singleProgram:
+                  $ref: '#/components/examples/singleProgram'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /programs/{id}:
+    get:
+      tags:
+        - programs
+      summary: Get program information
+      description: Get a specific program
+      operationId: getProgramById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseSingle'
+              examples:
+                singleProgram:
+                  $ref: '#/components/examples/singleProgram'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    put:
+      tags:
+        - programs
+      summary: Update program information
+      description: Update program information with specified data.
+      operationId: updateProgram
+      parameters:
+        - name: id
+          in: path
+          description: id of program to be updated
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: Updated program object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/updateProgramRequest'
+            examples:
+              updateProgramRequestExample:
+                $ref: '#/components/examples/updateProgramRequestExample'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              examples:
+                singleProgram:
+                  $ref: '#/components/examples/singleProgram'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "409":
+          description: Conflict - Email Already Exists
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /programs/archive/{id}:
+    delete:
+      tags:
+        - programs
+      summary: Archive program
+      description: Archives the indicated program
+      operationId: deleteProgram
+      parameters:
+        - name: id
+          in: path
+          description: id of program to be archived
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+
+  /programs/{id}/users:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get list of all users in the specified program
+      description: Get list of all users in program
+      operationId: getProgramUsers
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programUserResponseResult'
+              examples:
+                programUserExample1:
+                  $ref: '#/components/examples/arrayOfProgramUsers'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    post:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Create a user in specified program
+      description: Add user to program if they exist in the system, otherwise create new user and add
+      operationId: createProgramUser
+      requestBody:
+        description: User information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramUserRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programUserResponse'
+              examples:
+                programUserExample2:
+                  $ref: '#/components/examples/singleProgramUser'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+
+  /programs/{id}/users/{userId}:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          description: The id of the user information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get specified user in the specified program
+      description: Get user in the program
+      operationId: getProgramUser
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programUserResponse'
+              examples:
+                singleProgramUser:
+                  $ref: '#/components/examples/singleProgramUser'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    put:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be updated.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          description: The id of the user information that needs to be updated.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Update specified user in the specified program
+      description: Update user in the program
+      operationId: putProgramUser
+      requestBody:
+        description: Program user information to update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramUserRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programUserResponse'
+              examples:
+                singleProgramUser:
+                  $ref: '#/components/examples/singleProgramUser'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    delete:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: userId
+          in: path
+          description: The id of the user
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Deactivates the user in the specified program
+      description: Deactivates the user in the specified program
+      operationId: deleteProgramUser
+      responses:
+        "200":
+          description: OK
+
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+
+  /programs/{id}/locations:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get list of all locations in the specified program
+      description: Get list of all locations in program
+      operationId: getProgramLocations
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponse'
+              examples:
+                locationsExample1:
+                  $ref: '#/components/examples/arrayOfLocations'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    post:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Create a location in specified program
+      description: Add location to the program
+      operationId: createProgramLocation
+      requestBody:
+        description: Location information to create
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramLocationRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponseResult'
+              example:
+                metadata:
+                  datafiles: []
+                  pagination:
+                    currentPage: 0
+                    pageSize: 1
+                    totalCount: 1
+                    totalPages: 1
+                  status: []
+                result:
+                  id:  d2263532-1fa3-49a6-9a66-957f313c8ed2
+                  country_name:  United States of America
+                  country_alpha_2_code:  US
+                  country_alpha_3_code: USA
+                  environment_type:  field
+                  accessibility: public
+                  topography:  valley
+                  name: Nick's Field
+                  abbreviation:  NF
+                  coordinates: {
+                    "geometry": {
+                      "coordinates": [
+                        -76.506042,
+                        42.417373,
+                        123
+                      ],
+                      "type": "Point"
+                    },
+                    "type": "Feature"
+                  }
+                  coordinate_uncertainty:  0
+                  coordinate_description:  Northwest corner of field
+                  slope: 1
+                  exposure: none
+                  documentation_url: http://www.nick.com
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "409":
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+
+  /programs/{id}/locations/{locationId}:
+    get:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          description: The id of the location
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get specified location in the specified program
+      description: Get location in the program
+      operationId: getProgramLocation
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponseSingle'
+              examples:
+                locationsExample1:
+                  $ref: '#/components/examples/singleLocation'
+
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    put:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be updated.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          description: The id of the location
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Update specified location in the specified program
+      description: Update location in the program
+      operationId: putLocation
+      requestBody:
+        description: Program location information to update
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/newProgramLocationRequest'
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponseSingle'
+              examples:
+                singleProgramLocation:
+                  $ref: '#/components/examples/singleLocation'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    delete:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: locationId
+          in: path
+          description: The id of the location
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Remove location from the specified program
+      description: Remove location from the specified program
+      operationId: deleteProgramLocation
+      responses:
+        "200":
+          description: OK
+
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /programs/roles:
+    get:
+      tags:
+        - roles
+      summary: Get list of all roles in the system.
+      description: Get list of all roles
+      operationId: getRoles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponse'
+              examples:
+                arrayOfRoles:
+                  $ref: '#/components/examples/arrayOfRoles'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /programs/roles/{id}:
+    get:
+      tags:
+        - roles
+      summary: Get role information
+      description: Get a specific role
+      operationId: getRoleById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the role information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponseSingle'
+              examples:
+                singleRole:
+                  $ref: '#/components/examples/singleRole'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /roles:
+    get:
+      tags:
+        - roles
+      summary: Get list of all system roles in the system.
+      description: Get list of all system roles
+      operationId: getSystemRoles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponse'
+              examples:
+                arrayOfRoles:
+                  $ref: '#/components/examples/arrayOfSystemRoles'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /roles/{id}:
+    get:
+      tags:
+        - roles
+      summary: Get system role information
+      description: Get a specific system role
+      operationId: getSystemRoleById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the system role information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/rolesResponseSingle'
+              examples:
+                singleSystemRole:
+                  $ref: '#/components/examples/singleSystemRole'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /programs/{programId}/traits:
+    get:
+      tags:
+        - traits
+      summary: Get all traits in a given program
+      description: Get all traits in a given program
+      operationId: getTraits
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get traits for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: full
+          in: query
+          description: True = get detailed properties of traits. False = get only base properties of trait.
+          required: false
+          explode: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/multipleTraitsResponse'
+              examples:
+                multipleTraitsResponse:
+                  $ref: '#/components/examples/arrayOfTraits'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    post:
+      tags:
+        - traits
+      summary: Create a list of traits
+      description: Create a list of traits in a given program
+      operationId: postTraits
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get traits for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: New trait object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/arrayOfNewTraits'
+            example:
+              - traitName: "Test Trait"
+                description: "A trait"
+                traitClass: "morphological"
+                attribute: "height"
+                defaultValue: "defaultValue"
+                mainAbbreviation: "t1"
+                abbreviations: ["t1","t2"]
+                synonyms: ["stalk height"]
+                programObservationLevel:
+                  name: "Plant"
+                method:
+                  methodName: "Test Method"
+                  methodClass: "Counting"
+                  description: "A test method"
+                  formula: "a^2+b^2=c^2"
+                scale:
+                  scaleName: "Test Scale"
+                  dataType: "Numerical"
+                  decimalPlaces: 3
+                  validValueMax: 9999
+                  validValueMin: 1
+                  categories:
+                    - label: "test1"
+                      value: "value1"
+                    - label: "test2"
+                      value: "value2"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/multipleTraitsResponse'
+              examples:
+                multipleTraitsResponse:
+                  $ref: '#/components/examples/arrayOfTraits'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "422":
+          description: Multi-error UnprocessableEntity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/validatorErrorResponse"
+              example:
+                rowErrors:
+                  - rowIndex: 1
+                    errors:
+                      - field: "programObservationLevel"
+                        errorMessage: "Missing trait name"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                      - field: "abbreviations"
+                        errorMessage: "Abbreviations already exist"
+                        httpStatus: "CONFLICT"
+                        httpStatusCode: 409
+                      - field: "scale.dataType"
+                        errorMessage: "Missing scale data type"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+  /programs/{programId}/traits/{traitId}:
+    get:
+      tags:
+        - traits
+      summary: Get a single trait by traitId
+      description: Gets a single trait with full level of detail
+      operationId: getTrait
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait in
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: traitId
+          in: path
+          description: Id of trait to get trait for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/singleTraitResponse'
+              examples:
+                singleTraitResponse:
+                  $ref: '#/components/examples/singleTrait'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /programs/{programId}/trait-upload:
+    put:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Upload the trait csv/xls/xlsx file data
+      description: Upload trait file data for the user making the request in the indicated program. Only one trait upload at a time can exist per user per program.
+      operationId: putTraitUpload
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+            encoding:
+              file:
+                contentType: text/csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitUploadResponse'
+              examples:
+                traitUploadResponse:
+                  $ref: '#/components/examples/traitUploadData'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "422":
+          description: Multi-error UnprocessableEntity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/validatorErrorResponse"
+              example:
+                rowErrors:
+                  - rowIndex: 2
+                    errors:
+                      - column: "Trait level"
+                        errorMessage: "Missing trait name"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                      - column: "Trait abbreviations"
+                        errorMessage: "Abbreviations already exist"
+                        httpStatus: "CONFLICT"
+                        httpStatusCode: 409
+                      - column: "Scale class"
+                        errorMessage: "Missing scale class"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+    get:
+      tags:
+        - uploads
+      summary: Get the trait upload data
+      description: Gets the trait upload data for the specified program and requesting user
+      operationId: getTraitUpload
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait upload in
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitUploadResponse'
+              examples:
+                traitUploadResponse:
+                  $ref: '#/components/examples/traitUploadData'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+    delete:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to delete trait upload from
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Delete trait upload
+      description: Delete trait upload for the specified program and requesting user
+      operationId: deleteTraitUpload
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /health:
+    get:
+      tags:
+        - server management
+      summary: checks if the server is up and able to be contacted
+      description: checks if the server is up and able to be contacted
+      operationId: health
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                status: "UP"
+  /countries:
+    get:
+      tags:
+        - countries
+      summary: Get list of all countries in the system.
+      description: Get list of all countries
+      operationId: getCountries
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/countriesResponse'
+              examples:
+                arrayOfCountries:
+                  $ref: '#/components/examples/arrayOfCountries'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /countries/{id}:
+    get:
+      tags:
+        - countries
+      summary: Get country information
+      description: Get a specific country
+      operationId: getCountryById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the country information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/countriesResponseSingle'
+              examples:
+                singleCountry:
+                  $ref: '#/components/examples/singleCountry'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /topography-options:
+    get:
+      tags:
+        - topography options
+      summary: Get list of all topography options in the system.
+      description: Get list of all topography options
+      operationId: getTopographyOptions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/topographiesResponse'
+              examples:
+                arrayOfTopographies:
+                  $ref: '#/components/examples/arrayOfTopographyOptions'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /topography-options/{id}:
+    get:
+      tags:
+        - topography options
+      summary: Get topography option information
+      description: Get a specific topography option
+      operationId: getTopographyOptionById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the topography option information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/topographyOptionsResponseSingle'
+              examples:
+                singleTopography:
+                  $ref: '#/components/examples/singleTopographyOption'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /accessibility-options:
+    get:
+      tags:
+        - accessibility options
+      summary: Get list of all accessibility options in the system.
+      description: Get list of all accessibility options
+      operationId: getAccessibilityOptions
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accessibilityOptionsResponse'
+              examples:
+                arrayOfAccessibilities:
+                  $ref: '#/components/examples/arrayOfAccessibilityOptions'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /accessibility-options/{id}:
+    get:
+      tags:
+        - accessibility options
+      summary: Get accessibility option information
+      description: Get a specific accessibility option
+      operationId: getAccessibilityOptionById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the accessibility option information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/accessibilityOptionsResponseSingle'
+              examples:
+                singleAccessibility:
+                  $ref: '#/components/examples/singleAccessibilityOption'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /environment-data-types:
+    get:
+      tags:
+        - environment data types
+      summary: Get list of all environment data types in the system.
+      description: Get list of all environment data types
+      operationId: getEnvironmentDataTypes
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/environmentDataTypesResponse'
+              examples:
+                arrayOfEnvironmentDataTypes:
+                  $ref: '#/components/examples/arrayOfEnvironmentDataTypes'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+  /environment-data-types/{id}:
+    get:
+      tags:
+        - environmentDataTypes
+      summary: Get environment data type information
+      description: Get a specific environment data type
+      operationId: getEnvironmentDataTypeById
+      parameters:
+        - name: id
+          in: path
+          description: The id of the environment data type information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/environmentDataTypesResponseSingle'
+              examples:
+                singleEnvironmentDataType:
+                  $ref: '#/components/examples/singleEnvironmentDataType'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+components:
+  schemas:
+    metadata:
+      type: object
+      properties:
+        datafiles:
+          type: array
+          description: The datafiles key contains a list of file paths, which can
+            be relative or complete URLs. These files contain additional information
+            related to the returned object and can be retrieved by a subsequent call.
+            The empty list should be returned if no additional data files are present.
+          items:
+            type: string
+
+        pagination:
+          $ref: '#/components/schemas/metadata_pagination'
+        status:
+          type: array
+          description: The status field contains a list of informational status messages
+            from the server. If no status is reported, an empty list should be returned.
+            See Error Reporting for more information.
+          items:
+            $ref: '#/components/schemas/status'
+    status:
+      required:
+        - message
+        - messageType
+      type: object
+      properties:
+        message:
+          type: string
+          description: A short message concerning the status of this request/response
+        messageType:
+          type: string
+          description: The logging level for the attached message
+          enum:
+            - DEBUG
+            - ERROR
+            - WARNING
+            - INFO
+    user:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        orcid:
+          type: string
+        name:
+          type: string
+        email:
+          type: string
+        active:
+          type: boolean
+        systemRoles:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            domain:
+              type: string
+        programRoles:
+          type: object
+          properties:
+            active:
+              type: boolean
+            roles:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  domain:
+                    type: string
+            program:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                name:
+                  type: string
+                abbreviation:
+                  type: string
+                objective:
+                  type: string
+    country:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        alpha2Code:
+          type: string
+        alpha3Code:
+          type: string
+    topographyOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    accessibilityOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    environmentDataType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+    role:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        domain:
+          type: string
+    systemRole:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        domain:
+          type: string
+    programUser:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/user'
+        roles:
+          type: array
+          description: Array of roles
+          items:
+            $ref: '#/components/schemas/role'
+        program:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            abbreviation:
+              type: string
+            objective:
+              type: string
+    program:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        abbreviation:
+          type: string
+        objective:
+          type: string
+        documentation_url:
+          type: string
+        active:
+          type: boolean
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        species:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            commonName:
+              type: string
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+    location:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            alpha2Code:
+              type: string
+            alpha3Code:
+              type: string
+        environmentType:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        accessibility:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        topography:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        name:
+          type: string
+        abbreviation:
+          type: string
+        coordinates:
+          $ref: '#/components/schemas/geoJSON'
+        coordinateUncertainty:
+          type: number
+        coordinateDescription:
+          type: string
+        slope:
+          type: number
+        exposure:
+          type: string
+        documentationUrl:
+          type: string
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+    geoJSON:
+      description: 'One geometry as defined by GeoJSON (RFC 7946). All coordinates are decimal values on the WGS84 geographic coordinate reference system.
+        Copied from RFC 7946 Section 3.1.1
+        A position is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or
+        easting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element.'
+      properties:
+        geometry:
+          description: A geometry as defined by GeoJSON (RFC 7946). In this context, only Point or Polygon geometry are allowed.
+          discriminator:
+            mapping:
+              Point: '#/components/schemas/pointGeometry'
+              Polygon: '#/components/schemas/polygonGeometry'
+            propertyName: type
+          example:
+            coordinates:
+              - -76.506042
+              - 42.417373
+              - 123
+            type: Point
+          oneOf:
+            - $ref: '#/components/schemas/pointGeometry'
+            - $ref: '#/components/schemas/polygonGeometry'
+          title: GeoJSON Geometry
+          type: object
+        type:
+          default: Feature
+          description: The literal string "Feature"
+          example: Feature
+          type: string
+      title: GeoJSON
+      type: object
+    pointGeometry:
+      description: 'Copied from RFC 7946 Section 3.1.1
+        A position is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or
+        easting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element.'
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/position'
+        type:
+          default: Point
+          description: The literal string "Point"
+          example: Point
+          type: string
+      type: object
+    polygon:
+      description: An array of linear rings
+      example:
+        - - - -77.456654
+            - 42.241133
+            - 494
+          - - -75.414133
+            - 41.508282
+            - 571
+          - - -76.506042
+            - 42.417373
+            - 123
+          - - -77.456654
+            - 42.241133
+            - 346
+      items:
+        $ref: '#/components/schemas/linearRing'
+      type: array
+    polygonGeometry:
+      description: "An array of Linear Rings. Each Linear Ring is an array of Points. \n\nA Point is an array of numbers. There MUST be two or more elements. The first two elements are longitude and latitude, or\neasting and northing, precisely in that order and using decimal numbers. Altitude or elevation MAY be included as an optional third element."
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/polygon'
+        type:
+          default: Polygon
+          description: The literal string "Polygon"
+          example: Polygon
+          type: string
+      type: object
+    position:
+      description: A single position
+      example:
+        - -76.506042
+        - 42.417373
+        - 123
+      items:
+        type: number
+      minItems: 2
+      type: array
+    linearRing:
+      description: An array of at least four positions where the first equals the last
+      example:
+        - - -77.456654
+          - 42.241133
+          - 494
+        - - -75.414133
+          - 41.508282
+          - 571
+        - - -76.506042
+          - 42.417373
+          - 123
+        - - -77.456654
+          - 42.241133
+          - 346
+      items:
+        $ref: '#/components/schemas/position'
+      minItems: 4
+      type: array
+    newUserRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: name of this user
+        email:
+          type: string
+          description: email address of this user
+        systemRoles:
+          type: array
+          description: Array of system role objects
+          items:
+            $ref: '#/components/schemas/systemRole'
+    newProgramUserRequest:
+      type: object
+      properties:
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Id of user to assign to program
+            name:
+              type: string
+              description: Name of the user
+            email:
+              type: string
+              description: Email address of this user
+          required:
+            - id
+        roles:
+          type: array
+          description: Array of roles
+          items:
+            $ref: '#/components/schemas/role'
+      required:
+        - user
+        - roles
+    updateSystemRolesRequest:
+      type: object
+      properties:
+        systemRoles:
+          type: array
+          description: Array of system role objects
+          items:
+            $ref: '#/components/schemas/systemRole'
+    newProgramLocationRequest:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        country:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+            alpha2Code:
+              type: string
+            alpha3Code:
+              type: string
+        environmentType:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        accessibility:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        topography:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        name:
+          type: string
+        abbreviation:
+          type: string
+        coordinates:
+          $ref: '#/components/schemas/geoJSON'
+        coordinateUncertainty:
+          type: number
+        coordinateDescription:
+          type: string
+        slope:
+          type: number
+        exposure:
+          type: string
+        documentationUrl:
+          type: string
+    usersResponse:
+      title: usersResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/usersResponse_result'
+    locationsResponse:
+      title: locationsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/locationsResponseResult'
+    locationsResponseSingle:
+      title: locationsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/location'
+    updateProgramRequest:
+      type: object
+      properties:
+        species:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Id of species to assign to program
+            commonName:
+              type: string
+              description: Name of species
+          required:
+            - id
+        name:
+          type: string
+          description: name of program
+        abbreviation:
+          type: string
+          description: abbreviation for program name
+        objective:
+          type: string
+          description: program objective
+        documetation_url:
+          type: string
+          description: program documentation url
+      required:
+        - species
+        - name
+    countriesResponse:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/countriesResponseResult'
+    countriesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of countries
+          items:
+            $ref: '#/components/schemas/country'
+    countriesResponseSingle:
+      title: countriesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/country'
+    topographiesResponse:
+      title: topographiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographiesResponseResult'
+    topographiesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of topographies
+          items:
+            $ref: '#/components/schemas/topographyOption'
+    topographiesResponseSingle:
+      title: topographiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographyOption'
+    accessibilitiesResponse:
+      title: accessibilitiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilitiesResponseResult'
+    accessibilitiesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of accessibilities
+          items:
+            $ref: '#/components/schemas/accessibilityOption'
+    accessibilitiesResponseSingle:
+      title: accessibilitiesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOption'
+    environmentTypesResponse:
+      title: environmentTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentTypesResponseResult'
+    environmentTypesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of environemnt types
+          items:
+            $ref: '#/components/schemas/environmentDataType'
+    environmentTypesResponseSingle:
+      title: environmentTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/location'
+    topographyOptionsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of topographies
+          items:
+            $ref: '#/components/schemas/topographyOption'
+    topographyOptionsResponseSingle:
+      title: topographyOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/topographyOption'
+    accessibilityOptionsResponse:
+      title: accessibilityOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOptionsResponseResult'
+    accessibilityOptionsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of accessibility options
+          items:
+            $ref: '#/components/schemas/accessibilityOption'
+    accessibilityOptionsResponseSingle:
+      title: accessibilityOptionsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/accessibilityOption'
+    environmentDataTypesResponse:
+      title: environmentDataTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentDataTypesResponseResult'
+    environmentDataTypesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of environemnt data types
+          items:
+            $ref: '#/components/schemas/environmentDataType'
+    environmentDataTypesResponseSingle:
+      title: environmentDataTypesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/environmentDataType'
+    rolesResponse:
+      title: rolesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/rolesResponseResult'
+    rolesResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of roles
+          items:
+            $ref: '#/components/schemas/role'
+    rolesResponseSingle:
+      title: rolesResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/role'
+    programsResponse:
+      title: programsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/programsResponseResult'
+    programsResponseSingle:
+      title: programsResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/program'
+    programUserResponse:
+      title: programUserResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/programUser'
+
+    usersResponse_1:
+      title: usersResponse
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/user'
+    metadata_pagination:
+      type: object
+      properties:
+        currentPage:
+          type: integer
+        pageSize:
+          type: integer
+        totalCount:
+          type: integer
+        totalPages:
+          type: integer
+      description: The pagination object is applicable only when the payload contains
+        a "data" key. It describes the pagination of the data contained in the "data"
+        array, as a way to identify which subset of data is being returned. Pages
+        are zero indexed, so the first page will be page 0 (zero).
+    usersResponse_result:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of users
+          items:
+            $ref: '#/components/schemas/user'
+    programUserResponseResult:
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of program users
+          items:
+            $ref: '#/components/schemas/programUser'
+    locationsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of locations
+          items:
+            $ref: '#/components/schemas/location'
+    programsResponseResult:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of programs
+          items:
+            $ref: '#/components/schemas/program'
+    multipleTraitsResponse:
+      required:
+        - data
+      type: object
+      properties:
+        data:
+          type: array
+          description: Array of traits
+          items:
+            $ref: '#/components/schemas/trait'
+    singleTraitResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/trait'
+    trait:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: System id of the trait
+        traitName:
+          type: string
+          description: Trait display name
+        active:
+          type: boolean
+          description: Trait active status
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        description:
+          type: string
+        traitClass:
+          type: string
+          example: "morphological"
+        attribute:
+          type: string
+          description: Attribute the trait is describing
+          example: height
+        defaultValue:
+          type: string
+          description: Default value of the trait
+        mainAbbreviation:
+          type: string
+        abbreviations:
+          type: array
+          items:
+            type: string
+        synonyms:
+          type: array
+          items:
+            type: string
+        programObservationLevel:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+              description: System id of the observation level
+            name:
+              type: string
+              description: Name of the observation level
+        method:
+          type: object
+          properties:
+            methodName:
+              type: string
+            methodClass:
+              type: string
+            description:
+              type: string
+            formula:
+              type: string
+        scale:
+          type: object
+          properties:
+            scaleName:
+              type: string
+            dataType:
+              type: string
+            decimalPlaces:
+              type: integer
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  value:
+                    type: string
+            validValueMax:
+              type: integer
+            validValueMin:
+              type: integer
+    traitUploadResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/traitUpload'
+    traitUpload:
+      type: object
+      properties:
+        type:
+          type: string
+          description: Type of upload
+        data:
+          type: object
+          properties:
+            traitName:
+              type: string
+              description: Trait display name
+            active:
+              type: boolean
+              description: Trait active status
+            programObservationLevel:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                  description: System id of the observation level
+                name:
+                  type: string
+                  description: Name of the observation level
+                active:
+                  type: boolean
+                createdAt:
+                  type: string
+                  format: datetime
+                updatedAt:
+                  type: string
+                  format: datetime
+            method:
+              type: object
+              properties:
+                methodName:
+                  type: string
+                methodClass:
+                  type: string
+                description:
+                  type: string
+                formula:
+                  type: string
+            scale:
+              type: object
+              properties:
+                scaleName:
+                  type: string
+                dataType:
+                  type: string
+                decimalPlaces:
+                  type: integer
+                categories:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      label:
+                        type: string
+                      value:
+                        type: string
+                validValueMax:
+                  type: integer
+                validValueMin:
+                  type: integer
+            description:
+              type: string
+            mainAbbreviation:
+              type: string
+            abbreviations:
+              type: array
+              items:
+                type: string
+            synonyms:
+              type: array
+              items:
+                type: string
+        createdAt:
+          type: string
+          format: datetime
+        updatedAt:
+          type: string
+          format: datetime
+        user:
+          $ref: '#/components/schemas/user'
+        program:
+          $ref: '#/components/schemas/program'
+        createdByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+        updatedByUser:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            name:
+              type: string
+    arrayOfNewTraits:
+      type: array
+      items:
+        $ref: '#/components/schemas/newTrait'
+    newTrait:
+      type: object
+      properties:
+        traitName:
+          type: string
+          description: Trait display name
+        description:
+          type: string
+        traitClass:
+          type: string
+          example: "morphological"
+        attribute:
+          type: string
+          description: Attribute the trait is describing
+          example: height
+        defaultValue:
+          type: string
+          description: Default value of the trait
+        mainAbbreviation:
+          type: string
+        abbreviations:
+          type: array
+          items:
+            type: string
+        synonyms:
+          type: array
+          items:
+            type: string
+        programObservationLevel:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the observation level
+        method:
+          type: object
+          properties:
+            methodName:
+              type: string
+            methodClass:
+              type: string
+            description:
+              type: string
+              format: UUID
+            formula:
+              type: string
+              format: UUID
+        scale:
+          type: object
+          properties:
+            scaleName:
+              type: string
+              format: datetime
+            dataType:
+              type: string
+              format: datetime
+            decimalPlaces:
+              type: integer
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  value:
+                    type: string
+            validValueMax:
+              type: integer
+            validValueMin:
+              type: integer
+    validatorErrorResponse:
+      type: object
+      properties:
+        rowErrors:
+          type: array
+          items:
+            type: object
+            properties:
+              rowIndex:
+                type: integer
+                description: "Row number in the uploaded file for the trait with errors."
+              errors:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    field:
+                      type: string
+                      description: "Field name that is the source of the error"
+                    errorMessage:
+                      type: string
+                      description: "A description fo the error"
+                    httpStatus:
+                      type: string
+                      description: "Text representation fo the error code"
+                    httpStatusCode:
+                      type: integer
+                      description: "Http error code"
+  responses:
+    "400BadRequest":
+      description: Bad Request
+      content:
+        application/json:
+          schema:
+            type: string
+          example: |-
+            ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+            ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+            ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+    "401Unauthorized":
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            type: string
+          example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+            token
+    "403Forbidden":
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            type: string
+          example: ERROR - 2018-10-08T20:15:11Z - User does not have permission to
+            perform this action
+    "404NotFound":
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            type: string
+          example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is not
+            found
+  securitySchemes:
+    orcid_auth:
+      type: oauth2
+      flows:
+        implicit:
+          authorizationUrl: https://sandbox.orcid.org/oauth/authorize
+          scopes:
+            write:bi: modify
+            read:bi: read
+    api_key:
+      type: apiKey
+      name: api_key
+      in: header
+  examples:
+    arrayOfPrograms:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+              name: Bob Smith's Breeding Program
+              abbreviation: BSBP
+              objective: To breed the best grapes in the world
+              documentationUrl: http://www.bobsbestbreeding.com
+              active: true
+              createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:59:25-04:00"
+              species:
+                id: b3764582-e1ac-4c5c-85c4-b76bae0a18d2
+                commonName: "Grape"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Stacy Stacktrace
+            - id: e2263532-1fa3-49a6-9a66-957f313c8ed3
+              name: Franks's Salmon
+              abbreviation: FS
+              objective: To breed the best salmon in the world
+              documentation_url: http://www.franks.com
+              active: true
+              createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:59:25-04:00"
+              species:
+                id: 239b9ce5-bf72-412e-a456-42ecb2a621ec
+                commonName: Salmon
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Stacy Stacktrace
+    singleProgram:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+          name: Bob Smith's Breeding Program
+          abbreviation: BSBP
+          objective: To breed the best grapes in the world
+          documentationUrl: http://www.bobsbestbreeding.com
+          active: true
+          createdAt: "2020-03-09T09:57:35-04:00"
+          updatedAt: "2020-03-09T09:59:25-04:00"
+          species:
+            id: b3764582-e1ac-4c5c-85c4-b76bae0a18d2
+            commonName: "Grape"
+          createdByUser:
+            id: e024a9be-98bf-4802-bec0-16bdf7343888
+            name: Bob Smith
+          updatedByUser:
+            id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+            name: Stacy Stacktrace
+    updateProgramRequestExample:
+      value:
+        species:
+          id: f4f23375-0033-4d16-a62f-072e3a9198fs
+          commonName: "Sweetpotato"
+        name: Tim's program
+        abbreviation: TP
+        objective: To breed some good stuff
+        documentationUrl: http://www.timsgoodstuff.com
+    arrayOfProgramUsers:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:57:35-04:00"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+                email: bob@bob.com
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Stacy Stacktrace
+                email: stacy@stacy.com
+              user:
+                id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                name: Bob Smith
+                email: bob.smith@mail.com
+              roles:
+                - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+                  domain: Breeder
+              program:
+                id: 37935efa-4c0f-4269-8669-f78d21b26f04
+                name: Test Program
+                abbreviation: test,
+                objective: To test things
+            - createdAt: "2020-02-09T09:57:35-04:00"
+              updatedAt: "2020-02-09T09:57:35-04:00"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Fred Smith
+                email: fred@smith.com
+              updatedByUser:
+                id: c2d6c5c3-4064-4afe-abd6-0af90fbf2243
+                name: Joe Dirt
+                email: joe@dirt.com
+              user:
+                id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+                name: Tim Smith
+                email: tim.smith@mail.com
+              roles:
+                - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+                  domain: Breeder'
+              program:
+                id: 37935efa-4c0f-4269-8669-f78d21b26f04
+                name: Test Program
+                abbreviation: test,
+                objective: To test things
+    singleProgramUser:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          createdAt: "2020-01-09T09:57:35-04:00"
+          updatedAt: "2020-01-09T09:57:35-04:00"
+          createdByUser:
+            id: d024a9be-98bf-4802-bec0-16bdf7343888
+            name: Mark Smith
+            email: mark@smith.com
+          updatedByUser:
+            id: 2d6c5c3-4064-4afe-abd6-0af90fbf2243
+            name: Stacy Stacktrace
+            email: stacy@stacy.com
+          user:
+            id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+            name: Bob Smith
+            email: bob.smith@mail.com
+          roles:
+            - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: Field Manager
+          program:
+            id: 37935efa-4c0f-4269-8669-f78d21b26f04
+            name: Test Program
+            abbreviation: test,
+            objective: To test things
+    arrayOfCountries:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: 75a9e07f-1f00-45ff-a7e9-17eeddd35122
+              name: United States of America
+              alpha2Code: US
+              alpha3Code: USA
+            - id: 8f6018d9-054e-45a2-bcfa-3f31940431d0
+              name: United Kingdom of Great Britain and Northern Ireland
+              alpha2Code: GB
+              alpha3Code: GBR
+    singleCountry:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: 75a9e07f-1f00-45ff-a7e9-17eeddd35122
+          name: United States of America
+          alpha2Code: US
+          alpha3Code: USA
+    arrayOfTopographyOptions:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: 60a5b049-064c-4550-b5cd-2a7394724bdc
+              name: plateau
+            - id: 8cc0390e-e490-443a-948b-e2fde4a7627e
+              name: cirque
+    singleTopographyOption:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: 60a5b049-064c-4550-b5cd-2a7394724bdc
+          name: plateau
+    arrayOfAccessibilityOptions:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: 1eab0b9d-400f-4e85-97cb-9071ab95c6a4
+              name: private
+            - id: 59f6652d-ec2e-4db0-b748-02302656ec1c
+              name: public
+    singleAccessibilityOption:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: 1eab0b9d-400f-4e85-97cb-9071ab95c6a4
+          name: private
+    arrayOfEnvironmentDataTypes:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: bda2c118-fe26-4776-a106-e3cf2a0c7b59
+              name: forest
+            - id: aa887f61-a831-4663-9d12-7368c1961590
+              name: field
+    singleEnvironmentDataType:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: bda2c118-fe26-4776-a106-e3cf2a0c7b59
+          name: forest
+    arrayOfRoles:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: Breeder
+            - id: a2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: Member
+    arrayOfSystemRoles:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: admin
+            - id: a2d6c5c3-4064-4afe-abd6-0af90fbf2245
+              domain: user
+    singleRole:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+          domain: Field Manager
+    singleSystemRole:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          id: e2d6c5c3-4064-4afe-abd6-0af90fbf2245
+          domain: admin
+    arrayOfLocations:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - createdAt: "2020-03-09T09:57:35-04:00"
+              updatedAt: "2020-03-09T09:57:35-04:00"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+                email: bob@bob.com
+              updatedByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+                email: bob@bob.com
+              id: d2263532-1fa3-49a6-9a66-957f313c8ed2
+              country:
+                name: United States of America
+                alpha2Code: US
+                alpha3Code: USA
+              environmentType:
+                id: d2263532-1fa3-49a6-9a66-957f313c8ed3
+                name: field
+              accessibility:
+                id: d2263532-1fa3-49a6-9a66-957f313c8ed4
+                name: public
+              topography:
+                id: d2263532-1fa3-49a6-9a66-957f313c8ed6
+                name: valley
+              name: Nick's Field
+              abbreviation:  NF
+              coordinates: {
+                "geometry": {
+                  "coordinates": [
+                    -76.506042,
+                    42.417373,
+                    123
+                  ],
+                  "type": "Point"
+                },
+                "type": "Feature"
+              }
+              coordinateUncertainty:  0
+              coordinateDescription:  Northwest corner of field
+              slope: 1
+              exposure: none
+              documentationUrl: http://www.nick.com
+            - createdAt: "2020-03-09T09:59:35-04:00"
+              updatedAt: "2020-03-09T09:59:35-04:00"
+              createdByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+                email: bob@bob.com
+              updatedByUser:
+                id: e024a9be-98bf-4802-bec0-16bdf7343888
+                name: Bob Smith
+                email: bob@bob.com
+              id: e2263532-1fa3-49a6-9a66-957f313c8ed2
+              country:
+                name: United States of America
+                alpha2Code: US
+                alpha3Code: USA
+              environmentType:
+                id: d2263532-1fa3-49a6-9a66-957f313c8ed3
+                name: field
+              accessibility:
+                id: d2263532-1fa3-49a6-9a66-957f313c8ed4
+                name: public
+              topography:
+                id: d2263532-1fa3-49a6-9a66-957f313c8ed6
+                name: valley
+              name: Nick's Field
+              abbreviation:  NF
+              coordinates: {
+                "geometry": {
+                  "coordinates": [
+                    -76.506042,
+                    42.417374,
+                    123
+                  ],
+                  "type": "Point"
+                },
+                "type": "Feature"
+              }
+              coordinateUncertainty:  0
+              coordinateDescription:  Northeast corner of field
+              slope: 1
+              exposure: none
+              documentationUrl: http://www.nick.com
+    singleLocation:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          createdAt: "2020-03-09T09:59:35-04:00"
+          updatedAt: "2020-03-09T09:59:35-04:00"
+          createdByUser:
+            id: e024a9be-98bf-4802-bec0-16bdf7343888
+            name: Bob Smith
+            email: bob@bob.com
+          updatedByUser:
+            id: e024a9be-98bf-4802-bec0-16bdf7343888
+            name: Bob Smith
+            email: bob@bob.com
+          id: e2263532-1fa3-49a6-9a66-957f313c8ed2
+          country:
+            name: United States of America
+            alpha2Code: US
+            alpha3Code: USA
+          environmentType:
+            id: d2263532-1fa3-49a6-9a66-957f313c8ed3
+            name: field
+          accessibility:
+            id: d2263532-1fa3-49a6-9a66-957f313c8ed4
+            name: public
+          topography:
+            id: d2263532-1fa3-49a6-9a66-957f313c8ed6
+            name: valley
+          name: Nick's Field
+          abbreviation:  NF
+          coordinates: {
+            "geometry": {
+              "coordinates": [
+                -76.506042,
+                42.417374,
+                123
+              ],
+              "type": "Point"
+            },
+            "type": "Feature"
+          }
+          coordinateUncertainty:  0
+          coordinateDescription:  Northeast corner of field
+          slope: 1
+          exposure: none
+          documentationUrl: http://www.nick.com
+    arrayOfTraits:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          data:
+            [
+            {
+              id: "00385063-01c8-4afc-a684-3c84b90b2de9",
+              traitName: "Test Trait",
+              active: true,
+              createdAt: "2020-06-04T11:05:48-04:00",
+              updatedAt: "2020-06-04T11:05:48-04:00",
+              description: "A trait",
+              traitClass: "morphological",
+              attribute: "height",
+              defaultValue: "defaultValue",
+              entity: "stalk",
+              mainAbbreviation: "t1",
+              abbreviations: ["t1","t2"],
+              synonyms: ["stalk height"],
+              programObservationLevel:
+                {
+                  id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
+                  name: "Plant",
+                  active: true,
+                  createdAt: "2020-06-04T11:05:48-04:00",
+                  updatedAt: "2020-06-04T11:05:48-04:00",
+                },
+              method:
+                {
+                  methodName: "Test Method",
+                  methodClass: "Counting"
+                },
+              scale:
+                {
+                  scaleName: "Test Scale",
+                  dataType: "TEXT",
+                  decimalPlaces: 3,
+                  categories:
+                    [
+                    {
+                      label: "test1",
+                      value: "value1"
+                    },
+                    {
+                      label: "test2",
+                      value: "value2"
+                    }
+                    ]
+                },
+              programOntology:
+                {
+                  id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                  programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                  createdAt: "2020-06-04T11:05:48-04:00",
+                  updatedAt: "2020-06-04T11:05:48-04:00"
+                },
+              createdByUser:
+                {
+                  name: "Tester",
+                  active: true
+                },
+              updatedByUser:
+                {
+                  name: "Tester",
+                  active: true
+                }
+            }
+            ]
+    singleTrait:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          {
+            id: "00385063-01c8-4afc-a684-3c84b90b2de9",
+            traitName: "Test Trait",
+            active: true,
+            createdAt: "2020-06-04T11:05:48-04:00",
+            updatedAt: "2020-06-04T11:05:48-04:00",
+            description: "A trait",
+            traitClass: "morphological",
+            attribute: "height",
+            defaultValue: "defaultValue",
+            entity: "stalk",
+            mainAbbreviation: "t1",
+            abbreviations: ["t1","t2"],
+            synonyms: ["stalk height"],
+            programObservationLevel:
+              {
+                id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
+                name: "Plant",
+                active: true,
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00",
+              },
+            method:
+              {
+                methodName: "Test Method",
+                methodClass: "Counting"
+              },
+            scale:
+              {
+                scaleName: "Test Scale",
+                dataType: "TEXT",
+                decimalPlaces: 3,
+                categories:
+                  [
+                  {
+                    label: "test1",
+                    value: "value1"
+                  },
+                  {
+                    label: "test2",
+                    value: "value2"
+                  }
+                  ]
+              },
+            programOntology:
+              {
+                id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00"
+              },
+            createdByUser:
+              {
+                name: "Tester",
+                active: true
+              },
+            updatedByUser:
+              {
+                name: "Tester",
+                active: true
+              }
+          }
+    traitUploadData:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 0
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          type: "TRAIT"
+          data:
+            [
+            {
+              traitName: "Test Trait",
+              active: true,
+              programObservationLevel:
+                {
+                  name: "Plant",
+                },
+              method:
+                {
+                  methodName: "Powdery Mildew severity, leaves - Estimation",
+                  methodClass: "Estimation",
+                  description: "Observed severity of Powdery Mildew on leaves",
+                  formula: "a^2 + b^2 = c^2"
+                },
+              scale:
+                {
+                  scaleName: "1-4 Parlier field response score",
+                  dataType: "ORDINAL",
+                  decimalPlaces: 2,
+                  categories:
+                    [
+                    {
+                      label: "test1",
+                      value: "value1"
+                    },
+                    {
+                      label: "test2",
+                      value: "value2"
+                    }
+                    ]
+                },
+              description: "A trait",
+              mainAbbreviation: "t1",
+              abbreviations: ["t1","t2"],
+              synonyms: ["stalk height"],
+            }
+            ]
+          program:
+            {
+              id: "20e1a888-050a-4f89-8fec-ffaa55289c1b",
+              name: "Nick's Microgreens",
+              active: true,
+              createdAt: "2020-06-24T11:36:01-04:00",
+              updatedAt: "2020-06-24T11:36:01-04:00"
+            }
+          user:
+            {
+              id: "285ebacc-3940-416b-8ffe-5bb5d8a843f3",
+              orcid: "0000-0000-0000-0000",
+              name: "Nick Palladino",
+              email: "n@n.com",
+              active: true,
+              systemRoles: []
+            }
+          createdByUser:
+            {
+              name: "Tester",
+              active: true
+            }
+          updatedByUser:
+            {
+              name: "Tester",
+              active: true
+            }

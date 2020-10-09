@@ -1,9 +1,9 @@
 Thumbs.db
 .DS_Store
 .gradle
-build/
-target/
-out/
+/build/
+/target/
+/out/
 .idea
 *.iml
 *.ipr
@@ -13,4 +13,9 @@ out/
 .classpath
 dependency-reduced-pom.xml
 src/main/resources/*.dev.*
+src/build/*.dev.*
+src/build/*.test.*
 application-dev.yml
+application-test.yml
+.env
+.env.local

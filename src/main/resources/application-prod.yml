@@ -1,20 +1,43 @@
+#
+#    See the NOTICE file distributed with this work for additional information
+#    regarding copyright ownership.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+
 oauth:
-  clientId: <production client id>
-  clientSecret: <production client secret>
+  clientId: ${OAUTH_CLIENT_ID}
+  clientSecret: ${OAUTH_CLIENT_SECRET}
 
 jwt:
-  secret: <production jwt secret>
+  secret: ${JWT_SECRET}
   cookie:
-    secure: true
-    domain: <production domain>
+    domain: ${JWT_DOMAIN:localhost}
 
-#Change this if the production port needs to be different than 8080
-#server:
-#  port: 8080
+
+server:
+  port: ${API_INTERNAL_PORT:8081}
 
 db:
-  host: <db host>
-  port: <db port>
-  name: <db name>
-  username: <db username>
-  password: <db password>
+  default:
+    host: ${DB_SERVER:`localhost:5432`}
+    name: ${DB_NAME:bidb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+brapi:
+  server:
+    core-url: ${BRAPI_CORE_URL:`https://test-server.brapi.org/`}
+    pheno-url: ${BRAPI_PHENO_URL:`https://test-server.brapi.org/`}
+    geno-url: ${BRAPI_GENO_URL:`https://test-server.brapi.org/`}
+    reference-source: ${BRAPI_REFERENCE_SOURCE:breeding-insight.org}
