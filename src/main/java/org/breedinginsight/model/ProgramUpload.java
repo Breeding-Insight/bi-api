@@ -40,6 +40,7 @@ import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 @Accessors(chain=true)
 @ToString
 @NoArgsConstructor
+@SuperBuilder(builderMethodName = "uploadBuilder")
 @JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId", "id"})
 public class ProgramUpload<T> extends BatchUploadEntity {
 
@@ -71,17 +72,17 @@ public class ProgramUpload<T> extends BatchUploadEntity {
 
     public static <T> ProgramUpload<T> parseSQLRecord(Record record) {
 
-        ProgramUpload<T> programUpload = new ProgramUpload<>();
-        programUpload.setId(record.getValue(BATCH_UPLOAD.ID));
-        programUpload.setProgramId(record.getValue(BATCH_UPLOAD.PROGRAM_ID));
-        programUpload.setUserId(record.getValue(BATCH_UPLOAD.USER_ID));
-        programUpload.setData(record.getValue(BATCH_UPLOAD.DATA));
-        programUpload.setType(record.getValue(BATCH_UPLOAD.TYPE));
-        programUpload.setCreatedAt(record.getValue(BATCH_UPLOAD.CREATED_AT));
-        programUpload.setUpdatedAt(record.getValue(BATCH_UPLOAD.UPDATED_AT));
-        programUpload.setCreatedBy(record.getValue(BATCH_UPLOAD.CREATED_BY));
-        programUpload.setUpdatedBy(record.getValue(BATCH_UPLOAD.UPDATED_BY));
-        return programUpload;
+        return ProgramUpload.<T>uploadBuilder()
+                    .id(record.getValue(BATCH_UPLOAD.ID))
+                    .programId(record.getValue(BATCH_UPLOAD.PROGRAM_ID))
+                    .userId(record.getValue(BATCH_UPLOAD.USER_ID))
+                    .data(record.getValue(BATCH_UPLOAD.DATA))
+                    .type(record.getValue(BATCH_UPLOAD.TYPE))
+                    .createdAt(record.getValue(BATCH_UPLOAD.CREATED_AT))
+                    .updatedAt(record.getValue(BATCH_UPLOAD.UPDATED_AT))
+                    .createdBy(record.getValue(BATCH_UPLOAD.CREATED_BY))
+                    .updatedBy(record.getValue(BATCH_UPLOAD.UPDATED_BY))
+                    .build();
     }
 
 }
