@@ -27,6 +27,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.*;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.model.v1.validators.QueryValid;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
+import org.breedinginsight.utilities.response.mappers.ProgramLocationQueryMapper;
+import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
@@ -40,6 +46,7 @@ import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
@@ -56,36 +63,50 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class ProgramController {
 
-    @Inject
     private ProgramService programService;
-    @Inject
     private ProgramUserService programUserService;
-    @Inject
     private ProgramLocationService programLocationService;
-    @Inject
     private SecurityService securityService;
+    private ProgramQueryMapper programQueryMapper;
+    private ProgramLocationQueryMapper programLocationQueryMapper;
 
-    @Get("/programs")
+    @Inject
+    public ProgramController(ProgramService programService, ProgramUserService programUserService,
+                             ProgramLocationService programLocationService, SecurityService securityService,
+                             ProgramQueryMapper programQueryMapper, ProgramLocationQueryMapper programLocationQueryMapper) {
+        this.programService = programService;
+        this.programUserService = programUserService;
+        this.programLocationService = programLocationService;
+        this.securityService = securityService;
+        this.programQueryMapper = programQueryMapper;
+        this.programLocationQueryMapper = programLocationQueryMapper;
+    }
+
+    @Get("/programs{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<Program>>> getPrograms() {
+    public HttpResponse<Response<DataResponse<Program>>> getPrograms(
+            @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams) {
 
         List<Program> programs = programService.getAll();
+        return ResponseUtils.getQueryResponse(programs, programQueryMapper, queryParams);
+    }
 
-        List<Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        //TODO: Put in the actual page size
-        Pagination pagination = new Pagination(programs.size(), 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
+    @Post("/programs/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
+            @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using = ProgramQueryMapper.class) SearchRequest searchRequest) {
 
-        Response<DataResponse<Program>> response = new Response(metadata, new DataResponse<>(programs));
-        return HttpResponse.ok(response);
+        List<Program> programs = programService.getAll();
+        return ResponseUtils.getQueryResponse(programs, programQueryMapper, searchRequest, queryParams);
     }
 
     @Get("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
         Optional<Program> program = programService.getById(programId);
@@ -99,8 +120,8 @@ public class ProgramController {
 
     @Post("/programs")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @Secured({"ADMIN"})
+    @AddMetadata
     public HttpResponse<Response<Program>> createProgram(@Valid @Body ProgramRequest programRequest) {
 
         try {
@@ -116,8 +137,8 @@ public class ProgramController {
 
     @Put("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
         try {
@@ -137,6 +158,7 @@ public class ProgramController {
     @Delete("/programs/archive/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({"ADMIN"})
+    @AddMetadata
     public HttpResponse archiveProgram(@PathVariable UUID programId) {
         /* Archive a program */
         try {
@@ -152,6 +174,7 @@ public class ProgramController {
     @Get("/programs/{programId}/users")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
+    @AddMetadata
     public HttpResponse<Response<ProgramUser>> getProgramUsers(@PathVariable UUID programId) {
 
         try {
@@ -249,28 +272,41 @@ public class ProgramController {
         }
     }
 
-    @Get("/programs/{programId}/locations")
+    @Get("/programs/{programId}/locations{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(@PathVariable UUID programId) {
+    public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams) {
 
         try {
             List<ProgramLocation> programLocations = programLocationService.getByProgramId(programId);
-
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            //TODO: Put in the actual page size
-            Pagination pagination = new Pagination(programLocations.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-
-            Response<DataResponse<ProgramLocation>> response = new Response(metadata, new DataResponse<>(programLocations));
-            return HttpResponse.ok(response);
-
+            return ResponseUtils.getQueryResponse(programLocations, programLocationQueryMapper, queryParams);
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
         }
     }
+
+    @Post("/programs/{programId}/locations/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<DataResponse<ProgramLocation>>> postProgramLocationsSearch(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using= ProgramLocationQueryMapper.class) SearchRequest searchRequest ) {
+
+        try {
+            List<ProgramLocation> programLocations = programLocationService.getByProgramId(programId);
+            return ResponseUtils.getQueryResponse(programLocations, programLocationQueryMapper, searchRequest, queryParams);
+
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        }
+
+    }
+
 
     @Get("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)

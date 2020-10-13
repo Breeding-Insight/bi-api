@@ -15,11 +15,18 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.metadata;
+package org.breedinginsight.api.model.v1.validators;
 
-import java.lang.annotation.*;
+import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AddMetadata {
+import javax.validation.Constraint;
+import java.lang.annotation.Retention;
+
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+@Retention(RUNTIME)
+@Constraint(validatedBy = {})
+public @interface QueryValid {
+    String message() default "invalid sort field";
+    Class<? extends AbstractQueryMapper> using();
 }

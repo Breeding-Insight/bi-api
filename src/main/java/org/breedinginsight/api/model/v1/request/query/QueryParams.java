@@ -15,11 +15,29 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.metadata;
+package org.breedinginsight.api.model.v1.request.query;
 
-import java.lang.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.micronaut.core.annotation.Introspected;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AddMetadata {
+import javax.validation.constraints.Positive;
+
+
+@Getter
+@Setter
+@Introspected
+@NoArgsConstructor
+public class QueryParams {
+    @Positive
+    private Integer pageSize;
+    @Positive
+    private Integer page;
+    @JsonIgnore
+    private boolean showAll;
+    private String sortField;
+    private SortOrder sortOrder;
 }

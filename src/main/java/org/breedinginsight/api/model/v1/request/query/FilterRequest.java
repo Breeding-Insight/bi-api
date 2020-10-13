@@ -15,11 +15,17 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.metadata;
+package org.breedinginsight.api.model.v1.request.query;
 
-import java.lang.annotation.*;
+import io.micronaut.core.annotation.Introspected;
+import lombok.*;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AddMetadata {
+@Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@Introspected
+public class FilterRequest {
+    String field;
+    String value;
 }

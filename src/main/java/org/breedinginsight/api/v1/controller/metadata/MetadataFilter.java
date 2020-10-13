@@ -86,7 +86,7 @@ public class MetadataFilter implements HttpServerFilter {
 
                     // Check there isn't more than one result
                     if (!( body.getResult() instanceof DataResponse )){
-                        pagination = new Pagination(1, 1, 1, 0);
+                        pagination = new Pagination(1, 1, 1, 1);
                     }
                     else {
                         throw new MissingMetadataException("Metadata was not properly populated");

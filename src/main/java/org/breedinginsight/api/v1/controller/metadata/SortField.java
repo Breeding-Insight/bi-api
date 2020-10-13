@@ -17,9 +17,14 @@
 
 package org.breedinginsight.api.v1.controller.metadata;
 
-import java.lang.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AddMetadata {
+import java.util.function.Function;
+
+@Getter
+@AllArgsConstructor
+public class SortField {
+    Function field;
+    SortOrder order;
 }

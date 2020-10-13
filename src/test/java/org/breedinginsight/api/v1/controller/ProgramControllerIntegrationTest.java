@@ -34,8 +34,14 @@ import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -112,6 +118,8 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     private TopographyService topographyService;
     @Inject
     private DSLContext dsl;
+    @Inject
+    private ProgramDao programDao;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -1714,6 +1722,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
+    @Order(1)
     public void getProgramsSuccess() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -2114,6 +2123,60 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
         dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);
+    }
+
+    @Test
+    @Order(2)
+    public void getProgramQuery() {
+        dsl.execute(fp.get("InsertManyPrograms"));
+        List<ProgramEntity> allPrograms = programDao.findAll();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs?page=2&pageSize=10&sortField=name&sortOrder=DESC").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(10, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "name", SortOrder.DESC);
+
+        JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals((int) Math.ceil(allPrograms.size()/10.0), pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(allPrograms.size(), pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(2, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    @Order(3)
+    public void searchPrograms() {
+
+        List<ProgramEntity> allPrograms = programDao.findAll();
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilter(new ArrayList<>());
+        searchRequest.getFilter().add(new FilterRequest("name", "program1"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        // Expect 11, program1, program10->program19
+        assertEquals(11, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "name", SortOrder.ASC);
+
+        JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(11, pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
     }
 
     //endregion

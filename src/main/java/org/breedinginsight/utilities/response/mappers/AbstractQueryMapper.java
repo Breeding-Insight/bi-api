@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.metadata;
+package org.breedinginsight.utilities.response.mappers;
 
-import java.lang.annotation.*;
+import java.util.function.Function;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AddMetadata {
+public abstract class AbstractQueryMapper<T> {
+    public abstract boolean exists(String fieldName);
+    public abstract Function<T, ?> getField(String fieldName) throws NullPointerException;
 }

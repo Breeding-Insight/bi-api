@@ -18,10 +18,19 @@
 package org.breedinginsight.api.model.v1.validators;
 
 import io.micronaut.context.annotation.Factory;
+import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.validation.validator.constraints.ConstraintValidator;
 import org.breedinginsight.api.model.v1.request.UserIdRequest;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
 import javax.inject.Singleton;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Factory
 public class ValidatorFactory {
@@ -37,4 +46,47 @@ public class ValidatorFactory {
                 // TODO: check e-mail, make sure same as other validations
                 value != null && (value.getId() != null || (value.getName() != null && value.getEmail() != null));
     }
+
+    @Singleton
+    ConstraintValidator<SearchValid, SearchRequest> searchBodyValidator() {
+        return (value, annotationMetadata, context) -> {
+            Class mapperClass = annotationMetadata.getRequiredValue("using", Class.class);
+            List<FilterRequest> filterFields = value.getFilter();
+            if (filterFields == null) return true;
+            List<String> fields = filterFields.stream().map(FilterRequest::getField).collect(Collectors.toList());
+            return checkMappedFields(fields, mapperClass);
+        };
+    }
+
+    @Singleton
+    ConstraintValidator<QueryValid, QueryParams> mappedFieldValidator() {
+
+        return (value, annotationMetadata, context) -> {
+            Class mapperClass = annotationMetadata.getRequiredValue("using", Class.class);
+            if (value == null || value.getSortField() == null) {
+                return true;
+            } else {
+                return checkMappedFields(List.of(value.getSortField()), mapperClass);
+            }
+        };
+    }
+
+    private static Boolean checkMappedFields(List<String> filterFieldNames, Class mapperClass) {
+
+        AbstractQueryMapper mapper;
+        try {
+            Constructor mapperClassConstructor = mapperClass.getConstructor();
+            mapper = (AbstractQueryMapper) mapperClassConstructor.newInstance();
+        } catch (InstantiationException | InvocationTargetException | NoSuchMethodException | IllegalAccessException e) {
+            throw new HttpServerException("Could not instantiate mapper class");
+        }
+
+        List<String> nonExistFields = filterFieldNames.stream()
+                .filter(fieldName -> !mapper.exists(fieldName))
+                .collect(Collectors.toList());
+
+        return nonExistFields.size() == 0;
+    }
+
+
 }

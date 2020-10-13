@@ -15,11 +15,16 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller.metadata;
+package org.breedinginsight.utilities.response.mappers;
 
-import java.lang.annotation.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface AddMetadata {
+import java.util.function.Function;
+
+@Getter
+@AllArgsConstructor
+public class FilterField {
+    Function field;
+    String value;
 }
