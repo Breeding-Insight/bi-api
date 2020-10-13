@@ -22,6 +22,7 @@ import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
+import org.brapi.client.v2.model.exceptions.HttpNotFoundException;
 import org.brapi.client.v2.modules.core.ProgramsAPI;
 import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 import org.brapi.v2.core.model.BrApiExternalReference;
@@ -124,7 +125,7 @@ public class ProgramDAO extends ProgramDao {
         return new ProgramBrAPIEndpoints();
     }
 
-    public void createProgramBrAPI(Program program, User actingUser) {
+    public void createProgramBrAPI(Program program) {
 
         BrApiExternalReference externalReference = BrApiExternalReference.builder()
                 .referenceID(program.getId().toString())
@@ -152,35 +153,44 @@ public class ProgramDAO extends ProgramDao {
 
     }
 
-    public void updateProgramBrAPI(Program program, User actingUser) {
-
-        ProgramsAPI programsAPI = brAPIProvider.getProgramsAPI(BrAPIClientType.CORE);
+    public void updateProgramBrAPI(Program program) {
 
         ProgramsRequest searchRequest = ProgramsRequest.builder()
                 .externalReferenceID(program.getId().toString())
                 .externalReferenceSource(referenceSource)
                 .build();
 
-        List<BrApiProgram> brApiProgram = new ArrayList<>();
-        try {
-            brApiProgram = programsAPI.getPrograms(searchRequest);
-        } catch (HttpException | APIException e) {
-            throw new HttpServerException("Could not find program in BrAPI service.");
+        // Program goes in all of the clients
+        // TODO: If there is a failure after the first brapi service, roll back all before the failure.
+        List<ProgramsAPI> programsAPIS = brAPIProvider.getAllUniqueProgramsAPI();
+        for (ProgramsAPI programsAPI: programsAPIS){
+
+            // Get existing brapi program
+            List<BrApiProgram> brApiPrograms;
+            try {
+                brApiPrograms = programsAPI.getPrograms(searchRequest);
+            } catch (HttpException | APIException e) {
+                throw new HttpServerException("Could not find program in BrAPI service.");
+            }
+
+            if (brApiPrograms.size() == 0){
+                throw new HttpServerException("Could not find program in BrAPI service.");
+            }
+
+            BrApiProgram brApiProgram = brApiPrograms.get(0);
+
+            //TODO: Need to add archived/not archived when available in brapi
+            brApiProgram.setProgramName(program.getName());
+            brApiProgram.setAbbreviation(program.getAbbreviation());
+            brApiProgram.setCommonCropName(program.getSpecies().getCommonName());
+            brApiProgram.setObjective(program.getObjective());
+
+            try {
+                programsAPI.updateProgram(brApiProgram);
+            } catch (HttpException | APIException e) {
+                throw new HttpServerException("Could not find program in BrAPI service.");
+            }
         }
-
-        // Get BrAPI program by external reference id
-        BrApiExternalReference externalReference = BrApiExternalReference.builder()
-                .referenceID(program.getId().toString())
-                .referenceSource(referenceSource)
-                .build();
-
-        BrApiProgram brApiProgram = BrApiProgram.builder()
-                .programName(program.getName())
-                .abbreviation(program.getAbbreviation())
-                .commonCropName(program.getSpecies().getCommonName())
-                .externalReferences(List.of(externalReference))
-                .objective(program.getObjective())
-                .build();
     }
 
 }

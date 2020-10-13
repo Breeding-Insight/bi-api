@@ -34,6 +34,7 @@ import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.breedinginsight.BrAPITest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -68,7 +69,7 @@ import static org.mockito.Mockito.mock;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProgramControllerIntegrationTest extends DatabaseTest {
+public class ProgramControllerIntegrationTest extends BrAPITest {
 
     private FannyPack fp;
 
