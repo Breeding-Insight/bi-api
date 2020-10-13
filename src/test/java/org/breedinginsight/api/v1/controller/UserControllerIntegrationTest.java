@@ -32,14 +32,21 @@ import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.UserService;
 import org.jooq.DSLContext;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -77,6 +84,8 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     private ProgramDao programDao;
     @Inject
     private ProgramUserRoleDao programUserRoleDao;
+    @Inject
+    private UserService userService;
 
     private BiUserEntity testUser;
     private BiUserEntity otherTestUser;
@@ -940,6 +949,70 @@ public class UserControllerIntegrationTest extends DatabaseTest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
+
+    @Test
+    @Order(9)
+    public void getUsersQuery() {
+        dsl.execute(fp.get("InsertManyUsers"));
+        List<User> allUsers = userService.getAll();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/users?sortField=programs&sortOrder=ASC").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(allUsers.size(), data.size(), "Wrong page size");
+        TestUtils.checkStringListSorting(getPrograms(data), SortOrder.ASC);
+
+        JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(allUsers.size(), pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    @Order(10)
+    public void searchUsers() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilter(new ArrayList<>());
+        searchRequest.getFilter().add(new FilterRequest("programs", "test program2"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/users/search?page=1&pageSize=20&sortField=name&sortOrder=DESC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        // Expect user2, user20->user29
+        assertEquals(11, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "name", SortOrder.DESC);
+    }
+
+    private List<List<String>> getPrograms(JsonArray data) {
+        List<List<String>> roleResults = new ArrayList<>();
+        for (JsonElement el : data) {
+            JsonObject programUser = (JsonObject) el;
+            JsonArray programRoles = programUser.get("programRoles").getAsJsonArray();
+            List<String> userRoles = new ArrayList<>();
+            for (JsonElement roleEl : programRoles) {
+                JsonObject role = (JsonObject) roleEl;
+                userRoles.add(role.get("program").getAsJsonObject().get("name").getAsString());
+            }
+            Collections.sort(userRoles);
+            roleResults.add(userRoles);
+        }
+        return roleResults;
     }
 }
 

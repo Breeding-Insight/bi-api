@@ -33,10 +33,7 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -87,14 +84,15 @@ public class ResponseUtils {
 
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
-            if (sortOrder == SortOrder.ASC) {
-                Collections.sort(data,
-                        Comparator.comparing(field,
-                                Comparator.nullsFirst(Comparator.naturalOrder())));
-            } else {
-                Collections.sort(data,
-                        Comparator.comparing(field,
-                                Comparator.nullsLast(Comparator.reverseOrder())));
+            GenericComparator comparator = new GenericComparator(
+                    Comparator.nullsFirst(Comparator.naturalOrder()));
+
+            Collections.sort(data,
+                    Comparator.comparing(field,
+                            comparator));
+
+            if (sortOrder == SortOrder.DESC) {
+              Collections.reverse(data);
             }
         }
 
@@ -114,6 +112,16 @@ public class ResponseUtils {
                             filterFields.stream().allMatch(filterField -> {
                                 if (filterField.getField().apply(record) == null) {
                                     return false;
+                                } else if (filterField.getField().apply(record) instanceof List ||
+                                        filterField.getField().apply(record) instanceof Object[]){
+
+                                    List recordList = filterField.getField().apply(record) instanceof Object[] ?
+                                            Arrays.asList((Object[]) filterField.getField().apply(record)) :
+                                            ((List) filterField.getField().apply(record));
+
+                                    return recordList.stream()
+                                            .anyMatch(listValue ->
+                                                    listValue.toString().toLowerCase().contains(filterField.getValue().toLowerCase()));
                                 } else {
                                     return filterField.getField().apply(record).toString()
                                             .toLowerCase().contains(filterField.getValue().toLowerCase());

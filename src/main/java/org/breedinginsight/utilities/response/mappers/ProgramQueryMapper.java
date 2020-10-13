@@ -17,7 +17,6 @@
 
 package org.breedinginsight.utilities.response.mappers;
 
-import io.micronaut.context.annotation.Context;
 import lombok.Getter;
 import org.breedinginsight.model.Program;
 
@@ -28,7 +27,6 @@ import java.util.function.Function;
 
 @Getter
 @Singleton
-@Context
 public class ProgramQueryMapper extends AbstractQueryMapper {
 
     private Map<String, Function<Program, ?>> fields;
