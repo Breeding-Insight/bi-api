@@ -105,7 +105,7 @@ public class TraitUploadController {
         Optional<ProgramUpload<Trait>> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
 
         if(programUpload.isPresent()) {
-            return ResponseUtils.getQueryResponse(programUpload.get(), traitQueryMapper, queryParams);
+            return ResponseUtils.getUploadQueryResponse(programUpload.get(), traitQueryMapper, queryParams);
         } else {
             log.info("Trait upload not found");
             return HttpResponse.notFound();
@@ -124,7 +124,7 @@ public class TraitUploadController {
         Optional<ProgramUpload<Trait>> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
 
         if(programUpload.isPresent()) {
-            return ResponseUtils.getQueryResponse(programUpload.get(), traitQueryMapper, searchRequest, queryParams);
+            return ResponseUtils.getUploadQueryResponse(programUpload.get(), traitQueryMapper, searchRequest, queryParams);
         } else {
             log.info("Trait upload not found");
             return HttpResponse.notFound();

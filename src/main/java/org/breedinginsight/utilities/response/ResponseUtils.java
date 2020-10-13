@@ -57,15 +57,15 @@ public class ResponseUtils {
     }
 
     // All
-    public static <T> HttpResponse<Response<ProgramUpload>> getQueryResponse(
+    public static <T> HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
             ProgramUpload upload, AbstractQueryMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {
-        return processSearchResponse(upload, searchRequest, queryParams, mapper, new Metadata());
+        return processUploadSearchResponse(upload, searchRequest, queryParams, mapper, new Metadata());
     }
 
     // Pagination and sort only
-    public static <T> HttpResponse<Response<ProgramUpload>> getQueryResponse(
+    public static <T> HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
             ProgramUpload upload, AbstractQueryMapper mapper, QueryParams queryParams) {
-        return processSearchResponse(upload, null, queryParams, mapper, new Metadata());
+        return processUploadSearchResponse(upload, null, queryParams, mapper, new Metadata());
     }
 
     public static <T> HttpResponse<Response<T>> getSingleResponse(Object data) {
@@ -85,7 +85,7 @@ public class ResponseUtils {
         return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
     }
 
-    private static <T> HttpResponse<Response<ProgramUpload>> processSearchResponse(
+    private static <T> HttpResponse<Response<ProgramUpload>> processUploadSearchResponse(
             ProgramUpload upload, SearchRequest searchRequest, QueryParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
 
         List data = upload.getParsedData();
