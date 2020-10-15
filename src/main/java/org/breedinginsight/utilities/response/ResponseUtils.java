@@ -30,6 +30,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
 
@@ -55,6 +56,18 @@ public class ResponseUtils {
         return processSearchResponse(data, null, queryParams, mapper, new Metadata());
     }
 
+    // All
+    public static HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
+            ProgramUpload upload, AbstractQueryMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {
+        return processUploadSearchResponse(upload, searchRequest, queryParams, mapper, new Metadata());
+    }
+
+    // Pagination and sort only
+    public static HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
+            ProgramUpload upload, AbstractQueryMapper mapper, QueryParams queryParams) {
+        return processUploadSearchResponse(upload, null, queryParams, mapper, new Metadata());
+    }
+
     public static <T> HttpResponse<Response<T>> getSingleResponse(Object data) {
         Metadata metadata = constructMetadata(new Metadata(), new Pagination(1,1,1,1));
         return HttpResponse.ok(new Response(metadata, data));
@@ -70,6 +83,21 @@ public class ResponseUtils {
         Pair<List, Pagination> paginationResult = paginateData(data, queryParams);
         metadata = constructMetadata(metadata, paginationResult.getRight());
         return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
+    }
+
+    private static <T> HttpResponse<Response<ProgramUpload>> processUploadSearchResponse(
+            ProgramUpload upload, SearchRequest searchRequest, QueryParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
+
+        List data = upload.getParsedData();
+        if (searchRequest != null){
+            data = search(data, searchRequest, mapper);
+        }
+
+        data = sort(data, queryParams, mapper);
+        Pair<List, Pagination> paginationResult = paginateData(data, queryParams);
+        metadata = constructMetadata(metadata, paginationResult.getRight());
+        upload.setParsedData(paginationResult.getLeft());
+        return HttpResponse.ok(new Response(metadata, upload));
     }
 
     private static List sort(List data, QueryParams queryParams, AbstractQueryMapper mapper) {

@@ -2405,6 +2405,16 @@ paths:
           explode: false
           schema:
             type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       responses:
         "200":
           description: OK
@@ -2501,6 +2511,65 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /programs/{programId}/trait-upload/search:
+    post:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait upload for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search trait upload
+      description: Search trait upload using filters
+      operationId: searchTraitUpload
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitUploadResponse'
+              examples:
+                traitUploadResponse:
+                  $ref: '#/components/examples/traitUploadData'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
   /health:
     get:
       tags:

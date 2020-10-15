@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -30,25 +31,28 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.jooq.Record;
 
+import java.util.List;
+
 import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 
 @Getter
 @Setter
 @Accessors(chain=true)
 @ToString
-@SuperBuilder
 @NoArgsConstructor
+@SuperBuilder(builderMethodName = "uploadBuilder")
 @JsonIgnoreProperties(value = { "createdBy", "updatedBy", "programId", "userId", "id"})
-public class ProgramUpload extends BatchUploadEntity {
+public class ProgramUpload<T> extends BatchUploadEntity {
 
     private Program program;
     private User user;
     private User createdByUser;
     private User updatedByUser;
-
-    // JSONB not working with jackson
     @JsonProperty("data")
     @JsonInclude(JsonInclude.Include.ALWAYS)
+    private List<T> parsedData;
+
+    @JsonIgnore
     public Trait[] getDataJson() throws JsonProcessingException {
         ObjectMapper objMapper = new ObjectMapper();
         return objMapper.readValue(super.getData().data(), Trait[].class);
@@ -66,21 +70,19 @@ public class ProgramUpload extends BatchUploadEntity {
         this.setUpdatedBy(uploadEntity.getUpdatedBy());
     }
 
-    public static ProgramUpload parseSQLRecord(Record record) {
+    public static <T> ProgramUpload<T> parseSQLRecord(Record record) {
 
-        ProgramUpload upload = ProgramUpload.builder()
-                .id(record.getValue(BATCH_UPLOAD.ID))
-                .programId(record.getValue(BATCH_UPLOAD.PROGRAM_ID))
-                .userId(record.getValue(BATCH_UPLOAD.USER_ID))
-                .data(record.getValue(BATCH_UPLOAD.DATA))
-                .type(record.getValue(BATCH_UPLOAD.TYPE))
-                .createdAt(record.getValue(BATCH_UPLOAD.CREATED_AT))
-                .updatedAt(record.getValue(BATCH_UPLOAD.UPDATED_AT))
-                .createdBy(record.getValue(BATCH_UPLOAD.CREATED_BY))
-                .updatedBy(record.getValue(BATCH_UPLOAD.UPDATED_BY))
-                .build();
-
-        return upload;
+        return ProgramUpload.<T>uploadBuilder()
+                    .id(record.getValue(BATCH_UPLOAD.ID))
+                    .programId(record.getValue(BATCH_UPLOAD.PROGRAM_ID))
+                    .userId(record.getValue(BATCH_UPLOAD.USER_ID))
+                    .data(record.getValue(BATCH_UPLOAD.DATA))
+                    .type(record.getValue(BATCH_UPLOAD.TYPE))
+                    .createdAt(record.getValue(BATCH_UPLOAD.CREATED_AT))
+                    .updatedAt(record.getValue(BATCH_UPLOAD.UPDATED_AT))
+                    .createdBy(record.getValue(BATCH_UPLOAD.CREATED_BY))
+                    .updatedBy(record.getValue(BATCH_UPLOAD.UPDATED_BY))
+                    .build();
     }
 
 }
