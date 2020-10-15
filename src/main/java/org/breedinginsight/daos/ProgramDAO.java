@@ -138,6 +138,7 @@ public class ProgramDAO extends ProgramDao {
                 .commonCropName(program.getSpecies().getCommonName())
                 .externalReferences(List.of(externalReference))
                 .objective(program.getObjective())
+                .documentationURL(program.getDocumentationUrl())
                 .build();
 
         // POST programs to each brapi service
@@ -184,6 +185,7 @@ public class ProgramDAO extends ProgramDao {
             brApiProgram.setAbbreviation(program.getAbbreviation());
             brApiProgram.setCommonCropName(program.getSpecies().getCommonName());
             brApiProgram.setObjective(program.getObjective());
+            brApiProgram.setDocumentationURL(program.getDocumentationUrl());
 
             try {
                 programsAPI.updateProgram(brApiProgram);
