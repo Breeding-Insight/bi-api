@@ -16,6 +16,11 @@
  * limitations under the License.
  */
 
+-- name: InsertOtherProgram
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
+select species.id, 'Other Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+join bi_user on bi_user.name = 'Test User' limit 1
+
 -- name: DeleteProgram
 delete from program_ontology where program_id = ?::uuid;
 delete from program_observation_level where program_id = ?::uuid;
