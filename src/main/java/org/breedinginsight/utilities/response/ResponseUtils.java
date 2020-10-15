@@ -57,13 +57,13 @@ public class ResponseUtils {
     }
 
     // All
-    public static <T> HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
+    public static HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
             ProgramUpload upload, AbstractQueryMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {
         return processUploadSearchResponse(upload, searchRequest, queryParams, mapper, new Metadata());
     }
 
     // Pagination and sort only
-    public static <T> HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
+    public static HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
             ProgramUpload upload, AbstractQueryMapper mapper, QueryParams queryParams) {
         return processUploadSearchResponse(upload, null, queryParams, mapper, new Metadata());
     }
