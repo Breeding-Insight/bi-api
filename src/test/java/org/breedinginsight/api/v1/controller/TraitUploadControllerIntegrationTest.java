@@ -193,6 +193,24 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     }
 
     @Test
+    void putTraitUploadUnsupportedMimeTypePdf() {
+        File file = new File("src/test/resources/files/pdf_file.pdf");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getStatus());
+    }
+
+    @Test
+    void putTraitUploadUnsupportedMaskedAsSupportedMimeType() {
+        File file = new File("src/test/resources/files/pdf_file_masked_as_csv.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getStatus());
+    }
+
+    @Test
     void putTraitUploadMissingRequiredColumn() {
         File file = new File("src/test/resources/files/missing_method_name_with_data.csv");
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {

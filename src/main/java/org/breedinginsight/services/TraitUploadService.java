@@ -23,29 +23,31 @@ import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.BOMInputStream;
+import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.ProgramUpload;
-import org.breedinginsight.services.constants.MediaType;
+import org.breedinginsight.services.constants.SupportedMediaType;
 import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.util.Optional;
 import java.util.UUID;
 
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.JSONB;
 
-import java.io.IOException;
 import java.util.*;
 
 @Slf4j
@@ -59,11 +61,12 @@ public class TraitUploadService {
     private TraitValidatorService traitValidator;
     private TraitFileValidatorError traitValidatorError;
     private TraitService traitService;
+    private MimeTypeParser mimeTypeParser;
 
     @Inject
     public TraitUploadService(ProgramUploadDAO programUploadDAO, ProgramService programService, ProgramUserService programUserService,
                               TraitFileParser traitFileParser, TraitValidatorService traitValidator, TraitFileValidatorError traitFileValidatorError,
-                              TraitService traitService){
+                              TraitService traitService, MimeTypeParser mimeTypeParser){
         this.programUploadDao = programUploadDAO;
         this.programService = programService;
         this.programUserService = programUserService;
@@ -71,6 +74,7 @@ public class TraitUploadService {
         this.traitValidator = traitValidator;
         this.traitValidatorError = traitFileValidatorError;
         this.traitService = traitService;
+        this.mimeTypeParser = mimeTypeParser;
     }
     @Inject
     private ObjectMapper objMapper;
@@ -87,20 +91,24 @@ public class TraitUploadService {
             throw new AuthorizationException("User not in program");
         }
 
-        Optional<io.micronaut.http.MediaType> type = file.getContentType();
-        io.micronaut.http.MediaType mediaType = type.orElseThrow(() -> new UnsupportedTypeException("File upload must have a mime type"));
+        MediaType mediaType;
+        try {
+            mediaType = mimeTypeParser.getMimeType(file);
+        } catch (IOException e){
+            throw new HttpBadRequestException("Could not determine file type");
+        }
 
         List<Trait> traits;
 
-        if (mediaType.getName().equals(MediaType.CSV)) {
+        if (mediaType.toString().equals(SupportedMediaType.CSV)) {
             try {
                 traits = parser.parseCsv(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
                 throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
             }
-        } else if (mediaType.getName().equals(MediaType.XLS) ||
-                   mediaType.getName().equals(MediaType.XLSX)) {
+        } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
+                   mediaType.toString().equals(SupportedMediaType.XLSX)) {
             try {
                 traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {

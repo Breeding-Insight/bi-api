@@ -61,36 +61,6 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
 
     private ListAppender<ILoggingEvent> loggingEventListAppender;
 
-    @Inject
-    private ProgramService programService;
-    @Inject
-    private ProgramController programController;
-    @Inject
-    private CountryService countryService;
-    @Inject
-    private CountryController countryController;
-    @Inject
-    private AccessibilityService accessibilityService;
-    @Inject
-    private AccessibilityController accessibilityController;
-    @Inject
-    private TopographyService topographyService;
-    @Inject
-    private TopographyController topographyController;
-    @Inject
-    private EnvironmentTypeService environmentTypeService;
-    @Inject
-    private EnvironmentTypeController environmentTypeController;
-
-    @Inject
-    @Client("/${micronaut.bi.api.version}")
-    private RxHttpClient client;
-
-    @MockBean(ProgramController.class)
-    ProgramController programController() {
-        return mock(ProgramController.class);
-    }
-
     @MockBean(ProgramService.class)
     ProgramService programService() {
         return mock(ProgramService.class);
@@ -136,6 +106,29 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         return mock(EnvironmentTypeService.class);
     }
 
+    @Inject
+    private ProgramService programService;
+    @Inject
+    private CountryService countryService;
+    @Inject
+    private CountryController countryController;
+    @Inject
+    private AccessibilityService accessibilityService;
+    @Inject
+    private AccessibilityController accessibilityController;
+    @Inject
+    private TopographyService topographyService;
+    @Inject
+    private TopographyController topographyController;
+    @Inject
+    private EnvironmentTypeService environmentTypeService;
+    @Inject
+    private EnvironmentTypeController environmentTypeController;
+
+    @Inject
+    @Client("/${micronaut.bi.api.version}")
+    private RxHttpClient client;
+
     @BeforeEach
     void setupErrorLogger() {
 
@@ -145,29 +138,6 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         loggingEventListAppender.start();
         logger.addAppender(loggingEventListAppender);
         this.loggingEventListAppender = loggingEventListAppender;
-    }
-
-    @Test
-    public void getProgramsInternalServerError() {
-
-        when(programController.getPrograms(any(QueryParams.class))).thenThrow(new DataAccessException("Query 123 failed"));
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
-
-        // Check that we can find our error id in logs
-        String errorId = e.getResponse().body().toString();
-        ILoggingEvent loggingEvent = loggingEventListAppender.list.get(0);
-        assertEquals(Level.ERROR, loggingEvent.getLevel(), "Wrong logging level was used");
-        assertEquals(errorId, loggingEvent.getMessage(), "Id returned doesn't match logging id");
-
     }
 
     @Test

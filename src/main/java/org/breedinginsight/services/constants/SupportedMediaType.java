@@ -16,7 +16,7 @@
  */
 package org.breedinginsight.services.constants;
 
-public class MediaType {
+public class SupportedMediaType {
 
     public static final String CSV = "text/csv";
     public static final String XLS = "application/vnd.ms-excel";
