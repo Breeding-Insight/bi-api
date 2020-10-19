@@ -57,6 +57,9 @@ micronaut:
             jwks-uri: ${oauth.openId.jwksUri:`https://sandbox.orcid.org/oauth/jwks`}
             user-info:
               url: ${oauth.openId.userInfoUrl:`https://sandbox.orcid.org/oauth/userinfo`}
+      state:
+        cookie:
+          cookie-max-age: 10m
     token:
       jwt:
         enabled: true
@@ -117,6 +120,8 @@ web:
       url: ${web.base-url:`http://localhost:8080`}/program-selection
     failure:
       url: ${web.base-url:`http://localhost:8080`}/401
+    error:
+      url: ${web.base-url:`http://localhost:8080`}?loginError=true
   logout:
     url: ${web.base-url:`http://localhost:8080`}
 
