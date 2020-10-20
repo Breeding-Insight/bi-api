@@ -51,10 +51,13 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
-    @Inject
-    private UserService userService;
     @Property(name = "web.cookies.login-redirect")
     private String loginSuccessUrlCookieName;
+    @Property(name = "web.login.error.url")
+    private String loginErrorUrl;
+
+    @Inject
+    private UserService userService;
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -83,8 +86,8 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             }
         }
 
-        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.UNKNOWN);
-        return super.loginFailed(authenticationFailed);
+        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
+        return loginFailed(authenticationFailed);
     }
 
     @Override
@@ -131,7 +134,19 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     public HttpResponse loginFailed(AuthenticationFailed authenticationFailed) {
         // If we want to hook code into the login process in the future we can put it here, for now just
         // passes through to JwtCookieLoginHandler
-        return super.loginFailed(authenticationFailed);
+
+        try {
+            URI location;
+            if (authenticationFailed.getReason().equals(AuthenticationFailureReason.USER_NOT_FOUND)){
+                location = new URI(jwtCookieConfiguration.getLoginFailureTargetUrl());
+            } else {
+                location = new URI(loginErrorUrl);
+            }
+
+            return HttpResponse.seeOther(location);
+        } catch (URISyntaxException e) {
+            return HttpResponse.serverError();
+        }
     }
 
     private Boolean isValidURL(String urlString) {
