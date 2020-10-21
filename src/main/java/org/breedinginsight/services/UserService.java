@@ -17,9 +17,14 @@
 
 package org.breedinginsight.services;
 
+import com.nimbusds.jose.*;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
+import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.HttpServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.request.OrcidRequest;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -43,12 +48,21 @@ import org.jooq.impl.DSL;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import java.time.Duration;
+import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class UserService {
+
+    @Property(name = "micronaut.security.token.jwt.signatures.secret.generator.secret")
+    private String jwtSecret;
+    @Property(name = "micronaut.security.token.jwt.signatures.secret.generator.jws-algorithm")
+    private JWSAlgorithm jwsAlgorithm;
+    @Property(name = "account.new-account.url-timeout")
+    private Duration jwtDuration;
 
     @Inject
     private UserDAO dao;
@@ -116,6 +130,8 @@ public class UserService {
                     insertSystemRoles(actingUser, newUser.getId(), systemRoles);
                 }
 
+                // Start OrcID association flow
+                createAndSendAccountToken(newUser.getId());
 
                 return getById(newUser.getId()).get();
             });
@@ -297,10 +313,7 @@ public class UserService {
         return dao.existsById(id);
     }
 
-    //TODO: Remove once registration flow is complete
-    public User updateOrcid(AuthenticatedUser activeUser, UUID userId, OrcidRequest orcidRequest) throws DoesNotExistException, AlreadyExistsException {
-
-        // This is a temporary fix so any authenticated user is able to update any users orcid.
+    public void createAndSendAccountToken(UUID userId) throws DoesNotExistException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -308,15 +321,39 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcidRequest.getOrcid());
-        for (BiUserEntity biUserWithOrcid: biUserWithOrcidList){
-            if (!biUserWithOrcid.getId().equals(userId)){
-                throw new AlreadyExistsException("Orcid already in use");
-            }
+        // Create new account token
+        JWSSigner signer;
+        try {
+            signer = new MACSigner(jwtSecret);
+        } catch (KeyLengthException e) {
+            throw new HttpServerException(e.getMessage());
         }
 
-        biUser.setOrcid(orcidRequest.getOrcid());
+        // Send user id as payload so we know who to check later
+        Long expirationTime = new Date().getTime() + jwtDuration.toMillis();
+        String jwtId = UUID.randomUUID().toString();
+
+        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
+                .jwtID(jwtId)
+                .claim("uid", userId)
+                .expirationTime(new Date(expirationTime))
+                .build();
+
+        SignedJWT jwt = new SignedJWT(new JWSHeader(jwsAlgorithm), claimsSet);
+
+        try {
+            jwt.sign(signer);
+        } catch (JOSEException e) {
+            throw new HttpServerException(e.getMessage());
+        }
+
+        String jwtString = jwt.serialize();
+
+        // Save new account token
+        biUser.setAccountToken(jwtId);
         dao.update(biUser);
-        return new User(dao.fetchOneById(userId));
+
+        //TODO: Send new account token
+
     }
 }

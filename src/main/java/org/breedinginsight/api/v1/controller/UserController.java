@@ -26,7 +26,6 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
-import org.breedinginsight.api.model.v1.request.OrcidRequest;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
@@ -205,26 +204,16 @@ public class UserController {
         }
     }
 
-    //TODO: Remove once registration flow is implemented.
-    // Endpoint not in the api docs. This will be removed in v0.2
-    @Put("/users/{userId}/orcid")
+    @Put("users/{userId}/resend_email")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<User>> updateUser(@PathVariable UUID userId, @Body @Valid OrcidRequest orcidRequest) {
-
+    @Secured({"ADMIN"})
+    public HttpResponse resendWelcomeEmail(@PathVariable UUID userId) {
         try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            User user = userService.updateOrcid(actingUser, userId, orcidRequest);
-            Response<User> response = new Response<>(user);
-            return HttpResponse.ok(response);
+            userService.createAndSendAccountToken(userId);
+            return HttpResponse.ok();
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        } catch (AlreadyExistsException e){
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         }
     }
-
 }
