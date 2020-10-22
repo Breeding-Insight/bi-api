@@ -17,14 +17,18 @@
 package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.services.TokenService;
 
 import javax.inject.Inject;
@@ -43,16 +47,20 @@ public class TokenController {
         this.tokenService = tokenService;
     }
 
-    @Get("/token")
+    @Get("/api-token")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse token() {
+    public HttpResponse apiToken() {
 
         AuthenticatedUser actingUser = securityService.getUser();
-        Optional<String> token = tokenService.generateApiToken(actingUser);
+        Optional<ApiToken> token = tokenService.generateApiToken(actingUser);
 
         if(token.isPresent()) {
-            Response<String> response = new Response(token.get());
-            return HttpResponse.ok(response);
+            Response<ApiToken> response = new Response(token.get());
+            return HttpResponse.ok(response)
+                    .header("Cache-Control","no-store")
+                    .header("Pragma", "no-cache");
         } else {
             return HttpResponse.serverError();
         }

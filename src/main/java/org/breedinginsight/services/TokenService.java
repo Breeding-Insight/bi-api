@@ -20,6 +20,7 @@ import io.micronaut.security.token.jwt.render.AccessRefreshToken;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.ApiAccessRefreshTokenGenerator;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.model.ApiToken;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,12 +37,12 @@ public class TokenService {
         this.apiAccessRefreshTokenGenerator = apiAccessRefreshTokenGenerator;
     }
 
-    public Optional<String> generateApiToken(AuthenticatedUser user) {
+    public Optional<ApiToken> generateApiToken(AuthenticatedUser user) {
 
         Optional<AccessRefreshToken> tokenOptional = this.apiAccessRefreshTokenGenerator.generate(user);
 
         if (tokenOptional.isPresent()) {
-            return Optional.of(tokenOptional.get().getAccessToken());
+            return Optional.of(ApiToken.builder().accessToken(tokenOptional.get().getAccessToken()).build());
         }
         else {
             return Optional.empty();
