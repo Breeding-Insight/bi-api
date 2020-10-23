@@ -198,7 +198,6 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 userService.updateOrcid(newUser.getId(), orcid);
             } catch (DoesNotExistException e) {
                 HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
-                resp.setAttribute(NEW_ACCOUNT_ERROR_ATTRIBUTE, "404");
                 return resp;
             } catch (AlreadyExistsException e) {
                 HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
