@@ -25,6 +25,7 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -57,13 +58,6 @@ import java.util.stream.Collectors;
 @Singleton
 public class UserService {
 
-    @Property(name = "micronaut.security.token.jwt.signatures.secret.generator.secret")
-    private String jwtSecret;
-    @Property(name = "micronaut.security.token.jwt.signatures.secret.generator.jws-algorithm")
-    private JWSAlgorithm jwsAlgorithm;
-    @Property(name = "account.new-account.url-timeout")
-    private Duration jwtDuration;
-
     @Inject
     private UserDAO dao;
     @Inject
@@ -74,6 +68,8 @@ public class UserService {
     private ProgramUserDAO programUserDAO;
     @Inject
     private DSLContext dsl;
+    @Inject
+    private SignUpJwtService signUpJwtService;
 
     public Optional<User> getByOrcid(String orcid) {
 
@@ -321,39 +317,35 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        // Create new account token
-        JWSSigner signer;
-        try {
-            signer = new MACSigner(jwtSecret);
-        } catch (KeyLengthException e) {
-            throw new HttpServerException(e.getMessage());
-        }
-
-        // Send user id as payload so we know who to check later
-        Long expirationTime = new Date().getTime() + jwtDuration.toMillis();
-        String jwtId = UUID.randomUUID().toString();
-
-        JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
-                .jwtID(jwtId)
-                .claim("uid", userId)
-                .expirationTime(new Date(expirationTime))
-                .build();
-
-        SignedJWT jwt = new SignedJWT(new JWSHeader(jwsAlgorithm), claimsSet);
-
-        try {
-            jwt.sign(signer);
-        } catch (JOSEException e) {
-            throw new HttpServerException(e.getMessage());
-        }
-
-        String jwtString = jwt.serialize();
+        SignUpJWT jwt = signUpJwtService.generateNewAccountJWT(userId);
 
         // Save new account token
-        biUser.setAccountToken(jwtId);
+        biUser.setAccountToken(jwt.getJwtId().toString());
         dao.update(biUser);
 
         //TODO: Send new account token
-
+        String jwtString = jwt.getSignedJWT().serialize();
+        return;
     }
+
+    public void updateOrcid(UUID userId, String orcid) throws DoesNotExistException, AlreadyExistsException {
+
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcid);
+        for (BiUserEntity biUserWithOrcid: biUserWithOrcidList){
+            if (!biUserWithOrcid.getId().equals(userId)){
+                throw new AlreadyExistsException("Orcid already in use");
+            }
+        }
+
+        biUser.setOrcid(orcid);
+        biUser.setAccountToken(null);
+        dao.update(biUser);
+    }
+
 }

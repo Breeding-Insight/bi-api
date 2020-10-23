@@ -115,6 +115,7 @@ web:
   base-url: ${web.base-url}
   cookies:
     login-redirect: redirect-login
+    account-token: account-token
   login:
     success:
       url: ${web.base-url:`http://localhost:8080`}/program-selection
