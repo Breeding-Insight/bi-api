@@ -17,11 +17,6 @@
 
 package org.breedinginsight.api.auth;
 
-import com.nimbusds.jose.JOSEException;
-import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.MACVerifier;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
@@ -29,7 +24,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
-import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationFailureReason;
 import io.micronaut.security.authentication.UserDetails;
@@ -37,8 +31,6 @@ import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
-import io.micronaut.security.token.jwt.validator.GenericJwtClaimsValidator;
-import io.micronaut.security.token.jwt.validator.JwtClaimsValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.model.SystemRole;
@@ -54,8 +46,6 @@ import javax.inject.Singleton;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.text.ParseException;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -64,12 +54,18 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
+    private String NEW_ACCOUNT_ERROR_ATTRIBUTE = "error";
+
     @Property(name = "web.cookies.login-redirect")
     private String loginSuccessUrlCookieName;
     @Property(name = "web.cookies.account-token")
     private String accountTokenCookieName;
     @Property(name = "web.login.error.url")
     private String loginErrorUrl;
+    @Property(name = "web.signup.success.url")
+    private String newAccountSuccessUrl;
+    @Property(name = "web.signup.error.url")
+    private String newAccountErrorUrl;
 
     @Inject
     private UserService userService;
@@ -180,17 +176,20 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         } catch (JwtValidationException e) {
             log.error(e.getMessage());
             // Return them to an error page
-            return HttpResponse.seeOther(URI.create("http://localhost:8080/account-error"));
+            HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            return resp;
         }
 
         // Query db and check that jwt id is valid
         Optional<User> user = userService.getById(signUpJWT.getUserId());
         if (!user.isPresent()) {
-            return HttpResponse.seeOther(URI.create("http://localhost:8080/account-error"));
+            HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            return resp;
         }
         User newUser = user.get();
         if (newUser.getAccountToken() == null){
-            return HttpResponse.seeOther(URI.create("http://localhost:8080/account-error"));
+            HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            return resp;
         }
 
         if (newUser.getAccountToken().equals(signUpJWT.getJwtId().toString())) {
@@ -198,16 +197,20 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             try {
                 userService.updateOrcid(newUser.getId(), orcid);
             } catch (DoesNotExistException e) {
-                return HttpResponse.seeOther(URI.create("http://localhost:8080/account-error?error=404"));
+                HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+                resp.setAttribute(NEW_ACCOUNT_ERROR_ATTRIBUTE, "404");
+                return resp;
             } catch (AlreadyExistsException e) {
-                return HttpResponse.seeOther(URI.create("http://localhost:8080/account-error?error=409"));
+                HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+                resp.setAttribute(NEW_ACCOUNT_ERROR_ATTRIBUTE, "409");
+                return resp;
             }
 
             // Redirect user to account creation success page
-            return HttpResponse.seeOther(URI.create("http://localhost:8080/account-success"));
+            return HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
         } else {
             // JWT ID did not match
-            return HttpResponse.seeOther(URI.create("http://localhost:8080/account-error"));
+            return HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
         }
     }
 

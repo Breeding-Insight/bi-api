@@ -17,12 +17,7 @@
 
 package org.breedinginsight.services;
 
-import com.nimbusds.jose.*;
-import com.nimbusds.jose.crypto.MACSigner;
-import com.nimbusds.jwt.JWTClaimsSet;
-import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.context.annotation.Property;
-import io.micronaut.http.server.exceptions.HttpServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
@@ -49,14 +44,17 @@ import org.jooq.impl.DSL;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import java.time.Duration;
-import java.time.temporal.TemporalUnit;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class UserService {
+
+    @Property(name = "web.signup.signup.url")
+    private String newAccountSignupUrl;
+    @Property(name = "web.cookies.account-token")
+    private String accountTokenCookieName;
 
     @Inject
     private UserDAO dao;
@@ -323,9 +321,10 @@ public class UserService {
         biUser.setAccountToken(jwt.getJwtId().toString());
         dao.update(biUser);
 
-        //TODO: Send new account token
+        //TODO: Send new account token in an email
         String jwtString = jwt.getSignedJWT().serialize();
-        return;
+        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtString);
+        log.info(String.format("New Sign Up Url for %s: %s", biUser.getName(), signUpUrl));
     }
 
     public void updateOrcid(UUID userId, String orcid) throws DoesNotExistException, AlreadyExistsException {

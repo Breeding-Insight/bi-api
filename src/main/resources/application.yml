@@ -125,6 +125,14 @@ web:
       url: ${web.base-url:`http://localhost:8080`}?loginError=true
   logout:
     url: ${web.base-url:`http://localhost:8080`}
+  signup:
+    url-timeout: 60m
+    signup:
+      url: ${web.base-url:`http://localhost:8080`}/signup
+    success:
+      url: ${web.base-url:`http://localhost:8080`}/account-success
+    error:
+      url: ${web.base-url:`http://localhost:8080`}/account-error
 
 brapi:
   server:
@@ -133,6 +141,4 @@ brapi:
     geno-url: ${brapi.server.geno-url}
     reference-source: ${brapi.server.reference-source}
 
-account:
-  new-account:
-    url-timeout: 60m
+

@@ -42,7 +42,7 @@ public class SignUpJwtService {
     private String jwtSecret;
     @Property(name = "micronaut.security.token.jwt.signatures.secret.generator.jws-algorithm")
     private JWSAlgorithm jwsAlgorithm;
-    @Property(name = "account.new-account.url-timeout")
+    @Property(name = "web.signup.url-timeout")
     private Duration jwtDuration;
 
     // Returns
