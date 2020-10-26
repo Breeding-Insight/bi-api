@@ -141,4 +141,10 @@ brapi:
     geno-url: ${brapi.server.geno-url}
     reference-source: ${brapi.server.reference-source}
 
+email:
+  relay-server:
+    host: ${email.relay-server.host}
+    port: ${email.relay-server.port}
+  from: ${email.from}
+
 

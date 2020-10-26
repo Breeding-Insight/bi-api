@@ -86,6 +86,20 @@ services:
       backend:
         aliases:
           - brapiserver
+  mail:
+    image: namshi/smtp
+    container_name: mail
+    restart: always
+    ports:
+      - ${EMAIL_RELAY_PORT}:25
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: always
+    ports:
+      - 1025:1025
+      - 8025:8025
+
 
 networks:
   backend:

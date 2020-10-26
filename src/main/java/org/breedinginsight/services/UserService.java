@@ -36,6 +36,7 @@ import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.email.EmailUtil;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -68,6 +69,8 @@ public class UserService {
     private DSLContext dsl;
     @Inject
     private SignUpJwtService signUpJwtService;
+    @Inject
+    EmailUtil emailUtil;
 
     public Optional<User> getByOrcid(String orcid) {
 
@@ -323,8 +326,8 @@ public class UserService {
 
         //TODO: Send new account token in an email
         String jwtString = jwt.getSignedJWT().serialize();
-        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtString);
-        log.info(String.format("New Sign Up Url for %s: %s", biUser.getName(), signUpUrl));
+        log.info(String.format("New Sign Up Url for %s: %s", biUser.getName(), jwtString));
+        emailUtil.sendAccountSignUpEmail(biUser, jwtString);
     }
 
     public void updateOrcid(UUID userId, String orcid) throws DoesNotExistException, AlreadyExistsException {

@@ -200,8 +200,8 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
                 return resp;
             } catch (AlreadyExistsException e) {
-                HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
-                resp.setAttribute(NEW_ACCOUNT_ERROR_ATTRIBUTE, "409");
+                String url = String.format("%s?%s=409", newAccountErrorUrl, NEW_ACCOUNT_ERROR_ATTRIBUTE);
+                HttpResponse resp = HttpResponse.seeOther(URI.create(url));
                 return resp;
             }
 
