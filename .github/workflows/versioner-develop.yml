@@ -14,13 +14,13 @@ jobs:
       - name: Update version
         run: sed -i -E "s/version=(v[0-9]*\.[0-9]*\.[0-9]*).*/version=\1+${{ github.run_number }}/" src/main/resources/version.properties
       - name: Update version info
-        run: sed -i -E "s/versionInfo=(http.*\/).*/versionInfo=\1${{ github.sha }}/" src/main/resources/version.properties
+        run: sed -i -E "s~versionInfo=.*~versionInfo=https://github.com/Breeding-Insight/bi-api/commit/${{ github.sha }}~" src/main/resources/version.properties
       - name: Commit version.properties
         run: |
           git config --local user.email "bidevteam@cornell.edu"
           git config --local user.name "rob-ouser-bi"
           git add .
-          git commit -m "bumping build # of version info"
+          git commit -m "[autocommit] bumping build number"
       - name: Push changes
         uses: ad-m/github-push-action@v0.6.0
         with:
