@@ -17,12 +17,11 @@
 
 package org.breedinginsight.utilities.email;
 
+import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.stringtemplate.v4.ST;
-import org.stringtemplate.v4.STGroupDir;
-import org.stringtemplate.v4.STRawGroupDir;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,6 +32,7 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
+import java.time.Duration;
 import java.util.Date;
 import java.util.Properties;
 
@@ -49,6 +49,8 @@ public class EmailUtil {
     private String newAccountSignupUrl;
     @Property(name = "web.cookies.account-token")
     private String accountTokenCookieName;
+    @Property(name = "web.signup.url-timeout")
+    private Duration jwtDuration;
 
     @Inject
     EmailTemplates emailTemplates;
@@ -71,8 +73,7 @@ public class EmailUtil {
             msg.addHeader("format", "flowed");
             msg.addHeader("Content-Transfer-Encoding", "8bit");
 
-            //TODO: What is the personal attirbute?
-            msg.setFrom(new InternetAddress(fromEmail, "NoReply-JD"));
+            msg.setFrom(new InternetAddress(fromEmail, "NoReply-BI"));
             msg.setReplyTo(InternetAddress.parse(fromEmail, false));
 
             msg.setSubject(subject, "UTF-8");
@@ -82,29 +83,32 @@ public class EmailUtil {
 
             msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
             Transport.send(msg);
-            //TODO: Maybe send an email on startup to test our email service is working?
         }
         catch (UnsupportedEncodingException | MessagingException e) {
             throw new HttpServerException(e.getMessage());
         }
     }
 
-    public void sendAccountSignUpEmail(BiUserEntity user, String jwtToken) {
+    public void sendAccountSignUpEmail(BiUserEntity user, SignedJWT jwtToken) {
 
         // Get email template
         ST emailTemplate = emailTemplates.getNewSignupTemplate();
 
         // Fill in user info
-        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtToken);
+        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtToken.serialize());
         emailTemplate.add("user_name", user.getName());
         emailTemplate.add("new_signup_link", signUpUrl);
-        //TODO: Make this not hardcoded
-        emailTemplate.add("expiration_time", "1 hour");
+
+        String expirationTime;
+        if (jwtDuration.toHours() < 1) {expirationTime = jwtDuration.toMinutes() + " minutes";}
+        else if (jwtDuration.toHours() == 1) {expirationTime = jwtDuration.toHours() + " hour";}
+        else {expirationTime = jwtDuration.toHours() + " hours";}
+        emailTemplate.add("expiration_time", expirationTime);
+
         String filledBody = emailTemplate.render();
         String subject = "New Account Sign Up";
 
         // Send email
         sendEmail(user.getEmail(), subject, filledBody);
-
     }
 }

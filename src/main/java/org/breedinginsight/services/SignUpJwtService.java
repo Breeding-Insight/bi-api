@@ -25,7 +25,6 @@ import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.services.exceptions.JwtValidationException;
 
@@ -74,7 +73,6 @@ public class SignUpJwtService {
         }
 
         // Get the user id and the jwt id
-        // TODO: Check if jwtId could possibly be null here
         if (!claims.containsKey("uid")){
             throw new JwtValidationException("UUID missing");
         }

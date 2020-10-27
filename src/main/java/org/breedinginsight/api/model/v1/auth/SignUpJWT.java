@@ -18,7 +18,6 @@
 package org.breedinginsight.api.model.v1.auth;
 
 import com.nimbusds.jwt.SignedJWT;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
