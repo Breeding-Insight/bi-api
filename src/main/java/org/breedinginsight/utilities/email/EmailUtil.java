@@ -24,6 +24,7 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.stringtemplate.v4.ST;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -52,8 +53,12 @@ public class EmailUtil {
     @Property(name = "web.signup.url-timeout")
     private Duration jwtDuration;
 
+    private EmailTemplates emailTemplates;
+
     @Inject
-    EmailTemplates emailTemplates;
+    public EmailUtil(EmailTemplates emailTemplates) {
+        this.emailTemplates = emailTemplates;
+    }
 
     private Session getSmtpHost() {
         Properties props = new Properties();

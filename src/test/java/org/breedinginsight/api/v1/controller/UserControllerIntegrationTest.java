@@ -19,8 +19,10 @@ package org.breedinginsight.api.v1.controller;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 import com.google.gson.*;
+import com.nimbusds.jwt.SignedJWT;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.*;
 import io.micronaut.http.client.RxHttpClient;
@@ -28,6 +30,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
@@ -41,10 +44,12 @@ import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
+import org.breedinginsight.utilities.email.EmailUtil;
 import org.jooq.DSLContext;
 import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import javax.inject.Inject;
+import javax.inject.Named;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -86,6 +91,10 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     private ProgramUserRoleDao programUserRoleDao;
     @Inject
     private UserService userService;
+    // Micronaut is naming this mock under 'orcid' for some reason...
+    @Named("")
+    @MockBean(bean = EmailUtil.class)
+    EmailUtil emailUtil() { return mock(EmailUtil.class); }
 
     private BiUserEntity testUser;
     private BiUserEntity otherTestUser;
@@ -93,7 +102,10 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @BeforeAll
-    void setup() throws Exception {
+    void setup() {
+
+        // Skip our emails
+        doNothing().when(emailUtil()).sendAccountSignUpEmail(any(BiUserEntity.class), any(SignedJWT.class));
 
         // Insert our traits into the db
         dsl.execute(fp.get("InsertProgram"));

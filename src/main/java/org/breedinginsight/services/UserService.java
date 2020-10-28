@@ -42,6 +42,7 @@ import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import java.util.*;
@@ -51,20 +52,26 @@ import java.util.stream.Collectors;
 @Singleton
 public class UserService {
 
-    @Inject
     private UserDAO dao;
-    @Inject
     private SystemUserRoleDao systemUserRoleDao;
-    @Inject
     private SystemRoleDao systemRoleDao;
-    @Inject
     private ProgramUserDAO programUserDAO;
-    @Inject
     private DSLContext dsl;
-    @Inject
     private SignUpJwtService signUpJwtService;
+    private EmailUtil emailUtil;
+
     @Inject
-    EmailUtil emailUtil;
+    public UserService(UserDAO dao, SystemUserRoleDao systemUserRoleDao, SystemRoleDao systemRoleDao,
+                       ProgramUserDAO programUserDAO, DSLContext dsl, SignUpJwtService signUpJwtService,
+                       EmailUtil emailUtil) {
+        this.dao = dao;
+        this.systemUserRoleDao = systemUserRoleDao;
+        this.systemRoleDao = systemRoleDao;
+        this.programUserDAO = programUserDAO;
+        this.dsl = dsl;
+        this.signUpJwtService = signUpJwtService;
+        this.emailUtil = emailUtil;
+    }
 
     public Optional<User> getByOrcid(String orcid) {
 
