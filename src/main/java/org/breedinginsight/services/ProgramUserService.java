@@ -240,6 +240,14 @@ public class ProgramUserService {
         return programUserDao.getProgramUsers(programId);
     }
 
+    public List<ProgramUser> getProgramUsersByUserId(UUID userId) throws DoesNotExistException {
+        if (!userService.exists(userId)) {
+            throw new DoesNotExistException("User id does not exist");
+        }
+
+        return programUserDao.getProgramUsersByUserId(userId);
+    }
+
     public Optional<ProgramUser> getProgramUserbyId(UUID programId, UUID userId) {
         /* Get a program user by their id */
         ProgramUser user = programUserDao.getProgramUser(programId, userId);

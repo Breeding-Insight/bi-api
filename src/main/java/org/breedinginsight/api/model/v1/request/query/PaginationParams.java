@@ -14,18 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.breedinginsight.api.model.v1.request.query;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+public interface PaginationParams {
 
-import java.util.ArrayList;
-import java.util.List;
-
-@Getter
-@Setter
-@Introspected
-public class SearchRequest {
-    private List<FilterRequest> filters = new ArrayList<>();
+    Integer getPageSize();
+    Integer getPage();
+    Integer getDefaultPageSize();
+    Integer getDefaultPage();
 }

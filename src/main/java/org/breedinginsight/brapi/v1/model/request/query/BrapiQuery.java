@@ -14,36 +14,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapi.v1.model.request.query;
 
-package org.breedinginsight.api.model.v1.request.query;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 
 import javax.validation.constraints.Positive;
-
+import javax.validation.constraints.PositiveOrZero;
 
 @Getter
 @Setter
 @Introspected
 @NoArgsConstructor
-public class QueryParams implements PaginationParams {
+public class BrapiQuery implements PaginationParams {
 
-    private static Integer DEFAULT_PAGE = 1;
+    private static Integer DEFAULT_PAGE = 0;
     private static Integer DEFAULT_PAGE_SIZE = 50;
 
     @Positive
     private Integer pageSize;
-    @Positive
+    @PositiveOrZero
     private Integer page;
-    @JsonIgnore
-    private boolean showAll;
-    private String sortField;
-    private SortOrder sortOrder;
 
     public Integer getDefaultPage() {
         return DEFAULT_PAGE;

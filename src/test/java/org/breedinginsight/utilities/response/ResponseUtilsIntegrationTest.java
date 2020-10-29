@@ -186,8 +186,8 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postBadSearchField() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(FilterRequest.builder().field("no_exist").value("no_exist").build());
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(FilterRequest.builder().field("no_exist").value("no_exist").build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -204,8 +204,8 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postNoSearchValue() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(FilterRequest.builder().field("no_exist").value(null).build());
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(FilterRequest.builder().field("no_exist").value(null).build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -237,7 +237,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postNoFilterFieldsSuccess() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
+        searchRequest.setFilters(new ArrayList<>());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -353,7 +353,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postDescendingSortSuccess() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
+        searchRequest.setFilters(new ArrayList<>());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search?sortField=name&sortOrder=DESC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -373,8 +373,8 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postSingleSearchSuccess() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(FilterRequest.builder().field("name").value("place1").build());
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(FilterRequest.builder().field("name").value("place1").build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search?sortField=name&sortOrder=DESC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -396,9 +396,9 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postMultipleSearchSuccess() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(FilterRequest.builder().field("name").value("place1").build());
-        searchRequest.getFilter().add(FilterRequest.builder().field("slope").value("1.1").build());
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(FilterRequest.builder().field("name").value("place1").build());
+        searchRequest.getFilters().add(FilterRequest.builder().field("slope").value("1.1").build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -419,8 +419,8 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Test
     public void postSearchWithPaginationSuccess() {
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(FilterRequest.builder().field("name").value("place1").build());
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(FilterRequest.builder().field("name").value("place1").build());
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/locations/search?sortField=name&sortOrder=DESC&pageSize=5&page=1", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

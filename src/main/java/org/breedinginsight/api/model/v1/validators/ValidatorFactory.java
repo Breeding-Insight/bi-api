@@ -51,7 +51,7 @@ public class ValidatorFactory {
     ConstraintValidator<SearchValid, SearchRequest> searchBodyValidator() {
         return (value, annotationMetadata, context) -> {
             Class mapperClass = annotationMetadata.getRequiredValue("using", Class.class);
-            List<FilterRequest> filterFields = value.getFilter();
+            List<FilterRequest> filterFields = value.getFilters();
             if (filterFields == null) return true;
             List<String> fields = filterFields.stream().map(FilterRequest::getField).collect(Collectors.toList());
             return checkMappedFields(fields, mapperClass);

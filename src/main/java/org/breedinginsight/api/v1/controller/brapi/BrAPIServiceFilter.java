@@ -40,7 +40,8 @@ import javax.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
 
-@Filter("/**/programs/**")
+//@Filter("/**/programs/**")
+@Filter("/**")
 public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
 
 
@@ -96,6 +97,11 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                         }
                     } else {
                         // The filter is not meant for this request
+                        // We'll get here for /programs. Use client defaults to begin with, they can change their
+                        // brapi service later.
+                        brAPIClientProvider.setCoreClient(defaultBrAPICoreUrl);
+                        brAPIClientProvider.setPhenoClient(defaultBrAPIPhenoUrl);
+                        brAPIClientProvider.setGenoClient(defaultBrAPIGenoUrl);
                         return chain.proceed(request);
                     }
                 });

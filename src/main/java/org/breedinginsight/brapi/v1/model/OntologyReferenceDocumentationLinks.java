@@ -14,18 +14,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapi.v1.model;
 
-package org.breedinginsight.api.model.v1.request.query;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+@Data
+@SuperBuilder
+@NoArgsConstructor
+public class OntologyReferenceDocumentationLinks {
+    public enum TypeEnum {
+        OBO("OBO"),
+        RDF("RDF"),
+        WEBPAGE("WEBPAGE");
 
-import java.util.ArrayList;
-import java.util.List;
+        private String value;
 
-@Getter
-@Setter
-@Introspected
-public class SearchRequest {
-    private List<FilterRequest> filters = new ArrayList<>();
+        TypeEnum(String value) {
+            this.value = value;
+        }
+    }
+
+    private String URL = null;
+    private OntologyReferenceDocumentationLinks.TypeEnum type = null;
 }

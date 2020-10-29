@@ -732,8 +732,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void searchTraits() {
 
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("abbreviations", "t1"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("abbreviations", "t1"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

@@ -1726,8 +1726,8 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
         List<ProgramUser> allProgramUsers = programUserDAO.getAllProgramUsers();
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("roles", "breed"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("roles", "breed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/users/search?page=1&pageSize=20&sortField=roles&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -2233,8 +2233,8 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
 
         List<ProgramEntity> allPrograms = programDao.findAll();
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("name", "program1"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "program1"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

@@ -14,18 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapi.v1.model;
 
-package org.breedinginsight.api.model.v1.request.query;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
-import java.util.ArrayList;
 import java.util.List;
 
-@Getter
-@Setter
-@Introspected
-public class SearchRequest {
-    private List<FilterRequest> filters = new ArrayList<>();
+@Data
+@SuperBuilder
+@NoArgsConstructor
+public class OntologyReference {
+    private List<OntologyReferenceDocumentationLinks> documentationLinks;
+    private String ontologyDbId;
+    private String ontologyName;
+    private String version;
 }

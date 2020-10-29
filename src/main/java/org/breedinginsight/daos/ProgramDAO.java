@@ -17,6 +17,7 @@
 
 package org.breedinginsight.daos;
 
+import io.micronaut.context.annotation.Property;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -30,12 +31,20 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
 public class ProgramDAO extends ProgramDao {
+
+    @Property(name = "brapi.server.core-url")
+    private String defaultBrAPICoreUrl;
+    @Property(name = "brapi.server.pheno-url")
+    private String defaultBrAPIPhenoUrl;
+    @Property(name = "brapi.server.geno-url")
+    private String defaultBrAPIGenoUrl;
 
     private DSLContext dsl;
     @Inject
@@ -102,6 +111,16 @@ public class ProgramDAO extends ProgramDao {
 
     public ProgramBrAPIEndpoints getProgramBrAPIEndpoints() {
         return new ProgramBrAPIEndpoints();
+    }
+
+    public ProgramBrAPIEndpoints getProgramBrAPIEndpoints(UUID programId) {
+        // Just returns defaults for now
+        // TODO: in future return urls for given program
+        return ProgramBrAPIEndpoints.builder()
+                .coreUrl(Optional.of(defaultBrAPICoreUrl))
+                .genoUrl(Optional.of(defaultBrAPIGenoUrl))
+                .phenoUrl(Optional.of(defaultBrAPIPhenoUrl))
+                .build();
     }
 }
 

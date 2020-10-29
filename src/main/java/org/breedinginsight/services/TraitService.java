@@ -17,7 +17,6 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -82,6 +81,20 @@ public class TraitService {
             return traitDAO.getTraitsFullByProgramId(programId);
         } else {
             return traitDAO.getTraitsByProgramId(programId);
+        }
+
+    }
+
+    public List<Trait> getByProgramIds(List<UUID> programIds, Boolean getFullTrait) throws DoesNotExistException {
+
+        if (programIds.stream().anyMatch(programId -> programService.exists(programId) == false)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        if (getFullTrait){
+            return traitDAO.getTraitsFullByProgramIds(programIds);
+        } else {
+            return traitDAO.getTraitsByProgramIds(programIds.toArray(UUID[]::new));
         }
 
     }

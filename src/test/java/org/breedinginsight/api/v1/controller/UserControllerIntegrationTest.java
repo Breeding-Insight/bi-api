@@ -981,8 +981,8 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     public void searchUsers() {
 
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("programs", "test program2"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("programs", "test program2"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/users/search?page=1&pageSize=20&sortField=name&sortOrder=DESC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
