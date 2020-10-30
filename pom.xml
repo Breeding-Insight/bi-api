@@ -569,6 +569,9 @@
                             <brapi.server.pheno-url>${BRAPI_PHENO_URL}</brapi.server.pheno-url>
                             <brapi.server.geno-url>${BRAPI_GENO_URL}</brapi.server.geno-url>
                             <brapi.server.reference-source>breeding-insight.org</brapi.server.reference-source>
+                            <email.relay-server.host>test</email.relay-server.host>
+                            <email.relay-server.port>25</email.relay-server.port>
+                            <email.from>test@test.com</email.from>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>

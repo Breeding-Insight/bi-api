@@ -28,7 +28,6 @@ import java.io.File;
 @Context
 public class EmailTemplates {
     private String NEW_ACCOUNT_EMAIL = "newAccountEmail";
-    //TODO: Maybe add a class for each email with their variables?
     private File templateDir = new File("src/main/resources/email/");
     private STRawGroupDir templates;
 

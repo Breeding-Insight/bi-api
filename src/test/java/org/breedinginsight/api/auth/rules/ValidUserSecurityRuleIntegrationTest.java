@@ -19,6 +19,7 @@ package org.breedinginsight.api.auth.rules;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -27,15 +28,22 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.services.UserService;
+import org.breedinginsight.utilities.email.EmailUtil;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -50,6 +58,17 @@ public class ValidUserSecurityRuleIntegrationTest extends DatabaseTest {
 
     @Inject
     UserService userService;
+
+    // Micronaut is naming this mock under 'orcid' for some reason.
+    @Named("")
+    @MockBean(bean = EmailUtil.class)
+    EmailUtil emailUtil() { return mock(EmailUtil.class); }
+
+    @BeforeAll
+    void setup() {
+        // Skip our emails
+        doNothing().when(emailUtil()).sendAccountSignUpEmail(any(BiUserEntity.class), any(SignedJWT.class));
+    }
 
     @Test
     @Order(1)

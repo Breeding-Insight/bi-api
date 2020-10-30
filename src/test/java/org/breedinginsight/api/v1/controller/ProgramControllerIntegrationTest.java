@@ -21,6 +21,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
+import com.nimbusds.jwt.SignedJWT;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -30,6 +31,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
@@ -41,23 +43,29 @@ import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.email.EmailUtil;
 import org.geojson.Feature;
 import org.geojson.Point;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import java.math.BigDecimal;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -125,8 +133,16 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    // Micronaut is naming this mock under 'orcid' for some reason.
+    @Named("")
+    @MockBean(bean = EmailUtil.class)
+    EmailUtil emailUtil() { return mock(EmailUtil.class); }
+
     @BeforeAll
     void setup() throws Exception {
+
+        // Skip our emails
+        doNothing().when(emailUtil()).sendAccountSignUpEmail(any(BiUserEntity.class), any(SignedJWT.class));
 
         fp = FannyPack.fill("src/test/resources/sql/ProgramControllerIntegrationTest.sql");
 

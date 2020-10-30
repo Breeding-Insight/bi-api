@@ -91,7 +91,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     private ProgramUserRoleDao programUserRoleDao;
     @Inject
     private UserService userService;
-    // Micronaut is naming this mock under 'orcid' for some reason...
+    // Micronaut is naming this mock under 'orcid' for some reason.
     @Named("")
     @MockBean(bean = EmailUtil.class)
     EmailUtil emailUtil() { return mock(EmailUtil.class); }
