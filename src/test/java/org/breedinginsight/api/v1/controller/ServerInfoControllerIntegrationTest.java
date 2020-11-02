@@ -42,7 +42,7 @@ public class ServerInfoControllerIntegrationTest {
 
     @Test
     public void getVersionInfo() throws IOException {
-        Flowable<HttpResponse<String>> call = client.exchange(GET("/serverInfo"), String.class);
+        Flowable<HttpResponse<String>> call = client.exchange(GET("/server-info"), String.class);
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
