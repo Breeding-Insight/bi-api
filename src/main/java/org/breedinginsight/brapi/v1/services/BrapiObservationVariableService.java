@@ -162,11 +162,11 @@ public class BrapiObservationVariableService {
 
         ObservationVariable brapiVariable = ObservationVariable.builder()
                 //.contextOfUse()
-                //.crop()
+                //.crop(trait.getProgramOntology().getProgram().getSpecies().getCommonName())
                 .defaultValue(trait.getDefaultValue() != null ? trait.getDefaultValue() : "") // TODO: fix need a default value for field book bug
                 //.documentationURL()
                 //.growthStage()
-                //.institution()
+                //.institution() // missing from bi trait model but stored in BrAPI service
                 //.language()
                 .method(brapiMethod)
                 //.ontologyRefernce()
