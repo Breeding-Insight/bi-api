@@ -1,12 +1,9 @@
-Hello <user_name>,
-
 Welcome to Breeding Insight!
 
-Before using your account, you need will need to associate your OrcID account to your BI account. If you do not have an OrcID account already, please sign up for one before activating your BI account.
+We use a common login system with ORCID to provide authentication and account security. You will need a current ORCID iD and account to log in to Breeding Insight. If you do not already have an ORCID iD, you can create one here: https://orcid.org/register
 
-Follow the link below to activate your account:
+To activate your Breeding Insight account and connect your ORCID iD to Breeding Insight, use this link:
 
 <new_signup_link>
 
 This link will expire in <expiration_time>. Please do not reply to this email.
-

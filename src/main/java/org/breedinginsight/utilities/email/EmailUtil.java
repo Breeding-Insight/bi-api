@@ -101,7 +101,6 @@ public class EmailUtil {
 
         // Fill in user info
         String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtToken.serialize());
-        emailTemplate.add("user_name", user.getName());
         emailTemplate.add("new_signup_link", signUpUrl);
 
         String expirationTime;

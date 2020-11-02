@@ -204,7 +204,7 @@ public class UserController {
         }
     }
 
-    @Put("users/{userId}/resend_email")
+    @Put("users/{userId}/resend-email")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured({"ADMIN"})
     public HttpResponse resendWelcomeEmail(@PathVariable UUID userId) {
