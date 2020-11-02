@@ -30,10 +30,10 @@ import java.io.InputStream;
 import java.util.Properties;
 
 @Slf4j
-@Controller("/${micronaut.bi.api.version}/serverInfo")
+@Controller("/${micronaut.bi.api.version}")
 public class ServerInfoController {
 
-    @Get
+    @Get("/server-info")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     public ServerInfo getServerInfo() throws IOException {
