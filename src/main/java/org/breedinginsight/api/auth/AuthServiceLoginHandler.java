@@ -24,6 +24,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
+import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationFailureReason;
 import io.micronaut.security.authentication.UserDetails;
@@ -85,10 +86,21 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         if (request.getCookies().contains(accountTokenCookieName)) {
             Cookie accountTokenCookie = request.getCookies().get(accountTokenCookieName);
             String accountToken = accountTokenCookie.getValue();
-            return newAccountCreationResponse(userDetails.getUsername(), accountToken);
+            return newAccountCreationResponse(userDetails, accountToken, request);
         }
 
-        // Go on with normal login if it isn't a new user log in
+        // Normal login
+        try {
+            AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
+            return super.loginSuccess(authenticatedUser, request);
+        } catch (AuthenticationException e) {
+            AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
+            return loginFailed(authenticationFailed);
+        }
+    }
+
+    private AuthenticatedUser getUserCredentials(UserDetails userDetails) throws AuthenticationException {
+
         Optional<User> user = userService.getByOrcid(userDetails.getUsername());
 
         if (user.isPresent()) {
@@ -101,12 +113,11 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 //TODO: Get the program roles
 
                 AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(), systemRoleStrings, user.get().getId());
-                return super.loginSuccess(authenticatedUser, request);
+                return authenticatedUser;
             }
         }
 
-        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
-        return loginFailed(authenticationFailed);
+        throw new AuthenticationException();
     }
 
     @Override
@@ -168,8 +179,9 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
-    private HttpResponse newAccountCreationResponse(String orcid, String accountToken) {
+    private HttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
 
+        String orcid = userDetails.getUsername();
         SignUpJWT signUpJWT;
         try {
             signUpJWT = signUpJwtService.validateAndParseAccountSignUpJwt(accountToken);
@@ -205,11 +217,24 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 return resp;
             }
 
-            // Redirect user to account creation success page
-            return HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
+            // Get logged in JWT and redirect user to account creation success page
+            try {
+                AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
+                Optional<Cookie> cookieOptional = super.accessTokenCookie(authenticatedUser, request);
+                if (!cookieOptional.isPresent()) {
+                    return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+                }
+                Cookie cookie = cookieOptional.get();
+                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
+                resp.cookie(cookie);
+                return resp;
+            } catch (AuthenticationException e) {
+                return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            }
+
         } else {
             // JWT ID did not match
-            return HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
+            return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
         }
     }
 
