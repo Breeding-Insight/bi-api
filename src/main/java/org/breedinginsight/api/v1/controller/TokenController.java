@@ -30,6 +30,7 @@ import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.services.TokenService;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotBlank;
 import java.net.URI;
 import java.util.Optional;
 
@@ -48,7 +49,7 @@ public class TokenController {
 
     @Get("/api-token")
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse apiToken(@QueryValue String returnUrl) {
+    public HttpResponse apiToken(@QueryValue @NotBlank String returnUrl) {
 
         AuthenticatedUser actingUser = securityService.getUser();
         Optional<ApiToken> token = tokenService.generateApiToken(actingUser);
