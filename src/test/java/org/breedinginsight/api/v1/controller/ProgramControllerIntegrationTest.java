@@ -21,7 +21,6 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
-import com.nimbusds.jwt.SignedJWT;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -43,7 +42,6 @@ import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.model.*;
@@ -142,7 +140,7 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     void setup() throws Exception {
 
         // Skip our emails
-        doNothing().when(emailUtil()).sendAccountSignUpEmail(any(BiUserEntity.class), any(SignedJWT.class));
+        doNothing().when(emailUtil()).sendEmail(any(String.class), any(String.class), any(String.class));
 
         fp = FannyPack.fill("src/test/resources/sql/ProgramControllerIntegrationTest.sql");
 

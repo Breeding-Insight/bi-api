@@ -19,7 +19,6 @@ package org.breedinginsight.api.auth.rules;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -31,7 +30,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.services.UserService;
 import org.breedinginsight.utilities.email.EmailUtil;
 import org.junit.jupiter.api.*;
@@ -67,7 +65,7 @@ public class ValidUserSecurityRuleIntegrationTest extends DatabaseTest {
     @BeforeAll
     void setup() {
         // Skip our emails
-        doNothing().when(emailUtil()).sendAccountSignUpEmail(any(BiUserEntity.class), any(SignedJWT.class));
+        doNothing().when(emailUtil()).sendEmail(any(String.class), any(String.class), any(String.class));
     }
 
     @Test

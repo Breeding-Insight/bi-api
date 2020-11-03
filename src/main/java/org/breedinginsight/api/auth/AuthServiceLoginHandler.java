@@ -47,6 +47,7 @@ import javax.inject.Singleton;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -86,7 +87,11 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         if (request.getCookies().contains(accountTokenCookieName)) {
             Cookie accountTokenCookie = request.getCookies().get(accountTokenCookieName);
             String accountToken = accountTokenCookie.getValue();
-            return newAccountCreationResponse(userDetails, accountToken, request);
+            accountTokenCookie = accountTokenCookie.maxAge(Duration.ZERO);
+            accountTokenCookie.value("");
+            MutableHttpResponse resp = newAccountCreationResponse(userDetails, accountToken, request);
+            resp.cookie(accountTokenCookie);
+            return resp;
         }
 
         // Normal login
@@ -179,7 +184,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
-    private HttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
+    private MutableHttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
 
         String orcid = userDetails.getUsername();
         SignUpJWT signUpJWT;
@@ -188,19 +193,19 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         } catch (JwtValidationException e) {
             log.error(e.getMessage());
             // Return them to an error page
-            HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
             return resp;
         }
 
         // Query db and check that jwt id is valid
         Optional<User> user = userService.getById(signUpJWT.getUserId());
         if (!user.isPresent()) {
-            HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
             return resp;
         }
         User newUser = user.get();
         if (newUser.getAccountToken() == null){
-            HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
             return resp;
         }
 
@@ -209,11 +214,11 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             try {
                 userService.updateOrcid(newUser.getId(), orcid);
             } catch (DoesNotExistException e) {
-                HttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
                 return resp;
             } catch (AlreadyExistsException e) {
                 String url = String.format("%s?%s=409", newAccountErrorUrl, NEW_ACCOUNT_ERROR_ATTRIBUTE);
-                HttpResponse resp = HttpResponse.seeOther(URI.create(url));
+                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(url));
                 return resp;
             }
 

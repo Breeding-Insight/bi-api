@@ -22,17 +22,15 @@ import org.stringtemplate.v4.ST;
 import org.stringtemplate.v4.STRawGroupDir;
 
 import javax.inject.Singleton;
-import java.io.File;
 
 @Singleton
 @Context
 public class EmailTemplates {
     private String NEW_ACCOUNT_EMAIL = "newAccountEmail";
-    private File templateDir = new File("src/main/resources/email/");
     private STRawGroupDir templates;
 
     public EmailTemplates() {
-        templates = new STRawGroupDir(templateDir.getAbsolutePath());
+        templates = new STRawGroupDir("email/");
         // Check that all of the emails exist
         if (templates.getInstanceOf(NEW_ACCOUNT_EMAIL) == null) {throw new IllegalStateException();}
     }

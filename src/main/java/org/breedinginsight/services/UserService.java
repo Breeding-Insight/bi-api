@@ -17,6 +17,8 @@
 
 package org.breedinginsight.services;
 
+import com.nimbusds.jwt.SignedJWT;
+import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
@@ -35,22 +37,31 @@ import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.email.EmailTemplates;
 import org.breedinginsight.utilities.email.EmailUtil;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.stringtemplate.v4.ST;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class UserService {
+
+    @Property(name = "web.signup.signup.url")
+    private String newAccountSignupUrl;
+    @Property(name = "web.cookies.account-token")
+    private String accountTokenCookieName;
+    @Property(name = "web.signup.url-timeout")
+    private Duration jwtDuration;
 
     private UserDAO dao;
     private SystemUserRoleDao systemUserRoleDao;
@@ -59,11 +70,12 @@ public class UserService {
     private DSLContext dsl;
     private SignUpJwtService signUpJwtService;
     private EmailUtil emailUtil;
+    private EmailTemplates emailTemplates;
 
     @Inject
     public UserService(UserDAO dao, SystemUserRoleDao systemUserRoleDao, SystemRoleDao systemRoleDao,
                        ProgramUserDAO programUserDAO, DSLContext dsl, SignUpJwtService signUpJwtService,
-                       EmailUtil emailUtil) {
+                       EmailUtil emailUtil, EmailTemplates emailTemplates) {
         this.dao = dao;
         this.systemUserRoleDao = systemUserRoleDao;
         this.systemRoleDao = systemRoleDao;
@@ -71,6 +83,7 @@ public class UserService {
         this.dsl = dsl;
         this.signUpJwtService = signUpJwtService;
         this.emailUtil = emailUtil;
+        this.emailTemplates = emailTemplates;
     }
 
     public Optional<User> getByOrcid(String orcid) {
@@ -326,7 +339,7 @@ public class UserService {
         dao.update(biUser);
 
         // Send new account token in an email
-        emailUtil.sendAccountSignUpEmail(biUser, jwt.getSignedJWT());
+        sendAccountSignUpEmail(biUser, jwt.getSignedJWT());
     }
 
     public void updateOrcid(UUID userId, String orcid) throws DoesNotExistException, AlreadyExistsException {
@@ -347,6 +360,28 @@ public class UserService {
         biUser.setOrcid(orcid);
         biUser.setAccountToken(null);
         dao.update(biUser);
+    }
+
+    private void sendAccountSignUpEmail(BiUserEntity user, SignedJWT jwtToken) {
+
+        // Get email template
+        ST emailTemplate = emailTemplates.getNewSignupTemplate();
+
+        // Fill in user info
+        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtToken.serialize());
+        emailTemplate.add("new_signup_link", signUpUrl);
+
+        String expirationTime;
+        if (jwtDuration.toHours() < 1) {expirationTime = jwtDuration.toMinutes() + " minutes";}
+        else if (jwtDuration.toHours() == 1) {expirationTime = jwtDuration.toHours() + " hour";}
+        else {expirationTime = jwtDuration.toHours() + " hours";}
+        emailTemplate.add("expiration_time", expirationTime);
+
+        String filledBody = emailTemplate.render();
+        String subject = "New Account Sign Up";
+
+        // Send email
+        emailUtil.sendEmail(user.getEmail(), subject, filledBody);
     }
 
 }

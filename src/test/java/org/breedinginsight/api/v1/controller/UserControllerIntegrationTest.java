@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.google.gson.*;
-import com.nimbusds.jwt.SignedJWT;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.*;
 import io.micronaut.http.client.RxHttpClient;
@@ -105,7 +104,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     void setup() {
 
         // Skip our emails
-        doNothing().when(emailUtil()).sendAccountSignUpEmail(any(BiUserEntity.class), any(SignedJWT.class));
+        doNothing().when(emailUtil()).sendEmail(any(String.class), any(String.class), any(String.class));
 
         // Insert our traits into the db
         dsl.execute(fp.get("InsertProgram"));

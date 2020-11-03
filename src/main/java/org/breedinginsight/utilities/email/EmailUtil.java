@@ -17,14 +17,9 @@
 
 package org.breedinginsight.utilities.email;
 
-import com.nimbusds.jwt.SignedJWT;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
-import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.stringtemplate.v4.ST;
 
-import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.mail.Message;
 import javax.mail.MessagingException;
@@ -33,7 +28,6 @@ import javax.mail.Transport;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
-import java.time.Duration;
 import java.util.Date;
 import java.util.Properties;
 
@@ -46,19 +40,6 @@ public class EmailUtil {
     private Integer smtpHostPort;
     @Property(name = "email.from")
     private String fromEmail;
-    @Property(name = "web.signup.signup.url")
-    private String newAccountSignupUrl;
-    @Property(name = "web.cookies.account-token")
-    private String accountTokenCookieName;
-    @Property(name = "web.signup.url-timeout")
-    private Duration jwtDuration;
-
-    private EmailTemplates emailTemplates;
-
-    @Inject
-    public EmailUtil(EmailTemplates emailTemplates) {
-        this.emailTemplates = emailTemplates;
-    }
 
     private Session getSmtpHost() {
         Properties props = new Properties();
@@ -68,7 +49,7 @@ public class EmailUtil {
         return Session.getInstance(props, null);
     }
 
-    private void sendEmail(String toEmail, String subject, String body){
+    public void sendEmail(String toEmail, String subject, String body){
         try
         {
             Session session = getSmtpHost();
@@ -94,25 +75,5 @@ public class EmailUtil {
         }
     }
 
-    public void sendAccountSignUpEmail(BiUserEntity user, SignedJWT jwtToken) {
 
-        // Get email template
-        ST emailTemplate = emailTemplates.getNewSignupTemplate();
-
-        // Fill in user info
-        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtToken.serialize());
-        emailTemplate.add("new_signup_link", signUpUrl);
-
-        String expirationTime;
-        if (jwtDuration.toHours() < 1) {expirationTime = jwtDuration.toMinutes() + " minutes";}
-        else if (jwtDuration.toHours() == 1) {expirationTime = jwtDuration.toHours() + " hour";}
-        else {expirationTime = jwtDuration.toHours() + " hours";}
-        emailTemplate.add("expiration_time", expirationTime);
-
-        String filledBody = emailTemplate.render();
-        String subject = "New Account Sign Up";
-
-        // Send email
-        sendEmail(user.getEmail(), subject, filledBody);
-    }
 }
