@@ -25,6 +25,8 @@ import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+
+import javax.validation.constraints.NotBlank;
 import java.net.URI;
 
 @Slf4j
@@ -36,7 +38,7 @@ public class BrapiAuthorizeController {
 
     @Get("/authorize")
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse authorize(@QueryValue String display_name, @QueryValue String return_url) {
+    public HttpResponse authorize(@QueryValue @NotBlank String display_name, @QueryValue @NotBlank String return_url) {
 
         URI location = UriBuilder.of(webBaseUrl + "/brapi/authorize")
                 .queryParam("display_name", display_name)
