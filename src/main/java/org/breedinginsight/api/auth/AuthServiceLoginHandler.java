@@ -47,7 +47,6 @@ import javax.inject.Singleton;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -87,10 +86,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         if (request.getCookies().contains(accountTokenCookieName)) {
             Cookie accountTokenCookie = request.getCookies().get(accountTokenCookieName);
             String accountToken = accountTokenCookie.getValue();
-            accountTokenCookie = accountTokenCookie.maxAge(Duration.ZERO);
-            accountTokenCookie.value("");
             MutableHttpResponse resp = newAccountCreationResponse(userDetails, accountToken, request);
-            resp.cookie(accountTokenCookie);
             return resp;
         }
 
