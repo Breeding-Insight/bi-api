@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapi.v1.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -24,6 +25,7 @@ import lombok.experimental.SuperBuilder;
 @SuperBuilder
 @NoArgsConstructor
 public class Method {
+    @JsonProperty("class")
     private String propertyClass;
     private String description;
     private String formula;

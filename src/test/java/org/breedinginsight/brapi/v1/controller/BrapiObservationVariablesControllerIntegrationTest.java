@@ -59,7 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITest {
 
     @Inject
-    @Client("/${micronaut.brapi.v1}")
+    @Client(BrapiVersion.BRAPI_V1)
     RxHttpClient client;
 
     @Inject
@@ -75,6 +75,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
 
     private List<Trait> programTraits;
     private List<Trait> otherProgramTraits;
+    private String observationVariableDbId;
 
     private ProgramEntity validProgram;
     private ProgramEntity otherValidProgram;
@@ -113,7 +114,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         super.getBrapiDsl().execute(fp.get("InsertSpecies"));
     }
 
-    Trait buildTestTrait(String name) {
+    Trait buildTestTrait(String name, String traitClass) {
         Method method = Method.builder()
                 .methodName(name + " method")
                 .description(name + " method description")
@@ -135,6 +136,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
                 .method(method)
                 .scale(scale)
                 .programObservationLevel(level)
+                .traitClass(traitClass)
                 .active(true)
                 .build();
         return trait;
@@ -181,7 +183,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     void userInOneProgramWithTraits() {
 
         // create trait in db and brapi service for program test user is in
-        programTraits = List.of(buildTestTrait("Test trait 1"), buildTestTrait("Test trait 2"));
+        programTraits = List.of(buildTestTrait("Test trait 1", "a"), buildTestTrait("Test trait 2", "b"));
 
         Flowable<HttpResponse<String>> call = biClient.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits", programTraits)
@@ -220,7 +222,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     void userInMultipleProgramsWithTraits() {
 
         // create trait in db and brapi service for second program
-        otherProgramTraits = List.of(buildTestTrait("Test trait 3"), buildTestTrait("Test trait 4"));
+        otherProgramTraits = List.of(buildTestTrait("Test trait 3", "c"), buildTestTrait("Test trait 4", "d"));
 
         Flowable<HttpResponse<String>> call = biClient.exchange(
                 POST("/programs/" + otherValidProgram.getId() + "/traits", otherProgramTraits)
@@ -257,7 +259,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
 
     @Test
     @Order(4)
-    public void getBrapiPageZero() {
+    void getBrapiPageZero() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/variables?page=0").bearerAuth("test-registered-user"), String.class
@@ -279,8 +281,8 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     }
 
     @Test
-    @Order(5)
-    public void getBrapiPageZeroMultiplePages() {
+    @Order(4)
+    void getBrapiPageZeroMultiplePages() {
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/variables?page=0&pageSize=1").bearerAuth("other-registered-user"), String.class
@@ -292,6 +294,9 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(1, data.size(), "Wrong number of results returned");
 
+        JsonObject variable = data.get(0).getAsJsonObject();
+        observationVariableDbId = variable.get("observationVariableDbId").getAsString();
+
         JsonObject metadata = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
         assertEquals(4, pagination.get("totalPages").getAsInt(), "Wrong total pages");
@@ -299,6 +304,40 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         assertEquals(1, pagination.get("pageSize").getAsInt(), "Wrong page size");
         assertEquals(4, pagination.get("totalCount").getAsInt(), "Wrong total count");
 
+    }
+
+    @Test
+    @Order(4)
+    void filterTraitClass() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/variables?traitClass=a").bearerAuth("other-registered-user"), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of results returned");
+        JsonObject variable = data.get(0).getAsJsonObject();
+        JsonObject trait = variable.getAsJsonObject("trait");
+        assertEquals("a", trait.get("class").getAsString(), "Wrong trait class");
+    }
+
+    @Test
+    @Order(5)
+    void filterObservationVariableDbId() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/variables?observationVariableDbId="+observationVariableDbId).bearerAuth("other-registered-user"), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of results returned");
+        JsonObject variable = data.get(0).getAsJsonObject();
+        assertEquals(observationVariableDbId, variable.get("observationVariableDbId").getAsString(), "Wrong trait class");
     }
 
 }

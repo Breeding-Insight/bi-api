@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapi.v1.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -28,6 +29,7 @@ import java.util.List;
 public class Trait {
     private List<String> alternativeAbbreviations = null;
     private String attribute = null;
+    @JsonProperty("class")
     private String propertyClass = null;
     private String description = null;
     private String entity = null;

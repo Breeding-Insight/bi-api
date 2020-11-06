@@ -42,7 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Slf4j
-@Controller("/${micronaut.brapi.v1}")
+@Controller(BrapiVersion.BRAPI_V1)
 public class BrapiObservationVariablesController {
 
     private BrapiObservationVariableService variableService;
