@@ -38,7 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class BrapiAuthorizeControllerIntegrationTest extends DatabaseTest {
 
     @Inject
-    @Client("/${micronaut.brapi.no-version}")
+    @Client(BrapiVersion.BRAPI_NO_VERSION)
     RxHttpClient client;
 
     @Test
