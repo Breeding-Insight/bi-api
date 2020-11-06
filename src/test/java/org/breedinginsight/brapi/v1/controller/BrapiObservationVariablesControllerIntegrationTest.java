@@ -150,8 +150,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         //assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
     }
 
-    // BrAPI pagination and filter tests in ResponseUtilsIntegrationTest
-
     @Test
     void userDoesNotExist() {
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -258,9 +256,52 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
             JsonObject variable = element.getAsJsonObject();
             checkTraits(itr.next(), variable);
         }
+    }
 
+    @Test
+    @Order(4)
+    public void getBrapiPageZero() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/variables?page=0").bearerAuth("test-registered-user"), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(2, data.size(), "Wrong number of results returned");
+
+        JsonObject metadata = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("metadata");
+        JsonObject pagination = metadata.getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong total pages");
+        assertEquals(0, pagination.get("currentPage").getAsInt(), "Wrong current page");
+        assertEquals(2, pagination.get("pageSize").getAsInt(), "Wrong page size");
+        assertEquals(2, pagination.get("totalCount").getAsInt(), "Wrong total count");
 
     }
 
+    @Test
+    @Order(5)
+    public void getBrapiPageZeroMultiplePages() {
 
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/variables?page=0&pageSize=1").bearerAuth("other-registered-user"), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of results returned");
+
+        JsonObject metadata = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("metadata");
+        JsonObject pagination = metadata.getAsJsonObject("pagination");
+        assertEquals(4, pagination.get("totalPages").getAsInt(), "Wrong total pages");
+        assertEquals(0, pagination.get("currentPage").getAsInt(), "Wrong current page");
+        assertEquals(1, pagination.get("pageSize").getAsInt(), "Wrong page size");
+        assertEquals(4, pagination.get("totalCount").getAsInt(), "Wrong total count");
+
+    }
+    
 }
