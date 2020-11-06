@@ -30,11 +30,12 @@ import javax.validation.constraints.NotBlank;
 import java.net.URI;
 
 @Slf4j
-@Controller("/${micronaut.brapi.no-version}")
+@Controller(BrapiVersion.BRAPI_NO_VERSION)
 public class BrapiAuthorizeController {
 
     @Property(name = "web.base-url")
     protected String webBaseUrl;
+
 
     @Get("/authorize")
     @Secured(SecurityRule.IS_ANONYMOUS)
