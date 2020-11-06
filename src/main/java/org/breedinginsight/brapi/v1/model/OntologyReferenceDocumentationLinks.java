@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapi.v1.model;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.SuperBuilder;
@@ -33,6 +34,11 @@ public class OntologyReferenceDocumentationLinks {
 
         TypeEnum(String value) {
             this.value = value;
+        }
+
+        @JsonValue
+        public String getValue() {
+            return value;
         }
     }
 

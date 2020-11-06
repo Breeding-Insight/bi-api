@@ -135,13 +135,15 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
                 .method(method)
                 .scale(scale)
                 .programObservationLevel(level)
+                .active(true)
                 .build();
         return trait;
     }
 
     void checkTraits(Trait expected, JsonObject actual) {
-        //JsonObject country = programLocation.getAsJsonObject("country");
+        JsonObject trait = actual.getAsJsonObject("trait");
         assertEquals(expected.getTraitName(), actual.get("observationVariableName").getAsString(), "Wrong name");
+        assertEquals(expected.getDescription(), trait.get("description").getAsString(), "Wrong description");
         //assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
     }
 

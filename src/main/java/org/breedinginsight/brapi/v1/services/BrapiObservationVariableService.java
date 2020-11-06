@@ -28,6 +28,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -110,8 +111,8 @@ public class BrapiObservationVariableService {
                 .methodDbId(biMethod.getId().toString())
                 .propertyClass(biMethod.getMethodClass())
                 .formula(biMethod.getFormula())
-                //.ontologyRefernce()
-                //.reference()
+                //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service
+                //.reference() // don't have this in brapi 2.0
                 .build();
 
         TraitDataType dataType = mapBiDataTypeToBrapiV1TraitDataType(biScale.getDataType());
@@ -135,48 +136,48 @@ public class BrapiObservationVariableService {
         Scale brapiScale = Scale.builder()
                 .dataType(dataType)
                 .decimalPlaces(biScale.getDecimalPlaces())
-                //.ontologyRefernce()
+                //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service
                 .scaleDbId(biScale.getId().toString())
                 .scaleName(biScale.getScaleName())
                 .validValues(validValues)
-                //.xref()
+                .xref(biScale.getId().toString())
                 .build();
 
         Trait brapiTrait = Trait.builder()
-                //.alternativeAbbreviations(trait.getAbbreviations())
+                //.alternativeAbbreviations(Arrays.asList(trait.getAbbreviations().clone()))
                 .attribute(trait.getAttribute())
                 .propertyClass(trait.getTraitClass())
                 .description(trait.getDescription())
                 .entity(trait.getEntity())
                 .mainAbbreviation(trait.getMainAbbreviation())
-                //.ontologyRefernce()
-                //.status(trait.getActive() ? "Active" : "Archived")
+                //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service
+                //.status(trait.getStatus())
                 .synonyms(trait.getSynonyms())
                 .traitDbId(trait.getId().toString())
                 .traitName(trait.getTraitName())
-                //.xref()
+                .xref(trait.getId().toString())
                 .build();
 
         List<String> synonyms = new ArrayList<>();
         synonyms.add(trait.getTraitName());
 
         ObservationVariable brapiVariable = ObservationVariable.builder()
-                //.contextOfUse()
-                //.crop(trait.getProgramOntology().getProgram().getSpecies().getCommonName())
+                //.contextOfUse() // not stored in brapi service
+                //.crop(trait.getProgramOntology().getProgram().getSpecies().getCommonName()) //TODO: not populated in trait model
                 .defaultValue(trait.getDefaultValue() != null ? trait.getDefaultValue() : "") // TODO: fix need a default value for field book bug
-                //.documentationURL()
-                //.growthStage()
+                //.documentationURL() // not stored in brapi service
+                //.growthStage() // not stored in brapi service
                 //.institution() // missing from bi trait model but stored in BrAPI service
-                //.language()
+                //.language() // missing from bi trait model but stored in BrAPI service
                 .method(brapiMethod)
-                //.ontologyRefernce()
+                //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service
                 .scale(brapiScale)
-                //.scientist()
-                //.status(trait.getActive() ? "Active" : "Archived")
-                //.submissionTimestamp()
+                //.scientist() // missing from bi trait model but stored in BrAPI service
+                //.status(trait.getStatus())
+                .submissionTimestamp(trait.getCreatedAt())
                 .synonyms(trait.getSynonyms().isEmpty() ? synonyms : trait.getSynonyms()) // TODO: fix need to have synonym for field book bug
                 .trait(brapiTrait)
-                //.xref()
+                .xref(trait.getId().toString())
                 .observationVariableDbId(trait.getId().toString())
                 .observationVariableName(trait.getTraitName())
                 .build();
