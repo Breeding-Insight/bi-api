@@ -35,7 +35,6 @@ import org.breedinginsight.brapi.v1.model.response.mappers.ObservationVariableQu
 import org.breedinginsight.brapi.v1.services.BrapiObservationVariableService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
-import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -72,6 +71,7 @@ public class BrapiObservationVariablesController {
             variables = variableService.getBrapiObservationVariablesForUser(actingUser);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage());
+            return HttpResponse.notFound();
         }
 
         List<FilterRequest> filters = new ArrayList<>();
