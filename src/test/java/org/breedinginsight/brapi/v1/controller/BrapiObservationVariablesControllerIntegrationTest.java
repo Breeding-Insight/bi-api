@@ -34,14 +34,11 @@ import lombok.SneakyThrows;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
-import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.ProgramObservationLevel;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.TraitService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -54,7 +51,6 @@ import java.util.stream.Stream;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -70,7 +66,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient biClient;
 
-    private TraitEntity validTrait;
     private FannyPack fp;
 
     @Inject
@@ -303,5 +298,5 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         assertEquals(4, pagination.get("totalCount").getAsInt(), "Wrong total count");
 
     }
-    
+
 }
