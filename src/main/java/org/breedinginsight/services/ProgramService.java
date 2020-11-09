@@ -17,6 +17,7 @@
 
 package org.breedinginsight.services;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -41,16 +42,22 @@ import java.util.UUID;
 @Singleton
 public class ProgramService {
 
-    @Inject
     private ProgramDAO dao;
-    @Inject
     private ProgramOntologyDAO programOntologyDAO;
-    @Inject
     private ProgramObservationLevelDAO programObservationLevelDAO;
-    @Inject
     private SpeciesService speciesService;
-    @Inject
     private DSLContext dsl;
+
+    @Inject
+    public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO,
+                          ProgramObservationLevelDAO programObservationLevelDAO, SpeciesService speciesService,
+                          DSLContext dsl) {
+        this.dao = dao;
+        this.programOntologyDAO = programOntologyDAO;
+        this.programObservationLevelDAO = programObservationLevelDAO;
+        this.speciesService = speciesService;
+        this.dsl = dsl;
+    }
 
     public Optional<Program> getById(UUID programId) {
 
@@ -95,6 +102,7 @@ public class ProgramService {
 
             // Insert and update
             dao.insert(programEntity);
+            Program createdProgram = dao.get(programEntity.getId()).get(0);
 
             ProgramOntologyEntity programOntologyEntity = ProgramOntology.builder()
                     .programId(programEntity.getId())
@@ -112,11 +120,16 @@ public class ProgramService {
                     .build();
             programObservationLevelDAO.insert(programObservationLevelEntity);
 
-            //TODO: Add program and ontology to brapi services.
+            // Add program to brapi service
+            dao.createProgramBrAPI(createdProgram);
+
+            //TODO: Ontology to brapi services once supported by brapi
             //TODO: Add species to brapi service if it doesn't exist
 
-            return dao.get(programEntity.getId()).get(0);
+            return createdProgram;
         });
+
+
 
 
         return program;
@@ -147,6 +160,11 @@ public class ProgramService {
 
         dao.update(programEntity);
         Program program = dao.get(programEntity.getId()).get(0);
+
+        // Update program in brapi service
+        dao.updateProgramBrAPI(program);
+
+        //TODO: Add species to brapi service if it doesn't exist
 
         return program;
     }
