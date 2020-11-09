@@ -20,8 +20,10 @@ package org.breedinginsight.api.auth;
 import io.micronaut.security.authentication.UserDetails;
 import lombok.Getter;
 import lombok.Setter;
+import org.breedinginsight.model.ProgramUser;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -29,9 +31,11 @@ import java.util.UUID;
 public class AuthenticatedUser extends UserDetails {
 
     private UUID id;
+    private List<ProgramUser> programRoles;
 
-    public AuthenticatedUser(String username, Collection<String> roles, UUID id) {
+    public AuthenticatedUser(String username, Collection<String> roles, UUID id, List<ProgramUser> programRoles) {
         super(username, roles);
         this.id = id;
+        this.programRoles = programRoles;
     }
 }

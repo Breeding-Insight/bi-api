@@ -34,6 +34,7 @@ import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
+import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.SignUpJwtService;
@@ -111,10 +112,12 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                     return systemRole.getDomain().toUpperCase();
                 })).collect(Collectors.toList());
 
-                //TODO: Get the program roles
+                // Get the program roles
+                List<ProgramUser> programUsers = user.get().getProgramRoles();
 
-                AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(), systemRoleStrings, user.get().getId());
-                return authenticatedUser;
+                AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(),
+                        systemRoleStrings, user.get().getId(), programUsers);
+                return super.loginSuccess(authenticatedUser, request);
             }
         }
 

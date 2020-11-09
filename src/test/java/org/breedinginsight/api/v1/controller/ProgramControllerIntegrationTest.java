@@ -268,7 +268,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         UUID id = validUser.getId();
         List<String> systemRoles = new ArrayList<>();
         systemRoles.add(validRole.getDomain());
-        return new AuthenticatedUser("test_user", systemRoles, id);
+        return new AuthenticatedUser("test_user", systemRoles, id, new ArrayList<>());
     }
 
     //region Program Tests
