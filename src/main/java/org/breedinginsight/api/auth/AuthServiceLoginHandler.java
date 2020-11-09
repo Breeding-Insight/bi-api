@@ -24,6 +24,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
+import io.micronaut.security.authentication.AuthenticationException;
 import io.micronaut.security.authentication.AuthenticationFailed;
 import io.micronaut.security.authentication.AuthenticationFailureReason;
 import io.micronaut.security.authentication.UserDetails;
@@ -32,18 +33,21 @@ import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.model.SystemRole;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.SignUpJwtService;
 import org.breedinginsight.services.UserService;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.JwtValidationException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.UnsupportedEncodingException;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Replaces(JwtCookieLoginHandler.class)
@@ -51,13 +55,23 @@ import java.util.stream.Collectors;
 @Slf4j
 public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
+    private String NEW_ACCOUNT_ERROR_ATTRIBUTE = "error";
+
     @Property(name = "web.cookies.login-redirect")
     private String loginSuccessUrlCookieName;
+    @Property(name = "web.cookies.account-token")
+    private String accountTokenCookieName;
     @Property(name = "web.login.error.url")
     private String loginErrorUrl;
+    @Property(name = "web.signup.success.url")
+    private String newAccountSuccessUrl;
+    @Property(name = "web.signup.error.url")
+    private String newAccountErrorUrl;
 
     @Inject
     private UserService userService;
+    @Inject
+    private SignUpJwtService signUpJwtService;
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
                        JwtGeneratorConfiguration jwtGeneratorConfiguration,
@@ -69,6 +83,24 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     public HttpResponse loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
         // Called when login to orcid is successful.
         // Check if our login to our system is successful.
+        if (request.getCookies().contains(accountTokenCookieName)) {
+            Cookie accountTokenCookie = request.getCookies().get(accountTokenCookieName);
+            String accountToken = accountTokenCookie.getValue();
+            MutableHttpResponse resp = newAccountCreationResponse(userDetails, accountToken, request);
+            return resp;
+        }
+
+        // Normal login
+        try {
+            AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
+            return super.loginSuccess(authenticatedUser, request);
+        } catch (AuthenticationException e) {
+            AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
+            return loginFailed(authenticationFailed);
+        }
+    }
+
+    private AuthenticatedUser getUserCredentials(UserDetails userDetails) throws AuthenticationException {
 
         Optional<User> user = userService.getByOrcid(userDetails.getUsername());
 
@@ -82,12 +114,11 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
                 //TODO: Get the program roles
 
                 AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(), systemRoleStrings, user.get().getId());
-                return super.loginSuccess(authenticatedUser, request);
+                return authenticatedUser;
             }
         }
 
-        AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
-        return loginFailed(authenticationFailed);
+        throw new AuthenticationException();
     }
 
     @Override
@@ -146,6 +177,65 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             return HttpResponse.seeOther(location);
         } catch (URISyntaxException e) {
             return HttpResponse.serverError();
+        }
+    }
+
+    private MutableHttpResponse newAccountCreationResponse(UserDetails userDetails, String accountToken, HttpRequest request) {
+
+        String orcid = userDetails.getUsername();
+        SignUpJWT signUpJWT;
+        try {
+            signUpJWT = signUpJwtService.validateAndParseAccountSignUpJwt(accountToken);
+        } catch (JwtValidationException e) {
+            log.error(e.getMessage());
+            // Return them to an error page
+            MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            return resp;
+        }
+
+        // Query db and check that jwt id is valid
+        Optional<User> user = userService.getById(signUpJWT.getUserId());
+        if (!user.isPresent()) {
+            MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            return resp;
+        }
+        User newUser = user.get();
+        if (newUser.getAccountToken() == null){
+            MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            return resp;
+        }
+
+        if (newUser.getAccountToken().equals(signUpJWT.getJwtId().toString())) {
+            // Assign orcid to that user
+            try {
+                userService.updateOrcid(newUser.getId(), orcid);
+            } catch (DoesNotExistException e) {
+                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+                return resp;
+            } catch (AlreadyExistsException e) {
+                String url = String.format("%s?%s=409", newAccountErrorUrl, NEW_ACCOUNT_ERROR_ATTRIBUTE);
+                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(url));
+                return resp;
+            }
+
+            // Get logged in JWT and redirect user to account creation success page
+            try {
+                AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
+                Optional<Cookie> cookieOptional = super.accessTokenCookie(authenticatedUser, request);
+                if (!cookieOptional.isPresent()) {
+                    return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+                }
+                Cookie cookie = cookieOptional.get();
+                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
+                resp.cookie(cookie);
+                return resp;
+            } catch (AuthenticationException e) {
+                return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
+            }
+
+        } else {
+            // JWT ID did not match
+            return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
         }
     }
 

@@ -30,6 +30,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
@@ -46,18 +47,23 @@ import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.email.EmailUtil;
 import org.geojson.Feature;
 import org.geojson.Point;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import java.math.BigDecimal;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.mock;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -125,8 +131,16 @@ public class ProgramControllerIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    // Micronaut is naming this mock under 'orcid' for some reason.
+    @Named("")
+    @MockBean(bean = EmailUtil.class)
+    EmailUtil emailUtil() { return mock(EmailUtil.class); }
+
     @BeforeAll
     void setup() throws Exception {
+
+        // Skip our emails
+        doNothing().when(emailUtil()).sendEmail(any(String.class), any(String.class), any(String.class));
 
         fp = FannyPack.fill("src/test/resources/sql/ProgramControllerIntegrationTest.sql");
 
