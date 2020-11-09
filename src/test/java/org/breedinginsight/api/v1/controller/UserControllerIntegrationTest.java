@@ -124,7 +124,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         UUID id = testUser.getId();
         List<String> systemRoles = new ArrayList<>();
         systemRoles.add(validRole.getDomain());
-        return new AuthenticatedUser("test_user", systemRoles, id);
+        return new AuthenticatedUser("test_user", systemRoles, id, new ArrayList<>());
     }
 
     @Test

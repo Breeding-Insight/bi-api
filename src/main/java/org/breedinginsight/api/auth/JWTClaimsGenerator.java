@@ -25,9 +25,15 @@ import io.micronaut.security.token.config.TokenConfiguration;
 import io.micronaut.security.token.jwt.generator.claims.ClaimsAudienceProvider;
 import io.micronaut.security.token.jwt.generator.claims.JWTClaimsSetGenerator;
 import io.micronaut.security.token.jwt.generator.claims.JwtIdGenerator;
+import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.model.Role;
 
 import javax.annotation.Nullable;
 import javax.inject.Singleton;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Singleton
 @Replaces(bean = JWTClaimsSetGenerator.class)
@@ -46,6 +52,23 @@ public class JWTClaimsGenerator extends JWTClaimsSetGenerator {
         super.populateWithUserDetails(builder, userDetails);
         if (userDetails instanceof AuthenticatedUser) {
             builder.claim("id", ((AuthenticatedUser)userDetails).getId().toString());
+
+            //TODO: Make a specific model or move this into the ProgramUser class
+            List<Map<String, Object>> programRoles = new ArrayList<>();
+            for (ProgramUser programUser : ((AuthenticatedUser)userDetails).getProgramRoles()) {
+                Map<String, Object> roleEntry = new HashMap<>();
+                roleEntry.put("programId", programUser.getProgramId().toString());
+                List<Map<String, String>> roleArray = new ArrayList<>();
+                for (Role role: programUser.getRoles()) {
+                    Map<String, String> roleMap = new HashMap<>();
+                    roleMap.put("id", role.getId().toString());
+                    roleMap.put("domain", role.getDomain());
+                    roleArray.add(roleMap);
+                }
+                roleEntry.put("roles", roleArray);
+                programRoles.add(roleEntry);
+            }
+            builder.claim("programRoles", programRoles);
         }
     }
 }

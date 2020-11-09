@@ -21,8 +21,10 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.DefaultSecurityService;
+import org.breedinginsight.model.ProgramUser;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,8 +40,9 @@ public class SecurityService extends DefaultSecurityService {
                 Object jwtId = authentication.getAttributes().get("id");
                 UUID id = jwtId != null ? UUID.fromString(jwtId.toString()) : null;
                 Object jwtRoles = authentication.getAttributes().get("roles");
+                List<ProgramUser> jwtProgramRoles = (List<ProgramUser>) authentication.getAttributes().get("programRoles");
                 List<String> roles = (List<String>) jwtRoles;
-                AuthenticatedUser authenticatedUser = new AuthenticatedUser(authentication.getName(), roles, id);
+                AuthenticatedUser authenticatedUser = new AuthenticatedUser(authentication.getName(), roles, id, jwtProgramRoles);
                 return authenticatedUser;
             }
         }

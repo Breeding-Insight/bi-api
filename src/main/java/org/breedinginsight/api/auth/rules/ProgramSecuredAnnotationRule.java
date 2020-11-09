@@ -17,20 +17,27 @@
 
 package org.breedinginsight.api.auth.rules;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.security.rules.SecuredAnnotationRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.security.token.RolesFinder;
+import io.micronaut.web.router.MethodBasedRoute;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
+import org.apache.commons.collections4.ListUtils;
 import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
+import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.model.ProgramUser;
 
 import javax.annotation.Nullable;
+import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Singleton
 public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
@@ -42,6 +49,9 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
         super(rolesFinder);
     }
 
+    @Inject
+    ObjectMapper objectMapper;
+
     @Override
     public SecurityRuleResult check(HttpRequest request, @Nullable RouteMatch routeMatch, @Nullable Map<String, Object> claims) {
         // Does not approve request so that checks after it can check. Only rejects on fail.
@@ -51,18 +61,32 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
-            if (methodRoute.hasAnnotation(ProgramSecured.class)) {
-
+            if (methodRoute.hasAnnotation(ProgramSecured.class) && programId != null) {
                 if (claims != null){
-                    Optional<String[]> programRoles = methodRoute.getValue(ProgramSecured.class, String[].class);
-                    if (programRoles.isEmpty()) {
-                        programRoles = Optional.of(new String[]{"MEMBER"});
-                    }
-                    SecurityRuleResult result = compareRoles(Arrays.asList(programRoles.get()), getUserProgramRoles(claims, programId));
 
-                    if (result == SecurityRuleResult.ALLOWED){
-                        return SecurityRuleResult.UNKNOWN;
+                    ProgramUser[] allProgramRolesArray;
+                    try {
+                        allProgramRolesArray = objectMapper.readValue(claims.get("programRoles").toString(), ProgramUser[].class);
+                    } catch (JsonProcessingException e) {
+                        throw new HttpServerException("Could not deserialize program roles");
                     }
+                    List<ProgramUser> allProgramRoles = Arrays.asList(allProgramRolesArray);
+                    List<String> systemRoles = (List<String>) claims.get("roles");
+
+                    // Get program roles for given program and system roles into single list
+                    List<ProgramSecuredRole> userRoles = processRoles(allProgramRoles, systemRoles, programId);
+
+                    // Get route allowed roles
+                    List<ProgramSecuredRole> allowedRoles = getAllowedRoles(methodRoute);
+
+                    List<String> allowedRolesString = allowedRoles
+                            .stream().map(ProgramSecuredRole::toString).collect(Collectors.toList());
+
+                    List<String> userRolesString = userRoles.stream()
+                            .map(ProgramSecuredRole::toString).collect(Collectors.toList());
+
+                    SecurityRuleResult securityRuleResult = compareRoles(allowedRolesString, userRolesString);
+                    return securityRuleResult;
                 }
 
                 // Rejects if no claims, or does not have correct roles
@@ -73,16 +97,38 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
         return SecurityRuleResult.UNKNOWN;
     }
 
-    private List<String> getUserProgramRoles(Map<String, Object> claims, String programId) {
-        //TODO: Write test for claims that does not have programRoles in it
-        //TODO: Write test for a program id that does not have program id in it
-        var userAllProgRoles = (Map<String, Object>) claims.get("programRoles");
-        List<String> userProgRoles = (List<String>) userAllProgRoles.get(programId);
+    public List<ProgramSecuredRole> processRoles(List<ProgramUser> allProgramRoles, List<String> systemRoles, String programId) {
 
-        //make sure they have the member role so they can access base program endpoints
-        userProgRoles.add("MEMBER");
+        // Check that they have a role in the program they are requesting data for
+        List<ProgramUser> matchedProgramRoles = allProgramRoles.stream().filter(programRole ->
+                programRole.getProgramId().toString().equals(programId)).collect(Collectors.toList());
 
-        return userProgRoles;
+        // Get roles of the user for the given program
+        List<ProgramSecuredRole> userRoles = new ArrayList<>();
+        if (!matchedProgramRoles.isEmpty()){
+            matchedProgramRoles.get(0).getRoles().stream()
+                    .forEach(role -> userRoles.add(ProgramSecuredRole.getEnum(role.getDomain())));
+        }
+
+        // Add system roles to the user's roles. System roles apply to every program
+        systemRoles.stream().forEach(systemRole -> userRoles.add(ProgramSecuredRole.getEnum(systemRole)));
+        return userRoles;
+    }
+
+    public List<ProgramSecuredRole> getAllowedRoles(MethodBasedRouteMatch methodRoute) {
+
+        Optional<ProgramSecuredRole[]> programSecuredRoles = methodRoute.getValue(ProgramSecured.class, "roles", ProgramSecuredRole[].class);
+        Optional<ProgramSecuredRoleGroup[]> programSecuredRoleGroups = methodRoute.getValue(ProgramSecured.class, "roleGroups", ProgramSecuredRoleGroup[].class);
+        List<ProgramSecuredRole> allowedRoles = new ArrayList<>();
+        if (programSecuredRoles.isPresent()) {
+            allowedRoles.addAll(Arrays.asList(programSecuredRoles.get()));
+        }
+
+        if (programSecuredRoleGroups.isPresent()) {
+            Arrays.asList(programSecuredRoleGroups.get())
+                    .stream().forEach(programSecuredRoleGroup -> allowedRoles.addAll(programSecuredRoleGroup.getProgramRoles()));
+        }
+        return allowedRoles;
     }
 
     @Override
