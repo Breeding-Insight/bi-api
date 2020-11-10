@@ -17,20 +17,34 @@
 
 package org.breedinginsight.api.auth;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.DefaultSecurityService;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Singleton
 public class SecurityService extends DefaultSecurityService {
+
+    ObjectMapper objectMapper;
+    ProgramDao programDao;
+
+    @Inject
+    public SecurityService(ObjectMapper objectMapper, ProgramDao programDao) {
+        this.objectMapper = objectMapper;
+        this.programDao = programDao;
+    }
 
     public AuthenticatedUser getUser() {
         Optional<Authentication> optionalAuthentication = super.getAuthentication();
@@ -40,7 +54,15 @@ public class SecurityService extends DefaultSecurityService {
                 Object jwtId = authentication.getAttributes().get("id");
                 UUID id = jwtId != null ? UUID.fromString(jwtId.toString()) : null;
                 Object jwtRoles = authentication.getAttributes().get("roles");
-                List<ProgramUser> jwtProgramRoles = (List<ProgramUser>) authentication.getAttributes().get("programRoles");
+
+                List<ProgramUser> jwtProgramRoles;
+                try {
+                    jwtProgramRoles = Arrays.asList(objectMapper.readValue(
+                            authentication.getAttributes().get("programRoles").toString(), ProgramUser[].class));
+                } catch (JsonProcessingException e) {
+                    throw new HttpServerException("Unable to read program roles from the claims");
+                }
+
                 List<String> roles = (List<String>) jwtRoles;
                 AuthenticatedUser authenticatedUser = new AuthenticatedUser(authentication.getName(), roles, id, jwtProgramRoles);
                 return authenticatedUser;
@@ -48,5 +70,26 @@ public class SecurityService extends DefaultSecurityService {
         }
 
         throw new HttpStatusException(HttpStatus.UNAUTHORIZED, null);
+    }
+
+    public List<UUID> getEnrolledProgramIds(AuthenticatedUser actingUser) {
+        if (actingUser.getRoles().contains(ProgramSecuredRole.SYSTEM_ADMIN.toString())){
+            return programDao.findAll().stream().map(ProgramEntity::getId).collect(Collectors.toList());
+        }
+
+        return actingUser.getProgramRoles().stream()
+                .map(ProgramUser::getProgramId).collect(Collectors.toList());
+    }
+
+    public boolean canUpdateUser(AuthenticatedUser authenticatedUser, UUID targetUserId) {
+
+        if (authenticatedUser.getRoles().contains(ProgramSecuredRole.SYSTEM_ADMIN.toString())) {
+            return true;
+        }
+
+        if (!authenticatedUser.getId().equals(targetUserId)) {
+            return true;
+        }
+        return false;
     }
 }

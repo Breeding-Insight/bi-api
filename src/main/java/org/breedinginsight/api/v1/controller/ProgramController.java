@@ -83,7 +83,7 @@ public class ProgramController {
     public HttpResponse<Response<DataResponse<Program>>> getPrograms(
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams) {
 
-        List<Program> programs = programService.getAll();
+        List<Program> programs = programService.getAll(securityService.getUser());
         return ResponseUtils.getQueryResponse(programs, programQueryMapper, queryParams);
     }
 
@@ -94,7 +94,7 @@ public class ProgramController {
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams,
             @Body @SearchValid(using = ProgramQueryMapper.class) SearchRequest searchRequest) {
 
-        List<Program> programs = programService.getAll();
+        List<Program> programs = programService.getAll(securityService.getUser());
         return ResponseUtils.getQueryResponse(programs, programQueryMapper, searchRequest, queryParams);
     }
 
@@ -282,7 +282,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/locations{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams) {
@@ -298,7 +298,7 @@ public class ProgramController {
 
     @Post("/programs/{programId}/locations/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramLocation>>> postProgramLocationsSearch(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams,
@@ -318,8 +318,8 @@ public class ProgramController {
 
     @Get("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
     @AddMetadata
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId,
                                                                        @PathVariable UUID locationId) {
 
@@ -337,7 +337,7 @@ public class ProgramController {
     @Post("/programs/{programId}/locations")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramLocation>> addProgramLocation(@PathVariable UUID programId,
                                                                       @Valid @Body ProgramLocationRequest locationRequest) {
 
@@ -361,7 +361,7 @@ public class ProgramController {
     @Put("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<Program>> updateProgramLocation(@PathVariable UUID programId,
                                                                  @PathVariable UUID locationId,
                                                                  @Valid @Body ProgramLocationRequest locationRequest) {
@@ -385,7 +385,7 @@ public class ProgramController {
 
     @Delete("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse archiveProgramLocation(@PathVariable UUID programId,
                                               @PathVariable UUID locationId) {
 
