@@ -20,6 +20,7 @@ package org.breedinginsight.services;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecuredRole;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.pojos.ProgramUserRoleEntity;
@@ -54,6 +55,8 @@ public class ProgramUserService {
     private RoleService roleService;
     @Inject
     private DSLContext dsl;
+    @Inject
+    private SecurityService securityService;
 
     public ProgramUser addProgramUser(AuthenticatedUser actingUser, UUID programId, ProgramUserRequest programUserRequest) throws DoesNotExistException, AlreadyExistsException, UnprocessableEntityException {
         /* Add a user to a program. Create the user if they don't exist. */
@@ -176,11 +179,8 @@ public class ProgramUserService {
                 }
 
                 // If the user is not an admin, don't let them edit their own program roles
-                //TODO: Can we do this in a more generic way? If we add other system roles in the future it would be nice to add them to this easily
-                if (!actingUser.getRoles().contains(ProgramSecuredRole.SYSTEM_ADMIN.toString())) {
-                    if (actingUser.getId().equals(userId)) {
-                        throw new ForbiddenException("Cannot edit own program roles");
-                    }
+                if (!securityService.canUpdateUser(actingUser, userId)) {
+                    throw new ForbiddenException("Cannot edit own program roles");
                 }
 
                 // check if user is already in program, only allow puts for update, no posts
