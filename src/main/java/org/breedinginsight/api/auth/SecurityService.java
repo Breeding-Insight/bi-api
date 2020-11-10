@@ -81,13 +81,25 @@ public class SecurityService extends DefaultSecurityService {
                 .map(ProgramUser::getProgramId).collect(Collectors.toList());
     }
 
-    public boolean canUpdateUser(AuthenticatedUser authenticatedUser, UUID targetUserId) {
-
-        if (authenticatedUser.getRoles().contains(ProgramSecuredRole.SYSTEM_ADMIN.toString())) {
+    public boolean canUpdateUserRoles(AuthenticatedUser actingUser, UUID targetUserId) {
+        // Admins can update their own program roles, others cannot
+        if (actingUser.getRoles().contains(ProgramSecuredRole.SYSTEM_ADMIN.toString())) {
             return true;
         }
 
-        if (!authenticatedUser.getId().equals(targetUserId)) {
+        if (!actingUser.getId().equals(targetUserId)) {
+            return true;
+        }
+        return false;
+    }
+
+    public boolean canUpdateUser(AuthenticatedUser actingUser, UUID targetUserId) {
+        // Only admins and self can update user info
+        if (actingUser.getRoles().contains(ProgramSecuredRole.SYSTEM_ADMIN.toString())) {
+            return true;
+        }
+
+        if (actingUser.getId().equals(targetUserId)) {
             return true;
         }
         return false;
