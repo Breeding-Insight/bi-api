@@ -179,7 +179,7 @@ public class ProgramUserService {
                 }
 
                 // If the user is not an admin, don't let them edit their own program roles
-                if (!securityService.canUpdateUser(actingUser, userId)) {
+                if (!securityService.canUpdateUserRoles(actingUser, userId)) {
                     throw new ForbiddenException("Cannot edit own program roles");
                 }
 
