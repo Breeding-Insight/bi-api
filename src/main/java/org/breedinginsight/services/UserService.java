@@ -23,7 +23,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
 import org.breedinginsight.api.auth.SecurityService;
-import org.breedinginsight.api.model.v1.request.OrcidRequest;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -74,6 +73,7 @@ public class UserService {
     private SignUpJwtService signUpJwtService;
     private EmailUtil emailUtil;
     private EmailTemplates emailTemplates;
+    private SecurityService securityService;
 
     @Inject
     public UserService(UserDAO dao, SystemUserRoleDao systemUserRoleDao, SystemRoleDao systemRoleDao,
