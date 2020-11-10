@@ -93,7 +93,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
         // Normal login
         try {
-            AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
+            AuthenticatedUser authenticatedUser = getUserCredentials(userDetails, request);
             return super.loginSuccess(authenticatedUser, request);
         } catch (AuthenticationException e) {
             AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
@@ -101,7 +101,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         }
     }
 
-    private AuthenticatedUser getUserCredentials(UserDetails userDetails) throws AuthenticationException {
+    private AuthenticatedUser getUserCredentials(UserDetails userDetails, HttpRequest<?> request) throws AuthenticationException {
 
         Optional<User> user = userService.getByOrcid(userDetails.getUsername());
 
@@ -117,7 +117,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
                 AuthenticatedUser authenticatedUser = new AuthenticatedUser(userDetails.getUsername(),
                         systemRoleStrings, user.get().getId(), programUsers);
-                return super.loginSuccess(authenticatedUser, request);
+                return authenticatedUser;
             }
         }
 
@@ -223,7 +223,7 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
 
             // Get logged in JWT and redirect user to account creation success page
             try {
-                AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
+                AuthenticatedUser authenticatedUser = getUserCredentials(userDetails, request);
                 Optional<Cookie> cookieOptional = super.accessTokenCookie(authenticatedUser, request);
                 if (!cookieOptional.isPresent()) {
                     return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
