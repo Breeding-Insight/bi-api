@@ -42,18 +42,27 @@ import java.util.UUID;
 @Singleton
 public class ProgramLocationService {
 
-    @Inject
     private ProgramLocationDAO programLocationDao;
-    @Inject
     private ProgramService programService;
-    @Inject
     private CountryService countryService;
-    @Inject
     private EnvironmentTypeService environmentTypeService;
-    @Inject
     private AccessibilityService accessibilityService;
-    @Inject
     private TopographyService topographyService;
+
+    @Inject
+    public ProgramLocationService(ProgramLocationDAO programLocationDao,
+                                  ProgramService programService,
+                                  CountryService countryService,
+                                  EnvironmentTypeService environmentTypeService,
+                                  AccessibilityService accessibilityService,
+                                  TopographyService topographyService) {
+        this.programLocationDao = programLocationDao;
+        this.programService = programService;
+        this.countryService = countryService;
+        this.environmentTypeService = environmentTypeService;
+        this.accessibilityService = accessibilityService;
+        this.topographyService = topographyService;
+    }
 
     public List<ProgramLocation> getByProgramId(UUID programId) throws DoesNotExistException {
 
@@ -222,6 +231,9 @@ public class ProgramLocationService {
         programLocationDao.insert(placeEntity);
         ProgramLocation location = programLocationDao.getById(programId, placeEntity.getId()).get();
 
+        // Add location to brapi service
+        programLocationDao.createProgramLocationBrAPI(location);
+
         return location;
     }
 
@@ -263,6 +275,9 @@ public class ProgramLocationService {
 
         programLocationDao.update(placeEntity);
         ProgramLocation location = programLocationDao.getById(programId, placeEntity.getId()).get();
+
+        // Update location in brapi service
+        programLocationDao.updateProgramLocationBrAPI(location);
 
         return location;
     }

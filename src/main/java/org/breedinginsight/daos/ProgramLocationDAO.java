@@ -17,10 +17,20 @@
 
 package org.breedinginsight.daos;
 
+import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.HttpServerException;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.client.v2.model.exceptions.APIException;
+import org.brapi.client.v2.model.exceptions.HttpException;
+import org.brapi.client.v2.modules.core.LocationsAPI;
+import org.brapi.v2.core.model.BrApiExternalReference;
+import org.brapi.v2.core.model.BrApiLocation;
+import org.brapi.v2.core.model.request.LocationsRequest;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -36,10 +46,17 @@ import static org.breedinginsight.dao.db.Tables.*;
 @Singleton
 public class ProgramLocationDAO extends PlaceDao {
     private DSLContext dsl;
+    private BrAPIProvider brAPIProvider;
+
+    @Property(name = "brapi.server.reference-source")
+    protected String referenceSource;
+
     @Inject
-    public ProgramLocationDAO(Configuration config, DSLContext dsl) {
+    public ProgramLocationDAO(Configuration config, DSLContext dsl,
+                              BrAPIProvider brAPIProvider) {
         super(config);
         this.dsl = dsl;
+        this.brAPIProvider = brAPIProvider;
     }
 
     // get all active locations by program id
@@ -106,5 +123,100 @@ public class ProgramLocationDAO extends PlaceDao {
 
         return resultLocations;
     }
+
+    public void createProgramLocationBrAPI(ProgramLocation location) {
+
+        BrApiExternalReference externalReference = BrApiExternalReference.builder()
+                .referenceID(location.getId().toString())
+                .referenceSource(referenceSource)
+                .build();
+
+        BrApiLocation brApiLocation = BrApiLocation.builder()
+                .abbreviation(location.getAbbreviation())
+                //.additionalInfo()
+                .coordinateDescription(location.getCoordinateDescription())
+                .coordinateUncertainty(location.getCoordinateUncertainty().toPlainString())
+                //.coordinates(location.getCoordinates())
+                .countryCode(location.getCountry().getAlpha3Code())
+                .countryName(location.getCountry().getName())
+                .documentationURL(location.getDocumentationUrl())
+                .environmentType(location.getEnvironmentType().getName())
+                .exposure(location.getExposure())
+                .externalReferences(List.of(externalReference))
+                //.instituteAddress()
+                //.instituteName()
+                .locationName(location.getName())
+                //.locationType()
+                //.siteStatus()
+                .slope(location.getSlope().toPlainString())
+                .topography(location.getTopography().getName())
+                .build();
+
+        // POST locations to each brapi service
+        // TODO: If there is a failure after the first brapi service, roll back all before the failure.
+        try {
+            List<LocationsAPI> locationsAPIs = brAPIProvider.getAllUniqueLocationsAPI();
+            for (LocationsAPI locationsAPI: locationsAPIs){
+                locationsAPI.createLocation(brApiLocation);
+            }
+        } catch (HttpException | APIException e) {
+            throw new InternalServerException(e.getMessage());
+        }
+
+    }
+
+    public void updateProgramLocationBrAPI(ProgramLocation location) {
+
+        LocationsRequest searchRequest = LocationsRequest.builder()
+                .externalReferenceID(location.getId().toString())
+                .externalReferenceSource(referenceSource)
+                .build();
+
+        // Location goes in all of the clients
+        // TODO: If there is a failure after the first brapi service, roll back all before the failure.
+        List<LocationsAPI> locationsAPIs = brAPIProvider.getAllUniqueLocationsAPI();
+        for (LocationsAPI locationsAPI: locationsAPIs){
+
+            // Get existing brapi location
+            List<BrApiLocation> brApiLocations;
+            try {
+                brApiLocations = locationsAPI.getLocations(searchRequest);
+            } catch (HttpException | APIException e) {
+                throw new HttpServerException("Could not find location in BrAPI service.");
+            }
+
+            if (brApiLocations.size() != 1){
+                throw new HttpServerException("Could not find unique location in BrAPI service.");
+            }
+
+            BrApiLocation brApiLocation = brApiLocations.get(0);
+
+            //TODO: Need to add archived/not archived when available in brapi
+            brApiLocation.setAbbreviation(location.getAbbreviation());
+            //brApiLocation.setAdditionalInfo()
+            brApiLocation.setCoordinateDescription(location.getCoordinateDescription());
+            brApiLocation.setCoordinateUncertainty(location.getCoordinateUncertainty().toPlainString());
+            //brApiLocation.getCoordinates()
+            brApiLocation.setCountryCode(location.getCountry().getAlpha3Code());
+            brApiLocation.setCountryName(location.getCountry().getName());
+            brApiLocation.setDocumentationURL(location.getDocumentationUrl());
+            brApiLocation.setEnvironmentType(location.getEnvironmentType().getName());
+            brApiLocation.setExposure(location.getExposure());
+            //brApiLocation.setInstituteAddress();
+            //brApiLocation.setInstituteName();
+            brApiLocation.setLocationName(location.getName());
+            //brApiLocation.setLocationType();
+            //brApiLocation.setSiteStatus();
+            brApiLocation.setSlope(location.getSlope().toPlainString());
+            brApiLocation.setTopography(location.getTopography().getName());
+
+            try {
+                locationsAPI.updateLocation(brApiLocation);
+            } catch (HttpException | APIException e) {
+                throw new HttpServerException("Could not find location in BrAPI service.");
+            }
+        }
+    }
+
 
 }
