@@ -146,7 +146,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         JsonObject trait = actual.getAsJsonObject("trait");
         assertEquals(expected.getTraitName(), actual.get("observationVariableName").getAsString(), "Wrong name");
         assertEquals(expected.getDescription(), trait.get("description").getAsString(), "Wrong description");
-        //assertEquals(validLocation.getCountry().getName(), country.get("name").getAsString(), "Wrong country name");
+        //TODO: more complete validation after field book workarounds are resolved
     }
 
     @Test
