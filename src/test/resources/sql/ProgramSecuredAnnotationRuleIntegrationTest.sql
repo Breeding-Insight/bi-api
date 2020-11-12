@@ -34,7 +34,7 @@ insert into program (species_id, name, abbreviation, documentation_url, objectiv
 select species.id, 'Program4', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
--- InsertProgramRolesMember
+-- name: InsertProgramRolesMember
 
 insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
 select
@@ -43,7 +43,7 @@ from
 bi_user
 join role on role.domain = 'member';
 
--- InsertProgramRolesBreeder
+-- name: InsertProgramRolesBreeder
 
 insert into program_user_role (user_id, program_id, role_id, created_by, updated_by)
 select
@@ -53,15 +53,13 @@ bi_user
 join role on role.domain = 'breeder'
 where bi_user.name = 'system';
 
--- InsertSystemRoleAdmin
+-- name: InsertSystemRoleAdmin
 
 insert into system_user_role (bi_user_id, system_role_id, created_by, updated_by)
-select ?::uuid, id, bi_user.id, bi_user.id from
+select ?::uuid, system_role.id, bi_user.id, bi_user.id
 from
 bi_user
 join
-system_role
-where
-domain = 'admin'
-and bi_user.name = 'system';
+system_role on system_role.domain = 'admin'
+where bi_user.name = 'system';
 
