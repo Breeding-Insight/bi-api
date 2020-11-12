@@ -3,7 +3,6 @@ name: Release Drafter
 on:
   workflow_dispatch:
   push:
-    # branches to consider in the event; optional, defaults to all
     branches:
       - master
   pull_request:
@@ -15,9 +14,34 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # Drafts your next Release notes as Pull Requests are merged into "master"
-      - uses: release-drafter/release-drafter@v5
+      - name: Update Draft
+        id: update_draft
+        uses: release-drafter/release-drafter@v5
         with:
           # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
           config-name: release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Checkout code
+        if: github.event_name == 'push'
+        uses: actions/checkout@v2
+      - name: Update version
+        if: github.event_name == 'push'
+        run: sed -i -E "s/version=.*/version=${{ steps.update_draft.outputs.name }}/" version.properties
+      - name: Update version info
+        if: github.event_name == 'push'
+        run: sed -i -E "s~versionInfo=.*~versionInfo=https://github.com/Breeding-Insight/test-project/releases/tag/${{ steps.update_draft.outputs.tag_name }}~" version.properties
+      - name: Commit files
+        if: github.event_name == 'push'
+        run: |
+          git config --local user.email "bidevteam@cornell.edu"
+          git config --local user.name "rob-ouser-bi"
+          git add .
+          git commit -m "[autocommit] Updating version.properties"
+      - name: Push changes  # push the output folder to your repo
+        if: github.event_name == 'push'
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.ROB_OUSER_TOKEN }}
+          branch: ${{ github.ref }}
+          force: true
