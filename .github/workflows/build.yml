@@ -55,3 +55,4 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WEB_BASE_URL: http://localhost:8080
           API_INTERNAL_TEST_PORT: 8081
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
