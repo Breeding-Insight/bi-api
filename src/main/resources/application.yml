@@ -73,12 +73,16 @@ micronaut:
           login-failure-target-url: ${web.login.failure.url}
           logout-target-url: ${web.logout.url}
         bearer:
-          enabled: false
+          enabled: true
         signatures:
           secret:
             generator:
               secret: ${jwt.secret}
               jws-algorithm: HS256
+    api-token:
+      jwt:
+        generator:
+          access-token-expiration: 28800
     endpoints:
       login:
         enabled: true

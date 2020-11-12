@@ -2626,6 +2626,22 @@ paths:
             application/json:
               example:
                 status: "UP"
+  /api-token:
+    get:
+      tags:
+        - token management
+      parameters:
+        - in: query
+          name: returnUrl
+          schema:
+            type: string
+          description: return url to redirect to
+      summary: Get api token
+      description: Get api token for user making the request
+      operationId: token
+      responses:
+        "303":
+          description: Redirect
   /server-info:
     get:
       tags:
