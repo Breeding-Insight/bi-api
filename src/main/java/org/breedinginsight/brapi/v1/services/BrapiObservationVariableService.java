@@ -55,8 +55,6 @@ public class BrapiObservationVariableService {
                 .map(programUser -> programUser.getProgram().getId())
                 .collect(Collectors.toList());
 
-        log.info(programIds.toString());
-
         // get traits for all programs user is in
         List<org.breedinginsight.model.Trait> biTraits = traitService.getByProgramIds(programIds, true);
 
