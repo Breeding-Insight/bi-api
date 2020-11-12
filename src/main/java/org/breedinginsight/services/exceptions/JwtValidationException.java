@@ -15,22 +15,11 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.model.v1.request;
+package org.breedinginsight.services.exceptions;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+public class JwtValidationException extends Exception {
 
-import javax.validation.constraints.NotBlank;
-
-//TODO: Remove once registration flow is complete
-@Getter
-@Setter
-@Builder
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
-@Introspected
-public class OrcidRequest {
-    @NotBlank
-    String orcid;
+    public JwtValidationException(String message) {
+        super(message);
+    }
 }

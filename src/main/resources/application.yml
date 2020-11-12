@@ -57,6 +57,9 @@ micronaut:
             jwks-uri: ${oauth.openId.jwksUri:`https://sandbox.orcid.org/oauth/jwks`}
             user-info:
               url: ${oauth.openId.userInfoUrl:`https://sandbox.orcid.org/oauth/userinfo`}
+      state:
+        cookie:
+          cookie-max-age: 10m
     token:
       jwt:
         enabled: true
@@ -116,13 +119,24 @@ web:
   base-url: ${web.base-url}
   cookies:
     login-redirect: redirect-login
+    account-token: account-token
   login:
     success:
       url: ${web.base-url:`http://localhost:8080`}/program-selection
     failure:
       url: ${web.base-url:`http://localhost:8080`}/401
+    error:
+      url: ${web.base-url:`http://localhost:8080`}?loginError=true
   logout:
     url: ${web.base-url:`http://localhost:8080`}
+  signup:
+    url-timeout: 60m
+    signup:
+      url: ${web.base-url:`http://localhost:8080`}/signup
+    success:
+      url: ${web.base-url:`http://localhost:8080`}/account-success
+    error:
+      url: ${web.base-url:`http://localhost:8080`}/account-error
 
 brapi:
   server:
@@ -130,3 +144,11 @@ brapi:
     pheno-url: ${brapi.server.pheno-url}
     geno-url: ${brapi.server.geno-url}
     reference-source: ${brapi.server.reference-source}
+
+email:
+  relay-server:
+    host: ${email.relay-server.host}
+    port: ${email.relay-server.port}
+  from: ${email.from}
+
+
