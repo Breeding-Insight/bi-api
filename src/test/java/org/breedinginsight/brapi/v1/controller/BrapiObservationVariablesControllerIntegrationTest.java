@@ -159,7 +159,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        assertEquals(HttpStatus.UNAUTHORIZED, e.getStatus());
     }
 
     @Test()

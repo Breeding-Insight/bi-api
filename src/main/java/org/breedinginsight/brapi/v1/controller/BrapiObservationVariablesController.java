@@ -71,7 +71,7 @@ public class BrapiObservationVariablesController {
             variables = variableService.getBrapiObservationVariablesForUser(actingUser);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage());
-            return HttpResponse.notFound();
+            return HttpResponse.unauthorized();
         }
 
         List<FilterRequest> filters = new ArrayList<>();
