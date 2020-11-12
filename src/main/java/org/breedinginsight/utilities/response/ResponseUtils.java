@@ -21,6 +21,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import org.apache.commons.lang3.tuple.Pair;
+import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -40,8 +41,6 @@ import java.util.stream.Collectors;
 
 public class ResponseUtils {
 
-    public final static Integer DEFAULT_PAGE_SIZE = 50;
-    public final static Integer DEFAULT_PAGE = 1;
     public final static SortOrder DEFAULT_SORT_ORDER = SortOrder.ASC;
 
     // All
@@ -54,6 +53,12 @@ public class ResponseUtils {
     public static <T> HttpResponse<Response<DataResponse<T>>> getQueryResponse(
             List data, AbstractQueryMapper mapper, QueryParams queryParams) {
         return processSearchResponse(data, null, queryParams, mapper, new Metadata());
+    }
+
+    // Brapi pagination and filter only
+    public static <T> HttpResponse<Response<DataResponse<T>>> getBrapiQueryResponse(
+            List data, AbstractQueryMapper mapper, PaginationParams queryParams, SearchRequest searchRequest) {
+        return processBrapiResponse(data, searchRequest, queryParams, mapper, new Metadata());
     }
 
     // All
@@ -80,6 +85,17 @@ public class ResponseUtils {
             data = search(data, searchRequest, mapper);
         }
         data = sort(data, queryParams, mapper);
+        Pair<List, Pagination> paginationResult = paginateData(data, queryParams);
+        metadata = constructMetadata(metadata, paginationResult.getRight());
+        return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
+    }
+
+    private static <T> HttpResponse<Response<DataResponse<T>>> processBrapiResponse(
+            List data, SearchRequest searchRequest, PaginationParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
+
+        if (searchRequest != null){
+            data = search(data, searchRequest, mapper);
+        }
         Pair<List, Pagination> paginationResult = paginateData(data, queryParams);
         metadata = constructMetadata(metadata, paginationResult.getRight());
         return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
@@ -129,7 +145,7 @@ public class ResponseUtils {
 
     private static List search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
 
-        List<FilterField> filterFields = searchRequest.getFilter().stream()
+        List<FilterField> filterFields = searchRequest.getFilters().stream()
                 .map(filter -> new FilterField(mapper.getField(filter.getField()), filter.getValue()))
                 .collect(Collectors.toList());
 
@@ -162,7 +178,7 @@ public class ResponseUtils {
         return data;
     }
 
-    private static Pair<List, Pagination> paginateData(List<?> data, QueryParams paginationRequest) {
+    private static Pair<List, Pagination> paginateData(List<?> data, PaginationParams paginationRequest) {
 
         Pagination pagination = new Pagination();
         Integer originalCount = data.size();
@@ -170,10 +186,10 @@ public class ResponseUtils {
         // Show all by default
         if (paginationRequest.getPageSize() != null || paginationRequest.getPage() != null) {
 
-            Integer page = paginationRequest.getPage() != null ? paginationRequest.getPage() : ResponseUtils.DEFAULT_PAGE;
-            Integer pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : ResponseUtils.DEFAULT_PAGE_SIZE;
+            Integer page = paginationRequest.getPage() != null ? paginationRequest.getPage() : paginationRequest.getDefaultPage();
+            Integer pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : paginationRequest.getDefaultPageSize();
 
-            Integer pageAdjustedByIndex = page - 1;
+            Integer pageAdjustedByIndex = page - paginationRequest.getDefaultPage();
             Integer startIndex = pageAdjustedByIndex * pageSize;
             if (startIndex > data.size() || startIndex < 0) {
                 return Pair.of(new ArrayList<>(),
@@ -187,7 +203,7 @@ public class ResponseUtils {
 
             pagination.setCurrentPage(page);
         } else {
-            pagination.setCurrentPage(1);
+            pagination.setCurrentPage(paginationRequest.getDefaultPage());
         }
 
         pagination.setPageSize(data.size());

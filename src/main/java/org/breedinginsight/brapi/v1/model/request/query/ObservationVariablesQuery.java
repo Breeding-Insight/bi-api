@@ -14,18 +14,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.breedinginsight.api.model.v1.request.query;
+package org.breedinginsight.brapi.v1.model.request.query;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
-import java.util.ArrayList;
-import java.util.List;
+import lombok.Getter;
 
 @Getter
-@Setter
 @Introspected
-public class SearchRequest {
-    private List<FilterRequest> filters = new ArrayList<>();
+public class ObservationVariablesQuery extends BrapiQuery {
+    private String observationVariableDbId;
+    private String traitClass;
 }

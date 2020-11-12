@@ -14,18 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapi.v1.model;
 
-package org.breedinginsight.api.model.v1.request.query;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@Getter
-@Setter
-@Introspected
-public class SearchRequest {
-    private List<FilterRequest> filters = new ArrayList<>();
+@Data
+@SuperBuilder
+@NoArgsConstructor
+public class Method {
+    @JsonProperty("class")
+    private String propertyClass;
+    private String description;
+    private String formula;
+    private String methodDbId;
+    private String methodName;
+    private String name;
+    private OntologyReference ontologyRefernce;
+    private String reference;
 }

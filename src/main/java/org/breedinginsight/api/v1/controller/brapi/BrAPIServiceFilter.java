@@ -40,7 +40,7 @@ import javax.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
 
-@Filter(patterns = {"/**/programs/**", "/**/programs"})
+@Filter("/**")
 public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
 
 
@@ -95,6 +95,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                             return Flowable.error(new HttpInternalServerError("Unable to process request"));
                         }
                     } else {
+
                         // We'll get here for /programs. Use client defaults to begin with, they can change their
                         // brapi service later.
                         brAPIClientProvider.setCoreClient(defaultBrAPICoreUrl);

@@ -53,6 +53,13 @@ import static org.breedinginsight.dao.db.Tables.*;
 @Singleton
 public class ProgramDAO extends ProgramDao {
 
+    @Property(name = "brapi.server.core-url")
+    private String defaultBrAPICoreUrl;
+    @Property(name = "brapi.server.pheno-url")
+    private String defaultBrAPIPhenoUrl;
+    @Property(name = "brapi.server.geno-url")
+    private String defaultBrAPIGenoUrl;
+
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
@@ -123,6 +130,16 @@ public class ProgramDAO extends ProgramDao {
 
     public ProgramBrAPIEndpoints getProgramBrAPIEndpoints() {
         return new ProgramBrAPIEndpoints();
+    }
+
+    public ProgramBrAPIEndpoints getProgramBrAPIEndpoints(UUID programId) {
+        // Just returns defaults for now
+        // TODO: in future return urls for given program
+        return ProgramBrAPIEndpoints.builder()
+                .coreUrl(Optional.of(defaultBrAPICoreUrl))
+                .genoUrl(Optional.of(defaultBrAPIGenoUrl))
+                .phenoUrl(Optional.of(defaultBrAPIPhenoUrl))
+                .build();
     }
 
     public void createProgramBrAPI(Program program) {

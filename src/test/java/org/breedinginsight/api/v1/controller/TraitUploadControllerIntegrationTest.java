@@ -512,8 +512,8 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     void searchTraitUpload() {
 
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("name", "leaves"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "leaves"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram.getId()+"/trait-upload/search?page=1&pageSize=2&sortField=name&sortOrder=DESC", searchRequest)

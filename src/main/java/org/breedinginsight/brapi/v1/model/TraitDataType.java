@@ -14,18 +14,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapi.v1.model;
 
-package org.breedinginsight.api.model.v1.request.query;
+import com.fasterxml.jackson.annotation.JsonValue;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
+public enum TraitDataType {
+    CODE("Code"),
+    DURATION("Duration"),
+    NOMINAL("Nominal"),
+    NUMERICAL("Numerical"),
+    ORDINAL("Ordinal"),
+    TEXT("Text"),
+    DATE("Date");
 
-import java.util.ArrayList;
-import java.util.List;
+    private String value;
 
-@Getter
-@Setter
-@Introspected
-public class SearchRequest {
-    private List<FilterRequest> filters = new ArrayList<>();
+    TraitDataType(String value) {
+        this.value = value;
+    }
+
+    @JsonValue
+    public String getValue() {
+        return value;
+    }
 }
