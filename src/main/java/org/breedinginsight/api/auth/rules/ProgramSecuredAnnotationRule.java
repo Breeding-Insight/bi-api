@@ -28,9 +28,7 @@ import io.micronaut.web.router.MethodBasedRoute;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
 import org.apache.commons.collections4.ListUtils;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRole;
-import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.model.ProgramUser;
 
 import javax.annotation.Nullable;
@@ -50,7 +48,7 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
     }
 
     @Inject
-    ObjectMapper objectMapper;
+    SecurityService securityService;
 
     @Override
     public SecurityRuleResult check(HttpRequest request, @Nullable RouteMatch routeMatch, @Nullable Map<String, Object> claims) {
@@ -61,17 +59,16 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
             String programId = (String) routeMatch.getVariableValues()
                     .get("programId");
-            if (methodRoute.hasAnnotation(ProgramSecured.class) && programId != null) {
-                if (claims != null){
 
-                    ProgramUser[] allProgramRolesArray;
-                    try {
-                        allProgramRolesArray = objectMapper.readValue(claims.get("programRoles").toString(), ProgramUser[].class);
-                    } catch (JsonProcessingException e) {
-                        throw new HttpServerException("Could not deserialize program roles");
-                    }
-                    List<ProgramUser> allProgramRoles = Arrays.asList(allProgramRolesArray);
-                    List<String> systemRoles = (List<String>) claims.get("roles");
+            if (methodRoute.hasAnnotation(ProgramSecured.class)) {
+                if (programId == null) {
+                    throw new HttpServerException("Endpoint does not have program id to check roles against");
+                }
+
+                if (claims != null){
+                    AuthenticatedUser user = securityService.getUser();
+                    List<ProgramUser> allProgramRoles = user.getProgramRoles();
+                    List<String> systemRoles = (List<String>) user.getRoles();
 
                     // Get program roles for given program and system roles into single list
                     List<ProgramSecuredRole> userRoles = processRoles(allProgramRoles, systemRoles, programId);

@@ -26,10 +26,16 @@ import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.DefaultSecurityService;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.UserService;
+import org.breedinginsight.services.brapi.BrAPIClientProvider;
+import org.w3c.dom.UserDataHandler;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -37,35 +43,44 @@ import java.util.stream.Collectors;
 @Singleton
 public class SecurityService extends DefaultSecurityService {
 
-    ObjectMapper objectMapper;
-    ProgramDao programDao;
+    private ProgramDao programDao;
+    private UserDAO userDAO;
+    private Provider<ActingUserProvider> actingUserProvider;
 
     @Inject
-    public SecurityService(ObjectMapper objectMapper, ProgramDao programDao) {
-        this.objectMapper = objectMapper;
+    public SecurityService(ProgramDao programDao, UserDAO userDAO,
+                           Provider<ActingUserProvider> actingUserProvider) {
         this.programDao = programDao;
+        this.userDAO = userDAO;
+        this.actingUserProvider = actingUserProvider;
     }
 
     public AuthenticatedUser getUser() {
+
+        // If our acting user has already been set, don't query them again
+        if (actingUserProvider.get().getActingUser() != null) {
+            return actingUserProvider.get().getActingUser();
+        }
+
         Optional<Authentication> optionalAuthentication = super.getAuthentication();
         if (optionalAuthentication.isPresent()) {
             Authentication authentication = optionalAuthentication.get();
             if (authentication.getAttributes() != null) {
-                Object jwtId = authentication.getAttributes().get("id");
-                UUID id = jwtId != null ? UUID.fromString(jwtId.toString()) : null;
-                Object jwtRoles = authentication.getAttributes().get("roles");
-
-                List<ProgramUser> jwtProgramRoles;
-                try {
-                    jwtProgramRoles = Arrays.asList(objectMapper.readValue(
-                            authentication.getAttributes().get("programRoles").toString(), ProgramUser[].class));
-                } catch (JsonProcessingException e) {
-                    throw new HttpServerException("Unable to read program roles from the claims");
+                Object userId = authentication.getAttributes().get("id");
+                UUID id;
+                if (userId != null) {
+                    id = UUID.fromString(userId.toString());
+                    Optional<User> optionalUser = userDAO.getUser(id);
+                    if (optionalUser.isPresent()) {
+                        User user = optionalUser.get();
+                        List<String> systemRoles = user.getSystemRoles().stream()
+                                .map(systemRole -> systemRole.getDomain()).collect(Collectors.toList());
+                        AuthenticatedUser authenticatedUser = new AuthenticatedUser(user.getName(),
+                                systemRoles, id, user.getProgramRoles());
+                        actingUserProvider.get().setActingUser(authenticatedUser);
+                        return authenticatedUser;
+                    }
                 }
-
-                List<String> roles = (List<String>) jwtRoles;
-                AuthenticatedUser authenticatedUser = new AuthenticatedUser(authentication.getName(), roles, id, jwtProgramRoles);
-                return authenticatedUser;
             }
         }
 
@@ -78,7 +93,7 @@ public class SecurityService extends DefaultSecurityService {
         }
 
         return actingUser.getProgramRoles().stream()
-                .map(ProgramUser::getProgramId).collect(Collectors.toList());
+                .map(programUser -> programUser.getProgram().getId()).collect(Collectors.toList());
     }
 
     public boolean canUpdateUserRoles(AuthenticatedUser actingUser, UUID targetUserId) {
