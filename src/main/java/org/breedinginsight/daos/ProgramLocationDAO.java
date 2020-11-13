@@ -17,6 +17,9 @@
 
 package org.breedinginsight.daos;
 
+import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -24,6 +27,7 @@ import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
 import org.brapi.client.v2.modules.core.LocationsAPI;
 import org.brapi.v2.core.model.BrApiExternalReference;
+import org.brapi.v2.core.model.BrApiGeoJSON;
 import org.brapi.v2.core.model.BrApiLocation;
 import org.brapi.v2.core.model.request.LocationsRequest;
 import org.breedinginsight.dao.db.tables.BiUserTable;
@@ -31,6 +35,7 @@ import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import com.github.filosganga.geogson.model.Feature;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -47,6 +52,7 @@ import static org.breedinginsight.dao.db.Tables.*;
 public class ProgramLocationDAO extends PlaceDao {
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
+    private Gson gson;
 
     @Property(name = "brapi.server.reference-source")
     protected String referenceSource;
@@ -57,6 +63,9 @@ public class ProgramLocationDAO extends PlaceDao {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
+        this.gson = new GsonBuilder()
+            .registerTypeAdapterFactory(new GeometryAdapterFactory())
+            .create();
     }
 
     // get all active locations by program id
@@ -133,23 +142,23 @@ public class ProgramLocationDAO extends PlaceDao {
 
         BrApiLocation brApiLocation = BrApiLocation.builder()
                 .abbreviation(location.getAbbreviation())
-                //.additionalInfo()
+                //.additionalInfo() do not keep this in our model
                 .coordinateDescription(location.getCoordinateDescription())
-                .coordinateUncertainty(location.getCoordinateUncertainty().toPlainString())
-                //.coordinates(location.getCoordinates())
-                .countryCode(location.getCountry().getAlpha3Code())
-                .countryName(location.getCountry().getName())
+                .coordinateUncertainty(location.getCoordinateUncertainty() != null ? location.getCoordinateUncertainty().toPlainString() : null)
+                .coordinates(getClientGeoJson(location))
+                .countryCode(location.getCountry() != null ? location.getCountry().getAlpha3Code() : null)
+                .countryName(location.getCountry() != null ? location.getCountry().getName() : null)
                 .documentationURL(location.getDocumentationUrl())
-                .environmentType(location.getEnvironmentType().getName())
+                .environmentType(location.getEnvironmentType() != null ? location.getEnvironmentType().getName() : null)
                 .exposure(location.getExposure())
                 .externalReferences(List.of(externalReference))
-                //.instituteAddress()
-                //.instituteName()
+                //.instituteAddress() do not keep this in our model
+                //.instituteName() do not keep this in our model
                 .locationName(location.getName())
-                //.locationType()
-                //.siteStatus()
-                .slope(location.getSlope().toPlainString())
-                .topography(location.getTopography().getName())
+                //.locationType() do not keep this in our model
+                //.siteStatus() do not keep this in our model
+                .slope(location.getSlope() != null ? location.getSlope().toPlainString() : null)
+                .topography(location.getTopography() != null ? location.getTopography().getName() : null)
                 .build();
 
         // POST locations to each brapi service
@@ -193,22 +202,22 @@ public class ProgramLocationDAO extends PlaceDao {
 
             //TODO: Need to add archived/not archived when available in brapi
             brApiLocation.setAbbreviation(location.getAbbreviation());
-            //brApiLocation.setAdditionalInfo()
+            //brApiLocation.setAdditionalInfo() do not keep this in our model
             brApiLocation.setCoordinateDescription(location.getCoordinateDescription());
-            brApiLocation.setCoordinateUncertainty(location.getCoordinateUncertainty().toPlainString());
-            //brApiLocation.getCoordinates()
-            brApiLocation.setCountryCode(location.getCountry().getAlpha3Code());
-            brApiLocation.setCountryName(location.getCountry().getName());
+            brApiLocation.setCoordinateUncertainty(location.getCoordinateUncertainty() != null ? location.getCoordinateUncertainty().toPlainString(): null);
+            brApiLocation.setCoordinates(getClientGeoJson(location));
+            brApiLocation.setCountryCode(location.getCountry() != null ? location.getCountry().getAlpha3Code() : null);
+            brApiLocation.setCountryName(location.getCountry() != null ? location.getCountry().getName() : null);
             brApiLocation.setDocumentationURL(location.getDocumentationUrl());
-            brApiLocation.setEnvironmentType(location.getEnvironmentType().getName());
+            brApiLocation.setEnvironmentType(location.getEnvironmentType() != null ? location.getEnvironmentType().getName() : null);
             brApiLocation.setExposure(location.getExposure());
-            //brApiLocation.setInstituteAddress();
-            //brApiLocation.setInstituteName();
+            //brApiLocation.setInstituteAddress(); do not keep this in our model
+            //brApiLocation.setInstituteName(); do not keep this in our model
             brApiLocation.setLocationName(location.getName());
-            //brApiLocation.setLocationType();
-            //brApiLocation.setSiteStatus();
-            brApiLocation.setSlope(location.getSlope().toPlainString());
-            brApiLocation.setTopography(location.getTopography().getName());
+            //brApiLocation.setLocationType(); do not keep this in our model
+            //brApiLocation.setSiteStatus(); do not keep this in our model
+            brApiLocation.setSlope(location.getSlope() != null ? location.getSlope().toPlainString() : null);
+            brApiLocation.setTopography(location.getTopography() != null ? location.getTopography().getName() : null);
 
             try {
                 locationsAPI.updateLocation(brApiLocation);
@@ -216,6 +225,18 @@ public class ProgramLocationDAO extends PlaceDao {
                 throw new HttpServerException("Could not find location in BrAPI service.");
             }
         }
+    }
+
+    private BrApiGeoJSON getClientGeoJson(ProgramLocation location) {
+        BrApiGeoJSON geoJson = null;
+        if (location.getCoordinates() != null) {
+            Feature feature = gson.fromJson(location.getCoordinates().data(), Feature.class);
+            geoJson = BrApiGeoJSON.builder()
+                    .geometry(feature.geometry())
+                    .type("Feature")
+                    .build();
+        }
+        return geoJson;
     }
 
 
