@@ -31,6 +31,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.BrAPITest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
@@ -55,9 +56,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProgramSecuredAnnotationRuleIntegrationTest extends DatabaseTest {
+public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
 
     private FannyPack fp;
+    private FannyPack brapiFp;
     private BiUserEntity testUser;
     private BiUserEntity otherTestUser;
     private List<Program> programs;
@@ -77,6 +79,9 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends DatabaseTest {
     @BeforeAll
     void setup() {
         fp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+
+        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         dsl.execute(fp.get("InsertPrograms"));
         programs = programDAO.getAll();
@@ -87,8 +92,8 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends DatabaseTest {
         dsl.execute(fp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program roles
-        dsl.execute(fp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), programs.get(0).getId());
-        dsl.execute(fp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), programs.get(2).getId());
+        dsl.execute(fp.get("InsertProgramRolesBreeder"), otherTestUser.getId().toString(), programs.get(0).getId());
+        dsl.execute(fp.get("InsertProgramRolesBreeder"), otherTestUser.getId().toString(), programs.get(1).getId());
 
     }
 
@@ -127,9 +132,8 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(1, data.size(), "Wrong number of programs returned");
+        assertEquals(programs.get(0).getId().toString(), result.get("id").getAsString(), "Response not returned");
     }
 
     @Test
@@ -165,17 +169,17 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends DatabaseTest {
                         .cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
         );
 
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
 
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-
-        assertEquals(0, data.size(), "Wrong number of programs returned");
+        assertEquals(HttpStatus.FORBIDDEN, e.getStatus());
     }
 
     @Test
+    @Order(12)
     public void getAllProgramsAdmin() {
+
         // Returns all program in system for admin
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -192,11 +196,12 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends DatabaseTest {
     }
 
     @Test
+    @Order(12)
     public void getAllProgramsMember() {
         // Returns programs user is a part of
         // Returns all program in system for admin
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                GET("/programs").cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();

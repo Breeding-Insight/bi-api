@@ -34,11 +34,14 @@ import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -69,6 +72,8 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     private ProgramDao programDao;
     @Inject
     private PlaceDao locationDao;
+    @Inject
+    private UserDAO userDAO;
 
     // Set up program locations
     @BeforeAll
@@ -77,6 +82,11 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/ResponseUtilsIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));

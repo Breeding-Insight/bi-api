@@ -34,6 +34,8 @@ import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.ResponseHandlerFunction;
 import org.brapi.client.v2.model.BrAPIRequest;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.dao.db.tables.daos.*;
@@ -79,6 +81,8 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     private ProgramDao programDao;
     @Inject
     private TraitDao traitDao;
+    @Inject
+    private UserDAO userDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -94,6 +98,11 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     public void insertTestData() {
         // Insert our traits into the db
         var fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
