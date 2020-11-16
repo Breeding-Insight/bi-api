@@ -19,7 +19,6 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramUserRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;

@@ -21,8 +21,6 @@ import io.kowalski.fannypack.FannyPack;
 import io.micronaut.test.annotation.MicronautTest;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.api.model.v1.response.RowValidationErrors;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.Method;

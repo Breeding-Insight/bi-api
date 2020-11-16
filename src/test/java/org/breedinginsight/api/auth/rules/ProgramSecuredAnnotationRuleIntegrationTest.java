@@ -32,7 +32,6 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.breedinginsight.BrAPITest;
-import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
@@ -40,7 +39,6 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 

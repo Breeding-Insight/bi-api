@@ -17,22 +17,14 @@
 
 package org.breedinginsight.api.auth;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
-import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.security.authentication.Authentication;
 import io.micronaut.security.utils.DefaultSecurityService;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.UserService;
-import org.breedinginsight.services.brapi.BrAPIClientProvider;
-import org.w3c.dom.UserDataHandler;
 
 import javax.inject.Inject;
 import javax.inject.Provider;

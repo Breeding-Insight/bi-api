@@ -41,7 +41,6 @@ import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 

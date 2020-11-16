@@ -25,15 +25,9 @@ import io.micronaut.security.token.config.TokenConfiguration;
 import io.micronaut.security.token.jwt.generator.claims.ClaimsAudienceProvider;
 import io.micronaut.security.token.jwt.generator.claims.JWTClaimsSetGenerator;
 import io.micronaut.security.token.jwt.generator.claims.JwtIdGenerator;
-import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.model.Role;
 
 import javax.annotation.Nullable;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 @Singleton
 @Replaces(bean = JWTClaimsSetGenerator.class)
