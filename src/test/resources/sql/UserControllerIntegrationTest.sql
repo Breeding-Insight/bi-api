@@ -124,3 +124,13 @@ delete from program_user_role where program_user_role.user_id in (
 );
 
 END $$;
+
+-- name: InsertSystemRoleAdmin
+
+insert into system_user_role (bi_user_id, system_role_id, created_by, updated_by)
+select ?::uuid, system_role.id, bi_user.id, bi_user.id
+from
+bi_user
+join
+system_role on system_role.domain = 'admin'
+where bi_user.name = 'system';

@@ -24,7 +24,9 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 
 import javax.inject.Inject;
 import java.io.FileInputStream;
@@ -35,7 +37,8 @@ import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
-public class ServerInfoControllerIntegrationTest {
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public class ServerInfoControllerIntegrationTest extends DatabaseTest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;

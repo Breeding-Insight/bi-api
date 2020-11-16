@@ -118,6 +118,8 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         validProgramRoles = programUserRoleDao.fetchByUserId(testUser.getId());
         actingUser = getActingUser();
 
+        dsl.execute(fp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
+        dsl.execute(fp.get("InsertSystemRoleAdmin"), otherTestUser.getId().toString());
     }
 
     public AuthenticatedUser getActingUser() {
@@ -147,7 +149,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
 
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
-        assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
+        assertEquals(true, resultRoles.size() == 1, "Roles list was not empty.");
 
         JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
         assertEquals(true, resultProgramRoles != null, "Empty programs list was not returned.");
@@ -430,7 +432,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         Flowable<HttpResponse<String>> call = client.exchange(
                 PUT("/users/" + testUserUUID, requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                        .cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();

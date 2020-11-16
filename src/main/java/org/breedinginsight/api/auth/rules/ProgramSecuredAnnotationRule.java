@@ -20,6 +20,8 @@ package org.breedinginsight.api.auth.rules;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpRequest;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.security.rules.SecuredAnnotationRule;
 import io.micronaut.security.rules.SecurityRuleResult;
@@ -29,7 +31,9 @@ import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
 import org.apache.commons.collections4.ListUtils;
 import org.breedinginsight.api.auth.*;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramUser;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -48,7 +52,9 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
     }
 
     @Inject
-    SecurityService securityService;
+    private SecurityService securityService;
+    @Inject
+    private ProgramDAO programDAO;
 
     @Override
     public SecurityRuleResult check(HttpRequest request, @Nullable RouteMatch routeMatch, @Nullable Map<String, Object> claims) {
@@ -63,6 +69,10 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
             if (methodRoute.hasAnnotation(ProgramSecured.class)) {
                 if (programId == null) {
                     throw new HttpServerException("Endpoint does not have program id to check roles against");
+                }
+
+                if (!programDAO.existsById(UUID.fromString(programId))) {
+                    throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
                 }
 
                 if (claims != null){
