@@ -17,8 +17,6 @@
 
 package org.breedinginsight.api.auth.rules;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
@@ -26,14 +24,11 @@ import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.security.rules.SecuredAnnotationRule;
 import io.micronaut.security.rules.SecurityRuleResult;
 import io.micronaut.security.token.RolesFinder;
-import io.micronaut.web.router.MethodBasedRoute;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
-import org.apache.commons.collections4.ListUtils;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramUser;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
