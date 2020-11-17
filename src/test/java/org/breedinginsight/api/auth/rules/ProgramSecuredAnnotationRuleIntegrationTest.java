@@ -175,7 +175,6 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(12)
     public void getAllProgramsAdmin() {
 
         // Returns all program in system for admin
@@ -194,7 +193,6 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(12)
     public void getAllProgramsMember() {
         // Returns programs user is a part of
         // Returns all program in system for admin
