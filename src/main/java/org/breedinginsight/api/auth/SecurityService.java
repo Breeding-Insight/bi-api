@@ -85,7 +85,9 @@ public class SecurityService extends DefaultSecurityService {
         }
 
         return actingUser.getProgramRoles().stream()
-                .map(programUser -> programUser.getProgram().getId()).collect(Collectors.toList());
+                .filter(programUser -> programUser.getActive())
+                .map(programUser -> programUser.getProgram().getId())
+                .collect(Collectors.toList());
     }
 
     public boolean canUpdateUserRoles(AuthenticatedUser actingUser, UUID targetUserId) {
