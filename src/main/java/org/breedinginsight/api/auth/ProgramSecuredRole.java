@@ -17,14 +17,25 @@
 
 package org.breedinginsight.api.auth;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+public enum ProgramSecuredRole {
+    MEMBER("member"),
+    BREEDER("breeder"),
+    SYSTEM_ADMIN("admin");
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface ProgramSecured {
-    ProgramSecuredRole[] roles() default {};
-    ProgramSecuredRoleGroup[] roleGroups() default {};
+    private String domain;
+
+    ProgramSecuredRole(String domain) {
+        this.domain = domain;
+    }
+
+    @Override
+    public String toString() {
+        return domain;
+    }
+
+    public static ProgramSecuredRole getEnum(String domain) {
+        for(ProgramSecuredRole v : values())
+            if(v.toString().equalsIgnoreCase(domain)) return v;
+        throw new IllegalArgumentException();
+    }
 }

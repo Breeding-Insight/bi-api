@@ -17,7 +17,6 @@
 
 package org.breedinginsight.services.validators;
 
-import io.micronaut.test.annotation.MockBean;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.brapi.v2.phenotyping.model.BrApiScaleCategories;

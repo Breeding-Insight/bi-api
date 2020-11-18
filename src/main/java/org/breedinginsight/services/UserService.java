@@ -22,6 +22,7 @@ import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -39,6 +40,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.email.EmailTemplates;
 import org.breedinginsight.utilities.email.EmailUtil;
+import org.breedinginsight.services.exceptions.*;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
@@ -71,11 +73,12 @@ public class UserService {
     private SignUpJwtService signUpJwtService;
     private EmailUtil emailUtil;
     private EmailTemplates emailTemplates;
+    private SecurityService securityService;
 
     @Inject
     public UserService(UserDAO dao, SystemUserRoleDao systemUserRoleDao, SystemRoleDao systemRoleDao,
                        ProgramUserDAO programUserDAO, DSLContext dsl, SignUpJwtService signUpJwtService,
-                       EmailUtil emailUtil, EmailTemplates emailTemplates) {
+                       EmailUtil emailUtil, EmailTemplates emailTemplates, SecurityService securityService) {
         this.dao = dao;
         this.systemUserRoleDao = systemUserRoleDao;
         this.systemRoleDao = systemRoleDao;
@@ -84,7 +87,9 @@ public class UserService {
         this.signUpJwtService = signUpJwtService;
         this.emailUtil = emailUtil;
         this.emailTemplates = emailTemplates;
+        this.securityService = securityService;
     }
+
 
     public Optional<User> getByOrcid(String orcid) {
 
@@ -176,12 +181,17 @@ public class UserService {
     }
 
 
-    public User update(AuthenticatedUser actingUser, UUID userId, UserRequest userRequest) throws DoesNotExistException, AlreadyExistsException {
+    public User update(AuthenticatedUser actingUser, UUID userId, UserRequest userRequest)
+            throws DoesNotExistException, AlreadyExistsException, ForbiddenException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        if (!securityService.canUpdateUser(actingUser, userId)) {
+            throw new ForbiddenException("Cannot edit user info");
         }
 
         if (userEmailInUseExcludingUser(userRequest.getEmail(), userId)) {

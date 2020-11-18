@@ -15,16 +15,10 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.auth;
+package org.breedinginsight.services.exceptions;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
-
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface ProgramSecured {
-    ProgramSecuredRole[] roles() default {};
-    ProgramSecuredRoleGroup[] roleGroups() default {};
+public class ForbiddenException extends Exception {
+    public ForbiddenException(String message) {
+        super(message);
+    }
 }

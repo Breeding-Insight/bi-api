@@ -21,12 +21,9 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
-import io.micronaut.security.annotation.Secured;
-import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -40,7 +37,6 @@ import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
 
-import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.Optional;
 import java.util.UUID;
@@ -67,7 +63,7 @@ public class TraitUploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramUpload>> putTraitUpload(@PathVariable UUID programId, @Part CompletedFileUpload file) {
 
         try {
@@ -96,7 +92,7 @@ public class TraitUploadController {
 
     @Get("/programs/{programId}/trait-upload{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramUpload>> getTraitUpload(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams) {
@@ -114,7 +110,7 @@ public class TraitUploadController {
 
     @Post("/programs/{programId}/trait-upload/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramUpload>> searchTraitUpload(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
@@ -133,7 +129,7 @@ public class TraitUploadController {
 
     @Delete("/programs/{programId}/trait-upload")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse deleteTraitUpload(@PathVariable UUID programId) {
 
         try {

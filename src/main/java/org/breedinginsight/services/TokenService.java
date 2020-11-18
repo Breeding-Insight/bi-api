@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.services;
 
-import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.token.jwt.render.AccessRefreshToken;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.ApiAccessRefreshTokenGenerator;

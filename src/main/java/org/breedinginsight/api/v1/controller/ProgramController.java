@@ -24,13 +24,13 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
+import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.utilities.response.mappers.ProgramLocationQueryMapper;
 import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -43,10 +43,6 @@ import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.utilities.response.ResponseUtils;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.response.mappers.ProgramUserQueryMapper;
 
 import javax.inject.Inject;
@@ -87,7 +83,7 @@ public class ProgramController {
     public HttpResponse<Response<DataResponse<Program>>> getPrograms(
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams) {
 
-        List<Program> programs = programService.getAll();
+        List<Program> programs = programService.getAll(securityService.getUser());
         return ResponseUtils.getQueryResponse(programs, programQueryMapper, queryParams);
     }
 
@@ -98,13 +94,13 @@ public class ProgramController {
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams,
             @Body @SearchValid(using = ProgramQueryMapper.class) SearchRequest searchRequest) {
 
-        List<Program> programs = programService.getAll();
+        List<Program> programs = programService.getAll(securityService.getUser());
         return ResponseUtils.getQueryResponse(programs, programQueryMapper, searchRequest, queryParams);
     }
 
     @Get("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     @AddMetadata
     public HttpResponse<Response<Program>> getProgram(@PathVariable UUID programId) {
 
@@ -136,7 +132,7 @@ public class ProgramController {
 
     @Put("/programs/{programId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     @AddMetadata
     public HttpResponse<Response<Program>> updateProgram(@PathVariable UUID programId, @Valid @Body ProgramRequest programRequest) {
 
@@ -172,7 +168,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/users{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramUser>>> getProgramUsers(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = ProgramUserQueryMapper.class) @Valid QueryParams queryParams) {
@@ -188,7 +184,7 @@ public class ProgramController {
 
     @Post("/programs/{programId}/users/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramUser>>> searchProgramUsers(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = ProgramUserQueryMapper.class) @Valid QueryParams queryParams,
@@ -205,7 +201,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     @AddMetadata
     public HttpResponse<Response<ProgramUser>> getProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
@@ -223,7 +219,7 @@ public class ProgramController {
     @Post("/programs/{programId}/users")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ProgramUser>> addProgramUser(@PathVariable UUID programId, @Valid @Body ProgramUserRequest programUserRequest) {
         /* Add a user to a program. Create the user if they don't exist. */
 
@@ -247,7 +243,7 @@ public class ProgramController {
     @Put("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN, ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramUser>> updateProgramUser(@PathVariable UUID programId, @PathVariable UUID userId,
                                                                  @Valid @Body ProgramUserRequest programUserRequest) {
         try {
@@ -264,12 +260,15 @@ public class ProgramController {
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (ForbiddenException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }
 
     @Delete("/programs/{programId}/users/{userId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse archiveProgramUser(@PathVariable UUID programId, @PathVariable UUID userId) {
 
         try {
@@ -283,7 +282,7 @@ public class ProgramController {
 
     @Get("/programs/{programId}/locations{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramLocation>>> getProgramLocations(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams) {
@@ -299,7 +298,7 @@ public class ProgramController {
 
     @Post("/programs/{programId}/locations/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramLocation>>> postProgramLocationsSearch(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using= ProgramLocationQueryMapper.class) @Valid QueryParams queryParams,
@@ -319,8 +318,8 @@ public class ProgramController {
 
     @Get("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
     @AddMetadata
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId,
                                                                        @PathVariable UUID locationId) {
 
@@ -338,7 +337,7 @@ public class ProgramController {
     @Post("/programs/{programId}/locations")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramLocation>> addProgramLocation(@PathVariable UUID programId,
                                                                       @Valid @Body ProgramLocationRequest locationRequest) {
 
@@ -362,7 +361,7 @@ public class ProgramController {
     @Put("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<Program>> updateProgramLocation(@PathVariable UUID programId,
                                                                  @PathVariable UUID locationId,
                                                                  @Valid @Body ProgramLocationRequest locationRequest) {
@@ -386,7 +385,7 @@ public class ProgramController {
 
     @Delete("/programs/{programId}/locations/{locationId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse archiveProgramLocation(@PathVariable UUID programId,
                                               @PathVariable UUID locationId) {
 

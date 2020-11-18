@@ -17,14 +17,13 @@
 
 package org.breedinginsight.api.auth;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import io.micronaut.runtime.http.scope.RequestScope;
+import lombok.Getter;
+import lombok.Setter;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.METHOD)
-public @interface ProgramSecured {
-    ProgramSecuredRole[] roles() default {};
-    ProgramSecuredRoleGroup[] roleGroups() default {};
+@RequestScope
+@Getter
+@Setter
+public class ActingUserProvider {
+    private AuthenticatedUser actingUser;
 }

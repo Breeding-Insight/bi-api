@@ -32,13 +32,12 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.BrAPITest;
+import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.model.Method;
-import org.breedinginsight.model.ProgramObservationLevel;
-import org.breedinginsight.model.Scale;
-import org.breedinginsight.model.Trait;
+import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.*;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -72,6 +71,8 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     private DSLContext dsl;
     @Inject
     private ProgramDao programDao;
+    @Inject
+    private UserDAO userDAO;
 
     private List<Trait> programTraits;
     private List<Trait> otherProgramTraits;
@@ -86,6 +87,12 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/BrapiObservationVariablesControllerIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        User otherTestUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -101,6 +108,8 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
 
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
+
         // Insert other program
         dsl.execute(fp.get("InsertOtherProgram"));
         dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
@@ -108,6 +117,9 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         dsl.execute(fp.get("InsertOtherTestOtherProgramUser"));
 
         otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
+
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherValidProgram.getId().toString());
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), otherTestUser.getId().toString(), otherValidProgram.getId().toString());
 
         // Add species to BrAPI server
         fp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
@@ -269,14 +281,14 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         assertEquals(HttpStatus.OK, response.getStatus());
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
-        assertEquals(2, data.size(), "Wrong number of results returned");
+        assertEquals(4, data.size(), "Wrong number of results returned");
 
         JsonObject metadata = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong total pages");
         assertEquals(0, pagination.get("currentPage").getAsInt(), "Wrong current page");
-        assertEquals(2, pagination.get("pageSize").getAsInt(), "Wrong page size");
-        assertEquals(2, pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(4, pagination.get("pageSize").getAsInt(), "Wrong page size");
+        assertEquals(4, pagination.get("totalCount").getAsInt(), "Wrong total count");
 
     }
 
