@@ -30,7 +30,8 @@ public class EmailTemplates {
     private STRawGroupDir templates;
 
     public EmailTemplates() {
-        templates = new STRawGroupDir("email/");
+        templates = new STRawGroupDir("email");
+
         // Check that all of the emails exist
         if (templates.getInstanceOf(NEW_ACCOUNT_EMAIL) == null) {throw new IllegalStateException();}
     }

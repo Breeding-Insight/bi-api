@@ -44,3 +44,9 @@ brapi:
 
 web:
   base-url: ${WEB_BASE_URL:`http://localhost:8080`}
+
+email:
+  relay-server:
+    host: ${EMAIL_RELAY_HOST}
+    port: ${EMAIL_RELAY_PORT}
+  from: ${EMAIL_FROM}
