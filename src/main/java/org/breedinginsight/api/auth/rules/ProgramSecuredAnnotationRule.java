@@ -103,7 +103,7 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
 
         // Check that they have a role in the program they are requesting data for
         List<ProgramUser> matchedProgramRoles = allProgramRoles.stream().filter(programRole ->
-                programRole.getProgramId().toString().equals(programId)).collect(Collectors.toList());
+                programRole.getProgramId().toString().equals(programId) && programRole.getActive()).collect(Collectors.toList());
 
         // Get roles of the user for the given program
         List<ProgramSecuredRole> userRoles = new ArrayList<>();
