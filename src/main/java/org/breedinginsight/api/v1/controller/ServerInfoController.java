@@ -22,12 +22,14 @@ import io.micronaut.http.annotation.Get;
 import io.micronaut.http.annotation.Produces;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
+import io.micronaut.http.HttpRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.response.ServerInfo;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -36,11 +38,12 @@ public class ServerInfoController {
     @Get("/server-info")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public ServerInfo getServerInfo() throws IOException {
+    public ServerInfo getServerInfo(HttpRequest request) throws IOException {
+        log.debug(request.getHeaders().names().stream().map(header -> header + ":" + request.getHeaders().get(header) + "\n").collect(Collectors.joining()));
         InputStream resourceAsStream = this.getClass()
                                            .getClassLoader()
                                            .getResourceAsStream("version.properties");
-
+       
         Properties versionInfo = new Properties();
         versionInfo.load(resourceAsStream);
 
