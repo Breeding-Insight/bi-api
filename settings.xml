@@ -52,7 +52,7 @@
                 <repository>
                     <id>github-brapi</id>
                     <name>GitHub Breeding Insight Apache Maven Packages</name>
-                    <url>https://maven.pkg.github.com/Breeding-Insight/brapi/develop</url>
+                    <url>https://maven.pkg.github.com/Breeding-Insight/brapi</url>
                     <releases><enabled>true</enabled></releases>
                     <snapshots><enabled>true</enabled></snapshots>
                 </repository>

@@ -31,7 +31,11 @@ import javax.validation.constraints.Positive;
 @Setter
 @Introspected
 @NoArgsConstructor
-public class QueryParams {
+public class QueryParams implements PaginationParams {
+
+    private static Integer DEFAULT_PAGE = 1;
+    private static Integer DEFAULT_PAGE_SIZE = 50;
+
     @Positive
     private Integer pageSize;
     @Positive
@@ -40,4 +44,12 @@ public class QueryParams {
     private boolean showAll;
     private String sortField;
     private SortOrder sortOrder;
+
+    public Integer getDefaultPage() {
+        return DEFAULT_PAGE;
+    }
+
+    public Integer getDefaultPageSize() {
+        return DEFAULT_PAGE_SIZE;
+    }
 }

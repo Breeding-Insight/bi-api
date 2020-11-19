@@ -25,5 +25,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.METHOD)
 public @interface ProgramSecured {
-    String[] value();
+    ProgramSecuredRole[] roles() default {};
+    ProgramSecuredRoleGroup[] roleGroups() default {};
 }

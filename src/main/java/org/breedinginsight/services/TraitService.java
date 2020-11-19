@@ -71,7 +71,7 @@ public class TraitService {
         this.traitValidatorError = traitValidatorError;
     }
 
-    public List<Trait> getByProgramId(UUID programId, Boolean getFullTrait) throws DoesNotExistException {
+    public List<Trait> getByProgramId(UUID programId, boolean getFullTrait) throws DoesNotExistException {
 
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program does not exist");
@@ -81,6 +81,20 @@ public class TraitService {
             return traitDAO.getTraitsFullByProgramId(programId);
         } else {
             return traitDAO.getTraitsByProgramId(programId);
+        }
+
+    }
+
+    public List<Trait> getByProgramIds(List<UUID> programIds, boolean getFullTrait) throws DoesNotExistException {
+
+        if (programIds.stream().anyMatch(programId -> programService.exists(programId) == false)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        if (getFullTrait){
+            return traitDAO.getTraitsFullByProgramIds(programIds);
+        } else {
+            return traitDAO.getTraitsByProgramIds(programIds.toArray(UUID[]::new));
         }
 
     }

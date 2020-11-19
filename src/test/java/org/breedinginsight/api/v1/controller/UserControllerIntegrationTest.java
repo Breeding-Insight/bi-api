@@ -118,13 +118,15 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         validProgramRoles = programUserRoleDao.fetchByUserId(testUser.getId());
         actingUser = getActingUser();
 
+        dsl.execute(fp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
+        dsl.execute(fp.get("InsertSystemRoleAdmin"), otherTestUser.getId().toString());
     }
 
     public AuthenticatedUser getActingUser() {
         UUID id = testUser.getId();
         List<String> systemRoles = new ArrayList<>();
         systemRoles.add(validRole.getDomain());
-        return new AuthenticatedUser("test_user", systemRoles, id);
+        return new AuthenticatedUser("test_user", systemRoles, id, new ArrayList<>());
     }
 
     @Test
@@ -147,7 +149,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
 
         JsonArray resultRoles = (JsonArray) result.get("systemRoles");
         assertEquals(true, resultRoles != null, "Empty roles list was not returned.");
-        assertEquals(true, resultRoles.size() == 0, "Roles list was not empty.");
+        assertEquals(true, resultRoles.size() == 1, "Roles list was not empty.");
 
         JsonArray resultProgramRoles = (JsonArray) result.get("programRoles");
         assertEquals(true, resultProgramRoles != null, "Empty programs list was not returned.");
@@ -430,7 +432,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         Flowable<HttpResponse<String>> call = client.exchange(
                 PUT("/users/" + testUserUUID, requestBody.toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                        .cookie(new NettyCookie("phylo-token", "other-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
@@ -904,8 +906,8 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     public void searchUsers() {
 
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("programs", "test program2"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("programs", "test program2"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/users/search?page=1&pageSize=20&sortField=name&sortOrder=DESC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

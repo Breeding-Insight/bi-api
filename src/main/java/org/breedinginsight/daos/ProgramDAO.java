@@ -22,14 +22,10 @@ import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.APIException;
 import org.brapi.client.v2.model.exceptions.HttpException;
-import org.brapi.client.v2.model.exceptions.HttpNotFoundException;
 import org.brapi.client.v2.modules.core.ProgramsAPI;
-import org.brapi.client.v2.modules.phenotype.VariablesAPI;
 import org.brapi.v2.core.model.BrApiExternalReference;
 import org.brapi.v2.core.model.BrApiProgram;
 import org.brapi.v2.core.model.request.ProgramsRequest;
-import org.brapi.v2.phenotyping.model.BrApiVariable;
-import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -37,7 +33,6 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.jooq.*;
 
@@ -52,6 +47,13 @@ import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
 public class ProgramDAO extends ProgramDao {
+
+    @Property(name = "brapi.server.core-url")
+    private String defaultBrAPICoreUrl;
+    @Property(name = "brapi.server.pheno-url")
+    private String defaultBrAPIPhenoUrl;
+    @Property(name = "brapi.server.geno-url")
+    private String defaultBrAPIGenoUrl;
 
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
@@ -123,6 +125,16 @@ public class ProgramDAO extends ProgramDao {
 
     public ProgramBrAPIEndpoints getProgramBrAPIEndpoints() {
         return new ProgramBrAPIEndpoints();
+    }
+
+    public ProgramBrAPIEndpoints getProgramBrAPIEndpoints(UUID programId) {
+        // Just returns defaults for now
+        // TODO: in future return urls for given program
+        return ProgramBrAPIEndpoints.builder()
+                .coreUrl(Optional.of(defaultBrAPICoreUrl))
+                .genoUrl(Optional.of(defaultBrAPIGenoUrl))
+                .phenoUrl(Optional.of(defaultBrAPIPhenoUrl))
+                .build();
     }
 
     public void createProgramBrAPI(Program program) {

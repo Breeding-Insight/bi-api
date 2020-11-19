@@ -21,11 +21,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
-import io.micronaut.security.annotation.Secured;
-import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.request.query.TraitsQuery;
@@ -71,7 +68,7 @@ public class TraitController {
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured({SecurityRule.IS_AUTHENTICATED})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<Trait>>> getTraits(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid TraitsQuery traitsQuery) {
@@ -86,7 +83,7 @@ public class TraitController {
 
     @Post("/programs/{programId}/traits/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<Program>>> postTraitsSearch(
             @PathVariable UUID programId,
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
@@ -103,7 +100,7 @@ public class TraitController {
     @Get("/programs/{programId}/traits/{traitId}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured({SecurityRule.IS_AUTHENTICATED})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<Trait>> getTrait(@PathVariable UUID programId, @PathVariable UUID traitId) {
 
         try {
@@ -123,7 +120,7 @@ public class TraitController {
 
     @Post("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured({SecurityRule.IS_AUTHENTICATED})
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<Trait>>> createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {

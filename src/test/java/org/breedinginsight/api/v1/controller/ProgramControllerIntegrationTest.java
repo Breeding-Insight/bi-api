@@ -45,6 +45,7 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramUserDAO;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -59,6 +60,7 @@ import javax.inject.Named;
 
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -73,6 +75,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
     private FannyPack fp;
     private FannyPack brapiFp;
+    private FannyPack securityFp;
 
     private ProgramEntity validProgram;
     private ProgramEntity otherProgram;
@@ -87,6 +90,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private Topography validTopography;
 
     private User testUser;
+    private User otherUser;
     private AuthenticatedUser actingUser;
 
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -130,6 +134,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private ProgramDao programDao;
     @Inject
     private ProgramUserDAO programUserDAO;
+    @Inject
+    private UserDAO userDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -148,6 +154,12 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
         fp = FannyPack.fill("src/test/resources/sql/ProgramControllerIntegrationTest.sql");
+        securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        otherUser = userDAO.getUserByOrcId(TestTokenValidator.OTHER_TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
@@ -176,6 +188,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         // Insert and get program for tests
         dsl.execute(fp.get("InsertOtherProgram"));
         otherProgram = programDao.fetchByName("Other Test Program").get(0);
+
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
 
         // Insert and get location for tests
         try {
@@ -258,7 +272,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
     public Role getTestRole() {
         List<Role> roles = roleService.getAll();
-        return roles.get(0);
+        return roles.stream().filter(role -> role.getDomain().equals("breeder")).collect(Collectors.toList()).get(0);
     }
 
     public Country getTestCountry() {
@@ -285,7 +299,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         UUID id = validUser.getId();
         List<String> systemRoles = new ArrayList<>();
         systemRoles.add(validRole.getDomain());
-        return new AuthenticatedUser("test_user", systemRoles, id);
+        return new AuthenticatedUser("test_user", systemRoles, id, new ArrayList<>());
     }
 
     //region Program Tests
@@ -379,6 +393,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         validProgram = programDao.fetchById(UUID.fromString(result.get("id").getAsString())).get(0);
 
         checkMinimalValidProgram(validProgram, result);
+
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
     }
 
     @Test
@@ -757,8 +773,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         List<ProgramEntity> allPrograms = programDao.findAll();
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("name", "program1"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "program1"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -1721,7 +1737,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         String validProgramId = otherProgram.getId().toString();
         JsonObject requestBody = new JsonObject();
         JsonObject user = new JsonObject();
-        user.addProperty("id", validUser.getId().toString());
+        user.addProperty("id", otherUser.getId().toString());
         JsonObject role = new JsonObject();
         role.addProperty("id", validRole.getId().toString());
         JsonArray roles = new JsonArray();
@@ -1841,7 +1857,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     public JsonObject validProgramUserRequest() {
         JsonObject requestBody = new JsonObject();
         JsonObject user = new JsonObject();
-        user.addProperty("id", validUser.getId().toString());
+        user.addProperty("id", otherUser.getId().toString());
         JsonObject role = new JsonObject();
         role.addProperty("id", validRole.getId().toString());
         JsonArray roles = new JsonArray();
@@ -1882,7 +1898,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @Test
     @Order(6)
     void getProgramsUsersSuccess() {
-        String validProgramId = validProgram.getId().toString();
+        String validProgramId = otherProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/"+validProgramId+"/users")
@@ -1894,7 +1910,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
-        assertEquals(1, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), "Wrong totalCount");
+        assertEquals(2, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), "Wrong totalCount");
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
@@ -1908,10 +1924,10 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         assertEquals(role.get("id").getAsString(),validRole.getId().toString(), "Wrong role id");
         assertEquals(role.get("domain").getAsString(),validRole.getDomain(), "Wrong domain");
         JsonObject program = programUser.getAsJsonObject("program");
-        assertEquals(validProgram.getId().toString(), program.get("id").getAsString(), "Wrong program id");
-        assertEquals(validProgram.getName(), program.get("name").getAsString(), "Wrong program name");
-        assertEquals(validProgram.getAbbreviation(), program.get("abbreviation").getAsString(), "Wrong program abbreviation");
-        assertEquals(validProgram.getObjective(), program.get("objective").getAsString(), "Wrong program objective");
+        assertEquals(otherProgram.getId().toString(), program.get("id").getAsString(), "Wrong program id");
+        assertEquals(otherProgram.getName(), program.get("name").getAsString(), "Wrong program name");
+        assertEquals(otherProgram.getAbbreviation(), program.get("abbreviation").getAsString(), "Wrong program abbreviation");
+        assertEquals(otherProgram.getObjective(), program.get("objective").getAsString(), "Wrong program objective");
     }
 
     @Test
@@ -1983,15 +1999,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         // create a second user to test with
         // don't have test database setup yet so doing it this way for now
-        String validProgramId = validProgram.getId().toString();
-
-        UserIdRequest userRequest = UserIdRequest.builder().name("Test2").email("test2@test.com").build();
-        RoleRequest roleRequest = RoleRequest.builder().id(validRole.getId()).build();
-        ArrayList<RoleRequest> rolesList = new ArrayList<>();
-        rolesList.add(roleRequest);
-
-        ProgramUserRequest request = ProgramUserRequest.builder().user(userRequest).roles(rolesList).build();
-        ProgramUser test2 = programUserService.addProgramUser(actingUser, validProgram.getId(), request);
+        String validProgramId = otherProgram.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/"+validProgramId+"/users")
@@ -2019,9 +2027,9 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
             if (user.get("id").getAsString().equals(validUser.getId().toString())){
                 validUserSeen = true;
                 checkUser = validUser;
-            } else if (user.get("id").getAsString().equals(test2.getUser().getId().toString())) {
+            } else if (user.get("id").getAsString().equals(otherUser.getId().toString())) {
                 test2Seen = true;
-                checkUser = test2.getUser();
+                checkUser = otherUser;
             } else {
                 throw new AssertionFailedError("Unexpected user was returned.");
             }
@@ -2038,10 +2046,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         if (!validUserSeen || !test2Seen){
             throw new AssertionFailedError("Both users were not returned");
         }
-
-        // remove user from program and delete user from system
-        programUserService.removeProgramUser(validProgram.getId(), test2.getUser().getId());
-        userService.delete(test2.getUser().getId());
     }
 
     @Test
@@ -2073,7 +2077,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @SneakyThrows
     @Order(8)
     public void archiveProgramsUsersSuccess() {
-        String validProgramId = validProgram.getId().toString();
+        String validProgramId = otherProgram.getId().toString();
         String validUserId = validUser.getId().toString();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -2103,7 +2107,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
-        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 0, "Wrong totalCount");
+        assertEquals(1, meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), "Wrong totalCount");
     }
 
     @Test
@@ -2122,7 +2126,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @Test
     @Order(9)
     void getProgramsUsersNoUsers() {
-        String validProgramId = validProgram.getId().toString();
+        String validProgramId = otherProgram.getId().toString();
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/"+validProgramId+"/users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -2133,10 +2137,10 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject meta = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
-        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 0, "Wrong totalCount");
+        assertEquals(meta.getAsJsonObject("pagination").get("totalCount").getAsInt(), 1, "Wrong totalCount");
 
         JsonArray result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").getAsJsonArray("data");
-        assertEquals(result.size(),0, "Wrong size");
+        assertEquals(result.size(),1, "Wrong size");
 
     }
 
@@ -2254,8 +2258,9 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         List<ProgramUser> allProgramUsers = programUserDAO.getAllProgramUsers();
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("roles", "breed"));
+
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("roles", "breed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/users/search?page=1&pageSize=20&sortField=roles&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -2267,13 +2272,13 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.get("data").getAsJsonArray();
 
-        // Expect 12, user12, user20->user29
-        assertEquals(12, data.size(), "Wrong page size");
+        // Expect 12, user12, user20->user29 + 1 original users
+        assertEquals(13, data.size(), "Wrong page size");
         TestUtils.checkStringListSorting(getRoles(data), SortOrder.ASC);
 
         JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
-        assertEquals(12, pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(13, pagination.get("totalCount").getAsInt(), "Wrong total count");
         assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
     }
 

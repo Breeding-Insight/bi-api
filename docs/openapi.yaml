@@ -2626,6 +2626,37 @@ paths:
             application/json:
               example:
                 status: "UP"
+  /api-token:
+    get:
+      tags:
+        - token management
+      parameters:
+        - in: query
+          name: returnUrl
+          schema:
+            type: string
+          description: return url to redirect to
+      summary: Get api token
+      description: Get api token for user making the request
+      operationId: token
+      responses:
+        "303":
+          description: Redirect
+  /server-info:
+    get:
+      tags:
+        - server management
+      summary: return the server information about the running instance
+      description: return the server information, including the version of bi-api, and a link to to the release/commit of that version
+      operationId: getServerInfo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                versionName: 0.1.0,
+                versionInfo: https://github.com/Breeding-Insight/bi-api/releases/tag/v0.1.0
   /countries:
     get:
       tags:

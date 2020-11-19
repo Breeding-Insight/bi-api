@@ -40,6 +40,7 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.daos.UserDAO;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -67,6 +68,8 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     private DSLContext dsl;
     @Inject
     private ProgramDao programDao;
+    @Inject
+    private UserDAO userDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -82,6 +85,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
 
         // Insert test data into the db
         fp = FannyPack.fill("src/test/resources/sql/UploadControllerIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -101,7 +105,6 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
 
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
-
     }
 
     @Test
@@ -512,8 +515,8 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     void searchTraitUpload() {
 
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("name", "leaves"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "leaves"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram.getId()+"/trait-upload/search?page=1&pageSize=2&sortField=name&sortOrder=DESC", searchRequest)

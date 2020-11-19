@@ -18,8 +18,7 @@
 package org.breedinginsight.api.model.v1.request.query;
 
 import io.micronaut.core.annotation.Introspected;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,5 +27,5 @@ import java.util.List;
 @Setter
 @Introspected
 public class SearchRequest {
-    private List<FilterRequest> filter = new ArrayList<>();
+    private List<FilterRequest> filters = new ArrayList<>();
 }

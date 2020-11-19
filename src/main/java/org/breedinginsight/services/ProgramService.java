@@ -17,9 +17,9 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
@@ -37,6 +37,7 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -47,6 +48,18 @@ public class ProgramService {
     private ProgramObservationLevelDAO programObservationLevelDAO;
     private SpeciesService speciesService;
     private DSLContext dsl;
+    private SecurityService securityService;
+
+    @Inject
+    public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
+                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService) {
+        this.dao = dao;
+        this.programOntologyDAO = programOntologyDAO;
+        this.programObservationLevelDAO = programObservationLevelDAO;
+        this.speciesService = speciesService;
+        this.dsl = dsl;
+        this.securityService = securityService;
+    }
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO,
@@ -70,10 +83,12 @@ public class ProgramService {
         return Optional.of(programs.get(0));
     }
 
-    public List<Program> getAll(){
-        /* Get all of the programs */
+    public List<Program> getAll(AuthenticatedUser actingUser){
+        /* Get all of the programs the user has access to */
+        List<UUID> enrolledProgramIds = securityService.getEnrolledProgramIds(actingUser);
 
-        List<ProgramEntity> programEntities = dao.fetchByActive(true);
+        List<ProgramEntity> programEntities = dao.fetchById(enrolledProgramIds.toArray(UUID[]::new))
+                .stream().filter(ProgramEntity::getActive).collect(Collectors.toList());
         List<Program> programs = dao.getFromEntity(programEntities);
 
         return programs;

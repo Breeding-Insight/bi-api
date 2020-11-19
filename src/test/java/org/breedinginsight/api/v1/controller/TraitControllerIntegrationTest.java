@@ -39,6 +39,7 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.TraitService;
 import org.jooq.DSLContext;
@@ -68,6 +69,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     private TraitDao traitDao;
     @Inject
     private TraitService traitService;
+    @Inject
+    private UserDAO userDAO;
 
     private List<Trait> validTraits;
     private ProgramEntity validProgram;
@@ -84,6 +87,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -102,6 +110,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
 
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
+
         // Retrieve our valid trait
         validTrait = traitDao.findAll().get(0);
 
@@ -112,6 +122,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
 
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherValidProgram.getId().toString());
     }
 
     @Test
@@ -732,8 +743,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void searchTraits() {
 
         SearchRequest searchRequest = new SearchRequest();
-        searchRequest.setFilter(new ArrayList<>());
-        searchRequest.getFilter().add(new FilterRequest("abbreviations", "t1"));
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("abbreviations", "t1"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

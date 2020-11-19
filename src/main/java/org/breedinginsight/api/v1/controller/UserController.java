@@ -38,10 +38,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.UserService;
-import org.breedinginsight.services.exceptions.AlreadyExistsException;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.UserQueryMapper;
 
@@ -114,7 +111,7 @@ public class UserController {
 
     @Post("/users/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Program>>> postUsersSearch(
             @QueryValue @QueryValid(using = UserQueryMapper.class) @Valid QueryParams queryParams,
             @Body @SearchValid(using = UserQueryMapper.class) SearchRequest searchRequest) {
@@ -160,6 +157,9 @@ public class UserController {
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (ForbiddenException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }
 
