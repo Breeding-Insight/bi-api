@@ -17,10 +17,25 @@
 
 package org.breedinginsight.daos;
 
+import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.HttpServerException;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.client.v2.model.exceptions.APIException;
+import org.brapi.client.v2.model.exceptions.HttpException;
+import org.brapi.client.v2.modules.core.LocationsAPI;
+import org.brapi.v2.core.model.BrApiExternalReference;
+import org.brapi.v2.core.model.BrApiGeoJSON;
+import org.brapi.v2.core.model.BrApiLocation;
+import org.brapi.v2.core.model.request.LocationsRequest;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.brapi.BrAPIProvider;
+import com.github.filosganga.geogson.model.Feature;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -36,10 +51,21 @@ import static org.breedinginsight.dao.db.Tables.*;
 @Singleton
 public class ProgramLocationDAO extends PlaceDao {
     private DSLContext dsl;
+    private BrAPIProvider brAPIProvider;
+    private Gson gson;
+
+    @Property(name = "brapi.server.reference-source")
+    protected String referenceSource;
+
     @Inject
-    public ProgramLocationDAO(Configuration config, DSLContext dsl) {
+    public ProgramLocationDAO(Configuration config, DSLContext dsl,
+                              BrAPIProvider brAPIProvider) {
         super(config);
         this.dsl = dsl;
+        this.brAPIProvider = brAPIProvider;
+        this.gson = new GsonBuilder()
+            .registerTypeAdapterFactory(new GeometryAdapterFactory())
+            .create();
     }
 
     // get all active locations by program id
@@ -106,5 +132,112 @@ public class ProgramLocationDAO extends PlaceDao {
 
         return resultLocations;
     }
+
+    public void createProgramLocationBrAPI(ProgramLocation location) {
+
+        BrApiExternalReference externalReference = BrApiExternalReference.builder()
+                .referenceID(location.getId().toString())
+                .referenceSource(referenceSource)
+                .build();
+
+        BrApiLocation brApiLocation = BrApiLocation.builder()
+                .abbreviation(location.getAbbreviation())
+                //.additionalInfo() do not keep this in our model
+                .coordinateDescription(location.getCoordinateDescription())
+                .coordinateUncertainty(location.getCoordinateUncertainty() != null ? location.getCoordinateUncertainty().toPlainString() : null)
+                .coordinates(getClientGeoJson(location))
+                .countryCode(location.getCountry() != null ? location.getCountry().getAlpha3Code() : null)
+                .countryName(location.getCountry() != null ? location.getCountry().getName() : null)
+                .documentationURL(location.getDocumentationUrl())
+                .environmentType(location.getEnvironmentType() != null ? location.getEnvironmentType().getName() : null)
+                .exposure(location.getExposure())
+                .externalReferences(List.of(externalReference))
+                //.instituteAddress() do not keep this in our model
+                //.instituteName() do not keep this in our model
+                .locationName(location.getName())
+                //.locationType() do not keep this in our model
+                //.siteStatus() do not keep this in our model
+                .slope(location.getSlope() != null ? location.getSlope().toPlainString() : null)
+                .topography(location.getTopography() != null ? location.getTopography().getName() : null)
+                .build();
+
+        // POST locations to each brapi service
+        // TODO: If there is a failure after the first brapi service, roll back all before the failure.
+        try {
+            List<LocationsAPI> locationsAPIs = brAPIProvider.getAllUniqueLocationsAPI();
+            for (LocationsAPI locationsAPI: locationsAPIs){
+                locationsAPI.createLocation(brApiLocation);
+            }
+        } catch (HttpException | APIException e) {
+            throw new InternalServerException(e.getMessage());
+        }
+
+    }
+
+    public void updateProgramLocationBrAPI(ProgramLocation location) {
+
+        LocationsRequest searchRequest = LocationsRequest.builder()
+                .externalReferenceID(location.getId().toString())
+                .externalReferenceSource(referenceSource)
+                .build();
+
+        // Location goes in all of the clients
+        // TODO: If there is a failure after the first brapi service, roll back all before the failure.
+        List<LocationsAPI> locationsAPIs = brAPIProvider.getAllUniqueLocationsAPI();
+        for (LocationsAPI locationsAPI: locationsAPIs){
+
+            // Get existing brapi location
+            List<BrApiLocation> brApiLocations;
+            try {
+                brApiLocations = locationsAPI.getLocations(searchRequest);
+            } catch (HttpException | APIException e) {
+                throw new HttpServerException("Could not find location in BrAPI service.");
+            }
+
+            if (brApiLocations.size() != 1){
+                throw new HttpServerException("Could not find unique location in BrAPI service.");
+            }
+
+            BrApiLocation brApiLocation = brApiLocations.get(0);
+
+            //TODO: Need to add archived/not archived when available in brapi
+            brApiLocation.setAbbreviation(location.getAbbreviation());
+            //brApiLocation.setAdditionalInfo() do not keep this in our model
+            brApiLocation.setCoordinateDescription(location.getCoordinateDescription());
+            brApiLocation.setCoordinateUncertainty(location.getCoordinateUncertainty() != null ? location.getCoordinateUncertainty().toPlainString(): null);
+            brApiLocation.setCoordinates(getClientGeoJson(location));
+            brApiLocation.setCountryCode(location.getCountry() != null ? location.getCountry().getAlpha3Code() : null);
+            brApiLocation.setCountryName(location.getCountry() != null ? location.getCountry().getName() : null);
+            brApiLocation.setDocumentationURL(location.getDocumentationUrl());
+            brApiLocation.setEnvironmentType(location.getEnvironmentType() != null ? location.getEnvironmentType().getName() : null);
+            brApiLocation.setExposure(location.getExposure());
+            //brApiLocation.setInstituteAddress(); do not keep this in our model
+            //brApiLocation.setInstituteName(); do not keep this in our model
+            brApiLocation.setLocationName(location.getName());
+            //brApiLocation.setLocationType(); do not keep this in our model
+            //brApiLocation.setSiteStatus(); do not keep this in our model
+            brApiLocation.setSlope(location.getSlope() != null ? location.getSlope().toPlainString() : null);
+            brApiLocation.setTopography(location.getTopography() != null ? location.getTopography().getName() : null);
+
+            try {
+                locationsAPI.updateLocation(brApiLocation);
+            } catch (HttpException | APIException e) {
+                throw new HttpServerException("Could not find location in BrAPI service.");
+            }
+        }
+    }
+
+    private BrApiGeoJSON getClientGeoJson(ProgramLocation location) {
+        BrApiGeoJSON geoJson = null;
+        if (location.getCoordinates() != null) {
+            Feature feature = gson.fromJson(location.getCoordinates().data(), Feature.class);
+            geoJson = BrApiGeoJSON.builder()
+                    .geometry(feature.geometry())
+                    .type("Feature")
+                    .build();
+        }
+        return geoJson;
+    }
+
 
 }

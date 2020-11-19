@@ -19,6 +19,7 @@ package org.breedinginsight.api.v1.controller;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
@@ -104,6 +105,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private String invalidTopography = invalidUUID;
 
     private Gson gson = new Gson();
+    private ObjectMapper objMapper = new ObjectMapper();
     private ListAppender<ILoggingEvent> loggingEventListAppender;
 
     @Inject
@@ -212,6 +214,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         NameIdRequest topographyRequest = NameIdRequest.builder()
                 .id(validTopography.getId())
                 .build();
+
         Feature coordinates = new Feature();
         Point point = new Point(-76.506042, 42.417373, 123);
         coordinates.setGeometry(point);
@@ -231,12 +234,26 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .slope(BigDecimal.ZERO)
                 .build();
 
+        String json;
         try {
-            ProgramLocation location = programLocationService.create(actingUser, otherProgram.getId(), locationRequest);
-            return location;
-        } catch (UnprocessableEntityException e){
-            throw new Exception("Unable to create test location");
+             json = objMapper.writeValueAsString(locationRequest);
+        } catch (JsonProcessingException e) {
+            throw new Exception("Problem parsing geojson coordinates");
         }
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+otherProgram.getId().toString()+"/locations", json)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String locationId = result.get("id").getAsString();
+
+        Optional<ProgramLocation> location = programLocationService.getById(otherProgram.getId(), UUID.fromString(locationId));
+        return location.orElseThrow(() -> new Exception("Unable to get test location"));
     }
 
     public User fetchTestUser() throws Exception{
@@ -1284,7 +1301,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @SneakyThrows
     @Order(4)
     public void putProgramsLocationsCoordinatesPointSuccess() {
-
         ProgramLocation location = insertAndFetchTestLocation();
         String locationId = location.getId().toString();
 

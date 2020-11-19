@@ -18,6 +18,7 @@
 package org.breedinginsight.services.brapi;
 
 import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.modules.core.LocationsAPI;
 import org.brapi.client.v2.modules.core.ProgramsAPI;
 import org.brapi.client.v2.modules.phenotype.TraitsAPI;
 import org.brapi.client.v2.modules.phenotype.VariablesAPI;
@@ -70,5 +71,14 @@ public class BrAPIProvider {
             programsAPIS.add(new ProgramsAPI(client));
         }
         return programsAPIS;
+    }
+
+    public List<LocationsAPI> getAllUniqueLocationsAPI(){
+        Set<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
+        List<LocationsAPI> locationsAPIS = new ArrayList<>();
+        for (BrAPIClient client: clients){
+            locationsAPIS.add(new LocationsAPI(client));
+        }
+        return locationsAPIS;
     }
 }
