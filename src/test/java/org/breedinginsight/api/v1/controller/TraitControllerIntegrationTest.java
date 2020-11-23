@@ -164,13 +164,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Turn off brapi container to fake error
         Trait trait = new Trait();
         trait.setTraitName("Test Trait3");
-        trait.setDescription("A trait1");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");
         scale.setDataType(DataType.TEXT);
         Method method = new Method();
-        method.setMethodName("Test Method");
         trait.setScale(scale);
         trait.setMethod(method);
 
@@ -201,27 +199,23 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         Trait trait1 = new Trait();
         trait1.setTraitName("Test Trait");
-        trait1.setDescription("A trait1");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
         scale1.setDataType(DataType.TEXT);
         Method method1 = new Method();
-        method1.setMethodName("Test Method");
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
         Trait trait2 = new Trait();
         trait2.setTraitName("Test Trait1");
-        trait2.setDescription("A trait2");
         trait2.setAbbreviations(List.of("t3", "t4").toArray(String[]::new));
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
         scale2.setScaleName("Test Scale1");
         scale2.setDataType(DataType.TEXT);
         Method method2 = new Method();
-        method2.setMethodName("Test Method1");
         trait2.setScale(scale2);
         trait2.setMethod(method2);
 
@@ -346,13 +340,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void createTraitsLevelDoesNotExist() {
         Trait trait1 = new Trait();
         trait1.setTraitName("Test Trait that is unique");
-        trait1.setDescription("A trait1");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Not Exist").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
         scale1.setDataType(DataType.TEXT);
         Method method1 = new Method();
-        method1.setMethodName("Test Method");
         trait1.setScale(scale1);
         trait1.setMethod(method1);
         setBrAPIProperties(trait1);
@@ -385,13 +377,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         Trait trait1 = new Trait();
         trait1.setTraitName("Test Trait3");
-        trait1.setDescription("A trait1");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
         scale1.setDataType(DataType.TEXT);
         Method method1 = new Method();
-        method1.setMethodName("Test Method");
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
@@ -617,9 +607,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
             assertEquals(trait.getActive().toString(), traitJson.get("active").getAsString(), "Actives don't match");
         }
 
-        JsonObject method = traitJson.getAsJsonObject("method");
-        assertEquals(trait.getMethod().getMethodName(), method.get("methodName").getAsString(), "Method names don't match");
-
         JsonObject scale = traitJson.getAsJsonObject("scale");
         assertEquals(trait.getScale().getScaleName(), scale.get("scaleName").getAsString(), "Scale names don't match");
         assertEquals(trait.getScale().getDataType().toString(), scale.get("dataType").getAsString(), "Scale data types don't match");
@@ -636,7 +623,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         checkTraitResponse(traitJson, trait);
 
         assertEquals(trait.getTraitClass(), traitJson.get("traitClass").getAsString(), "Trait classes don't match");
-        assertEquals(trait.getDescription(), traitJson.get("description").getAsString(), "Trait descriptions don't match");
 
         List<String> jsonAlternativeAbbreviations = new ArrayList<>();
         traitJson.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
@@ -693,14 +679,12 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         for (int i = 0; i < 30; i++){
             Trait trait = new Trait();
             trait.setTraitName("Test Trait" + i);
-            trait.setDescription("A trait" + i);
             trait.setAbbreviations(List.of(String.valueOf(i), "t" + i).toArray(String[]::new));
             trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
             Scale scale = new Scale();
             scale.setScaleName("Test Scale" + i);
             scale.setDataType(DataType.TEXT);
             Method method = new Method();
-            method.setMethodName("Test Method" + i);
             method.setDescription("Another method" + i);
             method.setMethodClass("Estimation");
             trait.setScale(scale);

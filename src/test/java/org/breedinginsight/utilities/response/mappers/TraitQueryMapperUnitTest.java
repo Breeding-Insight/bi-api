@@ -48,12 +48,10 @@ public class TraitQueryMapperUnitTest {
                 .abbreviations(List.of("t1", "1").toArray(String[]::new))
                 .mainAbbreviation("test")
                 .synonyms(List.of("t1", "t2"))
-                .description("A trait")
                 .programObservationLevel(ProgramObservationLevel.builder().name("Plant").build())
                 .active(true)
                 .method(
                         Method.builder()
-                        .methodName("A method")
                         .description("A method for real")
                         .methodClass("Estimation")
                         .formula("a + b = c")
@@ -78,10 +76,8 @@ public class TraitQueryMapperUnitTest {
         assertEquals(trait.getAbbreviations(), traitQueryMapper.getField("abbreviations").apply(trait), "Wrong getter");
         assertEquals(trait.getMainAbbreviation(), traitQueryMapper.getField("mainAbbreviation").apply(trait), "Wrong getter");
         assertEquals(trait.getSynonyms(), traitQueryMapper.getField("synonyms").apply(trait), "Wrong getter");
-        assertEquals(trait.getDescription(), traitQueryMapper.getField("description").apply(trait), "Wrong getter");
         assertEquals(trait.getProgramObservationLevel().getName(), traitQueryMapper.getField("level").apply(trait), "Wrong getter");
         assertEquals(trait.getActive(), traitQueryMapper.getField("status").apply(trait), "Wrong getter");
-        assertEquals(trait.getMethod().getMethodName(), traitQueryMapper.getField("methodName").apply(trait), "Wrong getter");
         assertEquals(trait.getMethod().getDescription(), traitQueryMapper.getField("methodDescription").apply(trait), "Wrong getter");
         assertEquals(trait.getMethod().getMethodClass(), traitQueryMapper.getField("methodClass").apply(trait), "Wrong getter");
         assertEquals(trait.getMethod().getFormula(), traitQueryMapper.getField("methodFormula").apply(trait), "Wrong getter");

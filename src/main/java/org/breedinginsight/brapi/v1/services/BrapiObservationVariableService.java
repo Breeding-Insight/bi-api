@@ -103,7 +103,6 @@ public class BrapiObservationVariableService {
         org.breedinginsight.model.Scale biScale = trait.getScale();
 
         Method brapiMethod = Method.builder()
-                .methodName(biMethod.getMethodName())
                 .description(biMethod.getDescription())
                 .methodDbId(biMethod.getId().toString())
                 .propertyClass(biMethod.getMethodClass())
@@ -144,7 +143,6 @@ public class BrapiObservationVariableService {
                 //.alternativeAbbreviations(Arrays.asList(trait.getAbbreviations().clone()))
                 .attribute(trait.getAttribute())
                 .propertyClass(trait.getTraitClass())
-                .description(trait.getDescription())
                 .entity(trait.getEntity())
                 .mainAbbreviation(trait.getMainAbbreviation())
                 //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service

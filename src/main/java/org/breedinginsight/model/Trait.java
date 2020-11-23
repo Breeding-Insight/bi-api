@@ -55,7 +55,6 @@ public class Trait extends TraitEntity {
     private User updatedByUser;
 
     // Properties from brapi
-    private String description;
     private String traitClass;
     private String attribute;
     private String defaultValue;
@@ -98,7 +97,6 @@ public class Trait extends TraitEntity {
 
     public void setBrAPIProperties(BrApiVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
-            this.setDescription(brApiVariable.getTrait().getTraitDescription());
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());

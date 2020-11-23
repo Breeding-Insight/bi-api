@@ -226,7 +226,6 @@ public class TraitDAO extends TraitDao {
                     .referenceSource(referenceSource)
                     .build();
             BrApiMethod brApiMethod = BrApiMethod.builder()
-                    .methodName(trait.getMethod().getMethodName())
                     .externalReferences(List.of(methodReference))
                     .methodClass(trait.getMethod().getMethodClass())
                     .description(trait.getMethod().getDescription())
@@ -259,7 +258,6 @@ public class TraitDAO extends TraitDao {
                     .build();
             BrApiTrait brApiTrait = BrApiTrait.builder()
                     .traitName(trait.getTraitName())
-                    .traitDescription(trait.getDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
                     .entity(trait.getProgramObservationLevel().getName())
@@ -374,20 +372,19 @@ public class TraitDAO extends TraitDao {
 
         RowN[] valueRows = traits.stream()
                 .filter(trait -> trait.getMethod() != null && trait.getScale() != null)
-                .map(trait -> (RowN) row(trait.getTraitName(), trait.getMethod().getMethodName(), trait.getScale().getScaleName()))
+                .map(trait -> (RowN) row(trait.getTraitName(), trait.getScale().getScaleName()))
                 .collect(Collectors.toList()).toArray(RowN[]::new);
 
         List<Trait> traitResults = new ArrayList<>();
         if (valueRows.length > 0){
             Table newTraits = dsl.select()
-                    .from(values(valueRows).as("newTraits", "new_trait_name", "new_method_name", "new_scale_name")).asTable("newTraits");
+                    .from(values(valueRows).as("newTraits", "new_trait_name", "new_scale_name")).asTable("newTraits");
 
             Result<Record> records = dsl.select()
                     .from(newTraits)
                     .join(TRAIT).on(TRAIT.TRAIT_NAME.like(newTraits.field("new_trait_name")))
                     .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                     .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
-                    .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID)).and(METHOD.METHOD_NAME.like(newTraits.field("new_method_name")))
                     .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID)).and(SCALE.SCALE_NAME.like(newTraits.field("new_scale_name")))
                     .where(PROGRAM.ID.eq(programId))
                     .fetch();

@@ -53,10 +53,6 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingMethodMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(method.getMethodName()) || method.getMethodName() == null) {
-                    ValidationError error = traitValidatorErrors.getMissingMethodNameMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
-                }
                 if (isBlank(method.getDescription()) || method.getDescription() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodDescriptionMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
@@ -83,10 +79,6 @@ public class TraitValidatorService {
 
             if (isBlank(trait.getTraitName()) || trait.getTraitName() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitNameMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
-            }
-            if (isBlank(trait.getDescription()) || trait.getDescription() == null) {
-                ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
@@ -138,8 +130,7 @@ public class TraitValidatorService {
             Trait trait = traits.get(i);
             Boolean isDuplicate = duplicateNameTraits.stream().filter(duplicateTrait ->
                     duplicateTrait.getTraitName().toLowerCase().equals(trait.getTraitName().toLowerCase()) &&
-                            duplicateTrait.getScale().getScaleName().toLowerCase().equals(trait.getScale().getScaleName().toLowerCase()) &&
-                            duplicateTrait.getMethod().getMethodName().toLowerCase().equals(trait.getMethod().getMethodName().toLowerCase())
+                            duplicateTrait.getScale().getScaleName().toLowerCase().equals(trait.getScale().getScaleName().toLowerCase())
             ).collect(Collectors.toList()).size() > 0;
 
             if (isDuplicate) {
@@ -188,11 +179,10 @@ public class TraitValidatorService {
         for (Integer i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             if (trait.getTraitName() != null &&
-                    trait.getScale() != null && trait.getScale().getScaleName() != null &&
-                    trait.getMethod() != null && trait.getMethod().getMethodName() != null
+                    trait.getScale() != null && trait.getScale().getScaleName() != null
             ){
-                String key = String.format("%s-%s-%s", trait.getTraitName().toLowerCase(),
-                        trait.getScale().getScaleName().toLowerCase(), trait.getMethod().getMethodName().toLowerCase());
+                String key = String.format("%s-%s", trait.getTraitName().toLowerCase(),
+                        trait.getScale().getScaleName().toLowerCase());
                 if (namesMap.containsKey(key)) {
                     namesMap.get(key).add(i);
                 } else {

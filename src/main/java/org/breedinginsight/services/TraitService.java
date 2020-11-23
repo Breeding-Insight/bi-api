@@ -193,7 +193,6 @@ public class TraitService {
                 for (Trait trait : traits) {
                     // Create method
                     MethodEntity jooqMethod = MethodEntity.builder()
-                            .methodName(trait.getMethod().getMethodName())
                             .programOntologyId(programOntology.getId())
                             .createdBy(actingUser.getId())
                             .updatedBy(actingUser.getId())

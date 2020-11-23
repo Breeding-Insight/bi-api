@@ -2048,7 +2048,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+            enum: [name, abbreviations, mainAbbreviation, synonyms, level, status, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/pageSize'
         - $ref: '#/components/parameters/sortOrder'
@@ -2119,7 +2119,6 @@ paths:
               $ref: '#/components/schemas/arrayOfNewTraits'
             example:
               - traitName: "Test Trait"
-                description: "A trait"
                 traitClass: "morphological"
                 attribute: "height"
                 defaultValue: "defaultValue"
@@ -2129,7 +2128,6 @@ paths:
                 programObservationLevel:
                   name: "Plant"
                 method:
-                  methodName: "Test Method"
                   methodClass: "Counting"
                   description: "A test method"
                   formula: "a^2+b^2=c^2"
@@ -2230,7 +2228,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+            enum: [name, abbreviations, mainAbbreviation, synonyms, level, status, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/pageSize'
         - $ref: '#/components/parameters/sortOrder'
@@ -2251,7 +2249,7 @@ paths:
                     properties:
                       field:
                         type: string
-                        enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                        enum: [name, abbreviations, mainAbbreviation, synonyms, level, status, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
                       value:
                         type: string
       responses:
@@ -2453,7 +2451,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+            enum: [name, abbreviations, mainAbbreviation, synonyms, level, status, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/pageSize'
         - $ref: '#/components/parameters/sortOrder'
@@ -2572,7 +2570,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+            enum: [name, abbreviations, mainAbbreviation, synonyms, level, status, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
         - $ref: '#/components/parameters/page'
         - $ref: '#/components/parameters/pageSize'
         - $ref: '#/components/parameters/sortOrder'
@@ -2593,7 +2591,7 @@ paths:
                     properties:
                       field:
                         type: string
-                        enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                        enum: [name, abbreviations, mainAbbreviation, synonyms, level, status, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
                       value:
                         type: string
       responses:
@@ -4025,8 +4023,6 @@ components:
               format: uuid
             name:
               type: string
-        description:
-          type: string
         traitClass:
           type: string
           example: "morphological"
@@ -4060,8 +4056,6 @@ components:
         method:
           type: object
           properties:
-            methodName:
-              type: string
             methodClass:
               type: string
             description:
@@ -4136,8 +4130,6 @@ components:
             method:
               type: object
               properties:
-                methodName:
-                  type: string
                 methodClass:
                   type: string
                 description:
@@ -4166,8 +4158,6 @@ components:
                   type: integer
                 validValueMin:
                   type: integer
-            description:
-              type: string
             mainAbbreviation:
               type: string
             abbreviations:
@@ -4214,8 +4204,6 @@ components:
         traitName:
           type: string
           description: Trait display name
-        description:
-          type: string
         traitClass:
           type: string
           example: "morphological"
@@ -4245,8 +4233,6 @@ components:
         method:
           type: object
           properties:
-            methodName:
-              type: string
             methodClass:
               type: string
             description:
@@ -4876,7 +4862,6 @@ components:
               active: true,
               createdAt: "2020-06-04T11:05:48-04:00",
               updatedAt: "2020-06-04T11:05:48-04:00",
-              description: "A trait",
               traitClass: "morphological",
               attribute: "height",
               defaultValue: "defaultValue",
@@ -4894,7 +4879,6 @@ components:
                 },
               method:
                 {
-                  methodName: "Test Method",
                   methodClass: "Counting"
                 },
               scale:
@@ -4950,7 +4934,6 @@ components:
             active: true,
             createdAt: "2020-06-04T11:05:48-04:00",
             updatedAt: "2020-06-04T11:05:48-04:00",
-            description: "A trait",
             traitClass: "morphological",
             attribute: "height",
             defaultValue: "defaultValue",
@@ -4968,7 +4951,6 @@ components:
               },
             method:
               {
-                methodName: "Test Method",
                 methodClass: "Counting"
               },
             scale:
@@ -5029,7 +5011,6 @@ components:
                 },
               method:
                 {
-                  methodName: "Powdery Mildew severity, leaves - Estimation",
                   methodClass: "Estimation",
                   description: "Observed severity of Powdery Mildew on leaves",
                   formula: "a^2 + b^2 = c^2"

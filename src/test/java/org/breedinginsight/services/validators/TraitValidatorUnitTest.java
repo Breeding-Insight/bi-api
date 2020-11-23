@@ -61,7 +61,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait = new Trait();
         trait.setTraitName("Test Trait");
-        trait.setDescription("A trait1");
         trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
@@ -100,11 +99,9 @@ public class TraitValidatorUnitTest {
 
         Trait trait = new Trait();
         trait.setTraitName("Test Trait");
-        trait.setDescription("A trait1");
         trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Method method = new Method();
-        method.setMethodName("Test Method");
         trait.setMethod(method);
 
         // Trait
@@ -142,12 +139,10 @@ public class TraitValidatorUnitTest {
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
-        assertEquals(8, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        assertEquals(6, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("traitName", 400);
-        expectedColumns.put("description", 400);
         expectedColumns.put("programObservationLevel.name", 400);
-        expectedColumns.put("method.methodName", 400);
         expectedColumns.put("method.description", 400);
         expectedColumns.put("method.methodClass", 400);
         expectedColumns.put("scale.scaleName", 400);
@@ -218,7 +213,6 @@ public class TraitValidatorUnitTest {
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
         Method method1 = new Method();
-        method1.setMethodName("Test Method");
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
@@ -229,7 +223,6 @@ public class TraitValidatorUnitTest {
         Scale scale2 = new Scale();
         scale2.setScaleName("Test Scale");
         Method method2 = new Method();
-        method2.setMethodName("Test Method");
         trait2.setScale(scale2);
         trait2.setMethod(method2);
 
@@ -240,7 +233,6 @@ public class TraitValidatorUnitTest {
         Scale scale3 = new Scale();
         scale3.setScaleName("Test Scale");
         Method method3 = new Method();
-        method3.setMethodName("Test Method");
         trait3.setScale(scale3);
         trait3.setMethod(method3);
 

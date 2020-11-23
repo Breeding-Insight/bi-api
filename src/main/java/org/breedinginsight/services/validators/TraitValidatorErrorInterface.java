@@ -25,14 +25,12 @@ import java.util.List;
 public interface TraitValidatorErrorInterface {
     Integer getRowNumber(Integer row);
     ValidationError getMissingMethodMsg();
-    ValidationError getMissingMethodNameMsg();
     ValidationError getMissingMethodDescriptionMsg();
     ValidationError getMissingMethodClassMsg();
     ValidationError getMissingScaleMsg();
     ValidationError getMissingScaleNameMsg();
     ValidationError getMissingScaleDataTypeMsg();
     ValidationError getMissingTraitNameMsg();
-    ValidationError getMissingTraitDescriptionMsg();
     ValidationError getMissingProgramObservationLevelMsg();
     ValidationError getMissingMethodFormulaMsg();
     ValidationError getMissingScaleCategoriesMsg();
