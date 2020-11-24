@@ -85,7 +85,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
-        return new ValidationError("Trait name", "Trait name - Scale name - Method name combination already exists", HttpStatus.CONFLICT);
+        return new ValidationError("Trait name", "Trait name - Scale name combination already exists", HttpStatus.CONFLICT);
     }
 
     @Override

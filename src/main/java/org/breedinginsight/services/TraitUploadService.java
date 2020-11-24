@@ -119,12 +119,9 @@ public class TraitUploadService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
+        traitService.assignTraitsProgramObservationLevel(traits, programId);
+
         ValidationErrors validationErrors = new ValidationErrors();
-        try {
-            traitService.assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
-        } catch (ValidatorException e){
-            validationErrors.merge(e.getErrors());
-        }
 
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
         if (optionalValidationErrors.isPresent()){
@@ -207,5 +204,19 @@ public class TraitUploadService {
 
     }
 
+    public void confirmUpload(UUID programId, UUID traitUploadId, AuthenticatedUser actingUser)
+            throws DoesNotExistException, ValidatorException {
 
+        Optional<ProgramUpload<Trait>> upload = getTraitUpload(programId, actingUser);
+        if (upload.isPresent()){
+            if (upload.get().getId().equals(traitUploadId)) {
+                List<Trait> traits = new ArrayList<>(upload.get().getParsedData());
+                traitService.createTraits(programId, traits, actingUser, false);
+                deleteTraitUpload(programId, actingUser);
+                return;
+            }
+        }
+
+        throw new DoesNotExistException("Upload does not exist");
+    }
 }

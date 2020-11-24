@@ -48,7 +48,6 @@ import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.email.EmailUtil;
 import org.geojson.Feature;
 import org.geojson.Point;

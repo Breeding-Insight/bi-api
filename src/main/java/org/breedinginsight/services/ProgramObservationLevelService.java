@@ -17,9 +17,12 @@
 
 package org.breedinginsight.services;
 
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.dao.db.tables.pojos.ProgramObservationLevelEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.model.ProgramObservationLevel;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -29,16 +32,35 @@ import java.util.stream.Collectors;
 public class ProgramObservationLevelService {
 
     private ProgramObservationLevelDAO programObservationLevelDAO;
+    private ProgramDAO programDAO;
 
     @Inject
-    public ProgramObservationLevelService(ProgramObservationLevelDAO programObservationLevelDAO){
+    public ProgramObservationLevelService(ProgramObservationLevelDAO programObservationLevelDAO,
+                                          ProgramDAO programDAO){
         this.programObservationLevelDAO = programObservationLevelDAO;
+        this.programDAO = programDAO;
     }
 
-    public List<ProgramObservationLevel> getByProgramId(UUID programId) {
+    public List<ProgramObservationLevel> getByProgramId(UUID programId) throws DoesNotExistException {
+        if (!this.programDAO.existsById(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
         List<ProgramObservationLevelEntity> programLevels = programObservationLevelDAO.fetchByProgramId(programId);
         return programLevels.stream()
                 .map(programLevel -> new ProgramObservationLevel(programLevel))
                 .collect(Collectors.toList());
+    }
+
+    public List<ProgramObservationLevel> createLevels(UUID programId, List<String> levels, AuthenticatedUser actingUser) throws DoesNotExistException {
+        List<ProgramObservationLevelEntity> levelEntities = levels.stream().map(level ->
+                ProgramObservationLevel.builder()
+                        .name(level)
+                        .programId(programId)
+                        .createdBy(actingUser.getId())
+                        .updatedBy(actingUser.getId())
+                        .build())
+                .collect(Collectors.toList());
+        programObservationLevelDAO.insert(levelEntities);
+        return getByProgramId(programId);
     }
 }

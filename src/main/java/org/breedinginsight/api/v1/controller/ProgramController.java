@@ -28,17 +28,20 @@ import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.model.v1.response.metadata.Status;
+import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
+import org.breedinginsight.model.*;
+import org.breedinginsight.services.ProgramObservationLevelService;
 import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.utilities.response.mappers.ProgramLocationQueryMapper;
 import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
@@ -47,6 +50,7 @@ import org.breedinginsight.utilities.response.mappers.ProgramUserQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -62,12 +66,13 @@ public class ProgramController {
     private ProgramQueryMapper programQueryMapper;
     private ProgramLocationQueryMapper programLocationQueryMapper;
     private ProgramUserQueryMapper programUserQueryMapper;
+    private ProgramObservationLevelService programObservationLevelService;
 
     @Inject
     public ProgramController(ProgramService programService, ProgramUserService programUserService,
                              ProgramLocationService programLocationService, SecurityService securityService,
                              ProgramQueryMapper programQueryMapper, ProgramLocationQueryMapper programLocationQueryMapper,
-                             ProgramUserQueryMapper programUserQueryMapper) {
+                             ProgramUserQueryMapper programUserQueryMapper, ProgramObservationLevelService programObservationLevelService) {
         this.programService = programService;
         this.programUserService = programUserService;
         this.programLocationService = programLocationService;
@@ -75,6 +80,7 @@ public class ProgramController {
         this.programQueryMapper = programQueryMapper;
         this.programLocationQueryMapper = programLocationQueryMapper;
         this.programUserQueryMapper = programUserQueryMapper;
+        this.programObservationLevelService = programObservationLevelService;
     }
 
     @Get("/programs{?queryParams*}")
@@ -397,6 +403,22 @@ public class ProgramController {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         }
+    }
+
+    @Get("/programs/{programId}/observation_level")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<DataResponse<ProgramObservationLevel>>> getProgramObservationLevels(@PathVariable UUID programId)
+            throws DoesNotExistException {
+        List<ProgramObservationLevel> programObservationLevels = programObservationLevelService.getByProgramId(programId);
+
+        List<org.breedinginsight.api.model.v1.response.metadata.Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        Pagination pagination = new Pagination(programObservationLevels.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+
+        Response<DataResponse<ProgramObservationLevel>> response = new Response(metadata, new DataResponse<>(programObservationLevels));
+        return HttpResponse.ok(response);
     }
 
 }

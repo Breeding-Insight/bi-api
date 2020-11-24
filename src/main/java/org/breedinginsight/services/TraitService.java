@@ -17,13 +17,13 @@
 
 package org.breedinginsight.services;
 
+import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramObservationLevelEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
@@ -31,7 +31,6 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidatorError;
-import org.breedinginsight.services.validators.TraitValidatorErrorInterface;
 import org.breedinginsight.services.validators.TraitValidatorService;
 import org.jooq.DSLContext;
 
@@ -108,7 +107,7 @@ public class TraitService {
        return traitDAO.getTraitFull(programId, traitId);
     }
 
-    public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
+    public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
             throws DoesNotExistException, ValidatorException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
@@ -123,7 +122,6 @@ public class TraitService {
         }
         User user = optionalUser.get();
 
-
         // Get our ontology
         Optional<ProgramOntology> programOntologyOptional = programOntologyService.getByProgramId(programId);
         if (!programOntologyOptional.isPresent()){
@@ -132,11 +130,6 @@ public class TraitService {
         ProgramOntology programOntology = programOntologyOptional.get();
 
         ValidationErrors validationErrors = new ValidationErrors();
-        try {
-            assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
-        } catch (ValidatorException e){
-            validationErrors.merge(e.getErrors());
-        }
 
         // Ignore duplicate traits
         ValidationErrors duplicateErrors = new ValidationErrors();
@@ -176,10 +169,25 @@ public class TraitService {
         duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
         traits.removeAll(duplicateTraitSet);
 
-        if (validationErrors.hasErrors()){
+        if (validationErrors.hasErrors() || (throwDuplicateErrors && duplicateErrors.hasErrors())){
             // If there are other errors, show our duplicate errors
             validationErrors.merge(duplicateErrors);
             throw new ValidatorException(validationErrors);
+        }
+
+        // Create the new observation levels
+        assignTraitsProgramObservationLevel(traits, programId);
+        List<String> newObservationLevels = traits.stream()
+                .filter(trait -> trait.getProgramObservationLevel().getId() == null)
+                .map(trait -> trait.getProgramObservationLevel().getName())
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, ProgramObservationLevel> createdLevelsMap = new HashMap<>();
+        try {
+            List<ProgramObservationLevel> createdLevels = programObservationLevelService.createLevels(programId, newObservationLevels, actingUser);
+            createdLevels.stream().forEach(level -> createdLevelsMap.put(level.getName(), level));
+        } catch (DoesNotExistException e) {
+            throw new HttpServerException("Could not find program");
         }
 
         // Create the traits
@@ -211,6 +219,12 @@ public class TraitService {
                     scaleDAO.insert(jooqScale);
                     trait.getScale().setId(jooqScale.getId());
 
+                    // Check observation level
+                    if (trait.getProgramObservationLevel().getId() == null) {
+                        ProgramObservationLevel level = createdLevelsMap.get(trait.getProgramObservationLevel().getName());
+                        trait.setProgramObservationLevel(level);
+                    }
+
                     // Create trait
                     TraitEntity jooqTrait = TraitEntity.builder()
                             .traitName(trait.getTraitName())
@@ -233,32 +247,26 @@ public class TraitService {
         return createdTraits;
     }
 
-    public void assignTraitsProgramObservationLevel(List<Trait> traits, UUID programId, TraitValidatorErrorInterface traitValidatorError) throws ValidatorException {
-
-        ValidationErrors validationErrors = new ValidationErrors();
+    public void assignTraitsProgramObservationLevel(List<Trait> traits, UUID programId) throws DoesNotExistException {
 
         // Get our program observation levels
         List<ProgramObservationLevel> programLevels = programObservationLevelService.getByProgramId(programId);
-        List<String> availableLevels = programLevels.stream().map(ProgramObservationLevelEntity::getName).collect(Collectors.toList());
         for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             if (trait.getProgramObservationLevel() != null){
                 List<ProgramObservationLevel> matchingLevels = programLevels.stream()
-                        .filter(programObservationLevel -> programObservationLevel.getName().equals(trait.getProgramObservationLevel().getName()))
+                        .filter(programObservationLevel -> programObservationLevel.getName().equalsIgnoreCase(trait.getProgramObservationLevel().getName()))
                         .collect(Collectors.toList());
                 if (matchingLevels.size() == 0) {
-                    ValidationError validationError = traitValidatorError.getTraitLevelDoesNotExist(availableLevels);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), validationError);
+                    // If doesn't exist, save it without an id. We will create it later
+                    ProgramObservationLevel programObservationLevel = new ProgramObservationLevel();
+                    programObservationLevel.setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    trait.setProgramObservationLevel(programObservationLevel);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
                 }
             }
         }
-
-        if (validationErrors.hasErrors()){
-            throw new ValidatorException(validationErrors);
-        }
-
     }
 }

@@ -240,7 +240,7 @@ public class TraitValidatorService {
     }
 
     private List<Trait> checkForDuplicateTraitsByNames(UUID programId, List<Trait> traits) {
-        return traitDAO.getTraitsByTraitMethodScaleName(programId, traits);
+        return traitDAO.getTraitsByTraitScaleName(programId, traits);
     }
 
     private List<Trait> checkForDuplicatesTraitsByAbbreviation(UUID programId, List<Trait> traits) {
