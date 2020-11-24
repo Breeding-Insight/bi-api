@@ -20,3 +20,4 @@ INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon');
 INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape');
 INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa');
 INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato');
+INSERT INTO crop (id, crop_name) VALUES ('6', 'Trout');

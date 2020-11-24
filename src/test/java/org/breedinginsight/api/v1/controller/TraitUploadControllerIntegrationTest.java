@@ -32,6 +32,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
+import org.breedinginsight.BrAPITest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
@@ -39,8 +40,11 @@ import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Trait;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -60,7 +64,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class TraitUploadControllerIntegrationTest extends DatabaseTest {
+public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
     private FannyPack fp;
 
@@ -70,6 +74,8 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     private ProgramDao programDao;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private TraitDAO traitDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -77,6 +83,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
 
     private ProgramEntity validProgram;
     private File validFile = new File("src/test/resources/files/data_one_row.csv");
+    private String validUploadId;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     String invalidProgram = invalidUUID;
 
@@ -86,6 +93,9 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         // Insert test data into the db
         fp = FannyPack.fill("src/test/resources/sql/UploadControllerIntegrationTest.sql");
         var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+
+        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -105,6 +115,9 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
 
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
+
+        //BiUserEntity user = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        //dsl.execute(securityFp.get("InsertProgramRolesBreeder"), user.getId().toString(), validProgram.getId().toString());
     }
 
     @Test
@@ -127,19 +140,8 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
     void putTraitUploadTraitLevelDoesNotExist() {
 
         File file = new File("src/test/resources/files/data_one_row_trait_level_not_exist.csv");
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-
-        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
-        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
-
-        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
-        JsonArray errors = rowError1.getAsJsonArray("errors");
-        assertTrue(errors.size() == 1, "Not enough errors were returned");
-        JsonObject error = errors.get(0).getAsJsonObject();
-        assertEquals(404, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
 
         dsl.execute(fp.get("DeleteTrait"));
     }
@@ -535,6 +537,46 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         assertEquals(1, pagination.get("totalCount").getAsInt(), "Wrong total count");
         assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
 
+        this.validUploadId = result.get("id").getAsString();
+    }
+
+
+    @Test
+    @Order(8)
+    void postTraitUpload() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId()+"/trait-upload/" + this.validUploadId, "")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        List<Trait> traits = traitDAO.getTraitsByProgramId(validProgram.getId());
+        assertEquals(3, traits.size(), "Wrong number of traits inserted");
+    }
+
+    @Test
+    @Order(9)
+    void postTraitUploadDuplicateTraits() {
+        // No traits should be inserted by the end of this
+        File file = new File("src/test/resources/files/data_multiple_rows.csv");
+
+        HttpResponse<String> uploadResponse = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, uploadResponse.getStatus());
+        JsonObject result = JsonParser.parseString(uploadResponse.body()).getAsJsonObject().getAsJsonObject("result");
+        this.validUploadId = result.get("id").getAsString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/"+validProgram.getId()+"/trait-upload/" + this.validUploadId, "")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        List<Trait> traits = traitDAO.getTraitsByProgramId(validProgram.getId());
+        assertEquals(3, traits.size(), "Wrong number of traits inserted");
     }
 
     void checkMultiErrorResponse(JsonArray rowErrors) {

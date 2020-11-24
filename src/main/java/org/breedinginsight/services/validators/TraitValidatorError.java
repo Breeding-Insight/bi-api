@@ -108,10 +108,4 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
                 "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
     }
-
-    @Override
-    public ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels) {
-        return new ValidationError("programObservationLevel.name",
-                "Program Observation Level does not exist. Available levels are " + availableTraitLevels.toString(), HttpStatus.NOT_FOUND);
-    }
 }

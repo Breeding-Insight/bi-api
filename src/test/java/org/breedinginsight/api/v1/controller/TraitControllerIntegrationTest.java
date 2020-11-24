@@ -265,7 +265,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Test
     @Order(4)
     public void postTraitsMultipleExistInDb() {
-        // Both traits should be ignored because they are duplicates
 
         // Call endpoint
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -273,15 +272,21 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
         // Check return
-        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
 
-        JsonArray data = result.getAsJsonArray("data");
-
-        assertEquals(0, data.size(), "Duplicate traits were not ignored");
+        // Returns an error for duplicate names in db
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Wrong number of errors returned");
+        JsonObject duplicateError = errors.get(0).getAsJsonObject();
+        assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
 
     @Test
@@ -355,20 +360,13 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
 
-        // Check for conflict response
-        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
-        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
-        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
-
-        JsonArray errors = rowError.getAsJsonArray("errors");
-        assertEquals(1, errors.size(), "Wrong number of errors returned");
-        JsonObject duplicateError = errors.get(0).getAsJsonObject();
-        assertEquals(404, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
+        // Check return
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of traits");
     }
 
     @Test

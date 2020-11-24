@@ -19,7 +19,8 @@
 -- name: InsertProgram
 insert into program (species_id, name, created_by, updated_by)
 select species.id, 'Test Program', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'system' limit 1;
+join bi_user on bi_user.name = 'system' limit 1
+
 
 -- name: InsertProgramUser
 insert into program_user_role(program_id, user_id, role_id, active, created_by, updated_by)
