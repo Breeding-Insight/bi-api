@@ -7,7 +7,7 @@ on:
 
 jobs:
   version:
-    if: false
+    if: github.actor != 'rob-ouser-bi'
     runs-on: ubuntu-latest
 
     steps:
