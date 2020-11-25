@@ -23,23 +23,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout code
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - name: Update version
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         run: sed -i -E "s/version=.*/version=${{ steps.update_draft.outputs.name }}/" version.properties
       - name: Update version info
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         run: sed -i -E "s~versionInfo=.*~versionInfo=https://github.com/Breeding-Insight/test-project/releases/tag/${{ steps.update_draft.outputs.tag_name }}~" version.properties
       - name: Commit files
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         run: |
           git config --local user.email "bidevteam@cornell.edu"
           git config --local user.name "rob-ouser-bi"
           git add .
           git commit -m "[autocommit] Updating version.properties"
       - name: Push changes  # push the output folder to your repo
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.ROB_OUSER_TOKEN }}
