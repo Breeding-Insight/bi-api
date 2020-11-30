@@ -17,8 +17,8 @@
 
 package org.breedinginsight.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -26,6 +26,8 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.brapi.v2.phenotyping.model.BrApiVariable;
+import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
+import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
@@ -61,7 +63,14 @@ public class Trait extends TraitEntity {
     @JsonIgnore
     private String entity;
     private String mainAbbreviation;
+    @JsonDeserialize(using = ListOfStringDeserializer.class)
     private List<String> synonyms;
+
+    @Override
+    @JsonDeserialize(using = ArrayOfStringDeserializer.class)
+    public void setAbbreviations(String... abbreviations) {
+        super.setAbbreviations(abbreviations);
+    }
 
     public Trait(TraitEntity traitEntity) {
         this.setId(traitEntity.getId());

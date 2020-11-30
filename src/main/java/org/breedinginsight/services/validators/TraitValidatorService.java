@@ -129,8 +129,8 @@ public class TraitValidatorService {
         for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             Boolean isDuplicate = duplicateNameTraits.stream().filter(duplicateTrait ->
-                    duplicateTrait.getTraitName().toLowerCase().equals(trait.getTraitName().toLowerCase()) &&
-                            duplicateTrait.getScale().getScaleName().toLowerCase().equals(trait.getScale().getScaleName().toLowerCase())
+                    duplicateTrait.getTraitName().toLowerCase().strip().equals(trait.getTraitName().toLowerCase().strip()) &&
+                            duplicateTrait.getScale().getScaleName().toLowerCase().strip().equals(trait.getScale().getScaleName().toLowerCase().strip())
             ).collect(Collectors.toList()).size() > 0;
 
             if (isDuplicate) {

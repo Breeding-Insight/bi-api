@@ -49,6 +49,8 @@ import javax.inject.Singleton;
 
 import java.util.stream.Collectors;
 
+import static org.jooq.tools.StringUtils.isBlank;
+
 
 // can read file, columns with set of allowable values checked or requirement of particular data format
 // data consistency not checked, must be done by caller
@@ -290,6 +292,7 @@ public class TraitFileParser {
         }
         return Arrays.stream(value.split(LIST_DELIMITER))
                 .map(strVal -> strVal.trim())
+                .filter(s -> !isBlank(s))
                 .collect(Collectors.toList());
     }
 

@@ -119,8 +119,6 @@ public class TraitUploadService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
-        traitService.assignTraitsProgramObservationLevel(traits, programId);
-
         ValidationErrors validationErrors = new ValidationErrors();
 
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
@@ -131,6 +129,8 @@ public class TraitUploadService {
         if (validationErrors.hasErrors()){
             throw new ValidatorException(validationErrors);
         }
+
+        traitService.assignTraitsProgramObservationLevel(traits, programId);
 
         String json = null;
         try {
