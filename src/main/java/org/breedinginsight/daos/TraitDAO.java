@@ -226,6 +226,7 @@ public class TraitDAO extends TraitDao {
                     .referenceSource(referenceSource)
                     .build();
             BrApiMethod brApiMethod = BrApiMethod.builder()
+                    .methodName(String.format("%s %s", trait.getTraitName(), trait.getMethod().getMethodClass()))
                     .externalReferences(List.of(methodReference))
                     .methodClass(trait.getMethod().getMethodClass())
                     .description(trait.getMethod().getDescription())
@@ -258,6 +259,7 @@ public class TraitDAO extends TraitDao {
                     .build();
             BrApiTrait brApiTrait = BrApiTrait.builder()
                     .traitName(trait.getTraitName())
+                    .traitDescription(trait.getMethod().getDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
                     .entity(trait.getProgramObservationLevel().getName())
