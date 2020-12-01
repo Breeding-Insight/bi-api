@@ -128,7 +128,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
 
     Trait buildTestTrait(String name, String traitClass) {
         Method method = Method.builder()
-                .methodName(name + " method")
                 .description(name + " method description")
                 .methodClass("Observation")
                 .build();
@@ -144,7 +143,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
 
         Trait trait = Trait.builder()
                 .traitName(name)
-                .description(name + " description")
                 .method(method)
                 .scale(scale)
                 .programObservationLevel(level)
@@ -157,7 +155,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     void checkTraits(Trait expected, JsonObject actual) {
         JsonObject trait = actual.getAsJsonObject("trait");
         assertEquals(expected.getTraitName(), actual.get("observationVariableName").getAsString(), "Wrong name");
-        assertEquals(expected.getDescription(), trait.get("description").getAsString(), "Wrong description");
         //TODO: more complete validation after field book workarounds are resolved
     }
 

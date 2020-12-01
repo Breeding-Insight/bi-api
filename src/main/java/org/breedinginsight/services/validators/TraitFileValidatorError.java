@@ -39,11 +39,6 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingMethodNameMsg() {
-        return new ValidationError("Method name", "Missing method name", HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-
-    @Override
     public ValidationError getMissingMethodDescriptionMsg() {
         return new ValidationError("Method description", "Missing method description", HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -71,11 +66,6 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     @Override
     public ValidationError getMissingTraitNameMsg() {
         return new ValidationError("Trait name", "Missing trait name", HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-
-    @Override
-    public ValidationError getMissingTraitDescriptionMsg() {
-        return new ValidationError("Trait description", "Missing trait description", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -107,7 +97,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
         matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
         return new ValidationError("Trait name",
-                "traitName - scaleName - methodName combination is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
+                "traitName - scaleName combination is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
     }
 

@@ -215,7 +215,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
 
     @Test
     void putTraitUploadMissingRequiredColumn() {
-        File file = new File("src/test/resources/files/missing_method_name_with_data.csv");
+        File file = new File("src/test/resources/files/missing_trait_name_with_data.csv");
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
@@ -427,13 +427,10 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         JsonObject observationLevel = trait.getAsJsonObject("programObservationLevel");
         assertEquals("Plant", observationLevel.get("name").getAsString(), "wrong level name");
 
-        assertEquals("Powdery mildew (PM) due to Erysiphe necator severity in field, leaves only", trait.get("description").getAsString(), "wrong description");
-
         assertEquals(true, trait.get("active").getAsBoolean(), "wrong status");
         // TODO: trait lists
 
         JsonObject method = trait.get("method").getAsJsonObject();
-        assertEquals("Powdery Mildew severity, leaves - Estimation", method.get("methodName").getAsString(), "wrong method name");
         assertEquals("Observed severity of Powdery Mildew on leaves", method.get("description").getAsString(), "wrong method description");
         assertEquals("Estimation", method.get("methodClass").getAsString(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
@@ -530,7 +527,7 @@ public class TraitUploadControllerIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(1, data.size(), "Wrong number of results returned");
-        TestUtils.checkStringSorting(data, "methodName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
 
         JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");

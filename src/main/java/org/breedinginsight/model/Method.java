@@ -50,7 +50,6 @@ public class Method extends MethodEntity {
 
     public Method(MethodEntity methodEntity) {
         this.setId(methodEntity.getId());
-        this.setMethodName(methodEntity.getMethodName());
         this.setProgramOntologyId(methodEntity.getProgramOntologyId());
         this.setCreatedAt(methodEntity.getCreatedAt());
         this.setCreatedBy(methodEntity.getCreatedBy());
@@ -61,7 +60,6 @@ public class Method extends MethodEntity {
     public static Method parseSqlRecord(Record record) {
         return Method.builder()
             .id(record.getValue(METHOD.ID))
-            .methodName(record.getValue(METHOD.METHOD_NAME))
             .programOntologyId(record.getValue(METHOD.PROGRAM_ONTOLOGY_ID))
             .createdAt(record.getValue(METHOD.CREATED_AT))
             .createdBy(record.getValue(METHOD.CREATED_BY))

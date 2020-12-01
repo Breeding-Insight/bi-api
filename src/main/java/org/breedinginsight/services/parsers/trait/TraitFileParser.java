@@ -142,7 +142,6 @@ public class TraitFileParser {
             }
 
             Method method = Method.builder()
-                    .methodName(parseExcelValueAsString(record, TraitFileColumns.METHOD_NAME))
                     .description(parseExcelValueAsString(record, TraitFileColumns.METHOD_DESCRIPTION))
                     .methodClass(parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS))
                     .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
@@ -236,7 +235,6 @@ public class TraitFileParser {
                     .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
                     .abbreviations(traitAbbreviations.toArray(String[]::new))
                     .synonyms(traitSynonyms)
-                    .description(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
                     .programObservationLevel(level)
                     .active(active)
                     // TODO: trait lists
