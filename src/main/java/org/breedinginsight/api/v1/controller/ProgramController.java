@@ -405,7 +405,7 @@ public class ProgramController {
         }
     }
 
-    @Get("/programs/{programId}/observation-level")
+    @Get("/programs/{programId}/observation-levels")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<ProgramObservationLevel>>> getProgramObservationLevels(@PathVariable UUID programId)

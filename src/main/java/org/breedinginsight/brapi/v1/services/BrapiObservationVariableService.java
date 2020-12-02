@@ -68,9 +68,6 @@ public class BrapiObservationVariableService {
         TraitDataType traitDataType;
 
         switch (dataType) {
-            case CODE:
-                traitDataType = TraitDataType.CODE;
-                break;
             case DATE:
                 traitDataType = TraitDataType.DATE;
                 break;
