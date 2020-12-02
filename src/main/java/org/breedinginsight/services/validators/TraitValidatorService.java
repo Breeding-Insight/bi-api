@@ -116,9 +116,12 @@ public class TraitValidatorService {
                 } else {
                     // Check the categories to make sure they are formatted properly
                     for (int k = 0; k < scale.getCategories().size(); k++) {
-                        if (isBlank(scale.getCategories().get(k).getLabel())) {
-                            ValidationError error = traitValidatorErrors.getBlankScaleCategoryLabelMsg(k);
-                            errors.addError(traitValidatorErrors.getRowNumber(i), error);
+
+                        if (scale.getDataType() == DataType.ORDINAL) {
+                            if (isBlank(scale.getCategories().get(k).getLabel())) {
+                                ValidationError error = traitValidatorErrors.getBlankScaleCategoryLabelMsg(k);
+                                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                            }
                         }
 
                         if (isBlank(scale.getCategories().get(k).getValue())) {
