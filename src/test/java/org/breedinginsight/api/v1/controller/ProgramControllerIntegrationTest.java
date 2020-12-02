@@ -2284,7 +2284,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @Test
     public void getObservationLevels() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/" + otherProgram.getId() + "/observation_level")
+                GET("/programs/" + otherProgram.getId() + "/observation-level")
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
