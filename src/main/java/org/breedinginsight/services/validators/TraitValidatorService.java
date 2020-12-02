@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.services.validators;
 
+import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -108,10 +109,23 @@ public class TraitValidatorService {
                 }
             }
 
-            if (scale != null && scale.getDataType() != null && scale.getDataType() == DataType.ORDINAL) {
+            if (scale != null && scale.getDataType() != null && (scale.getDataType() == DataType.ORDINAL || scale.getDataType() == DataType.ORDINAL)) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
                     ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                } else {
+                    // Check the categories to make sure they are formatted properly
+                    for (int k = 0; k < scale.getCategories().size(); k++) {
+                        if (isBlank(scale.getCategories().get(k).getLabel())) {
+                            ValidationError error = traitValidatorErrors.getBlankScaleCategoryLabelMsg(k);
+                            errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                        }
+
+                        if (isBlank(scale.getCategories().get(k).getValue())) {
+                            ValidationError error = traitValidatorErrors.getBlankScaleCategoryValueMsg(k);
+                            errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                        }
+                    }
                 }
             }
         }

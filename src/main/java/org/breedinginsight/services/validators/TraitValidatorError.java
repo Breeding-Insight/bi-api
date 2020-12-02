@@ -84,6 +84,20 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getBlankScaleCategoryLabelMsg(Integer categoryIndex) {
+        return new ValidationError("scale.categories",
+                String.format("Category index %s: Scale category label cannot be blank.", categoryIndex.toString()),
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getBlankScaleCategoryValueMsg(Integer categoryIndex) {
+        return new ValidationError("scale.categories",
+                String.format("Category index %s: Scale category value cannot be blank.", categoryIndex.toString()),
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
         return new ValidationError("traitName", "Trait name - Scale name combination already exists", HttpStatus.CONFLICT);
     }
