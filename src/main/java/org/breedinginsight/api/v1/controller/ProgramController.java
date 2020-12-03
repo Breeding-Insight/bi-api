@@ -412,7 +412,7 @@ public class ProgramController {
             throws DoesNotExistException {
         List<ProgramObservationLevel> programObservationLevels = programObservationLevelService.getByProgramId(programId);
 
-        List<org.breedinginsight.api.model.v1.response.metadata.Status> metadataStatus = new ArrayList<>();
+        List<Status> metadataStatus = new ArrayList<>();
         metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
         Pagination pagination = new Pagination(programObservationLevels.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);

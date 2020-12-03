@@ -115,9 +115,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
-
-        //BiUserEntity user = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
-        //dsl.execute(securityFp.get("InsertProgramRolesBreeder"), user.getId().toString(), validProgram.getId().toString());
     }
 
     @Test
