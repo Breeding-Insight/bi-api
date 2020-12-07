@@ -1,4 +1,3 @@
--- name: CopyrightNotice
 /*
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.
@@ -16,10 +15,17 @@
  * limitations under the License.
  */
 
--- name: InsertSpecies
-INSERT INTO crop (id, crop_name) VALUES ('1', 'Blueberry');
-INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon');
-INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape');
-INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa');
-INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato');
-INSERT INTO crop (id, crop_name) VALUES ('6', 'Trout');
+ALTER TYPE data_type RENAME TO data_type_old;
+
+CREATE TYPE "data_type" AS ENUM (
+  'DATE',
+  'DURATION',
+  'NOMINAL',
+  'NUMERICAL',
+  'ORDINAL',
+  'TEXT'
+);
+
+ALTER TABLE scale ALTER COLUMN data_type TYPE data_type USING data_type::text::data_type;
+
+DROP TYPE data_type_old;

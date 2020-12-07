@@ -126,15 +126,6 @@ public class ProgramService {
                     .build();
             programOntologyDAO.insert(programOntologyEntity);
 
-            //TODO: Remove this insert when we have an endpoint for it
-            ProgramObservationLevelEntity programObservationLevelEntity = ProgramObservationLevelEntity.builder()
-                    .name("Plant")
-                    .programId(programEntity.getId())
-                    .createdBy(actingUser.getId())
-                    .updatedBy(actingUser.getId())
-                    .build();
-            programObservationLevelDAO.insert(programObservationLevelEntity);
-
             // Add program to brapi service
             dao.createProgramBrAPI(createdProgram);
 

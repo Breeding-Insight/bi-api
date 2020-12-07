@@ -19,7 +19,6 @@ package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
 
-import javax.validation.Validation;
 import java.util.List;
 
 public interface TraitValidatorErrorInterface {
@@ -38,5 +37,4 @@ public interface TraitValidatorErrorInterface {
     ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);
     ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows);
-    ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels);
 }

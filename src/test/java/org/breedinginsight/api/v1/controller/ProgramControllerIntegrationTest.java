@@ -48,7 +48,6 @@ import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.email.EmailUtil;
 import org.geojson.Feature;
 import org.geojson.Point;
@@ -2280,6 +2279,22 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
         assertEquals(13, pagination.get("totalCount").getAsInt(), "Wrong total count");
         assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    public void getObservationLevels() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + otherProgram.getId() + "/observation-levels")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(1, data.size(), "Wrong number of levels returned");
     }
 
     private List<List<String>> getRoles(JsonArray data) {

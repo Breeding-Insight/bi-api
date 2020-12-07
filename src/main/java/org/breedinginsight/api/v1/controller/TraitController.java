@@ -124,12 +124,12 @@ public class TraitController {
     public HttpResponse<Response<DataResponse<Trait>>> createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
-            List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser);
+            List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser, true);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             // Construct our metadata and response
-            Pagination pagination = new Pagination(traits.size(), 1, 1, 0);
+            Pagination pagination = new Pagination(createdTraits.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(createdTraits));
             return HttpResponse.ok(response);

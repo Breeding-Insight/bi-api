@@ -143,5 +143,23 @@ public class TraitUploadController {
 
     }
 
+    @Post("/programs/{programId}/trait-upload/{traitUploadId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse confirmTraitUpload(@PathVariable UUID programId,
+                                           @PathVariable UUID traitUploadId) {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            traitUploadService.confirmUpload(programId, traitUploadId, actingUser);
+            return HttpResponse.ok();
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (ValidatorException e) {
+            log.info(e.getErrors().toString());
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
+        }
+    }
 
 }

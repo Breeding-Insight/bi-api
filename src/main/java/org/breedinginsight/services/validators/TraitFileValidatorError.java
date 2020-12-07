@@ -85,7 +85,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
-        return new ValidationError("Trait name", "Trait name - Scale name - Method name combination already exists", HttpStatus.CONFLICT);
+        return new ValidationError("Trait name", "Trait name - Scale name combination already exists", HttpStatus.CONFLICT);
     }
 
     @Override
@@ -108,11 +108,5 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("Trait abbreviations",
                 "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
-    }
-
-    @Override
-    public ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels) {
-        return new ValidationError("Trait level",
-                "Trait level does not exist. Available levels are " + availableTraitLevels.toString(), HttpStatus.NOT_FOUND);
     }
 }

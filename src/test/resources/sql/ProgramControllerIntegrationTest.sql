@@ -19,7 +19,12 @@
 -- name: InsertOtherProgram
 insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
 select species.id, 'Other Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'Test User' limit 1
+join bi_user on bi_user.name = 'Test User' limit 1;
+
+insert into program_observation_level (program_id, name, created_by, updated_by)
+select program.id, 'Plant', bi_user.id, bi_user.id from
+program
+join bi_user on bi_user.name = 'Test User' limit 1;
 
 -- name: DeleteProgram
 delete from program_ontology where program_id = ?::uuid;

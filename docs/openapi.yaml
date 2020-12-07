@@ -2336,6 +2336,36 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /programs/{programId}/observation-levels:
+    get:
+      tags:
+        - observation levels
+      parameters:
+        - name: programId
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get all observation levels in the program
+      description: Get all observation levels in the program
+      operationId: getObservationLevels
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/observationLevelResponse'
+              examples:
+                observationLevelsResponse:
+                  $ref: '#/components/examples/observationLevelResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
   /programs/{programId}/trait-upload:
     put:
       tags:
@@ -2610,6 +2640,68 @@ paths:
           $ref: '#/components/responses/401Unauthorized'
         "404":
           $ref: '#/components/responses/404NotFound'
+  /programs/{programId}/trait-upload/{traitUploadId}:
+    post:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait upload for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: traitUploadId
+          in: path
+          description: Id of the trait upload to save
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Confirm and save existing trait upload as traits
+      description: Confirm and save existing trait upload as traits
+      operationId: postTraitUpload
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/multipleTraitsResponse'
+              examples:
+                multipleTraitsResponse:
+                  $ref: '#/components/examples/arrayOfTraits'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        '404':
+          $ref: '#/components/responses/404NotFound'
+        '403':
+          $ref: '#/components/responses/403Forbidden'
+        '422':
+          description: Multi-error UnprocessableEntity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/validatorErrorResponse"
+              example:
+                rowErrors:
+                  - rowIndex: 0
+                    errors:
+                      - column: "Trait level"
+                        errorMessage: "Missing trait name"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                      - column: "Trait abbreviations"
+                        errorMessage: "Abbreviations already exist"
+                        httpStatus: "CONFLICT"
+                        httpStatusCode: 409
+                      - column: "Scale class"
+                        errorMessage: "Missing scale class"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
   /health:
     get:
       tags:
@@ -4293,6 +4385,33 @@ components:
                     httpStatusCode:
                       type: integer
                       description: "Http error code"
+    observationLevelResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    format: uuid
+                  name:
+                    type: string
+                  createdAt:
+                    type: string
+                    format: datetime
+                  updatedAt:
+                    type: string
+                    format: datetime
   responses:
     "400BadRequest":
       description: Bad Request
@@ -5127,6 +5246,27 @@ components:
               active: true
               systemRoles: []
               programRoles: []
+    observationLevelResponse:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 1
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
+              name: Plant
+              createdAt: "2020-06-04T11:05:48-04:00"
+              updatedAt: "2020-06-04T11:05:48-04:00"
+            - id: 37935efa-4c0f-4269-8669-f78d21b26f04
+              name: Plot
+              createdAt: "2020-06-04T11:05:48-04:00"
+              updatedAt: "2020-06-04T11:05:48-04:00"
+
   parameters:
     page:
       description: 'Used to request a specific page of data to be returned.

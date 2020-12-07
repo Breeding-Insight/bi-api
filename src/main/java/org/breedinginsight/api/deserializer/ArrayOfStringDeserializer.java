@@ -1,4 +1,3 @@
--- name: CopyrightNotice
 /*
  * See the NOTICE file distributed with this work for additional information
  * regarding copyright ownership.
@@ -16,10 +15,21 @@
  * limitations under the License.
  */
 
--- name: InsertSpecies
-INSERT INTO crop (id, crop_name) VALUES ('1', 'Blueberry');
-INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon');
-INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape');
-INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa');
-INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato');
-INSERT INTO crop (id, crop_name) VALUES ('6', 'Trout');
+package org.breedinginsight.api.deserializer;
+
+import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.databind.DeserializationContext;
+import com.fasterxml.jackson.databind.JsonDeserializer;
+
+import java.io.IOException;
+import java.util.List;
+
+public class ArrayOfStringDeserializer extends JsonDeserializer<String[]> {
+
+    @Override
+    public String[] deserialize(JsonParser p, DeserializationContext ctxt) throws IOException {
+        List<String> filtered = ListOfStringDeserializer.process(p);
+        return filtered.size() > 0 ? filtered.toArray(String[]::new) : null;
+    }
+
+}
