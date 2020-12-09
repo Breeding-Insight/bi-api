@@ -260,6 +260,27 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    void putTraitUploadMissingLabelsOrdinal() {
+        File file = new File("src/test/resources/files/missing_category_label_ordinal.csv");
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Check for conflict response
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        checkMultiErrorResponse(rowErrors);
+    }
+
+    @Test
+    void putTraitUploadMissingLabelsNominal() {
+        File file = new File("src/test/resources/files/missing_category_label_nominal.csv");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+    }
+
+    @Test
     void putTraitUploadDuplicatesInFile() {
 
         File file = new File("src/test/resources/files/duplicatesInFile.csv");
