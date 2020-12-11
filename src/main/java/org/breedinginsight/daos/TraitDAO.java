@@ -366,39 +366,29 @@ public class TraitDAO extends TraitDao {
                 .join(updatedByTableAlias).on(TRAIT.UPDATED_BY.eq(updatedByTableAlias.ID));
     }
 
-    public List<Trait> getTraitsByTraitScaleName(UUID programId, List<Trait> traits){
-
-        //TODO: Get these from the query as well
-        BiUserTable createdByUser = BI_USER.as("createdByUser");
-        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+    public List<Trait> getTraitsByTraitName(UUID programId, List<Trait> traits){
 
         RowN[] valueRows = traits.stream()
-                .filter(trait -> trait.getMethod() != null && trait.getScale() != null)
-                .map(trait -> (RowN) row(trait.getTraitName(), trait.getScale().getScaleName()))
+                .filter(trait -> trait.getMethod() != null)
+                .map(trait -> (RowN) row(trait.getTraitName()))
                 .collect(Collectors.toList()).toArray(RowN[]::new);
 
         List<Trait> traitResults = new ArrayList<>();
         if (valueRows.length > 0){
             Table newTraits = dsl.select()
-                    .from(values(valueRows).as("newTraits", "new_trait_name", "new_scale_name")).asTable("newTraits");
+                    .from(values(valueRows).as("newTraits", "new_trait_name")).asTable("newTraits");
 
             Result<Record> records = dsl.select()
                     .from(newTraits)
                     .join(TRAIT).on(TRAIT.TRAIT_NAME.like(newTraits.field("new_trait_name")))
                     .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                     .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
-                    .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID)).and(SCALE.SCALE_NAME.like(newTraits.field("new_scale_name")))
-                    .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID))
                     .where(PROGRAM.ID.eq(programId))
                     .fetch();
 
 
             for (Record record: records) {
                 Trait trait = Trait.parseSqlRecord(record);
-                Scale scale = Scale.parseSqlRecord(record);
-                Method method = Method.parseSqlRecord(record);
-                trait.setScale(scale);
-                trait.setMethod(method);
                 traitResults.add(trait);
             }
         }

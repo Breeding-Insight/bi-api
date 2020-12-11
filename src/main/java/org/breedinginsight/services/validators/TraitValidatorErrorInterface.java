@@ -33,8 +33,9 @@ public interface TraitValidatorErrorInterface {
     ValidationError getMissingProgramObservationLevelMsg();
     ValidationError getMissingMethodFormulaMsg();
     ValidationError getMissingScaleCategoriesMsg();
-    ValidationError getBlankScaleCategoryLabelMsg(Integer categoryIndex);
-    ValidationError getBlankScaleCategoryValueMsg(Integer categoryIndex);
+    ValidationError getBadScaleCategory();
+    ValidationError getBlankScaleCategoryLabelMsg();
+    ValidationError getBlankScaleCategoryValueMsg();
     ValidationError getDuplicateTraitByNamesMsg();
     ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);
