@@ -205,9 +205,7 @@ public class TraitValidatorService {
         Map<String, List<Integer>> namesMap = new HashMap<>();
         for (Integer i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
-            if (trait.getTraitName() != null &&
-                    trait.getScale() != null && trait.getScale().getScaleName() != null
-            ){
+            if (trait.getTraitName() != null){
                 String key = String.format("%s", trait.getTraitName().toLowerCase());
                 if (namesMap.containsKey(key)) {
                     namesMap.get(key).add(i);

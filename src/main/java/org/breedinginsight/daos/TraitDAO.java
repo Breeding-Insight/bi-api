@@ -369,7 +369,7 @@ public class TraitDAO extends TraitDao {
     public List<Trait> getTraitsByTraitName(UUID programId, List<Trait> traits){
 
         RowN[] valueRows = traits.stream()
-                .filter(trait -> trait.getMethod() != null)
+                .filter(trait -> trait.getTraitName() != null)
                 .map(trait -> (RowN) row(trait.getTraitName()))
                 .collect(Collectors.toList()).toArray(RowN[]::new);
 
@@ -380,12 +380,11 @@ public class TraitDAO extends TraitDao {
 
             Result<Record> records = dsl.select()
                     .from(newTraits)
-                    .join(TRAIT).on(TRAIT.TRAIT_NAME.like(newTraits.field("new_trait_name")))
+                    .join(TRAIT).on(TRAIT.TRAIT_NAME.likeIgnoreCase(newTraits.field("new_trait_name")))
                     .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                     .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
                     .where(PROGRAM.ID.eq(programId))
                     .fetch();
-
 
             for (Record record: records) {
                 Trait trait = Trait.parseSqlRecord(record);
