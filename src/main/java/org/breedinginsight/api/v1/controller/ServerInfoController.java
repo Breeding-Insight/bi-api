@@ -39,7 +39,7 @@ public class ServerInfoController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     public ServerInfo getServerInfo(HttpRequest request) throws IOException {
-        log.debug(request.getHeaders().names().stream().map(header -> header + ":" + request.getHeaders().get(header) + "\n").collect(Collectors.joining()));
+        
         InputStream resourceAsStream = this.getClass()
                                            .getClassLoader()
                                            .getResourceAsStream("version.properties");
