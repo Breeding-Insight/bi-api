@@ -119,6 +119,9 @@ public class TraitUploadService {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
+        // Preprocess traits
+        traitService.preprocessTraits(traits);
+
         ValidationErrors validationErrors = new ValidationErrors();
 
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
