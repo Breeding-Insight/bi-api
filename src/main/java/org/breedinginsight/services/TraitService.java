@@ -278,7 +278,8 @@ public class TraitService {
 
         // Set data type to numerical when method class is computation
         for (Trait trait: traits) {
-            if (trait.getMethod() != null && trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
+            if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
+                trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
                 if (trait.getScale() != null) {
                     trait.getScale().setDataType(DataType.NUMERICAL);
                 }
