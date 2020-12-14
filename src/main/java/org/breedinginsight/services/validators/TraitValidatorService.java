@@ -16,8 +16,6 @@
  */
 package org.breedinginsight.services.validators;
 
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
-import org.breedinginsight.api.model.v1.response.RowValidationErrors;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -25,7 +23,6 @@ import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
-import ucar.nc2.grib.TimeCoordUnion;
 
 import javax.inject.Inject;
 import java.util.*;
