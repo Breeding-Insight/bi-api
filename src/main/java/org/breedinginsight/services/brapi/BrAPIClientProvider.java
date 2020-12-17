@@ -49,7 +49,7 @@ public class BrAPIClientProvider {
 
     public Set<BrAPIClient> getAllUniqueClients(){
 
-        Set<BrAPIClient> clients = new TreeSet<>(Comparator.comparing(BrAPIClient::brapiURI));
+        Set<BrAPIClient> clients = new TreeSet<>(Comparator.comparing(BrAPIClient::getBasePath));
         clients.add(coreClient);
         clients.add(phenoClient);
         clients.add(genoClient);

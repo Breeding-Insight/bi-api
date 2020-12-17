@@ -24,7 +24,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.brapi.v2.phenotyping.model.BrApiMethod;
+import org.brapi.v2.model.pheno.BrAPIMethod;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.jooq.Record;
 
@@ -68,7 +68,7 @@ public class Method extends MethodEntity {
             .build();
     }
 
-    public void setBrAPIProperties(BrApiMethod brApiMethod){
+    public void setBrAPIProperties(BrAPIMethod brApiMethod){
         this.setMethodClass(brApiMethod.getMethodClass());
         this.setDescription(brApiMethod.getDescription());
         this.setFormula(brApiMethod.getFormula());

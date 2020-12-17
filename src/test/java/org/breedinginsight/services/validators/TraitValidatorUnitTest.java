@@ -19,7 +19,7 @@ package org.breedinginsight.services.validators;
 
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.model.v1.response.RowValidationErrors;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -80,8 +80,8 @@ public class TraitValidatorUnitTest {
         trait.getScale().setValidValueMin(1);
         trait.getScale().setValidValueMax(10);
         trait.getScale().setDecimalPlaces(3);
-        trait.getScale().setCategories(List.of(BrApiScaleCategories.builder().label("label1").value("value1").build(),
-                BrApiScaleCategories.builder().label("label2").value("value2").build()));
+        trait.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories().label("label1").value("value1"),
+                                               new BrAPIScaleValidValuesCategories().label("label2").value("value2")));
 
 
         ValidationErrors validationErrors = traitValidatorService.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());

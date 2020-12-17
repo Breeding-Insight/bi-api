@@ -27,34 +27,36 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
-import io.reactivex.*;
+import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import okhttp3.Call;
 import org.brapi.client.v2.BrAPIClient;
-import org.brapi.client.v2.ResponseHandlerFunction;
-import org.brapi.client.v2.model.BrAPIRequest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.daos.TraitDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.ProgramBrAPIEndpoints;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.dao.db.tables.daos.*;
-import org.breedinginsight.dao.db.tables.pojos.*;
-import org.breedinginsight.model.*;
-import org.breedinginsight.services.ProgramService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.inject.Inject;
-
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static io.micronaut.http.HttpRequest.GET;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -273,7 +275,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
             public Optional<Object> answer(InvocationOnMock invocation) throws AssertionFailedError {
                 BrAPIClient executingBrAPIClient = (BrAPIClient) invocation.getMock();
                 // Check that our url is correct
-                future.complete(expectedUrl.equals(executingBrAPIClient.brapiURI()));
+                future.complete(expectedUrl.equals(executingBrAPIClient.getBasePath()));
                 return Optional.empty();
             }
         };
@@ -288,7 +290,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
                 BrAPIClient brAPIClientSpy = spy(realBrAPIClient);
                 doAnswer(checkBrAPIExecution)
                         .when(brAPIClientSpy)
-                        .execute(any(BrAPIRequest.class), any(ResponseHandlerFunction.class));
+                        .execute(any(Call.class));
 
                 return brAPIClientSpy;
             }

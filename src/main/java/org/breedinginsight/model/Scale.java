@@ -24,9 +24,9 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.brapi.v2.phenotyping.model.BrApiScale;
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
-import org.brapi.v2.phenotyping.model.BrApiScaleValidValues;
+import org.brapi.v2.model.pheno.BrAPIScale;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValues;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.jooq.Record;
 
@@ -49,7 +49,7 @@ public class Scale extends ScaleEntity {
     private Integer validValueMax;
     private Integer validValueMin;
     private Integer decimalPlaces;
-    private List<BrApiScaleCategories> categories;
+    private List<BrAPIScaleValidValuesCategories> categories;
 
     public Scale(ScaleEntity scaleEntity){
         this.setId(scaleEntity.getId());
@@ -75,10 +75,10 @@ public class Scale extends ScaleEntity {
             .build();
     }
 
-    public void setBrAPIProperties(BrApiScale brApiScale) {
+    public void setBrAPIProperties(BrAPIScale brApiScale) {
         this.setDecimalPlaces(brApiScale.getDecimalPlaces());
         if (brApiScale.getValidValues() != null){
-            BrApiScaleValidValues validValues = brApiScale.getValidValues();
+            BrAPIScaleValidValues validValues = brApiScale.getValidValues();
             this.setValidValueMax(validValues.getMax());
             this.setValidValueMin(validValues.getMin());
             this.setCategories(validValues.getCategories());

@@ -17,7 +17,8 @@
 
 package org.breedinginsight.model;
 
-import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,7 +26,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.brapi.v2.phenotyping.model.BrApiVariable;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
 import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
@@ -104,7 +105,7 @@ public class Trait extends TraitEntity {
             .build();
     }
 
-    public void setBrAPIProperties(BrApiVariable brApiVariable) {
+    public void setBrAPIProperties(BrAPIObservationVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
             this.setAttribute(brApiVariable.getTrait().getAttribute());

@@ -20,12 +20,13 @@ package org.breedinginsight.daos;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import org.brapi.client.v2.model.exceptions.APIException;
-import org.brapi.client.v2.model.exceptions.HttpException;
-import org.brapi.client.v2.modules.core.ProgramsAPI;
-import org.brapi.v2.core.model.BrApiExternalReference;
-import org.brapi.v2.core.model.BrApiProgram;
-import org.brapi.v2.core.model.request.ProgramsRequest;
+import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
+import org.brapi.client.v2.modules.core.ProgramsApi;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -139,28 +140,26 @@ public class ProgramDAO extends ProgramDao {
 
     public void createProgramBrAPI(Program program) {
 
-        BrApiExternalReference externalReference = BrApiExternalReference.builder()
-                .referenceID(program.getId().toString())
-                .referenceSource(referenceSource)
-                .build();
+        BrAPIExternalReference externalReference = new BrAPIExternalReference()
+                                                                         .referenceID(program.getId().toString())
+                                                                         .referenceSource(referenceSource);
 
-        BrApiProgram brApiProgram = BrApiProgram.builder()
-                .programName(program.getName())
-                .abbreviation(program.getAbbreviation())
-                .commonCropName(program.getSpecies().getCommonName())
-                .externalReferences(List.of(externalReference))
-                .objective(program.getObjective())
-                .documentationURL(program.getDocumentationUrl())
-                .build();
+        BrAPIProgram brApiProgram = new BrAPIProgram()
+                                                .programName(program.getName())
+                                                .abbreviation(program.getAbbreviation())
+                                                .commonCropName(program.getSpecies().getCommonName())
+                                                .externalReferences(List.of(externalReference))
+                                                .objective(program.getObjective())
+                                                .documentationURL(program.getDocumentationUrl());
 
         // POST programs to each brapi service
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
         try {
-            List<ProgramsAPI> programsAPIS = brAPIProvider.getAllUniqueProgramsAPI();
-            for (ProgramsAPI programsAPI: programsAPIS){
-                programsAPI.createProgram(brApiProgram);
+            List<ProgramsApi> programsAPIS = brAPIProvider.getAllUniqueProgramsAPI();
+            for (ProgramsApi programsAPI: programsAPIS){
+                programsAPI.programsPost(List.of(brApiProgram));
             }
-        } catch (HttpException | APIException e) {
+        } catch (ApiException e) {
             throw new InternalServerException(e.getMessage());
         }
 
@@ -168,29 +167,28 @@ public class ProgramDAO extends ProgramDao {
 
     public void updateProgramBrAPI(Program program) {
 
-        ProgramsRequest searchRequest = ProgramsRequest.builder()
-                .externalReferenceID(program.getId().toString())
-                .externalReferenceSource(referenceSource)
-                .build();
+        ProgramQueryParams searchRequest = new ProgramQueryParams()
+                                                                 .externalReferenceID(program.getId().toString())
+                                                                 .externalReferenceSource(referenceSource);
 
         // Program goes in all of the clients
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
-        List<ProgramsAPI> programsAPIS = brAPIProvider.getAllUniqueProgramsAPI();
-        for (ProgramsAPI programsAPI: programsAPIS){
+        List<ProgramsApi> programsAPIS = brAPIProvider.getAllUniqueProgramsAPI();
+        for (ProgramsApi programsAPI: programsAPIS){
 
             // Get existing brapi program
-            List<BrApiProgram> brApiPrograms;
+            ApiResponse<BrAPIProgramListResponse> brApiPrograms;
             try {
-                brApiPrograms = programsAPI.getPrograms(searchRequest);
-            } catch (HttpException | APIException e) {
+                brApiPrograms = programsAPI.programsGet(searchRequest);
+            } catch (ApiException e) {
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
 
-            if (brApiPrograms.size() == 0){
+            if (brApiPrograms.getBody().getResult().getData().size() == 0){
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
 
-            BrApiProgram brApiProgram = brApiPrograms.get(0);
+            BrAPIProgram brApiProgram = brApiPrograms.getBody().getResult().getData().get(0);
 
             //TODO: Need to add archived/not archived when available in brapi
             brApiProgram.setProgramName(program.getName());
@@ -200,8 +198,8 @@ public class ProgramDAO extends ProgramDao {
             brApiProgram.setDocumentationURL(program.getDocumentationUrl());
 
             try {
-                programsAPI.updateProgram(brApiProgram);
-            } catch (HttpException | APIException e) {
+                programsAPI.programsProgramDbIdPut(brApiProgram.getProgramDbId(), brApiProgram);
+            } catch (ApiException e) {
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
         }
