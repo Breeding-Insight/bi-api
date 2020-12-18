@@ -401,7 +401,20 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, response.getStatus());
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         checkValidTraitUpload(result);
+    }
 
+    @Test
+    void postTraitComputation() {
+        // Check that the scale class is changed to numeric
+        File file = new File("src/test/resources/files/data_one_row_computation.csv");
+        HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject trait = data.get(0).getAsJsonObject();
+        JsonObject scale = trait.get("scale").getAsJsonObject();
+        assertEquals(DataType.NUMERICAL.getLiteral(), scale.get("dataType").getAsString(), "wrong scale dataType");
     }
 
     private HttpResponse<String> uploadFile(String programId, File file, String user) {
