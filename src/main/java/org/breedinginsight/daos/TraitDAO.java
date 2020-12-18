@@ -80,7 +80,7 @@ public class TraitDAO extends TraitDao {
         try {
             brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
         Map<String, BrAPIObservationVariable> brApiVariableMap = new HashMap<>();
@@ -172,7 +172,7 @@ public class TraitDAO extends TraitDao {
             brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
             // If variable is not found, is still a server exception
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
         BrAPIObservationVariable brApiVariable;
@@ -297,7 +297,7 @@ public class TraitDAO extends TraitDao {
                 createdVariables = variablesAPI.variablesPost(brApiVariables);
             }
         } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
         if(createdVariables == null) {

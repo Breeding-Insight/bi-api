@@ -169,7 +169,7 @@ public class ProgramLocationDAO extends PlaceDao {
                 locationsAPI.locationsPost(List.of(brApiLocation));
             }
         } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
     }

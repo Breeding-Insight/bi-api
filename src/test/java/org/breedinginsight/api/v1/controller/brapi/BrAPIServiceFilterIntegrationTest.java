@@ -50,9 +50,11 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import javax.inject.Inject;
+import java.lang.reflect.Type;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -138,16 +140,16 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         // Checks that two requests sent to the same micronaut instance will have different
         // urls. Could use some improvements
 
-        String coreUrl = "http://core-test" + UUID.randomUUID().toString();
-        String phenoUrl = "http://pheno-test" + UUID.randomUUID().toString();
-        String genoUrl = "http://geno-test" + UUID.randomUUID().toString();
+        String coreUrl = "http://core-test" + UUID.randomUUID().toString() + "/brapi/v2";
+        String phenoUrl = "http://pheno-test" + UUID.randomUUID().toString() + "/brapi/v2";
+        String genoUrl = "http://geno-test" + UUID.randomUUID().toString() + "/brapi/v2";
         ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(coreUrl, phenoUrl, genoUrl);
 
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
         // Assert our brapi url was used
-        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl);
+        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -162,7 +164,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
         // Check that our error is not an assertion error
-        assertTrue(urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(phenoUrl, urlCheckFuture.get(), "Url was not as expected");
     }
 
     @Test
@@ -170,9 +172,9 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     @SneakyThrows
     public void urlChangesForDifferentRequestsCallTwo() {
 
-        String coreUrl1 = "http://core-test" + UUID.randomUUID().toString();
-        String phenoUrl1 = "http://pheno-test" + UUID.randomUUID().toString();
-        String genoUrl1 = "http://geno-test" + UUID.randomUUID().toString();
+        String coreUrl1 = "http://core-test" + UUID.randomUUID().toString() + "/brapi/v2";
+        String phenoUrl1 = "http://pheno-test" + UUID.randomUUID().toString() + "/brapi/v2";
+        String genoUrl1 = "http://geno-test" + UUID.randomUUID().toString() + "/brapi/v2";
         ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(coreUrl1, phenoUrl1, genoUrl1);
 
         reset(programService);
@@ -180,7 +182,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
         // Assert our brapi url was used
-        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl1);
+        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -196,21 +198,21 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
         // Check that our error is not an assertion error
-        assertTrue(urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(phenoUrl1, urlCheckFuture.get(), "Url was not as expected");
     }
 
     @Test
     @SneakyThrows
     public void getTraitsUsesFilter() {
 
-        String phenoUrl = "http://getTraits" + UUID.randomUUID().toString();
+        String phenoUrl = "http://getTraits" + UUID.randomUUID().toString() + "/brapi/v2";
         ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints("", phenoUrl, "");
 
         reset(programService);
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl);
+        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
@@ -225,21 +227,21 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
-        assertTrue(urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(phenoUrl, urlCheckFuture.get(), "Url was not as expected");
     }
 
     @Test
     @SneakyThrows
     public void getTraitSingleUsesFilter() {
 
-        String phenoUrl = "http://getTraitSingle" + UUID.randomUUID().toString();
+        String phenoUrl = "http://getTraitSingle" + UUID.randomUUID().toString() + "/brapi/v2";
         ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(null, phenoUrl, null);
 
         reset(programService);
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        CompletableFuture<Boolean> urlCheckFuture = checkBrAPIClientExecution(phenoUrl);
+        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits/" + validVariable.getId())
@@ -254,7 +256,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
 
-        assertTrue(urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(phenoUrl, urlCheckFuture.get(), "Url was not as expected");
     }
 
     public ProgramBrAPIEndpoints getBrAPIEndpoints(String coreUrl, String phenoUrl, String genoUrl){
@@ -265,9 +267,9 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
                 .build();
     }
 
-    public CompletableFuture<Boolean> checkBrAPIClientExecution(String expectedUrl) throws AssertionFailedError {
+    public CompletableFuture<String> checkBrAPIClientExecution() throws AssertionFailedError {
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        CompletableFuture<String> future = new CompletableFuture<String>().orTimeout(30, TimeUnit.SECONDS);
 
         // Takes advantage of brapi library code to mimic no return results from api.
         Answer<Optional<Object>> checkBrAPIExecution = new Answer<Optional<Object>>() {
@@ -275,7 +277,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
             public Optional<Object> answer(InvocationOnMock invocation) throws AssertionFailedError {
                 BrAPIClient executingBrAPIClient = (BrAPIClient) invocation.getMock();
                 // Check that our url is correct
-                future.complete(expectedUrl.equals(executingBrAPIClient.getBasePath()));
+                future.complete(executingBrAPIClient.getBasePath());
                 return Optional.empty();
             }
         };
@@ -290,7 +292,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
                 BrAPIClient brAPIClientSpy = spy(realBrAPIClient);
                 doAnswer(checkBrAPIExecution)
                         .when(brAPIClientSpy)
-                        .execute(any(Call.class));
+                        .execute(any(Call.class), any(Type.class));
 
                 return brAPIClientSpy;
             }

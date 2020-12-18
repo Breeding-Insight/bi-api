@@ -160,7 +160,7 @@ public class ProgramDAO extends ProgramDao {
                 programsAPI.programsPost(List.of(brApiProgram));
             }
         } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
     }
