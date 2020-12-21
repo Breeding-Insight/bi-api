@@ -21,6 +21,8 @@ import io.micronaut.http.HttpStatus;
 import lombok.*;
 import lombok.experimental.Accessors;
 
+import java.util.List;
+
 @Getter
 @Setter
 @Accessors(chain=true)
@@ -32,6 +34,7 @@ public class ValidationError {
     private String errorMessage;
     private HttpStatus httpStatus;
     private Integer httpStatusCode;
+    private List<RowValidationErrors> rowErrors;
 
     public ValidationError(String field, String errorMessage, HttpStatus httpStatus){
         this.field = field;
@@ -39,4 +42,5 @@ public class ValidationError {
         this.httpStatus = httpStatus;
         this.httpStatusCode = httpStatus.getCode();
     }
+
 }

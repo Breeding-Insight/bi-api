@@ -743,4 +743,50 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         TestUtils.checkStringSorting(data, "traitName", SortOrder.ASC);
     }
 
+    @Test
+    @Order(9)
+    public void postTraitComputation() {
+
+        dsl.execute(fp.get("DeleteTrait"));
+
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait5");
+        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.TEXT);
+        Method method1 = new Method();
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        // Set the brapi properties
+        setBrAPIProperties(trait1);
+
+        // Set scale class to computation
+        trait1.getMethod().setMethodClass("Computation");
+
+        List<Trait> traits = List.of(trait1);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check return
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject trait = data.get(0).getAsJsonObject();
+
+        // Check class was overwritten to numerical
+        JsonObject scale = trait.get("scale").getAsJsonObject();
+        assertEquals(DataType.NUMERICAL.getLiteral(), scale.get("dataType").getAsString(), "wrong scale dataType");
+
+    }
+
 }

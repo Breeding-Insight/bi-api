@@ -23,6 +23,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
@@ -128,6 +129,9 @@ public class TraitService {
             throw new InternalServerException("Ontology does not exist for program");
         }
         ProgramOntology programOntology = programOntologyOptional.get();
+
+        // Preprocessing
+        preprocessTraits(traits);
 
         ValidationErrors validationErrors = new ValidationErrors();
 
@@ -268,5 +272,19 @@ public class TraitService {
                 }
             }
         }
+    }
+
+    public void preprocessTraits(List<Trait> traits) {
+
+        // Set data type to numerical when method class is computation
+        for (Trait trait: traits) {
+            if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
+                trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
+                if (trait.getScale() != null) {
+                    trait.getScale().setDataType(DataType.NUMERICAL);
+                }
+            }
+        }
+
     }
 }

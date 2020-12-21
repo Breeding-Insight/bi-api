@@ -84,22 +84,27 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getBlankScaleCategoryLabelMsg(Integer categoryIndex) {
+    public ValidationError getBadScaleCategory() {
+        return new ValidationError("scale.categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getBlankScaleCategoryLabelMsg() {
         return new ValidationError("Scale Categories",
-                String.format("Category index %s: Scale category label cannot be blank.", categoryIndex.toString()),
+                "Scale category label cannot be blank.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
-    public ValidationError getBlankScaleCategoryValueMsg(Integer categoryIndex) {
+    public ValidationError getBlankScaleCategoryValueMsg() {
         return new ValidationError("Scale Categories",
-                String.format("Category index %s: Scale category value cannot be blank.", categoryIndex.toString()),
+                "Scale category value cannot be blank.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
-        return new ValidationError("Trait name", "Trait name - Scale name combination already exists", HttpStatus.CONFLICT);
+        return new ValidationError("Trait name", "Trait name already exists", HttpStatus.CONFLICT);
     }
 
     @Override
@@ -111,7 +116,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
         matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
         return new ValidationError("Trait name",
-                "traitName - scaleName combination is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
+                "Trait name duplicated in file. Duplicate set of traits are rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
     }
 
