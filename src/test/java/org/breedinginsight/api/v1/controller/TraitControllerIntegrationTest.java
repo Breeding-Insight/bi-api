@@ -672,6 +672,128 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(7)
+    public void postTraitNominalMissingCategoryValue() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait14");
+        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.NOMINAL);
+        Method method1 = new Method();
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        // Set the brapi properties
+        setBrAPIProperties(trait1);
+
+        // Set a bad scale
+        trait1.getScale().setCategories(List.of(BrApiScaleCategories.builder().build()));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait1))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Check for conflict response
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertTrue(error.has("field"), "Column field not included in return");
+        assertTrue(error.has("errorMessage"), "errorMessage field not included in return");
+        assertTrue(error.has("httpStatus"), "httpStatus field not included in return");
+        assertTrue(error.has("httpStatusCode"), "httpStatusCode field not included in return");
+        assertTrue(error.has("rowErrors"), "Individual category errors not included in the response");
+        // Check individual category errors are present
+        JsonArray categoryErrors = error.getAsJsonArray("rowErrors");
+        assertEquals(1, categoryErrors.size(), "Not enough errors were returned");
+        JsonObject categoryError = errors.get(0).getAsJsonObject();
+        assertTrue(categoryError.has("field"), "Column field not included in return");
+        assertTrue(categoryError.has("errorMessage"), "errorMessage field not included in return");
+        assertTrue(categoryError.has("httpStatus"), "httpStatus field not included in return");
+        assertTrue(categoryError.has("httpStatusCode"), "httpStatusCode field not included in return");
+    }
+
+    @Test
+    @Order(7)
+    public void postTraitOrdinalMissingCategoryVariables() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitName("Test Trait14");
+        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.ORDINAL);
+        Method method1 = new Method();
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        // Set the brapi properties
+        setBrAPIProperties(trait1);
+
+        // Set a bad scale
+        trait1.getScale().setCategories(
+                List.of(
+                        BrApiScaleCategories.builder().label("1").build(),
+                        BrApiScaleCategories.builder().label("1").value("test").build(),
+                        BrApiScaleCategories.builder().value("badtest").build()
+                )
+        );
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait1))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        // Check for conflict response
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertTrue(error.has("field"), "Column field not included in return");
+        assertTrue(error.has("errorMessage"), "errorMessage field not included in return");
+        assertTrue(error.has("httpStatus"), "httpStatus field not included in return");
+        assertTrue(error.has("httpStatusCode"), "httpStatusCode field not included in return");
+        assertTrue(error.has("rowErrors"), "Individual category errors not included in the response");
+
+        // Check individual category errors are present
+        JsonArray categoryErrors = error.getAsJsonArray("rowErrors");
+        assertEquals(2, categoryErrors.size(), "Not enough errors were returned");
+
+        JsonObject categoryError = categoryErrors.get(0).getAsJsonObject();
+        assertEquals(0, categoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
+        JsonObject valueError = categoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
+        assertEquals("scale.categories.value", valueError.get("field").getAsString(), "wrong error returned");
+
+        JsonObject secondCategoryError = categoryErrors.get(1).getAsJsonObject();
+        assertEquals(2, secondCategoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
+        JsonObject labelError = secondCategoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
+        assertEquals("scale.categories.label", labelError.get("field").getAsString(), "wrong error returned");
+    }
+
+    @Test
+    @Order(8)
     public void getTraitsQuery() {
         List<Trait> newTraits = new ArrayList<>();
         for (int i = 0; i < 30; i++){
@@ -721,7 +843,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     public void searchTraits() {
 
         SearchRequest searchRequest = new SearchRequest();
@@ -744,7 +866,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     public void postTraitComputation() {
 
         dsl.execute(fp.get("DeleteTrait"));
