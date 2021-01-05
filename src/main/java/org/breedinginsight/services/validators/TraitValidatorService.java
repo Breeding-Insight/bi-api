@@ -203,7 +203,7 @@ public class TraitValidatorService {
         for (Integer i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             if (trait.getTraitName() != null){
-                String key = String.format("%s", trait.getTraitName().toLowerCase());
+                String key = trait.getTraitName().toLowerCase();
                 if (namesMap.containsKey(key)) {
                     namesMap.get(key).add(i);
                 } else {

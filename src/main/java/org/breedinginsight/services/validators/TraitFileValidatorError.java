@@ -85,7 +85,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getBadScaleCategory() {
-        return new ValidationError("scale.categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override

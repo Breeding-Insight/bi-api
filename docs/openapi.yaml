@@ -2209,6 +2209,21 @@ paths:
                         errorMessage: "Missing scale data type"
                         httpStatus: "UNPROCESSABLE_ENTITY"
                         httpStatusCode: 422
+                      - field: "scale.categories"
+                        errorMessage: "Scale categories contain errors"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                        rowErrors:
+                          - rowIndex: 0
+                            errors:
+                              - field: "scale.categories.label"
+                                errorMessage: "Missing value"
+                                httpStatus: "UNPROCESSABLE_ENTITY"
+                                httpStatusCode: 422
+                              - field: "scale.categories.value"
+                                errorMessage: "Missing value"
+                                httpStatus: "UNPROCESSABLE_ENTITY"
+                                httpStatusCode: 422
   /programs/{programId}/traits/search:
     post:
       tags:
@@ -4385,6 +4400,28 @@ components:
                     httpStatusCode:
                       type: integer
                       description: "Http error code"
+                    rowErrors:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          errors:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                field:
+                                  type: string
+                                  description: "Field name that is the source of the error"
+                                errorMessage:
+                                  type: string
+                                  description: "A description fo the error"
+                                httpStatus:
+                                  type: string
+                                  description: "Text representation fo the error code"
+                                httpStatusCode:
+                                  type: integer
+                                  description: "Http error code"
     observationLevelResponse:
       required:
         - metadata
