@@ -694,7 +694,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait1);
 
         // Set a bad scale
-        trait1.getScale().setCategories(List.of(BrApiScaleCategories.builder().build()));
+        trait1.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories()));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits", List.of(trait1))
@@ -751,9 +751,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Set a bad scale
         trait1.getScale().setCategories(
                 List.of(
-                        BrApiScaleCategories.builder().label("1").build(),
-                        BrApiScaleCategories.builder().label("1").value("test").build(),
-                        BrApiScaleCategories.builder().value("badtest").build()
+                        new BrAPIScaleValidValuesCategories().label("1"),
+                        new BrAPIScaleValidValuesCategories().label("1").value("test"),
+                        new BrAPIScaleValidValuesCategories().value("badtest")
                 )
         );
 
