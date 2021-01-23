@@ -146,6 +146,7 @@ brapi:
     pheno-url: ${brapi.server.pheno-url}
     geno-url: ${brapi.server.geno-url}
     reference-source: ${brapi.server.reference-source}
+  read-timeout: 10m
 
 email:
   relay-server:

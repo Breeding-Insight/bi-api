@@ -18,6 +18,7 @@
 package org.breedinginsight.api.v1.controller.brapi;
 
 import io.kowalski.fannypack.FannyPack;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -65,6 +66,7 @@ import static org.mockito.Mockito.*;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+@Property(name = "brapi.read-timeout", value = "10m")
 public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
 
     private ProgramEntity validProgram;
