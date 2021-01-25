@@ -31,7 +31,6 @@ import java.util.TreeSet;
 @RequestScope
 public class BrAPIClientProvider {
 
-    @Value(value = "${brapi.read-timeout}")
     private final Duration requestTimeout;
 
     private BrAPIClient coreClient;
