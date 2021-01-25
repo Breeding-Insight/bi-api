@@ -17,7 +17,10 @@
 
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.*;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -30,15 +33,17 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
-import org.brapi.v2.phenotyping.model.*;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
-import org.breedinginsight.dao.db.tables.daos.*;
-import org.breedinginsight.dao.db.tables.pojos.*;
+import org.breedinginsight.dao.db.tables.daos.ProgramDao;
+import org.breedinginsight.dao.db.tables.daos.TraitDao;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.TraitService;
@@ -428,8 +433,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait.getScale().setValidValueMin(1);
         trait.getScale().setValidValueMax(10);
         trait.getScale().setDecimalPlaces(3);
-        trait.getScale().setCategories(List.of(BrApiScaleCategories.builder().label("label1").value("value1").build(),
-                BrApiScaleCategories.builder().label("label2").value("value2").build()));
+        trait.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories().label("label1").value("value1"),
+                                               new BrAPIScaleValidValuesCategories().label("label2").value("value2")));
     }
 
     //endregion
@@ -659,11 +664,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         List<JsonObject> jsonCategories = new ArrayList<>();
         scaleJson.get("categories").getAsJsonArray().iterator().forEachRemaining(element -> jsonCategories.add(element.getAsJsonObject()));
         Collections.sort(jsonCategories, Comparator.comparing((x) -> x.get("label").getAsString()));
-        List<BrApiScaleCategories> brApiScaleCategories = new ArrayList<>(trait.getScale().getCategories());
-        Collections.sort(brApiScaleCategories, Comparator.comparing(BrApiScaleCategories::getLabel));
-        Iterator<BrApiScaleCategories> categories = brApiScaleCategories.iterator();
+        List<BrAPIScaleValidValuesCategories> brApiScaleCategories = new ArrayList<>(trait.getScale().getCategories());
+        Collections.sort(brApiScaleCategories, Comparator.comparing(BrAPIScaleValidValuesCategories::getLabel));
+        Iterator<BrAPIScaleValidValuesCategories> categories = brApiScaleCategories.iterator();
         for (JsonObject jsonCategory: jsonCategories){
-            BrApiScaleCategories category = categories.next();
+            BrAPIScaleValidValuesCategories category = categories.next();
             assertEquals(category.getLabel(), jsonCategory.get("label").getAsString(), "Category label does not match");
             assertEquals(category.getValue(), jsonCategory.get("value").getAsString(), "Category label does not match");
         }
@@ -689,7 +694,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait1);
 
         // Set a bad scale
-        trait1.getScale().setCategories(List.of(BrApiScaleCategories.builder().build()));
+        trait1.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories()));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits", List.of(trait1))
@@ -746,9 +751,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Set a bad scale
         trait1.getScale().setCategories(
                 List.of(
-                        BrApiScaleCategories.builder().label("1").build(),
-                        BrApiScaleCategories.builder().label("1").value("test").build(),
-                        BrApiScaleCategories.builder().value("badtest").build()
+                        new BrAPIScaleValidValuesCategories().label("1"),
+                        new BrAPIScaleValidValuesCategories().label("1").value("test"),
+                        new BrAPIScaleValidValuesCategories().value("badtest")
                 )
         );
 

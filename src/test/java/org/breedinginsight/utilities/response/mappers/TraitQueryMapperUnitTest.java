@@ -18,7 +18,7 @@
 package org.breedinginsight.utilities.response.mappers;
 
 import lombok.SneakyThrows;
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.model.*;
 import org.junit.jupiter.api.*;
 
@@ -63,7 +63,7 @@ public class TraitQueryMapperUnitTest {
                         .decimalPlaces(3)
                         .validValueMin(0)
                         .validValueMax(999)
-                        .categories(List.of(BrApiScaleCategories.builder().label("1").value("green").build()))
+                        .categories(List.of(new BrAPIScaleValidValuesCategories().label("1").value("green")))
                         .build()
                 )
                 .createdAt(OffsetDateTime.now())

@@ -18,10 +18,10 @@
 package org.breedinginsight.services.brapi;
 
 import org.brapi.client.v2.BrAPIClient;
-import org.brapi.client.v2.modules.core.LocationsAPI;
-import org.brapi.client.v2.modules.core.ProgramsAPI;
-import org.brapi.client.v2.modules.phenotype.TraitsAPI;
-import org.brapi.client.v2.modules.phenotype.VariablesAPI;
+import org.brapi.client.v2.modules.core.LocationsApi;
+import org.brapi.client.v2.modules.core.ProgramsApi;
+import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
+import org.brapi.client.v2.modules.phenotype.TraitsApi;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -40,44 +40,44 @@ public class BrAPIProvider {
         this.brAPIClientProvider = brAPIClientProvider;
     }
 
-    public TraitsAPI getTraitsAPI(BrAPIClientType clientType){
+    public TraitsApi getTraitsAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
-        return new TraitsAPI(brAPIClient);
+        return new TraitsApi(brAPIClient);
     }
 
-    public VariablesAPI getVariablesAPI(BrAPIClientType clientType){
+    public ObservationVariablesApi getVariablesAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
-        return new VariablesAPI(brAPIClient);
+        return new ObservationVariablesApi(brAPIClient);
     }
 
-    public List<VariablesAPI> getAllUniqueVariablesAPI(){
+    public List<ObservationVariablesApi> getAllUniqueVariablesAPI(){
         Set<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
-        List<VariablesAPI> variablesAPIS = new ArrayList<>();
+        List<ObservationVariablesApi> variablesAPIS = new ArrayList<>();
         for (BrAPIClient client: clients){
-            variablesAPIS.add(new VariablesAPI(client));
+            variablesAPIS.add(new ObservationVariablesApi(client));
         }
         return variablesAPIS;
     }
 
-    public ProgramsAPI getProgramsAPI(BrAPIClientType clientType) {
+    public ProgramsApi getProgramsAPI(BrAPIClientType clientType) {
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
-        return new ProgramsAPI(brAPIClient);
+        return new ProgramsApi(brAPIClient);
     }
 
-    public List<ProgramsAPI> getAllUniqueProgramsAPI(){
+    public List<ProgramsApi> getAllUniqueProgramsAPI(){
         Set<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
-        List<ProgramsAPI> programsAPIS = new ArrayList<>();
+        List<ProgramsApi> programsAPIS = new ArrayList<>();
         for (BrAPIClient client: clients){
-            programsAPIS.add(new ProgramsAPI(client));
+            programsAPIS.add(new ProgramsApi(client));
         }
         return programsAPIS;
     }
 
-    public List<LocationsAPI> getAllUniqueLocationsAPI(){
+    public List<LocationsApi> getAllUniqueLocationsAPI(){
         Set<BrAPIClient> clients = brAPIClientProvider.get().getAllUniqueClients();
-        List<LocationsAPI> locationsAPIS = new ArrayList<>();
+        List<LocationsApi> locationsAPIS = new ArrayList<>();
         for (BrAPIClient client: clients){
-            locationsAPIS.add(new LocationsAPI(client));
+            locationsAPIS.add(new LocationsApi(client));
         }
         return locationsAPIS;
     }

@@ -19,18 +19,19 @@ package org.breedinginsight.daos;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import org.brapi.client.v2.model.exceptions.APIException;
-import org.brapi.client.v2.model.exceptions.HttpException;
-import org.brapi.client.v2.modules.phenotype.VariablesAPI;
-import org.brapi.v2.core.model.BrApiExternalReference;
-import org.brapi.v2.phenotyping.model.*;
-import org.brapi.v2.phenotyping.model.request.VariablesRequest;
-import org.breedinginsight.services.brapi.BrAPIProvider;
-import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
+import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.pheno.*;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
-import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
+import org.breedinginsight.model.*;
+import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -73,20 +74,19 @@ public class TraitDAO extends TraitDao {
         Map<UUID, Trait> dbVariablesMap = dbVariables.stream().collect(Collectors.toMap(Trait::getId, p -> p));
 
         // Get brapi variables
-        VariablesRequest variablesRequest = VariablesRequest.builder()
-                .externalReferenceSource(referenceSource)
-                .build();
-        List<BrApiVariable> brApiVariables;
+        VariableQueryParams variablesRequest = new VariableQueryParams()
+                                                               .externalReferenceSource(referenceSource);
+        ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables(variablesRequest);
-        } catch (HttpException | APIException e) {
-            throw new InternalServerException(e.getMessage());
+            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
+        } catch (ApiException e) {
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
-        Map<String, BrApiVariable> brApiVariableMap = new HashMap<>();
-        for (BrApiVariable brApiVariable: brApiVariables) {
-            List<BrApiExternalReference> brApiExternalReferences = brApiVariable.getExternalReferences();
-            for (BrApiExternalReference brApiExternalReference: brApiExternalReferences){
+        Map<String, BrAPIObservationVariable> brApiVariableMap = new HashMap<>();
+        for (BrAPIObservationVariable brApiVariable: brApiVariables.getBody().getResult().getData()) {
+            List<BrAPIExternalReference> brApiExternalReferences = brApiVariable.getExternalReferences();
+            for (BrAPIExternalReference brApiExternalReference: brApiExternalReferences){
                 if (brApiExternalReference.getReferenceID() != null) {
                     brApiVariableMap.put(brApiExternalReference.getReferenceID(), brApiVariable);
                 }
@@ -97,7 +97,7 @@ public class TraitDAO extends TraitDao {
         for (Trait trait: dbVariables) {
             // assumes external reference id is unique to each brapi variable
             if (brApiVariableMap.containsKey(trait.getId().toString())){
-                BrApiVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
+                BrAPIObservationVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
                 trait.setBrAPIProperties(brApiVariable);
 
                 Method method = trait.getMethod();
@@ -163,22 +163,21 @@ public class TraitDAO extends TraitDao {
         }
         Trait dbTrait = optionalDbTrait.get();
 
-        List<BrApiVariable> brApiVariables;
+        ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
 
-        VariablesRequest variablesRequest = VariablesRequest.builder()
+        VariableQueryParams variablesRequest = new VariableQueryParams()
                 .externalReferenceID(traitId.toString())
-                .externalReferenceSource(referenceSource)
-                .build();
+                .externalReferenceSource(referenceSource);
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).getVariables(variablesRequest);
-        } catch (HttpException | APIException e) {
+            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
+        } catch (ApiException e) {
             // If variable is not found, is still a server exception
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException("Error making BrAPI call", e);
         }
 
-        BrApiVariable brApiVariable;
-        if (brApiVariables.size() > 0){
-            brApiVariable = brApiVariables.get(0);
+        BrAPIObservationVariable brApiVariable;
+        if (brApiVariables.getBody().getResult().getData().size() > 0){
+            brApiVariable = brApiVariables.getBody().getResult().getData().get(0);
         } else {
             throw new InternalServerException("No variable found in brapi server");
         }
@@ -217,47 +216,41 @@ public class TraitDAO extends TraitDao {
         //TODO: Pass ontology reference
 
         // Convert our traits into BrAPI traits
-        List<BrApiVariable> brApiVariables = new ArrayList<>();
+        List<BrAPIObservationVariable> brApiVariables = new ArrayList<>();
         for (Trait trait: traits) {
 
             // Construct method
-            BrApiExternalReference methodReference = BrApiExternalReference.builder()
+            BrAPIExternalReference methodReference = new BrAPIExternalReference()
                     .referenceID(trait.getMethod().getId().toString())
-                    .referenceSource(referenceSource)
-                    .build();
-            BrApiMethod brApiMethod = BrApiMethod.builder()
-                    .methodName(String.format("%s %s", trait.getTraitName(), trait.getMethod().getMethodClass()))
-                    .externalReferences(List.of(methodReference))
-                    .methodClass(trait.getMethod().getMethodClass())
-                    .description(trait.getMethod().getDescription())
-                    .formula(trait.getMethod().getFormula())
-                    .build();
+                    .referenceSource(referenceSource);
+            BrAPIMethod brApiMethod = new BrAPIMethod()
+                                                 .methodName(String.format("%s %s", trait.getTraitName(), trait.getMethod().getMethodClass()))
+                                                 .externalReferences(List.of(methodReference))
+                                                 .methodClass(trait.getMethod().getMethodClass())
+                                                 .description(trait.getMethod().getDescription())
+                                                 .formula(trait.getMethod().getFormula());
 
             // Construct scale
-            BrApiExternalReference scaleReference = BrApiExternalReference.builder()
+            BrAPIExternalReference scaleReference = new BrAPIExternalReference()
                     .referenceID(trait.getScale().getId().toString())
-                    .referenceSource(referenceSource)
-                    .build();
-            BrApiTraitDataType brApiTraitDataType = BrApiTraitDataType.valueOf(trait.getScale().getDataType().toString());
-            BrApiScaleValidValues brApiScaleValidValues = BrApiScaleValidValues.builder()
-                    .categories(trait.getScale().getCategories())
-                    .max(trait.getScale().getValidValueMax())
-                    .min(trait.getScale().getValidValueMin())
-                    .build();
-            BrApiScale brApiScale = BrApiScale.builder()
+                    .referenceSource(referenceSource);
+            BrAPITraitDataType brApiTraitDataType = BrAPITraitDataType.valueOf(trait.getScale().getDataType().toString());
+            BrAPIScaleValidValues brApiScaleValidValues = new BrAPIScaleValidValues()
+                                                                               .categories(trait.getScale().getCategories())
+                                                                               .max(trait.getScale().getValidValueMax())
+                                                                               .min(trait.getScale().getValidValueMin());
+            BrAPIScale brApiScale = new BrAPIScale()
                     .scaleName(trait.getScale().getScaleName())
                     .externalReferences(List.of(scaleReference))
                     .dataType(brApiTraitDataType)
                     .decimalPlaces(trait.getScale().getDecimalPlaces())
-                    .validValues(brApiScaleValidValues)
-                    .build();
+                    .validValues(brApiScaleValidValues);
 
             // Construct trait
-            BrApiExternalReference traitReference = BrApiExternalReference.builder()
+            BrAPIExternalReference traitReference = new BrAPIExternalReference()
                     .referenceID(trait.getId().toString())
-                    .referenceSource(referenceSource)
-                    .build();
-            BrApiTrait brApiTrait = BrApiTrait.builder()
+                    .referenceSource(referenceSource);
+            BrAPITrait brApiTrait = new BrAPITrait()
                     .traitName(trait.getTraitName())
                     .traitDescription(trait.getMethod().getDescription())
                     .synonyms(trait.getSynonyms())
@@ -267,14 +260,12 @@ public class TraitDAO extends TraitDao {
                     .alternativeAbbreviations(trait.getAbbreviations() != null ? List.of(trait.getAbbreviations()) : null)
                     .traitClass(trait.getTraitClass())
                     .externalReferences(List.of(traitReference))
-                    .attribute(trait.getAttribute())
-                    .build();
+                    .attribute(trait.getAttribute());
 
-            BrApiExternalReference variableReference = BrApiExternalReference.builder()
+            BrAPIExternalReference variableReference = new BrAPIExternalReference()
                     .referenceID(trait.getId().toString())
-                    .referenceSource(referenceSource)
-                    .build();
-            BrApiVariable brApiVariable = BrApiVariable.builder()
+                    .referenceSource(referenceSource);
+            BrAPIObservationVariable brApiVariable = new BrAPIObservationVariable()
                     .method(brApiMethod)
                     .scale(brApiScale)
                     .trait(brApiTrait)
@@ -286,8 +277,7 @@ public class TraitDAO extends TraitDao {
                     .defaultValue(trait.getDefaultValue())
                     .synonyms(trait.getSynonyms())
                     .institution(program.getName())
-                    .commonCropName(program.getSpecies().getCommonName())
-                    .build();
+                    .commonCropName(program.getSpecies().getCommonName());
 
                     // Unused
                     //.contextOfUse()
@@ -300,14 +290,18 @@ public class TraitDAO extends TraitDao {
 
         // POST variables to each brapi service
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
-        List<BrApiVariable> createdVariables = new ArrayList<>();
+        ApiResponse<BrAPIObservationVariableListResponse> createdVariables = null;
         try {
-            List<VariablesAPI> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
-            for (VariablesAPI variablesAPI: variablesAPIS){
-                createdVariables = variablesAPI.createVariables(brApiVariables);
+            List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
+            for (ObservationVariablesApi variablesAPI: variablesAPIS){
+                createdVariables = variablesAPI.variablesPost(brApiVariables);
             }
-        } catch (HttpException | APIException e) {
-            throw new InternalServerException(e.getMessage());
+        } catch (ApiException e) {
+            throw new InternalServerException("Error making BrAPI call", e);
+        }
+
+        if(createdVariables == null) {
+            throw new InternalServerException("Creating new variable did not return any data");
         }
 
         // Pull our traits from the db
@@ -316,9 +310,9 @@ public class TraitDAO extends TraitDao {
 
         // Saturate our traits from the brapi return information
         for (Trait trait: createdTraits){
-            for (BrApiVariable variable: createdVariables){
+            for (BrAPIObservationVariable variable: createdVariables.getBody().getResult().getData()){
                 if (variable.getExternalReferences() != null) {
-                    for (BrApiExternalReference brApiExternalReference: variable.getExternalReferences()){
+                    for (BrAPIExternalReference brApiExternalReference: variable.getExternalReferences()){
                         if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
                                 brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
 

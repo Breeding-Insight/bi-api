@@ -21,14 +21,19 @@ import lombok.SneakyThrows;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.junit.jupiter.api.Test;
 
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class BrAPIClientProviderUnitTest {
 
+    private final Duration requestTimeout = Duration.of(5, ChronoUnit.MINUTES);
+
     @Test
     @SneakyThrows
     public void getUnqiueClientsAllUnique() {
-        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider();
+        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider(requestTimeout);
         brAPIClientProvider.setPhenoClient("http://test-url.org");
         brAPIClientProvider.setGenoClient("http://test-url1.org");
         brAPIClientProvider.setCoreClient("http://test-url2.org");
@@ -39,7 +44,7 @@ public class BrAPIClientProviderUnitTest {
     @Test
     @SneakyThrows
     public void getUniqueClientsTwoUnique() {
-        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider();
+        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider(requestTimeout);
         brAPIClientProvider.setPhenoClient("http://test-url.org");
         brAPIClientProvider.setGenoClient("http://test-url1.org");
         brAPIClientProvider.setCoreClient("http://test-url1.org");
@@ -50,7 +55,7 @@ public class BrAPIClientProviderUnitTest {
     @Test
     @SneakyThrows
     public void getUniqueClientsOneUnique() {
-        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider();
+        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider(requestTimeout);
         brAPIClientProvider.setPhenoClient("http://test-url.org");
         brAPIClientProvider.setGenoClient("http://test-url.org");
         brAPIClientProvider.setCoreClient("http://test-url.org");
@@ -62,7 +67,7 @@ public class BrAPIClientProviderUnitTest {
     @SneakyThrows
     public void getUniqueClientsNestedPaths() {
 
-        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider();
+        BrAPIClientProvider brAPIClientProvider = new BrAPIClientProvider(requestTimeout);
         brAPIClientProvider.setPhenoClient("http://test-url.org/pheno");
         brAPIClientProvider.setGenoClient("http://test-url1.org/geno");
         brAPIClientProvider.setCoreClient("http://test-url2.org/core");

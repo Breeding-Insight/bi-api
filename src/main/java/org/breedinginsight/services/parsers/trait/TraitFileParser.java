@@ -21,11 +21,9 @@ import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
-
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
-
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -35,18 +33,18 @@ import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
 import org.breedinginsight.services.parsers.excel.ExcelParser;
 import org.breedinginsight.services.parsers.excel.ExcelRecord;
-import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
-
-import java.io.*;
-import java.util.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.jooq.tools.StringUtils.isBlank;
@@ -163,7 +161,7 @@ public class TraitFileParser {
                 }
             }
 
-            List<BrApiScaleCategories> categories = new ArrayList<>();
+            List<BrAPIScaleValidValuesCategories> categories = new ArrayList<>();
             String categoriesString = parseExcelValueAsString(record, TraitFileColumns.SCALE_CATEGORIES);
             List<String> categoriesStringList = parseListValue(categoriesString);
             try {
@@ -296,9 +294,9 @@ public class TraitFileParser {
                 .collect(Collectors.toList());
     }
 
-    private BrApiScaleCategories parseCategory(String value) throws UnprocessableEntityException {
+    private BrAPIScaleValidValuesCategories parseCategory(String value) throws UnprocessableEntityException {
 
-        BrApiScaleCategories category = new BrApiScaleCategories();
+        BrAPIScaleValidValuesCategories category = new BrAPIScaleValidValuesCategories();
 
         String[] labelMeaning = value.split(CATEGORY_DELIMITER);
         if (labelMeaning.length == 2) {

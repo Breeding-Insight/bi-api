@@ -152,13 +152,13 @@ public class UserController {
             Response<User> response = new Response<>(user);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.info("User doesn't exist", e);
             return HttpResponse.notFound();
         } catch (AlreadyExistsException e) {
-            log.info(e.getMessage());
+            log.info("User already exists", e);
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         } catch (ForbiddenException e) {
-            log.info(e.getMessage());
+            log.info("Unauthorized access", e);
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }

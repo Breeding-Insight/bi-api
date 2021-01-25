@@ -139,9 +139,9 @@ public class TraitUploadService {
         try {
             json = objMapper.writeValueAsString(traits);
         } catch(JsonProcessingException e) {
-            log.error(e.getMessage());
+            log.error("Problem converting traits json", e);
             // If we didn't catch this error in the validator, this is an unexpected server error.
-            throw new InternalServerException("Problem converting traits json");
+            throw new InternalServerException("Problem converting traits json", e);
         }
 
         // delete any existing records for traits since we only want to allow one at a time
