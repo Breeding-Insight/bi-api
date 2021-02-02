@@ -34,6 +34,11 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getTraitIdDoesNotExistMsg() {
+        return new ValidationError("traitId", "Missing trait id", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getMissingMethodMsg() {
         return new ValidationError("method", "Missing method", HttpStatus.UNPROCESSABLE_ENTITY);
     }

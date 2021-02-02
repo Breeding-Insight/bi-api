@@ -155,6 +155,7 @@ public class TraitValidatorService {
             Trait trait = traits.get(i);
             Boolean isDuplicate = duplicateNameTraits.stream().filter(duplicateTrait ->
                     duplicateTrait.getTraitName().toLowerCase().strip().equals(trait.getTraitName().toLowerCase().strip())
+                    && !duplicateTrait.getId().equals(trait.getId())
             ).collect(Collectors.toList()).size() > 0;
 
             if (isDuplicate) {
@@ -180,6 +181,7 @@ public class TraitValidatorService {
                 for (String abbreviation: trait.getAbbreviations()){
                     isDuplicateAbbrev = duplicateAbbreviationTraits.stream().filter(duplicateAbbreviationTrait ->
                             List.of(duplicateAbbreviationTrait.getAbbreviations()).contains(abbreviation)
+                            && !duplicateAbbreviationTrait.getId().equals(trait.getId())
                     ).collect(Collectors.toList()).size() > 0;
                     break;
                 }
