@@ -342,6 +342,9 @@ public class TraitService {
             throw e;
         }
 
+        if (missingTraitValidationErrors.hasErrors()) {
+            throw new ValidatorException(missingTraitValidationErrors);
+        }
 
         // Create the traits
         List<Trait> updatedTraits = new ArrayList<>();
@@ -364,7 +367,6 @@ public class TraitService {
                         updatedTrait.setProgramObservationLevel(level);
                     }
 
-                    // We don't store any info on methods.
                     // Jump to scale
                     ScaleEntity existingScaleEntity = scaleDAO.fetchOneById(existingTraitEntity.getScaleId());
                     existingScaleEntity.setScaleName(updatedTrait.getScale().getScaleName());
