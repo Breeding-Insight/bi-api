@@ -25,7 +25,6 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramObservationLevelEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
@@ -48,7 +47,6 @@ public class TraitService {
     private TraitDAO traitDAO;
     private MethodDAO methodDAO;
     private ScaleDAO scaleDAO;
-    private ProgramObservationLevelDAO programObservationLevelDAO;
     private ProgramService programService;
     private ProgramOntologyService programOntologyService;
     private ProgramObservationLevelService programObservationLevelService;
@@ -58,13 +56,12 @@ public class TraitService {
     private TraitValidatorError traitValidatorError;
 
     @Inject
-    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramObservationLevelDAO programObservationLevelDAO, ProgramService programService,
+    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
                         UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
-        this.programObservationLevelDAO = programObservationLevelDAO;
         this.programService = programService;
         this.programOntologyService = programOntologyService;
         this.programObservationLevelService = programObservationLevelService;
@@ -133,6 +130,8 @@ public class TraitService {
         }
         ProgramOntology programOntology = programOntologyOptional.get();
 
+        // Clear trait ids for proper validation against db
+        traits.stream().forEach(trait -> trait.setId(null));
         // Validate and remove duplicates if specified
         checkAndPrepareTraits(programId, traits, throwDuplicateErrors);
 
