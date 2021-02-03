@@ -21,8 +21,6 @@ import io.kowalski.fannypack.FannyPack;
 import io.micronaut.test.annotation.MicronautTest;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.api.model.v1.response.RowValidationErrors;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.model.Method;
@@ -91,8 +89,8 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
-        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(List.of(trait1));
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(List.of(trait1));
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(validProgram.getId(), List.of(trait1));
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(validProgram.getId(), List.of(trait1));
 
         assertEquals(1, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
         assertEquals(1, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
@@ -113,8 +111,8 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
-        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(List.of(trait1));
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(List.of(trait1));
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(validProgram.getId(), List.of(trait1));
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(validProgram.getId(), List.of(trait1));
 
         assertEquals(0, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
         assertEquals(0, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");

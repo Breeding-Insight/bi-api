@@ -29,6 +29,7 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
@@ -89,7 +90,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         assertEquals(1, data.getAsJsonPrimitive("totalPages").getAsInt(), "Default total pages is incorrect");
         assertEquals(1, data.getAsJsonPrimitive("totalCount").getAsInt(), "Default total count is incorrect");
         assertEquals(1, data.getAsJsonPrimitive("pageSize").getAsInt(), "Default page size is incorrect");
-        assertEquals(0, data.getAsJsonPrimitive("currentPage").getAsInt(), "Default current page is incorrect");
+        assertEquals(1, data.getAsJsonPrimitive("currentPage").getAsInt(), "Default current page is incorrect");
     }
 
     @Test
@@ -157,7 +158,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         mockedMetadata.setPagination(mockedPagination);
         mockedResponse.setMetadata(mockedMetadata);
 
-        when(userController.users()).thenReturn(HttpResponse.ok(mockedResponse));
+        when(userController.users(any(QueryParams.class))).thenReturn(HttpResponse.ok(mockedResponse));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -184,7 +185,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         // Check that the metadata filter does not add metadata when annotation is missing
         Response mockedResponse = getResponseMock();
 
-        when(userController.users()).thenReturn(HttpResponse.ok(mockedResponse));
+        when(userController.users(any(QueryParams.class))).thenReturn(HttpResponse.ok(mockedResponse));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

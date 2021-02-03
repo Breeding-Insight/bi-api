@@ -22,6 +22,6 @@ import lombok.Getter;
 
 @Getter
 @Introspected
-public class TraitsQuery {
+public class TraitsQuery extends QueryParams {
     Boolean full = false;
 }

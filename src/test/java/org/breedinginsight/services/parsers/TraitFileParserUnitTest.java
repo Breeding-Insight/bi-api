@@ -16,15 +16,6 @@
  */
 package org.breedinginsight.services.parsers;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-import groovy.util.MapEntry;
-import io.micronaut.context.annotation.Replaces;
-import io.micronaut.http.HttpResponse;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.api.model.v1.response.RowValidationErrors;
@@ -35,30 +26,21 @@ import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.ValidatorException;
-import org.breedinginsight.services.parsers.excel.ExcelParser;
-import org.breedinginsight.services.parsers.excel.ExcelRecord;
 import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 import org.breedinginsight.services.parsers.trait.TraitFileParser;
 import org.breedinginsight.services.validators.TraitFileValidatorError;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.mockito.Mock;
-import org.mockito.Spy;
 
-import javax.validation.Validation;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TraitFileParserUnitTest {

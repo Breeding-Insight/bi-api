@@ -17,9 +17,12 @@
 
 package org.breedinginsight.services;
 
+import com.nimbusds.jwt.SignedJWT;
+import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.request.OrcidRequest;
+import org.breedinginsight.api.model.v1.auth.SignUpJWT;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.SystemRolesRequest;
 import org.breedinginsight.api.model.v1.request.UserRequest;
 import org.breedinginsight.dao.db.tables.daos.SystemRoleDao;
@@ -35,14 +38,19 @@ import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.email.EmailTemplates;
+import org.breedinginsight.utilities.email.EmailUtil;
+import org.breedinginsight.services.exceptions.*;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.stringtemplate.v4.ST;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -50,16 +58,38 @@ import java.util.stream.Collectors;
 @Singleton
 public class UserService {
 
-    @Inject
+    @Property(name = "web.signup.signup.url")
+    private String newAccountSignupUrl;
+    @Property(name = "web.cookies.account-token")
+    private String accountTokenCookieName;
+    @Property(name = "web.signup.url-timeout")
+    private Duration jwtDuration;
+
     private UserDAO dao;
-    @Inject
     private SystemUserRoleDao systemUserRoleDao;
-    @Inject
     private SystemRoleDao systemRoleDao;
-    @Inject
     private ProgramUserDAO programUserDAO;
-    @Inject
     private DSLContext dsl;
+    private SignUpJwtService signUpJwtService;
+    private EmailUtil emailUtil;
+    private EmailTemplates emailTemplates;
+    private SecurityService securityService;
+
+    @Inject
+    public UserService(UserDAO dao, SystemUserRoleDao systemUserRoleDao, SystemRoleDao systemRoleDao,
+                       ProgramUserDAO programUserDAO, DSLContext dsl, SignUpJwtService signUpJwtService,
+                       EmailUtil emailUtil, EmailTemplates emailTemplates, SecurityService securityService) {
+        this.dao = dao;
+        this.systemUserRoleDao = systemUserRoleDao;
+        this.systemRoleDao = systemRoleDao;
+        this.programUserDAO = programUserDAO;
+        this.dsl = dsl;
+        this.signUpJwtService = signUpJwtService;
+        this.emailUtil = emailUtil;
+        this.emailTemplates = emailTemplates;
+        this.securityService = securityService;
+    }
+
 
     public Optional<User> getByOrcid(String orcid) {
 
@@ -116,6 +146,8 @@ public class UserService {
                     insertSystemRoles(actingUser, newUser.getId(), systemRoles);
                 }
 
+                // Start OrcID association flow
+                createAndSendAccountToken(newUser.getId());
 
                 return getById(newUser.getId()).get();
             });
@@ -149,12 +181,17 @@ public class UserService {
     }
 
 
-    public User update(AuthenticatedUser actingUser, UUID userId, UserRequest userRequest) throws DoesNotExistException, AlreadyExistsException {
+    public User update(AuthenticatedUser actingUser, UUID userId, UserRequest userRequest)
+            throws DoesNotExistException, AlreadyExistsException, ForbiddenException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
         if (biUser == null) {
             throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        if (!securityService.canUpdateUser(actingUser, userId)) {
+            throw new ForbiddenException("Cannot edit user info");
         }
 
         if (userEmailInUseExcludingUser(userRequest.getEmail(), userId)) {
@@ -297,10 +334,7 @@ public class UserService {
         return dao.existsById(id);
     }
 
-    //TODO: Remove once registration flow is complete
-    public User updateOrcid(AuthenticatedUser activeUser, UUID userId, OrcidRequest orcidRequest) throws DoesNotExistException, AlreadyExistsException {
-
-        // This is a temporary fix so any authenticated user is able to update any users orcid.
+    public void createAndSendAccountToken(UUID userId) throws DoesNotExistException {
 
         BiUserEntity biUser = dao.fetchOneById(userId);
 
@@ -308,15 +342,56 @@ public class UserService {
             throw new DoesNotExistException("UUID for user does not exist");
         }
 
-        List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcidRequest.getOrcid());
+        SignUpJWT jwt = signUpJwtService.generateNewAccountJWT(userId);
+
+        // Save new account token
+        biUser.setAccountToken(jwt.getJwtId().toString());
+        dao.update(biUser);
+
+        // Send new account token in an email
+        sendAccountSignUpEmail(biUser, jwt.getSignedJWT());
+    }
+
+    public void updateOrcid(UUID userId, String orcid) throws DoesNotExistException, AlreadyExistsException {
+
+        BiUserEntity biUser = dao.fetchOneById(userId);
+
+        if (biUser == null) {
+            throw new DoesNotExistException("UUID for user does not exist");
+        }
+
+        List<BiUserEntity> biUserWithOrcidList = dao.fetchByOrcid(orcid);
         for (BiUserEntity biUserWithOrcid: biUserWithOrcidList){
             if (!biUserWithOrcid.getId().equals(userId)){
                 throw new AlreadyExistsException("Orcid already in use");
             }
         }
 
-        biUser.setOrcid(orcidRequest.getOrcid());
+        biUser.setOrcid(orcid);
+        biUser.setAccountToken(null);
         dao.update(biUser);
-        return new User(dao.fetchOneById(userId));
     }
+
+    private void sendAccountSignUpEmail(BiUserEntity user, SignedJWT jwtToken) {
+
+        // Get email template
+        ST emailTemplate = emailTemplates.getNewSignupTemplate();
+
+        // Fill in user info
+        String signUpUrl = String.format("%s?%s=%s", newAccountSignupUrl, accountTokenCookieName, jwtToken.serialize());
+        emailTemplate.add("new_signup_link", signUpUrl);
+
+        String expirationTime;
+        if (jwtDuration.toHours() < 1) {expirationTime = jwtDuration.toMinutes() + " minutes";}
+        else if (jwtDuration.toHours() == 1) {expirationTime = jwtDuration.toHours() + " hour";}
+        else {expirationTime = jwtDuration.toHours() + " hours";}
+        emailTemplate.add("expiration_time", expirationTime);
+
+        String filledBody = emailTemplate.render();
+        String subject = "New Account Sign Up";
+
+        // Send email
+        emailUtil.sendEmail(user.getEmail(), subject, filledBody);
+    }
+
 }

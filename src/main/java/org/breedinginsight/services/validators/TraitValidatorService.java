@@ -127,12 +127,12 @@ public class TraitValidatorService {
         return errors;
     }
 
-    public List<Trait> checkDuplicateTraitsExistingByName(List<Trait> traits){
+    public List<Trait> checkDuplicateTraitsExistingByName(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();
 
         // Check for existing trait name
-        List<Trait> duplicateNameTraits = checkForDuplicateTraitsByNames(traits);
+        List<Trait> duplicateNameTraits = checkForDuplicateTraitsByNames(programId, traits);
 
         for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
@@ -150,12 +150,12 @@ public class TraitValidatorService {
         return duplicates;
     }
 
-    public List<Trait> checkDuplicateTraitsExistingByAbbreviation(List<Trait> traits){
+    public List<Trait> checkDuplicateTraitsExistingByAbbreviation(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();
 
         // Check for existing trait abbreviations
-        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(traits);
+        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(programId, traits);
 
         for (int i = 0; i < traits.size(); i++){
             Trait trait = traits.get(i);
@@ -249,11 +249,11 @@ public class TraitValidatorService {
         return errors;
     }
 
-    private List<Trait> checkForDuplicateTraitsByNames(List<Trait> traits) {
-        return traitDAO.getTraitsByTraitMethodScaleName(traits);
+    private List<Trait> checkForDuplicateTraitsByNames(UUID programId, List<Trait> traits) {
+        return traitDAO.getTraitsByTraitMethodScaleName(programId, traits);
     }
 
-    private List<Trait> checkForDuplicatesTraitsByAbbreviation(List<Trait> traits) {
+    private List<Trait> checkForDuplicatesTraitsByAbbreviation(UUID programId, List<Trait> traits) {
 
         Set<String> abbreviationSet = new HashSet<>();
         for (Trait trait: traits) {
@@ -264,7 +264,7 @@ public class TraitValidatorService {
 
         List<Trait> matchingTraits = new ArrayList<>();
         if (abbreviationSet.size() > 0){
-            matchingTraits = traitDAO.getTraitsByAbbreviation(List.of(abbreviationSet.toArray(String[]::new)));
+            matchingTraits = traitDAO.getTraitsByAbbreviation(programId, List.of(abbreviationSet.toArray(String[]::new)));
         }
 
         return matchingTraits;

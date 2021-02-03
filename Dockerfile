@@ -44,3 +44,4 @@ COPY ./src ./src/
 COPY ./io-micronaut/jar_files/ ./jar_files
 
 ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]
+CMD ["java", "--enable-preview", "-Dmicronaut.environments=prod", "-jar", "bi-api*.jar"]

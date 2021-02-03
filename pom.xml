@@ -296,7 +296,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.13.0</version>
+            <version>1.15.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -348,6 +348,17 @@
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-app</artifactId>
             <version>1.24.1</version>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.mail</groupId>
+            <artifactId>javax.mail</artifactId>
+            <version>1.6.2</version>
+        </dependency>
+        <dependency>
+            <groupId>org.antlr</groupId>
+            <artifactId>ST4</artifactId>
+            <version>4.3</version>
+            <scope>compile</scope>
         </dependency>
     </dependencies>
     <build>
@@ -547,7 +558,7 @@
                         <systemPropertyVariables>
                             <oauth.clientId>test</oauth.clientId>
                             <oauth.clientSecret>test</oauth.clientSecret>
-                            <jwt.secret>test</jwt.secret>
+                            <jwt.secret>${JWT_SECRET}</jwt.secret>
                             <jwt.cookie.domain>localhost</jwt.cookie.domain>
                             <micronaut.server.port>${API_INTERNAL_TEST_PORT}</micronaut.server.port>
                             <db.default.host>${DB_SERVER}</db.default.host>
@@ -558,6 +569,9 @@
                             <brapi.server.pheno-url>${BRAPI_PHENO_URL}</brapi.server.pheno-url>
                             <brapi.server.geno-url>${BRAPI_GENO_URL}</brapi.server.geno-url>
                             <brapi.server.reference-source>breeding-insight.org</brapi.server.reference-source>
+                            <email.relay-server.host>test</email.relay-server.host>
+                            <email.relay-server.port>25</email.relay-server.port>
+                            <email.from>test@test.com</email.from>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>

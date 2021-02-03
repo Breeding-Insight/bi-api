@@ -38,6 +38,7 @@ import static org.breedinginsight.dao.db.Tables.BI_USER;
 @Accessors(chain=true)
 @ToString
 @SuperBuilder
+@JsonIgnoreProperties(value = {"accountToken"})
 public class User extends BiUserEntity{
 
     @JsonInclude()
@@ -56,6 +57,7 @@ public class User extends BiUserEntity{
         this.setSystemRoles(new ArrayList<>());
         this.setProgramRoles(new ArrayList<>());
         this.setActive(biUser.getActive());
+        this.setAccountToken(biUser.getAccountToken());
     }
 
     public User() {
@@ -71,6 +73,7 @@ public class User extends BiUserEntity{
                 .systemRoles(new ArrayList<>())
                 .programRoles(new ArrayList<>())
                 .active(record.getValue(tableName.ACTIVE))
+                .accountToken(record.getValue(tableName.ACCOUNT_TOKEN))
                 .build();
     }
 

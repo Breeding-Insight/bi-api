@@ -21,19 +21,23 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
-import io.micronaut.security.annotation.Secured;
-import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
+import org.breedinginsight.api.model.v1.request.query.QueryParams;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.model.v1.validators.QueryValid;
+import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramUpload;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitUploadService;
 import org.breedinginsight.services.exceptions.*;
+import org.breedinginsight.utilities.response.ResponseUtils;
+import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
 
-import javax.inject.Inject;
+import javax.validation.Valid;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,10 +45,16 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class TraitUploadController {
 
-    @Inject
     private TraitUploadService traitUploadService;
-    @Inject
     private SecurityService securityService;
+    private TraitQueryMapper traitQueryMapper;
+
+    public TraitUploadController(TraitUploadService traitUploadService, SecurityService securityService,
+                                 TraitQueryMapper traitQueryMapper) {
+        this.traitUploadService = traitUploadService;
+        this.securityService = securityService;
+        this.traitQueryMapper = traitQueryMapper;
+    }
 
     // only allowing one trait upload to exist (per user per program) so put is more appropriate than post
     // singleton resource since only one trait upload can exist
@@ -53,7 +63,7 @@ public class TraitUploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<ProgramUpload>> putTraitUpload(@PathVariable UUID programId, @Part CompletedFileUpload file) {
 
         try {
@@ -80,28 +90,46 @@ public class TraitUploadController {
         }
     }
 
-    @Get("/programs/{programId}/trait-upload")
+    @Get("/programs/{programId}/trait-upload{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse<Response<ProgramUpload>> getTraitUpload(@PathVariable UUID programId) {
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse<Response<ProgramUpload>> getTraitUpload(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams) {
 
         AuthenticatedUser actingUser = securityService.getUser();
-        Optional<ProgramUpload> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
+        Optional<ProgramUpload<Trait>> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
 
         if(programUpload.isPresent()) {
-            Response<ProgramUpload> response = new Response(programUpload.get());
-            return HttpResponse.ok(response);
+            return ResponseUtils.getUploadQueryResponse(programUpload.get(), traitQueryMapper, queryParams);
         } else {
             log.info("Trait upload not found");
             return HttpResponse.notFound();
         }
+    }
 
+    @Post("/programs/{programId}/trait-upload/search{?queryParams*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse<Response<ProgramUpload>> searchTraitUpload(
+            @PathVariable UUID programId,
+            @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid QueryParams queryParams,
+            @Body @SearchValid(using = TraitQueryMapper.class) SearchRequest searchRequest) {
+
+        AuthenticatedUser actingUser = securityService.getUser();
+        Optional<ProgramUpload<Trait>> programUpload = traitUploadService.getTraitUpload(programId, actingUser);
+
+        if(programUpload.isPresent()) {
+            return ResponseUtils.getUploadQueryResponse(programUpload.get(), traitQueryMapper, searchRequest, queryParams);
+        } else {
+            log.info("Trait upload not found");
+            return HttpResponse.notFound();
+        }
     }
 
     @Delete("/programs/{programId}/trait-upload")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse deleteTraitUpload(@PathVariable UUID programId) {
 
         try {

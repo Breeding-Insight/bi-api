@@ -18,7 +18,6 @@
 package org.breedinginsight.api.v1.controller;
 
 import com.google.gson.*;
-import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -33,10 +32,16 @@ import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.brapi.v2.phenotyping.model.*;
 import org.breedinginsight.BrAPITest;
+import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.*;
 import org.breedinginsight.dao.db.tables.pojos.*;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
+import org.breedinginsight.services.TraitService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -62,9 +67,14 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     private ProgramDao programDao;
     @Inject
     private TraitDao traitDao;
+    @Inject
+    private TraitService traitService;
+    @Inject
+    private UserDAO userDAO;
 
     private List<Trait> validTraits;
     private ProgramEntity validProgram;
+    private ProgramEntity otherValidProgram;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     @Inject
@@ -77,6 +87,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
@@ -95,8 +110,19 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Retrieve our new data
         validProgram = programDao.findAll().get(0);
 
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
+
         // Retrieve our valid trait
         validTrait = traitDao.findAll().get(0);
+
+        // Insert other program
+        dsl.execute(fp.get("InsertOtherProgram"));
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
+        dsl.execute(fp.get("InsertOtherProgramOntology"));
+
+        otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
+
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherValidProgram.getId().toString());
     }
 
     @Test
@@ -262,6 +288,30 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(0, data.size(), "Duplicate traits were not ignored");
+    }
+
+    @Test
+    @Order(4)
+    public void postTraitsNotSharedBetweenPrograms() {
+
+        // No traits should be ignored because duplicate traits are not shared between programs
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + otherValidProgram.getId() + "/traits", validTraits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check return
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(validTraits.size(), data.size(), "Traits were ignored, but should not be");
+
     }
 
     @Test
@@ -636,5 +686,79 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
     //endregion
 
+    @Test
+    @Order(7)
+    public void getTraitsQuery() {
+        List<Trait> newTraits = new ArrayList<>();
+        for (int i = 0; i < 30; i++){
+            Trait trait = new Trait();
+            trait.setTraitName("Test Trait" + i);
+            trait.setDescription("A trait" + i);
+            trait.setAbbreviations(List.of(String.valueOf(i), "t" + i).toArray(String[]::new));
+            trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+            Scale scale = new Scale();
+            scale.setScaleName("Test Scale" + i);
+            scale.setDataType(DataType.TEXT);
+            Method method = new Method();
+            method.setMethodName("Test Method" + i);
+            method.setDescription("Another method" + i);
+            method.setMethodClass("Estimation");
+            trait.setScale(scale);
+            trait.setMethod(method);
+
+            newTraits.add(trait);
+        }
+
+        Flowable<HttpResponse<String>> createCall = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", newTraits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> createResponse = createCall.blockingFirst();
+        assertEquals(HttpStatus.OK, createResponse.getStatus());
+
+        List<TraitEntity> allTraits = traitDao.findAll();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits?sortField=name&sortOrder=DESC&full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(allTraits.size(), data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+
+        JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
+        assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
+        assertEquals(allTraits.size(), pagination.get("totalCount").getAsInt(), "Wrong total count");
+        assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    @Order(8)
+    public void searchTraits() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("abbreviations", "t1"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        // Expect t1, user10->user19
+        assertEquals(11, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "traitName", SortOrder.ASC);
+    }
 
 }

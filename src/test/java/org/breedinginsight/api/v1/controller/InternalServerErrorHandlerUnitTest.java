@@ -21,6 +21,7 @@ import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
+import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
@@ -31,17 +32,17 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.CountryService;
 import org.breedinginsight.services.AccessibilityService;
 import org.breedinginsight.services.TopographyService;
 import org.breedinginsight.services.EnvironmentTypeService;
+import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
@@ -59,36 +60,6 @@ import static org.mockito.Mockito.*;
 public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
 
     private ListAppender<ILoggingEvent> loggingEventListAppender;
-
-    @Inject
-    private ProgramService programService;
-    @Inject
-    private ProgramController programController;
-    @Inject
-    private CountryService countryService;
-    @Inject
-    private CountryController countryController;
-    @Inject
-    private AccessibilityService accessibilityService;
-    @Inject
-    private AccessibilityController accessibilityController;
-    @Inject
-    private TopographyService topographyService;
-    @Inject
-    private TopographyController topographyController;
-    @Inject
-    private EnvironmentTypeService environmentTypeService;
-    @Inject
-    private EnvironmentTypeController environmentTypeController;
-
-    @Inject
-    @Client("/${micronaut.bi.api.version}")
-    private RxHttpClient client;
-
-    @MockBean(ProgramController.class)
-    ProgramController programController() {
-        return mock(ProgramController.class);
-    }
 
     @MockBean(ProgramService.class)
     ProgramService programService() {
@@ -135,6 +106,41 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         return mock(EnvironmentTypeService.class);
     }
 
+    @Inject
+    private ProgramService programService;
+    @Inject
+    private CountryService countryService;
+    @Inject
+    private CountryController countryController;
+    @Inject
+    private AccessibilityService accessibilityService;
+    @Inject
+    private AccessibilityController accessibilityController;
+    @Inject
+    private TopographyService topographyService;
+    @Inject
+    private TopographyController topographyController;
+    @Inject
+    private EnvironmentTypeService environmentTypeService;
+    @Inject
+    private EnvironmentTypeController environmentTypeController;
+    @Inject
+    private UserDAO userDAO;
+    @Inject
+    private DSLContext dsl;
+
+    @Inject
+    @Client("/${micronaut.bi.api.version}")
+    private RxHttpClient client;
+
+    @BeforeAll
+    void setup() {
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+
+        // Insert system roles
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
+    }
     @BeforeEach
     void setupErrorLogger() {
 
@@ -144,29 +150,6 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         loggingEventListAppender.start();
         logger.addAppender(loggingEventListAppender);
         this.loggingEventListAppender = loggingEventListAppender;
-    }
-
-    @Test
-    public void getProgramsInternalServerError() {
-
-        when(programController.getPrograms()).thenThrow(new DataAccessException("Query 123 failed"));
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
-
-        // Check that we can find our error id in logs
-        String errorId = e.getResponse().body().toString();
-        ILoggingEvent loggingEvent = loggingEventListAppender.list.get(0);
-        assertEquals(Level.ERROR, loggingEvent.getLevel(), "Wrong logging level was used");
-        assertEquals(errorId, loggingEvent.getMessage(), "Id returned doesn't match logging id");
-
     }
 
     @Test

@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
@@ -36,21 +37,40 @@ import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
 public class ProgramService {
 
-    @Inject
     private ProgramDAO dao;
-    @Inject
     private ProgramOntologyDAO programOntologyDAO;
-    @Inject
     private ProgramObservationLevelDAO programObservationLevelDAO;
-    @Inject
     private SpeciesService speciesService;
-    @Inject
     private DSLContext dsl;
+    private SecurityService securityService;
+
+    @Inject
+    public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
+                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService) {
+        this.dao = dao;
+        this.programOntologyDAO = programOntologyDAO;
+        this.programObservationLevelDAO = programObservationLevelDAO;
+        this.speciesService = speciesService;
+        this.dsl = dsl;
+        this.securityService = securityService;
+    }
+
+    @Inject
+    public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO,
+                          ProgramObservationLevelDAO programObservationLevelDAO, SpeciesService speciesService,
+                          DSLContext dsl) {
+        this.dao = dao;
+        this.programOntologyDAO = programOntologyDAO;
+        this.programObservationLevelDAO = programObservationLevelDAO;
+        this.speciesService = speciesService;
+        this.dsl = dsl;
+    }
 
     public Optional<Program> getById(UUID programId) {
 
@@ -63,10 +83,12 @@ public class ProgramService {
         return Optional.of(programs.get(0));
     }
 
-    public List<Program> getAll(){
-        /* Get all of the programs */
+    public List<Program> getAll(AuthenticatedUser actingUser){
+        /* Get all of the programs the user has access to */
+        List<UUID> enrolledProgramIds = securityService.getEnrolledProgramIds(actingUser);
 
-        List<ProgramEntity> programEntities = dao.fetchByActive(true);
+        List<ProgramEntity> programEntities = dao.fetchById(enrolledProgramIds.toArray(UUID[]::new))
+                .stream().filter(ProgramEntity::getActive).collect(Collectors.toList());
         List<Program> programs = dao.getFromEntity(programEntities);
 
         return programs;
@@ -95,6 +117,7 @@ public class ProgramService {
 
             // Insert and update
             dao.insert(programEntity);
+            Program createdProgram = dao.get(programEntity.getId()).get(0);
 
             ProgramOntologyEntity programOntologyEntity = ProgramOntology.builder()
                     .programId(programEntity.getId())
@@ -112,11 +135,16 @@ public class ProgramService {
                     .build();
             programObservationLevelDAO.insert(programObservationLevelEntity);
 
-            //TODO: Add program and ontology to brapi services.
+            // Add program to brapi service
+            dao.createProgramBrAPI(createdProgram);
+
+            //TODO: Ontology to brapi services once supported by brapi
             //TODO: Add species to brapi service if it doesn't exist
 
-            return dao.get(programEntity.getId()).get(0);
+            return createdProgram;
         });
+
+
 
 
         return program;
@@ -147,6 +175,11 @@ public class ProgramService {
 
         dao.update(programEntity);
         Program program = dao.get(programEntity.getId()).get(0);
+
+        // Update program in brapi service
+        dao.updateProgramBrAPI(program);
+
+        //TODO: Add species to brapi service if it doesn't exist
 
         return program;
     }

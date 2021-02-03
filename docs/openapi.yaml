@@ -50,6 +50,17 @@ paths:
       summary: Get list of all users in the system.
       description: Get list of all users
       operationId: getUsers
+      parameters:
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, email, orcid, systemRoles, programs, active, createdAt, updatedAt, createdByUserId, updatedByUserId]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       responses:
         "200":
           description: OK
@@ -57,67 +68,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/usersResponse'
-              example:
-                metadata:
-                  datafiles: []
-                  pagination:
-                    currentPage: 0
-                    pageSize: 1
-                    totalCount: 2
-                    totalPages: 1
-                  status: []
-                result:
-                  data:
-                    - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
-                      orcid: 1234-4312-4352-6314
-                      name: Bob Smith
-                      email: bob.smith@mail.com
-                      active: true
-                      systemRoles: [
-                      {
-                        id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                        domain: "admin"
-                      }
-                      ]
-                      programRoles: [
-                      {
-                        active: false,
-                        roles: [
-                        {
-                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
-                          domain: member
-                        }
-                        ],
-                        program: {
-                          id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
-                          name: Test Program1,
-                          abbreviation: test1,
-                          objective: To test all the things
-                        }
-                      },
-                      {
-                        active: true,
-                        roles: [
-                        {
-                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
-                          domain: member
-                        }
-                        ],
-                        program: {
-                          id: 37935efa-4c0f-4269-8669-f78d21b26f04,
-                          name: Test Program,
-                          abbreviation: test,
-                          objective: To test things
-                        }
-                      }
-                      ]
-                    - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
-                      orcid: 1234-4312-4352-6314
-                      name: Fred Brown
-                      email: null
-                      active: true
-                      systemRoles: []
-                      programRoles: []
+              examples:
+                arrayOfUsers:
+                  $ref: '#/components/examples/arrayOfUsers'
         "400":
           description: Bad Request
           content:
@@ -168,7 +121,7 @@ paths:
                 metadata:
                   datafiles: []
                   pagination:
-                    currentPage: 0
+                    currentPage: 1
                     pageSize: 1
                     totalCount: 1
                     totalPages: 1
@@ -219,6 +172,55 @@ paths:
               schema:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /users/search:
+    post:
+      tags:
+        - users
+      parameters:
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, email, orcid, systemRoles, programs, active, createdAt, updatedAt, createdByUserId, updatedByUserId]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search users
+      description: Search users using filters
+      operationId: searchUsers
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, email, orcid, systemRoles, programs, active, createdAt, updatedAt, createdByUserId, updatedByUserId]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/usersResponse'
+              examples:
+                arrayOfUsers:
+                  $ref: '#/components/examples/arrayOfUsers'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
   /users/{id}:
     get:
       tags:
@@ -246,7 +248,7 @@ paths:
                 metadata:
                   datafiles: []
                   pagination:
-                    currentPage: 0
+                    currentPage: 1
                     pageSize: 1
                     totalCount: 1
                     totalPages: 1
@@ -348,7 +350,7 @@ paths:
                 metadata:
                   datafiles: []
                   pagination:
-                    currentPage: 0
+                    currentPage: 1
                     pageSize: 1
                     totalCount: 1
                     totalPages: 1
@@ -521,7 +523,7 @@ paths:
                 metadata:
                   datafiles: []
                   pagination:
-                    currentPage: 0
+                    currentPage: 1
                     pageSize: 1
                     totalCount: 1
                     totalPages: 1
@@ -573,12 +575,65 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /users/{userId}/resend-email:
+    put:
+      tags:
+        - users
+      summary: Resend account activation email to user
+      description: Resend account activation email to user
+      parameters:
+        - name: userId
+          in: path
+          description: The id of the user to send the email to.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
   /programs:
     get:
       tags:
         - programs
       summary: Get list of all programs in the system.
       description: Get list of all programs
+      parameters:
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviation, objective, documentationUrl, active, createdAt, updatedAt, speciesId, speciesName, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       operationId: getPrograms
       responses:
         "200":
@@ -864,7 +919,55 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-
+  /programs/search:
+    post:
+      tags:
+        - programs
+      parameters:
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviation, objective, documentationUrl, active, createdAt, updatedAt, speciesId, speciesName, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search programs
+      description: Search programs using filters
+      operationId: searchPrograms
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, abbreviation, objective, documentationUrl, active, createdAt, updatedAt, speciesId, speciesName, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programsResponseResult'
+              examples:
+                programExample1:
+                  $ref: '#/components/examples/arrayOfPrograms'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
   /programs/{id}/users:
     get:
       tags:
@@ -878,6 +981,16 @@ paths:
           explode: false
           schema:
             type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, email, roles, active, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       summary: Get list of all users in the specified program
       description: Get list of all users in program
       operationId: getProgramUsers
@@ -998,7 +1111,65 @@ paths:
               schema:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - Email already exists
-
+  /programs/{id}/users/search:
+    post:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program information that needs to be fetched.
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, email, roles, active, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search program users
+      description: Search program users using filters
+      operationId: searchProgramusers
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, abbreviation, slope, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/programUserResponseResult'
+              examples:
+                programUserExample1:
+                  $ref: '#/components/examples/arrayOfProgramUsers'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
   /programs/{id}/users/{userId}:
     get:
       tags:
@@ -1216,6 +1387,16 @@ paths:
           explode: false
           schema:
             type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviation, slope, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       summary: Get list of all locations in the specified program
       description: Get list of all locations in program
       operationId: getProgramLocations
@@ -1296,7 +1477,7 @@ paths:
                 metadata:
                   datafiles: []
                   pagination:
-                    currentPage: 0
+                    currentPage: 1
                     pageSize: 1
                     totalCount: 1
                     totalPages: 1
@@ -1368,6 +1549,65 @@ paths:
               schema:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - Email already exists
+  /programs/{id}/locations/search:
+    post:
+      tags:
+        - programs
+      parameters:
+        - name: id
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviation, slope, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search programs
+      description: Search programs using filters
+      operationId: searchProgramLocations
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, abbreviation, slope, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                      value:
+                        type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/locationsResponse'
+              examples:
+                locationsExample1:
+                  $ref: '#/components/examples/arrayOfLocations'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
 
   /programs/{id}/locations/{locationId}:
     get:
@@ -1802,6 +2042,16 @@ paths:
           explode: false
           schema:
             type: boolean
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       responses:
         "200":
           description: OK
@@ -1961,6 +2211,65 @@ paths:
                         errorMessage: "Missing scale data type"
                         httpStatus: "UNPROCESSABLE_ENTITY"
                         httpStatusCode: 422
+  /programs/{programId}/traits/search:
+    post:
+      tags:
+        - traits
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get traits for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search traits
+      description: Search traits using filters
+      operationId: searchTraits
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/multipleTraitsResponse'
+              examples:
+                multipleTraitsResponse:
+                  $ref: '#/components/examples/arrayOfTraits'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
   /programs/{programId}/traits/{traitId}:
     get:
       tags:
@@ -2138,6 +2447,16 @@ paths:
           explode: false
           schema:
             type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
       responses:
         "200":
           description: OK
@@ -2234,6 +2553,65 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+  /programs/{programId}/trait-upload/search:
+    post:
+      tags:
+        - uploads
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait upload for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - in: query
+          description: Field to sort the results by.
+          name: sortField
+          required: false
+          schema:
+            type: string
+            enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+        - $ref: '#/components/parameters/page'
+        - $ref: '#/components/parameters/pageSize'
+        - $ref: '#/components/parameters/sortOrder'
+      summary: Search trait upload
+      description: Search trait upload using filters
+      operationId: searchTraitUpload
+      requestBody:
+        description: Search request
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                filter:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      field:
+                        type: string
+                        enum: [name, abbreviations, mainAbbreviation, synonyms, description, level, status, methodName, methodDescription, methodClass, methodFormula, scaleName, scaleClass, scaleDecimalPlaces, scaleLowerLimit, scaleUpperLimit, scaleCategories, createdAt, updatedAt, createdByUserId, createdByUserName, updatedByUserId, updatedByUserName]
+                      value:
+                        type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitUploadResponse'
+              examples:
+                traitUploadResponse:
+                  $ref: '#/components/examples/traitUploadData'
+        '400':
+          $ref: '#/components/responses/400BadRequest'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
   /health:
     get:
       tags:
@@ -2248,6 +2626,37 @@ paths:
             application/json:
               example:
                 status: "UP"
+  /api-token:
+    get:
+      tags:
+        - token management
+      parameters:
+        - in: query
+          name: returnUrl
+          schema:
+            type: string
+          description: return url to redirect to
+      summary: Get api token
+      description: Get api token for user making the request
+      operationId: token
+      responses:
+        "303":
+          description: Redirect
+  /server-info:
+    get:
+      tags:
+        - server management
+      summary: return the server information about the running instance
+      description: return the server information, including the version of bi-api, and a link to to the release/commit of that version
+      operationId: getServerInfo
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              example:
+                versionName: 0.1.0,
+                versionInfo: https://github.com/Breeding-Insight/bi-api/releases/tag/v0.1.0
   /countries:
     get:
       tags:
@@ -3952,7 +4361,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -3998,7 +4407,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4035,7 +4444,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4091,7 +4500,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4124,7 +4533,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4159,7 +4568,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4175,7 +4584,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4188,7 +4597,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4204,7 +4613,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4217,7 +4626,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4233,7 +4642,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4246,7 +4655,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4262,7 +4671,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4278,7 +4687,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4291,7 +4700,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4304,7 +4713,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 2
             totalPages: 1
@@ -4400,7 +4809,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4453,7 +4862,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4529,7 +4938,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4602,7 +5011,7 @@ components:
         metadata:
           datafiles: []
           pagination:
-            currentPage: 0
+            currentPage: 1
             pageSize: 1
             totalCount: 1
             totalPages: 1
@@ -4675,3 +5084,91 @@ components:
               name: "Tester",
               active: true
             }
+    arrayOfUsers:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 1
+            pageSize: 1
+            totalCount: 2
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - id: b2263532-1fa3-49a6-9a66-957f313c8ed6
+              orcid: 1234-4312-4352-6314
+              name: Bob Smith
+              email: bob.smith@mail.com
+              active: true
+              systemRoles: [
+              {
+                id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                domain: "admin"
+              }
+              ]
+              programRoles: [
+              {
+                active: false,
+                roles: [
+                {
+                  id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                  domain: member
+                }
+                ],
+                program: {
+                  id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                  name: Test Program1,
+                  abbreviation: test1,
+                  objective: To test all the things
+                }
+              },
+              {
+                active: true,
+                roles: [
+                {
+                  id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                  domain: member
+                }
+                ],
+                program: {
+                  id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                  name: Test Program,
+                  abbreviation: test,
+                  objective: To test things
+                }
+              }
+              ]
+            - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
+              orcid: 1234-4312-4352-6314
+              name: Fred Brown
+              email: null
+              active: true
+              systemRoles: []
+              programRoles: []
+  parameters:
+    page:
+      description: 'Used to request a specific page of data to be returned.
+        The page indexing starts at 1 (the first page is ''page''= 1). Default is `1`.'
+      example: 1
+      in: query
+      name: page
+      required: false
+      schema:
+        type: integer
+    pageSize:
+      description: The size of the pages to be returned. Default is to show all results.
+      example: 1000
+      in: query
+      name: pageSize
+      required: false
+      schema:
+        type: integer
+    sortOrder:
+      description: Order in which to sort the results. Default is ascending order.
+      example: ASC
+      in: query
+      name: sortOrder
+      required: false
+      schema:
+        type: string

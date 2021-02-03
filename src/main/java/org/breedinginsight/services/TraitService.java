@@ -17,7 +17,6 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -72,7 +71,7 @@ public class TraitService {
         this.traitValidatorError = traitValidatorError;
     }
 
-    public List<Trait> getByProgramId(UUID programId, Boolean getFullTrait) throws DoesNotExistException {
+    public List<Trait> getByProgramId(UUID programId, boolean getFullTrait) throws DoesNotExistException {
 
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program does not exist");
@@ -82,6 +81,20 @@ public class TraitService {
             return traitDAO.getTraitsFullByProgramId(programId);
         } else {
             return traitDAO.getTraitsByProgramId(programId);
+        }
+
+    }
+
+    public List<Trait> getByProgramIds(List<UUID> programIds, boolean getFullTrait) throws DoesNotExistException {
+
+        if (programIds.stream().anyMatch(programId -> programService.exists(programId) == false)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        if (getFullTrait){
+            return traitDAO.getTraitsFullByProgramIds(programIds);
+        } else {
+            return traitDAO.getTraitsByProgramIds(programIds.toArray(UUID[]::new));
         }
 
     }
@@ -127,8 +140,8 @@ public class TraitService {
 
         // Ignore duplicate traits
         ValidationErrors duplicateErrors = new ValidationErrors();
-        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(traits);
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(traits);
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
         List<Integer> traitIndexToRemove = new ArrayList<>();
         for (Trait duplicateTrait: duplicateTraits){
 

@@ -68,7 +68,7 @@ services:
         aliases:
           - dbserver
   brapi-server:
-    image: breedinginsight/brapi-java-server:v2.0-1
+    image: breedinginsight/brapi-java-server:v2.0-2
     container_name: brapi-server
     depends_on:
       - bidb
@@ -86,6 +86,13 @@ services:
       backend:
         aliases:
           - brapiserver
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: mailhog
+    restart: always
+    ports:
+      - 1025:1025
+      - 8025:8025
 
 networks:
   backend:
