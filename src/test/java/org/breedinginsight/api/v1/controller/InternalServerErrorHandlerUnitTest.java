@@ -31,6 +31,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
+import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
@@ -142,6 +143,7 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
     }
     @BeforeEach
+    @SneakyThrows
     void setupErrorLogger() {
 
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(new ProgramBrAPIEndpoints());

@@ -36,6 +36,7 @@ public class BrAPIClientProvider {
     private BrAPIClient coreClient;
     private BrAPIClient phenoClient;
     private BrAPIClient genoClient;
+    private BrAPIClient brapiClient;
 
     @Inject
     public BrAPIClientProvider(@Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout) {
@@ -57,10 +58,16 @@ public class BrAPIClientProvider {
         initializeHttpClient(this.genoClient);
     }
 
+    public void setBrapiClient(String url){
+        this.brapiClient = new BrAPIClient(url);
+        initializeHttpClient(this.brapiClient);
+    }
+
     public BrAPIClient getClient(BrAPIClientType clientType){
         if (clientType == BrAPIClientType.CORE){ return coreClient; }
         else if (clientType == BrAPIClientType.PHENO){ return phenoClient; }
-        else { return genoClient; }
+        else if (clientType == BrAPIClientType.GENO) { return genoClient; }
+        else { return brapiClient; }
     }
 
     public Set<BrAPIClient> getAllUniqueClients(){

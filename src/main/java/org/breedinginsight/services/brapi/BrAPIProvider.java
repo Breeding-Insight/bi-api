@@ -20,6 +20,7 @@ package org.breedinginsight.services.brapi;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.client.v2.modules.core.ProgramsApi;
+import org.brapi.client.v2.modules.core.ServerInfoApi;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.client.v2.modules.phenotype.TraitsApi;
 
@@ -48,6 +49,11 @@ public class BrAPIProvider {
     public ObservationVariablesApi getVariablesAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
         return new ObservationVariablesApi(brAPIClient);
+    }
+
+    public ServerInfoApi getServerInfoAPI(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new ServerInfoApi(brAPIClient);
     }
 
     public List<ObservationVariablesApi> getAllUniqueVariablesAPI(){
