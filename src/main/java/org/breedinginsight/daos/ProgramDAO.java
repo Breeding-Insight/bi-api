@@ -65,6 +65,8 @@ public class ProgramDAO extends ProgramDao {
     private String defaultBrAPIPhenoUrl;
     @Property(name = "brapi.server.geno-url")
     private String defaultBrAPIGenoUrl;
+    @Property(name = "brapi.server.default-url")
+    private String defaultBrAPIUrl;
 
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
@@ -126,6 +128,9 @@ public class ProgramDAO extends ProgramDao {
 
         // Parse the result
         for (Record record: queryResult){
+            if (record.getValue(PROGRAM.BRAPI_URL) == null) {
+                record.setValue(PROGRAM.BRAPI_URL, defaultBrAPIUrl);
+            }
             Program program = Program.parseSQLRecord(record);
             program.setSpecies(Species.parseSQLRecord(record));
             program.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
