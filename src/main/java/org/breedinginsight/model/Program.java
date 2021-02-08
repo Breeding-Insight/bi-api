@@ -35,9 +35,11 @@ import static org.breedinginsight.dao.db.Tables.*;
 @NoArgsConstructor
 @JsonIgnoreProperties(value = { "createdBy", "updatedBy", "speciesId" })
 public class Program extends ProgramEntity {
+
     private SpeciesEntity species;
     private User createdByUser;
     private User updatedByUser;
+    private int numUsers;
 
     public Program(ProgramEntity programEntity){
 

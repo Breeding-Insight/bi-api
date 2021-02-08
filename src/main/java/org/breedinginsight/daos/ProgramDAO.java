@@ -54,6 +54,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
+import static org.jooq.impl.DSL.asterisk;
+import static org.jooq.impl.DSL.selectCount;
 
 @Slf4j
 @Singleton
@@ -132,6 +134,9 @@ public class ProgramDAO extends ProgramDao {
                 record.setValue(PROGRAM.BRAPI_URL, defaultBrAPIUrl);
             }
             Program program = Program.parseSQLRecord(record);
+            // This will do some extra queries, performance may be better in combined query but was having some issues
+            // getting it working with jooq so went with this for now
+            program.setNumUsers(getNumProgramUsers(record.getValue(PROGRAM.ID)));
             program.setSpecies(Species.parseSQLRecord(record));
             program.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
             program.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
@@ -139,6 +144,13 @@ public class ProgramDAO extends ProgramDao {
         }
 
         return resultPrograms;
+    }
+
+    public int getNumProgramUsers(UUID programId) {
+        return dsl.selectCount().from(PROGRAM_USER_ROLE)
+                .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId)
+                        .and(PROGRAM_USER_ROLE.ACTIVE.eq(true)))
+                .fetchOne(0, Integer.class);
     }
 
     public ProgramBrAPIEndpoints getProgramBrAPIEndpoints(UUID programId) {
