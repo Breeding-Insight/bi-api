@@ -974,7 +974,92 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     }
 
-    //TODO: Test for passing a variable in with an id that doesn't exist
+    @Test
+    @Order(11)
+    public void putTraitMultipleValidationErrors() {
 
-    //TODO: Test passing in multiple traits that will throw validation errors
+        Trait updateTrait = validTraits.get(0);
+
+        updateTrait.setTraitName(null);
+
+        // Set scale class to computation
+        updateTrait.getMethod().setMethodClass("Observation");
+
+        Trait badIdTrait = new Trait();
+        badIdTrait.setId(UUID.randomUUID());
+        badIdTrait.setTraitName("Bad Trait");
+        badIdTrait.setScale(updateTrait.getScale());
+        badIdTrait.setMethod(updateTrait.getMethod());
+        badIdTrait.setProgramObservationLevel(updateTrait.getProgramObservationLevel());
+
+        List<Trait> traits = List.of(updateTrait, badIdTrait);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
+
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error1 = errors.get(0).getAsJsonObject();
+        assertEquals("traitName", error1.get("field").getAsString(), "wrong error returned");
+
+        JsonObject badIdRowError = rowErrors.get(1).getAsJsonObject();
+        errors = badIdRowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+    }
+
+    @Test
+    @Order(12)
+    public void putTraitIdDoesNotExist() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        updateTrait.setId(UUID.randomUUID());
+        updateTrait.setTraitName("Updated names");
+        updateTrait.setAbbreviations(null);
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.getScale().setScaleName("Updated Scale");
+        updateTrait.getScale().setDataType(DataType.DATE);
+        updateTrait.getMethod().setDescription("A method");
+
+        // Set scale class to computation
+        updateTrait.getMethod().setMethodClass("Observation");
+
+        List<Trait> traits = List.of(updateTrait);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+    }
 }
