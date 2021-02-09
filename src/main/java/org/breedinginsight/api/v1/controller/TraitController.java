@@ -127,7 +127,7 @@ public class TraitController {
             List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser, true);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
             // Construct our metadata and response
             Pagination pagination = new Pagination(createdTraits.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
@@ -152,7 +152,7 @@ public class TraitController {
             List<Trait> updatedTraits = traitService.updateTraits(programId, traits, actingUser);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
             // Construct our metadata and response
             Pagination pagination = new Pagination(updatedTraits.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
