@@ -184,6 +184,7 @@ public class TraitService {
                             .scaleId(jooqScale.getId())
                             .createdBy(actingUser.getId())
                             .updatedBy(actingUser.getId())
+                            .active(true)
                             .build();
                     traitDAO.insert(jooqTrait);
                     trait.setId(jooqTrait.getId());
@@ -390,5 +391,29 @@ public class TraitService {
         }
 
         return updatedTraits;
+    }
+
+    public Trait setTraitActiveStatus(UUID programId, UUID traitId, Boolean active, AuthenticatedUser actingUser) throws DoesNotExistException {
+
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent()) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+        Program program = optionalProgram.get();
+
+        List<TraitEntity> existingTraits = traitDAO.fetchById(traitId);
+        if (existingTraits.size() != 1){
+            throw new DoesNotExistException("Trait does not exist with that ID");
+        }
+
+        TraitEntity trait = existingTraits.get(0);
+        trait.setActive(active);
+        trait.setUpdatedBy(actingUser.getId());
+        traitDAO.update(trait);
+
+        // Update in BrAPI
+        Trait fullTrait = traitDAO.getTraitFull(programId, traitId).get();
+        fullTrait.setActive(active);
+        return traitDAO.updateTraitBrAPI(fullTrait, program);
     }
 }

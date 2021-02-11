@@ -167,4 +167,21 @@ public class TraitController {
             return response;
         }
     }
+
+    @Put("/programs/{programId}/traits/{traitId}/archive{?active}")
+    @AddMetadata
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse<Response<Trait>> archiveTrait(@PathVariable UUID programId, @PathVariable UUID traitId, @QueryValue(defaultValue = "false") Boolean active) {
+
+        AuthenticatedUser actingUser = securityService.getUser();
+        try {
+            Trait updatedTrait = traitService.setTraitActiveStatus(programId, traitId, active, actingUser);
+            Response<Trait> response = new Response<>(updatedTrait);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        }
+    }
 }
