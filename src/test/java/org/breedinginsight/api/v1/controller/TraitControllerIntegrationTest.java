@@ -1024,6 +1024,42 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(12)
+    public void archiveTrait() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits/" + updateTrait.getId().toString() + "/archive", new HashMap<>())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        assertFalse(result.get("active").getAsBoolean(), "Trait not archived");
+    }
+
+    @Test
+    @Order(12)
+    public void restoreTrait() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits/" + updateTrait.getId().toString() + "/archive?active=true", new HashMap<>())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        assertTrue(result.get("active").getAsBoolean(), "Trait not archived");
+    }
+
+    @Test
+    @Order(13)
     public void putTraitIdDoesNotExist() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1061,5 +1097,24 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+    }
+
+    @Test
+    @Order(14)
+    public void archiveTraitIdNotExist() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits/" + updateTrait.getId().toString() + "/archive?active=false", new HashMap<>())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+
     }
 }

@@ -280,7 +280,7 @@ public class TraitDAO extends TraitDao {
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
 
-            if (trait.getActive()){
+            if (trait.getActive() == null || trait.getActive()){
                 brApiVariable.setStatus("active");
             } else {
                 brApiVariable.setStatus("archived");
@@ -378,7 +378,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.setObservationVariableName(trait.getTraitName());
             existingVariable.setDefaultValue(trait.getDefaultValue());
             existingVariable.setSynonyms(trait.getSynonyms());
-            if (trait.getActive()){
+            if (trait.getActive() == null || trait.getActive()){
                 existingVariable.setStatus("active");
             } else {
                 existingVariable.setStatus("archived");
