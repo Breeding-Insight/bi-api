@@ -2224,6 +2224,135 @@ paths:
                                 errorMessage: "Missing value"
                                 httpStatus: "UNPROCESSABLE_ENTITY"
                                 httpStatusCode: 422
+    put:
+      tags:
+        - traits
+      summary: Edit a list of traits
+      description: Edit a list of traits in a given program
+      operationId: putTraits
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get traits for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      requestBody:
+        description: Edited trait object
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/arrayOfEditedTraits'
+            example:
+              - traitId: "8b2ed0b3-f0bf-4942-8992-4bb5a9876c3a"
+                traitName: "Test Trait"
+                traitClass: "morphological"
+                attribute: "height"
+                defaultValue: "defaultValue"
+                mainAbbreviation: "t1"
+                abbreviations: ["t1","t2"]
+                synonyms: ["stalk height"]
+                programObservationLevel:
+                  name: "Plant"
+                method:
+                  methodClass: "Counting"
+                  description: "A test method"
+                  formula: "a^2+b^2=c^2"
+                scale:
+                  scaleName: "Test Scale"
+                  dataType: "Numerical"
+                  decimalPlaces: 3
+                  validValueMax: 9999
+                  validValueMin: 1
+                  categories:
+                    - label: "test1"
+                      value: "value1"
+                    - label: "test2"
+                      value: "value2"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/multipleTraitsResponse'
+              examples:
+                multipleTraitsResponse:
+                  $ref: '#/components/examples/arrayOfTraits'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+        "422":
+          description: Multi-error UnprocessableEntity
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/validatorErrorResponse"
+              example:
+                rowErrors:
+                  - rowIndex: 1
+                    errors:
+                      - field: "programObservationLevel"
+                        errorMessage: "Missing trait name"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                      - field: "abbreviations"
+                        errorMessage: "Abbreviations already exist"
+                        httpStatus: "CONFLICT"
+                        httpStatusCode: 409
+                      - field: "scale.dataType"
+                        errorMessage: "Missing scale data type"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                      - field: "scale.categories"
+                        errorMessage: "Scale categories contain errors"
+                        httpStatus: "UNPROCESSABLE_ENTITY"
+                        httpStatusCode: 422
+                        rowErrors:
+                          - rowIndex: 0
+                            errors:
+                              - field: "scale.categories.label"
+                                errorMessage: "Missing value"
+                                httpStatus: "UNPROCESSABLE_ENTITY"
+                                httpStatusCode: 422
+                              - field: "scale.categories.value"
+                                errorMessage: "Missing value"
+                                httpStatus: "UNPROCESSABLE_ENTITY"
+                                httpStatusCode: 422
   /programs/{programId}/traits/search:
     post:
       tags:
@@ -2351,6 +2480,7 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+
   /programs/{programId}/observation-levels:
     get:
       tags:
@@ -4308,6 +4438,83 @@ components:
     newTrait:
       type: object
       properties:
+        traitName:
+          type: string
+          description: Trait display name
+        traitClass:
+          type: string
+          example: "morphological"
+        attribute:
+          type: string
+          description: Attribute the trait is describing
+          example: height
+        defaultValue:
+          type: string
+          description: Default value of the trait
+        mainAbbreviation:
+          type: string
+        abbreviations:
+          type: array
+          items:
+            type: string
+        synonyms:
+          type: array
+          items:
+            type: string
+        programObservationLevel:
+          type: object
+          properties:
+            name:
+              type: string
+              description: Name of the observation level
+        method:
+          type: object
+          properties:
+            methodClass:
+              type: string
+            description:
+              type: string
+              format: UUID
+            formula:
+              type: string
+              format: UUID
+        scale:
+          type: object
+          properties:
+            scaleName:
+              type: string
+              format: datetime
+            dataType:
+              type: string
+              format: datetime
+            decimalPlaces:
+              type: integer
+            categories:
+              type: array
+              items:
+                type: object
+                properties:
+                  label:
+                    type: string
+                  value:
+                    type: string
+            validValueMax:
+              type: integer
+            validValueMin:
+              type: integer
+    arrayOfEditedTraits:
+      type: array
+      items:
+        $ref: '#/components/schemas/editedTrait'
+    editedTrait:
+      type: object
+      required:
+        - traitId
+      properties:
+        traitId:
+          type: string
+          format: uuid
+          description: ID of the trait to edit
         traitName:
           type: string
           description: Trait display name

@@ -34,6 +34,11 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getTraitIdDoesNotExistMsg() {
+        return new ValidationError("traitId", "Trait with that id does not exist", HttpStatus.NOT_FOUND);
+    }
+
+    @Override
     public ValidationError getMissingMethodMsg() {
         return new ValidationError("method", "Missing method", HttpStatus.BAD_REQUEST);
     }

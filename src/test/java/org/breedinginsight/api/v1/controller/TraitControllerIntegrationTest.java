@@ -47,14 +47,14 @@ import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.TraitService;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import java.util.*;
 
-import static io.micronaut.http.HttpRequest.GET;
-import static io.micronaut.http.HttpRequest.POST;
+import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -914,6 +914,152 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject scale = trait.get("scale").getAsJsonObject();
         assertEquals(DataType.NUMERICAL.getLiteral(), scale.get("dataType").getAsString(), "wrong scale dataType");
 
+        validTraits = new ArrayList<>();
+        trait1.setId(UUID.fromString(trait.get("id").getAsString()));
+        validTraits.add(trait1);
     }
 
+    @Test
+    @Order(11)
+    public void putTraitComputation() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        updateTrait.setTraitName("Updated name");
+        updateTrait.setAbbreviations(List.of("update1", "update2").toArray(String[]::new));
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.getScale().setScaleName("Updated Scale");
+        updateTrait.getScale().setDataType(DataType.DATE);
+        updateTrait.getMethod().setDescription("A method");
+
+        // Set scale class to computation
+        updateTrait.getMethod().setMethodClass("Observation");
+
+        List<Trait> traits = List.of(updateTrait);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Check return
+        JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+        JsonObject trait = data.get(0).getAsJsonObject();
+
+        assertEquals(updateTrait.getTraitName(), trait.get("traitName").getAsString(), "wrong trait name");
+        assertEquals(updateTrait.getProgramObservationLevel().getName(),
+                trait.get("programObservationLevel").getAsJsonObject().get("name").getAsString(), "wrong observation level");
+        assertEquals(updateTrait.getScale().getScaleName(),
+                trait.get("scale").getAsJsonObject().get("scaleName").getAsString(), "wrong scale name");
+        assertEquals(updateTrait.getScale().getDataType().toString(),
+                trait.get("scale").getAsJsonObject().get("dataType").getAsString(), "wrong scale data type");
+        assertEquals(updateTrait.getMethod().getDescription(),
+                trait.get("method").getAsJsonObject().get("description").getAsString(), "wrong method description");
+        //TODO: Reintroduce variables stored in brapi-server. The brapi test server is broken right now. See https://github.com/plantbreeding/API/issues/455
+        //assertEquals(updateTrait.getMethod().getMethodClass(), trait.get("method").getAsJsonObject().get("methodClass").getAsString(), "wrong method class");
+
+        // Check abbreviations
+        List<String> jsonAlternativeAbbreviations = new ArrayList<>();
+        trait.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
+        List<String> traitAbbreviations = Arrays.asList(updateTrait.getAbbreviations());
+        Collections.sort(jsonAlternativeAbbreviations);
+        Collections.sort(traitAbbreviations);
+        assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");
+
+    }
+
+    @Test
+    @Order(11)
+    public void putTraitMultipleValidationErrors() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        updateTrait.setTraitName(null);
+
+        // Set scale class to computation
+        updateTrait.getMethod().setMethodClass("Observation");
+
+        Trait badIdTrait = new Trait();
+        badIdTrait.setId(UUID.randomUUID());
+        badIdTrait.setTraitName("Bad Trait");
+        badIdTrait.setScale(updateTrait.getScale());
+        badIdTrait.setMethod(updateTrait.getMethod());
+        badIdTrait.setProgramObservationLevel(updateTrait.getProgramObservationLevel());
+
+        List<Trait> traits = List.of(updateTrait, badIdTrait);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
+
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error1 = errors.get(0).getAsJsonObject();
+        assertEquals("traitName", error1.get("field").getAsString(), "wrong error returned");
+
+        JsonObject badIdRowError = rowErrors.get(1).getAsJsonObject();
+        errors = badIdRowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+    }
+
+    @Test
+    @Order(12)
+    public void putTraitIdDoesNotExist() {
+
+        Trait updateTrait = validTraits.get(0);
+
+        updateTrait.setId(UUID.randomUUID());
+        updateTrait.setTraitName("Updated names");
+        updateTrait.setAbbreviations(null);
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.getScale().setScaleName("Updated Scale");
+        updateTrait.getScale().setDataType(DataType.DATE);
+        updateTrait.getMethod().setDescription("A method");
+
+        // Set scale class to computation
+        updateTrait.getMethod().setMethodClass("Observation");
+
+        List<Trait> traits = List.of(updateTrait);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonObject rowError = rowErrors.get(0).getAsJsonObject();
+
+        JsonArray errors = rowError.getAsJsonArray("errors");
+        assertEquals(1, errors.size(), "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+    }
 }

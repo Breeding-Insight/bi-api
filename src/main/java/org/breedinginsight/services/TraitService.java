@@ -130,69 +130,10 @@ public class TraitService {
         }
         ProgramOntology programOntology = programOntologyOptional.get();
 
-        // Preprocessing
-        preprocessTraits(traits);
-
-        ValidationErrors validationErrors = new ValidationErrors();
-
-        // Ignore duplicate traits
-        ValidationErrors duplicateErrors = new ValidationErrors();
-        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
-        List<Integer> traitIndexToRemove = new ArrayList<>();
-        for (Trait duplicateTrait: duplicateTraits){
-
-            Integer i = traits.indexOf(duplicateTrait);
-            if (i == -1){
-                throw new InternalServerException("Duplicate trait was not referenced correctly");
-            } else {
-                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByNamesMsg());
-                traitIndexToRemove.add(i);
-            }
-        }
-
-        for (Trait duplicateTraitAbbrev: duplicateTraitsByAbbrev){
-
-            Integer i = traits.indexOf(duplicateTraitAbbrev);
-            if (i == -1){
-                throw new InternalServerException("Duplicate trait was not referenced correctly");
-            } else {
-                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
-                traitIndexToRemove.add(i);
-            }
-        }
-
-        // Check the rest of our validations
-        Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
-        if (optionalValidationErrors.isPresent()){
-            validationErrors.merge(optionalValidationErrors.get());
-        }
-
-        // Remove our duplicate traits
-        Set<Trait> duplicateTraitSet = new HashSet<>(duplicateTraits);
-        duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
-        traits.removeAll(duplicateTraitSet);
-
-        if (validationErrors.hasErrors() || (throwDuplicateErrors && duplicateErrors.hasErrors())){
-            // If there are other errors, show our duplicate errors
-            validationErrors.merge(duplicateErrors);
-            throw new ValidatorException(validationErrors);
-        }
-
-        // Create the new observation levels
-        assignTraitsProgramObservationLevel(traits, programId);
-        List<String> newObservationLevels = traits.stream()
-                .filter(trait -> trait.getProgramObservationLevel().getId() == null)
-                .map(trait -> trait.getProgramObservationLevel().getName())
-                .distinct()
-                .collect(Collectors.toList());
-        Map<String, ProgramObservationLevel> createdLevelsMap = new HashMap<>();
-        try {
-            List<ProgramObservationLevel> createdLevels = programObservationLevelService.createLevels(programId, newObservationLevels, actingUser);
-            createdLevels.stream().forEach(level -> createdLevelsMap.put(level.getName(), level));
-        } catch (DoesNotExistException e) {
-            throw new HttpServerException("Could not find program");
-        }
+        // Clear trait ids for proper validation against db
+        traits.stream().forEach(trait -> trait.setId(null));
+        // Validate and remove duplicates if specified
+        checkAndPrepareTraits(programId, traits, throwDuplicateErrors);
 
         // Create the traits
         List<Trait> createdTraits = new ArrayList<>();
@@ -201,8 +142,12 @@ public class TraitService {
 
             createdTraits = dsl.transactionResult(configuration -> {
 
+                // Create the new observation levels
+                Map<String, ProgramObservationLevel> createdLevelsMap = checkAndCreateObservationLevels(programId, traits, actingUser);
+
                 //TODO: If one trait in brapi fails, roll back all others before it
                 for (Trait trait : traits) {
+
                     // Create method
                     MethodEntity jooqMethod = MethodEntity.builder()
                             .programOntologyId(programOntology.getId())
@@ -286,5 +231,164 @@ public class TraitService {
             }
         }
 
+    }
+
+    private void checkAndPrepareTraits(UUID programId, List<Trait> traits, Boolean throwDuplicateErrors)
+            throws ValidatorException {
+
+        // Preprocessing
+        preprocessTraits(traits);
+
+        ValidationErrors validationErrors = new ValidationErrors();
+
+        // Ignore duplicate traits
+        ValidationErrors duplicateErrors = new ValidationErrors();
+        List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
+        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
+        List<Integer> traitIndexToRemove = new ArrayList<>();
+        for (Trait duplicateTrait: duplicateTraits){
+
+            Integer i = traits.indexOf(duplicateTrait);
+            if (i == -1){
+                throw new InternalServerException("Duplicate trait was not referenced correctly");
+            } else {
+                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByNamesMsg());
+                traitIndexToRemove.add(i);
+            }
+        }
+
+        for (Trait duplicateTraitAbbrev: duplicateTraitsByAbbrev){
+
+            Integer i = traits.indexOf(duplicateTraitAbbrev);
+            if (i == -1){
+                throw new InternalServerException("Duplicate trait was not referenced correctly");
+            } else {
+                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
+                traitIndexToRemove.add(i);
+            }
+        }
+
+        // Check the rest of our validations
+        Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
+        if (optionalValidationErrors.isPresent()){
+            validationErrors.merge(optionalValidationErrors.get());
+        }
+
+        // Remove our duplicate traits if we are not going to throw an error on them
+        if (!throwDuplicateErrors) {
+            Set<Trait> duplicateTraitSet = new HashSet<>(duplicateTraits);
+            duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
+            traits.removeAll(duplicateTraitSet);
+        }
+
+        // Throw validation errors
+        if (validationErrors.hasErrors() || (throwDuplicateErrors && duplicateErrors.hasErrors())){
+            // If there are other errors, show our duplicate errors
+            validationErrors.merge(duplicateErrors);
+            throw new ValidatorException(validationErrors);
+        }
+    }
+
+    private Map<String, ProgramObservationLevel> checkAndCreateObservationLevels(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
+            throws DoesNotExistException {
+
+        assignTraitsProgramObservationLevel(traits, programId);
+        List<String> newObservationLevels = traits.stream()
+                .filter(trait -> trait.getProgramObservationLevel().getId() == null)
+                .map(trait -> trait.getProgramObservationLevel().getName())
+                .distinct()
+                .collect(Collectors.toList());
+        Map<String, ProgramObservationLevel> createdLevelsMap = new HashMap<>();
+        try {
+            List<ProgramObservationLevel> createdLevels = programObservationLevelService.createLevels(programId, newObservationLevels, actingUser);
+            createdLevels.stream().forEach(level -> createdLevelsMap.put(level.getName(), level));
+        } catch (DoesNotExistException e) {
+            throw new HttpServerException("Could not find program");
+        }
+        return createdLevelsMap;
+    }
+
+    public List<Trait> updateTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
+            throws DoesNotExistException, ValidatorException {
+
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent()) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+        Program program = optionalProgram.get();
+
+        Optional<User> optionalUser = userService.getById(actingUser.getId());
+        if (!optionalUser.isPresent()){
+            throw new InternalServerException("Could not find user in system");
+        }
+        User user = optionalUser.get();
+
+        // Retrieve all of our traits
+        List<TraitEntity> existingTraitEntities = new ArrayList<>();
+        ValidationErrors missingTraitValidationErrors = new ValidationErrors();
+        for (int i = 0; i < traits.size(); i++) {
+            TraitEntity existingTrait = traitDAO.fetchOneById(traits.get(i).getId());
+            if (existingTrait != null) {
+                existingTraitEntities.add(existingTrait);
+            } else {
+                missingTraitValidationErrors.addError(i, traitValidatorError.getTraitIdDoesNotExistMsg());
+            }
+        }
+
+        try {
+            checkAndPrepareTraits(programId, traits, true);
+        } catch (ValidatorException e) {
+            e.getErrors().merge(missingTraitValidationErrors);
+            throw e;
+        }
+
+        if (missingTraitValidationErrors.hasErrors()) {
+            throw new ValidatorException(missingTraitValidationErrors);
+        }
+
+        // Create the traits
+        List<Trait> updatedTraits = new ArrayList<>();
+
+        if (traits.size() > 0) {
+
+            updatedTraits = dsl.transactionResult(configuration -> {
+
+                // Create the new observation levels
+                Map<String, ProgramObservationLevel> createdLevelsMap = checkAndCreateObservationLevels(programId, traits, actingUser);
+                List<Trait> updatedResults = new ArrayList<>();
+                for (int i = 0; i < traits.size(); i++) {
+
+                    Trait updatedTrait = traits.get(i);
+                    TraitEntity existingTraitEntity = existingTraitEntities.get(i);
+
+                    // Check observation level
+                    if (updatedTrait.getProgramObservationLevel().getId() == null) {
+                        ProgramObservationLevel level = createdLevelsMap.get(updatedTrait.getProgramObservationLevel().getName());
+                        updatedTrait.setProgramObservationLevel(level);
+                    }
+
+                    // Jump to scale
+                    ScaleEntity existingScaleEntity = scaleDAO.fetchOneById(existingTraitEntity.getScaleId());
+                    existingScaleEntity.setScaleName(updatedTrait.getScale().getScaleName());
+                    existingScaleEntity.setDataType(updatedTrait.getScale().getDataType());
+                    existingScaleEntity.setUpdatedBy(user.getId());
+                    scaleDAO.update(existingScaleEntity);
+
+                    // Update trait
+                    existingTraitEntity.setTraitName(updatedTrait.getTraitName());
+                    existingTraitEntity.setAbbreviations(updatedTrait.getAbbreviations());
+                    existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
+                    existingTraitEntity.setUpdatedBy(user.getId());
+                    traitDAO.update(existingTraitEntity);
+
+                    // Update in brapi
+                    Trait updatedTraitResult = traitDAO.updateTraitBrAPI(updatedTrait, program);
+                    updatedResults.add(updatedTraitResult);
+                }
+                return updatedResults;
+            });
+        }
+
+        return updatedTraits;
     }
 }
