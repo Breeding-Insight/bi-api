@@ -610,6 +610,33 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals(3, traits.size(), "Wrong number of traits inserted");
     }
 
+    @Test
+    @Order(10)
+    void putTraitUploadMismatchedCases() {
+
+        // Traits should be inserted just fine
+        File file = new File("src/test/resources/files/data_mismatched_cases.csv");
+
+        HttpResponse<String> uploadResponse = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        assertEquals(HttpStatus.OK, uploadResponse.getStatus());
+        JsonObject result = JsonParser.parseString(uploadResponse.body()).getAsJsonObject().getAsJsonObject("result");
+
+        checkValidTraitUpload(result);
+    }
+
+    @Test
+    @Order(10)
+    void putTraitUploadDuplicateMismatchedHeaders() {
+
+        // Traits should be inserted just fine
+        File file = new File("src/test/resources/files/data_duplicate_headers.csv");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
     void checkMultiErrorResponse(JsonArray rowErrors) {
 
         assertTrue(rowErrors.size() > 0, "Wrong number of row errors returned");
