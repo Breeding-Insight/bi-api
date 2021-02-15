@@ -40,7 +40,7 @@ brapi:
     #core-url: ${BRAPI_CORE_URL:`https://test-server.brapi.org/`}
     #pheno-url: ${BRAPI_PHENO_URL:`https://test-server.brapi.org/`}
     #geno-url: ${BRAPI_GENO_URL:`https://test-server.brapi.org/`}
-    default-url: ${BRAPI_DEFAULT_URL}
+    default-url: ${BRAPI_DEFAULT_URL:`https://test-server.brapi.org/`}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breeding-insight.org}
 
 web:
