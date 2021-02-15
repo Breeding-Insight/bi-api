@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.services.parsers.trait;
 
+import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -141,9 +142,13 @@ public class TraitFileParser {
                 active = !traitStatus.toLowerCase().equals(TRAIT_STATUS_ARCHIVED);
             }
 
+            // Normalize and capitalize method class
+            String methodClass = parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS);
+            if (methodClass != null) { methodClass = StringUtils.capitalize(methodClass.toLowerCase()); }
+
             Method method = Method.builder()
                     .description(parseExcelValueAsString(record, TraitFileColumns.METHOD_DESCRIPTION))
-                    .methodClass(parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS))
+                    .methodClass(methodClass)
                     .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
                     .build();
 

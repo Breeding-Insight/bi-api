@@ -101,7 +101,7 @@ public class TraitValidatorService {
             Method method = trait.getMethod();
             Scale scale = trait.getScale();
 
-            if (method != null && method.getMethodClass() != null && method.getMethodClass().equals(Method.COMPUTATION_TYPE)) {
+            if (method != null && method.getMethodClass() != null && method.getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
                 if (isBlank(method.getFormula()) || method.getFormula() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodFormulaMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
