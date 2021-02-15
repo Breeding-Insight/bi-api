@@ -48,6 +48,8 @@ public class ProgramQueryMapperUnitTest {
                 .objective("Plant stuff")
                 .documentationUrl("https://doc.com")
                 .active(true)
+                .brapiUrl("http://www.test.com")
+                .numUsers(5)
                 .createdAt(OffsetDateTime.now())
                 .updatedAt(OffsetDateTime.now())
                 .speciesId(UUID.randomUUID())
@@ -56,7 +58,6 @@ public class ProgramQueryMapperUnitTest {
                 .createdByUser(User.builder().name("tester").id(UUID.randomUUID()).build())
                 .updatedBy(UUID.randomUUID())
                 .updatedByUser(User.builder().name("tester").id(UUID.randomUUID()).build())
-
                 .build();
 
         assertEquals(program.getName(), programQueryMapper.getField("name").apply(program), "Wrong getter");
@@ -64,6 +65,8 @@ public class ProgramQueryMapperUnitTest {
         assertEquals(program.getObjective(), programQueryMapper.getField("objective").apply(program), "Wrong getter");
         assertEquals(program.getDocumentationUrl(), programQueryMapper.getField("documentationUrl").apply(program), "Wrong getter");
         assertEquals(program.getActive(), programQueryMapper.getField("active").apply(program), "Wrong getter");
+        assertEquals(program.getBrapiUrl(), programQueryMapper.getField("brapiUrl").apply(program), "Wrong getter");
+        assertEquals(program.getNumUsers(), programQueryMapper.getField("numUsers").apply(program), "Wrong getter");
         assertEquals(program.getCreatedAt(), programQueryMapper.getField("createdAt").apply(program), "Wrong getter");
         assertEquals(program.getUpdatedAt(), programQueryMapper.getField("updatedAt").apply(program), "Wrong getter");
         assertEquals(program.getSpeciesId(), programQueryMapper.getField("speciesId").apply(program), "Wrong getter");
