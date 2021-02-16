@@ -2353,6 +2353,81 @@ paths:
                                 errorMessage: "Missing value"
                                 httpStatus: "UNPROCESSABLE_ENTITY"
                                 httpStatusCode: 422
+  /programs/{programId}/traits/{traitId}/archive:
+    put:
+      tags:
+        - traits
+      summary: Archive/Restore a trait
+      description: Archive/Restore a trait in a given program
+      operationId: archiveTraits
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get traits for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: traitId
+          in: path
+          description: Id of trait to activate/inactivate
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: active
+          in: query
+          description: Boolean indicate whether to archive/restore trait. Set to false for archiving if not specified.
+          required: false
+          explode: false
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/singleTraitResponse'
+              examples:
+                singleTraitResponse:
+                  $ref: '#/components/examples/singleTrait'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
   /programs/{programId}/traits/search:
     post:
       tags:

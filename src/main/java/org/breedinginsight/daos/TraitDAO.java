@@ -280,6 +280,13 @@ public class TraitDAO extends TraitDao {
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
 
+            if (trait.getActive() == null || trait.getActive()){
+                brApiVariable.setStatus("active");
+            } else {
+                brApiVariable.setStatus("archived");
+            }
+
+
                     // Unused
                     //.contextOfUse()
                     //.documentationURL()
@@ -338,23 +345,7 @@ public class TraitDAO extends TraitDao {
         List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
         for (ObservationVariablesApi variablesAPI: variablesAPIS){
             // GET brapi trait
-            BrAPIObservationVariable existingVariable;
-            try {
-                VariableQueryParams queryParams = new VariableQueryParams();
-                queryParams.externalReferenceID(trait.getId().toString());
-                queryParams.externalReferenceSource(referenceSource);
-                ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
-                        variablesAPI.variablesGet(queryParams);
-                List<BrAPIObservationVariable> variableList = existingVariableResponse.getBody().getResult().getData();
-                if (variableList.size() == 1) {
-                    existingVariable = variableList.get(0);
-                } else {
-                    throw new InternalServerException(String.format("Unable to find variable with id %s in brapi server.", trait.getId().toString()));
-                }
-
-            } catch (ApiException e) {
-                throw new InternalServerException(String.format("Unable to retrieve variable with id %s in brapi server.", trait.getId().toString()));
-            }
+            BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId());
 
             // Change method
             existingVariable.getMethod().setMethodName(String.format("%s %s", trait.getTraitName(), trait.getMethod().getMethodClass()));
@@ -387,16 +378,15 @@ public class TraitDAO extends TraitDao {
             existingVariable.setObservationVariableName(trait.getTraitName());
             existingVariable.setDefaultValue(trait.getDefaultValue());
             existingVariable.setSynonyms(trait.getSynonyms());
+            if (trait.getActive() == null || trait.getActive()){
+                existingVariable.setStatus("active");
+            } else {
+                existingVariable.setStatus("archived");
+            }
+
 
             // PUT brapi trait
-            BrAPIObservationVariable updatedVariable;
-            try {
-                ApiResponse<BrAPIObservationVariableSingleResponse> updatedResponse =
-                        variablesAPI.variablesObservationVariableDbIdPut(existingVariable.getObservationVariableDbId(), existingVariable);
-                updatedVariable = updatedResponse.getBody().getResult();
-            } catch (ApiException e) {
-                throw new InternalServerException(String.format("Unable to save variable with id %s in brapi server.", trait.getId().toString()));
-            }
+            BrAPIObservationVariable updatedVariable = putBrAPIVariable(variablesAPI, existingVariable);
 
             // Retrieve our update trait from the db
             updatedTrait = getTrait(program.getId(), trait.getId()).get();
@@ -408,6 +398,42 @@ public class TraitDAO extends TraitDao {
         }
 
         return updatedTrait;
+    }
+
+    private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {
+
+        BrAPIObservationVariable existingVariable;
+        try {
+            VariableQueryParams queryParams = new VariableQueryParams();
+            queryParams.externalReferenceID(traitId.toString());
+            queryParams.externalReferenceSource(referenceSource);
+            ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
+                    variablesAPI.variablesGet(queryParams);
+            List<BrAPIObservationVariable> variableList = existingVariableResponse.getBody().getResult().getData();
+            if (variableList.size() == 1) {
+                existingVariable = variableList.get(0);
+            } else {
+                throw new InternalServerException(String.format("Unable to find variable with id %s in brapi server.", traitId.toString()));
+            }
+
+        } catch (ApiException e) {
+            throw new InternalServerException(String.format("Unable to retrieve variable with id %s in brapi server.", traitId.toString()));
+        }
+
+        return existingVariable;
+    }
+
+    private BrAPIObservationVariable putBrAPIVariable(ObservationVariablesApi variablesAPI, BrAPIObservationVariable variable) {
+
+        BrAPIObservationVariable updatedVariable;
+        try {
+            ApiResponse<BrAPIObservationVariableSingleResponse> updatedResponse =
+                    variablesAPI.variablesObservationVariableDbIdPut(variable.getObservationVariableDbId(), variable);
+            updatedVariable = updatedResponse.getBody().getResult();
+        } catch (ApiException e) {
+            throw new InternalServerException(String.format("Unable to save variable in brapi server."));
+        }
+        return updatedVariable;
     }
 
     private Trait parseTraitRecord(Record record, BiUserTable createdByUser, BiUserTable updatedByUser) {
