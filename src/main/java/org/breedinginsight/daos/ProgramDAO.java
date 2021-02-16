@@ -18,6 +18,7 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
@@ -67,7 +68,7 @@ public class ProgramDAO extends ProgramDao {
     private String defaultBrAPIPhenoUrl;
     @Property(name = "brapi.server.geno-url")
     private String defaultBrAPIGenoUrl;
-    @Property(name = "brapi.server.default-url")
+    @Value(value="${brapi.server.default-url}")
     private String defaultBrAPIUrl;
 
     private DSLContext dsl;
