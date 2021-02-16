@@ -628,13 +628,12 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     @Order(10)
     void putTraitUploadDuplicateMismatchedHeaders() {
 
-        // Traits should be inserted just fine
         File file = new File("src/test/resources/files/data_duplicate_headers.csv");
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     void checkMultiErrorResponse(JsonArray rowErrors) {
