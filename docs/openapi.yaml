@@ -3938,6 +3938,9 @@ components:
         documetation_url:
           type: string
           description: program documentation url
+        brapiUrl:
+          type: string
+          description: url of brapi service to store data at
       required:
         - species
         - name
@@ -4873,6 +4876,7 @@ components:
         abbreviation: TP
         objective: To breed some good stuff
         documentationUrl: http://www.timsgoodstuff.com
+        brapiUrl: http://www.brapi.org
     arrayOfProgramUsers:
       value:
         metadata:
