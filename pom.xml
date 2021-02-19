@@ -558,6 +558,7 @@
                             <brapi.server.core-url>${BRAPI_CORE_URL}</brapi.server.core-url>
                             <brapi.server.pheno-url>${BRAPI_PHENO_URL}</brapi.server.pheno-url>
                             <brapi.server.geno-url>${BRAPI_GENO_URL}</brapi.server.geno-url>
+                            <brapi.server.default-url>${BRAPI_DEFAULT_URL}</brapi.server.default-url>
                             <brapi.server.reference-source>breeding-insight.org</brapi.server.reference-source>
                             <email.relay-server.host>test</email.relay-server.host>
                             <email.relay-server.port>25</email.relay-server.port>
