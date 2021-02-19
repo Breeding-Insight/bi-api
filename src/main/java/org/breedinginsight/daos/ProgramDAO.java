@@ -68,14 +68,14 @@ public class ProgramDAO extends ProgramDao {
     private String defaultBrAPIPhenoUrl;
     @Property(name = "brapi.server.geno-url")
     private String defaultBrAPIGenoUrl;
-    @Property(name = "brapi.server.default-url")
-    private String defaultBrAPIUrl;
 
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
     private BrAPIClientProvider brAPIClientProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+
+    private final static String SYSTEM_DEFAULT = "System Default";
 
     @Inject
     public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider) {
@@ -132,7 +132,7 @@ public class ProgramDAO extends ProgramDao {
         // Parse the result
         for (Record record: queryResult){
             if (record.getValue(PROGRAM.BRAPI_URL) == null) {
-                record.setValue(PROGRAM.BRAPI_URL, defaultBrAPIUrl);
+                record.setValue(PROGRAM.BRAPI_URL, SYSTEM_DEFAULT);
             }
             Program program = Program.parseSQLRecord(record);
             // This will do some extra queries, performance may be better in combined query but was having some issues
