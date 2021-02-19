@@ -136,9 +136,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @Inject
     private UserDAO userDAO;
 
-    @Property(name = "brapi.server.default-url")
-    private String defaultBrAPIUrl;
-
     @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
@@ -2056,7 +2053,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String brapiUrl = result.get("brapiUrl").getAsString();
-        assertEquals(brapiUrl,defaultBrAPIUrl, "Wrong brapiUrl");
+        assertEquals(brapiUrl,"System Default", "Wrong brapiUrl");
     }
 
     @Test
