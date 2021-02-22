@@ -75,8 +75,10 @@ public class TraitDAO extends TraitDao {
         Map<UUID, Trait> dbVariablesMap = dbVariables.stream().collect(Collectors.toMap(Trait::getId, p -> p));
 
         // Get brapi variables
-        VariableQueryParams variablesRequest = new VariableQueryParams()
-                                                               .externalReferenceSource(referenceSource);
+        VariableQueryParams variablesRequest = new VariableQueryParams();
+        variablesRequest.externalReferenceSource(referenceSource);
+        variablesRequest.pageSize(10000);
+
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
             brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
