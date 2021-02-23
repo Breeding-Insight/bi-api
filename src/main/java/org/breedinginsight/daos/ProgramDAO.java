@@ -18,15 +18,21 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.context.annotation.Value;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.modules.core.ProgramsApi;
+import org.brapi.client.v2.modules.core.ServerInfoApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.BrAPIWSMIMEDataTypes;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
+import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -34,10 +40,14 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.brapi.BrAPIClientProvider;
+import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.jooq.*;
+import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +55,10 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
+import static org.jooq.impl.DSL.asterisk;
+import static org.jooq.impl.DSL.selectCount;
 
+@Slf4j
 @Singleton
 public class ProgramDAO extends ProgramDao {
 
@@ -58,14 +71,18 @@ public class ProgramDAO extends ProgramDao {
 
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
+    private BrAPIClientProvider brAPIClientProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
+    private final static String SYSTEM_DEFAULT = "System Default";
+
     @Inject
-    public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider) {
+    public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
+        this.brAPIClientProvider = brAPIClientProvider;
     }
 
     public List<Program> get(List<UUID> programIds){
@@ -114,7 +131,13 @@ public class ProgramDAO extends ProgramDao {
 
         // Parse the result
         for (Record record: queryResult){
+            if (record.getValue(PROGRAM.BRAPI_URL) == null) {
+                record.setValue(PROGRAM.BRAPI_URL, SYSTEM_DEFAULT);
+            }
             Program program = Program.parseSQLRecord(record);
+            // This will do some extra queries, performance may be better in combined query but was having some issues
+            // getting it working with jooq so went with this for now
+            program.setNumUsers(getNumProgramUsers(record.getValue(PROGRAM.ID)));
             program.setSpecies(Species.parseSQLRecord(record));
             program.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
             program.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
@@ -124,18 +147,48 @@ public class ProgramDAO extends ProgramDao {
         return resultPrograms;
     }
 
-    public ProgramBrAPIEndpoints getProgramBrAPIEndpoints() {
-        return new ProgramBrAPIEndpoints();
+    public int getNumProgramUsers(UUID programId) {
+        return dsl.selectCount().from(PROGRAM_USER_ROLE)
+                .where(PROGRAM_USER_ROLE.PROGRAM_ID.eq(programId)
+                        .and(PROGRAM_USER_ROLE.ACTIVE.eq(true)))
+                .fetchOne(0, Integer.class);
     }
 
     public ProgramBrAPIEndpoints getProgramBrAPIEndpoints(UUID programId) {
-        // Just returns defaults for now
-        // TODO: in future return urls for given program
+        ProgramEntity programEntity = fetchOneById(programId);
+
+        String coreUrl = defaultBrAPICoreUrl;
+        String genoUrl = defaultBrAPIGenoUrl;
+        String phenoUrl = defaultBrAPIPhenoUrl;
+
+        // only storing one program brapi url for now so set all to that one
+        if (!StringUtils.isBlank(programEntity.getBrapiUrl())) {
+            String brapiUrl = programEntity.getBrapiUrl();
+            coreUrl = brapiUrl;
+            genoUrl = brapiUrl;
+            phenoUrl = brapiUrl;
+        }
+
         return ProgramBrAPIEndpoints.builder()
-                .coreUrl(Optional.of(defaultBrAPICoreUrl))
-                .genoUrl(Optional.of(defaultBrAPIGenoUrl))
-                .phenoUrl(Optional.of(defaultBrAPIPhenoUrl))
+                .coreUrl(Optional.of(coreUrl))
+                .genoUrl(Optional.of(genoUrl))
+                .phenoUrl(Optional.of(phenoUrl))
                 .build();
+    }
+
+    public boolean brapiUrlSupported(String brapiUrl) {
+        boolean supported = true;
+        brAPIClientProvider.setBrapiClient(brapiUrl);
+        ServerInfoApi serverInfoAPI = brAPIProvider.getServerInfoAPI(BrAPIClientType.BRAPI);
+
+        // for now just check for 200 response, in future we could check actual required endpoints
+        try {
+            ApiResponse<BrAPIServerInfoResponse> response = serverInfoAPI.serverinfoGet(BrAPIWSMIMEDataTypes.APPLICATION_JSON);
+        } catch (ApiException e) {
+            log.error(e.getMessage());
+            supported = false;
+        }
+        return supported;
     }
 
     public void createProgramBrAPI(Program program) {

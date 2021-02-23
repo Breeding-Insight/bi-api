@@ -38,6 +38,8 @@ public class ProgramQueryMapper extends AbstractQueryMapper {
                 Map.entry("objective", Program::getObjective),
                 Map.entry("documentationUrl", Program::getDocumentationUrl),
                 Map.entry("active", Program::getActive),
+                Map.entry("brapiUrl", Program::getBrapiUrl),
+                Map.entry("numUsers", Program::getNumUsers),
                 Map.entry("createdAt", Program::getCreatedAt),
                 Map.entry("updatedAt", Program::getUpdatedAt),
                 Map.entry("speciesId", Program::getSpeciesId),

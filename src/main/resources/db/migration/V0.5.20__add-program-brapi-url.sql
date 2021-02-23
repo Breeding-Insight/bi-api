@@ -15,11 +15,4 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.services.brapi;
-
-public enum BrAPIClientType {
-    CORE,
-    GENO,
-    PHENO,
-    BRAPI
-}
+ALTER TABLE program ADD COLUMN brapi_url text;

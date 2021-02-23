@@ -54,5 +54,6 @@ jobs:
           GITHUB_ACTOR: $GITHUB_ACTOR
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           WEB_BASE_URL: http://localhost:8080
+          BRAPI_DEFAULT_URL: https://test-server.brapi.org
           API_INTERNAL_TEST_PORT: 8081
           JWT_SECRET: ${{ secrets.JWT_SECRET }}

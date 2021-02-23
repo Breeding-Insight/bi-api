@@ -34,6 +34,7 @@ import org.brapi.client.v2.model.exceptions.HttpNotFoundException;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.reactivestreams.Publisher;
 
 import javax.inject.Inject;
@@ -81,8 +82,12 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                                 return Flowable.error(new HttpNotFoundException("Program does not exist"));
                             }
 
-                            //TODO: This service method should return a 404 if program isn't found
-                            ProgramBrAPIEndpoints programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
+                            ProgramBrAPIEndpoints programBrAPIEndpoints;
+                            try {
+                                programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
+                            } catch (DoesNotExistException e) {
+                                return Flowable.error(new HttpNotFoundException("Program does not exist"));
+                            }
                             String coreUrl = getCoreUrl(programBrAPIEndpoints);
                             brAPIClientProvider.setCoreClient(coreUrl);
                             String phenoUrl = getPhenoUrl(programBrAPIEndpoints);

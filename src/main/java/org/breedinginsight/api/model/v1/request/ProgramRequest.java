@@ -40,4 +40,5 @@ public class ProgramRequest {
     @NotNull
     @Valid
     private SpeciesRequest species;
+    private String brapiUrl;
 }
