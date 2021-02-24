@@ -110,7 +110,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     @Override
     public ValidationError getMaxLessThenMinError() {
         return new ValidationError("Scale upper limit/Scale lower limit",
-                "Scale upper limit is less than scale lower limit.",
+                "Scale upper limit must be greater than scale lower limit.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
