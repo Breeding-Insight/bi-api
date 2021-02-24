@@ -139,6 +139,16 @@ public class TraitValidatorService {
                     }
                 }
             }
+
+            if (scale != null) {
+                if (scale.getValidValueMax() != null && scale.getValidValueMin() != null) {
+                    // Check if max < min
+                    if (scale.getValidValueMax().compareTo(scale.getValidValueMin()) == -1) {
+                        ValidationError minMaxError = traitValidatorErrors.getMaxLessThenMinError();
+                        errors.addError(i, minMaxError);
+                    }
+                }
+            }
         }
 
         return errors;

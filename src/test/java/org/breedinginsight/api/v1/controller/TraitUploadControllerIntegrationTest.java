@@ -636,6 +636,19 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
+    @Test
+    @Order(10)
+    void putTraitUploadMinMaxSwap() {
+
+        // Traits should be inserted just fine
+        File file = new File("src/test/resources/files/data_min_max_swap.csv");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
     void checkMultiErrorResponse(JsonArray rowErrors) {
 
         assertTrue(rowErrors.size() > 0, "Wrong number of row errors returned");

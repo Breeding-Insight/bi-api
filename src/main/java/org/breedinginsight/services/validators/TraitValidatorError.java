@@ -108,6 +108,13 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getMaxLessThenMinError() {
+        return new ValidationError("scale.validValueMax",
+                "Scale valid value max is less than valid value min.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
         return new ValidationError("traitName", "Trait name already exists", HttpStatus.CONFLICT);
     }
