@@ -135,7 +135,7 @@ public class TraitValidatorService {
                     if (categoryErrors.hasErrors()) {
                         ValidationError categoryError = traitValidatorErrors.getBadScaleCategory();
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
-                        errors.addError(i, categoryError);
+                        errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
                     }
                 }
             }
@@ -145,7 +145,7 @@ public class TraitValidatorService {
                     // Check if max < min
                     if (scale.getValidValueMax().compareTo(scale.getValidValueMin()) == -1) {
                         ValidationError minMaxError = traitValidatorErrors.getMaxLessThenMinError();
-                        errors.addError(i, minMaxError);
+                        errors.addError(traitValidatorErrors.getRowNumber(i), minMaxError);
                     }
                 }
             }
