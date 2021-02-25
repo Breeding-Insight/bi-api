@@ -31,8 +31,8 @@ import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
-import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.exceptions.MethodNotAllowedException;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -41,6 +41,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.dao.db.Tables.*;
+import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
 import static org.jooq.impl.DSL.row;
 import static org.jooq.impl.DSL.values;
 
@@ -51,12 +52,14 @@ public class TraitDAO extends TraitDao {
     private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+    private ObservationDAO observationDao;
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
+        this.observationDao = observationDao;
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -81,7 +84,7 @@ public class TraitDAO extends TraitDao {
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
+            brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
             throw new InternalServerException("Error making BrAPI call", e);
         }
@@ -172,7 +175,7 @@ public class TraitDAO extends TraitDao {
                 .externalReferenceID(traitId.toString())
                 .externalReferenceSource(referenceSource);
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
+            brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
             // If variable is not found, is still a server exception
             throw new InternalServerException("Error making BrAPI call", e);
@@ -338,6 +341,12 @@ public class TraitDAO extends TraitDao {
         }
 
         return createdTraits;
+    }
+
+    public List<BrAPIObservation> getObservationsForTrait(Trait trait) {
+        // check if variable has any observations associated with it to see if updating is allowed
+        BrAPIObservationVariable variable = getBrAPIVariable(brAPIProvider.getVariablesAPI(PHENO), trait.getId());
+        return observationDao.getObservationsByVariableDbId(variable.getObservationVariableDbId());
     }
 
     public Trait updateTraitBrAPI(Trait trait, Program program) {

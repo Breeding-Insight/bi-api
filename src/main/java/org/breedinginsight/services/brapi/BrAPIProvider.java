@@ -27,6 +27,7 @@ import org.brapi.client.v2.modules.germplasm.GermplasmAttributeValuesApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmAttributesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.client.v2.modules.phenotype.TraitsApi;
 
 import javax.inject.Inject;
@@ -54,6 +55,11 @@ public class BrAPIProvider {
     public ObservationVariablesApi getVariablesAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
         return new ObservationVariablesApi(brAPIClient);
+    }
+
+    public ObservationsApi getObservationsAPI(BrAPIClientType clientType){
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new ObservationsApi(brAPIClient);
     }
 
     public ServerInfoApi getServerInfoAPI(BrAPIClientType clientType) {
