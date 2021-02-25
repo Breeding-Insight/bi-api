@@ -30,6 +30,7 @@ import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MethodNotAllowedException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorService;
@@ -310,7 +311,7 @@ public class TraitService {
     }
 
     public List<Trait> updateTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
-            throws DoesNotExistException, ValidatorException {
+            throws DoesNotExistException, MethodNotAllowedException, ValidatorException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
         if (!optionalProgram.isPresent()) {
@@ -346,6 +347,12 @@ public class TraitService {
         if (missingTraitValidationErrors.hasErrors()) {
             throw new ValidatorException(missingTraitValidationErrors);
         }
+
+        // check if any of the traits have associated observations
+        // search by name, check number expected or get traits for external reference ids and use those
+
+
+        //traitDAO.getObservationsForTrait()
 
         // Create the traits
         List<Trait> updatedTraits = new ArrayList<>();

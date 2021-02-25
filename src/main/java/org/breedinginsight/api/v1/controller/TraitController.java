@@ -39,6 +39,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MethodNotAllowedException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
@@ -158,9 +159,12 @@ public class TraitController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(updatedTraits));
             return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
+        } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (MethodNotAllowedException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notAllowed();
         } catch (ValidatorException e){
             log.info(e.getErrors().toString());
             HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
