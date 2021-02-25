@@ -37,6 +37,7 @@ public interface TraitValidatorErrorInterface {
     ValidationError getBadScaleCategory();
     ValidationError getBlankScaleCategoryLabelMsg();
     ValidationError getBlankScaleCategoryValueMsg();
+    ValidationError getMaxLessThenMinError();
     ValidationError getDuplicateTraitByNamesMsg();
     ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);

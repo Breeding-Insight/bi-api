@@ -135,7 +135,17 @@ public class TraitValidatorService {
                     if (categoryErrors.hasErrors()) {
                         ValidationError categoryError = traitValidatorErrors.getBadScaleCategory();
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
-                        errors.addError(i, categoryError);
+                        errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
+                    }
+                }
+            }
+
+            if (scale != null) {
+                if (scale.getValidValueMax() != null && scale.getValidValueMin() != null) {
+                    // Check if max < min
+                    if (scale.getValidValueMax().compareTo(scale.getValidValueMin()) <= 0) {
+                        ValidationError minMaxError = traitValidatorErrors.getMaxLessThenMinError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), minMaxError);
                     }
                 }
             }
