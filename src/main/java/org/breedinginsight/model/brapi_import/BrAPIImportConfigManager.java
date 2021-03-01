@@ -25,27 +25,30 @@ import org.breedinginsight.model.brapi_import.response.ImportConfig;
 import org.breedinginsight.model.brapi_import.response.ImportFieldConfig;
 import org.breedinginsight.model.brapi_import.response.ImportObjectConfig;
 import org.breedinginsight.model.brapi_import.response.ImportRelationOptionConfig;
+import org.reflections.Reflections;
 
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Context
 @Singleton
 public class BrAPIImportConfigManager {
 
-    private List<BrAPIImport> brAPIImports;
+    private Set<Class<?>> brAPIImports;
 
     BrAPIImportConfigManager() {
-        // TODO: Get all classes with annotation here and assign to brapiImport
-        // TODO: Write test that checks entire json
+        // Get all imports
+        Reflections reflections = new Reflections("org.breedinginsight");
+        brAPIImports = reflections.getTypesAnnotatedWith(ImportMetadata.class);
     }
 
     public List<ImportConfig> getAllTypeConfigs() {
         List<ImportConfig> configs = new ArrayList<>();
-        for (BrAPIImport brAPIImport: brAPIImports){
-            configs.add(getTypeConfig(brAPIImport.getClass()));
+        for (Class brAPIImport: brAPIImports){
+            configs.add(getTypeConfig(brAPIImport));
         }
         return configs;
     }

@@ -54,7 +54,7 @@ public class ImportController {
     public HttpResponse<Response<DataResponse<ImportConfig>>> getImportTypes() {
         // TODO: Retrieve all of them.
         // TODO: Retrieve all of import classes based on annotation in factory
-        List<ImportConfig> configs = List.of(importManager.getTypeConfig(GermplasmImport.class));
+        List<ImportConfig> configs = importManager.getAllTypeConfigs();
 
         //TODO: Add actual page size
         List<Status> metadataStatus = new ArrayList<>();
