@@ -19,7 +19,6 @@ package org.breedinginsight.model.brapi_import;
 
 import io.micronaut.context.annotation.Context;
 import org.breedinginsight.model.brapi_import.config.*;
-import org.breedinginsight.model.brapi_import.imports.BrAPIImport;
 import org.breedinginsight.model.brapi_import.imports.ImportMetadata;
 import org.breedinginsight.model.brapi_import.response.ImportConfig;
 import org.breedinginsight.model.brapi_import.response.ImportFieldConfig;
@@ -79,6 +78,7 @@ public class BrAPIImportConfigManager {
         ImportFieldMetadata classMetadata = (ImportFieldMetadata) c.getAnnotation(ImportFieldMetadata.class);
         ImportFieldRequired required = objectField.getAnnotation(ImportFieldRequired.class);
         ImportObjectConfig config = new ImportObjectConfig();
+        // Use the default metadata on the class if their isn't anything on the field level
         config.setId(fieldMetadata != null ? fieldMetadata.id() : classMetadata.id());
         config.setName(fieldMetadata != null ? fieldMetadata.name() : classMetadata.name());
         config.setDescription(fieldMetadata != null ? fieldMetadata.description() : classMetadata.description());
@@ -136,7 +136,7 @@ public class BrAPIImportConfigManager {
             ImportRelationOptionConfig relationConfig = new ImportRelationOptionConfig();
             relationConfig.setId(relation.type().getId());
             relationConfig.setName(relation.type().getName());
-            relationConfig.setDescription(relation.description() != null ? relation.description() : relation.type().getDefaultDescription());
+            relationConfig.setDescription(!relation.description().isEmpty() ? relation.description() : relation.type().getDefaultDescription());
 
             // Relation type specific logic
             if (relation.type() == ImportRelationType.DB_LOOKUP) {

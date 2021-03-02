@@ -17,13 +17,16 @@
 
 package org.breedinginsight.model.brapi_import.config;
 
+import lombok.Getter;
+
+@Getter
 public enum ImportFieldType {
-    TEXT("Text"),
-    NUMERICAL("Numerical"),
-    INTEGER("Integer"),
-    DATE("Date"),
-    LIST("List"),
-    RELATIONSHIP("Relationship");
+    TEXT("TEXT"),
+    NUMERICAL("NUMERICAL"),
+    INTEGER("INTEGER"),
+    DATE("DATE"),
+    LIST("LIST"),
+    RELATIONSHIP("RELATIONSHIP");
 
     private String value;
 

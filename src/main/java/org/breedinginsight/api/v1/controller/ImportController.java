@@ -52,8 +52,6 @@ public class ImportController {
     @Secured(SecurityRule.IS_ANONYMOUS)
     @AddMetadata
     public HttpResponse<Response<DataResponse<ImportConfig>>> getImportTypes() {
-        // TODO: Retrieve all of them.
-        // TODO: Retrieve all of import classes based on annotation in factory
         List<ImportConfig> configs = importManager.getAllTypeConfigs();
 
         //TODO: Add actual page size

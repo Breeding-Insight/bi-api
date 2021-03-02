@@ -17,6 +17,7 @@
 
 package org.breedinginsight.model.brapi_import.imports;
 
+import org.breedinginsight.model.brapi_import.base.Cross;
 import org.breedinginsight.model.brapi_import.base.Germplasm;
 
 
@@ -25,4 +26,5 @@ import org.breedinginsight.model.brapi_import.base.Germplasm;
 public class GermplasmImport implements BrAPIImport {
 
     private Germplasm germplasm;
+    private Cross cross;
 }
