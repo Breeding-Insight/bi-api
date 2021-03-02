@@ -17,15 +17,12 @@
 
 package org.breedinginsight.model.brapi_import.config;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import lombok.Getter;
+import lombok.Setter;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
-public @interface ImportType {
-    ImportFieldType type();
-    // Indicates class type of list objects
-    Class clazz() default Object.class;
+@Getter
+@Setter
+public class ImportRelation {
+    private String target;
+    private String reference;
 }

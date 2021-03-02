@@ -31,7 +31,7 @@ public class ExternalReference {
     private String referenceID;
 
     @ImportType(type=ImportFieldType.TEXT)
-    @ImportFieldMetadata(id="referenceID", name="External Reference Source",
-            description = "This describes the source of the external reference ID.")
+    @ImportFieldMetadata(id="referenceSource", name="External Reference Source",
+            description = "This describes the source of the external reference.")
     private String referenceSource;
 }

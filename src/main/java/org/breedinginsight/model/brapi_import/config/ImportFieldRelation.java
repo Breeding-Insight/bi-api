@@ -18,7 +18,8 @@
 package org.breedinginsight.model.brapi_import.config;
 
 public @interface ImportFieldRelation {
-    String description();
+    String description() default "";
     ImportRelationType type();
-    String[] importFields();
+    // Used for database lookups
+    String[] importFields() default {};
 }

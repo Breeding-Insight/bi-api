@@ -17,5 +17,25 @@
 
 package org.breedinginsight.model.brapi_import.base;
 
+import org.breedinginsight.model.brapi_import.config.*;
+
+import java.util.List;
+
+@ImportFieldMetadata(id="Cross", name="Cross",
+        description = "A cross connects two germplasm objects to form a pedigree.")
 public class Cross {
+
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="crossName", name="Cross Name",
+            description = "Name of the cross.")
+    private String crossName;
+
+    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldRelations(relations={
+            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"germplasmDbId"})
+    })
+    @ImportFieldMetadata(id="femaleParent", name="Female Parent",
+            description = "Name of the cross.")
+    private ImportRelation femaleParent;
 }
