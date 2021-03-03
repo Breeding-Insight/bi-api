@@ -17,12 +17,16 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
+import org.breedinginsight.brapps.importer.model.BrAPIMapping;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.services.ProgramService;
@@ -40,25 +44,32 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.rmi.ServerException;
+import java.util.Optional;
 import java.util.UUID;
 
+@Slf4j
 public class BrAPIImportService {
 
     private ProgramUserService programUserService;
     private ProgramService programService;
     private MimeTypeParser mimeTypeParser;
     private ImportMappingDAO importMappingDAO;
+    private ObjectMapper objectMapper;
 
     @Inject
     BrAPIImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
-                       ImportMappingDAO importMappingDAO) {
+                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
         this.importMappingDAO = importMappingDAO;
+        this.objectMapper = objectMapper;
     }
 
-    public BrAPIImportMapping saveMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
+    /*
+        Saves the file for the mapping record
+     */
+    public BrAPIImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
             DoesNotExistException, AuthorizationException, HttpBadRequestException, UnsupportedTypeException {
 
         if (!programService.exists(programId))
@@ -70,35 +81,9 @@ public class BrAPIImportService {
             throw new AuthorizationException("User not in program");
         }
 
-        MediaType mediaType;
-        try {
-            mediaType = mimeTypeParser.getMimeType(file);
-        } catch (IOException e){
-            throw new HttpBadRequestException("Could not determine file type");
-        }
-
-        Table df;
-        if (mediaType.toString().equals(SupportedMediaType.CSV)) {
-            try {
-                df = FileUtil.parseTableFromCsv(file.getInputStream());
-            } catch (IOException | ParsingException e) {
-                throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
-            }
-        } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
-            mediaType.toString().equals(SupportedMediaType.XLSX)) {
-
-            try {
-                //TODO: Allow them to pass in header row index in the future
-                df = FileUtil.parseTableFromExcel(file.getInputStream(), 0);
-            } catch (IOException | ParsingException e) {
-                throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
-            }
-        } else {
-            throw new UnsupportedTypeException("Unsupported mime type");
-        }
+        Table df = parseUploadedFile(file);
 
         // Convert the table to json to store
-        //TODO: Store mapping if that was passed
         String jsonString = df.write().toString("json");
         JSONB jsonb = JSONB.valueOf(jsonString);
         ImportMappingEntity importMappingEntity = ImportMappingEntity.builder()
@@ -117,5 +102,129 @@ public class BrAPIImportService {
         }
 
         return importMapping;
+    }
+
+    private Table parseUploadedFile(CompletedFileUpload file) throws HttpBadRequestException, UnsupportedTypeException {
+
+        MediaType mediaType;
+        try {
+            mediaType = mimeTypeParser.getMimeType(file);
+        } catch (IOException e){
+            throw new HttpBadRequestException("Could not determine file type");
+        }
+
+        Table df;
+        if (mediaType.toString().equals(SupportedMediaType.CSV)) {
+            try {
+                df = FileUtil.parseTableFromCsv(file.getInputStream());
+            } catch (IOException | ParsingException e) {
+                throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
+            }
+        } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
+                mediaType.toString().equals(SupportedMediaType.XLSX)) {
+
+            try {
+                //TODO: Allow them to pass in header row index in the future
+                df = FileUtil.parseTableFromExcel(file.getInputStream(), 0);
+            } catch (IOException | ParsingException e) {
+                throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
+            }
+        } else {
+            throw new UnsupportedTypeException("Unsupported mime type");
+        }
+        return df;
+    }
+
+    public BrAPIImportMapping updateMappingFile(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file)
+            throws UnsupportedTypeException, HttpBadRequestException, DoesNotExistException, AuthorizationException {
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
+            throw new AuthorizationException("User not in program");
+        }
+
+        //TODO: Can we condense this down?
+        BrAPIImportMapping importMapping;
+        try {
+            Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
+            if (!optionalImportMapping.isPresent()) {
+                throw new DoesNotExistException("Mapping with that id does not exist");
+            } else {
+                importMapping = optionalImportMapping.get();
+            }
+        } catch (IOException e) {
+            throw new InternalServerException(e.toString());
+        }
+
+        Table df = parseUploadedFile(file);
+
+        //TODO: Validate the new file works with the mapping, if validate is specified
+
+        // Convert the table to json to store
+        String jsonString = df.write().toString("json");
+        JSONB jsonb = JSONB.valueOf(jsonString);
+        ImportMappingEntity importMappingEntity = importMappingDAO.fetchOneById(mappingId);
+        importMappingEntity.setFile(jsonb);
+        importMappingDAO.update(importMappingEntity);
+
+        try {
+            importMapping = new BrAPIImportMapping(importMappingEntity);
+        } catch (IOException e) {
+            throw new InternalServerException(e.toString());
+        }
+        return importMapping;
+    }
+
+    public BrAPIImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
+                                            BrAPIMapping mapping, Boolean validate) throws
+            DoesNotExistException, AuthorizationException, HttpBadRequestException, UnsupportedTypeException {
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
+            throw new AuthorizationException("User not in program");
+        }
+
+        BrAPIImportMapping importMapping;
+        try {
+            Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
+            if (!optionalImportMapping.isPresent()) {
+                throw new DoesNotExistException("Mapping with that id does not exist");
+            } else {
+                importMapping = optionalImportMapping.get();
+            }
+        } catch (IOException e) {
+            throw new InternalServerException(e.toString());
+        }
+
+        // If validate is true, validate the mapping
+
+        // Save the mapping
+        String json = null;
+        try {
+            json = objectMapper.writeValueAsString(mapping.getObjects());
+        } catch(JsonProcessingException e) {
+            log.error("Problem converting traits json", e);
+            // If we didn't catch this in parsing to the class, this is a server error
+            throw new InternalServerException("Problem converting mapping json", e);
+        }
+
+        ImportMappingEntity importMappingEntity = importMappingDAO.fetchOneById(mappingId);
+        importMappingEntity.setName(mapping.getName());
+        importMappingEntity.setMapping(JSONB.valueOf(json));
+        importMappingDAO.update(importMappingEntity);
+
+        return importMapping;
+    }
+
+    public Boolean exists(UUID mappingId) {
+        return importMappingDAO.existsById(mappingId);
     }
 }

@@ -17,12 +17,17 @@
 
 package org.breedinginsight.brapps.importer.daos;
 
+import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
 import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
+import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 public class ImportMappingDAO extends ImportMappingDao {
@@ -33,5 +38,14 @@ public class ImportMappingDAO extends ImportMappingDao {
     public ImportMappingDAO(Configuration config, DSLContext dsl) {
         super(config);
         this.dsl = dsl;
+    }
+
+    public Optional<BrAPIImportMapping> getMapping(UUID id) throws IOException {
+        ImportMappingEntity importMappingEntity = fetchOneById(id);
+        if (importMappingEntity != null) {
+            return Optional.of(new BrAPIImportMapping(importMappingEntity));
+        } else {
+            return Optional.empty();
+        }
     }
 }
