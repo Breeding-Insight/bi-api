@@ -15,11 +15,9 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.brapi_import.base;
+package org.breedinginsight.brapps.importer.model.base;
 
-import org.breedinginsight.model.brapi_import.config.*;
-
-import java.util.List;
+import org.breedinginsight.brapps.importer.model.config.*;
 
 @ImportFieldMetadata(id="Cross", name="Cross",
         description = "A cross connects two germplasm objects to form a pedigree.")

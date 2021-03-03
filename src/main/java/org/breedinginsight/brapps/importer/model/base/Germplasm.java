@@ -15,12 +15,12 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.brapi_import.base;
+package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
-import org.breedinginsight.model.brapi_import.config.ImportFieldMetadata;
-import org.breedinginsight.model.brapi_import.config.ImportFieldType;
-import org.breedinginsight.model.brapi_import.config.ImportType;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
+import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
 @ImportFieldMetadata(id="Germplasm", name="Germplasm",

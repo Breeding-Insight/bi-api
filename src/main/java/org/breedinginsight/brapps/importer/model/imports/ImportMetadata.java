@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.brapi_import.imports;
+package org.breedinginsight.brapps.importer.model.imports;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

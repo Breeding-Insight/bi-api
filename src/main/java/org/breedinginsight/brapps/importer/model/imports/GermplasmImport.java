@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.brapi_import.imports;
+package org.breedinginsight.brapps.importer.model.imports;
 
-import org.breedinginsight.model.brapi_import.base.Cross;
-import org.breedinginsight.model.brapi_import.base.Germplasm;
+import org.breedinginsight.brapps.importer.model.base.Cross;
+import org.breedinginsight.brapps.importer.model.base.Germplasm;
 
 
 @ImportMetadata(id="GermplasmImport", name="Germplasm",

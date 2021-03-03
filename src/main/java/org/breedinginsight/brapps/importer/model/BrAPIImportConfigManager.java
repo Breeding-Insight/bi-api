@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.brapi_import;
+package org.breedinginsight.brapps.importer.model;
 
 import io.micronaut.context.annotation.Context;
-import org.breedinginsight.model.brapi_import.config.*;
-import org.breedinginsight.model.brapi_import.imports.ImportMetadata;
-import org.breedinginsight.model.brapi_import.response.ImportConfig;
-import org.breedinginsight.model.brapi_import.response.ImportFieldConfig;
-import org.breedinginsight.model.brapi_import.response.ImportObjectConfig;
-import org.breedinginsight.model.brapi_import.response.ImportRelationOptionConfig;
+import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
+import org.breedinginsight.brapps.importer.model.response.ImportConfig;
+import org.breedinginsight.brapps.importer.model.response.ImportFieldConfig;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectConfig;
+import org.breedinginsight.brapps.importer.model.response.ImportRelationOptionConfig;
 import org.reflections.Reflections;
 
 import javax.inject.Singleton;
