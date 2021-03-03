@@ -17,23 +17,13 @@
 
 package org.breedinginsight.utilities;
 
-import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.CSVRecord;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
-import org.breedinginsight.services.parsers.excel.ExcelParser;
-import org.breedinginsight.services.parsers.excel.ExcelRecord;
-import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
-import tech.tablesaw.columns.Column;
 
 import java.io.*;
 import java.util.*;

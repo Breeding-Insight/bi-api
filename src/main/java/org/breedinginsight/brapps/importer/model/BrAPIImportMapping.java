@@ -18,6 +18,8 @@
 package org.breedinginsight.brapps.importer.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import lombok.Getter;
+import lombok.Setter;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.jooq.JSONB;
 import tech.tablesaw.api.ColumnType;
@@ -28,10 +30,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
+@Getter
+@Setter
 public class BrAPIImportMapping {
     private UUID id;
-    //TODO: This should be an actual structure?
-    //private JSONB mapping;
+    private BrAPIImportMapping mapping;
     @JsonSerialize(converter = TableConverter.class)
     private Table file;
 
@@ -41,6 +44,8 @@ public class BrAPIImportMapping {
         // Read the json to make a table
         this.file = parseFileJson(importMappingEntity.getFile());
     }
+
+    public BrAPIImportMapping(){};
 
     private Table parseFileJson(JSONB fileJson) throws IOException {
         return Table.read()

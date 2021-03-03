@@ -21,6 +21,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -36,6 +37,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
+import org.breedinginsight.brapps.importer.model.BrAPIMapping;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.response.ImportConfig;
@@ -45,6 +47,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 
 import javax.inject.Inject;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -89,7 +92,7 @@ public class ImportController {
     public HttpResponse<Response<BrAPIImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIImportService.saveMapping(programId, actingUser, file);
+            BrAPIImportMapping result = brAPIImportService.createMapping(programId, actingUser, file);
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
@@ -108,21 +111,65 @@ public class ImportController {
         }
     }
 
-    @Put("program/{programId}/import/mapping/{mappingId}")
+    @Put("programs/{programId}/import/mapping/{mappingId}/file{?validate}")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_ANONYMOUS)
     @AddMetadata
-    public HttpResponse<Response<DataResponse<ImportConfig>>> editMapping(@PathVariable UUID programId, @PathVariable UUID mappingId) {
-        List<ImportConfig> configs = importManager.getAllTypeConfigs();
-
-        //TODO: Add actual page size
-        List<Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        Pagination pagination = new Pagination(1, 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-
-        Response<DataResponse<ImportConfig>> response = new Response(metadata, new DataResponse<>(configs));
-        return HttpResponse.ok(response);
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<BrAPIImportMapping>> editMappingFile(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                  @Part("file") CompletedFileUpload file,
+                                                                  @QueryValue(defaultValue="true") Boolean validate) throws IOException {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            BrAPIImportMapping result = brAPIImportService.updateMappingFile(programId, mappingId, actingUser, file);
+            Response<BrAPIImportMapping> response = new Response(result);
+            //TODO: Not returned response for some reason
+            return HttpResponse.ok(response);
+        } catch (HttpBadRequestException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (UnsupportedTypeException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        }
     }
+
+    @Put("programs/{programId}/import/mapping/{mappingId}{?validate}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<BrAPIImportMapping>> editMapping(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                      @Body BrAPIMapping mapping,
+                                                                      @QueryValue(defaultValue="true") Boolean validate) {
+
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            BrAPIImportMapping result = brAPIImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
+            Response<BrAPIImportMapping> response = new Response(result);
+            //TODO: Not returned response for some reason
+            return HttpResponse.ok(response);
+        } catch (HttpBadRequestException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (UnsupportedTypeException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        }
+
+    }
+
+
 
 }
