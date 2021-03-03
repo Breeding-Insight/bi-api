@@ -19,8 +19,13 @@ package org.breedinginsight.brapps.importer.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
+import org.jooq.JSONB;
+import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.io.json.JsonReadOptions;
 
+import java.io.IOException;
+import java.util.List;
 import java.util.UUID;
 
 public class BrAPIImportMapping {
@@ -30,11 +35,20 @@ public class BrAPIImportMapping {
     @JsonSerialize(converter = TableConverter.class)
     private Table file;
 
-    public BrAPIImportMapping(ImportMappingEntity importMappingEntity){
+    public BrAPIImportMapping(ImportMappingEntity importMappingEntity) throws IOException {
         this.id = importMappingEntity.getId();
         //this.mapping = importMappingEntity.getMapping();
         // Read the json to make a table
-        this.file = Table.read().string(importMappingEntity.getFile().toString(), "json");
+        this.file = parseFileJson(importMappingEntity.getFile());
+    }
+
+    private Table parseFileJson(JSONB fileJson) throws IOException {
+        return Table.read()
+                .usingOptions(
+                        JsonReadOptions
+                                .builderFromString(fileJson.toString())
+                                .columnTypesToDetect(List.of(ColumnType.STRING))
+                );
     }
 
 }

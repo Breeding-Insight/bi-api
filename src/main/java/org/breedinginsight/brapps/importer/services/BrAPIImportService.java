@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services;
 
 import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -38,6 +39,7 @@ import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.io.IOException;
+import java.rmi.ServerException;
 import java.util.UUID;
 
 public class BrAPIImportService {
@@ -84,8 +86,13 @@ public class BrAPIImportService {
             }
         } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
             mediaType.toString().equals(SupportedMediaType.XLSX)) {
-            //TODO: Read excel
-            df = FileUtil.parseTableFromExcel(file);
+
+            try {
+                //TODO: Allow them to pass in header row index in the future
+                df = FileUtil.parseTableFromExcel(file.getInputStream(), 0);
+            } catch (IOException | ParsingException e) {
+                throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
+            }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
@@ -102,7 +109,13 @@ public class BrAPIImportService {
                 .build();
         importMappingDAO.insert(importMappingEntity);
 
-        BrAPIImportMapping importMapping = new BrAPIImportMapping(importMappingEntity);
+        BrAPIImportMapping importMapping;
+        try {
+            importMapping = new BrAPIImportMapping(importMappingEntity);
+        } catch (IOException e) {
+            throw new InternalServerException(e.toString());
+        }
+
         return importMapping;
     }
 }
