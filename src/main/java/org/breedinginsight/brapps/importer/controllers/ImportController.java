@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.v1.controller;
+package org.breedinginsight.brapps.importer.controllers;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -35,10 +35,11 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.response.ImportConfig;
-import org.breedinginsight.services.BrAPIImportService;
+import org.breedinginsight.brapps.importer.services.BrAPIImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
@@ -85,11 +86,12 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<ProgramUpload>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
+    public HttpResponse<Response<BrAPIImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            brAPIImportService.saveMapping(programId, actingUser, file);
-            Response<ProgramUpload> response = new Response();
+            BrAPIImportMapping result = brAPIImportService.saveMapping(programId, actingUser, file);
+            Response<BrAPIImportMapping> response = new Response(result);
+            //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
         } catch (HttpBadRequestException e) {
             log.info(e.getMessage());

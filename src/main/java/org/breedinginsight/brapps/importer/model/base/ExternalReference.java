@@ -15,11 +15,11 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.brapi_import.base;
+package org.breedinginsight.brapps.importer.model.base;
 
-import org.breedinginsight.model.brapi_import.config.ImportFieldMetadata;
-import org.breedinginsight.model.brapi_import.config.ImportFieldType;
-import org.breedinginsight.model.brapi_import.config.ImportType;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
+import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @ImportFieldMetadata(id="ExternalReference", name="External Reference",
         description = "An object that tracks connections to external data sets.")

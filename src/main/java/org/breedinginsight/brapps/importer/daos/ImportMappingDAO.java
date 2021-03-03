@@ -15,7 +15,23 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.daos;
 
-public interface BrAPIImport {
+import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
+import org.jooq.Configuration;
+import org.jooq.DSLContext;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
+@Singleton
+public class ImportMappingDAO extends ImportMappingDao {
+
+    private DSLContext dsl;
+
+    @Inject
+    public ImportMappingDAO(Configuration config, DSLContext dsl) {
+        super(config);
+        this.dsl = dsl;
+    }
 }
