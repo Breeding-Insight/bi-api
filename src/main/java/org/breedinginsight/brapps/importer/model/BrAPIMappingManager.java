@@ -34,8 +34,11 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
+import java.beans.IntrospectionException;
+import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -105,7 +108,9 @@ public class BrAPIMappingManager {
 
                     // Assign to our import class
                     try {
+                        field.setAccessible(true);
                         field.set(brAPIImport, brAPIObject);
+                        field.setAccessible(false);
                     } catch (IllegalAccessException e) {
                         throw new InternalServerException(e.toString());
                     }
@@ -157,9 +162,14 @@ public class BrAPIMappingManager {
                 BrAPIMappingField mappingField = mapping.getFields().get(metadata.id());
                 if (mappingField.getFileFieldName() != null) {
                     // Check that the file as this name
+                    if (!focusRow.columnNames().contains(mappingField.getFileFieldName())) {
+                        throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", mappingField.getFileFieldName()));
+                    }
                     String fileValue = focusRow.getString(mappingField.getFileFieldName());
                     try {
+                        field.setAccessible(true);
                         field.set(brAPIObject, fileValue);
+                        field.setAccessible(false);
                     } catch (IllegalAccessException e) {
                         throw new InternalServerException(e.toString());
                     }

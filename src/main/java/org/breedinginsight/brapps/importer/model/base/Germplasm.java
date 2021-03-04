@@ -19,12 +19,14 @@ package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
+@Setter
 @NoArgsConstructor
 @ImportFieldMetadata(id="Germplasm", name="Germplasm",
         description = "A germplasm object corresponds to a non-physical entity and is used to track a unique genetic composition. This is commonly used for populations.")
