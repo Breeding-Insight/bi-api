@@ -21,12 +21,9 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.Setter;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
-import org.jooq.JSONB;
-import tech.tablesaw.api.ColumnType;
-import tech.tablesaw.api.Table;
-import tech.tablesaw.io.json.JsonReadOptions;
 
-import java.io.IOException;
+import tech.tablesaw.api.Table;
+
 import java.util.List;
 import java.util.UUID;
 
@@ -34,26 +31,19 @@ import java.util.UUID;
 @Setter
 public class BrAPIImportMapping {
     private UUID id;
-    private BrAPIImportMapping mapping;
+    private String name;
+    private String importTypeId;
+    private List<BrAPIMappingObject> objects;
     @JsonSerialize(converter = TableConverter.class)
     private Table file;
 
-    public BrAPIImportMapping(ImportMappingEntity importMappingEntity) throws IOException {
+
+    public BrAPIImportMapping(ImportMappingEntity importMappingEntity) {
         this.id = importMappingEntity.getId();
-        //this.mapping = importMappingEntity.getMapping();
-        // Read the json to make a table
-        this.file = parseFileJson(importMappingEntity.getFile());
+        this.name = importMappingEntity.getName();
+        //this.importTypeId = importMappingEntity.getImportTypeId();
     }
 
     public BrAPIImportMapping(){};
-
-    private Table parseFileJson(JSONB fileJson) throws IOException {
-        return Table.read()
-                .usingOptions(
-                        JsonReadOptions
-                                .builderFromString(fileJson.toString())
-                                .columnTypesToDetect(List.of(ColumnType.STRING))
-                );
-    }
 
 }

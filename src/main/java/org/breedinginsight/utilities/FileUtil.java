@@ -22,8 +22,10 @@ import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
+import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.io.json.JsonReadOptions;
 
 import java.io.*;
 import java.util.*;
@@ -97,5 +99,20 @@ public class FileUtil {
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
     }
+
+    public static Table parseTableFromJson(String jsonString) throws ParsingException {
+        try {
+            return Table.read()
+                    .usingOptions(
+                            JsonReadOptions
+                                    .builderFromString(jsonString.toString())
+                                    .columnTypesToDetect(List.of(ColumnType.STRING))
+                    );
+        } catch (IOException e) {
+            throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
+        }
+
+    }
+
 
 }

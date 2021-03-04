@@ -17,13 +17,16 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import lombok.NoArgsConstructor;
+import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
+@NoArgsConstructor
 @ImportFieldMetadata(id="ExternalReference", name="External Reference",
         description = "An object that tracks connections to external data sets.")
-public class ExternalReference {
+public class ExternalReference implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.TEXT)
     @ImportFieldMetadata(id="referenceID", name="External Reference ID",
@@ -34,4 +37,9 @@ public class ExternalReference {
     @ImportFieldMetadata(id="referenceSource", name="External Reference Source",
             description = "This describes the source of the external reference.")
     private String referenceSource;
+
+    @Override
+    public BrAPIObject map(BrAPIMappingObject mappingObject) {
+        return null;
+    }
 }

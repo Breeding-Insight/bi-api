@@ -27,6 +27,7 @@ import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.BrAPIMapping;
+import org.breedinginsight.brapps.importer.model.BrAPIMappingManager;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.services.ProgramService;
@@ -34,6 +35,7 @@ import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.constants.SupportedMediaType;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -55,15 +57,17 @@ public class BrAPIImportService {
     private MimeTypeParser mimeTypeParser;
     private ImportMappingDAO importMappingDAO;
     private ObjectMapper objectMapper;
+    private BrAPIMappingManager mappingManager;
 
     @Inject
     BrAPIImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
-                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper) {
+                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, BrAPIMappingManager mappingManager) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
         this.importMappingDAO = importMappingDAO;
         this.objectMapper = objectMapper;
+        this.mappingManager = mappingManager;
     }
 
     /*
@@ -89,17 +93,13 @@ public class BrAPIImportService {
         ImportMappingEntity importMappingEntity = ImportMappingEntity.builder()
                 .programId(programId)
                 .file(jsonb)
+                .draft(true)
                 .createdBy(actingUser.getId())
                 .updatedBy(actingUser.getId())
                 .build();
         importMappingDAO.insert(importMappingEntity);
 
-        BrAPIImportMapping importMapping;
-        try {
-            importMapping = new BrAPIImportMapping(importMappingEntity);
-        } catch (IOException e) {
-            throw new InternalServerException(e.toString());
-        }
+        BrAPIImportMapping importMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
 
         return importMapping;
     }
@@ -147,18 +147,8 @@ public class BrAPIImportService {
             throw new AuthorizationException("User not in program");
         }
 
-        //TODO: Can we condense this down?
         BrAPIImportMapping importMapping;
-        try {
-            Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
-            if (!optionalImportMapping.isPresent()) {
-                throw new DoesNotExistException("Mapping with that id does not exist");
-            } else {
-                importMapping = optionalImportMapping.get();
-            }
-        } catch (IOException e) {
-            throw new InternalServerException(e.toString());
-        }
+        Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
 
         Table df = parseUploadedFile(file);
 
@@ -171,17 +161,14 @@ public class BrAPIImportService {
         importMappingEntity.setFile(jsonb);
         importMappingDAO.update(importMappingEntity);
 
-        try {
-            importMapping = new BrAPIImportMapping(importMappingEntity);
-        } catch (IOException e) {
-            throw new InternalServerException(e.toString());
-        }
+        importMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
+
         return importMapping;
     }
 
     public BrAPIImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
-                                            BrAPIMapping mapping, Boolean validate) throws
-            DoesNotExistException, AuthorizationException, HttpBadRequestException, UnsupportedTypeException {
+                                            BrAPIImportMapping mappingRequest, Boolean validate) throws
+            DoesNotExistException, AuthorizationException, HttpBadRequestException, UnsupportedTypeException, UnprocessableEntityException {
 
         if (!programService.exists(programId))
         {
@@ -192,24 +179,23 @@ public class BrAPIImportService {
             throw new AuthorizationException("User not in program");
         }
 
-        BrAPIImportMapping importMapping;
-        try {
-            Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
-            if (!optionalImportMapping.isPresent()) {
-                throw new DoesNotExistException("Mapping with that id does not exist");
-            } else {
-                importMapping = optionalImportMapping.get();
-            }
-        } catch (IOException e) {
-            throw new InternalServerException(e.toString());
+        Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
+        if (optionalImportMapping.isEmpty()) {
+            throw new DoesNotExistException("Mapping with that id does not exist");
         }
+        BrAPIImportMapping importMapping = optionalImportMapping.get();
+
+        mappingRequest.setFile(importMapping.getFile());
 
         // If validate is true, validate the mapping
+        if (validate) {
+            mappingManager.map(mappingRequest);
+        }
 
         // Save the mapping
         String json = null;
         try {
-            json = objectMapper.writeValueAsString(mapping.getObjects());
+            json = objectMapper.writeValueAsString(mappingRequest.getObjects());
         } catch(JsonProcessingException e) {
             log.error("Problem converting traits json", e);
             // If we didn't catch this in parsing to the class, this is a server error
@@ -217,7 +203,8 @@ public class BrAPIImportService {
         }
 
         ImportMappingEntity importMappingEntity = importMappingDAO.fetchOneById(mappingId);
-        importMappingEntity.setName(mapping.getName());
+        importMappingEntity.setName(mappingRequest.getName());
+        importMappingEntity.setImportTypeId(mappingRequest.getImportTypeId());
         importMappingEntity.setMapping(JSONB.valueOf(json));
         importMappingDAO.update(importMappingEntity);
 

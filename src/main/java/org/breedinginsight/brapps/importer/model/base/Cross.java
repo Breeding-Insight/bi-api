@@ -17,11 +17,14 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import lombok.NoArgsConstructor;
+import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 
+@NoArgsConstructor
 @ImportFieldMetadata(id="Cross", name="Cross",
         description = "A cross connects two germplasm objects to form a pedigree.")
-public class Cross {
+public class Cross implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.TEXT)
     @ImportFieldMetadata(id="crossName", name="Cross Name",
@@ -36,4 +39,9 @@ public class Cross {
     @ImportFieldMetadata(id="femaleParent", name="Female Parent",
             description = "Name of the cross.")
     private ImportRelation femaleParent;
+
+    @Override
+    public BrAPIObject map(BrAPIMappingObject mappingObject) {
+        return null;
+    }
 }
