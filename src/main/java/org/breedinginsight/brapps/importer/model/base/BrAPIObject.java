@@ -15,16 +15,10 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model;
+package org.breedinginsight.brapps.importer.model.base;
 
-import lombok.Getter;
-import lombok.Setter;
+import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 
-import java.util.List;
-import java.util.UUID;
-
-@Getter
-@Setter
-public class BrAPIMapping {
-    private List<BrAPIMappingObject> objects;
+public interface BrAPIObject {
+    BrAPIObject map(BrAPIMappingObject mappingObject);
 }

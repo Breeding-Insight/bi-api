@@ -18,9 +18,11 @@
 create table import_mapping (
 	like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
 	name TEXT,
+	import_type_id TEXT,
     program_id UUID NOT NULL,
     mapping jsonb,
     file jsonb NOT NULL,
+    draft bool DEFAULT true,
     like base_edit_track_entity INCLUDING ALL
 );
 

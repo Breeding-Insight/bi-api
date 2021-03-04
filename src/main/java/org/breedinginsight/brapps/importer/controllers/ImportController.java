@@ -44,6 +44,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportConfig;
 import org.breedinginsight.brapps.importer.services.BrAPIImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 
 import javax.inject.Inject;
@@ -84,7 +85,7 @@ public class ImportController {
         return HttpResponse.ok(response);
     }
 
-    @Post("/programs/{programId}/import/mapping")
+    @Post("/programs/{programId}/import/mapping/file")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
@@ -145,14 +146,13 @@ public class ImportController {
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
     public HttpResponse<Response<BrAPIImportMapping>> editMapping(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                      @Body BrAPIMapping mapping,
+                                                                      @Body BrAPIImportMapping mapping,
                                                                       @QueryValue(defaultValue="true") Boolean validate) {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             BrAPIImportMapping result = brAPIImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
             Response<BrAPIImportMapping> response = new Response(result);
-            //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
         } catch (HttpBadRequestException e) {
             log.info(e.getMessage());
@@ -166,6 +166,9 @@ public class ImportController {
         } catch (UnsupportedTypeException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         }
 
     }

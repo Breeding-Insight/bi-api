@@ -18,19 +18,25 @@
 package org.breedinginsight.brapps.importer.model;
 
 import io.micronaut.context.annotation.Context;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportConfig;
 import org.breedinginsight.brapps.importer.model.response.ImportFieldConfig;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectConfig;
 import org.breedinginsight.brapps.importer.model.response.ImportRelationOptionConfig;
+import org.checkerframework.checker.nullness.Opt;
 import org.reflections.Reflections;
 
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Context
 @Singleton
@@ -167,5 +173,27 @@ public class BrAPIImportConfigManager {
         fieldConfig.setListObject(listObject);
 
         return fieldConfig;
+    }
+
+    public Optional<BrAPIImport> getTypeConfigById(String importTypeId) {
+
+        List<Class<?>> matchingImport = brAPIImports.stream().filter(brAPIImport -> {
+            ImportMetadata metadata = brAPIImport.getAnnotation(ImportMetadata.class);
+            return metadata != null & metadata.id().equals(importTypeId);
+        }).collect(Collectors.toList());
+
+        if (matchingImport.size() == 1) {
+            Class<?> importClass = matchingImport.get(0);
+            BrAPIImport brAPIImport;
+            try {
+                brAPIImport = (BrAPIImport) importClass.getDeclaredConstructor(null).newInstance();
+            } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                throw new InternalServerException(e.toString());
+            }
+
+            return Optional.of(brAPIImport);
+        } else {
+            return Optional.empty();
+        }
     }
 }

@@ -18,14 +18,17 @@
 package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
+@NoArgsConstructor
 @ImportFieldMetadata(id="Germplasm", name="Germplasm",
         description = "A germplasm object corresponds to a non-physical entity and is used to track a unique genetic composition. This is commonly used for populations.")
-public class Germplasm {
+public class Germplasm implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.TEXT)
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
@@ -35,4 +38,9 @@ public class Germplasm {
     @ImportFieldMetadata(id="externalReferences", name="External References",
             description = "External references to track external IDs.")
     private ExternalReference[] externalReferences;
+
+    @Override
+    public BrAPIObject map(BrAPIMappingObject mappingObject) {
+        return null;
+    }
 }
