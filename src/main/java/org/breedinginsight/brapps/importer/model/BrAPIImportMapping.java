@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.model;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 
@@ -29,6 +30,7 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@NoArgsConstructor
 public class BrAPIImportMapping {
     private UUID id;
     private String name;
@@ -41,9 +43,6 @@ public class BrAPIImportMapping {
     public BrAPIImportMapping(ImportMappingEntity importMappingEntity) {
         this.id = importMappingEntity.getId();
         this.name = importMappingEntity.getName();
-        //this.importTypeId = importMappingEntity.getImportTypeId();
+        this.importTypeId = importMappingEntity.getImportTypeId();
     }
-
-    public BrAPIImportMapping(){};
-
 }

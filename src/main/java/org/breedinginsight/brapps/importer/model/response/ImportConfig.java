@@ -28,5 +28,5 @@ public class ImportConfig {
     private String id;
     private String name;
     private String description;
-    private List<ImportObjectConfig> objects;
+    private List<ImportFieldConfig> fields;
 }

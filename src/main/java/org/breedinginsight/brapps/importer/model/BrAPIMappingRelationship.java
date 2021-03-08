@@ -17,6 +17,11 @@
 
 package org.breedinginsight.brapps.importer.model;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class BrAPIMappingRelationship {
     private String target;
     private String reference;

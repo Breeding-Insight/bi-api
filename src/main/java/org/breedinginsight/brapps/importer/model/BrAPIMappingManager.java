@@ -20,10 +20,7 @@ package org.breedinginsight.brapps.importer.model;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
+import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -39,6 +36,7 @@ import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -89,18 +87,19 @@ public class BrAPIMappingManager {
                 if (matchedObjects.size() == 0 & required != null) {
                     //TODO: Add to mapping validations for multiple error return
                     throw new BadRequestException(String.format("Required field, %s was not passed", metadata.id()));
-                }
+                } //TODO: Continue in else
 
                 //TODO: Handle top level list types
                 if (matchedObjects.size() >= 1) {
                     BrAPIMappingObject matchedObject = matchedObjects.get(0);
 
-                    // Map through the fields
+                    // Make a new brapi object
                     BrAPIObject brAPIObject;
                     try {
-                        brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor(null).newInstance();
+                        brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
                     } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new InternalServerException(e.toString());
+                        //TODO: Change all these instances of this to carry e
+                        throw new InternalServerException(e.toString(), e);
                     }
 
                     //TODO: Catch all the errors from this
@@ -108,11 +107,12 @@ public class BrAPIMappingManager {
 
                     // Assign to our import class
                     try {
+                        //TODO: Check out BeanUtils library
                         field.setAccessible(true);
                         field.set(brAPIImport, brAPIObject);
                         field.setAccessible(false);
                     } catch (IllegalAccessException e) {
-                        throw new InternalServerException(e.toString());
+                        throw new InternalServerException(e.toString(), e);
                     }
                 }
             }
@@ -145,21 +145,66 @@ public class BrAPIMappingManager {
             }
 
             // Map to the specific types of objects
+            BrAPIMappingField mappingField = mapping.getFields().get(metadata.id());
             if (type == null) {
                 throw new InternalServerException("BrAPIObject is missing import type annotation");
             }
             if (type.type() == ImportFieldType.LIST) {
-                // TODO: Recurse down
-                continue;
+                if (mappingField.getObjects() == null) {
+                    throw new BadRequestException("List type field is not properly formatted");
+                }
+
+                List<BrAPIObject> objectList = new ArrayList<>();
+                for (BrAPIMappingObject listObject: mappingField.getObjects()){
+
+                    //TODO: Move this into common function
+                    BrAPIObject listBrAPIObject;
+                    try {
+                        listBrAPIObject = (BrAPIObject) type.clazz().getDeclaredConstructor().newInstance();
+                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                        throw new InternalServerException(e.toString(), e);
+                    }
+                    mapObject(listBrAPIObject, listObject, metadata, importFile, rowIndex);
+                    objectList.add(listBrAPIObject);
+                }
+
+                try {
+                    field.setAccessible(true);
+                    field.set(brAPIObject, objectList);
+                    field.setAccessible(false);
+                } catch (IllegalAccessException e) {
+                    throw new InternalServerException(e.toString(), e);
+                }
             } else if (type.type() == ImportFieldType.RELATIONSHIP) {
-                //TODO: Do the lookups
-                continue;
+                //TODO: For file lookup, find field in other rows
+                if (mappingField.getRelationMap() == null || mappingField.getRelationMap().getReference() == null ||
+                        mappingField.getRelationMap().getReference() == null
+                ) {
+                    throw new BadRequestException("Relationship field is not properly formatted");
+                }
+
+                ImportRelation relationship = new ImportRelation();
+                relationship.setType(mappingField.getRelationValue());
+                relationship.setTarget(mappingField.getRelationMap().getTarget());
+                relationship.setReference(mappingField.getRelationMap().getReference());
+                try {
+                    field.setAccessible(true);
+                    field.set(brAPIObject, relationship);
+                    field.setAccessible(false);
+                } catch (IllegalAccessException e) {
+                    throw new InternalServerException(e.toString(), e);
+                }
+
             } else {
                 // It is a simple type
                 //TODO: Do some type checks here
 
+                // Check that request field is properly formatted
+                if (mappingField.getFileFieldName() == null && mappingField.getConstantValue() == null) {
+                    throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
+                }
+
                 // Check if the mapping passed a constant value or a mapped value
-                BrAPIMappingField mappingField = mapping.getFields().get(metadata.id());
                 if (mappingField.getFileFieldName() != null) {
                     // Check that the file as this name
                     if (!focusRow.columnNames().contains(mappingField.getFileFieldName())) {
@@ -171,7 +216,15 @@ public class BrAPIMappingManager {
                         field.set(brAPIObject, fileValue);
                         field.setAccessible(false);
                     } catch (IllegalAccessException e) {
-                        throw new InternalServerException(e.toString());
+                        throw new InternalServerException(e.toString(), e);
+                    }
+                } else if (mappingField.getConstantValue() != null){
+                    try {
+                        field.setAccessible(true);
+                        field.set(brAPIObject, mappingField.getConstantValue());
+                        field.setAccessible(false);
+                    } catch (IllegalAccessException e) {
+                        throw new InternalServerException(e.toString(), e);
                     }
                 }
 

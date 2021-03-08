@@ -20,5 +20,4 @@ package org.breedinginsight.brapps.importer.model.base;
 import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 
 public interface BrAPIObject {
-    BrAPIObject map(BrAPIMappingObject mappingObject);
 }

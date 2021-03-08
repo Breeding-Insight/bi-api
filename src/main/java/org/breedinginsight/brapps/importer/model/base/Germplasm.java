@@ -25,6 +25,8 @@ import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -39,10 +41,5 @@ public class Germplasm implements BrAPIObject {
     @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
     @ImportFieldMetadata(id="externalReferences", name="External References",
             description = "External references to track external IDs.")
-    private ExternalReference[] externalReferences;
-
-    @Override
-    public BrAPIObject map(BrAPIMappingObject mappingObject) {
-        return null;
-    }
+    private List<ExternalReference> externalReferences;
 }

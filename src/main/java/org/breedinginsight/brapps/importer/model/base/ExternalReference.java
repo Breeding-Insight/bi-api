@@ -38,8 +38,4 @@ public class ExternalReference implements BrAPIObject {
             description = "This describes the source of the external reference.")
     private String referenceSource;
 
-    @Override
-    public BrAPIObject map(BrAPIMappingObject mappingObject) {
-        return null;
-    }
 }
