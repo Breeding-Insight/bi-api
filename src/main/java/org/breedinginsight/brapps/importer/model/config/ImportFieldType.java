@@ -26,6 +26,7 @@ public enum ImportFieldType {
     INTEGER("INTEGER"),
     DATE("DATE"),
     LIST("LIST"),
+    OBJECT("OBJECT"),
     RELATIONSHIP("RELATIONSHIP");
 
     private String value;

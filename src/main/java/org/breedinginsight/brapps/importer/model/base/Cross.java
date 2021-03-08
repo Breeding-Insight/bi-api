@@ -39,9 +39,4 @@ public class Cross implements BrAPIObject {
     @ImportFieldMetadata(id="femaleParent", name="Female Parent",
             description = "Name of the cross.")
     private ImportRelation femaleParent;
-
-    @Override
-    public BrAPIObject map(BrAPIMappingObject mappingObject) {
-        return null;
-    }
 }

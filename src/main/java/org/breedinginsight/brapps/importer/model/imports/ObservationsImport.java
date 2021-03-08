@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+package org.breedinginsight.brapps.importer.model.imports;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
+import org.breedinginsight.brapps.importer.model.base.Observation;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
+import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 import java.util.List;
 
-@Getter
-@Setter
-public class ImportFieldConfig {
-    private String name;
-    private String id;
-    private String description;
-    private ImportFieldType type;
-    private Boolean required;
-    private List<ImportRelationOptionConfig> relationOptions;
-    private List<ImportFieldConfig> fields;
+@NoArgsConstructor
+@ImportMetadata(id="ObservationsImport", name="Observations",
+        description = "This import is used to import observations.")
+public class ObservationsImport {
+
+    @ImportType(type = ImportFieldType.LIST, clazz = Observation.class)
+    List<Observation> observations;
 }

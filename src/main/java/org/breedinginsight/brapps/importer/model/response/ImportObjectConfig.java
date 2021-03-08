@@ -19,6 +19,8 @@ package org.breedinginsight.brapps.importer.model.response;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
+import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 import java.util.List;
 
@@ -29,5 +31,6 @@ public class ImportObjectConfig {
     private String id;
     private String description;
     private Boolean required;
+    private ImportFieldType type;
     private List<ImportFieldConfig> fields;
 }

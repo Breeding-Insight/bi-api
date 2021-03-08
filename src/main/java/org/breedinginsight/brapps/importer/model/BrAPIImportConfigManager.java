@@ -24,18 +24,13 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportConfig;
 import org.breedinginsight.brapps.importer.model.response.ImportFieldConfig;
-import org.breedinginsight.brapps.importer.model.response.ImportObjectConfig;
 import org.breedinginsight.brapps.importer.model.response.ImportRelationOptionConfig;
-import org.checkerframework.checker.nullness.Opt;
 import org.reflections.Reflections;
 
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Context
@@ -68,67 +63,79 @@ public class BrAPIImportConfigManager {
         importConfig.setDescription(metadata.description());
 
         // Construct the objects in brapi
-        List<ImportObjectConfig> importObjectConfigs = new ArrayList<>();
+        List<ImportFieldConfig> importObjectConfigs = new ArrayList<>();
         for (Field objectField: objectFields) {
-            ImportObjectConfig objectConfig = constructObjectConfig(objectField);
+            // Recurses down to population config
+            ImportFieldConfig objectConfig = getObjectField(objectField);
             importObjectConfigs.add(objectConfig);
         }
 
-        importConfig.setObjects(importObjectConfigs);
+        importConfig.setFields(importObjectConfigs);
         return importConfig;
     }
 
-    private ImportObjectConfig constructObjectConfig(Field objectField) {
-        ImportFieldMetadata fieldMetadata = objectField.getAnnotation(ImportFieldMetadata.class);
-        Class c = objectField.getType();
-        ImportFieldMetadata classMetadata = (ImportFieldMetadata) c.getAnnotation(ImportFieldMetadata.class);
-        ImportFieldRequired required = objectField.getAnnotation(ImportFieldRequired.class);
-        ImportObjectConfig config = new ImportObjectConfig();
-        // Use the default metadata on the class if their isn't anything on the field level
-        config.setId(fieldMetadata != null ? fieldMetadata.id() : classMetadata.id());
-        config.setName(fieldMetadata != null ? fieldMetadata.name() : classMetadata.name());
-        config.setDescription(fieldMetadata != null ? fieldMetadata.description() : classMetadata.description());
-        config.setRequired(required != null);
+    public Optional<BrAPIImport> getTypeConfigById(String importTypeId) {
 
-        List<ImportFieldConfig> fieldConfigs = getObjectFields(objectField.getType());
-        config.setFields(fieldConfigs);
+        List<Class<?>> matchingImport = brAPIImports.stream().filter(brAPIImport -> {
+            ImportMetadata metadata = brAPIImport.getAnnotation(ImportMetadata.class);
+            return metadata != null & metadata.id().equals(importTypeId);
+        }).collect(Collectors.toList());
 
-        return config;
-    }
-
-    private List<ImportFieldConfig> getObjectFields(Class c) {
-
-        List<ImportFieldConfig> fieldConfigs = new ArrayList<>();
-        Field[] fields = c.getDeclaredFields();
-        // Go through the fields of the object. Might need some recursion here
-        for (Field field: fields) {
-
-            // Construct field based on type
-            ImportType fieldType = field.getAnnotation(ImportType.class);
-            ImportFieldConfig fieldConfig;
-            if (fieldType.type() == ImportFieldType.LIST){
-                fieldConfig = constructListField(field);
-            } else if (fieldType.type() == ImportFieldType.RELATIONSHIP) {
-                fieldConfig = constructRelationField(field);
-            } else {
-                fieldConfig = constructFieldConfig(field);
+        if (matchingImport.size() == 1) {
+            Class<?> importClass = matchingImport.get(0);
+            BrAPIImport brAPIImport;
+            try {
+                brAPIImport = (BrAPIImport) importClass.getDeclaredConstructor(null).newInstance();
+            } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
+                throw new InternalServerException(e.toString());
             }
 
-            fieldConfigs.add(fieldConfig);
+            return Optional.of(brAPIImport);
+        } else {
+            return Optional.empty();
         }
-        return fieldConfigs;
+    }
+
+    private ImportFieldConfig getObjectField(Field field) {
+
+        ImportFieldConfig fieldConfig = constructFieldConfig(field);
+
+        ImportType fieldType = field.getAnnotation(ImportType.class);
+
+        // Dive deeper if necessary
+        if (fieldType.type() == ImportFieldType.OBJECT) {
+            List<Field> fields = Arrays.asList(field.getType().getDeclaredFields());
+            List<ImportFieldConfig> subFieldConfigs = fields.stream().map(subField -> getObjectField(subField)).collect(Collectors.toList());
+            fieldConfig.setFields(subFieldConfigs);
+        } else if (fieldType.type() == ImportFieldType.LIST) {
+            List<Field> fields = Arrays.asList(fieldType.clazz().getDeclaredFields());
+            List<ImportFieldConfig> subFieldConfigs = fields.stream().map(subField -> getObjectField(subField)).collect(Collectors.toList());
+            fieldConfig.setFields(subFieldConfigs);
+        }
+        else if (fieldType.type() == ImportFieldType.RELATIONSHIP) {
+            fieldConfig = constructRelationField(field);
+        }
+
+        return fieldConfig;
     }
 
     private ImportFieldConfig constructFieldConfig(Field field) {
 
-        ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class);
-        ImportType fieldType = field.getAnnotation(ImportType.class);
+        ImportFieldMetadata fieldMetadata = field.getAnnotation(ImportFieldMetadata.class);
+        ImportType type = field.getAnnotation(ImportType.class);
+        Class c = type != null && type.type() == ImportFieldType.LIST ? type.clazz() : field.getType();
+        ImportFieldMetadata classMetadata = (ImportFieldMetadata) c.getAnnotation(ImportFieldMetadata.class);
         ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
+        ImportFieldMetadata metadata = fieldMetadata != null ? fieldMetadata : classMetadata;
+        // This is in the case of metadata missing on a java type, e.g. String
+        //TODO: Give more detail, such as which import this errored out on
+        if (metadata == null) throw new InternalServerException("Metadata missing on java primitive");
+
         ImportFieldConfig fieldConfig = new ImportFieldConfig();
         fieldConfig.setId(metadata.id());
         fieldConfig.setName(metadata.name());
         fieldConfig.setDescription(metadata.description());
-        fieldConfig.setType(fieldType.type());
+        fieldConfig.setType(type.type());
         fieldConfig.setRequired(required != null);
         return fieldConfig;
     }
@@ -154,46 +161,5 @@ public class BrAPIImportConfigManager {
 
         fieldConfig.setRelationOptions(relationConfigs);
         return fieldConfig;
-    }
-
-    private ImportFieldConfig constructListField(Field field) {
-        ImportFieldConfig fieldConfig = constructFieldConfig(field);
-        ImportType fieldType = field.getAnnotation(ImportType.class);
-        Class listType = fieldType.clazz();
-
-        // Get descriptions of the class
-        ImportFieldMetadata classMetadata = (ImportFieldMetadata) listType.getAnnotation(ImportFieldMetadata.class);
-        ImportObjectConfig listObject = new ImportObjectConfig();
-        listObject.setId(classMetadata.id());
-        listObject.setName(classMetadata.name());
-        listObject.setDescription(classMetadata.description());
-        List<ImportFieldConfig> fields = getObjectFields(listType);
-        listObject.setFields(fields);
-
-        fieldConfig.setListObject(listObject);
-
-        return fieldConfig;
-    }
-
-    public Optional<BrAPIImport> getTypeConfigById(String importTypeId) {
-
-        List<Class<?>> matchingImport = brAPIImports.stream().filter(brAPIImport -> {
-            ImportMetadata metadata = brAPIImport.getAnnotation(ImportMetadata.class);
-            return metadata != null & metadata.id().equals(importTypeId);
-        }).collect(Collectors.toList());
-
-        if (matchingImport.size() == 1) {
-            Class<?> importClass = matchingImport.get(0);
-            BrAPIImport brAPIImport;
-            try {
-                brAPIImport = (BrAPIImport) importClass.getDeclaredConstructor(null).newInstance();
-            } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                throw new InternalServerException(e.toString());
-            }
-
-            return Optional.of(brAPIImport);
-        } else {
-            return Optional.empty();
-        }
     }
 }
