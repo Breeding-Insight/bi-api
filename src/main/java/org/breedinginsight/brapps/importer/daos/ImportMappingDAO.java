@@ -22,6 +22,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.BrAPIMapping;
+import org.breedinginsight.brapps.importer.model.BrAPIMappingField;
 import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
 import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
@@ -59,8 +60,8 @@ public class ImportMappingDAO extends ImportMappingDao {
                     brAPIImportMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
                 }
                 if (importMappingEntity.getMapping() != null) {
-                    BrAPIMappingObject[] objects = objectMapper.readValue(importMappingEntity.getMapping().toString(), BrAPIMappingObject[].class);
-                    brAPIImportMapping.setObjects(Arrays.asList(objects));
+                    BrAPIMappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), BrAPIMappingField[].class);
+                    brAPIImportMapping.setMapping(Arrays.asList(mappingFields));
                 }
             } catch (ParsingException | JsonProcessingException e) {
                 throw new InternalServerException(e.toString());

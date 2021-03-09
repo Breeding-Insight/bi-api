@@ -35,7 +35,7 @@ public class BrAPIImportMapping {
     private UUID id;
     private String name;
     private String importTypeId;
-    private List<BrAPIMappingObject> objects;
+    private List<BrAPIMappingField> mapping;
     @JsonSerialize(converter = TableConverter.class)
     private Table file;
 

@@ -19,14 +19,14 @@ package org.breedinginsight.brapps.importer.model;
 
 import lombok.Getter;
 import lombok.Setter;
-
-import java.util.List;
+import org.breedinginsight.brapps.importer.model.config.ImportRelationType;
 
 @Getter
 @Setter
-public class BrAPIMappingField {
-    private String id;
-    private String objectId;
-    private BrAPIMappingValue value;
-    private List<BrAPIMappingField> mapping;
+public class BrAPIMappingValue {
+    private String fileFieldName;
+    private String constantValue;
+    private String fieldAlias;
+    private ImportRelationType relationValue;
+    private BrAPIMappingRelationship relationMap;
 }
