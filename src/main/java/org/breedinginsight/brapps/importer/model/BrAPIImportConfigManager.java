@@ -37,17 +37,23 @@ import java.util.stream.Collectors;
 @Singleton
 public class BrAPIImportConfigManager {
 
-    private Set<Class<?>> brAPIImports;
+    private Map<String, Class> brAPIImportsMap;
 
     BrAPIImportConfigManager() {
         // Get all imports
+        brAPIImportsMap = new HashMap<>();
         Reflections reflections = new Reflections("org.breedinginsight");
-        brAPIImports = reflections.getTypesAnnotatedWith(ImportMetadata.class);
+        Set<Class<?>> brAPIImports = reflections.getTypesAnnotatedWith(ImportMetadata.class);
+        for (Class brAPIImport: brAPIImports) {
+            ImportMetadata metadata = (ImportMetadata) brAPIImport.getAnnotation(ImportMetadata.class);
+            if (metadata == null) throw new InternalServerException("BrAPI File import config set up incorrectly.");
+            brAPIImportsMap.put(metadata.id(), brAPIImport);
+        }
     }
 
     public List<ImportConfig> getAllTypeConfigs() {
         List<ImportConfig> configs = new ArrayList<>();
-        for (Class brAPIImport: brAPIImports){
+        for (Class brAPIImport: brAPIImportsMap.values()){
             configs.add(getTypeConfig(brAPIImport));
         }
         return configs;
@@ -76,13 +82,8 @@ public class BrAPIImportConfigManager {
 
     public Optional<BrAPIImport> getTypeConfigById(String importTypeId) {
 
-        List<Class<?>> matchingImport = brAPIImports.stream().filter(brAPIImport -> {
-            ImportMetadata metadata = brAPIImport.getAnnotation(ImportMetadata.class);
-            return metadata != null & metadata.id().equals(importTypeId);
-        }).collect(Collectors.toList());
-
-        if (matchingImport.size() == 1) {
-            Class<?> importClass = matchingImport.get(0);
+        if (brAPIImportsMap.containsKey(importTypeId)) {
+            Class<?> importClass = brAPIImportsMap.get(importTypeId);
             BrAPIImport brAPIImport;
             try {
                 brAPIImport = (BrAPIImport) importClass.getDeclaredConstructor(null).newInstance();

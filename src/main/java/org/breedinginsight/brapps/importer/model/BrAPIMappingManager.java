@@ -18,25 +18,20 @@
 package org.breedinginsight.brapps.importer.model;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
-import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
-import java.beans.IntrospectionException;
-import java.beans.PropertyDescriptor;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -51,184 +46,175 @@ public class BrAPIMappingManager {
         this.configManager = configManager;
     }
 
-    public BrAPIImport map(BrAPIImportMapping importMapping) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(BrAPIImportMapping importMapping) throws UnprocessableEntityException {
 
-        if (importMapping.getObjects() == null) {
+        if (importMapping.getMapping() == null) {
             throw new NullPointerException("Mapping must be supplied");
         }
 
-        // Get the import type
-        Optional<BrAPIImport> brAPIImportOptional = configManager.getTypeConfigById(importMapping.getImportTypeId());
-
-        if (brAPIImportOptional.isEmpty()) {
-            throw new UnprocessableEntityException("Import type with that id does not exist.");
-        }
-
-        BrAPIImport brAPIImport = brAPIImportOptional.get();
-
         // Go through the file and do the mapping
         // Validity of mapping is checked during the mapping
+        List<BrAPIImport> brAPIImports = new ArrayList<>();
         for (int rowIndex = 0; rowIndex < importMapping.getFile().rowCount(); rowIndex++) {
+
+            Optional<BrAPIImport> brAPIImportOptional = configManager.getTypeConfigById(importMapping.getImportTypeId());
+
+            if (brAPIImportOptional.isEmpty()) {
+                throw new UnprocessableEntityException("Import type with that id does not exist.");
+            }
+
+            BrAPIImport brAPIImport = brAPIImportOptional.get();
 
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                // e.g germplasm, cross
-                //TODO: This can probably be consolidated. Its also used in the import config generation
-                //TODO: Should this be in the import class map method?
-                ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
-                        field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
-                ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
-
-                List<BrAPIMappingObject> matchedObjects = importMapping.getObjects().stream()
-                        .filter(objectMapping -> objectMapping.getObjectId().equals(metadata.id()))
-                        .collect(Collectors.toList());
-
-                if (matchedObjects.size() == 0 & required != null) {
-                    //TODO: Add to mapping validations for multiple error return
-                    throw new BadRequestException(String.format("Required field, %s was not passed", metadata.id()));
-                } //TODO: Continue in else
-
-                //TODO: Handle top level list types
-                if (matchedObjects.size() >= 1) {
-                    BrAPIMappingObject matchedObject = matchedObjects.get(0);
-
-                    // Make a new brapi object
-                    BrAPIObject brAPIObject;
-                    try {
-                        brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
-                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        //TODO: Change all these instances of this to carry e
-                        throw new InternalServerException(e.toString(), e);
-                    }
-
-                    //TODO: Catch all the errors from this
-                    mapObject(brAPIObject, matchedObject, metadata, importMapping.getFile(), rowIndex);
-
-                    // Assign to our import class
-                    try {
-                        //TODO: Check out BeanUtils library
-                        field.setAccessible(true);
-                        field.set(brAPIImport, brAPIObject);
-                        field.setAccessible(false);
-                    } catch (IllegalAccessException e) {
-                        throw new InternalServerException(e.toString(), e);
-                    }
-                }
+                mapField(brAPIImport, field, importMapping.getMapping(), importMapping.getFile(), rowIndex);
             }
 
+            brAPIImports.add(brAPIImport);
         }
 
-        return brAPIImport;
+        return brAPIImports;
     }
 
-    /* Maps the file to the object. Recurses down the object tree. */
-    private void mapObject(BrAPIObject brAPIObject, BrAPIMappingObject mapping,
-                                         ImportFieldMetadata objectMetadata, Table importFile, Integer rowIndex) throws UnprocessableEntityException {
+    private void mapField(Object parent, Field field, List<BrAPIMappingField> mappings, Table importFile, Integer rowIndex)
+            throws UnprocessableEntityException {
 
         Row focusRow = importFile.row(rowIndex);
-        Field[] fields = brAPIObject.getClass().getDeclaredFields();
-        for (Field field: fields) {
-            // eg. externalReferences, germplasmName
-            ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
-                    field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
-            ImportType type = field.getAnnotation(ImportType.class);
-            ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
+        // Process this field
+        ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
+                field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
+        ImportType type = field.getAnnotation(ImportType.class);
+        ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
 
-            // Check required field is present
-            // TODO: Separate into validation method to add other validations later on
-            if (required != null && !mapping.getFields().containsKey(metadata.id())) {
-                throw new UnprocessableEntityException(String.format(
-                        "Required field, %s.%s, not provided", objectMetadata.id(), metadata.id()));
-            } else if (required == null && !mapping.getFields().containsKey(metadata.id())) {
-                continue;
-            }
+        List<BrAPIMappingField> foundMappings = mappings.stream()
+                .filter(mappingField -> mappingField.getObjectId().equals(metadata.id())).collect(Collectors.toList());
 
-            // Map to the specific types of objects
-            BrAPIMappingField mappingField = mapping.getFields().get(metadata.id());
-            if (type == null) {
-                throw new InternalServerException("BrAPIObject is missing import type annotation");
-            }
-            if (type.type() == ImportFieldType.LIST) {
-                if (mappingField.getObjects() == null) {
-                    throw new BadRequestException("List type field is not properly formatted");
-                }
-
-                List<BrAPIObject> objectList = new ArrayList<>();
-                for (BrAPIMappingObject listObject: mappingField.getObjects()){
-
-                    //TODO: Move this into common function
-                    BrAPIObject listBrAPIObject;
-                    try {
-                        listBrAPIObject = (BrAPIObject) type.clazz().getDeclaredConstructor().newInstance();
-                    } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                        throw new InternalServerException(e.toString(), e);
-                    }
-                    mapObject(listBrAPIObject, listObject, metadata, importFile, rowIndex);
-                    objectList.add(listBrAPIObject);
-                }
-
-                try {
-                    field.setAccessible(true);
-                    field.set(brAPIObject, objectList);
-                    field.setAccessible(false);
-                } catch (IllegalAccessException e) {
-                    throw new InternalServerException(e.toString(), e);
-                }
-            } else if (type.type() == ImportFieldType.RELATIONSHIP) {
-                //TODO: For file lookup, find field in other rows
-                if (mappingField.getRelationMap() == null || mappingField.getRelationMap().getReference() == null ||
-                        mappingField.getRelationMap().getReference() == null
-                ) {
-                    throw new BadRequestException("Relationship field is not properly formatted");
-                }
-
-                ImportRelation relationship = new ImportRelation();
-                relationship.setType(mappingField.getRelationValue());
-                relationship.setTarget(mappingField.getRelationMap().getTarget());
-                relationship.setReference(mappingField.getRelationMap().getReference());
-                try {
-                    field.setAccessible(true);
-                    field.set(brAPIObject, relationship);
-                    field.setAccessible(false);
-                } catch (IllegalAccessException e) {
-                    throw new InternalServerException(e.toString(), e);
-                }
-
-            } else {
-                // It is a simple type
-                //TODO: Do some type checks here
-
-                // Check that request field is properly formatted
-                if (mappingField.getFileFieldName() == null && mappingField.getConstantValue() == null) {
-                    throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
-                }
-
-                // Check if the mapping passed a constant value or a mapped value
-                if (mappingField.getFileFieldName() != null) {
-                    // Check that the file as this name
-                    if (!focusRow.columnNames().contains(mappingField.getFileFieldName())) {
-                        throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", mappingField.getFileFieldName()));
-                    }
-                    String fileValue = focusRow.getString(mappingField.getFileFieldName());
-                    try {
-                        field.setAccessible(true);
-                        field.set(brAPIObject, fileValue);
-                        field.setAccessible(false);
-                    } catch (IllegalAccessException e) {
-                        throw new InternalServerException(e.toString(), e);
-                    }
-                } else if (mappingField.getConstantValue() != null){
-                    try {
-                        field.setAccessible(true);
-                        field.set(brAPIObject, mappingField.getConstantValue());
-                        field.setAccessible(false);
-                    } catch (IllegalAccessException e) {
-                        throw new InternalServerException(e.toString(), e);
-                    }
-                }
-
-            }
+        // Check required field is present
+        // TODO: Separate into validation method to add other validations later on
+        if (required != null && foundMappings.size() == 0) {
+            throw new UnprocessableEntityException(String.format(
+                    "Required field, %s, not provided", metadata.id()));
+        } else if (required == null && foundMappings.size() == 0) {
+            return;
         }
+
+        BrAPIMappingField matchedMapping = foundMappings.get(0);
+        if (type == null) {
+            throw new InternalServerException("BrAPIObject is missing import type annotation");
+        } else if (type.type() == ImportFieldType.OBJECT) {
+            BrAPIObject brAPIObject;
+            try {
+                brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
+                field.setAccessible(true);
+                field.set(parent, brAPIObject);
+                field.setAccessible(false);
+            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
+
+            List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
+            for (Field lowerField: fields) {
+                mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex);
+            }
+        } else if (type.type() == ImportFieldType.LIST) {
+            //TODO: Current can't handle primitive types, only BrAPIObject types
+            if (matchedMapping.getMapping() == null) {
+                throw new BadRequestException("List type field is not properly formatted");
+            }
+
+            List<BrAPIObject> updatedList = new ArrayList<>();
+            for (BrAPIMappingField listField: matchedMapping.getMapping()){
+
+                BrAPIObject newObject;
+                try {
+                    newObject = (BrAPIObject) type.clazz().getDeclaredConstructor().newInstance();
+                } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+                    throw new InternalServerException(e.toString(), e);
+                }
+
+                // Populate new object
+                List<Field> fields = Arrays.asList(newObject.getClass().getDeclaredFields());
+                for (Field lowerField: fields) {
+                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex);
+                }
+
+                field.setAccessible(true);
+                List<BrAPIObject> currentList;
+                try {
+                    currentList = (List<BrAPIObject>) field.get(parent);
+                } catch (IllegalAccessException e) {
+                    throw new InternalServerException(e.toString(), e);
+                }
+                if (currentList != null) updatedList.addAll(currentList);
+                else updatedList.add(newObject);
+            }
+
+            try {
+                field.setAccessible(true);
+                field.set(parent, updatedList);
+                field.setAccessible(false);
+            } catch (IllegalAccessException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
+        } else if (type.type() == ImportFieldType.RELATIONSHIP) {
+            //TODO: For file lookup, find field in other rows, maybe?
+
+            if (matchedMapping.getValue() == null ||
+                    matchedMapping.getValue().getRelationMap() == null ||
+                    matchedMapping.getValue().getRelationMap().getReference() == null ||
+                    matchedMapping.getValue().getRelationMap().getReference() == null
+            ) {
+                throw new BadRequestException("Relationship field is not properly formatted");
+            }
+
+            BrAPIMappingValue value = matchedMapping.getValue();
+            ImportRelation relationship = new ImportRelation();
+            relationship.setType(value.getRelationValue());
+            relationship.setTarget(value.getRelationMap().getTarget());
+            relationship.setReference(value.getRelationMap().getReference());
+            try {
+                field.setAccessible(true);
+                field.set(parent, relationship);
+                field.setAccessible(false);
+            } catch (IllegalAccessException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
+        } else {
+            // It is a simple type
+            //TODO: Do some type checks here
+
+            // Check that request field is properly formatted
+            if (matchedMapping.getValue() == null ||
+                    (matchedMapping.getValue().getFileFieldName() == null && matchedMapping.getValue().getConstantValue() == null)) {
+                throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
+            }
+
+            // Check if the mapping passed a constant value or a mapped value
+            if (matchedMapping.getValue().getFileFieldName() != null) {
+                // Check that the file as this name
+                if (!focusRow.columnNames().contains(matchedMapping.getValue().getFileFieldName())) {
+                    throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", matchedMapping.getValue().getFileFieldName()));
+                }
+                String fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
+                try {
+                    field.setAccessible(true);
+                    field.set(parent, fileValue);
+                    field.setAccessible(false);
+                } catch (IllegalAccessException e) {
+                    throw new InternalServerException(e.toString(), e);
+                }
+            } else if (matchedMapping.getValue().getConstantValue() != null){
+                try {
+                    field.setAccessible(true);
+                    field.set(parent, matchedMapping.getValue().getConstantValue());
+                    field.setAccessible(false);
+                } catch (IllegalAccessException e) {
+                    throw new InternalServerException(e.toString(), e);
+                }
+            }
+
+        }
+
     }
 }

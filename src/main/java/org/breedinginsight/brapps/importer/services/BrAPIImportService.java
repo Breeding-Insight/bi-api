@@ -195,7 +195,7 @@ public class BrAPIImportService {
         // Save the mapping
         String json = null;
         try {
-            json = objectMapper.writeValueAsString(mappingRequest.getObjects());
+            json = objectMapper.writeValueAsString(mappingRequest.getMapping());
         } catch(JsonProcessingException e) {
             log.error("Problem converting traits json", e);
             // If we didn't catch this in parsing to the class, this is a server error
