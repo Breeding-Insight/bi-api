@@ -42,7 +42,7 @@ public class BrAPIImportConfigManager {
     BrAPIImportConfigManager() {
         // Get all imports
         brAPIImportsMap = new HashMap<>();
-        Reflections reflections = new Reflections("org.breedinginsight");
+        Reflections reflections = new Reflections("");
         Set<Class<?>> brAPIImports = reflections.getTypesAnnotatedWith(ImportMetadata.class);
         for (Class brAPIImport: brAPIImports) {
             ImportMetadata metadata = (ImportMetadata) brAPIImport.getAnnotation(ImportMetadata.class);
