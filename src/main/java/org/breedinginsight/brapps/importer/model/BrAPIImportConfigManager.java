@@ -153,7 +153,7 @@ public class BrAPIImportConfigManager {
             relationConfig.setDescription(!relation.description().isEmpty() ? relation.description() : relation.type().getDefaultDescription());
 
             // Relation type specific logic
-            if (relation.type() == ImportRelationType.DB_LOOKUP) {
+            if (relation.type() == ImportRelationType.DB_LOOKUP || relation.type() == ImportRelationType.DB_LOOKUP_CONSTANT_VALUE) {
                 relationConfig.setImportFields(relation.importFields());
             }
 
