@@ -46,7 +46,7 @@ public class BrAPIMappingManager {
         this.configManager = configManager;
     }
 
-    public List<BrAPIImport> map(BrAPIImportMapping importMapping) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(BrAPIImportMapping importMapping, Table data) throws UnprocessableEntityException {
 
         if (importMapping.getMapping() == null) {
             throw new NullPointerException("Mapping must be supplied");
@@ -55,7 +55,7 @@ public class BrAPIMappingManager {
         // Go through the file and do the mapping
         // Validity of mapping is checked during the mapping
         List<BrAPIImport> brAPIImports = new ArrayList<>();
-        for (int rowIndex = 0; rowIndex < importMapping.getFile().rowCount(); rowIndex++) {
+        for (int rowIndex = 0; rowIndex < data.rowCount(); rowIndex++) {
 
             Optional<BrAPIImport> brAPIImportOptional = configManager.getTypeConfigById(importMapping.getImportTypeId());
 
@@ -68,7 +68,7 @@ public class BrAPIMappingManager {
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMapping(), importMapping.getFile(), rowIndex);
+                mapField(brAPIImport, field, importMapping.getMapping(), data, rowIndex);
             }
 
             brAPIImports.add(brAPIImport);
