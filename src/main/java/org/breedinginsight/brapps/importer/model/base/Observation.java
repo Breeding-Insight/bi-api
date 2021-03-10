@@ -45,6 +45,7 @@ public class Observation implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.RELATIONSHIP)
     @ImportFieldRelations(relations={
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"traitId", "traitName"}),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP_CONSTANT_VALUE, importFields={"traitId", "traitName"})
     })
     @ImportFieldMetadata(id="trait", name="Trait",
