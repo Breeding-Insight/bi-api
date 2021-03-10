@@ -17,5 +17,8 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import tech.tablesaw.api.Table;
+
 public interface BrAPIImport {
+    void process(BrAPIImport brAPIImport, Table data);
 }

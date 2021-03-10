@@ -20,10 +20,8 @@ package org.breedinginsight.brapps.importer.daos;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.BrAPIMapping;
-import org.breedinginsight.brapps.importer.model.BrAPIMappingField;
-import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
+import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingField;
 import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -33,10 +31,7 @@ import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class ImportMappingDAO extends ImportMappingDao {
@@ -54,22 +49,41 @@ public class ImportMappingDAO extends ImportMappingDao {
     public Optional<BrAPIImportMapping> getMapping(UUID id) {
         ImportMappingEntity importMappingEntity = fetchOneById(id);
         if (importMappingEntity != null) {
-            BrAPIImportMapping brAPIImportMapping = new BrAPIImportMapping(importMappingEntity);
-            try {
-                if (importMappingEntity.getFile() != null){
-                    brAPIImportMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
-                }
-                if (importMappingEntity.getMapping() != null) {
-                    BrAPIMappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), BrAPIMappingField[].class);
-                    brAPIImportMapping.setMapping(Arrays.asList(mappingFields));
-                }
-            } catch (ParsingException | JsonProcessingException e) {
-                throw new InternalServerException(e.toString());
-            }
-
+            BrAPIImportMapping brAPIImportMapping = parseBrAPIImportMapping(importMappingEntity);
             return Optional.of(brAPIImportMapping);
         } else {
             return Optional.empty();
         }
+    }
+
+    public List<BrAPIImportMapping> getAllMappings(UUID programId, Boolean draft) {
+
+        List<ImportMappingEntity> importMappingEntities = fetchByDraft(draft);
+        List<BrAPIImportMapping> importMappings = new ArrayList<>();
+        for (ImportMappingEntity importMappingEntity: importMappingEntities) {
+            if (importMappingEntity.getProgramId().equals(programId)) {
+                BrAPIImportMapping brAPIImportMapping = parseBrAPIImportMapping(importMappingEntity);
+                importMappings.add(brAPIImportMapping);
+            }
+        }
+        return importMappings;
+    }
+
+    private BrAPIImportMapping parseBrAPIImportMapping(ImportMappingEntity importMappingEntity) {
+
+        BrAPIImportMapping brAPIImportMapping = new BrAPIImportMapping(importMappingEntity);
+        try {
+            if (importMappingEntity.getFile() != null){
+                brAPIImportMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
+            }
+            if (importMappingEntity.getMapping() != null) {
+                BrAPIMappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), BrAPIMappingField[].class);
+                brAPIImportMapping.setMapping(Arrays.asList(mappingFields));
+            }
+        } catch (ParsingException | JsonProcessingException e) {
+            throw new InternalServerException(e.toString());
+        }
+
+        return brAPIImportMapping;
     }
 }

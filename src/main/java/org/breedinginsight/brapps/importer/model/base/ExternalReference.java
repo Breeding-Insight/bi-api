@@ -17,12 +17,15 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
+import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
+@Getter
+@Setter
 @NoArgsConstructor
 @ImportFieldMetadata(id="ExternalReference", name="External Reference",
         description = "An object that tracks connections to external data sets.")
