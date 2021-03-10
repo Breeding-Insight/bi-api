@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
@@ -34,6 +35,7 @@ import java.util.List;
 public class Germplasm implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldRequired
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
     private String germplasmName;
 

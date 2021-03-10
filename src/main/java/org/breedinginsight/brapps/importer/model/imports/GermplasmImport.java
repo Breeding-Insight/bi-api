@@ -29,7 +29,7 @@ import tech.tablesaw.api.Table;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportMetadata(id="GermplasmImport", name="Germplasm",
+@ImportMetadata(id="GermplasmImport", name="Germplasm Import",
         description = "This import is used to import germplasm and to create crosses to connect germplasm together in order to construct a pedigree.")
 public class GermplasmImport implements BrAPIImport {
 

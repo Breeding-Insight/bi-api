@@ -30,7 +30,7 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportMetadata(id="ObservationsImport", name="Observations",
+@ImportMetadata(id="ObservationsImport", name="Observations Import",
         description = "This import is used to import observations.")
 public class ObservationsImport implements BrAPIImport {
 
