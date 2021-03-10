@@ -25,7 +25,7 @@ import org.breedinginsight.brapps.importer.model.config.*;
 @Setter
 @ImportFieldMetadata(id="Observation", name="Observation",
         description = "An observation object is data that is collected on a trait for a given object being observed.")
-public class Observation {
+public class Observation implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.RELATIONSHIP)
     @ImportFieldRelations(relations={
@@ -37,17 +37,25 @@ public class Observation {
 
     @ImportType(type= ImportFieldType.RELATIONSHIP)
     @ImportFieldRelations(relations={
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"studyDbId", "studyName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"observationUnitDbId", "observationName"})
     })
     @ImportFieldMetadata(id="observationUnit", name="Observation Unit",
             description = "Observation unit that the observation is taken on.")
     private ImportRelation observationUnit;
+
+    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldRelations(relations={
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP_CONSTANT_VALUE, importFields={"traitId", "traitName"})
+    })
+    @ImportFieldMetadata(id="trait", name="Trait",
+            description = "Trait that the observation is recording.")
+    private ImportRelation trait;
 
     @ImportType(type= ImportFieldType.TEXT)
     @ImportFieldMetadata(id="value", name="Observation Value", description = "Value of the observation.")
     private String value;
 
     @ImportType(type= ImportFieldType.DATE)
-    @ImportFieldMetadata(id="observationDate", name="Germplasm Name", description = "Date that the observation was taken.")
+    @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
     private String observationDate;
 }

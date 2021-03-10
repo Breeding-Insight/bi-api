@@ -83,9 +83,16 @@ public class BrAPIMappingManager {
 
         Row focusRow = importFile.row(rowIndex);
         // Process this field
-        ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
-                field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
         ImportType type = field.getAnnotation(ImportType.class);
+        ImportFieldMetadata metadata;
+        if (type.type() != ImportFieldType.LIST) {
+            metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
+                    field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
+        } else {
+            metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
+                    field.getAnnotation(ImportFieldMetadata.class) : (ImportFieldMetadata) type.clazz().getAnnotation(ImportFieldMetadata.class);
+        }
+
         ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
 
         List<BrAPIMappingField> foundMappings = new ArrayList<>();
@@ -198,8 +205,12 @@ public class BrAPIMappingManager {
             //TODO: Do some type checks here
 
             // Check that request field is properly formatted
-            if (matchedMapping.getValue() == null ||
-                    (matchedMapping.getValue().getFileFieldName() == null && matchedMapping.getValue().getConstantValue() == null)) {
+            if (required != null && matchedMapping.getValue() == null) {
+                throw new UnprocessableEntityException(String.format("Field %s is required", metadata.name()));
+            } else if (required == null && matchedMapping.getValue() == null) {
+                return;
+            } else if (matchedMapping.getValue() != null &&
+                    matchedMapping.getValue().getFileFieldName() == null && matchedMapping.getValue().getConstantValue() == null){
                 throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
             }
 

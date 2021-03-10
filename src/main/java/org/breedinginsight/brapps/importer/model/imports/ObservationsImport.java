@@ -17,18 +17,28 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.base.Observation;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
+import tech.tablesaw.api.Table;
 
 import java.util.List;
 
+@Getter
+@Setter
 @NoArgsConstructor
 @ImportMetadata(id="ObservationsImport", name="Observations",
         description = "This import is used to import observations.")
-public class ObservationsImport {
+public class ObservationsImport implements BrAPIImport {
 
     @ImportType(type = ImportFieldType.LIST, clazz = Observation.class)
     List<Observation> observations;
+
+    @Override
+    public void process(BrAPIImport brAPIImport, Table data) {
+
+    }
 }
