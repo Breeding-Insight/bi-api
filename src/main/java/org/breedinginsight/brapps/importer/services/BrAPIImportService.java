@@ -25,9 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.BrAPIMapping;
-import org.breedinginsight.brapps.importer.model.BrAPIMappingManager;
+import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingManager;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.services.ProgramService;
@@ -45,7 +45,7 @@ import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.rmi.ServerException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -185,11 +185,9 @@ public class BrAPIImportService {
         }
         BrAPIImportMapping importMapping = optionalImportMapping.get();
 
-        mappingRequest.setFile(importMapping.getFile());
-
         // If validate is true, validate the mapping
         if (validate) {
-            mappingManager.map(mappingRequest);
+            mappingManager.map(mappingRequest, importMapping.getFile());
         }
 
         // Save the mapping
@@ -206,12 +204,67 @@ public class BrAPIImportService {
         importMappingEntity.setName(mappingRequest.getName());
         importMappingEntity.setImportTypeId(mappingRequest.getImportTypeId());
         importMappingEntity.setMapping(JSONB.valueOf(json));
+        importMappingEntity.setDraft(mappingRequest.getDraft());
         importMappingDAO.update(importMappingEntity);
 
-        return importMapping;
+        Optional<BrAPIImportMapping> updatedMapping = importMappingDAO.getMapping(importMappingEntity.getId());
+
+        return updatedMapping.get();
     }
 
     public Boolean exists(UUID mappingId) {
         return importMappingDAO.existsById(mappingId);
+    }
+
+    public List<BrAPIImport> uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
+            throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpBadRequestException, UnprocessableEntityException {
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
+            throw new AuthorizationException("User not in program");
+        }
+
+        // Find the mapping
+        Optional<BrAPIImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
+        if (optionalMapping.isEmpty()) {
+            throw new DoesNotExistException("Mapping with that id does not exist");
+        }
+        BrAPIImportMapping importMapping = optionalMapping.get();
+
+        // Read the file
+        //TODO: Get better errors on this
+        Table data = parseUploadedFile(file);
+
+        //TODO: Get better errors on this
+        List<BrAPIImport> brAPIImportList = mappingManager.map(importMapping, data);
+
+        if (commit) {
+            for (BrAPIImport brAPIImport: brAPIImportList) {
+                brAPIImport.process(brAPIImport, data);
+            }
+        }
+
+        return brAPIImportList;
+    }
+
+    public List<BrAPIImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)
+            throws DoesNotExistException, AuthorizationException {
+
+        if (!programService.exists(programId))
+        {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
+            throw new AuthorizationException("User not in program");
+        }
+
+        List<BrAPIImportMapping> brAPIImportMappings = importMappingDAO.getAllMappings(programId, draft);
+
+        return brAPIImportMappings;
     }
 }

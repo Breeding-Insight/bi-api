@@ -15,11 +15,10 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+package org.breedinginsight.brapps.importer.model.config;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 
 import java.util.List;
 

@@ -22,9 +22,9 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
-import org.breedinginsight.brapps.importer.model.response.ImportConfig;
-import org.breedinginsight.brapps.importer.model.response.ImportFieldConfig;
-import org.breedinginsight.brapps.importer.model.response.ImportRelationOptionConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportRelationOptionConfig;
 import org.reflections.Reflections;
 
 import javax.inject.Singleton;

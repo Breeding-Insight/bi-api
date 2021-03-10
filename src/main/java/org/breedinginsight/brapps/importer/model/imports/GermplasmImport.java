@@ -17,14 +17,17 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.base.Cross;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
+import tech.tablesaw.api.Table;
 
-import java.util.List;
-
+@Getter
+@Setter
 @NoArgsConstructor
 @ImportMetadata(id="GermplasmImport", name="Germplasm",
         description = "This import is used to import germplasm and to create crosses to connect germplasm together in order to construct a pedigree.")
@@ -35,8 +38,8 @@ public class GermplasmImport implements BrAPIImport {
     @ImportType(type = ImportFieldType.OBJECT)
     private Cross cross;
 
-    // Create brapi objects
-    public void process(List<GermplasmImport> germplasmImport) {
-        //TODO: Manual stuff in here
+    @Override
+    public void process(BrAPIImport brAPIImport, Table data) {
+
     }
 }

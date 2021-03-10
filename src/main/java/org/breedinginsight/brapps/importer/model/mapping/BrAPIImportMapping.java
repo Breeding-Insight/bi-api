@@ -15,12 +15,13 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model;
+package org.breedinginsight.brapps.importer.model.mapping;
 
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.breedinginsight.brapps.importer.model.TableConverter;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 
 import tech.tablesaw.api.Table;
@@ -38,11 +39,13 @@ public class BrAPIImportMapping {
     private List<BrAPIMappingField> mapping;
     @JsonSerialize(converter = TableConverter.class)
     private Table file;
+    private Boolean draft;
 
 
     public BrAPIImportMapping(ImportMappingEntity importMappingEntity) {
         this.id = importMappingEntity.getId();
         this.name = importMappingEntity.getName();
         this.importTypeId = importMappingEntity.getImportTypeId();
+        this.draft = importMappingEntity.getDraft();
     }
 }

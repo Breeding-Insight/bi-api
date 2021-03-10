@@ -15,9 +15,10 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model;
+package org.breedinginsight.brapps.importer.model.mapping;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -87,8 +88,11 @@ public class BrAPIMappingManager {
         ImportType type = field.getAnnotation(ImportType.class);
         ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
 
-        List<BrAPIMappingField> foundMappings = mappings.stream()
-                .filter(mappingField -> mappingField.getObjectId().equals(metadata.id())).collect(Collectors.toList());
+        List<BrAPIMappingField> foundMappings = new ArrayList<>();
+        if (mappings != null) {
+             foundMappings = mappings.stream()
+                    .filter(mappingField -> mappingField.getObjectId().equals(metadata.id())).collect(Collectors.toList());
+        }
 
         // Check required field is present
         // TODO: Separate into validation method to add other validations later on
@@ -119,8 +123,12 @@ public class BrAPIMappingManager {
             }
         } else if (type.type() == ImportFieldType.LIST) {
             //TODO: Current can't handle primitive types, only BrAPIObject types
-            if (matchedMapping.getMapping() == null) {
-                throw new BadRequestException("List type field is not properly formatted");
+
+            if (matchedMapping.getMapping() == null && required != null) {
+                throw new UnprocessableEntityException(String.format(
+                        "List field, %s, contains no entries", metadata.id()));
+            } else if (matchedMapping.getMapping() == null) {
+                return;
             }
 
             List<BrAPIObject> updatedList = new ArrayList<>();
@@ -160,11 +168,16 @@ public class BrAPIMappingManager {
         } else if (type.type() == ImportFieldType.RELATIONSHIP) {
             //TODO: For file lookup, find field in other rows, maybe?
 
-            if (matchedMapping.getValue() == null ||
-                    matchedMapping.getValue().getRelationMap() == null ||
-                    matchedMapping.getValue().getRelationMap().getReference() == null ||
-                    matchedMapping.getValue().getRelationMap().getReference() == null
-            ) {
+            if (required != null && (matchedMapping.getValue() == null ||
+                    matchedMapping.getValue().getRelationMap() == null)) {
+                throw new UnprocessableEntityException(String.format("Relationship field %s is required", metadata.name()));
+
+            } else if (matchedMapping.getValue() == null || matchedMapping.getValue().getRelationMap() == null) {
+                return;
+
+            } else if (matchedMapping.getValue().getRelationMap().getReference() == null ||
+                    matchedMapping.getValue().getRelationMap().getReference() == null)
+            {
                 throw new BadRequestException("Relationship field is not properly formatted");
             }
 

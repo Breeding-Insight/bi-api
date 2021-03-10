@@ -21,7 +21,6 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
-import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -36,11 +35,10 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.brapps.importer.model.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.BrAPIMapping;
-import org.breedinginsight.model.ProgramUpload;
+import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
-import org.breedinginsight.brapps.importer.model.response.ImportConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.services.BrAPIImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -48,7 +46,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 
 import javax.inject.Inject;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -78,11 +75,38 @@ public class ImportController {
         //TODO: Add actual page size
         List<Status> metadataStatus = new ArrayList<>();
         metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        Pagination pagination = new Pagination(1, 1, 1, 0);
+        Pagination pagination = new Pagination(configs.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
         Response<DataResponse<ImportConfig>> response = new Response(metadata, new DataResponse<>(configs));
         return HttpResponse.ok(response);
+    }
+
+    @Get("/programs/{programId}/import/mapping{?draft")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<BrAPIImportMapping>>> getMappings(@PathVariable UUID programId,
+                                                                                @QueryValue(defaultValue = "false") Boolean draft) {
+
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            List<BrAPIImportMapping> result = brAPIImportService.getAllMappings(programId, actingUser, draft);
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            Pagination pagination = new Pagination(result.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+
+            Response<DataResponse<BrAPIImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        }
+
     }
 
     @Post("/programs/{programId}/import/mapping/file")
@@ -119,7 +143,7 @@ public class ImportController {
     @Secured(SecurityRule.IS_ANONYMOUS)
     public HttpResponse<Response<BrAPIImportMapping>> editMappingFile(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                                   @Part("file") CompletedFileUpload file,
-                                                                  @QueryValue(defaultValue="true") Boolean validate) throws IOException {
+                                                                  @QueryValue(defaultValue="true") Boolean validate) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             BrAPIImportMapping result = brAPIImportService.updateMappingFile(programId, mappingId, actingUser, file);
@@ -171,6 +195,42 @@ public class ImportController {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         }
 
+    }
+
+    @Post("programs/{programId}/import/mapping/{mappingId}/data{?commit}")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<BrAPIImport>>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                      @Part("file") CompletedFileUpload file,
+                                                                      @QueryValue(defaultValue="false") Boolean commit) {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            List<BrAPIImport> result = brAPIImportService.uploadData(programId, mappingId, actingUser, file, commit);
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            Pagination pagination = new Pagination(result.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+
+            Response<DataResponse<BrAPIImport>> response = new Response(metadata, new DataResponse<>(result));
+            return HttpResponse.ok(response);
+        } catch (HttpBadRequestException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (AuthorizationException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
+        } catch (UnsupportedTypeException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
+        } catch (UnprocessableEntityException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        }
     }
 
 

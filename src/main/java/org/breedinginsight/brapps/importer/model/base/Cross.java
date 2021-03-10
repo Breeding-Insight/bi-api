@@ -17,10 +17,13 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import lombok.Getter;
 import lombok.NoArgsConstructor;
-import org.breedinginsight.brapps.importer.model.BrAPIMappingObject;
+import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.config.*;
 
+@Getter
+@Setter
 @NoArgsConstructor
 @ImportFieldMetadata(id="Cross", name="Cross",
         description = "A cross connects two germplasm objects to form a pedigree.")

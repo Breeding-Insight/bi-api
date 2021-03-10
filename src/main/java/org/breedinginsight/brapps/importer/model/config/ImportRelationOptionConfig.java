@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+package org.breedinginsight.brapps.importer.model.config;
 
 import lombok.Getter;
 import lombok.Setter;
