@@ -35,6 +35,7 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.model.Editable;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
@@ -116,6 +117,18 @@ public class TraitController {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         }
+
+    }
+
+    @Get("/programs/{programId}/traits/{traitId}/editable")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<Editable>> getTraitEditable(@PathVariable UUID programId, @PathVariable UUID traitId) {
+
+        Editable editable = traitService.getEditable(programId, traitId);
+        Response<Editable> response = new Response<>(editable);
+        return HttpResponse.ok(response);
 
     }
 

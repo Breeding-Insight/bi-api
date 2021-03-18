@@ -17,16 +17,23 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.ObservationQueryParams;
+import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.Optional;
+
+import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
+import static org.breedinginsight.utilities.Utilities.handleBrapiSearchResponse;
 
 public class ObservationDAO {
     private BrAPIProvider brAPIProvider;
@@ -50,4 +57,23 @@ public class ObservationDAO {
         return brapiObservations.getBody().getResult().getData();
     }
 
+    // search by ObservationVariableDbIds
+    public List<BrAPIObservation> getObservationsByVariableDbIds(List<String> observationVariableDbIds) {
+
+        ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiObservations;
+        BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
+                .observationVariableDbIds(observationVariableDbIds);
+        try {
+            brapiObservations = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO).searchObservationsPost(request);
+
+            BrAPIObservationListResponse response = handleBrapiSearchResponse(brapiObservations,
+                    (searchId) -> brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO)
+                    .searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchId, 0, 1000));
+
+            return response.getResult().getData();
+
+        } catch (ApiException e) {
+            throw new InternalServerException("Error making BrAPI call", e);
+        }
+    }
 }

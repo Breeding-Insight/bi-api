@@ -39,6 +39,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
 import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
@@ -200,6 +201,44 @@ public class TraitDAO extends TraitDao {
         return Optional.of(dbTrait);
     }
 
+    public List<BrAPIObservation> getObservationsForTrait(UUID traitId) {
+        return getObservationsForTraits(Stream.of(traitId).collect(Collectors.toList()));
+    }
+
+    public List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds) {
+
+        Set<String> ids = traitIds.stream()
+                .map(trait -> trait.toString())
+                .collect(Collectors.toSet());
+
+        // get observationVariableDbIds for traits
+        List<BrAPIObservationVariable> variables = getBrAPIVariables(brAPIProvider.getVariablesAPI(PHENO));
+
+        // create list of observationVariableDbIds for all externalReferenceIds
+        HashMap<String, String> map = new HashMap<>();
+        variables.stream().forEach(
+            variable -> {
+                Optional<String> referenceId = variable.getExternalReferences().stream()
+                        .filter(ref -> ref.getReferenceSource().equals(referenceSource) &&
+                                       ids.contains(ref.getReferenceID()))
+                        .findFirst()
+                        .map(ref -> ref.getReferenceID());
+
+                referenceId.ifPresent(refId ->
+                    map.put(refId, variable.getObservationVariableDbId())
+                );
+            }
+        );
+
+        // brapi variables have all trait ids
+        if (!map.keySet().containsAll(ids)) {
+            //TODO problem
+        }
+
+        List<BrAPIObservation> observations = observationDao.getObservationsByVariableDbIds(new ArrayList<>(map.values()));
+        return observations;
+    }
+
     public Optional<Trait> getTrait(UUID programId, UUID traitId) {
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
@@ -342,12 +381,13 @@ public class TraitDAO extends TraitDao {
 
         return createdTraits;
     }
-
+/*
     public List<BrAPIObservation> getObservationsForTrait(Trait trait) {
         // check if variable has any observations associated with it to see if updating is allowed
         BrAPIObservationVariable variable = getBrAPIVariable(brAPIProvider.getVariablesAPI(PHENO), trait.getId());
         return observationDao.getObservationsByVariableDbId(variable.getObservationVariableDbId());
     }
+*/
 
     public Trait updateTraitBrAPI(Trait trait, Program program) {
 
@@ -409,6 +449,21 @@ public class TraitDAO extends TraitDao {
         }
 
         return updatedTrait;
+    }
+
+    private List<BrAPIObservationVariable> getBrAPIVariables(ObservationVariablesApi variablesAPI) {
+        List<BrAPIObservationVariable> variableList = new ArrayList<>();
+        try {
+            VariableQueryParams queryParams = new VariableQueryParams();
+            queryParams.externalReferenceSource(referenceSource);
+            ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
+                    variablesAPI.variablesGet(queryParams);
+            variableList = existingVariableResponse.getBody().getResult().getData();
+        } catch (ApiException e) {
+            throw new InternalServerException("Error getting variables from brapi service");
+        }
+
+        return variableList;
     }
 
     private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {
