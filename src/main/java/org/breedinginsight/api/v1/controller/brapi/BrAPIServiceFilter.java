@@ -96,6 +96,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                             brAPIClientProvider.setPhenoClient(phenoUrl);
                             String genoUrl = getGenoUrl(programBrAPIEndpoints);
                             brAPIClientProvider.setGenoClient(genoUrl);
+
                             return chain.proceed(request);
                         } else {
                             // We shouldn't get here

@@ -25,6 +25,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
+import org.breedinginsight.brapps.importer.model.config.ImportConfig;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingManager;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -49,10 +52,11 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
-public class BrAPIImportService {
+public class BrAPIFileImportService {
 
     private ProgramUserService programUserService;
     private ProgramService programService;
@@ -60,18 +64,24 @@ public class BrAPIImportService {
     private ImportMappingDAO importMappingDAO;
     private ObjectMapper objectMapper;
     private BrAPIMappingManager mappingManager;
+    private BrAPIImportConfigManager configManager;
 
     @Inject
-    BrAPIImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
-                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, BrAPIMappingManager mappingManager) {
+    BrAPIFileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
+                           ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, BrAPIMappingManager mappingManager,
+                           BrAPIImportConfigManager configManager) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
         this.importMappingDAO = importMappingDAO;
         this.objectMapper = objectMapper;
         this.mappingManager = mappingManager;
+        this.configManager = configManager;
     }
 
+    public List<ImportConfig> getAllImportTypeConfigs() {
+        return configManager.getAllImportTypeConfigs();
+    }
     /*
         Saves the file for the mapping record
      */
@@ -237,6 +247,12 @@ public class BrAPIImportService {
         }
         BrAPIImportMapping importMapping = optionalMapping.get();
 
+        Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTypeId());
+        if (optionalImportService.isEmpty()) {
+            throw new DoesNotExistException("Config with that id does not exist");
+        }
+        BrAPIImportService importService = optionalImportService.get();
+
         // Read the file
         //TODO: Get better errors on this
         Table data = parseUploadedFile(file);
@@ -246,7 +262,7 @@ public class BrAPIImportService {
 
         if (commit) {
             //TODO: Make this static if we can
-            brAPIImportList.get(0).getImportService().process(brAPIImportList, data);
+            importService.process(brAPIImportList, data);
         }
 
         return brAPIImportList;

@@ -21,6 +21,11 @@ import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.core.ServerInfoApi;
+import org.brapi.client.v2.modules.germplasm.CrossesApi;
+import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.client.v2.modules.germplasm.GermplasmAttributeValuesApi;
+import org.brapi.client.v2.modules.germplasm.GermplasmAttributesApi;
+import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.client.v2.modules.phenotype.TraitsApi;
 
@@ -54,6 +59,36 @@ public class BrAPIProvider {
     public ServerInfoApi getServerInfoAPI(BrAPIClientType clientType) {
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
         return new ServerInfoApi(brAPIClient);
+    }
+
+    public GermplasmApi getGermplasmApi(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new GermplasmApi(brAPIClient);
+    }
+
+    public GermplasmAttributesApi getGermplasmAttributesApi(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new GermplasmAttributesApi(brAPIClient);
+    }
+
+    public GermplasmAttributeValuesApi getGermplasmAttributeValuesApi(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new GermplasmAttributeValuesApi(brAPIClient);
+    }
+
+    public ObservationUnitsApi getObservationUnitApi(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new ObservationUnitsApi(brAPIClient);
+    }
+
+    public LocationsApi getLocationsApi(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new LocationsApi(brAPIClient);
+    }
+
+    public CrossesApi getCrossesApi(BrAPIClientType clientType) {
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new CrossesApi(brAPIClient);
     }
 
     public List<ObservationVariablesApi> getAllUniqueVariablesAPI(){

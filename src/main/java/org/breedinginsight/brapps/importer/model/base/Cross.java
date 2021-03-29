@@ -22,6 +22,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.config.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -30,16 +32,39 @@ import org.breedinginsight.brapps.importer.model.config.*;
 public class Cross implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldMetadata(id="crossName", name="Cross Name",
-            description = "Name of the cross.")
+    @ImportFieldMetadata(id="crossName", name="Cross Name", description = "Name of the cross. Defaults to parent germplasm names if not provided.")
     private String crossName;
 
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="crossType", name="Cross Type", description = "Type of cross. Example: BIPARENTAL.")
+    private String crossType;
+
     @ImportType(type= ImportFieldType.RELATIONSHIP)
-    @ImportFieldRelations(relations={
+    @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"germplasmDbId"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP),
     })
-    @ImportFieldMetadata(id="femaleParent", name="Female Parent",
-            description = "Name of the cross.")
+    @ImportFieldRequired
+    @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
     private ImportRelation femaleParent;
+
+    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldRelations(relations = {
+            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP),
+    })
+    @ImportFieldMetadata(id="maleParent", name="Male Parent", description = "The male parent of the germplasm. Can be left blank for self crosses.")
+    private ImportRelation maleParent;
+
+    @ImportType(type= ImportFieldType.DATE)
+    @ImportFieldMetadata(id="crossDateTime", name="Cross Date Time", description = "The date-time that the cross took place.")
+    private String crossDateTime;
+
+    @ImportType(type= ImportFieldType.LIST, clazz = CrossAttribute.class)
+    private List<AdditionalInfo> crossAttributes;
+
+    @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
+    @ImportFieldMetadata(id="externalReferences", name="External References",
+            description = "External references to track external IDs.")
+    private List<ExternalReference> externalReferences;
 }

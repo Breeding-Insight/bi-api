@@ -17,32 +17,53 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmAttribute;
+import org.brapi.v2.model.germ.BrAPIGermplasmAttributeValue;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmAttributeSearchRequest;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmAttributeListResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitPosition;
+import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
+import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.breedinginsight.brapps.importer.model.base.Cross;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
+import org.breedinginsight.brapps.importer.model.base.GermplasmAttribute;
 import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
+import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
+import java.beans.Transient;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
 @NoArgsConstructor
 @ImportMetadata(id="PedigreeImport", name="Pedigree Import",
         description = "This import is used to create a pedigree history by importing germplasm and observation units.")
-public class GermplasmImport implements BrAPIImport {
-    private BrAPIProvider brAPIProvider;
+public class PedigreeImport implements BrAPIImport {
+    private PedigreeImportService importService;
 
     @ImportType(type = ImportFieldType.OBJECT)
     private Germplasm germplasm;
@@ -56,30 +77,7 @@ public class GermplasmImport implements BrAPIImport {
     //TODO: Make an @ImportIgnore annotation
 
     @Inject
-    public PedigreeImport(BrAPIProvider brAPIProvider) {
-        this.brAPIProvider = brAPIProvider;
-    }
-    @Override
-    public void process(BrAPIImport brAPIImport, Table data) {
-
-        // Get our endpoint to push to
-        ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
-        try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
-        } catch (ApiException e) {
-            throw new InternalServerException("Error making BrAPI call", e);
-        }
-
-        // Check existing germplasm to see which ones exist already
-
-        // Get a list of unique germplasm to be created
-
-        // Check if there are observation units that exist already
-
-        // Get a list of unique observation units to create
-
-        // Check if there are crosses that exist already
-
-        // Get a list of unique crosses to create
+    public PedigreeImport(PedigreeImportService importService) {
+        this.importService = importService;
     }
 }

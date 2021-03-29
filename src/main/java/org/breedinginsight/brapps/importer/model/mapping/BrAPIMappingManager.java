@@ -22,6 +22,7 @@ import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -58,13 +59,12 @@ public class BrAPIMappingManager {
         List<BrAPIImport> brAPIImports = new ArrayList<>();
         for (int rowIndex = 0; rowIndex < data.rowCount(); rowIndex++) {
 
-            Optional<BrAPIImport> brAPIImportOptional = configManager.getTypeConfigById(importMapping.getImportTypeId());
-
-            if (brAPIImportOptional.isEmpty()) {
+            Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTypeId());
+            if (optionalImportService.isEmpty()){
                 throw new UnprocessableEntityException("Import type with that id does not exist.");
             }
-
-            BrAPIImport brAPIImport = brAPIImportOptional.get();
+            BrAPIImportService importService = optionalImportService.get();
+            BrAPIImport brAPIImport = importService.getImportClass();
 
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
@@ -85,7 +85,9 @@ public class BrAPIMappingManager {
         // Process this field
         ImportType type = field.getAnnotation(ImportType.class);
         ImportFieldMetadata metadata;
-        if (type.type() != ImportFieldType.LIST) {
+        if (type == null) {
+            return;
+        } else if (type.type() != ImportFieldType.LIST) {
             metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
                     field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
         } else {

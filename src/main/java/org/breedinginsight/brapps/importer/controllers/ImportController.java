@@ -39,7 +39,7 @@ import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
-import org.breedinginsight.brapps.importer.services.BrAPIImportService;
+import org.breedinginsight.brapps.importer.services.BrAPIFileImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -56,13 +56,13 @@ public class ImportController {
 
     private BrAPIImportConfigManager importManager;
     private SecurityService securityService;
-    private BrAPIImportService brAPIImportService;
+    private BrAPIFileImportService brAPIFileImportService;
 
     @Inject
-    ImportController(BrAPIImportConfigManager brAPIImportConfigManager, SecurityService securityService, BrAPIImportService brAPIImportService) {
+    ImportController(BrAPIImportConfigManager brAPIImportConfigManager, SecurityService securityService, BrAPIFileImportService brAPIFileImportService) {
         this.importManager = brAPIImportConfigManager;
         this.securityService = securityService;
-        this.brAPIImportService = brAPIImportService;
+        this.brAPIFileImportService = brAPIFileImportService;
     }
 
     @Get("/import/types")
@@ -70,7 +70,7 @@ public class ImportController {
     @Secured(SecurityRule.IS_ANONYMOUS)
     @AddMetadata
     public HttpResponse<Response<DataResponse<ImportConfig>>> getImportTypes() {
-        List<ImportConfig> configs = importManager.getAllTypeConfigs();
+        List<ImportConfig> configs = brAPIFileImportService.getAllImportTypeConfigs();
 
         //TODO: Add actual page size
         List<Status> metadataStatus = new ArrayList<>();
@@ -91,7 +91,7 @@ public class ImportController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<BrAPIImportMapping> result = brAPIImportService.getAllMappings(programId, actingUser, draft);
+            List<BrAPIImportMapping> result = brAPIFileImportService.getAllMappings(programId, actingUser, draft);
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);
@@ -117,7 +117,7 @@ public class ImportController {
     public HttpResponse<Response<BrAPIImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIImportService.createMapping(programId, actingUser, file);
+            BrAPIImportMapping result = brAPIFileImportService.createMapping(programId, actingUser, file);
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
@@ -146,7 +146,7 @@ public class ImportController {
                                                                   @QueryValue(defaultValue="true") Boolean validate) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIImportService.updateMappingFile(programId, mappingId, actingUser, file);
+            BrAPIImportMapping result = brAPIFileImportService.updateMappingFile(programId, mappingId, actingUser, file);
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
@@ -175,7 +175,7 @@ public class ImportController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
+            BrAPIImportMapping result = brAPIFileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
             Response<BrAPIImportMapping> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (HttpBadRequestException e) {
@@ -207,7 +207,7 @@ public class ImportController {
                                                                       @QueryValue(defaultValue="false") Boolean commit) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<BrAPIImport> result = brAPIImportService.uploadData(programId, mappingId, actingUser, file, commit);
+            List<BrAPIImport> result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);

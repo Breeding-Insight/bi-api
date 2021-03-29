@@ -15,29 +15,30 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.base;
+
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.base.Observation;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
-import tech.tablesaw.api.Table;
-
-import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportMetadata(id="ObservationsImport", name="Observations Import",
-        description = "This import is used to import observations.")
-public class ObservationsImport implements BrAPIImport {
+@ImportFieldMetadata(id="CrossAttribute", name="Cross Attribute",
+        description = "A properties of the cross, or cross conditions.")
+public class CrossAttribute implements BrAPIObject {
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldRequired
+    @ImportFieldMetadata(id="crossAttributeName", name="Cross Attribute Name", description = "The name of the cross attribute.")
+    private String crossAttributeName;
 
-    @ImportType(type = ImportFieldType.LIST, clazz = Observation.class)
-    List<Observation> observations;
-
-    public BrAPIImportService getImportService() {
-        return null;
-    }
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldRequired
+    @ImportFieldMetadata(id="crossAttributeValue", name="Cross Attribute Value", description = "The value for the cross attribute for the given cross.")
+    private String crossAttributeValue;
 }

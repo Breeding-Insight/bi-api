@@ -15,29 +15,29 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.base.Observation;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
-import tech.tablesaw.api.Table;
-
-import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportMetadata(id="ObservationsImport", name="Observations Import",
-        description = "This import is used to import observations.")
-public class ObservationsImport implements BrAPIImport {
+@ImportFieldMetadata(id="AdditionalInfo", name="Additional Information",
+        description = "This is used for information that doesn't exist in the provided fields, but you still want to be tracked with this object.")
+public class AdditionalInfo implements BrAPIObject {
 
-    @ImportType(type = ImportFieldType.LIST, clazz = Observation.class)
-    List<Observation> observations;
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="additionalInfoName", name="Additional Information Name",
+            description = "The name of the property for the additional information.")
+    private String additionalInfoName;
 
-    public BrAPIImportService getImportService() {
-        return null;
-    }
+    @ImportType(type=ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="additionalInfoValue", name="Additional Information Value",
+            description = "The value of the property for the additional information.")
+    private String additionalInfoValue;
 }

@@ -39,8 +39,34 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
     private String germplasmName;
 
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="germplasmPUI", name="Germplasm Permanent Unique Identifier", description = "The Permanent Unique Identifier which represents a germplasm from the source or donor.")
+    private String germplasmPUI;
+
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldRequired
+    @ImportFieldMetadata(id="commonCropName", name="Species Name", description = "Name of the species")
+    private String species;
+
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="accessionNumber", name="Accession Number", description = "This is the unique identifier for accessions within a genebank, and is assigned when a sample is entered into the genebank collection.")
+    private String accessionNumber;
+
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="acquisitionDate", name="Acquisition Date", description = "The date this germplasm was acquired by the genebank.")
+    private String acquisitionDate;
+
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="countryOfOrigin", name="Country of Origin", description = "Two letter code for the country of origin.")
+    private String countryOfOrigin;
+
+    @ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
+    private List<GermplasmAttribute> germplasmAttributes;
+
+    @ImportType(type= ImportFieldType.LIST, clazz = AdditionalInfo.class)
+    private List<AdditionalInfo> additionalInfos;
+
     @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
-    @ImportFieldMetadata(id="externalReferences", name="External References",
-            description = "External references to track external IDs.")
     private List<ExternalReference> externalReferences;
+
 }

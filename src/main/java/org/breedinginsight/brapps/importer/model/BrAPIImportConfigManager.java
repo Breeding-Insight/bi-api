@@ -20,13 +20,15 @@ package org.breedinginsight.brapps.importer.model;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.config.*;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldConfig;
 import org.breedinginsight.brapps.importer.model.config.ImportRelationOptionConfig;
+import org.breedinginsight.brapps.importer.services.BrAPIFileImportService;
 import org.reflections.Reflections;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
@@ -37,26 +39,25 @@ import java.util.stream.Collectors;
 @Singleton
 public class BrAPIImportConfigManager {
 
-    private Map<String, Class> brAPIImportsMap;
+    private Map<String, BrAPIImportService> brAPIImportsMap;
 
-    BrAPIImportConfigManager() {
+    @Inject
+    BrAPIImportConfigManager(BrAPIImportService[] importServices) {
         // Get all imports
         brAPIImportsMap = new HashMap<>();
-        Reflections reflections = new Reflections("");
-        Set<Class<?>> brAPIImports = reflections.getTypesAnnotatedWith(ImportMetadata.class);
-        for (Class brAPIImport: brAPIImports) {
-            ImportMetadata metadata = (ImportMetadata) brAPIImport.getAnnotation(ImportMetadata.class);
-            if (metadata == null) throw new InternalServerException("BrAPI File import config set up incorrectly.");
-            brAPIImportsMap.put(metadata.id(), brAPIImport);
+        for (BrAPIImportService importService: importServices) {
+            brAPIImportsMap.put(importService.getId(), importService);
         }
     }
 
-    public List<ImportConfig> getAllTypeConfigs() {
-        List<ImportConfig> configs = new ArrayList<>();
-        for (Class brAPIImport: brAPIImportsMap.values()){
-            configs.add(getTypeConfig(brAPIImport));
-        }
-        return configs;
+    public List<BrAPIImportService> getAllImportServices() {
+        return new ArrayList<>(brAPIImportsMap.values());
+    }
+
+    public List<ImportConfig> getAllImportTypeConfigs() {
+        return getAllImportServices().stream()
+                .map(importService -> getTypeConfig(importService.getImportClass().getClass()))
+                .collect(Collectors.toList());
     }
 
     public ImportConfig getTypeConfig(Class c) {
@@ -80,18 +81,10 @@ public class BrAPIImportConfigManager {
         return importConfig;
     }
 
-    public Optional<BrAPIImport> getTypeConfigById(String importTypeId) {
+    public Optional<BrAPIImportService> getImportServiceById(String importTypeId) {
 
         if (brAPIImportsMap.containsKey(importTypeId)) {
-            Class<?> importClass = brAPIImportsMap.get(importTypeId);
-            BrAPIImport brAPIImport;
-            try {
-                brAPIImport = (BrAPIImport) importClass.getDeclaredConstructor(null).newInstance();
-            } catch (NoSuchMethodException | IllegalAccessException | InstantiationException | InvocationTargetException e) {
-                throw new InternalServerException(e.toString());
-            }
-
-            return Optional.of(brAPIImport);
+            return Optional.of(brAPIImportsMap.get(importTypeId));
         } else {
             return Optional.empty();
         }
