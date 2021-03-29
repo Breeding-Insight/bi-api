@@ -44,12 +44,14 @@ import org.jooq.JSONB;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
+@Singleton
 public class BrAPIImportService {
 
     private ProgramUserService programUserService;
@@ -243,9 +245,8 @@ public class BrAPIImportService {
         List<BrAPIImport> brAPIImportList = mappingManager.map(importMapping, data);
 
         if (commit) {
-            for (BrAPIImport brAPIImport: brAPIImportList) {
-                brAPIImport.process(brAPIImport, data);
-            }
+            //TODO: Make this static if we can
+            brAPIImportList.get(0).getImportService().process(brAPIImportList, data);
         }
 
         return brAPIImportList;
