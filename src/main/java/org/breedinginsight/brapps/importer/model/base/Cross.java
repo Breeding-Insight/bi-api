@@ -20,9 +20,15 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.germ.BrAPICross;
+import org.brapi.v2.model.germ.BrAPICrossCrossAttributes;
+import org.brapi.v2.model.germ.BrAPICrossType;
 import org.breedinginsight.brapps.importer.model.config.*;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -61,10 +67,37 @@ public class Cross implements BrAPIObject {
     private String crossDateTime;
 
     @ImportType(type= ImportFieldType.LIST, clazz = CrossAttribute.class)
-    private List<AdditionalInfo> crossAttributes;
+    private List<CrossAttribute> crossAttributes;
 
     @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
     @ImportFieldMetadata(id="externalReferences", name="External References",
             description = "External references to track external IDs.")
     private List<ExternalReference> externalReferences;
+
+    public BrAPICross getBrAPICross() {
+        BrAPICross cross = new BrAPICross();
+        //TODO: Check proper date format
+        //cross.setCrossDateTime(cross.getCrossDateTime());
+        cross.setCrossName(getCrossName());
+        //TODO: Check that value is legit
+        BrAPICrossType brAPICrossType = BrAPICrossType.valueOf(getCrossType().toUpperCase());
+        cross.setCrossType(brAPICrossType);
+
+        if (cross.getCrossAttributes() != null) {
+            cross.setCrossAttributes(crossAttributes.stream()
+                .map(crossAttribute -> crossAttribute.constructCrossAttribute())
+                    .collect(Collectors.toList())
+            );
+        }
+
+        if (externalReferences != null) {
+            List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
+                    .map(externalReference -> externalReference.constructBrAPIExternalReference())
+                    .collect(Collectors.toList());
+            cross.setExternalReferences(brAPIExternalReferences);
+        }
+
+        return cross;
+    }
+
 }

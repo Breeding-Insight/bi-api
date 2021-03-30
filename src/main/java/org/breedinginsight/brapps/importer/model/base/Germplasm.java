@@ -20,12 +20,17 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -42,11 +47,6 @@ public class Germplasm implements BrAPIObject {
     @ImportType(type= ImportFieldType.TEXT)
     @ImportFieldMetadata(id="germplasmPUI", name="Germplasm Permanent Unique Identifier", description = "The Permanent Unique Identifier which represents a germplasm from the source or donor.")
     private String germplasmPUI;
-
-    @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldRequired
-    @ImportFieldMetadata(id="commonCropName", name="Species Name", description = "Name of the species")
-    private String species;
 
     @ImportType(type= ImportFieldType.TEXT)
     @ImportFieldMetadata(id="accessionNumber", name="Accession Number", description = "This is the unique identifier for accessions within a genebank, and is assigned when a sample is entered into the genebank collection.")
@@ -69,5 +69,36 @@ public class Germplasm implements BrAPIObject {
 
     @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
     private List<ExternalReference> externalReferences;
+
+    public BrAPIGermplasm constructBrAPIGermplasm() {
+        BrAPIGermplasm germplasm = new BrAPIGermplasm();
+        germplasm.setGermplasmName(getGermplasmName());
+        germplasm.setGermplasmPUI(getGermplasmPUI());
+        germplasm.setAccessionNumber(getAccessionNumber());
+        germplasm.setAccessionNumber(getAccessionNumber());
+        //TODO: Need to check that the acquisition date it in date format
+        //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
+        germplasm.setCountryOfOriginCode(getCountryOfOrigin());
+        if (additionalInfos != null) {
+            Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
+                    .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
+            germplasm.setAdditionalInfo(brAPIAdditionalInfos);
+        }
+
+        if (externalReferences != null) {
+            List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
+                    .map(externalReference -> externalReference.constructBrAPIExternalReference())
+                    .collect(Collectors.toList());
+            germplasm.setExternalReferences(brAPIExternalReferences);
+        }
+
+        return germplasm;
+    }
+
+    public BrAPIGermplasm constructBrAPIGermplasm(String species) {
+        BrAPIGermplasm germplasm = constructBrAPIGermplasm();
+        germplasm.setSpecies(species);
+        return germplasm;
+    }
 
 }

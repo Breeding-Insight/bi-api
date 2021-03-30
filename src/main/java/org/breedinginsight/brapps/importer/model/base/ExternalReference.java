@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
@@ -40,5 +41,12 @@ public class ExternalReference implements BrAPIObject {
     @ImportFieldMetadata(id="referenceSource", name="External Reference Source",
             description = "This describes the source of the external reference.")
     private String referenceSource;
+
+    public BrAPIExternalReference constructBrAPIExternalReference() {
+        BrAPIExternalReference externalReference = new BrAPIExternalReference();
+        externalReference.setReferenceID(referenceID);
+        externalReference.setReferenceSource(referenceSource);
+        return externalReference;
+    }
 
 }

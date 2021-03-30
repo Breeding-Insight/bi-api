@@ -20,9 +20,17 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
 import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -75,4 +83,41 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
     private List<ExternalReference> externalReferences;
+
+    public BrAPIObservationUnit constructBrAPIObservationUnit() {
+
+        BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
+        observationUnit.setObservationUnitName(getObservationUnitName());
+
+        BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel();
+        level.setLevelName(getObservationLevel());
+
+        List<BrAPIExternalReference> brAPIexternalReferences = new ArrayList<>();
+        //TODO: Should we be checking this back here, or depending on the user to set it properly?
+        BrAPIExternalReference brAPIExternalReference = new BrAPIExternalReference();
+        brAPIExternalReference.setReferenceSource(BrAPIQueryService.OU_ID_REFERENCE_SOURCE);
+        brAPIExternalReference.setReferenceID(getObservationUnitPermanentID());
+        brAPIexternalReferences.add(brAPIExternalReference);
+
+        if (observationUnit.getExternalReferences() != null){
+            getExternalReferences().forEach(externalReference -> brAPIexternalReferences.add(externalReference.constructBrAPIExternalReference()));
+        }
+        observationUnit.setExternalReferences(brAPIexternalReferences);
+
+        if (additionalInfos != null) {
+            Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
+                    .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
+            observationUnit.setAdditionalInfo(brAPIAdditionalInfos);
+        }
+
+        return observationUnit;
+    }
+
+    public BrAPIObservationUnit constructBrAPIObservationUnit(String germplasmDbId) {
+
+        BrAPIObservationUnit observationUnit = constructBrAPIObservationUnit();
+        observationUnit.setGermplasmDbId(germplasmDbId);
+        return constructBrAPIObservationUnit();
+    }
+
 }

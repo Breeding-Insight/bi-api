@@ -90,14 +90,14 @@ public class PedigreeImportService extends BrAPIImportService {
         // TODO: Need to make searches program specific. All uniqueness constraints are assumed within program. -> This card
         // TODO: Tablesaw is formatting our numbers weird -> This card
         // TODO: Need to check relationships before we POST any objects -> This card
-        // TODO: Move brapi class generation into the import classes -> This card
 
         // TODO: Need to have a discussion on whether we only create new things, or if we update too. Example: Germplasm attributes, crosses
         // TODO: How do we handle duplicates? Some can be ignore. What if germplasm have the same name, but different attributes? Throw error for now.
         // TODO: Add enum type for value (dropdown on UI) -> New card
         // TODO: Need to get the whole file to do a legit upload -> Need to wait until POST/GET pattern for file is made (Next card)
+        // TODO: Make an @ImportIgnore annotation to be able to ignore certain fields
+        // TODO: See if we can reduce the number of loops
 
-        
         List<PedigreeImport> pedigreeImports = (List<PedigreeImport>)(List<?>) brAPIImports;
 
         // Get all of our objects specified by their unique attributes
@@ -140,20 +140,14 @@ public class PedigreeImportService extends BrAPIImportService {
                 //TODO: Check for duplicate germplasm within the file
                 Germplasm germplasm = pedigreeImport.getGermplasm();
                 if (!existingGermplasmMap.containsKey(germplasm.getGermplasmName())) {
-                    BrAPIGermplasm newGermplasm = new BrAPIGermplasm();
-                    newGermplasm.setGermplasmName(germplasm.getGermplasmName());
-                    newGermplasm.setGermplasmPUI(germplasm.getGermplasmPUI());
-                    //TODO: Set with program species
-                    //brAPIGermplasm.setSpecies();
-                    newGermplasm.setAccessionNumber(germplasm.getAccessionNumber());
-                    //TODO: Need to check that the acquisition date it in date format
-                    //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
-                    newGermplasm.setCountryOfOriginCode(pedigreeImport.getGermplasm().getCountryOfOrigin());
+                    //TODO: Add species
+                    BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(null);
                     newGermplasmList.add(newGermplasm);
                 }
             }
         }
 
+        // TODO: Can we slim this up and get a generic function for this?
         List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
         if (newGermplasmList.size() > 0) {
             GermplasmApi germplasmApi = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
@@ -171,7 +165,6 @@ public class PedigreeImportService extends BrAPIImportService {
                 throw new InternalServerException(e.toString(), e);
             }
         }
-
         Map<String, BrAPIGermplasm> allGermplasm = new HashMap<>(existingGermplasmMap);
         createdGermplasm.forEach(germplasm -> allGermplasm.put(germplasm.getGermplasmName(), germplasm));
 
@@ -180,34 +173,10 @@ public class PedigreeImportService extends BrAPIImportService {
         for (int i = 0; i < pedigreeImports.size(); i++) {
             PedigreeImport pedigreeImport = pedigreeImports.get(i);
             ObservationUnit observationUnit = pedigreeImport.getObservationUnit();
+            BrAPIGermplasm germplasm = allGermplasm.get(pedigreeImport.getGermplasm().getGermplasmName());
             if (!existingOUMap.containsKey(observationUnit.getObservationUnitName())) {
 
-                //TODO: These can probably go in a separate method in the class itself
-                BrAPIObservationUnit newObservationUnit = new BrAPIObservationUnit();
-                newObservationUnit.setObservationUnitName(observationUnit.getObservationUnitName());
-
-                BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel();
-                level.setLevelName(observationUnit.getObservationLevel());
-
-                BrAPIGermplasm germplasm = allGermplasm.get(pedigreeImport.getGermplasm().getGermplasmName());
-                newObservationUnit.setGermplasmDbId(germplasm.getGermplasmDbId());
-
-                List<BrAPIExternalReference> externalReferences = new ArrayList<>();
-                //TODO: Should we be checking this back here, or depending on the user?
-                BrAPIExternalReference brAPIExternalReference = new BrAPIExternalReference();
-                brAPIExternalReference.setReferenceSource(BrAPIQueryService.OU_ID_REFERENCE_SOURCE);
-                brAPIExternalReference.setReferenceID(observationUnit.getObservationUnitPermanentID());
-                externalReferences.add(brAPIExternalReference);
-
-                if (observationUnit.getExternalReferences() != null){
-                    for (ExternalReference externalReference: observationUnit.getExternalReferences()) {
-                        BrAPIExternalReference newBrAPIExternalReference = new BrAPIExternalReference();
-                        newBrAPIExternalReference.setReferenceSource(externalReference.getReferenceSource());
-                        newBrAPIExternalReference.setReferenceID(externalReference.getReferenceID());
-                        externalReferences.add(newBrAPIExternalReference);
-                    }
-                }
-                newObservationUnit.setExternalReferences(externalReferences);
+                BrAPIObservationUnit newObservationUnit = observationUnit.constructBrAPIObservationUnit(germplasm.getGermplasmDbId());
                 newObservationUnitList.add(newObservationUnit);
             }
         }
@@ -243,13 +212,7 @@ public class PedigreeImportService extends BrAPIImportService {
                 // If germplasm is not created in this round, skip it
                 // TODO: Make a better way to check if new germplasm was created
                 if (!existingGermplasmMap.containsKey(germplasm.getGermplasmName())) {
-                    BrAPICross newCross = new BrAPICross();
-                    //TODO: Check proper date format
-                    //cross.setCrossDateTime(cross.getCrossDateTime());
-                    newCross.setCrossName(cross.getCrossName());
-                    //TODO: Check that value is legit
-                    BrAPICrossType brAPICrossType = BrAPICrossType.valueOf(cross.getCrossType().toUpperCase());
-                    newCross.setCrossType(brAPICrossType);
+                    BrAPICross newCross = cross.getBrAPICross();
 
                     // TODO: Move the getting of the relationships up so we can check matches before we POST stuff
                     // TODO: Move this into a common findRelationship method
@@ -328,30 +291,7 @@ public class PedigreeImportService extends BrAPIImportService {
                         // TODO: Search in the database
                     }
 
-                    if (cross.getExternalReferences() != null){
-                        List<BrAPIExternalReference> externalReferences = new ArrayList<>();
-                        for (ExternalReference externalReference: cross.getExternalReferences()) {
-                            BrAPIExternalReference newBrAPIExternalReference = new BrAPIExternalReference();
-                            newBrAPIExternalReference.setReferenceSource(externalReference.getReferenceSource());
-                            newBrAPIExternalReference.setReferenceID(externalReference.getReferenceID());
-                            externalReferences.add(newBrAPIExternalReference);
-                        }
-                        newCross.setExternalReferences(externalReferences);
-                    }
-
-                    if (cross.getCrossAttributes() != null) {
-                        List<BrAPICrossCrossAttributes> crossAttributes = new ArrayList<>();
-                        for (AdditionalInfo crossAttribute: cross.getCrossAttributes()) {
-                            BrAPICrossCrossAttributes newCrossAttribute = new BrAPICrossCrossAttributes();
-                            newCrossAttribute.setCrossAttributeName(crossAttribute.getAdditionalInfoName());
-                            newCrossAttribute.setCrossAttributeValue(crossAttribute.getAdditionalInfoValue());
-                            crossAttributes.add(newCrossAttribute);
-                        }
-                        newCross.crossAttributes(crossAttributes);
-                    }
-
                     newCrosses.add(newCross);
-
                 }
             }
         }

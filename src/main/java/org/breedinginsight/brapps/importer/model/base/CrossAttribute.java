@@ -21,6 +21,7 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.germ.BrAPICrossCrossAttributes;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
@@ -41,4 +42,11 @@ public class CrossAttribute implements BrAPIObject {
     @ImportFieldRequired
     @ImportFieldMetadata(id="crossAttributeValue", name="Cross Attribute Value", description = "The value for the cross attribute for the given cross.")
     private String crossAttributeValue;
+
+    public BrAPICrossCrossAttributes constructCrossAttribute() {
+        BrAPICrossCrossAttributes crossAttribute = new BrAPICrossCrossAttributes();
+        crossAttribute.setCrossAttributeName(getCrossAttributeName());
+        crossAttribute.setCrossAttributeValue(getCrossAttributeValue());
+        return crossAttribute;
+    }
 }
