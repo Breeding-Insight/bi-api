@@ -60,8 +60,9 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="countryOfOrigin", name="Country of Origin", description = "Two letter code for the country of origin.")
     private String countryOfOrigin;
 
-    @ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
-    private List<GermplasmAttribute> germplasmAttributes;
+    // Removed for now, need to add to breedbase
+    /*@ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
+    private List<GermplasmAttribute> germplasmAttributes;*/
 
     @ImportType(type= ImportFieldType.LIST, clazz = AdditionalInfo.class)
     private List<AdditionalInfo> additionalInfos;

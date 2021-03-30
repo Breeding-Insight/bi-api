@@ -21,6 +21,7 @@ import com.ibm.icu.text.ArabicShaping;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.CrossesApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
@@ -30,19 +31,25 @@ import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.germ.*;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
+import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
 import org.breedinginsight.brapps.importer.model.base.*;
+import org.breedinginsight.brapps.importer.model.config.ImportRelation;
+import org.breedinginsight.brapps.importer.model.config.ImportRelationType;
 import org.breedinginsight.brapps.importer.services.BrAPIFileImportService;
 import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.management.relation.RelationType;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -78,10 +85,18 @@ public class PedigreeImportService extends BrAPIImportService {
     @Override
     public void process(List<BrAPIImport> brAPIImports, Table data) throws UnprocessableEntityException {
 
-        // TODO: Need to have a discussion on whether we only create new things, or if we update too. Example: Germplasm attributes
-        // TODO: Get the species
+        // TODO: Get the species -> This card
+        // TODO: Get the brapi program -> This card
+        // TODO: Need to make searches program specific. All uniqueness constraints are assumed within program. -> This card
+        // TODO: Tablesaw is formatting our numbers weird -> This card
+        // TODO: Need to check relationships before we POST any objects -> This card
+        // TODO: Move brapi class generation into the import classes -> This card
+
+        // TODO: Need to have a discussion on whether we only create new things, or if we update too. Example: Germplasm attributes, crosses
         // TODO: How do we handle duplicates? Some can be ignore. What if germplasm have the same name, but different attributes? Throw error for now.
-        // TODO: Need to make searches program specific. All uniqueness constraints are assumed within program.
+        // TODO: Add enum type for value (dropdown on UI) -> New card
+        // TODO: Need to get the whole file to do a legit upload -> Need to wait until POST/GET pattern for file is made (Next card)
+
         
         List<PedigreeImport> pedigreeImports = (List<PedigreeImport>)(List<?>) brAPIImports;
 
@@ -94,16 +109,6 @@ public class PedigreeImportService extends BrAPIImportService {
         for (int i = 0; i < pedigreeImports.size(); i++) {
             PedigreeImport pedigreeImport = pedigreeImports.get(i);
 
-            // Germplasm names and germplasm attributes
-            if (pedigreeImport.getGermplasm() != null) {
-                germplasmNames.add(pedigreeImport.getGermplasm().getGermplasmName());
-                if (pedigreeImport.getGermplasm().getGermplasmAttributes() != null) {
-                    for (GermplasmAttribute attribute: pedigreeImport.getGermplasm().getGermplasmAttributes()) {
-                        germplasmAttributeNames.add(attribute.getAttributeName());
-                    }
-                }
-            }
-
             // Observation units
             if (pedigreeImport.getObservationUnit() != null) {
                 ouNameByStudy.add(new MutablePair<>(pedigreeImport.getObservationUnit().getObservationUnitName(), null));
@@ -112,16 +117,11 @@ public class PedigreeImportService extends BrAPIImportService {
 
         // Check existing objects
         Map<String, BrAPIGermplasm> existingGermplasmMap = new HashMap<>();
-        Map<String, BrAPIGermplasmAttribute> existingGermplasmAttributeMap = new HashMap<>();
         Map<String, BrAPIObservationUnit> existingOUMap = new HashMap<>();
         try {
             List<BrAPIGermplasm> existingGermplasms = brAPIQueryService.getGermplasmByName(new ArrayList<>(germplasmNames));
             existingGermplasms.forEach(existingGermplasm ->
                     existingGermplasmMap.put(existingGermplasm.getGermplasmName(), existingGermplasm));
-
-            List<BrAPIGermplasmAttribute> existingGermplasmAttributes = brAPIQueryService.getGermplasmAttributesByName(new ArrayList<>(germplasmAttributeNames));
-            existingGermplasmAttributes.forEach(existingGermplasmAttribute ->
-                    existingGermplasmAttributeMap.put(existingGermplasmAttribute.getAttributeName(), existingGermplasmAttribute));
 
             List<BrAPIObservationUnit> existingOUs = brAPIQueryService.getObservationUnitsByNameAndStudyName(new ArrayList<>(ouNameByStudy));
             existingOUs.forEach(existingOU -> existingOUMap.put(existingOU.getObservationUnitName(), existingOU));
@@ -154,67 +154,26 @@ public class PedigreeImportService extends BrAPIImportService {
             }
         }
 
-        GermplasmApi germplasmApi = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
-        try {
-            germplasmApi.germplasmPost(newGermplasmList);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.toString(), e);
-        }
-        Map<String, BrAPIGermplasm> allGermplasm = new HashMap<>(existingGermplasmMap);
-        newGermplasmList.forEach(germplasm -> allGermplasm.put(germplasm.getGermplasmName(), germplasm));
+        List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
+        if (newGermplasmList.size() > 0) {
+            GermplasmApi germplasmApi = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
 
-        // Create germplasm attributes
-        //TODO: Only create if a new germplasm was created
-        List<BrAPIGermplasmAttribute> newGermplasmAttributeList = new ArrayList<>();
-        for (int i = 0; i < pedigreeImports.size(); i++) {
-            PedigreeImport pedigreeImport = pedigreeImports.get(i);
-            if (pedigreeImport.getGermplasm().getGermplasmAttributes() != null) {
-                List<BrAPIGermplasmAttributeValue> values = new ArrayList<>();
-                for (GermplasmAttribute attribute: pedigreeImport.getGermplasm().getGermplasmAttributes()) {
-                    if (!existingGermplasmAttributeMap.containsKey(attribute)) {
-                        BrAPIGermplasmAttribute newGermplasmAttribute = new BrAPIGermplasmAttribute();
-                        newGermplasmAttribute.setAttributeName(attribute.getAttributeName());
-                        newGermplasmAttribute.setAttributeDescription(attribute.getAttributeDescription());
-                        newGermplasmAttribute.setAttributeCategory(attribute.getAttributeCategory());
-                        newGermplasmAttributeList.add(newGermplasmAttribute);
-                    }
+            try {
+                ApiResponse<BrAPIGermplasmListResponse> germplasmPost = germplasmApi.germplasmPost(newGermplasmList);
+                if (germplasmPost.getBody() == null ||
+                        germplasmPost.getBody().getResult() == null ||
+                        germplasmPost.getBody().getResult().getData() == null ||
+                        germplasmPost.getBody().getResult().getData().size() != newGermplasmList.size()) {
+                    throw new InternalServerException("BrAPI service did not return all of the germplasm that were sent");
                 }
+                createdGermplasm = germplasmPost.getBody().getResult().getData();
+            } catch (ApiException e) {
+                throw new InternalServerException(e.toString(), e);
             }
         }
 
-        GermplasmAttributesApi germplasmAttributesApi = brAPIProvider.getGermplasmAttributesApi(BrAPIClientType.CORE);
-        try {
-            germplasmAttributesApi.attributesPost(newGermplasmAttributeList);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.toString(), e);
-        }
-        Map<String, BrAPIGermplasmAttribute> allGermplasmAttributes = new HashMap<>(existingGermplasmAttributeMap);
-        newGermplasmAttributeList.forEach(attribute -> allGermplasmAttributes.put(attribute.getAttributeName(), attribute));
-
-        // Create new germplasm attribute values
-        // TODO: Should this overwrite existing germplasm attribute values?
-        List<BrAPIGermplasmAttributeValue> newGermplasmAttributeValueList = new ArrayList<>();
-        for (int i = 0; i < pedigreeImports.size(); i++) {
-            PedigreeImport pedigreeImport = pedigreeImports.get(i);
-            for (GermplasmAttribute attribute: pedigreeImport.getGermplasm().getGermplasmAttributes()) {
-                BrAPIGermplasmAttributeValue newAttributeValue = new BrAPIGermplasmAttributeValue();
-                newAttributeValue.setValue(attribute.getAttributeValue());
-
-                BrAPIGermplasm germplasm = allGermplasm.get(pedigreeImport.getGermplasm().getGermplasmName());
-                newAttributeValue.setGermplasmDbId(germplasm.getGermplasmDbId());
-
-                BrAPIGermplasmAttribute germplasmAttribute = allGermplasmAttributes.get(attribute.getAttributeName());
-                newAttributeValue.setAttributeDbId(germplasmAttribute.getAttributeDbId());
-                newGermplasmAttributeValueList.add(newAttributeValue);
-            }
-        }
-
-        GermplasmAttributeValuesApi germplasmAttributeValuesApi = brAPIProvider.getGermplasmAttributeValuesApi(BrAPIClientType.CORE);
-        try {
-            germplasmAttributeValuesApi.attributevaluesPost(newGermplasmAttributeValueList);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.toString(), e);
-        }
+        Map<String, BrAPIGermplasm> allGermplasm = new HashMap<>(existingGermplasmMap);
+        createdGermplasm.forEach(germplasm -> allGermplasm.put(germplasm.getGermplasmName(), germplasm));
 
         // Create new OUs
         List<BrAPIObservationUnit> newObservationUnitList = new ArrayList<>();
@@ -223,7 +182,7 @@ public class PedigreeImportService extends BrAPIImportService {
             ObservationUnit observationUnit = pedigreeImport.getObservationUnit();
             if (!existingOUMap.containsKey(observationUnit.getObservationUnitName())) {
 
-                //TODO: These can probably go in a separate method in the query service
+                //TODO: These can probably go in a separate method in the class itself
                 BrAPIObservationUnit newObservationUnit = new BrAPIObservationUnit();
                 newObservationUnit.setObservationUnitName(observationUnit.getObservationUnitName());
 
@@ -240,25 +199,38 @@ public class PedigreeImportService extends BrAPIImportService {
                 brAPIExternalReference.setReferenceID(observationUnit.getObservationUnitPermanentID());
                 externalReferences.add(brAPIExternalReference);
 
-                for (ExternalReference externalReference: observationUnit.getExternalReferences()) {
-                    BrAPIExternalReference newBrAPIExternalReference = new BrAPIExternalReference();
-                    newBrAPIExternalReference.setReferenceSource(externalReference.getReferenceSource());
-                    newBrAPIExternalReference.setReferenceID(externalReference.getReferenceID());
-                    externalReferences.add(newBrAPIExternalReference);
+                if (observationUnit.getExternalReferences() != null){
+                    for (ExternalReference externalReference: observationUnit.getExternalReferences()) {
+                        BrAPIExternalReference newBrAPIExternalReference = new BrAPIExternalReference();
+                        newBrAPIExternalReference.setReferenceSource(externalReference.getReferenceSource());
+                        newBrAPIExternalReference.setReferenceID(externalReference.getReferenceID());
+                        externalReferences.add(newBrAPIExternalReference);
+                    }
                 }
                 newObservationUnit.setExternalReferences(externalReferences);
                 newObservationUnitList.add(newObservationUnit);
             }
         }
 
-        ObservationUnitsApi observationUnitsApi = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        try {
-            observationUnitsApi.observationunitsPost(newObservationUnitList);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.toString(), e);
+        List<BrAPIObservationUnit> createdObservationUnits = new ArrayList<>();
+        if (newObservationUnitList.size() > 0) {
+            ObservationUnitsApi observationUnitsApi = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
+
+            try {
+                ApiResponse<BrAPIObservationUnitListResponse> observationUnitPost = observationUnitsApi.observationunitsPost(newObservationUnitList);
+                if (observationUnitPost.getBody() == null ||
+                        observationUnitPost.getBody().getResult() == null ||
+                        observationUnitPost.getBody().getResult().getData() == null ||
+                        observationUnitPost.getBody().getResult().getData().size() != newObservationUnitList.size()) {
+                    throw new InternalServerException("BrAPI service did not return all of the observation units that were sent");
+                }
+                createdObservationUnits = observationUnitPost.getBody().getResult().getData();
+            } catch (ApiException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
         }
         Map<String, BrAPIObservationUnit> allOUs = new HashMap<>(existingOUMap);
-        newObservationUnitList.forEach(observationUnit -> allOUs.put(observationUnit.getObservationUnitName(), observationUnit));
+        createdObservationUnits.forEach(observationUnit -> allOUs.put(observationUnit.getObservationUnitName(), observationUnit));
 
         // Create new crosses
         // TODO: Need to add ability to add crosses to existing germplasm without crosses
@@ -279,23 +251,107 @@ public class PedigreeImportService extends BrAPIImportService {
                     BrAPICrossType brAPICrossType = BrAPICrossType.valueOf(cross.getCrossType().toUpperCase());
                     newCross.setCrossType(brAPICrossType);
 
-                    List<BrAPIExternalReference> externalReferences = new ArrayList<>();
-                    for (ExternalReference externalReference: cross.getExternalReferences()) {
-                        BrAPIExternalReference newBrAPIExternalReference = new BrAPIExternalReference();
-                        newBrAPIExternalReference.setReferenceSource(externalReference.getReferenceSource());
-                        newBrAPIExternalReference.setReferenceID(externalReference.getReferenceID());
-                        externalReferences.add(newBrAPIExternalReference);
-                    }
-                    newCross.setExternalReferences(externalReferences);
+                    // TODO: Move the getting of the relationships up so we can check matches before we POST stuff
+                    // TODO: Move this into a common findRelationship method
+                    ImportRelation motherRelation = cross.getFemaleParent();
+                    if (motherRelation.getType() == ImportRelationType.FILE_LOOKUP) {
+                        String targetColumn = motherRelation.getTarget();
+                        // Construct a map of the target row values
+                        Map<String, Integer> targetRowMap = new HashMap<>();
+                        for (int k = 0; k < data.rowCount(); k++) {
+                            Row targetRow = data.row(k);
+                            String targetValue = targetRow.getString(targetColumn);
+                            targetRowMap.put(targetValue, k);
+                        }
+                        // Look for a match
+                        Row referenceRow = data.row(i);
+                        String referenceColumn = motherRelation.getReference();
+                        String referenceValue = referenceRow.getString(referenceColumn);
+                        if (targetRowMap.containsKey(referenceValue)) {
+                            // Get the matched row
+                            PedigreeImport matchedImportRow = pedigreeImports.get(targetRowMap.get(referenceValue));
+                            // Find the observation unit
+                            BrAPIObservationUnit matchedOU = allOUs.get(matchedImportRow.getObservationUnit().getObservationUnitName());
+                            BrAPICrossParent newMother = new BrAPICrossParent();
+                            newMother.setGermplasmDbId(matchedOU.getGermplasmDbId());
+                            newMother.setGermplasmName(matchedOU.getGermplasmName());
+                            newMother.setObservationUnitDbId(matchedOU.getObservationUnitDbId());
+                            newMother.setObservationUnitName(matchedOU.getObservationUnitName());
+                            //TODO: Other options maybe?
+                            newMother.setParentType(BrAPIParentType.FEMALE);
+                            newCross.setParent1(newMother);
+                        }
 
-                    List<BrAPICrossCrossAttributes> crossAttributes = new ArrayList<>();
-                    for (AdditionalInfo crossAttribute: cross.getCrossAttributes()) {
-                        BrAPICrossCrossAttributes newCrossAttribute = new BrAPICrossCrossAttributes();
-                        newCrossAttribute.setCrossAttributeName(crossAttribute.getAdditionalInfoName());
-                        newCrossAttribute.setCrossAttributeValue(crossAttribute.getAdditionalInfoValue());
-                        crossAttributes.add(newCrossAttribute);
+                        //TODO: Throw an error if we can't find the reference
+                        /*else {
+                            throw new UnprocessableEntityException("Target row for female parent not found.");
+                        }*/
+
+                    } else if (motherRelation.getType() == ImportRelationType.DB_LOOKUP) {
+                        // TODO: Search in the database
                     }
-                    newCross.crossAttributes(crossAttributes);
+
+                    ImportRelation fatherRelation = cross.getMaleParent();
+                    if (fatherRelation.getType() == ImportRelationType.FILE_LOOKUP) {
+                        String targetColumn = fatherRelation.getTarget();
+                        // Construct a map of the target row values
+                        Map<String, Integer> targetRowMap = new HashMap<>();
+                        for (int k = 0; k < data.rowCount(); k++) {
+                            Row targetRow = data.row(k);
+                            String targetValue = targetRow.getString(targetColumn);
+                            targetRowMap.put(targetValue, k);
+                        }
+                        // Look for a match
+                        String referenceColumn = fatherRelation.getReference();
+                        Row referenceRow = data.row(i);
+                        String referenceValue = referenceRow.getString(referenceColumn);
+                        if (targetRowMap.containsKey(referenceValue)) {
+                            // Get the matched row
+                            PedigreeImport matchedImportRow = pedigreeImports.get(targetRowMap.get(referenceValue));
+                            // Find the observation unit
+                            BrAPIObservationUnit matchedOU = allOUs.get(matchedImportRow.getObservationUnit().getObservationUnitName());
+                            BrAPICrossParent newFather = new BrAPICrossParent();
+                            newFather.setGermplasmDbId(matchedOU.getGermplasmDbId());
+                            newFather.setGermplasmName(matchedOU.getGermplasmName());
+                            newFather.setObservationUnitDbId(matchedOU.getObservationUnitDbId());
+                            newFather.setObservationUnitName(matchedOU.getObservationUnitName());
+                            //TODO: Other options maybe?
+                            newFather.setParentType(BrAPIParentType.MALE);
+                            newCross.setParent2(newFather);
+                        }
+                        //TODO: Throw an error if we can't find the reference
+                        /*else {
+                            throw new UnprocessableEntityException("Target row for male parent not found.");
+                        }*/
+
+                    } else if (fatherRelation.getType() == ImportRelationType.DB_LOOKUP) {
+                        // TODO: Search in the database
+                    }
+
+                    if (cross.getExternalReferences() != null){
+                        List<BrAPIExternalReference> externalReferences = new ArrayList<>();
+                        for (ExternalReference externalReference: cross.getExternalReferences()) {
+                            BrAPIExternalReference newBrAPIExternalReference = new BrAPIExternalReference();
+                            newBrAPIExternalReference.setReferenceSource(externalReference.getReferenceSource());
+                            newBrAPIExternalReference.setReferenceID(externalReference.getReferenceID());
+                            externalReferences.add(newBrAPIExternalReference);
+                        }
+                        newCross.setExternalReferences(externalReferences);
+                    }
+
+                    if (cross.getCrossAttributes() != null) {
+                        List<BrAPICrossCrossAttributes> crossAttributes = new ArrayList<>();
+                        for (AdditionalInfo crossAttribute: cross.getCrossAttributes()) {
+                            BrAPICrossCrossAttributes newCrossAttribute = new BrAPICrossCrossAttributes();
+                            newCrossAttribute.setCrossAttributeName(crossAttribute.getAdditionalInfoName());
+                            newCrossAttribute.setCrossAttributeValue(crossAttribute.getAdditionalInfoValue());
+                            crossAttributes.add(newCrossAttribute);
+                        }
+                        newCross.crossAttributes(crossAttributes);
+                    }
+
+                    newCrosses.add(newCross);
+
                 }
             }
         }
