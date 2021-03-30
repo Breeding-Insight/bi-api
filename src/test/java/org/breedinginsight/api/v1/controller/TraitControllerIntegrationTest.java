@@ -961,8 +961,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 trait.get("scale").getAsJsonObject().get("dataType").getAsString(), "wrong scale data type");
         assertEquals(updateTrait.getMethod().getDescription(),
                 trait.get("method").getAsJsonObject().get("description").getAsString(), "wrong method description");
-        //TODO: Reintroduce variables stored in brapi-server. The brapi test server is broken right now. See https://github.com/plantbreeding/API/issues/455
-        //assertEquals(updateTrait.getMethod().getMethodClass(), trait.get("method").getAsJsonObject().get("methodClass").getAsString(), "wrong method class");
+        assertEquals(updateTrait.getMethod().getMethodClass(), trait.get("method").getAsJsonObject().get("methodClass").getAsString(), "wrong method class");
 
         // Check abbreviations
         List<String> jsonAlternativeAbbreviations = new ArrayList<>();
