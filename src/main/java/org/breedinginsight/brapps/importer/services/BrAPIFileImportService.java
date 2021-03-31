@@ -33,6 +33,8 @@ import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingManager;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.constants.SupportedMediaType;
@@ -231,10 +233,12 @@ public class BrAPIFileImportService {
     public List<BrAPIImport> uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
             throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpBadRequestException, UnprocessableEntityException {
 
-        if (!programService.exists(programId))
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent())
         {
             throw new DoesNotExistException("Program id does not exist");
         }
+        Program program = optionalProgram.get();
 
         if (!programUserService.existsAndActive(programId, actingUser.getId())) {
             throw new AuthorizationException("User not in program");
@@ -262,7 +266,7 @@ public class BrAPIFileImportService {
 
         if (commit) {
             //TODO: Make this static if we can
-            importService.process(brAPIImportList, data);
+            importService.process(brAPIImportList, data, program);
         }
 
         return brAPIImportList;

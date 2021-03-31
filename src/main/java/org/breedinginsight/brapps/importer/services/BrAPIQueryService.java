@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
@@ -25,7 +26,9 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.poi.ss.formula.functions.T;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.modules.core.LocationsApi;
+import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmAttributesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
@@ -33,8 +36,10 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPIResponseResult;
 import org.brapi.v2.model.core.BrAPILocation;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
 import org.brapi.v2.model.core.response.BrAPILocationListResponse;
+import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmAttribute;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmAttributeSearchRequest;
@@ -46,6 +51,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
+import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 
@@ -54,6 +60,7 @@ import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -65,6 +72,9 @@ public class BrAPIQueryService {
     private static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
     private static Integer RESULTS_PER_QUERY = 10000;
     public static String OU_ID_REFERENCE_SOURCE = "ou_id";
+
+    @Property(name = "brapi.server.reference-source")
+    private String referenceSource;
 
     @Inject
     public BrAPIQueryService(BrAPIProvider brAPIProvider) {
@@ -119,9 +129,32 @@ public class BrAPIQueryService {
         }
     }
 
-    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames) throws ApiException {
+    private <T> List<T> post(List<T> brapiObjects, Function<List<T>, ApiResponse> postMethod) throws ApiException {
+
+        List<T> listResult = new ArrayList<>();
+        try {
+            ApiResponse response = postMethod.apply(brapiObjects);
+            if (response.getBody() == null) throw new ApiException("Response is missing body");
+            BrAPIResponse body = (BrAPIResponse) response.getBody();
+            if (body.getResult() == null) throw new ApiException("Response body is missing result");
+            BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
+            if (result.getData() == null) throw new ApiException("Response result is missing data");
+            List<T> data = result.getData();
+            if (data.size() != brapiObjects.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");
+            return data;
+        } catch (ApiException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new InternalServerException(e.toString(), e);
+        }
+    }
+
+    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, BrAPIProgram brAPIProgram) throws ApiException {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.germplasmNames(germplasmNames);
+        // TODO: Should be have a 'Pedigree' study to connect the germplasm to the program? Makes it a little less flexible
+        // Germplasm doesn't have program attached. Do species as next best thing
+        germplasmSearch.setCommonCropNames(List.of(brAPIProgram.getCommonCropName()));
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
         return this.<BrAPIGermplasmListResponse, BrAPIGermplasmSearchRequest, BrAPIGermplasm>search(
                 api::searchGermplasmPost,
@@ -130,7 +163,7 @@ public class BrAPIQueryService {
         );
     }
 
-    public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames) throws ApiException {
+    public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames, BrAPIProgram program) throws ApiException {
 
         BrAPIGermplasmAttributeSearchRequest germplasmAttributeSearch = new BrAPIGermplasmAttributeSearchRequest();
         germplasmAttributeSearch.setAttributeNames(new ArrayList<>(germplasmAttributeNames));
@@ -142,11 +175,12 @@ public class BrAPIQueryService {
         );
     }
 
-    public List<BrAPIObservationUnit> getObservationUnitsByNameAndStudyName(List<Pair<String, String>> nameStudyPairs) throws ApiException {
+    public List<BrAPIObservationUnit> getObservationUnitsByNameAndStudyName(List<Pair<String, String>> nameStudyPairs, BrAPIProgram brAPIProgram) throws ApiException {
 
         List<String> observationUnitNames = nameStudyPairs.stream().map(Pair::getLeft).collect(Collectors.toList());
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.setObservationUnitNames(new ArrayList<>(observationUnitNames));
+        observationUnitSearchRequest.setProgramDbIds(List.of(brAPIProgram.getProgramDbId()));
         ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
         List<BrAPIObservationUnit> observationUnits = this.<BrAPIObservationUnitListResponse, BrAPIObservationUnitSearchRequest, BrAPIObservationUnit>search(
                 api::searchObservationunitsPost,
@@ -158,10 +192,11 @@ public class BrAPIQueryService {
         return observationUnits;
     }
 
-    public List<BrAPILocation> getLocationsByName(List<String> locationNames) throws ApiException {
+    public List<BrAPILocation> getLocationsByName(List<String> locationNames, BrAPIProgram program) throws ApiException {
 
         BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
+        //TODO: Locations don't connect to programs. How to get locations for the program?
         LocationsApi api = brAPIProvider.getLocationsApi(BrAPIClientType.CORE);
         return this.<BrAPILocationListResponse, BrAPILocationSearchRequest, BrAPILocation>search(
                 api::searchLocationsPost,
@@ -169,4 +204,37 @@ public class BrAPIQueryService {
                 locationSearchRequest
         );
     }
+
+    public Optional<BrAPIProgram> getProgram(UUID programId) throws ApiException {
+        ProgramsApi programsApi = brAPIProvider.getProgramsAPI(BrAPIClientType.CORE);
+        ProgramQueryParams params = new ProgramQueryParams();
+        params.externalReferenceID(programId.toString());
+        params.externalReferenceSource(referenceSource);
+        ApiResponse<BrAPIProgramListResponse> programsResponse = programsApi.programsGet(params);
+        if (programsResponse.getBody() == null ||
+                programsResponse.getBody().getResult() == null ||
+                programsResponse.getBody().getResult().getData() == null
+        ) {
+            throw new ApiException("Query response was not properly structure.");
+        }
+
+        List<BrAPIProgram> programs = programsResponse.getBody().getResult().getData();
+        if (programs.size() == 1) {
+            return Optional.of(programs.get(0));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList) throws ApiException {
+        GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
+        return this.<BrAPIGermplasm>post(brAPIGermplasmList, api::germplasmPost);
+    }
+
+    public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList) throws ApiException {
+        ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
+        return this.<BrAPIObservationUnit>post(brAPIObservationUnitList, api::observationunitsPost);
+    }
+
+
 }
