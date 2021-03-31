@@ -27,6 +27,7 @@ import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import io.micronaut.http.server.exceptions.HttpServerException;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
 import io.reactivex.Flowable;
@@ -98,7 +99,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                             return chain.proceed(request);
                         } else {
                             // We shouldn't get here
-                            return Flowable.error(new HttpServerException("Unable to process request"));
+                            return Flowable.error(new InternalServerException("Unable to process request"));
                         }
                     } else {
 
