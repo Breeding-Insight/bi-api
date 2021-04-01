@@ -98,6 +98,7 @@ public class Germplasm implements BrAPIObject {
     public BrAPIGermplasm constructBrAPIGermplasm(String species) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm();
         germplasm.setSpecies(species);
+        germplasm.setCommonCropName(species);
         return germplasm;
     }
 

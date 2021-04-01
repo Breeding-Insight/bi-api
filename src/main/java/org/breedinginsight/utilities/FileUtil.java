@@ -28,6 +28,7 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.io.json.JsonReadOptions;
 
 import java.io.*;
+import java.math.BigDecimal;
 import java.util.*;
 
 @Slf4j
@@ -66,7 +67,9 @@ public class FileUtil {
                     if (cell == null) {
                         columns.get(header).add(null);
                     } else if (cell.getCellType() == CellType.NUMERIC) {
-                        columns.get(header).add(String.valueOf(cell.getNumericCellValue()));
+                        double cellValue = cell.getNumericCellValue();
+                        String stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
+                        columns.get(header).add(stringValue);
                     } else {
                         columns.get(header).add(cell.getStringCellValue());
                     }

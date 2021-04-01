@@ -17,8 +17,17 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import io.reactivex.functions.Function;
+import org.apache.commons.lang3.tuple.MutablePair;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.poi.ss.formula.functions.T;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.brapps.importer.model.base.BrAPIPreview;
 import org.breedinginsight.brapps.importer.model.config.ImportRelation;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.imports.MappedImport;
+import org.breedinginsight.brapps.importer.model.imports.PedigreeImportBrAPI;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
@@ -32,17 +41,17 @@ import java.util.Map;
 public class BrAPIFileService {
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
-    public List<Integer> findFileRelationships(Table data, ImportRelation importRelation) {
+    public List<Pair<Integer, String>> findFileRelationships(Table data, ImportRelation importRelation) {
 
-        List<Integer> targetIndexList = new ArrayList<>();
+        List<Pair<Integer, String>> targetIndexList = new ArrayList<>();
         for (int i = 0; i < data.rowCount(); i++) {
             String targetColumn = importRelation.getTarget();
             // Construct a map of the target row values
-            // TODO: If there is no reference value, put -1 for that row
             Map<String, Integer> targetRowMap = new HashMap<>();
             for (int k = 0; k < data.rowCount(); k++) {
                 Row targetRow = data.row(k);
                 String targetValue = targetRow.getString(targetColumn);
+                if (targetValue == null) continue;
                 targetRowMap.put(targetValue, k);
             }
 
@@ -51,9 +60,9 @@ public class BrAPIFileService {
             String referenceColumn = importRelation.getReference();
             String referenceValue = referenceRow.getString(referenceColumn);
             if (targetRowMap.containsKey(referenceValue)) {
-                targetIndexList.add(targetRowMap.get(referenceValue));
+                targetIndexList.add(new MutablePair<>(targetRowMap.get(referenceValue), referenceValue));
             } else {
-                targetIndexList.add(-1);
+                targetIndexList.add(new MutablePair<>(-1, referenceValue));
             }
         }
 
