@@ -193,16 +193,18 @@ public class PedigreeImportService extends BrAPIImportService {
         }
 
         // Get the relationships
-        ImportRelation motherRelation = pedigreeImports.get(0).getCross().getFemaleParent(); // unique
-        List<BrAPICrossParent> mothers = getCrossParents(motherRelation, data, mappedBrAPIImport, BrAPIParentType.FEMALE);
-        for (int k = 0; k < mothers.size(); k++) {
-            mappedBrAPIImport.get(k).getCross().getBrAPIObject().setParent1(mothers.get(k));
-        }
+        if (pedigreeImports.get(0).getCross() != null) {
+            ImportRelation motherRelation = pedigreeImports.get(0).getCross().getFemaleParent(); // unique
+            List<BrAPICrossParent> mothers = getCrossParents(motherRelation, data, mappedBrAPIImport, BrAPIParentType.FEMALE);
+            for (int k = 0; k < mothers.size(); k++) {
+                mappedBrAPIImport.get(k).getCross().getBrAPIObject().setParent1(mothers.get(k));
+            }
 
-        ImportRelation fatherRelation = pedigreeImports.get(0).getCross().getMaleParent();
-        List<BrAPICrossParent> fathers = getCrossParents(motherRelation, data, mappedBrAPIImport, BrAPIParentType.MALE);
-        for (int k = 0; k < fathers.size(); k++) {
-            mappedBrAPIImport.get(k).getCross().getBrAPIObject().setParent2(fathers.get(k));
+            ImportRelation fatherRelation = pedigreeImports.get(0).getCross().getMaleParent();
+            List<BrAPICrossParent> fathers = getCrossParents(motherRelation, data, mappedBrAPIImport, BrAPIParentType.MALE);
+            for (int k = 0; k < fathers.size(); k++) {
+                mappedBrAPIImport.get(k).getCross().getBrAPIObject().setParent2(fathers.get(k));
+            }
         }
 
         if (!commit) {

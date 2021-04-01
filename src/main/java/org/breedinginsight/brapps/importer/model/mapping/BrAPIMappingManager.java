@@ -116,6 +116,15 @@ public class BrAPIMappingManager {
         if (type == null) {
             throw new InternalServerException("BrAPIObject is missing import type annotation");
         } else if (type.type() == ImportFieldType.OBJECT) {
+
+            Boolean objectIsEmpty = fieldObjectIsEmpty(matchedMapping);
+            if (required != null && objectIsEmpty) {
+                throw new UnprocessableEntityException(String.format(
+                        "Required object, %s, was not mapped", metadata.id()));
+            } else if (required == null && objectIsEmpty) {
+                return;
+            }
+
             BrAPIObject brAPIObject;
             try {
                 brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
@@ -175,8 +184,6 @@ public class BrAPIMappingManager {
                 throw new InternalServerException(e.toString(), e);
             }
         } else if (type.type() == ImportFieldType.RELATIONSHIP) {
-            //TODO: For file lookup, find field in other rows, maybe?
-
             if (required != null && (matchedMapping.getValue() == null ||
                     matchedMapping.getValue().getRelationMap() == null)) {
                 throw new UnprocessableEntityException(String.format("Relationship field %s is required", metadata.name()));
@@ -242,5 +249,20 @@ public class BrAPIMappingManager {
 
         }
 
+    }
+
+    /*
+        A mapped object is considered null if no fields in it have been mapped
+     */
+    private Boolean fieldObjectIsEmpty(BrAPIMappingField mappedObject) {
+        if (mappedObject.getMapping() != null){
+            for (BrAPIMappingField mappedField: mappedObject.getMapping()) {
+                if (mappedField != null) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 }

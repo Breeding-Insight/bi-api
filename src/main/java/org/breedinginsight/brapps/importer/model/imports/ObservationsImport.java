@@ -36,8 +36,4 @@ public class ObservationsImport implements BrAPIImport {
 
     @ImportType(type = ImportFieldType.LIST, clazz = Observation.class)
     List<Observation> observations;
-
-    public BrAPIImportService getImportService() {
-        return null;
-    }
 }

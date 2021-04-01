@@ -43,6 +43,7 @@ import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.base.GermplasmAttribute;
 import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportType;
 import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
@@ -63,21 +64,16 @@ import java.util.stream.Collectors;
 @ImportMetadata(id="PedigreeImport", name="Pedigree Import",
         description = "This import is used to create a pedigree history by importing germplasm and observation units.")
 public class PedigreeImport implements BrAPIImport {
-    private PedigreeImportService importService;
-
     @ImportType(type = ImportFieldType.OBJECT)
+    @ImportFieldRequired
     private Germplasm germplasm;
 
     @ImportType(type = ImportFieldType.OBJECT)
+    @ImportFieldRequired
     private ObservationUnit observationUnit;
 
     @ImportType(type = ImportFieldType.OBJECT)
     private Cross cross;
 
     //TODO: Make an @ImportIgnore annotation
-
-    @Inject
-    public PedigreeImport(PedigreeImportService importService) {
-        this.importService = importService;
-    }
 }
