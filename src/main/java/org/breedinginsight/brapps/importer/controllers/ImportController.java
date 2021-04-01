@@ -35,6 +35,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.brapps.importer.model.imports.MappedImport;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
@@ -207,7 +208,7 @@ public class ImportController {
                                                                       @QueryValue(defaultValue="false") Boolean commit) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<BrAPIImport> result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
+            List<MappedImport> result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);

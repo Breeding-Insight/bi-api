@@ -28,6 +28,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.MappedImport;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingManager;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -230,7 +231,7 @@ public class BrAPIFileImportService {
         return importMappingDAO.existsById(mappingId);
     }
 
-    public List<BrAPIImport> uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
+    public List<MappedImport> uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
             throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpBadRequestException, UnprocessableEntityException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
@@ -261,15 +262,11 @@ public class BrAPIFileImportService {
         //TODO: Get better errors on this
         Table data = parseUploadedFile(file);
 
-        //TODO: Get better errors on this
+        //TODO: Get better errors for these
         List<BrAPIImport> brAPIImportList = mappingManager.map(importMapping, data);
+        List<MappedImport> mappedImportResult = importService.process(brAPIImportList, data, program, commit);
 
-        if (commit) {
-            //TODO: Make this static if we can
-            importService.process(brAPIImportList, data, program);
-        }
-
-        return brAPIImportList;
+        return mappedImportResult;
     }
 
     public List<BrAPIImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)

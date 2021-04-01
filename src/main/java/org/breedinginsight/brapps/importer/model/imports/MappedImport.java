@@ -17,19 +17,5 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.brapi.v2.model.germ.BrAPICross;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreview;
-
-@Getter
-@Setter
-@NoArgsConstructor
-public class PedigreeImportBrAPI implements MappedImport {
-    private BrAPIPreview<BrAPIGermplasm> germplasm;
-    private BrAPIPreview<BrAPIObservationUnit> observationUnit;
-    private BrAPIPreview<BrAPICross> cross;
+public interface MappedImport {
 }

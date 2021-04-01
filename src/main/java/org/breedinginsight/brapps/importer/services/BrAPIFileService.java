@@ -38,6 +38,7 @@ public class BrAPIFileService {
         for (int i = 0; i < data.rowCount(); i++) {
             String targetColumn = importRelation.getTarget();
             // Construct a map of the target row values
+            // TODO: If there is no reference value, put -1 for that row
             Map<String, Integer> targetRowMap = new HashMap<>();
             for (int k = 0; k < data.rowCount(); k++) {
                 Row targetRow = data.row(k);
