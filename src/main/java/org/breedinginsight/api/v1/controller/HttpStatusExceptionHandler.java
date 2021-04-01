@@ -20,9 +20,9 @@ import io.micronaut.context.annotation.Requires;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Produces;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.ExceptionHandler;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.HttpNotFoundException;
 
 import javax.inject.Singleton;
 
@@ -30,11 +30,11 @@ import javax.inject.Singleton;
 @Singleton
 @Slf4j
 @Requires(classes = {Exception.class, ExceptionHandler.class})
-public class NotFoundFilterErrorHandler implements ExceptionHandler<HttpNotFoundException, HttpResponse> {
+public class HttpStatusExceptionHandler implements ExceptionHandler<HttpStatusException, HttpResponse> {
 
     @Override
-    public HttpResponse handle(HttpRequest request, HttpNotFoundException e) {
+    public HttpResponse handle(HttpRequest request, HttpStatusException e) {
         log.error(e.getMessage());
-        return HttpResponse.notFound();
+        return HttpResponse.status(e.getStatus(), e.getMessage());
     }
 }
