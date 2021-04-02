@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.model.mapping;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
@@ -230,6 +231,7 @@ public class BrAPIMappingManager {
                     throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", matchedMapping.getValue().getFileFieldName()));
                 }
                 String fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
+                if (StringUtils.isBlank(fileValue)) fileValue = null;
                 try {
                     field.setAccessible(true);
                     field.set(parent, fileValue);
@@ -238,9 +240,11 @@ public class BrAPIMappingManager {
                     throw new InternalServerException(e.toString(), e);
                 }
             } else if (matchedMapping.getValue().getConstantValue() != null){
+                String value = matchedMapping.getValue().getConstantValue();
+                if (StringUtils.isBlank(value)) value = null;
                 try {
                     field.setAccessible(true);
-                    field.set(parent, matchedMapping.getValue().getConstantValue());
+                    field.set(parent, value);
                     field.setAccessible(false);
                 } catch (IllegalAccessException e) {
                     throw new InternalServerException(e.toString(), e);

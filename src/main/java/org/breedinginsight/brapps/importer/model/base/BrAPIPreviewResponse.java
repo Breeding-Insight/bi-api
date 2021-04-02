@@ -15,23 +15,18 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.brapi.v2.model.germ.BrAPICross;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreview;
+import org.breedinginsight.brapps.importer.model.imports.MappedImport;
 
-import java.util.UUID;
+import java.util.List;
+import java.util.Map;
 
 @Getter
 @Setter
-@NoArgsConstructor
-public class PedigreeImportBrAPI implements MappedImport {
-    private BrAPIPreview<BrAPIGermplasm> germplasm;
-    private BrAPIPreview<BrAPIObservationUnit> observationUnit;
-    private BrAPIPreview<BrAPICross> cross;
+public class BrAPIPreviewResponse {
+    private Map<String, BrAPIPreviewStatistics> statistics;
+    private List<MappedImport> rows;
 }

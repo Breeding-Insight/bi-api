@@ -35,6 +35,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.brapps.importer.model.base.BrAPIPreviewResponse;
 import org.breedinginsight.brapps.importer.model.imports.MappedImport;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -203,18 +204,13 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<DataResponse<BrAPIImport>>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                      @Part("file") CompletedFileUpload file,
-                                                                      @QueryValue(defaultValue="false") Boolean commit) {
+    public HttpResponse<Response<BrAPIPreviewResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                   @Part("file") CompletedFileUpload file,
+                                                                   @QueryValue(defaultValue="false") Boolean commit) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<MappedImport> result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
-            List<Status> metadataStatus = new ArrayList<>();
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-            Pagination pagination = new Pagination(result.size(), 1, 1, 0);
-            Metadata metadata = new Metadata(pagination, metadataStatus);
-
-            Response<DataResponse<BrAPIImport>> response = new Response(metadata, new DataResponse<>(result));
+            BrAPIPreviewResponse result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
+            Response<BrAPIPreviewResponse> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (HttpBadRequestException e) {
             log.info(e.getMessage());

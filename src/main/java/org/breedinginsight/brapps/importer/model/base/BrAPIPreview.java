@@ -24,21 +24,15 @@ import java.util.UUID;
 @Getter
 @Setter
 public class BrAPIPreview<T> {
-    private static String TEMP_ID_PRE = "temp_id:";
-
     @NonNull
     private PreviewState state;
     @NonNull
     private T brAPIObject;
-    private String id;
+    private UUID id;
 
     public BrAPIPreview(PreviewState state, T brAPIObject) {
         this.state = state;
         this.brAPIObject = brAPIObject;
-        this.id = TEMP_ID_PRE + UUID.randomUUID().toString();
-    }
-
-    public static String getTempIdPrefix(){
-        return TEMP_ID_PRE;
+        this.id = UUID.randomUUID();
     }
 }
