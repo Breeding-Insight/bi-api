@@ -51,6 +51,7 @@ public class BrAPIMappingManager {
 
     public List<BrAPIImport> map(BrAPIImportMapping importMapping, Table data) throws UnprocessableEntityException {
 
+        // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
         if (importMapping.getMapping() == null) {
             throw new NullPointerException("Mapping must be supplied");
         }
@@ -129,16 +130,17 @@ public class BrAPIMappingManager {
             BrAPIObject brAPIObject;
             try {
                 brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
+                List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
+                for (Field lowerField: fields) {
+                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex);
+                }
+                if (brapiObjectIsEmpty(brAPIObject)) brAPIObject = null;
+
                 field.setAccessible(true);
                 field.set(parent, brAPIObject);
                 field.setAccessible(false);
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new InternalServerException(e.toString(), e);
-            }
-
-            List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
-            for (Field lowerField: fields) {
-                mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex);
             }
         } else if (type.type() == ImportFieldType.LIST) {
             //TODO: Current can't handle primitive types, only BrAPIObject types
@@ -201,8 +203,9 @@ public class BrAPIMappingManager {
             BrAPIMappingValue value = matchedMapping.getValue();
             ImportRelation relationship = new ImportRelation();
             relationship.setType(value.getRelationValue());
-            relationship.setTarget(value.getRelationMap().getTarget());
-            relationship.setReference(value.getRelationMap().getReference());
+            relationship.setTargetColumn(value.getRelationMap().getTarget());
+            String referenceColumn = value.getRelationMap().getReference();
+            relationship.setReferenceValue(focusRow.getString(referenceColumn));
             try {
                 field.setAccessible(true);
                 field.set(parent, relationship);
@@ -226,7 +229,7 @@ public class BrAPIMappingManager {
 
             // Check if the mapping passed a constant value or a mapped value
             if (matchedMapping.getValue().getFileFieldName() != null) {
-                // Check that the file as this name
+                // Check that the file has this name
                 if (!focusRow.columnNames().contains(matchedMapping.getValue().getFileFieldName())) {
                     throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", matchedMapping.getValue().getFileFieldName()));
                 }
@@ -264,6 +267,47 @@ public class BrAPIMappingManager {
                 if (mappedField != null) {
                     return false;
                 }
+            }
+        }
+
+        return true;
+    }
+
+    private Boolean brapiObjectIsEmpty(BrAPIObject brAPIObject) {
+
+        if (brAPIObject == null) return true;
+
+        Field[] fields = brAPIObject.getClass().getDeclaredFields();
+        for (Field field: fields) {
+
+            // Check the type
+            ImportType type = field.getAnnotation(ImportType.class);
+            if (type == null) continue;
+
+            Object fieldValue;
+            try {
+                field.setAccessible(true);
+                fieldValue = field.get(brAPIObject);
+                field.setAccessible(false);
+            } catch (IllegalAccessException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
+
+            if (type.type() == ImportFieldType.LIST) continue;
+            else if (type.type() == ImportFieldType.OBJECT) {
+                // Dive deeper
+                BrAPIObject childBrAPIObject = (BrAPIObject) fieldValue;
+                Boolean childObjectIsEmpty = brapiObjectIsEmpty(childBrAPIObject);
+                if (!childObjectIsEmpty) return false;
+            }
+            else if (type.type() == ImportFieldType.RELATIONSHIP) {
+                // Check the reference value of the relationship
+                ImportRelation relation = (ImportRelation) fieldValue;
+                if (!StringUtils.isBlank(relation.getReferenceValue())) return false;
+            } else {
+                // Check the value isn't blank
+                String simpleValue = (String) fieldValue;
+                if (!StringUtils.isBlank(simpleValue)) return false;
             }
         }
 

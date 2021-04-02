@@ -23,7 +23,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ImportRelation {
-    private String target;
-    private String reference;
+    private String targetColumn;
+    private String referenceValue;
     private ImportRelationType type;
 }

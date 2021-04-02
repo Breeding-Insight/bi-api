@@ -167,6 +167,7 @@ public class PedigreeImportService extends BrAPIImportService {
 
             // Crosses
             // TODO: Fix once search crosses is added to brapi. Right now only creates crosses for new germplasm
+            // TODO: Items with relationships aren't considered null... Need to figure null objects out
             // Crosses produce germplasm. If no germplasm for this row, skip it
             if (cross != null && mappedImportRow.getGermplasm() != null) {
                 BrAPIPreview<BrAPIGermplasm> germplasmPreview = germplasmByName.get(germplasm.getGermplasmName());
@@ -187,8 +188,11 @@ public class PedigreeImportService extends BrAPIImportService {
 
         // Get the relationships
         if (pedigreeImports.get(0).getCross() != null) {
-            ImportRelation motherRelation = pedigreeImports.get(0).getCross().getFemaleParent(); // unique
-            List<BrAPICrossParent> mothers = getCrossParents(motherRelation, data, mappedBrAPIImport, BrAPIParentType.FEMALE);
+            List<ImportRelation> motherRelations = pedigreeImports.stream().map(pedigreeImport -> {
+                return pedigreeImport.getCross() != null ? pedigreeImport.getCross().getFemaleParent() : null;
+            }).collect(Collectors.toList());
+            // unique
+            List<BrAPICrossParent> mothers = getCrossParents(motherRelations, data, mappedBrAPIImport, BrAPIParentType.FEMALE);
             for (int k = 0; k < mothers.size(); k++) {
                 //TODO: Does this reference to the preview in the map?
                 if (mappedBrAPIImport.get(k).getCross() != null) {
@@ -199,8 +203,10 @@ public class PedigreeImportService extends BrAPIImportService {
                 }
             }
 
-            ImportRelation fatherRelation = pedigreeImports.get(0).getCross().getMaleParent();
-            List<BrAPICrossParent> fathers = getCrossParents(fatherRelation, data, mappedBrAPIImport, BrAPIParentType.MALE);
+            List<ImportRelation> fatherRelations = pedigreeImports.stream().map(pedigreeImport -> {
+                return pedigreeImport.getCross() != null ? pedigreeImport.getCross().getMaleParent() : null;
+            }).collect(Collectors.toList());
+            List<BrAPICrossParent> fathers = getCrossParents(fatherRelations, data, mappedBrAPIImport, BrAPIParentType.MALE);
             for (int k = 0; k < fathers.size(); k++) {
                 if (mappedBrAPIImport.get(k).getCross() != null) {
                     BrAPICross cross = mappedBrAPIImport.get(k).getCross().getBrAPIObject();
@@ -332,14 +338,15 @@ public class PedigreeImportService extends BrAPIImportService {
     }
 
     // TODO: Can we make this sort of function generic so all relationships can use it?
-    public List<BrAPICrossParent> getCrossParents(ImportRelation relation, Table data, List<PedigreeImportBrAPI> mappedBrAPIImport, BrAPIParentType parentType) throws UnprocessableEntityException {
+    public List<BrAPICrossParent> getCrossParents(List<ImportRelation> relations, Table data, List<PedigreeImportBrAPI> mappedBrAPIImport, BrAPIParentType parentType) throws UnprocessableEntityException {
 
         // TODO: Reduce the loops in this
         List<BrAPICrossParent> crossParents = new ArrayList<>();
+        ImportRelation relation = relations.get(0);
         if (relation != null) {
             List<Pair<BrAPIPreview<BrAPIGermplasm>, BrAPIPreview<BrAPIObservationUnit>>> targets = new ArrayList<>();
             if (relation.getType() == ImportRelationType.FILE_LOOKUP) {
-                List<Pair<Integer, String>> targetRowMatch = brAPIFileService.findFileRelationships(data, relation);
+                List<Pair<Integer, String>> targetRowMatch = brAPIFileService.findFileRelationships(data, relations);
                 // Generate targets array
                 for (int k = 0; k < targetRowMatch.size(); k++) {
                     Integer targetRowIndex = targetRowMatch.get(k).getLeft();

@@ -69,7 +69,6 @@ public class PedigreeImport implements BrAPIImport {
     private Germplasm germplasm;
 
     @ImportType(type = ImportFieldType.OBJECT)
-    @ImportFieldRequired
     private ObservationUnit observationUnit;
 
     @ImportType(type = ImportFieldType.OBJECT)

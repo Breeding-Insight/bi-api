@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -31,7 +32,10 @@ import java.util.UUID;
 @Setter
 @NoArgsConstructor
 public class PedigreeImportBrAPI implements MappedImport {
+    @JsonInclude
     private BrAPIPreview<BrAPIGermplasm> germplasm;
+    @JsonInclude
     private BrAPIPreview<BrAPIObservationUnit> observationUnit;
+    @JsonInclude
     private BrAPIPreview<BrAPICross> cross;
 }

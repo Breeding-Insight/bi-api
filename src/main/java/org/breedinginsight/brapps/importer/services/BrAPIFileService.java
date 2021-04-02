@@ -41,28 +41,31 @@ import java.util.Map;
 public class BrAPIFileService {
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
-    public List<Pair<Integer, String>> findFileRelationships(Table data, ImportRelation importRelation) {
+    public List<Pair<Integer, String>> findFileRelationships(Table data, List<ImportRelation> importRelations) {
 
         List<Pair<Integer, String>> targetIndexList = new ArrayList<>();
-        for (int i = 0; i < data.rowCount(); i++) {
-            String targetColumn = importRelation.getTarget();
-            // Construct a map of the target row values
-            Map<String, Integer> targetRowMap = new HashMap<>();
-            for (int k = 0; k < data.rowCount(); k++) {
-                Row targetRow = data.row(k);
-                String targetValue = targetRow.getString(targetColumn);
-                if (targetValue == null) continue;
-                targetRowMap.put(targetValue, k);
-            }
+        String targetColumn = importRelations.get(0).getTargetColumn();
 
+        // Construct a map of the target row values
+        Map<String, Integer> targetRowMap = new HashMap<>();
+        for (int k = 0; k < data.rowCount(); k++) {
+            Row targetRow = data.row(k);
+            String targetValue = targetRow.getString(targetColumn);
+            if (targetValue == null) continue;
+            targetRowMap.put(targetValue, k);
+        }
+
+        for (int i = 0; i < data.rowCount(); i++) {
             // Look for a match
-            Row referenceRow = data.row(i);
-            String referenceColumn = importRelation.getReference();
-            String referenceValue = referenceRow.getString(referenceColumn);
-            if (targetRowMap.containsKey(referenceValue)) {
-                targetIndexList.add(new MutablePair<>(targetRowMap.get(referenceValue), referenceValue));
+            if (importRelations.get(i) == null) {
+                targetIndexList.add(new MutablePair<>(-1, null));
             } else {
-                targetIndexList.add(new MutablePair<>(-1, referenceValue));
+                String referenceValue = importRelations.get(i).getReferenceValue();
+                if (targetRowMap.containsKey(referenceValue)) {
+                    targetIndexList.add(new MutablePair<>(targetRowMap.get(referenceValue), referenceValue));
+                } else {
+                    targetIndexList.add(new MutablePair<>(-1, referenceValue));
+                }
             }
         }
 
