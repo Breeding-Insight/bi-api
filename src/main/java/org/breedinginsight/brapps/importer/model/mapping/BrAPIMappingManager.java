@@ -206,6 +206,7 @@ public class BrAPIMappingManager {
             relationship.setTargetColumn(value.getRelationMap().getTarget());
             String referenceColumn = value.getRelationMap().getReference();
             relationship.setReferenceValue(focusRow.getString(referenceColumn));
+            if (StringUtils.isBlank(relationship.getReferenceValue())) relationship = null;
             try {
                 field.setAccessible(true);
                 field.set(parent, relationship);
@@ -264,7 +265,10 @@ public class BrAPIMappingManager {
     private Boolean fieldObjectIsEmpty(BrAPIMappingField mappedObject) {
         if (mappedObject.getMapping() != null){
             for (BrAPIMappingField mappedField: mappedObject.getMapping()) {
-                if (mappedField != null) {
+                if (mappedField != null &&
+                        (mappedField.getValue() != null ||
+                                (mappedField.getMapping() != null && mappedField.getMapping().size() > 0))
+                ){
                     return false;
                 }
             }
@@ -303,7 +307,7 @@ public class BrAPIMappingManager {
             else if (type.type() == ImportFieldType.RELATIONSHIP) {
                 // Check the reference value of the relationship
                 ImportRelation relation = (ImportRelation) fieldValue;
-                if (!StringUtils.isBlank(relation.getReferenceValue())) return false;
+                if (relation != null && !StringUtils.isBlank(relation.getReferenceValue())) return false;
             } else {
                 // Check the value isn't blank
                 String simpleValue = (String) fieldValue;

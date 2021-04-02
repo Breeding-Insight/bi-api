@@ -47,8 +47,7 @@ public class Cross implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName", "observationUnitName"}),
     })
     @ImportFieldRequired
     @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
@@ -56,8 +55,7 @@ public class Cross implements BrAPIObject {
 
     @ImportType(type= ImportFieldType.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName", "observationUnitName"}),
     })
     @ImportFieldMetadata(id="maleParent", name="Male Parent", description = "The male parent of the germplasm. Can be left blank for self crosses.")
     private ImportRelation maleParent;

@@ -21,7 +21,7 @@ import lombok.Getter;
 
 @Getter
 public enum ImportRelationType {
-    DB_LOOKUP("DB_LOOKUP", "Database Lookup", "Specify the lookup value from the list of options, and the column in the file to map to. If the object isn't found, we will throw an error"),
+    DB_LOOKUP("DB_LOOKUP", "Database and Current File Lookup", "Select a value to search the values on. We will search for matches within the file, and within the database. If we can't find a relationship, we'll ignore the link."),
     FILE_LOOKUP("FILE_LOOKUP", "File Lookup", "Specify a column with a unique id that references a matching id within this file. If the object isn't found we will throw an error."),
     DB_LOOKUP_CONSTANT_VALUE("DB_LOOKUP_CONSTANT_VALUE", "Manual Input Database Lookup", "Manually enter a value to be searched for in hte database. If the object isn't found, we will throw an error.");
 

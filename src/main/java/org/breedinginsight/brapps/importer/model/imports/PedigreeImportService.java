@@ -74,7 +74,7 @@ public class PedigreeImportService extends BrAPIImportService {
 
         // TODO: Need to get the whole file to do a legit upload -> Need to wait until POST/GET pattern for file is made (Next card)
         // TODO: Check that POST brapi to breedbase works
-        // TODO: Test if it works without observation units
+        // TODO: Try to change the relationships to just be a lookup based on name. Then can be in file and in db. Use the DB_LOOKUP option for this
 
         // TODO: Later items
         // TODO: Identify areas in the process for clean up
@@ -83,10 +83,10 @@ public class PedigreeImportService extends BrAPIImportService {
         // TODO: Need to have a discussion on whether we only create new things, or if we update too. Example: Germplasm attributes, crosses
         // TODO: How do we handle duplicates? Some can be ignore. What if germplasm have the same name, but different attributes? Throw error for now.
         // TODO: Add enum type for value (dropdown on UI) -> New card
-
         // TODO: Make an @ImportIgnore annotation to be able to ignore certain fields
         // TODO: See if we can reduce the number of loops
         // TODO: Make temp ids for NEW objects so we can still reference them in relationships
+        // TODO: Allow for db lookup and file lookup at the same time
 
         //BrAPI Objects per row
         List<PedigreeImport> pedigreeImports = (List<PedigreeImport>)(List<?>) brAPIImports;
@@ -112,6 +112,51 @@ public class PedigreeImportService extends BrAPIImportService {
             // Observation units
             if (pedigreeImport.getObservationUnit() != null) {
                 ouNameByStudy.add(new MutablePair<>(pedigreeImport.getObservationUnit().getObservationUnitName(), null));
+            }
+        }
+
+        // Add our values for the db lookup to our list
+        // Get the first row with a cross. Not ideal, but it works
+        Cross importCross = null;
+        Iterator<PedigreeImport> iterator = pedigreeImports.iterator();
+        while (importCross == null && iterator.hasNext()) {
+            PedigreeImport pedigreeImport = iterator.next();
+            importCross = pedigreeImport.getCross();
+        }
+        if (importCross != null) {
+            // Check the lookup for the female parent
+            if (importCross.getFemaleParent() != null && importCross.getFemaleParent().getType() == ImportRelationType.DB_LOOKUP) {
+
+                List<String> names = pedigreeImports.stream()
+                        .filter(pedigreeImport -> pedigreeImport.getCross() != null && pedigreeImport.getCross().getFemaleParent() != null)
+                        .map(pedigreeImport -> pedigreeImport.getCross().getFemaleParent().getReferenceValue())
+                        .collect(Collectors.toList());
+
+                // TODO: String reference isn't ideal. See if we can get an enum somewhere. Don't want files everywhere though.
+                if (importCross.getFemaleParent().getTargetColumn() == "germplasmNames") {
+                    germplasmNames.addAll(names);
+                } else if (importCross.getFemaleParent().getTargetColumn() == "observationUnitName") {
+                    ouNameByStudy.addAll(
+                            names.stream().map(name -> new MutablePair<String, String>(name, null)).collect(Collectors.toList())
+                    );
+                }
+            }
+            // Check the lookup for the male parent
+            if (importCross.getMaleParent() != null && importCross.getMaleParent().getType() == ImportRelationType.DB_LOOKUP) {
+
+                List<String> names = pedigreeImports.stream()
+                        .filter(pedigreeImport -> pedigreeImport.getCross() != null && pedigreeImport.getCross().getMaleParent() != null)
+                        .map(pedigreeImport -> pedigreeImport.getCross().getMaleParent().getReferenceValue())
+                        .collect(Collectors.toList());
+
+                // TODO: String reference isn't ideal. See if we can get an enum somewhere. Don't want files everywhere though.
+                if (importCross.getMaleParent().getTargetColumn() == "germplasmNames") {
+                    germplasmNames.addAll(names);
+                } else if (importCross.getMaleParent().getTargetColumn() == "observationUnitName") {
+                    ouNameByStudy.addAll(
+                            names.stream().map(name -> new MutablePair<String, String>(name, null)).collect(Collectors.toList())
+                    );
+                }
             }
         }
 
@@ -160,6 +205,9 @@ public class PedigreeImportService extends BrAPIImportService {
                 if (!ouByName.containsKey(observationUnit.getObservationUnitName())) {
                     BrAPIObservationUnit newObservationUnit = observationUnit.constructBrAPIObservationUnit();
                     newObservationUnit.setProgramDbId(brAPIProgram.getProgramDbId());
+                    if (mappedImportRow.getGermplasm() != null){
+                        newObservationUnit.setGermplasmName(mappedImportRow.getGermplasm().getBrAPIObject().getGermplasmName());
+                    }
                     ouByName.put(newObservationUnit.getObservationUnitName(), new BrAPIPreview<>(PreviewState.NEW, newObservationUnit));
                 }
                 mappedImportRow.setObservationUnit(ouByName.get(observationUnit.getObservationUnitName()));
@@ -167,19 +215,62 @@ public class PedigreeImportService extends BrAPIImportService {
 
             // Crosses
             // TODO: Fix once search crosses is added to brapi. Right now only creates crosses for new germplasm
-            // TODO: Items with relationships aren't considered null... Need to figure null objects out
             // Crosses produce germplasm. If no germplasm for this row, skip it
             if (cross != null && mappedImportRow.getGermplasm() != null) {
                 BrAPIPreview<BrAPIGermplasm> germplasmPreview = germplasmByName.get(germplasm.getGermplasmName());
+
+                BrAPICross newCross = cross.getBrAPICross();
                 if (!crossByGermplasmName.containsKey(germplasm.getGermplasmName()) &&
                         germplasmPreview.getState() == PreviewState.NEW
                 ) {
-                    BrAPICross newCross = cross.getBrAPICross();
                     crossByGermplasmName.put(germplasm.getGermplasmName(), new BrAPIPreview<>(PreviewState.NEW, newCross));
                 } else if (!crossByGermplasmName.containsKey(germplasm.getGermplasmName())) {
                     //TODO: Need to search crosses. This is just a placeholder for now
-                    BrAPICross newCross = cross.getBrAPICross();
                     crossByGermplasmName.put(germplasm.getGermplasmName(), new BrAPIPreview<>(PreviewState.EXISTING, newCross));
+                }
+
+                // Add the mother
+                if (cross.getFemaleParent() != null) {
+                    BrAPICrossParent mother = new BrAPICrossParent();
+                    // TODO: Get a better way to check the column. I don't like this free string
+                    if (cross.getFemaleParent().getTargetColumn() == "germplasmName") {
+                        if (germplasmByName.containsKey(cross.getFemaleParent().getReferenceValue())) {
+                            mother.setGermplasmName(cross.getFemaleParent().getReferenceValue());
+                        } else {
+                            //TODO: Throw error if the user wants an error
+                        }
+                    } else if (cross.getFemaleParent().getTargetColumn() == "observationUnitName") {
+                        if (ouByName.containsKey(cross.getFemaleParent().getReferenceValue())) {
+                            BrAPIObservationUnit crossTargetOU = ouByName.get(cross.getFemaleParent().getReferenceValue()).getBrAPIObject();
+                            mother.setObservationUnitName(crossTargetOU.getObservationUnitName());
+                            mother.setGermplasmName(crossTargetOU.getGermplasmName());
+                        } else {
+                            //TODO: Throw error if the user wants an error
+                        }
+                    }
+                    newCross.setParent1(mother);
+                }
+
+                // Add father
+                if (cross.getMaleParent() != null) {
+                    BrAPICrossParent father = new BrAPICrossParent();
+                    // TODO: Get a better way to check the column. I don't like this free string
+                    if (cross.getFemaleParent().getTargetColumn().equals("germplasmName")) {
+                        if (germplasmByName.containsKey(cross.getMaleParent().getReferenceValue())) {
+                            father.setGermplasmName(cross.getMaleParent().getReferenceValue());
+                        } else {
+                            //TODO: Throw error if the user wants an error
+                        }
+                    } else if (cross.getFemaleParent().getTargetColumn().equals("observationUnitName")) {
+                        if (ouByName.containsKey(cross.getFemaleParent().getReferenceValue())) {
+                            BrAPIObservationUnit crossTargetOU = ouByName.get(cross.getMaleParent().getReferenceValue()).getBrAPIObject();
+                            father.setObservationUnitName(crossTargetOU.getObservationUnitName());
+                            father.setGermplasmName(crossTargetOU.getGermplasmName());
+                        } else {
+                            //TODO: Throw error if the user wants an error
+                        }
+                    }
+                    newCross.setParent2(father);
                 }
 
                 mappedImportRow.setCross(crossByGermplasmName.get(germplasm.getGermplasmName()));
@@ -187,7 +278,7 @@ public class PedigreeImportService extends BrAPIImportService {
         }
 
         // Get the relationships
-        if (pedigreeImports.get(0).getCross() != null) {
+        /*if (pedigreeImports.get(0).getCross() != null) {
             List<ImportRelation> motherRelations = pedigreeImports.stream().map(pedigreeImport -> {
                 return pedigreeImport.getCross() != null ? pedigreeImport.getCross().getFemaleParent() : null;
             }).collect(Collectors.toList());
@@ -215,7 +306,7 @@ public class PedigreeImportService extends BrAPIImportService {
                     }
                 }
             }
-        }
+        }*/
 
         // Get our new objects to create
         List<BrAPIGermplasm> newGermplasmList = germplasmByName.values().stream()
@@ -338,7 +429,9 @@ public class PedigreeImportService extends BrAPIImportService {
     }
 
     // TODO: Can we make this sort of function generic so all relationships can use it?
-    public List<BrAPICrossParent> getCrossParents(List<ImportRelation> relations, Table data, List<PedigreeImportBrAPI> mappedBrAPIImport, BrAPIParentType parentType) throws UnprocessableEntityException {
+    // TODO: OLD
+    public List<BrAPICrossParent> getCrossParents(List<ImportRelation> relations, Table data, List<PedigreeImportBrAPI> mappedBrAPIImport, BrAPIParentType parentType,
+                                                  List<BrAPIGermplasm> existingGermplasm, List<BrAPIObservationUnit> existingOUs) throws UnprocessableEntityException {
 
         // TODO: Reduce the loops in this
         List<BrAPICrossParent> crossParents = new ArrayList<>();
@@ -366,7 +459,6 @@ public class PedigreeImportService extends BrAPIImportService {
                 }
             } else if (relation.getType() == ImportRelationType.DB_LOOKUP) {
                 // TODO: Do the DB lookup
-                // Add the found germplasm to the existing germplasm list
             }
 
             // Construct the cross parent object
