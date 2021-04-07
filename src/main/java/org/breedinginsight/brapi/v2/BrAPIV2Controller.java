@@ -29,6 +29,8 @@ import okhttp3.*;
 import org.brapi.v2.model.core.BrAPIServerInfo;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
@@ -41,7 +43,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
-@Controller(BrapiVersion.BRAPI_V2)
+@Controller
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIV2Controller {
 
@@ -55,7 +57,7 @@ public class BrAPIV2Controller {
     }
 
 
-    @Get("/serverinfo")
+    @Get(BrapiVersion.BRAPI_V2 + "/serverinfo")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     public BrAPIServerInfoResponse serverinfo() {
@@ -68,27 +70,30 @@ public class BrAPIV2Controller {
         return new BrAPIServerInfoResponse().result(serverInfo);
     }
 
-    @Get("/{+path}")
+    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
-    public HttpResponse<?> getCatchall(@PathVariable String path, HttpRequest<String> request) {
-        return executeRequest(path, request, "GET");
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<?> getCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
+        return executeRequest(path, programId, request, "GET");
     }
 
-    @Post("/{+path}")
+    @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public HttpResponse<String> postCatchall(@PathVariable String path, HttpRequest<String> request) {
-        return executeRequest(path, request, "POST");
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<String> postCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
+        return executeRequest(path, programId, request, "POST");
     }
 
-    @Put("/{+path}")
+    @Put("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public HttpResponse<String> putCatchall(@PathVariable String path, HttpRequest<String> request) {
-        return executeRequest(path, request, "PUT");
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<String> putCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
+        return executeRequest(path, programId, request, "PUT");
     }
 
-    private HttpResponse<String> executeRequest(String path, HttpRequest<String> request, String method) {
+    private HttpResponse<String> executeRequest(String path, UUID programId, HttpRequest<String> request, String method) {
         AuthenticatedUser actingUser = securityService.getUser();
         System.out.println(actingUser.getId());
 
@@ -96,20 +101,10 @@ public class BrAPIV2Controller {
         request.getParameters()
                .forEach((key, vals) -> System.out.println(key + ": " + vals));
 
-        /*
-        TODO evaluate a few options:
-        1. pass custom "programId" param for each BrAPI request
-        2. embed the programId in the JWT (limited to one program)
-        3. use "programDbId" so it matches BrAPI, but the value will be what's in BI's db, not the BrAPI service
-        4. have brapi requests be per-program -> /programs/{programId}/brapi/v2
-
-        Another question...do we want to swap out all programDbIds with the programId in BI's db?
-         */
-        if (request.getParameters().get("programId") != null) {
-            String programId = request.getParameters().get("programId");
+        if (programId != null) {
             ProgramBrAPIEndpoints programBrAPIEndpoints;
             try {
-                programBrAPIEndpoints = programService.getBrapiEndpoints(UUID.fromString(Objects.requireNonNull(programId)));
+                programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
             } catch (DoesNotExistException e) {
                 return HttpResponse.notFound("Program does not exist");
             }
