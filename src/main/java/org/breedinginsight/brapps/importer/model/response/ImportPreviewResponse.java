@@ -19,7 +19,7 @@ package org.breedinginsight.brapps.importer.model.response;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.imports.MappedImport;
+import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 
 import java.util.List;
 import java.util.Map;
@@ -28,5 +28,5 @@ import java.util.Map;
 @Setter
 public class ImportPreviewResponse {
     private Map<String, ImportPreviewStatistics> statistics;
-    private List<MappedImport> rows;
+    private List<PendingImport> rows;
 }

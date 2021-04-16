@@ -29,12 +29,12 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.base.*;
-import org.breedinginsight.brapps.importer.model.config.ImportRelation;
+import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
 import org.breedinginsight.brapps.importer.model.config.ImportRelationType;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.brapps.importer.model.response.PreviewState;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
 import org.breedinginsight.model.Program;
@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
 @Singleton
 public class PedigreeImportService extends BrAPIImportService {
 
-    private String ID = "PedigreeImport";
+    private String IMPORT_TYPE_ID = "PedigreeImport";
 
     private BrAPIQueryService brAPIQueryService;
     private FileMappingUtil fileMappingUtil;
@@ -72,7 +72,7 @@ public class PedigreeImportService extends BrAPIImportService {
 
     @Override
     public String getId() {
-        return ID;
+        return IMPORT_TYPE_ID;
     }
 
     @Override
@@ -162,8 +162,8 @@ public class PedigreeImportService extends BrAPIImportService {
         }
 
         // Setting up our data elements
-        List<PedigreeImportBrAPI> mappedBrAPIImport = pedigreeImports.stream()
-                .map(pedigreeImport -> new PedigreeImportBrAPI()).collect(Collectors.toList());
+        List<PedigreeImportPending> mappedBrAPIImport = pedigreeImports.stream()
+                .map(pedigreeImport -> new PedigreeImportPending()).collect(Collectors.toList());
         Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
         Map<String, PendingImportObject<BrAPICross>> crossByGermplasmName = new HashMap<>();
 
@@ -171,7 +171,7 @@ public class PedigreeImportService extends BrAPIImportService {
         try {
             List<BrAPIGermplasm> existingGermplasms = brAPIQueryService.getGermplasmByName(new ArrayList<>(germplasmNames), brAPIProgram);
             existingGermplasms.forEach(existingGermplasm -> {
-                germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(PreviewState.EXISTING, existingGermplasm));
+                germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
@@ -181,7 +181,7 @@ public class PedigreeImportService extends BrAPIImportService {
         // Create new objects
         for (int i = 0; i < pedigreeImports.size(); i++) {
             PedigreeImport pedigreeImport = pedigreeImports.get(i);
-            PedigreeImportBrAPI mappedImportRow = mappedBrAPIImport.get(i);
+            PedigreeImportPending mappedImportRow = mappedBrAPIImport.get(i);
             Germplasm germplasm = pedigreeImport.getGermplasm();
             Cross cross = pedigreeImport.getCross();
 
@@ -189,7 +189,7 @@ public class PedigreeImportService extends BrAPIImportService {
             if (germplasm != null && germplasm.getGermplasmName() != null) {
                 if (!germplasmByName.containsKey(germplasm.getGermplasmName())) {
                     BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(brAPIProgram.getCommonCropName());
-                    germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(PreviewState.NEW, newGermplasm));
+                    germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
                 }
                 mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
             }
@@ -202,12 +202,12 @@ public class PedigreeImportService extends BrAPIImportService {
 
                 BrAPICross newCross = cross.getBrAPICross();
                 if (!crossByGermplasmName.containsKey(germplasm.getGermplasmName()) &&
-                        germplasmPreview.getState() == PreviewState.NEW
+                        germplasmPreview.getState() == ImportObjectState.NEW
                 ) {
-                    crossByGermplasmName.put(germplasm.getGermplasmName(), new PendingImportObject<>(PreviewState.NEW, newCross));
+                    crossByGermplasmName.put(germplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newCross));
                 } else if (!crossByGermplasmName.containsKey(germplasm.getGermplasmName())) {
                     //TODO: Need to search crosses. This is just a placeholder for now
-                    crossByGermplasmName.put(germplasm.getGermplasmName(), new PendingImportObject<>(PreviewState.EXISTING, newCross));
+                    crossByGermplasmName.put(germplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, newCross));
                 }
 
                 // Add the mother
@@ -245,11 +245,11 @@ public class PedigreeImportService extends BrAPIImportService {
 
         // Get our new objects to create
         List<BrAPIGermplasm> newGermplasmList = germplasmByName.values().stream()
-                .filter(preview -> preview != null && preview.getState() == PreviewState.NEW)
+                .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
                 .map(preview -> preview.getBrAPIObject())
                 .collect(Collectors.toList());
         List<BrAPICross> newCrosses = crossByGermplasmName.values().stream()
-                .filter(preview -> preview != null && preview.getState() == PreviewState.NEW)
+                .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
                 .map(preview -> preview.getBrAPIObject())
                 .collect(Collectors.toList());
 
@@ -265,7 +265,7 @@ public class PedigreeImportService extends BrAPIImportService {
                 "Germplasm", germplasmStats,
                 "Crosses", crossStats
         ));
-        response.setRows((List<MappedImport>)(List<?>) mappedBrAPIImport);
+        response.setRows((List<PendingImport>)(List<?>) mappedBrAPIImport);
         // Preview Class
         //  statistics
         //    Germplasm
@@ -297,10 +297,10 @@ public class PedigreeImportService extends BrAPIImportService {
             // POST Crosses
             // Update the germplasm and observation unit ids in the new crosses
             for (int k = 0; k < mappedBrAPIImport.size(); k++) {
-                PedigreeImportBrAPI mappedImportRow = mappedBrAPIImport.get(k);
+                PedigreeImportPending mappedImportRow = mappedBrAPIImport.get(k);
                 if (mappedImportRow.getCross() != null){
                     PendingImportObject<BrAPICross> crossPreview = mappedImportRow.getCross();
-                    if (crossPreview.getState() == PreviewState.NEW) {
+                    if (crossPreview.getState() == ImportObjectState.NEW) {
                         BrAPICross cross = crossPreview.getBrAPIObject();
                         if (cross.getParent1() != null){
                             BrAPIGermplasm targetGermplasmParent = germplasmByName.get(cross.getParent1().getGermplasmName()).getBrAPIObject();
@@ -330,12 +330,12 @@ public class PedigreeImportService extends BrAPIImportService {
 
     // TODO: Can we make this sort of function generic so all relationships can use it?
     // TODO: OLD
-    public List<BrAPICrossParent> getCrossParents(List<ImportRelation> relations, Table data, List<PedigreeImportBrAPI> mappedBrAPIImport, BrAPIParentType parentType,
+    public List<BrAPICrossParent> getCrossParents(List<MappedImportRelation> relations, Table data, List<PedigreeImportPending> mappedBrAPIImport, BrAPIParentType parentType,
                                                   List<BrAPIGermplasm> existingGermplasm, List<BrAPIObservationUnit> existingOUs) throws UnprocessableEntityException {
 
         // TODO: Reduce the loops in this
         List<BrAPICrossParent> crossParents = new ArrayList<>();
-        ImportRelation relation = relations.get(0);
+        MappedImportRelation relation = relations.get(0);
         if (relation != null) {
             List<Pair<PendingImportObject<BrAPIGermplasm>, PendingImportObject<BrAPIObservationUnit>>> targets = new ArrayList<>();
             if (relation.getType() == ImportRelationType.FILE_LOOKUP) {
@@ -351,7 +351,7 @@ public class PedigreeImportService extends BrAPIImportService {
                         targets.add(null);
                         //throw new UnprocessableEntityException(String.format("Relationship not found for row %s, column %s", k, relation.getReference()));
                     } else {
-                        PedigreeImportBrAPI matchedImportRow = mappedBrAPIImport.get(targetRowIndex);
+                        PedigreeImportPending matchedImportRow = mappedBrAPIImport.get(targetRowIndex);
                         PendingImportObject<BrAPIObservationUnit> observationUnit = matchedImportRow.getObservationUnit();
                         PendingImportObject<BrAPIGermplasm> germplasm = matchedImportRow.getGermplasm();
                         targets.add(new MutablePair<>(germplasm, observationUnit));

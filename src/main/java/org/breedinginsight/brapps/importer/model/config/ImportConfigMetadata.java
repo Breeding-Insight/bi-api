@@ -17,18 +17,15 @@
 
 package org.breedinginsight.brapps.importer.model.config;
 
-import lombok.Getter;
-import lombok.Setter;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.util.List;
-
-@Getter
-@Setter
-public class ImportObjectConfig {
-    private String name;
-    private String id;
-    private String description;
-    private Boolean required;
-    private ImportFieldType type;
-    private List<ImportFieldConfig> fields;
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface ImportConfigMetadata {
+    String id();
+    String name();
+    String description();
 }

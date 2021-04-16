@@ -21,19 +21,19 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.base.Observation;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
-import tech.tablesaw.api.Table;
+import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
 
 import java.util.List;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportMetadata(id="ObservationsImport", name="Observations Import",
+@ImportConfigMetadata(id="ObservationsImport", name="Observations Import",
         description = "This import is used to import observations.")
 public class ObservationsImport implements BrAPIImport {
 
-    @ImportType(type = ImportFieldType.LIST, clazz = Observation.class)
+    @ImportFieldType(type = ImportFieldTypeEnum.LIST, clazz = Observation.class)
     List<Observation> observations;
 }

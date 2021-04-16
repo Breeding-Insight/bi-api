@@ -21,8 +21,8 @@ import io.micronaut.context.annotation.Context;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldConfig;
 import org.breedinginsight.brapps.importer.model.config.ImportRelationOptionConfig;
 
@@ -51,20 +51,20 @@ public class ImportConfigManager {
         return new ArrayList<>(brAPIImportsMap.values());
     }
 
-    public List<ImportConfig> getAllImportTypeConfigs() {
+    public List<ImportConfigResponse> getAllImportTypeConfigs() {
         return getAllImportServices().stream()
                 .map(importService -> getTypeConfig(importService.getImportClass().getClass()))
                 .collect(Collectors.toList());
     }
 
-    public ImportConfig getTypeConfig(Class c) {
+    public ImportConfigResponse getTypeConfig(Class c) {
 
         Field[] objectFields = c.getDeclaredFields();
-        ImportMetadata metadata = (ImportMetadata) c.getAnnotation(ImportMetadata.class);
-        ImportConfig importConfig = new ImportConfig();
-        importConfig.setId(metadata.id());
-        importConfig.setName(metadata.name());
-        importConfig.setDescription(metadata.description());
+        ImportConfigMetadata metadata = (ImportConfigMetadata) c.getAnnotation(ImportConfigMetadata.class);
+        ImportConfigResponse importConfigResponse = new ImportConfigResponse();
+        importConfigResponse.setId(metadata.id());
+        importConfigResponse.setName(metadata.name());
+        importConfigResponse.setDescription(metadata.description());
 
         // Construct the objects in brapi
         List<ImportFieldConfig> importObjectConfigs = new ArrayList<>();
@@ -74,8 +74,8 @@ public class ImportConfigManager {
             importObjectConfigs.add(objectConfig);
         }
 
-        importConfig.setFields(importObjectConfigs);
-        return importConfig;
+        importConfigResponse.setFields(importObjectConfigs);
+        return importConfigResponse;
     }
 
     public Optional<BrAPIImportService> getImportServiceById(String importTypeId) {
@@ -91,19 +91,19 @@ public class ImportConfigManager {
 
         ImportFieldConfig fieldConfig = constructFieldConfig(field);
 
-        ImportType fieldType = field.getAnnotation(ImportType.class);
+        ImportFieldType fieldType = field.getAnnotation(ImportFieldType.class);
 
         // Dive deeper if necessary
-        if (fieldType.type() == ImportFieldType.OBJECT) {
+        if (fieldType.type() == ImportFieldTypeEnum.OBJECT) {
             List<Field> fields = Arrays.asList(field.getType().getDeclaredFields());
             List<ImportFieldConfig> subFieldConfigs = fields.stream().map(subField -> getObjectField(subField)).collect(Collectors.toList());
             fieldConfig.setFields(subFieldConfigs);
-        } else if (fieldType.type() == ImportFieldType.LIST) {
+        } else if (fieldType.type() == ImportFieldTypeEnum.LIST) {
             List<Field> fields = Arrays.asList(fieldType.clazz().getDeclaredFields());
             List<ImportFieldConfig> subFieldConfigs = fields.stream().map(subField -> getObjectField(subField)).collect(Collectors.toList());
             fieldConfig.setFields(subFieldConfigs);
         }
-        else if (fieldType.type() == ImportFieldType.RELATIONSHIP) {
+        else if (fieldType.type() == ImportFieldTypeEnum.RELATIONSHIP) {
             fieldConfig = constructRelationField(field);
         }
 
@@ -113,10 +113,10 @@ public class ImportConfigManager {
     private ImportFieldConfig constructFieldConfig(Field field) {
 
         ImportFieldMetadata fieldMetadata = field.getAnnotation(ImportFieldMetadata.class);
-        ImportType type = field.getAnnotation(ImportType.class);
-        Class c = type != null && type.type() == ImportFieldType.LIST ? type.clazz() : field.getType();
+        ImportFieldType type = field.getAnnotation(ImportFieldType.class);
+        Class c = type != null && type.type() == ImportFieldTypeEnum.LIST ? type.clazz() : field.getType();
         ImportFieldMetadata classMetadata = (ImportFieldMetadata) c.getAnnotation(ImportFieldMetadata.class);
-        ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
+        ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
         ImportFieldMetadata metadata = fieldMetadata != null ? fieldMetadata : classMetadata;
         // This is in the case of metadata missing on a java type, e.g. String
         //TODO: Give more detail, such as which import this errored out on

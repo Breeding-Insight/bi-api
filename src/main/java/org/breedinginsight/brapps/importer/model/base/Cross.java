@@ -22,11 +22,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPICross;
-import org.brapi.v2.model.germ.BrAPICrossCrossAttributes;
 import org.brapi.v2.model.germ.BrAPICrossType;
 import org.breedinginsight.brapps.importer.model.config.*;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,37 +35,37 @@ import java.util.stream.Collectors;
         description = "A cross connects two germplasm objects to form a pedigree.")
 public class Cross implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="crossName", name="Cross Name", description = "Name of the cross. Defaults to parent germplasm names if not provided.")
     private String crossName;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="crossType", name="Cross Type", description = "Type of cross. Example: BIPARENTAL.")
     private String crossType;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName", "observationUnitName"}),
     })
-    @ImportFieldRequired
+    @ImportMappingRequired
     @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
-    private ImportRelation femaleParent;
+    private MappedImportRelation femaleParent;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName", "observationUnitName"}),
     })
     @ImportFieldMetadata(id="maleParent", name="Male Parent", description = "The male parent of the germplasm. Can be left blank for self crosses.")
-    private ImportRelation maleParent;
+    private MappedImportRelation maleParent;
 
-    @ImportType(type= ImportFieldType.DATE)
+    @ImportFieldType(type= ImportFieldTypeEnum.DATE)
     @ImportFieldMetadata(id="crossDateTime", name="Cross Date Time", description = "The date-time that the cross took place.")
     private String crossDateTime;
 
-    @ImportType(type= ImportFieldType.LIST, clazz = CrossAttribute.class)
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = CrossAttribute.class)
     private List<CrossAttribute> crossAttributes;
 
-    @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz=ExternalReference.class)
     @ImportFieldMetadata(id="externalReferences", name="External References",
             description = "External references to track external IDs.")
     private List<ExternalReference> externalReferences;

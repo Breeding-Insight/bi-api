@@ -17,15 +17,23 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.brapi.v2.model.germ.BrAPICross;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
-@Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
-public @interface ImportMetadata {
-    String id();
-    String name();
-    String description();
+@Getter
+@Setter
+@NoArgsConstructor
+public class PedigreeImportPending implements PendingImport {
+    @JsonInclude
+    private PendingImportObject<BrAPIGermplasm> germplasm;
+    @JsonInclude
+    private PendingImportObject<BrAPIObservationUnit> observationUnit;
+    @JsonInclude
+    private PendingImportObject<BrAPICross> cross;
 }

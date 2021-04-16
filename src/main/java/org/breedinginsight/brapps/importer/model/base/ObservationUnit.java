@@ -21,7 +21,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
 import org.breedinginsight.brapps.importer.model.config.*;
@@ -39,52 +38,52 @@ import java.util.stream.Collectors;
         description = "An observation unit is the physical representation of a breeding unit. This is the unit that an observation is being made on. Example: Plant, Plot")
 public class ObservationUnit implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationUnitName", name="Observation Unit Name",
             description = "The name of the observation unit.")
-    @ImportFieldRequired
+    @ImportMappingRequired
     private String observationUnitName;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationLevel", name="Observation Level",
             description = "The type of the observation unit. Example: Plot, Plant.")
-    @ImportFieldRequired
+    @ImportMappingRequired
     private String observationLevel;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationUnitPermanentID", name="Observation Permanent ID",
             description = "This is used to identify observation units between studies as the same physical object. For example, a perennial plant may be part of multiple studies, and have an observation unit for each of those studies, but will be traceable by this id.")
-    @ImportFieldRequired
+    @ImportMappingRequired
     private String observationUnitPermanentID;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"observationUnitDbId", "observationUnitName"})
     })
     @ImportFieldMetadata(id="observationUnitParent", name="Parent Observation Unit", description = "The observation unit that contains this observation unit.")
-    private ImportRelation observationUnitParent;
+    private MappedImportRelation observationUnitParent;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"locationDbId", "locationName"})
     })
     @ImportFieldMetadata(id="location", name="Location", description = "The location the observation unit is in.")
-    private ImportRelation location;
+    private MappedImportRelation location;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmDbId", "germplasmName"})
     })
     @ImportFieldMetadata(id="germplasm", name="Germplasm", description = "The germplasm that this observation unit represents.")
-    private ImportRelation germplasm;
+    private MappedImportRelation germplasm;
 
-    @ImportType(type= ImportFieldType.LIST, clazz = AdditionalInfo.class)
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = AdditionalInfo.class)
     private List<AdditionalInfo> additionalInfos;
 
-    @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz=ExternalReference.class)
     private List<ExternalReference> externalReferences;
 
     public BrAPIObservationUnit constructBrAPIObservationUnit() {

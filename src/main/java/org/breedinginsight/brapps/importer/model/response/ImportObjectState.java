@@ -15,15 +15,9 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.config;
+package org.breedinginsight.brapps.importer.model.response;
 
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class ImportRelation {
-    private String targetColumn;
-    private String referenceValue;
-    private ImportRelationType type;
+public enum ImportObjectState {
+    NEW,
+    EXISTING
 }

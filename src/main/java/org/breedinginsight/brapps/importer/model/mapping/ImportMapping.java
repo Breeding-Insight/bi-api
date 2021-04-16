@@ -32,17 +32,17 @@ import java.util.UUID;
 @Getter
 @Setter
 @NoArgsConstructor
-public class BrAPIImportMapping {
+public class ImportMapping {
     private UUID id;
     private String name;
     private String importTypeId;
-    private List<BrAPIMappingField> mapping;
+    private List<MappingField> mapping;
     @JsonSerialize(converter = TableConverter.class)
     private Table file;
     private Boolean draft;
 
 
-    public BrAPIImportMapping(ImportMappingEntity importMappingEntity) {
+    public ImportMapping(ImportMappingEntity importMappingEntity) {
         this.id = importMappingEntity.getId();
         this.name = importMappingEntity.getName();
         this.importTypeId = importMappingEntity.getImportTypeId();

@@ -23,9 +23,9 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.germ.BrAPICrossCrossAttributes;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
+import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
 @Setter
@@ -33,13 +33,13 @@ import org.breedinginsight.brapps.importer.model.config.ImportType;
 @ImportFieldMetadata(id="CrossAttribute", name="Cross Attribute",
         description = "A properties of the cross, or cross conditions.")
 public class CrossAttribute implements BrAPIObject {
-    @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldRequired
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="crossAttributeName", name="Cross Attribute Name", description = "The name of the cross attribute.")
     private String crossAttributeName;
 
-    @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldRequired
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="crossAttributeValue", name="Cross Attribute Value", description = "The value for the cross attribute for the given cross.")
     private String crossAttributeValue;
 

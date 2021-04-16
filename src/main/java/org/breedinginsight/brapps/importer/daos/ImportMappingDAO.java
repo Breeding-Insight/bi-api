@@ -20,8 +20,8 @@ package org.breedinginsight.brapps.importer.daos;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingField;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.MappingField;
 import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -46,44 +46,44 @@ public class ImportMappingDAO extends ImportMappingDao {
         this.objectMapper = objectMapper;
     }
 
-    public Optional<BrAPIImportMapping> getMapping(UUID id) {
+    public Optional<ImportMapping> getMapping(UUID id) {
         ImportMappingEntity importMappingEntity = fetchOneById(id);
         if (importMappingEntity != null) {
-            BrAPIImportMapping brAPIImportMapping = parseBrAPIImportMapping(importMappingEntity);
-            return Optional.of(brAPIImportMapping);
+            ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
+            return Optional.of(importMapping);
         } else {
             return Optional.empty();
         }
     }
 
-    public List<BrAPIImportMapping> getAllMappings(UUID programId, Boolean draft) {
+    public List<ImportMapping> getAllMappings(UUID programId, Boolean draft) {
 
         List<ImportMappingEntity> importMappingEntities = fetchByDraft(draft);
-        List<BrAPIImportMapping> importMappings = new ArrayList<>();
+        List<ImportMapping> importMappings = new ArrayList<>();
         for (ImportMappingEntity importMappingEntity: importMappingEntities) {
             if (importMappingEntity.getProgramId().equals(programId)) {
-                BrAPIImportMapping brAPIImportMapping = parseBrAPIImportMapping(importMappingEntity);
-                importMappings.add(brAPIImportMapping);
+                ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
+                importMappings.add(importMapping);
             }
         }
         return importMappings;
     }
 
-    private BrAPIImportMapping parseBrAPIImportMapping(ImportMappingEntity importMappingEntity) {
+    private ImportMapping parseBrAPIImportMapping(ImportMappingEntity importMappingEntity) {
 
-        BrAPIImportMapping brAPIImportMapping = new BrAPIImportMapping(importMappingEntity);
+        ImportMapping importMapping = new ImportMapping(importMappingEntity);
         try {
             if (importMappingEntity.getFile() != null){
-                brAPIImportMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
+                importMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
             }
             if (importMappingEntity.getMapping() != null) {
-                BrAPIMappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), BrAPIMappingField[].class);
-                brAPIImportMapping.setMapping(Arrays.asList(mappingFields));
+                MappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), MappingField[].class);
+                importMapping.setMapping(Arrays.asList(mappingFields));
             }
         } catch (ParsingException | JsonProcessingException e) {
             throw new InternalServerException(e.toString());
         }
 
-        return brAPIImportMapping;
+        return importMapping;
     }
 }

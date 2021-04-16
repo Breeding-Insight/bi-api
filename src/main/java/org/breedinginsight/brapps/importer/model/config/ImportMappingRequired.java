@@ -15,18 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.mapping;
+package org.breedinginsight.brapps.importer.model.config;
 
-import lombok.Getter;
-import lombok.Setter;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import java.util.List;
-
-@Getter
-@Setter
-public class BrAPIMappingField {
-    private String id;
-    private String objectId;
-    private MappingValue value;
-    private List<BrAPIMappingField> mapping;
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface ImportMappingRequired {
 }

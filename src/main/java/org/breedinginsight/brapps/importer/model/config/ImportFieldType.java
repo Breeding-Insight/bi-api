@@ -17,21 +17,15 @@
 
 package org.breedinginsight.brapps.importer.model.config;
 
-import lombok.Getter;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-@Getter
-public enum ImportFieldType {
-    TEXT("TEXT"),
-    NUMERICAL("NUMERICAL"),
-    INTEGER("INTEGER"),
-    DATE("DATE"),
-    LIST("LIST"),
-    OBJECT("OBJECT"),
-    RELATIONSHIP("RELATIONSHIP");
-
-    private String value;
-
-    ImportFieldType(String value) {
-        this.value = value;
-    }
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface ImportFieldType {
+    ImportFieldTypeEnum type();
+    // Indicates class type of list objects
+    Class clazz() default Object.class;
 }

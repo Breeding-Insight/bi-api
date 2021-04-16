@@ -23,11 +23,10 @@ import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
+import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,28 +38,28 @@ import java.util.stream.Collectors;
         description = "A germplasm object corresponds to a non-physical entity and is used to track a unique genetic composition. This is commonly used for populations.")
 public class Germplasm implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldRequired
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
     private String germplasmName;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmPUI", name="Germplasm Permanent Unique Identifier", description = "The Permanent Unique Identifier which represents a germplasm from the source or donor.")
     private String germplasmPUI;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="accessionNumber", name="Accession Number", description = "This is the unique identifier for accessions within a genebank, and is assigned when a sample is entered into the genebank collection.")
     private String accessionNumber;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="acquisitionDate", name="Acquisition Date", description = "The date this germplasm was acquired by the genebank.")
     private String acquisitionDate;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="countryOfOrigin", name="Country of Origin", description = "Two letter code for the country of origin.")
     private String countryOfOrigin;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="collection", name="Family Name", description = "The name of the family this germplasm is a part of.")
     private String collection;
 
@@ -68,10 +67,10 @@ public class Germplasm implements BrAPIObject {
     /*@ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
     private List<GermplasmAttribute> germplasmAttributes;*/
 
-    @ImportType(type= ImportFieldType.LIST, clazz = AdditionalInfo.class)
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = AdditionalInfo.class)
     private List<AdditionalInfo> additionalInfos;
 
-    @ImportType(type=ImportFieldType.LIST, clazz=ExternalReference.class)
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz=ExternalReference.class)
     private List<ExternalReference> externalReferences;
 
     public BrAPIGermplasm constructBrAPIGermplasm() {

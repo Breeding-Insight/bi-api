@@ -25,12 +25,12 @@ import java.util.UUID;
 @Setter
 public class PendingImportObject<T> {
     @NonNull
-    private PreviewState state;
+    private ImportObjectState state;
     @NonNull
     private T brAPIObject;
     private UUID id;
 
-    public PendingImportObject(PreviewState state, T brAPIObject) {
+    public PendingImportObject(ImportObjectState state, T brAPIObject) {
         this.state = state;
         this.brAPIObject = brAPIObject;
         this.id = UUID.randomUUID();

@@ -19,7 +19,7 @@ package org.breedinginsight.brapps.importer.services;
 
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.breedinginsight.brapps.importer.model.config.ImportRelation;
+import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
@@ -33,7 +33,7 @@ import java.util.Map;
 public class FileMappingUtil {
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
-    public List<Pair<Integer, String>> findFileRelationships(Table data, List<ImportRelation> importRelations) {
+    public List<Pair<Integer, String>> findFileRelationships(Table data, List<MappedImportRelation> importRelations) {
 
         List<Pair<Integer, String>> targetIndexList = new ArrayList<>();
         String targetColumn = importRelations.get(0).getTargetColumn();

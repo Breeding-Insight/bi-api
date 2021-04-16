@@ -15,9 +15,18 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+package org.breedinginsight.brapps.importer.model.mapping;
 
-public enum PreviewState {
-    NEW,
-    EXISTING
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+
+@Getter
+@Setter
+public class MappingField {
+    private String id;
+    private String objectId;
+    private MappingValue value;
+    private List<MappingField> mapping;
 }

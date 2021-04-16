@@ -21,8 +21,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
 @Setter
@@ -31,12 +31,12 @@ import org.breedinginsight.brapps.importer.model.config.ImportType;
         description = "This is used for information that doesn't exist in the provided fields, but you still want to be tracked with this object.")
 public class AdditionalInfo implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="additionalInfoName", name="Additional Information Name",
             description = "The name of the property for the additional information.")
     private String additionalInfoName;
 
-    @ImportType(type=ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="additionalInfoValue", name="Additional Information Value",
             description = "The value of the property for the additional information.")
     private String additionalInfoValue;

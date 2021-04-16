@@ -22,8 +22,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
 @Setter
@@ -32,12 +32,12 @@ import org.breedinginsight.brapps.importer.model.config.ImportType;
         description = "An object that tracks connections to external data sets.")
 public class ExternalReference implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="referenceID", name="External Reference ID",
             description = "An id to an external reference. This is commonly used to save original ids of datasets that are imported, for later reference.")
     private String referenceID;
 
-    @ImportType(type=ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="referenceSource", name="External Reference Source",
             description = "This describes the source of the external reference.")
     private String referenceSource;

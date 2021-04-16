@@ -17,5 +17,5 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-public interface MappedImport {
+public interface PendingImport {
 }

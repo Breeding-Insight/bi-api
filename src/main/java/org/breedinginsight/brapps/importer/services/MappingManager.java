@@ -15,11 +15,13 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.mapping;
+package org.breedinginsight.brapps.importer.services;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
-import org.breedinginsight.brapps.importer.services.ImportConfigManager;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.MappingField;
+import org.breedinginsight.brapps.importer.model.mapping.MappingValue;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -40,16 +42,16 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Singleton
-public class BrAPIMappingManager {
+public class MappingManager {
 
     private ImportConfigManager configManager;
 
     @Inject
-    BrAPIMappingManager(ImportConfigManager configManager) {
+    MappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
     }
 
-    public List<BrAPIImport> map(BrAPIImportMapping importMapping, Table data) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException {
 
         // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
         if (importMapping.getMapping() == null) {
@@ -80,16 +82,16 @@ public class BrAPIMappingManager {
         return brAPIImports;
     }
 
-    private void mapField(Object parent, Field field, List<BrAPIMappingField> mappings, Table importFile, Integer rowIndex)
+    private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex)
             throws UnprocessableEntityException {
 
         Row focusRow = importFile.row(rowIndex);
         // Process this field
-        ImportType type = field.getAnnotation(ImportType.class);
+        ImportFieldType type = field.getAnnotation(ImportFieldType.class);
         ImportFieldMetadata metadata;
         if (type == null) {
             return;
-        } else if (type.type() != ImportFieldType.LIST) {
+        } else if (type.type() != ImportFieldTypeEnum.LIST) {
             metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
                     field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
         } else {
@@ -97,9 +99,9 @@ public class BrAPIMappingManager {
                     field.getAnnotation(ImportFieldMetadata.class) : (ImportFieldMetadata) type.clazz().getAnnotation(ImportFieldMetadata.class);
         }
 
-        ImportFieldRequired required = field.getAnnotation(ImportFieldRequired.class);
+        ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
 
-        List<BrAPIMappingField> foundMappings = new ArrayList<>();
+        List<MappingField> foundMappings = new ArrayList<>();
         if (mappings != null) {
              foundMappings = mappings.stream()
                     .filter(mappingField -> mappingField.getObjectId().equals(metadata.id())).collect(Collectors.toList());
@@ -114,10 +116,10 @@ public class BrAPIMappingManager {
             return;
         }
 
-        BrAPIMappingField matchedMapping = foundMappings.get(0);
+        MappingField matchedMapping = foundMappings.get(0);
         if (type == null) {
             throw new InternalServerException("BrAPIObject is missing import type annotation");
-        } else if (type.type() == ImportFieldType.OBJECT) {
+        } else if (type.type() == ImportFieldTypeEnum.OBJECT) {
 
             Boolean objectIsEmpty = fieldObjectIsEmpty(matchedMapping);
             if (required != null && objectIsEmpty) {
@@ -142,7 +144,7 @@ public class BrAPIMappingManager {
             } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                 throw new InternalServerException(e.toString(), e);
             }
-        } else if (type.type() == ImportFieldType.LIST) {
+        } else if (type.type() == ImportFieldTypeEnum.LIST) {
             //TODO: Current can't handle primitive types, only BrAPIObject types
 
             if (matchedMapping.getMapping() == null && required != null) {
@@ -153,7 +155,7 @@ public class BrAPIMappingManager {
             }
 
             List<BrAPIObject> updatedList = new ArrayList<>();
-            for (BrAPIMappingField listField: matchedMapping.getMapping()){
+            for (MappingField listField: matchedMapping.getMapping()){
 
                 BrAPIObject newObject;
                 try {
@@ -186,7 +188,7 @@ public class BrAPIMappingManager {
             } catch (IllegalAccessException e) {
                 throw new InternalServerException(e.toString(), e);
             }
-        } else if (type.type() == ImportFieldType.RELATIONSHIP) {
+        } else if (type.type() == ImportFieldTypeEnum.RELATIONSHIP) {
             if (required != null && (matchedMapping.getValue() == null ||
                     matchedMapping.getValue().getRelationMap() == null)) {
                 throw new UnprocessableEntityException(String.format("Relationship field %s is required", metadata.name()));
@@ -199,7 +201,7 @@ public class BrAPIMappingManager {
             }
 
             MappingValue value = matchedMapping.getValue();
-            ImportRelation relationship = new ImportRelation();
+            MappedImportRelation relationship = new MappedImportRelation();
             relationship.setType(value.getRelationValue());
             relationship.setTargetColumn(value.getRelationMap().getTarget());
             String referenceColumn = value.getRelationMap().getReference();
@@ -262,9 +264,9 @@ public class BrAPIMappingManager {
     /*
         A mapped object is considered null if no fields in it have been mapped
      */
-    private Boolean fieldObjectIsEmpty(BrAPIMappingField mappedObject) {
+    private Boolean fieldObjectIsEmpty(MappingField mappedObject) {
         if (mappedObject.getMapping() != null){
-            for (BrAPIMappingField mappedField: mappedObject.getMapping()) {
+            for (MappingField mappedField: mappedObject.getMapping()) {
                 if (mappedField != null &&
                         (mappedField.getValue() != null ||
                                 (mappedField.getMapping() != null && mappedField.getMapping().size() > 0))
@@ -285,7 +287,7 @@ public class BrAPIMappingManager {
         for (Field field: fields) {
 
             // Check the type
-            ImportType type = field.getAnnotation(ImportType.class);
+            ImportFieldType type = field.getAnnotation(ImportFieldType.class);
             if (type == null) continue;
 
             Object fieldValue;
@@ -297,16 +299,16 @@ public class BrAPIMappingManager {
                 throw new InternalServerException(e.toString(), e);
             }
 
-            if (type.type() == ImportFieldType.LIST) continue;
-            else if (type.type() == ImportFieldType.OBJECT) {
+            if (type.type() == ImportFieldTypeEnum.LIST) continue;
+            else if (type.type() == ImportFieldTypeEnum.OBJECT) {
                 // Dive deeper
                 BrAPIObject childBrAPIObject = (BrAPIObject) fieldValue;
                 Boolean childObjectIsEmpty = brapiObjectIsEmpty(childBrAPIObject);
                 if (!childObjectIsEmpty) return false;
             }
-            else if (type.type() == ImportFieldType.RELATIONSHIP) {
+            else if (type.type() == ImportFieldTypeEnum.RELATIONSHIP) {
                 // Check the reference value of the relationship
-                ImportRelation relation = (ImportRelation) fieldValue;
+                MappedImportRelation relation = (MappedImportRelation) fieldValue;
                 if (relation != null && !StringUtils.isBlank(relation.getReferenceValue())) return false;
             } else {
                 // Check the value isn't blank

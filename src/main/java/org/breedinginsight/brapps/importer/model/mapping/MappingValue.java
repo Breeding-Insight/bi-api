@@ -28,5 +28,5 @@ public class MappingValue {
     private String constantValue;
     private String fieldAlias;
     private ImportRelationType relationValue;
-    private BrAPIMappingRelationship relationMap;
+    private MappingRelationship relationMap;
 }

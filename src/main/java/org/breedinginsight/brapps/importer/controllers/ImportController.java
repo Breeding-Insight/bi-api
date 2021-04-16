@@ -35,9 +35,9 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.services.ImportConfigManager;
-import org.breedinginsight.brapps.importer.model.config.ImportConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -68,8 +68,8 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     @AddMetadata
-    public HttpResponse<Response<DataResponse<ImportConfig>>> getImportTypes() {
-        List<ImportConfig> configs = fileImportService.getAllImportTypeConfigs();
+    public HttpResponse<Response<DataResponse<ImportConfigResponse>>> getImportTypes() {
+        List<ImportConfigResponse> configs = fileImportService.getAllImportTypeConfigs();
 
         //TODO: Add actual page size
         List<Status> metadataStatus = new ArrayList<>();
@@ -77,7 +77,7 @@ public class ImportController {
         Pagination pagination = new Pagination(configs.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
-        Response<DataResponse<ImportConfig>> response = new Response(metadata, new DataResponse<>(configs));
+        Response<DataResponse<ImportConfigResponse>> response = new Response(metadata, new DataResponse<>(configs));
         return HttpResponse.ok(response);
     }
 
@@ -85,18 +85,18 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<DataResponse<BrAPIImportMapping>>> getMappings(@PathVariable UUID programId,
-                                                                                @QueryValue(defaultValue = "false") Boolean draft) {
+    public HttpResponse<Response<DataResponse<ImportMapping>>> getMappings(@PathVariable UUID programId,
+                                                                           @QueryValue(defaultValue = "false") Boolean draft) {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<BrAPIImportMapping> result = fileImportService.getAllMappings(programId, actingUser, draft);
+            List<ImportMapping> result = fileImportService.getAllMappings(programId, actingUser, draft);
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<BrAPIImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+            Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -113,11 +113,11 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<BrAPIImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
+    public HttpResponse<Response<ImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = fileImportService.createMapping(programId, actingUser, file);
-            Response<BrAPIImportMapping> response = new Response(result);
+            ImportMapping result = fileImportService.createMapping(programId, actingUser, file);
+            Response<ImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
@@ -137,13 +137,13 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<BrAPIImportMapping>> editMappingFile(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                  @Part("file") CompletedFileUpload file,
-                                                                  @QueryValue(defaultValue="true") Boolean validate) {
+    public HttpResponse<Response<ImportMapping>> editMappingFile(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                 @Part("file") CompletedFileUpload file,
+                                                                 @QueryValue(defaultValue="true") Boolean validate) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);
-            Response<BrAPIImportMapping> response = new Response(result);
+            ImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);
+            Response<ImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
@@ -162,14 +162,14 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<BrAPIImportMapping>> editMapping(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                      @Body BrAPIImportMapping mapping,
-                                                                      @QueryValue(defaultValue="true") Boolean validate) {
+    public HttpResponse<Response<ImportMapping>> editMapping(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                             @Body ImportMapping mapping,
+                                                             @QueryValue(defaultValue="true") Boolean validate) {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = fileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
-            Response<BrAPIImportMapping> response = new Response(result);
+            ImportMapping result = fileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
+            Response<ImportMapping> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());

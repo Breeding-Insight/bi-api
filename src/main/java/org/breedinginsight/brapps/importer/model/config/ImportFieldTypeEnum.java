@@ -15,14 +15,23 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.mapping;
+package org.breedinginsight.brapps.importer.model.config;
 
 import lombok.Getter;
-import lombok.Setter;
 
 @Getter
-@Setter
-public class BrAPIMappingRelationship {
-    private String target;
-    private String reference;
+public enum ImportFieldTypeEnum {
+    TEXT("TEXT"),
+    NUMERICAL("NUMERICAL"),
+    INTEGER("INTEGER"),
+    DATE("DATE"),
+    LIST("LIST"),
+    OBJECT("OBJECT"),
+    RELATIONSHIP("RELATIONSHIP");
+
+    private String value;
+
+    ImportFieldTypeEnum(String value) {
+        this.value = value;
+    }
 }

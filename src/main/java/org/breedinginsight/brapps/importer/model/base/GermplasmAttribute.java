@@ -21,9 +21,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldRequired;
+import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportType;
 
 @Getter
 @Setter
@@ -32,21 +32,21 @@ import org.breedinginsight.brapps.importer.model.config.ImportType;
         description = "A miscellaneous attribute that is attached to the germplasm. This can be something like strain, disease resistance ratings, etc.")
 public class GermplasmAttribute implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldRequired
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="germplasmAttributeName", name="Germplasm Attribute Name", description = "The name of the germplasm attribute.")
     private String attributeName;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmAttributeDescription", name="Germplasm Attribute Description", description = "The description of the germplasm attribute.")
     private String attributeDescription;
 
-    @ImportType(type= ImportFieldType.TEXT)
-    @ImportFieldRequired
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="germplasmAttributeValue", name="Germplasm Attribute Value", description = "The value of the germplasm attribute.")
     private String attributeValue;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmAttributeCategory", name="Germplasm Attribute Category", description = "The category of the germplasm attribute. Example: Morphological.")
     private String attributeCategory;
 

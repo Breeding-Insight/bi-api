@@ -27,36 +27,36 @@ import org.breedinginsight.brapps.importer.model.config.*;
         description = "An observation object is data that is collected on a trait for a given object being observed.")
 public class Observation implements BrAPIObject {
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"studyDbId", "studyName"})
     })
     @ImportFieldMetadata(id="study", name="Study",
             description = "Study that the observation belongs to.")
-    private ImportRelation study;
+    private MappedImportRelation study;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"observationUnitDbId", "observationName"})
     })
     @ImportFieldMetadata(id="observationUnit", name="Observation Unit",
             description = "Observation unit that the observation is taken on.")
-    private ImportRelation observationUnit;
+    private MappedImportRelation observationUnit;
 
-    @ImportType(type= ImportFieldType.RELATIONSHIP)
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"traitId", "traitName"}),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP_CONSTANT_VALUE, importFields={"traitId", "traitName"})
     })
     @ImportFieldMetadata(id="trait", name="Trait",
             description = "Trait that the observation is recording.")
-    private ImportRelation trait;
+    private MappedImportRelation trait;
 
-    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="value", name="Observation Value", description = "Value of the observation.")
     private String value;
 
-    @ImportType(type= ImportFieldType.DATE)
+    @ImportFieldType(type= ImportFieldTypeEnum.DATE)
     @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
     private String observationDate;
 }

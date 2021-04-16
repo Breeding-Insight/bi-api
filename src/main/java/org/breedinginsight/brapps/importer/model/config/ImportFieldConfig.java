@@ -28,7 +28,7 @@ public class ImportFieldConfig {
     private String name;
     private String id;
     private String description;
-    private ImportFieldType type;
+    private ImportFieldTypeEnum type;
     private Boolean required;
     private List<ImportRelationOptionConfig> relationOptions;
     private List<ImportFieldConfig> fields;

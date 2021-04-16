@@ -15,18 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.config;
+package org.breedinginsight.brapps.importer.model.mapping;
 
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.List;
-
 @Getter
 @Setter
-public class ImportConfig {
-    private String id;
-    private String name;
-    private String description;
-    private List<ImportFieldConfig> fields;
+public class MappingRelationship {
+    private String target;
+    private String reference;
 }

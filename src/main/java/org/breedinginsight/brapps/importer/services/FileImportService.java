@@ -27,10 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.mime.MediaType;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.model.config.ImportConfig;
+import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingManager;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
@@ -64,12 +63,12 @@ public class FileImportService {
     private MimeTypeParser mimeTypeParser;
     private ImportMappingDAO importMappingDAO;
     private ObjectMapper objectMapper;
-    private BrAPIMappingManager mappingManager;
+    private MappingManager mappingManager;
     private ImportConfigManager configManager;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
-                      ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, BrAPIMappingManager mappingManager,
+                      ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
                       ImportConfigManager configManager) {
         this.programUserService = programUserService;
         this.programService = programService;
@@ -80,13 +79,13 @@ public class FileImportService {
         this.configManager = configManager;
     }
 
-    public List<ImportConfig> getAllImportTypeConfigs() {
+    public List<ImportConfigResponse> getAllImportTypeConfigs() {
         return configManager.getAllImportTypeConfigs();
     }
     /*
         Saves the file for the mapping record
      */
-    public BrAPIImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
+    public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
             DoesNotExistException, AuthorizationException, UnsupportedTypeException {
 
         if (!programService.exists(programId))
@@ -112,7 +111,7 @@ public class FileImportService {
                 .build();
         importMappingDAO.insert(importMappingEntity);
 
-        BrAPIImportMapping importMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
+        ImportMapping importMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
 
         return importMapping;
     }
@@ -148,7 +147,7 @@ public class FileImportService {
         return df;
     }
 
-    public BrAPIImportMapping updateMappingFile(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file)
+    public ImportMapping updateMappingFile(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file)
             throws UnsupportedTypeException, HttpStatusException, DoesNotExistException, AuthorizationException {
 
         if (!programService.exists(programId))
@@ -160,8 +159,8 @@ public class FileImportService {
             throw new AuthorizationException("User not in program");
         }
 
-        BrAPIImportMapping importMapping;
-        Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
+        ImportMapping importMapping;
+        Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
 
         Table df = parseUploadedFile(file);
 
@@ -179,8 +178,8 @@ public class FileImportService {
         return importMapping;
     }
 
-    public BrAPIImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
-                                            BrAPIImportMapping mappingRequest, Boolean validate) throws
+    public ImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
+                                       ImportMapping mappingRequest, Boolean validate) throws
             DoesNotExistException, AuthorizationException, HttpStatusException, UnprocessableEntityException {
 
         if (!programService.exists(programId))
@@ -192,11 +191,11 @@ public class FileImportService {
             throw new AuthorizationException("User not in program");
         }
 
-        Optional<BrAPIImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
+        Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
         if (optionalImportMapping.isEmpty()) {
             throw new DoesNotExistException("Mapping with that id does not exist");
         }
-        BrAPIImportMapping importMapping = optionalImportMapping.get();
+        ImportMapping importMapping = optionalImportMapping.get();
 
         // If validate is true, validate the mapping
         if (validate) {
@@ -220,7 +219,7 @@ public class FileImportService {
         importMappingEntity.setDraft(mappingRequest.getDraft());
         importMappingDAO.update(importMappingEntity);
 
-        Optional<BrAPIImportMapping> updatedMapping = importMappingDAO.getMapping(importMappingEntity.getId());
+        Optional<ImportMapping> updatedMapping = importMappingDAO.getMapping(importMappingEntity.getId());
 
         return updatedMapping.get();
     }
@@ -244,11 +243,11 @@ public class FileImportService {
         }
 
         // Find the mapping
-        Optional<BrAPIImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
+        Optional<ImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
         if (optionalMapping.isEmpty()) {
             throw new DoesNotExistException("Mapping with that id does not exist");
         }
-        BrAPIImportMapping importMapping = optionalMapping.get();
+        ImportMapping importMapping = optionalMapping.get();
 
         Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTypeId());
         if (optionalImportService.isEmpty()) {
@@ -267,7 +266,7 @@ public class FileImportService {
         return mappedImportResult;
     }
 
-    public List<BrAPIImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)
+    public List<ImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)
             throws DoesNotExistException, AuthorizationException {
 
         if (!programService.exists(programId))
@@ -279,8 +278,8 @@ public class FileImportService {
             throw new AuthorizationException("User not in program");
         }
 
-        List<BrAPIImportMapping> brAPIImportMappings = importMappingDAO.getAllMappings(programId, draft);
+        List<ImportMapping> importMappings = importMappingDAO.getAllMappings(programId, draft);
 
-        return brAPIImportMappings;
+        return importMappings;
     }
 }
