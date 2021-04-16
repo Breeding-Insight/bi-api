@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model;
+package org.breedinginsight.brapps.importer.services;
 
 import io.micronaut.context.annotation.Context;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -25,24 +25,21 @@ import org.breedinginsight.brapps.importer.model.imports.ImportMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldConfig;
 import org.breedinginsight.brapps.importer.model.config.ImportRelationOptionConfig;
-import org.breedinginsight.brapps.importer.services.BrAPIFileImportService;
-import org.reflections.Reflections;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Context
 @Singleton
-public class BrAPIImportConfigManager {
+public class ImportConfigManager {
 
     private Map<String, BrAPIImportService> brAPIImportsMap;
 
     @Inject
-    BrAPIImportConfigManager(BrAPIImportService[] importServices) {
+    ImportConfigManager(BrAPIImportService[] importServices) {
         // Get all imports
         brAPIImportsMap = new HashMap<>();
         for (BrAPIImportService importService: importServices) {

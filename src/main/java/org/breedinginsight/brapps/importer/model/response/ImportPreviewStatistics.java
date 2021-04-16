@@ -15,9 +15,13 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.base;
+package org.breedinginsight.brapps.importer.model.response;
 
-public enum PreviewState {
-    NEW,
-    EXISTING
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ImportPreviewStatistics {
+    private Integer newObjectCount;
 }

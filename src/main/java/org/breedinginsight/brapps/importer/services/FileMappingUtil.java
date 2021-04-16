@@ -17,17 +17,9 @@
 
 package org.breedinginsight.brapps.importer.services;
 
-import io.reactivex.functions.Function;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.poi.ss.formula.functions.T;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreview;
 import org.breedinginsight.brapps.importer.model.config.ImportRelation;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.MappedImport;
-import org.breedinginsight.brapps.importer.model.imports.PedigreeImportBrAPI;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
@@ -38,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 @Singleton
-public class BrAPIFileService {
+public class FileMappingUtil {
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
     public List<Pair<Integer, String>> findFileRelationships(Table data, List<ImportRelation> importRelations) {

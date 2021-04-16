@@ -34,11 +34,11 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreviewResponse;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
+import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
-import org.breedinginsight.brapps.importer.services.BrAPIFileImportService;
+import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -53,15 +53,15 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class ImportController {
 
-    private BrAPIImportConfigManager importManager;
+    private ImportConfigManager importManager;
     private SecurityService securityService;
-    private BrAPIFileImportService brAPIFileImportService;
+    private FileImportService fileImportService;
 
     @Inject
-    ImportController(BrAPIImportConfigManager brAPIImportConfigManager, SecurityService securityService, BrAPIFileImportService brAPIFileImportService) {
+    ImportController(ImportConfigManager brAPIImportConfigManager, SecurityService securityService, FileImportService fileImportService) {
         this.importManager = brAPIImportConfigManager;
         this.securityService = securityService;
-        this.brAPIFileImportService = brAPIFileImportService;
+        this.fileImportService = fileImportService;
     }
 
     @Get("/import/types")
@@ -69,7 +69,7 @@ public class ImportController {
     @Secured(SecurityRule.IS_ANONYMOUS)
     @AddMetadata
     public HttpResponse<Response<DataResponse<ImportConfig>>> getImportTypes() {
-        List<ImportConfig> configs = brAPIFileImportService.getAllImportTypeConfigs();
+        List<ImportConfig> configs = fileImportService.getAllImportTypeConfigs();
 
         //TODO: Add actual page size
         List<Status> metadataStatus = new ArrayList<>();
@@ -90,7 +90,7 @@ public class ImportController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<BrAPIImportMapping> result = brAPIFileImportService.getAllMappings(programId, actingUser, draft);
+            List<BrAPIImportMapping> result = fileImportService.getAllMappings(programId, actingUser, draft);
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);
@@ -116,7 +116,7 @@ public class ImportController {
     public HttpResponse<Response<BrAPIImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIFileImportService.createMapping(programId, actingUser, file);
+            BrAPIImportMapping result = fileImportService.createMapping(programId, actingUser, file);
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
@@ -142,7 +142,7 @@ public class ImportController {
                                                                   @QueryValue(defaultValue="true") Boolean validate) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIFileImportService.updateMappingFile(programId, mappingId, actingUser, file);
+            BrAPIImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
@@ -168,7 +168,7 @@ public class ImportController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIImportMapping result = brAPIFileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
+            BrAPIImportMapping result = fileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
             Response<BrAPIImportMapping> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
@@ -189,13 +189,13 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<BrAPIPreviewResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                   @Part("file") CompletedFileUpload file,
-                                                                   @QueryValue(defaultValue="false") Boolean commit) {
+    public HttpResponse<Response<ImportPreviewResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                    @Part("file") CompletedFileUpload file,
+                                                                    @QueryValue(defaultValue="false") Boolean commit) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            BrAPIPreviewResponse result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
-            Response<BrAPIPreviewResponse> response = new Response(result);
+            ImportPreviewResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file, commit);
+            Response<ImportPreviewResponse> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());

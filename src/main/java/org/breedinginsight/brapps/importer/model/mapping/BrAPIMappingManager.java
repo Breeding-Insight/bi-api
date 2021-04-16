@@ -19,7 +19,7 @@ package org.breedinginsight.brapps.importer.model.mapping;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
-import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
+import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -42,10 +42,10 @@ import java.util.stream.Collectors;
 @Singleton
 public class BrAPIMappingManager {
 
-    private BrAPIImportConfigManager configManager;
+    private ImportConfigManager configManager;
 
     @Inject
-    BrAPIMappingManager(BrAPIImportConfigManager configManager) {
+    BrAPIMappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
     }
 
@@ -198,7 +198,7 @@ public class BrAPIMappingManager {
                 throw new BadRequestException("Relationship field is not properly formatted");
             }
 
-            BrAPIMappingValue value = matchedMapping.getValue();
+            MappingValue value = matchedMapping.getValue();
             ImportRelation relationship = new ImportRelation();
             relationship.setType(value.getRelationValue());
             relationship.setTargetColumn(value.getRelationMap().getTarget());

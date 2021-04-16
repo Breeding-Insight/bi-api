@@ -27,6 +27,6 @@ import java.util.List;
 public class BrAPIMappingField {
     private String id;
     private String objectId;
-    private BrAPIMappingValue value;
+    private MappingValue value;
     private List<BrAPIMappingField> mapping;
 }

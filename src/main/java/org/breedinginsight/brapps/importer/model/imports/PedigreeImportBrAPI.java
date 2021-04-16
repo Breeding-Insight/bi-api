@@ -24,18 +24,16 @@ import lombok.Setter;
 import org.brapi.v2.model.germ.BrAPICross;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreview;
-
-import java.util.UUID;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
 @Getter
 @Setter
 @NoArgsConstructor
 public class PedigreeImportBrAPI implements MappedImport {
     @JsonInclude
-    private BrAPIPreview<BrAPIGermplasm> germplasm;
+    private PendingImportObject<BrAPIGermplasm> germplasm;
     @JsonInclude
-    private BrAPIPreview<BrAPIObservationUnit> observationUnit;
+    private PendingImportObject<BrAPIObservationUnit> observationUnit;
     @JsonInclude
-    private BrAPIPreview<BrAPICross> cross;
+    private PendingImportObject<BrAPICross> cross;
 }

@@ -17,7 +17,7 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreviewResponse;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import tech.tablesaw.api.Table;
@@ -27,5 +27,5 @@ import java.util.List;
 public abstract class BrAPIImportService {
     public String getId() {return null;}
     public BrAPIImport getImportClass() {return null;}
-    public BrAPIPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, Boolean commit) throws UnprocessableEntityException {return null;}
+    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, Boolean commit) throws UnprocessableEntityException {return null;}
 }

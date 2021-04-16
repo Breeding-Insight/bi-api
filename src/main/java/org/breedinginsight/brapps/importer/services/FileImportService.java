@@ -26,8 +26,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.mime.MediaType;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
-import org.breedinginsight.brapps.importer.model.base.BrAPIPreviewResponse;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
@@ -58,7 +57,7 @@ import java.util.UUID;
 
 @Slf4j
 @Singleton
-public class BrAPIFileImportService {
+public class FileImportService {
 
     private ProgramUserService programUserService;
     private ProgramService programService;
@@ -66,12 +65,12 @@ public class BrAPIFileImportService {
     private ImportMappingDAO importMappingDAO;
     private ObjectMapper objectMapper;
     private BrAPIMappingManager mappingManager;
-    private BrAPIImportConfigManager configManager;
+    private ImportConfigManager configManager;
 
     @Inject
-    BrAPIFileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
-                           ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, BrAPIMappingManager mappingManager,
-                           BrAPIImportConfigManager configManager) {
+    FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
+                      ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, BrAPIMappingManager mappingManager,
+                      ImportConfigManager configManager) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -230,7 +229,7 @@ public class BrAPIFileImportService {
         return importMappingDAO.existsById(mappingId);
     }
 
-    public BrAPIPreviewResponse uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
+    public ImportPreviewResponse uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
             throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpStatusException, UnprocessableEntityException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
@@ -263,7 +262,7 @@ public class BrAPIFileImportService {
 
         //TODO: Get better errors for these
         List<BrAPIImport> brAPIImportList = mappingManager.map(importMapping, data);
-        BrAPIPreviewResponse mappedImportResult = importService.process(brAPIImportList, data, program, commit);
+        ImportPreviewResponse mappedImportResult = importService.process(brAPIImportList, data, program, commit);
 
         return mappedImportResult;
     }

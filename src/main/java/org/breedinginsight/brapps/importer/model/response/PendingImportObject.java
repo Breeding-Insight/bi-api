@@ -15,18 +15,24 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.mapping;
+package org.breedinginsight.brapps.importer.model.response;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.config.ImportRelationType;
+import lombok.*;
+
+import java.util.UUID;
 
 @Getter
 @Setter
-public class BrAPIMappingValue {
-    private String fileFieldName;
-    private String constantValue;
-    private String fieldAlias;
-    private ImportRelationType relationValue;
-    private BrAPIMappingRelationship relationMap;
+public class PendingImportObject<T> {
+    @NonNull
+    private PreviewState state;
+    @NonNull
+    private T brAPIObject;
+    private UUID id;
+
+    public PendingImportObject(PreviewState state, T brAPIObject) {
+        this.state = state;
+        this.brAPIObject = brAPIObject;
+        this.id = UUID.randomUUID();
+    }
 }

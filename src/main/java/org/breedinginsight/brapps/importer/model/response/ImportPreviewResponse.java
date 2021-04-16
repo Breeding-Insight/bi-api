@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.base;
+package org.breedinginsight.brapps.importer.model.response;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -26,7 +26,7 @@ import java.util.Map;
 
 @Getter
 @Setter
-public class BrAPIPreviewResponse {
-    private Map<String, BrAPIPreviewStatistics> statistics;
+public class ImportPreviewResponse {
+    private Map<String, ImportPreviewStatistics> statistics;
     private List<MappedImport> rows;
 }
