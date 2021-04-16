@@ -17,6 +17,8 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -72,9 +74,13 @@ public class PedigreeImportService extends BrAPIImportService {
     @Override
     public BrAPIPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, Boolean commit) throws UnprocessableEntityException {
 
-        // TODO: Need to get the whole file to do a legit upload -> Need to wait until POST/GET pattern for file is made (Next card)
+        // TODO: Check if big file works for POSTing
         // TODO: Check that POST brapi to breedbase works
-        // TODO: Try to change the relationships to just be a lookup based on name. Then can be in file and in db. Use the DB_LOOKUP option for this
+
+        // TODO: Breedbase work
+        // TODO: POST germplasm
+        // TODO: POST observation units
+        // TODO: POST studies
 
         // TODO: Later items
         // TODO: Identify areas in the process for clean up
@@ -104,15 +110,8 @@ public class PedigreeImportService extends BrAPIImportService {
 
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmNames = new HashSet<>();
-        //TODO: See if sets work for pairs
-        Set<Pair<String, String>> ouNameByStudy = new HashSet<>();
         for (int i = 0; i < pedigreeImports.size(); i++) {
             PedigreeImport pedigreeImport = pedigreeImports.get(i);
-
-            // Observation units
-            if (pedigreeImport.getObservationUnit() != null) {
-                ouNameByStudy.add(new MutablePair<>(pedigreeImport.getObservationUnit().getObservationUnitName(), null));
-            }
         }
 
         // Add our values for the db lookup to our list
@@ -135,10 +134,9 @@ public class PedigreeImportService extends BrAPIImportService {
                 // TODO: String reference isn't ideal. See if we can get an enum somewhere. Don't want files everywhere though.
                 if (importCross.getFemaleParent().getTargetColumn() == "germplasmNames") {
                     germplasmNames.addAll(names);
-                } else if (importCross.getFemaleParent().getTargetColumn() == "observationUnitName") {
-                    ouNameByStudy.addAll(
-                            names.stream().map(name -> new MutablePair<String, String>(name, null)).collect(Collectors.toList())
-                    );
+                } else {
+                    throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            String.format("Target field, %s,  not supported", importCross.getFemaleParent().getTargetColumn()));
                 }
             }
             // Check the lookup for the male parent
@@ -152,10 +150,9 @@ public class PedigreeImportService extends BrAPIImportService {
                 // TODO: String reference isn't ideal. See if we can get an enum somewhere. Don't want files everywhere though.
                 if (importCross.getMaleParent().getTargetColumn() == "germplasmNames") {
                     germplasmNames.addAll(names);
-                } else if (importCross.getMaleParent().getTargetColumn() == "observationUnitName") {
-                    ouNameByStudy.addAll(
-                            names.stream().map(name -> new MutablePair<String, String>(name, null)).collect(Collectors.toList())
-                    );
+                } else {
+                    throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            String.format("Target field, %s,  not supported", importCross.getFemaleParent().getTargetColumn()));
                 }
             }
         }
@@ -164,7 +161,6 @@ public class PedigreeImportService extends BrAPIImportService {
         List<PedigreeImportBrAPI> mappedBrAPIImport = pedigreeImports.stream()
                 .map(pedigreeImport -> new PedigreeImportBrAPI()).collect(Collectors.toList());
         Map<String, BrAPIPreview<BrAPIGermplasm>> germplasmByName = new HashMap<>();
-        Map<String, BrAPIPreview<BrAPIObservationUnit>> ouByName = new HashMap<>();
         Map<String, BrAPIPreview<BrAPICross>> crossByGermplasmName = new HashMap<>();
 
         // Get existing objects
@@ -172,11 +168,6 @@ public class PedigreeImportService extends BrAPIImportService {
             List<BrAPIGermplasm> existingGermplasms = brAPIQueryService.getGermplasmByName(new ArrayList<>(germplasmNames), brAPIProgram);
             existingGermplasms.forEach(existingGermplasm -> {
                 germplasmByName.put(existingGermplasm.getGermplasmName(), new BrAPIPreview<>(PreviewState.EXISTING, existingGermplasm));
-            });
-
-            List<BrAPIObservationUnit> existingOUs = brAPIQueryService.getObservationUnitsByNameAndStudyName(new ArrayList<>(ouNameByStudy), brAPIProgram);
-            existingOUs.forEach(existingOU -> {
-                ouByName.put(existingOU.getObservationUnitName(), new BrAPIPreview<>(PreviewState.EXISTING, existingOU));
             });
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
@@ -188,7 +179,6 @@ public class PedigreeImportService extends BrAPIImportService {
             PedigreeImport pedigreeImport = pedigreeImports.get(i);
             PedigreeImportBrAPI mappedImportRow = mappedBrAPIImport.get(i);
             Germplasm germplasm = pedigreeImport.getGermplasm();
-            ObservationUnit observationUnit = pedigreeImport.getObservationUnit();
             Cross cross = pedigreeImport.getCross();
 
             // Germplasm
@@ -198,19 +188,6 @@ public class PedigreeImportService extends BrAPIImportService {
                     germplasmByName.put(newGermplasm.getGermplasmName(), new BrAPIPreview<>(PreviewState.NEW, newGermplasm));
                 }
                 mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
-            }
-
-            // Observation units
-            if (observationUnit != null && observationUnit.getObservationUnitName() != null) {
-                if (!ouByName.containsKey(observationUnit.getObservationUnitName())) {
-                    BrAPIObservationUnit newObservationUnit = observationUnit.constructBrAPIObservationUnit();
-                    newObservationUnit.setProgramDbId(brAPIProgram.getProgramDbId());
-                    if (mappedImportRow.getGermplasm() != null){
-                        newObservationUnit.setGermplasmName(mappedImportRow.getGermplasm().getBrAPIObject().getGermplasmName());
-                    }
-                    ouByName.put(newObservationUnit.getObservationUnitName(), new BrAPIPreview<>(PreviewState.NEW, newObservationUnit));
-                }
-                mappedImportRow.setObservationUnit(ouByName.get(observationUnit.getObservationUnitName()));
             }
 
             // Crosses
@@ -239,14 +216,6 @@ public class PedigreeImportService extends BrAPIImportService {
                         } else {
                             //TODO: Throw error if the user wants an error
                         }
-                    } else if (cross.getFemaleParent().getTargetColumn() == "observationUnitName") {
-                        if (ouByName.containsKey(cross.getFemaleParent().getReferenceValue())) {
-                            BrAPIObservationUnit crossTargetOU = ouByName.get(cross.getFemaleParent().getReferenceValue()).getBrAPIObject();
-                            mother.setObservationUnitName(crossTargetOU.getObservationUnitName());
-                            mother.setGermplasmName(crossTargetOU.getGermplasmName());
-                        } else {
-                            //TODO: Throw error if the user wants an error
-                        }
                     }
                     newCross.setParent1(mother);
                 }
@@ -261,14 +230,6 @@ public class PedigreeImportService extends BrAPIImportService {
                         } else {
                             //TODO: Throw error if the user wants an error
                         }
-                    } else if (cross.getFemaleParent().getTargetColumn().equals("observationUnitName")) {
-                        if (ouByName.containsKey(cross.getFemaleParent().getReferenceValue())) {
-                            BrAPIObservationUnit crossTargetOU = ouByName.get(cross.getMaleParent().getReferenceValue()).getBrAPIObject();
-                            father.setObservationUnitName(crossTargetOU.getObservationUnitName());
-                            father.setGermplasmName(crossTargetOU.getGermplasmName());
-                        } else {
-                            //TODO: Throw error if the user wants an error
-                        }
                     }
                     newCross.setParent2(father);
                 }
@@ -277,43 +238,9 @@ public class PedigreeImportService extends BrAPIImportService {
             }
         }
 
-        // Get the relationships
-        /*if (pedigreeImports.get(0).getCross() != null) {
-            List<ImportRelation> motherRelations = pedigreeImports.stream().map(pedigreeImport -> {
-                return pedigreeImport.getCross() != null ? pedigreeImport.getCross().getFemaleParent() : null;
-            }).collect(Collectors.toList());
-            // unique
-            List<BrAPICrossParent> mothers = getCrossParents(motherRelations, data, mappedBrAPIImport, BrAPIParentType.FEMALE);
-            for (int k = 0; k < mothers.size(); k++) {
-                //TODO: Does this reference to the preview in the map?
-                if (mappedBrAPIImport.get(k).getCross() != null) {
-                    BrAPICross cross = mappedBrAPIImport.get(k).getCross().getBrAPIObject();
-                    if (cross.getParent1() == null){
-                        mappedBrAPIImport.get(k).getCross().getBrAPIObject().setParent1(mothers.get(k));
-                    }
-                }
-            }
-
-            List<ImportRelation> fatherRelations = pedigreeImports.stream().map(pedigreeImport -> {
-                return pedigreeImport.getCross() != null ? pedigreeImport.getCross().getMaleParent() : null;
-            }).collect(Collectors.toList());
-            List<BrAPICrossParent> fathers = getCrossParents(fatherRelations, data, mappedBrAPIImport, BrAPIParentType.MALE);
-            for (int k = 0; k < fathers.size(); k++) {
-                if (mappedBrAPIImport.get(k).getCross() != null) {
-                    BrAPICross cross = mappedBrAPIImport.get(k).getCross().getBrAPIObject();
-                    if (cross.getParent2() == null){
-                        mappedBrAPIImport.get(k).getCross().getBrAPIObject().setParent2(fathers.get(k));
-                    }
-                }
-            }
-        }*/
 
         // Get our new objects to create
         List<BrAPIGermplasm> newGermplasmList = germplasmByName.values().stream()
-                .filter(preview -> preview != null && preview.getState() == PreviewState.NEW)
-                .map(preview -> preview.getBrAPIObject())
-                .collect(Collectors.toList());
-        List<BrAPIObservationUnit> newOUList = ouByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == PreviewState.NEW)
                 .map(preview -> preview.getBrAPIObject())
                 .collect(Collectors.toList());
@@ -328,12 +255,10 @@ public class PedigreeImportService extends BrAPIImportService {
         BrAPIPreviewStatistics germplasmStats = new BrAPIPreviewStatistics();
         germplasmStats.setNewObjectCount(newGermplasmList.size());
         BrAPIPreviewStatistics ouStats = new BrAPIPreviewStatistics();
-        ouStats.setNewObjectCount(newOUList.size());
         BrAPIPreviewStatistics crossStats = new BrAPIPreviewStatistics();
         crossStats.setNewObjectCount(newCrosses.size());
         response.setStatistics(Map.of(
                 "Germplasm", germplasmStats,
-                "Observation Units", ouStats,
                 "Crosses", crossStats
         ));
         response.setRows((List<MappedImport>)(List<?>) mappedBrAPIImport);
@@ -365,31 +290,6 @@ public class PedigreeImportService extends BrAPIImportService {
                 preview.setBrAPIObject(germplasm);
             });
 
-            // POST Observation Units
-            // Update the germplasm id from our new germplasm objects
-            for (int k = 0; k < mappedBrAPIImport.size(); k++){
-                PedigreeImportBrAPI mappedImportRow = mappedBrAPIImport.get(k);
-                if (mappedImportRow.getObservationUnit() != null && mappedImportRow.getGermplasm() != null &&
-                    mappedImportRow.getObservationUnit().getState() == PreviewState.NEW
-                ) {
-                    BrAPIGermplasm ouGermplasm = mappedImportRow.getGermplasm().getBrAPIObject();
-                    mappedImportRow.getObservationUnit().getBrAPIObject().setGermplasmDbId(ouGermplasm.getGermplasmDbId());
-                }
-            }
-
-            List<BrAPIObservationUnit> createdObservationUnits = new ArrayList<>();
-            if (newOUList.size() > 0) {
-                try{
-                    createdObservationUnits = brAPIQueryService.createBrAPIObservationUnits(newOUList);
-                } catch (ApiException e) {
-                    throw new InternalServerException(e.toString(), e);
-                }
-            }
-            createdObservationUnits.forEach(observationUnit -> {
-                BrAPIPreview<BrAPIObservationUnit> preview = ouByName.get(observationUnit.getObservationUnitName());
-                preview.setBrAPIObject(observationUnit);
-            });
-
             // POST Crosses
             // Update the germplasm and observation unit ids in the new crosses
             for (int k = 0; k < mappedBrAPIImport.size(); k++) {
@@ -400,16 +300,12 @@ public class PedigreeImportService extends BrAPIImportService {
                         BrAPICross cross = crossPreview.getBrAPIObject();
                         if (cross.getParent1() != null){
                             BrAPIGermplasm targetGermplasmParent = germplasmByName.get(cross.getParent1().getGermplasmName()).getBrAPIObject();
-                            BrAPIObservationUnit targetOUParent = ouByName.get(cross.getParent1().getObservationUnitName()).getBrAPIObject();
                             cross.getParent1().setGermplasmDbId(targetGermplasmParent.getGermplasmDbId());
-                            cross.getParent1().setObservationUnitDbId(targetOUParent.getObservationUnitDbId());
                         }
 
                         if (cross.getParent2() != null) {
                             BrAPIGermplasm targetGermplasmParent = germplasmByName.get(cross.getParent2().getGermplasmName()).getBrAPIObject();
-                            BrAPIObservationUnit targetOUParent = ouByName.get(cross.getParent2().getObservationUnitName()).getBrAPIObject();
                             cross.getParent2().setGermplasmDbId(targetGermplasmParent.getGermplasmDbId());
-                            cross.getParent2().setObservationUnitDbId(targetOUParent.getObservationUnitDbId());
                         }
                     }
 

@@ -72,6 +72,7 @@ public class BrAPIQueryService {
     private static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
     private static Integer RESULTS_PER_QUERY = 10000;
     public static String OU_ID_REFERENCE_SOURCE = "ou_id";
+    public static Integer POST_GROUP_SIZE = 1000;
 
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
@@ -133,15 +134,25 @@ public class BrAPIQueryService {
 
         List<T> listResult = new ArrayList<>();
         try {
-            ApiResponse response = postMethod.apply(brapiObjects);
-            if (response.getBody() == null) throw new ApiException("Response is missing body");
-            BrAPIResponse body = (BrAPIResponse) response.getBody();
-            if (body.getResult() == null) throw new ApiException("Response body is missing result");
-            BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
-            if (result.getData() == null) throw new ApiException("Response result is missing data");
-            List<T> data = result.getData();
-            if (data.size() != brapiObjects.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");
-            return data;
+            // Make the POST calls in chunks so we don't overload the brapi server
+            Integer currentRightBorder = 0;
+            while (currentRightBorder < brapiObjects.size()) {
+                List<T> postChunk = brapiObjects.size() > (currentRightBorder + POST_GROUP_SIZE - 1) ?
+                        brapiObjects.subList(currentRightBorder, currentRightBorder + POST_GROUP_SIZE - 1) : brapiObjects.subList(currentRightBorder, brapiObjects.size() - 1);
+                ApiResponse response = postMethod.apply(postChunk);
+                if (response.getBody() == null) throw new ApiException("Response is missing body");
+                BrAPIResponse body = (BrAPIResponse) response.getBody();
+                if (body.getResult() == null) throw new ApiException("Response body is missing result");
+                BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
+                if (result.getData() == null) throw new ApiException("Response result is missing data");
+                List<T> data = result.getData();
+                // TODO: Maybe move this outside of the loop
+                if (data.size() != postChunk.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");
+                listResult.addAll(data);
+                currentRightBorder += POST_GROUP_SIZE;
+            }
+
+            return listResult;
         } catch (ApiException e) {
             throw e;
         } catch (Exception e) {

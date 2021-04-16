@@ -62,14 +62,11 @@ import java.util.stream.Collectors;
 @Setter
 @NoArgsConstructor
 @ImportMetadata(id="PedigreeImport", name="Pedigree Import",
-        description = "This import is used to create a pedigree history by importing germplasm and observation units.")
+        description = "This import is used to create a pedigree history by importing germplasm.")
 public class PedigreeImport implements BrAPIImport {
     @ImportType(type = ImportFieldType.OBJECT)
     @ImportFieldRequired
     private Germplasm germplasm;
-
-    @ImportType(type = ImportFieldType.OBJECT)
-    private ObservationUnit observationUnit;
 
     @ImportType(type = ImportFieldType.OBJECT)
     private Cross cross;

@@ -60,6 +60,10 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="countryOfOrigin", name="Country of Origin", description = "Two letter code for the country of origin.")
     private String countryOfOrigin;
 
+    @ImportType(type= ImportFieldType.TEXT)
+    @ImportFieldMetadata(id="collection", name="Family Name", description = "The name of the family this germplasm is a part of.")
+    private String collection;
+
     // Removed for now, need to add to breedbase
     /*@ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
     private List<GermplasmAttribute> germplasmAttributes;*/
@@ -76,6 +80,7 @@ public class Germplasm implements BrAPIObject {
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setAccessionNumber(getAccessionNumber());
         germplasm.setAccessionNumber(getAccessionNumber());
+        germplasm.setCollection(getCollection());
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());

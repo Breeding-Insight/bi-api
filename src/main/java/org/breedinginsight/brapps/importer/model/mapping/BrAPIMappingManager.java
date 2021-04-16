@@ -190,12 +190,10 @@ public class BrAPIMappingManager {
             if (required != null && (matchedMapping.getValue() == null ||
                     matchedMapping.getValue().getRelationMap() == null)) {
                 throw new UnprocessableEntityException(String.format("Relationship field %s is required", metadata.name()));
-
             } else if (matchedMapping.getValue() == null || matchedMapping.getValue().getRelationMap() == null) {
                 return;
-
-            } else if (matchedMapping.getValue().getRelationMap().getReference() == null ||
-                    matchedMapping.getValue().getRelationMap().getReference() == null)
+            } else if (matchedMapping.getValue().getRelationMap().getReference() == null &&
+                    matchedMapping.getValue().getRelationMap().getTarget() == null)
             {
                 throw new BadRequestException("Relationship field is not properly formatted");
             }
@@ -205,7 +203,9 @@ public class BrAPIMappingManager {
             relationship.setType(value.getRelationValue());
             relationship.setTargetColumn(value.getRelationMap().getTarget());
             String referenceColumn = value.getRelationMap().getReference();
-            relationship.setReferenceValue(focusRow.getString(referenceColumn));
+            if (referenceColumn != null){
+                relationship.setReferenceValue(focusRow.getString(referenceColumn));
+            }
             if (StringUtils.isBlank(relationship.getReferenceValue())) relationship = null;
             try {
                 field.setAccessible(true);
