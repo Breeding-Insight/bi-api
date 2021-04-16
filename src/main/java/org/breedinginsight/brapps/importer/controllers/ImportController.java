@@ -138,8 +138,7 @@ public class ImportController {
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
     public HttpResponse<Response<ImportMapping>> editMappingFile(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                 @Part("file") CompletedFileUpload file,
-                                                                 @QueryValue(defaultValue="true") Boolean validate) {
+                                                                 @Part("file") CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);

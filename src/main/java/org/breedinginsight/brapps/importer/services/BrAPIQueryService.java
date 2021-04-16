@@ -70,7 +70,7 @@ public class BrAPIQueryService {
     private BrAPIProvider brAPIProvider;
     private static Integer SEARCH_WAIT_TIME = 1000;
     private static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
-    private static Integer RESULTS_PER_QUERY = 10000;
+    private static Integer RESULTS_PER_QUERY = 100000;
     public static String OU_ID_REFERENCE_SOURCE = "ou_id";
     public static Integer POST_GROUP_SIZE = 1000;
 
@@ -167,7 +167,7 @@ public class BrAPIQueryService {
         // Germplasm doesn't have program attached. Do species as next best thing
         germplasmSearch.setCommonCropNames(List.of(brAPIProgram.getCommonCropName()));
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
-        return this.<BrAPIGermplasmListResponse, BrAPIGermplasmSearchRequest, BrAPIGermplasm>search(
+        return this.search(
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
@@ -179,7 +179,7 @@ public class BrAPIQueryService {
         BrAPIGermplasmAttributeSearchRequest germplasmAttributeSearch = new BrAPIGermplasmAttributeSearchRequest();
         germplasmAttributeSearch.setAttributeNames(new ArrayList<>(germplasmAttributeNames));
         GermplasmAttributesApi api = brAPIProvider.getGermplasmAttributesApi(BrAPIClientType.CORE);
-        return this.<BrAPIGermplasmAttributeListResponse, BrAPIGermplasmAttributeSearchRequest, BrAPIGermplasmAttribute>search(
+        return this.search(
                 api::searchAttributesPost,
                 api::searchAttributesSearchResultsDbIdGet,
                 germplasmAttributeSearch
@@ -193,7 +193,7 @@ public class BrAPIQueryService {
         observationUnitSearchRequest.setObservationUnitNames(new ArrayList<>(observationUnitNames));
         observationUnitSearchRequest.setProgramDbIds(List.of(brAPIProgram.getProgramDbId()));
         ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        List<BrAPIObservationUnit> observationUnits = this.<BrAPIObservationUnitListResponse, BrAPIObservationUnitSearchRequest, BrAPIObservationUnit>search(
+        List<BrAPIObservationUnit> observationUnits = this.search(
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearchRequest
@@ -209,7 +209,7 @@ public class BrAPIQueryService {
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
         //TODO: Locations don't connect to programs. How to get locations for the program?
         LocationsApi api = brAPIProvider.getLocationsApi(BrAPIClientType.CORE);
-        return this.<BrAPILocationListResponse, BrAPILocationSearchRequest, BrAPILocation>search(
+        return this.search(
                 api::searchLocationsPost,
                 api::searchLocationsSearchResultsDbIdGet,
                 locationSearchRequest
@@ -239,12 +239,12 @@ public class BrAPIQueryService {
 
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList) throws ApiException {
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
-        return this.<BrAPIGermplasm>post(brAPIGermplasmList, api::germplasmPost);
+        return this.post(brAPIGermplasmList, api::germplasmPost);
     }
 
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList) throws ApiException {
         ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        return this.<BrAPIObservationUnit>post(brAPIObservationUnitList, api::observationunitsPost);
+        return this.post(brAPIObservationUnitList, api::observationunitsPost);
     }
 
 
