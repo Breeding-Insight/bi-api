@@ -25,7 +25,6 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -36,9 +35,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.base.BrAPIPreviewResponse;
-import org.breedinginsight.brapps.importer.model.imports.MappedImport;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.services.BrAPIFileImportService;
@@ -123,9 +120,6 @@ public class ImportController {
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
-        } catch (HttpBadRequestException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -152,9 +146,6 @@ public class ImportController {
             Response<BrAPIImportMapping> response = new Response(result);
             //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
-        } catch (HttpBadRequestException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -180,18 +171,12 @@ public class ImportController {
             BrAPIImportMapping result = brAPIFileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
             Response<BrAPIImportMapping> response = new Response(result);
             return HttpResponse.ok(response);
-        } catch (HttpBadRequestException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
-        } catch (UnsupportedTypeException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
         } catch (UnprocessableEntityException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
@@ -212,9 +197,6 @@ public class ImportController {
             BrAPIPreviewResponse result = brAPIFileImportService.uploadData(programId, mappingId, actingUser, file, commit);
             Response<BrAPIPreviewResponse> response = new Response(result);
             return HttpResponse.ok(response);
-        } catch (HttpBadRequestException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
