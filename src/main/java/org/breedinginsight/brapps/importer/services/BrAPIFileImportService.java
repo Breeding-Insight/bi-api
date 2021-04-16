@@ -19,24 +19,23 @@ package org.breedinginsight.brapps.importer.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.tika.mime.MediaType;
-import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.BrAPIImportConfigManager;
 import org.breedinginsight.brapps.importer.model.base.BrAPIPreviewResponse;
 import org.breedinginsight.brapps.importer.model.config.ImportConfig;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.brapps.importer.model.imports.MappedImport;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.BrAPIMappingManager;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Species;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.constants.SupportedMediaType;
@@ -56,7 +55,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -90,7 +88,7 @@ public class BrAPIFileImportService {
         Saves the file for the mapping record
      */
     public BrAPIImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
-            DoesNotExistException, AuthorizationException, HttpBadRequestException, UnsupportedTypeException {
+            DoesNotExistException, AuthorizationException, UnsupportedTypeException {
 
         if (!programService.exists(programId))
         {
@@ -120,13 +118,13 @@ public class BrAPIFileImportService {
         return importMapping;
     }
 
-    private Table parseUploadedFile(CompletedFileUpload file) throws HttpBadRequestException, UnsupportedTypeException {
+    private Table parseUploadedFile(CompletedFileUpload file) throws UnsupportedTypeException, HttpStatusException {
 
         MediaType mediaType;
         try {
             mediaType = mimeTypeParser.getMimeType(file);
         } catch (IOException e){
-            throw new HttpBadRequestException("Could not determine file type");
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Could not determine file type");
         }
 
         Table df;
@@ -134,7 +132,7 @@ public class BrAPIFileImportService {
             try {
                 df = FileUtil.parseTableFromCsv(file.getInputStream());
             } catch (IOException | ParsingException e) {
-                throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing csv: " + e.getMessage());
             }
         } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
                 mediaType.toString().equals(SupportedMediaType.XLSX)) {
@@ -143,7 +141,7 @@ public class BrAPIFileImportService {
                 //TODO: Allow them to pass in header row index in the future
                 df = FileUtil.parseTableFromExcel(file.getInputStream(), 0);
             } catch (IOException | ParsingException e) {
-                throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing excel: " + e.getMessage());
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
@@ -152,7 +150,7 @@ public class BrAPIFileImportService {
     }
 
     public BrAPIImportMapping updateMappingFile(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file)
-            throws UnsupportedTypeException, HttpBadRequestException, DoesNotExistException, AuthorizationException {
+            throws UnsupportedTypeException, HttpStatusException, DoesNotExistException, AuthorizationException {
 
         if (!programService.exists(programId))
         {
@@ -184,7 +182,7 @@ public class BrAPIFileImportService {
 
     public BrAPIImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
                                             BrAPIImportMapping mappingRequest, Boolean validate) throws
-            DoesNotExistException, AuthorizationException, HttpBadRequestException, UnsupportedTypeException, UnprocessableEntityException {
+            DoesNotExistException, AuthorizationException, HttpStatusException, UnprocessableEntityException {
 
         if (!programService.exists(programId))
         {
@@ -233,7 +231,7 @@ public class BrAPIFileImportService {
     }
 
     public BrAPIPreviewResponse uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
-            throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpBadRequestException, UnprocessableEntityException {
+            throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpStatusException, UnprocessableEntityException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
         if (!optionalProgram.isPresent())
