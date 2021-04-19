@@ -46,9 +46,9 @@ public class BrAPIGermplasmDAO extends BrAPIDAO {
     public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, BrAPIProgram brAPIProgram) throws ApiException {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.germplasmNames(germplasmNames);
-        // TODO: Should be have a 'Pedigree' study to connect the germplasm to the program? Makes it a little less flexible
         // Germplasm doesn't have program attached. Do species as next best thing
         germplasmSearch.setCommonCropNames(List.of(brAPIProgram.getCommonCropName()));
+        germplasmSearch.setPageSize(RESULTS_PER_QUERY);
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
         return this.search(
                 api::searchGermplasmPost,

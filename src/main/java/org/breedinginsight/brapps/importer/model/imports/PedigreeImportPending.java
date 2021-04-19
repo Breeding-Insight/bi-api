@@ -23,7 +23,6 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.germ.BrAPICross;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
 @Getter
@@ -32,8 +31,6 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 public class PedigreeImportPending implements PendingImport {
     @JsonInclude
     private PendingImportObject<BrAPIGermplasm> germplasm;
-    @JsonInclude
-    private PendingImportObject<BrAPIObservationUnit> observationUnit;
     @JsonInclude
     private PendingImportObject<BrAPICross> cross;
 }

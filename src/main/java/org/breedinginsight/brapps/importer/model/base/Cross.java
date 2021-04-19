@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
         description = "A cross connects two germplasm objects to form a pedigree.")
 public class Cross implements BrAPIObject {
 
+    public static final String GERMPLASM_NAME_TARGET = "germplasmName";
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="crossName", name="Cross Name", description = "Name of the cross. Defaults to parent germplasm names if not provided.")
     private String crossName;
@@ -45,7 +47,7 @@ public class Cross implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName", "observationUnitName"}),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
     })
     @ImportMappingRequired
     @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
@@ -53,7 +55,7 @@ public class Cross implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName", "observationUnitName"}),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
     })
     @ImportFieldMetadata(id="maleParent", name="Male Parent", description = "The male parent of the germplasm. Can be left blank for self crosses.")
     private MappedImportRelation maleParent;

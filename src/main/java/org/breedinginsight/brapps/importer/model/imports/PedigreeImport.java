@@ -39,6 +39,4 @@ public class PedigreeImport implements BrAPIImport {
 
     @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
     private Cross cross;
-
-    //TODO: Make an @ImportIgnore annotation
 }

@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.daos;
 
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
@@ -27,9 +26,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPIResponseResult;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +38,7 @@ public abstract class BrAPIDAO {
 
     private static Integer SEARCH_WAIT_TIME = 1000;
     private static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
-    private static Integer RESULTS_PER_QUERY = 100000;
+    protected static Integer RESULTS_PER_QUERY = 100000;
     public static Integer POST_GROUP_SIZE = 1000;
 
     public <T, U, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,

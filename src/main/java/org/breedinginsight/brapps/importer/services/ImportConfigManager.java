@@ -89,18 +89,25 @@ public class ImportConfigManager {
 
     private ImportFieldConfig getObjectField(Field field) {
 
-        ImportFieldConfig fieldConfig = constructFieldConfig(field);
-
         ImportFieldType fieldType = field.getAnnotation(ImportFieldType.class);
+        if (fieldType == null) return null;
+
+        ImportFieldConfig fieldConfig = constructFieldConfig(field);
 
         // Dive deeper if necessary
         if (fieldType.type() == ImportFieldTypeEnum.OBJECT) {
             List<Field> fields = Arrays.asList(field.getType().getDeclaredFields());
-            List<ImportFieldConfig> subFieldConfigs = fields.stream().map(subField -> getObjectField(subField)).collect(Collectors.toList());
+            List<ImportFieldConfig> subFieldConfigs = fields.stream()
+                    .map(subField -> getObjectField(subField))
+                    .filter(subField -> subField != null)
+                    .collect(Collectors.toList());
             fieldConfig.setFields(subFieldConfigs);
         } else if (fieldType.type() == ImportFieldTypeEnum.LIST) {
             List<Field> fields = Arrays.asList(fieldType.clazz().getDeclaredFields());
-            List<ImportFieldConfig> subFieldConfigs = fields.stream().map(subField -> getObjectField(subField)).collect(Collectors.toList());
+            List<ImportFieldConfig> subFieldConfigs = fields.stream()
+                    .map(subField -> getObjectField(subField))
+                    .filter(subField -> subField != null)
+                    .collect(Collectors.toList());
             fieldConfig.setFields(subFieldConfigs);
         }
         else if (fieldType.type() == ImportFieldTypeEnum.RELATIONSHIP) {

@@ -19,9 +19,7 @@ package org.breedinginsight.brapps.importer.daos;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.CrossesApi;
-import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.germ.BrAPICross;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 

@@ -118,7 +118,6 @@ public class ImportController {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.createMapping(programId, actingUser, file);
             Response<ImportMapping> response = new Response(result);
-            //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -143,7 +142,6 @@ public class ImportController {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);
             Response<ImportMapping> response = new Response(result);
-            //TODO: Not returned response for some reason
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
