@@ -455,6 +455,7 @@ public class TraitDAO extends TraitDao {
         List<BrAPIObservationVariable> variableList = new ArrayList<>();
         try {
             VariableQueryParams queryParams = new VariableQueryParams();
+            queryParams.pageSize(10000);
             queryParams.externalReferenceSource(referenceSource);
             ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
                     variablesAPI.variablesGet(queryParams);
