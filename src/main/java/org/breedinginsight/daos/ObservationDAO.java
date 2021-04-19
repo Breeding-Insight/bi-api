@@ -21,12 +21,15 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.ObservationQueryParams;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
+import org.brapi.v2.model.BrAPIWSMIMEDataTypes;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.brapi.BrAPIQueryService;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -37,10 +40,12 @@ import static org.breedinginsight.utilities.Utilities.handleBrapiSearchResponse;
 
 public class ObservationDAO {
     private BrAPIProvider brAPIProvider;
+    private BrAPIQueryService brapiQueryService;
 
     @Inject
-    public ObservationDAO(BrAPIProvider brAPIProvider) {
+    public ObservationDAO(BrAPIProvider brAPIProvider, BrAPIQueryService brapiQueryService) {
         this.brAPIProvider = brAPIProvider;
+        this.brapiQueryService = brapiQueryService;
     }
 
     public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId) {
@@ -60,20 +65,26 @@ public class ObservationDAO {
     // search by ObservationVariableDbIds
     public List<BrAPIObservation> getObservationsByVariableDbIds(List<String> observationVariableDbIds) {
 
-        ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>> brapiObservations;
-        BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
-                .observationVariableDbIds(observationVariableDbIds);
         try {
-            brapiObservations = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO).searchObservationsPost(request);
+            BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
+                    .observationVariableDbIds(observationVariableDbIds);
 
-            BrAPIObservationListResponse response = handleBrapiSearchResponse(brapiObservations,
-                    (searchId) -> brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO)
-                    .searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchId, 0, 1000));
-
-            return response.getResult().getData();
-
+            ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
+            return brapiQueryService.search(
+                    api::searchObservationsPost,
+                    this::searchObservationsSearchResultsDbIdGet,
+                    request
+            );
         } catch (ApiException e) {
-            throw new InternalServerException("Error making BrAPI call", e);
+            throw new InternalServerException("Observations brapi search error", e);
         }
+
     }
+
+    public ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>>
+    searchObservationsSearchResultsDbIdGet(String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
+        ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
+        return api.searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchResultsDbId, page, pageSize);
+    }
+
 }
