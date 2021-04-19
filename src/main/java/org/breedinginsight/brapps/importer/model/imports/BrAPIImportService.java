@@ -25,7 +25,7 @@ import tech.tablesaw.api.Table;
 import java.util.List;
 
 public abstract class BrAPIImportService {
-    public String getId() {return null;}
+    public String getImportTypeId() {return null;}
     public BrAPIImport getImportClass() {return null;}
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, Boolean commit) throws UnprocessableEntityException {return null;}
 }

@@ -43,7 +43,7 @@ public class ImportConfigManager {
         // Get all imports
         brAPIImportsMap = new HashMap<>();
         for (BrAPIImportService importService: importServices) {
-            brAPIImportsMap.put(importService.getId(), importService);
+            brAPIImportsMap.put(importService.getImportTypeId(), importService);
         }
     }
 

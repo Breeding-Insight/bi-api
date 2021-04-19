@@ -23,8 +23,8 @@ import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
+import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.config.*;
-import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -97,7 +97,7 @@ public class ObservationUnit implements BrAPIObject {
         List<BrAPIExternalReference> brAPIexternalReferences = new ArrayList<>();
         //TODO: Should we be checking this back here, or depending on the user to set it properly?
         BrAPIExternalReference brAPIExternalReference = new BrAPIExternalReference();
-        brAPIExternalReference.setReferenceSource(BrAPIQueryService.OU_ID_REFERENCE_SOURCE);
+        brAPIExternalReference.setReferenceSource(BrAPIObservationUnitDAO.OU_ID_REFERENCE_SOURCE);
         brAPIExternalReference.setReferenceID(getObservationUnitPermanentID());
         brAPIexternalReferences.add(brAPIExternalReference);
 

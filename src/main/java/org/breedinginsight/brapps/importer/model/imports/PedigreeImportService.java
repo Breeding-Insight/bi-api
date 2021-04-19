@@ -28,6 +28,9 @@ import org.brapi.client.v2.modules.germplasm.CrossesApi;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.brapps.importer.daos.BrAPICrossDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPIProgramDAO;
 import org.breedinginsight.brapps.importer.model.base.*;
 import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
 import org.breedinginsight.brapps.importer.model.config.ImportRelationType;
@@ -36,10 +39,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
-import org.breedinginsight.brapps.importer.services.BrAPIQueryService;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import tech.tablesaw.api.Table;
 
@@ -53,16 +53,19 @@ public class PedigreeImportService extends BrAPIImportService {
 
     private String IMPORT_TYPE_ID = "PedigreeImport";
 
-    private BrAPIQueryService brAPIQueryService;
+    private BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private BrAPIProgramDAO brAPIProgramDAO;
+    private BrAPICrossDAO brAPICrossDAO;
     private FileMappingUtil fileMappingUtil;
-    private BrAPIProvider brAPIProvider;
 
     @Inject
-    public PedigreeImportService(BrAPIQueryService brAPIQueryService, FileMappingUtil fileMappingUtil, BrAPIProvider brAPIProvider)
+    public PedigreeImportService(FileMappingUtil fileMappingUtil,
+                                 BrAPIProgramDAO brAPIProgramDAO, BrAPIGermplasmDAO brAPIGermplasmDAO, BrAPICrossDAO brAPICrossDAO)
     {
-        this.brAPIQueryService = brAPIQueryService;
         this.fileMappingUtil = fileMappingUtil;
-        this.brAPIProvider = brAPIProvider;
+        this.brAPIGermplasmDAO = brAPIGermplasmDAO;
+        this.brAPIProgramDAO = brAPIProgramDAO;
+        this.brAPICrossDAO = brAPICrossDAO;
     }
 
     @Override
@@ -71,7 +74,7 @@ public class PedigreeImportService extends BrAPIImportService {
     }
 
     @Override
-    public String getId() {
+    public String getImportTypeId() {
         return IMPORT_TYPE_ID;
     }
 
@@ -104,7 +107,7 @@ public class PedigreeImportService extends BrAPIImportService {
         // Get BrAPI Program
         BrAPIProgram brAPIProgram;
         try {
-            Optional<BrAPIProgram> optionalBrAPIProgram = brAPIQueryService.getProgram(program.getId());
+            Optional<BrAPIProgram> optionalBrAPIProgram = brAPIProgramDAO.getProgram(program.getId());
             if (optionalBrAPIProgram.isEmpty()) throw new ApiException("Program was not found in the brapi service");
             brAPIProgram = optionalBrAPIProgram.get();
         } catch (ApiException e) {
@@ -169,7 +172,7 @@ public class PedigreeImportService extends BrAPIImportService {
 
         // Get existing objects
         try {
-            List<BrAPIGermplasm> existingGermplasms = brAPIQueryService.getGermplasmByName(new ArrayList<>(germplasmNames), brAPIProgram);
+            List<BrAPIGermplasm> existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames), brAPIProgram);
             existingGermplasms.forEach(existingGermplasm -> {
                 germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
@@ -283,7 +286,7 @@ public class PedigreeImportService extends BrAPIImportService {
             List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
             if (newGermplasmList.size() > 0) {
                 try {
-                    createdGermplasm = brAPIQueryService.createBrAPIGermplasm(newGermplasmList);
+                    createdGermplasm = brAPIGermplasmDAO.createBrAPIGermplasm(newGermplasmList);
                 } catch (ApiException e) {
                     throw new InternalServerException(e.toString(), e);
                 }
@@ -316,9 +319,8 @@ public class PedigreeImportService extends BrAPIImportService {
                 }
             }
 
-            CrossesApi crossesApi = brAPIProvider.getCrossesApi(BrAPIClientType.CORE);
             try {
-                crossesApi.crossesPost(newCrosses);
+                brAPICrossDAO.createBrAPICrosses(newCrosses);
             } catch (ApiException e) {
                 throw new InternalServerException(e.toString(), e);
             }

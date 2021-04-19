@@ -88,14 +88,7 @@ public class FileImportService {
     public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
             DoesNotExistException, AuthorizationException, UnsupportedTypeException {
 
-        if (!programService.exists(programId))
-        {
-            throw new DoesNotExistException("Program id does not exist");
-        }
-
-        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
-            throw new AuthorizationException("User not in program");
-        }
+        Program program = validateRequest(programId, actingUser);
 
         Table df = parseUploadedFile(file);
 
@@ -150,14 +143,7 @@ public class FileImportService {
     public ImportMapping updateMappingFile(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file)
             throws UnsupportedTypeException, HttpStatusException, DoesNotExistException, AuthorizationException {
 
-        if (!programService.exists(programId))
-        {
-            throw new DoesNotExistException("Program id does not exist");
-        }
-
-        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
-            throw new AuthorizationException("User not in program");
-        }
+        Program program = validateRequest(programId, actingUser);
 
         ImportMapping importMapping;
         Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
@@ -182,14 +168,7 @@ public class FileImportService {
                                        ImportMapping mappingRequest, Boolean validate) throws
             DoesNotExistException, AuthorizationException, HttpStatusException, UnprocessableEntityException {
 
-        if (!programService.exists(programId))
-        {
-            throw new DoesNotExistException("Program id does not exist");
-        }
-
-        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
-            throw new AuthorizationException("User not in program");
-        }
+        Program program = validateRequest(programId, actingUser);
 
         Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
         if (optionalImportMapping.isEmpty()) {
@@ -231,16 +210,7 @@ public class FileImportService {
     public ImportPreviewResponse uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
             throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpStatusException, UnprocessableEntityException {
 
-        Optional<Program> optionalProgram = programService.getById(programId);
-        if (!optionalProgram.isPresent())
-        {
-            throw new DoesNotExistException("Program id does not exist");
-        }
-        Program program = optionalProgram.get();
-
-        if (!programUserService.existsAndActive(programId, actingUser.getId())) {
-            throw new AuthorizationException("User not in program");
-        }
+        Program program = validateRequest(programId, actingUser);
 
         // Find the mapping
         Optional<ImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
@@ -269,17 +239,22 @@ public class FileImportService {
     public List<ImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)
             throws DoesNotExistException, AuthorizationException {
 
-        if (!programService.exists(programId))
+        Program program = validateRequest(programId, actingUser);
+        List<ImportMapping> importMappings = importMappingDAO.getAllMappings(programId, draft);
+        return importMappings;
+    }
+
+    private Program validateRequest(UUID programId, AuthenticatedUser actingUser) throws DoesNotExistException, AuthorizationException{
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent())
         {
             throw new DoesNotExistException("Program id does not exist");
         }
+        Program program = optionalProgram.get();
 
         if (!programUserService.existsAndActive(programId, actingUser.getId())) {
             throw new AuthorizationException("User not in program");
         }
-
-        List<ImportMapping> importMappings = importMappingDAO.getAllMappings(programId, draft);
-
-        return importMappings;
+        return program;
     }
 }

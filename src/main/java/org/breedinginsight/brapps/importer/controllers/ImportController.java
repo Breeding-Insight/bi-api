@@ -81,7 +81,7 @@ public class ImportController {
         return HttpResponse.ok(response);
     }
 
-    @Get("/programs/{programId}/import/mapping{?draft")
+    @Get("/programs/{programId}/import/mappings{?draft}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
@@ -108,7 +108,7 @@ public class ImportController {
 
     }
 
-    @Post("/programs/{programId}/import/mapping/file")
+    @Post("/programs/{programId}/import/mappings/file")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
@@ -132,7 +132,7 @@ public class ImportController {
         }
     }
 
-    @Put("programs/{programId}/import/mapping/{mappingId}/file{?validate}")
+    @Put("programs/{programId}/import/mappings/{mappingId}/file")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
@@ -157,7 +157,7 @@ public class ImportController {
         }
     }
 
-    @Put("programs/{programId}/import/mapping/{mappingId}{?validate}")
+    @Put("programs/{programId}/import/mappings/{mappingId}{?validate}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
@@ -183,7 +183,7 @@ public class ImportController {
 
     }
 
-    @Post("programs/{programId}/import/mapping/{mappingId}/data{?commit}")
+    @Post("programs/{programId}/import/mappings/{mappingId}/data{?commit}")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
