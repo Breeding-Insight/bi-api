@@ -2555,7 +2555,74 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-
+  /programs/{programId}/traits/{traitId}/editable:
+    get:
+      tags:
+        - traits
+      summary: Check if a trait is editable
+      description: If observations are associated with trait, it is not editable
+      operationId: getTraitEditable
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait in
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: traitId
+          in: path
+          description: Id of trait to get trait for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitEditableResponse'
+              examples:
+                traitEditableResponse:
+                  $ref: '#/components/examples/editable'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
   /programs/{programId}/observation-levels:
     get:
       tags:
@@ -4307,6 +4374,22 @@ components:
           $ref: '#/components/schemas/metadata'
         result:
           $ref: '#/components/schemas/trait'
+    traitEditableResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/editable'
+    editable:
+      type: object
+      properties:
+        editable:
+          type: boolean
+          description: Indicate if trait is editable
     trait:
       type: object
       properties:
@@ -5439,6 +5522,20 @@ components:
                 name: "Tester",
                 active: true
               }
+          }
+    editable:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 1
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          {
+            editable: true
           }
     traitUploadData:
       value:
