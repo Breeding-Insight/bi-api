@@ -25,6 +25,7 @@ import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
+import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
@@ -32,7 +33,7 @@ import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
-import org.breedinginsight.services.exceptions.MethodNotAllowedException;
+import org.breedinginsight.services.brapi.BrAPIQueryService;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -54,13 +55,16 @@ public class TraitDAO extends TraitDao {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
     private ObservationDAO observationDao;
+    private BrAPIQueryService brapiQueryService;
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao,
+                    BrAPIQueryService brapiQueryService) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
+        this.brapiQueryService = brapiQueryService;
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -201,42 +205,45 @@ public class TraitDAO extends TraitDao {
         return Optional.of(dbTrait);
     }
 
+    // could be more efficient to do a single get instead of search in saved search case but less code this way
+    // and search stuff is working in breedbase
     public List<BrAPIObservation> getObservationsForTrait(UUID traitId) {
         return getObservationsForTraits(Stream.of(traitId).collect(Collectors.toList()));
     }
 
     public List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds) {
 
-        Set<String> ids = traitIds.stream()
+        List<String> ids = traitIds.stream()
                 .map(trait -> trait.toString())
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
 
-        // get observationVariableDbIds for traits
-        List<BrAPIObservationVariable> variables = getBrAPIVariables(brAPIProvider.getVariablesAPI(PHENO));
+        List<BrAPIObservationVariable> variables = searchVariables(ids);
 
-        // create list of observationVariableDbIds for all externalReferenceIds
-        HashMap<String, String> map = new HashMap<>();
-        variables.stream().forEach(
-            variable -> {
-                Optional<String> referenceId = variable.getExternalReferences().stream()
-                        .filter(ref -> ref.getReferenceSource().equals(referenceSource) &&
-                                       ids.contains(ref.getReferenceID()))
-                        .findFirst()
-                        .map(ref -> ref.getReferenceID());
-
-                referenceId.ifPresent(refId ->
-                    map.put(refId, variable.getObservationVariableDbId())
-                );
-            }
-        );
-
-        // brapi variables have all trait ids
-        if (!map.keySet().containsAll(ids)) {
-            //TODO problem
+        // TODO: make sure have all expected external references
+        if (variables.size() != ids.size()) {
+            throw new InternalServerException("Observation variables search results mismatch");
         }
 
-        List<BrAPIObservation> observations = observationDao.getObservationsByVariableDbIds(new ArrayList<>(map.values()));
-        return observations;
+        List<String> brapiVariableIds = variables.stream()
+                .map(variable -> variable.getObservationVariableDbId()).collect(Collectors.toList());
+
+        return observationDao.getObservationsByVariableDbIds(brapiVariableIds);
+    }
+
+    public List<BrAPIObservationVariable> searchVariables(List<String> variableIds) {
+        try {
+            BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
+                    .externalReferenceIDs(variableIds);
+
+            ObservationVariablesApi api = brAPIProvider.getVariablesAPI(PHENO);
+            return brapiQueryService.search(
+                    api::searchVariablesPost,
+                    api::searchVariablesSearchResultsDbIdGet,
+                    request
+            );
+        } catch (ApiException e) {
+            throw new InternalServerException("Observation variables brapi search error", e);
+        }
     }
 
     public Optional<Trait> getTrait(UUID programId, UUID traitId) {
