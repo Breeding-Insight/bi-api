@@ -17,12 +17,6 @@
 
 package org.breedinginsight.utilities;
 
-import io.micronaut.http.server.exceptions.InternalServerException;
-import org.apache.commons.lang3.tuple.Pair;
-import org.brapi.client.v2.ApiResponse;
-import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,25 +32,4 @@ public class Utilities {
         return existingObject;
     }
 
-    public static <T> T handleBrapiSearchResponse(ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response,
-                                                  BrapiCallable<T> getSearchResultFn) {
-        if (response.getBody().getLeft().isPresent()) {
-            return response.getBody().getLeft().get();
-        } else if (response.getBody().getRight().isPresent()) {
-            // make request for data
-            BrAPIAcceptedSearchResponse accepted = response.getBody().getRight().get();
-            try {
-                ApiResponse<T> result = getSearchResultFn.getBrapiSearchResult(accepted.getResult().getSearchResultsDbId());
-                if (result.getStatusCode() == 202) {
-                    // TODO: handle asynchronous search or just use async brapi client call when available
-                    throw new InternalServerException("Expected search results to be ready");
-                }
-                return result.getBody();
-            } catch (ApiException e) {
-                throw new InternalServerException("BrAPI search results get failed");
-            }
-        } else {
-            throw new InternalServerException("Invalid BrAPI search response");
-        }
-    }
 }
