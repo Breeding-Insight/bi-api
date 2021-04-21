@@ -18,6 +18,8 @@
 package org.breedinginsight.services;
 
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
@@ -31,7 +33,6 @@ import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.MethodNotAllowedException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorService;
@@ -320,7 +321,7 @@ public class TraitService {
     }
 
     public List<Trait> updateTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
-            throws DoesNotExistException, MethodNotAllowedException, ValidatorException {
+            throws DoesNotExistException, HttpStatusException, ValidatorException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
         if (!optionalProgram.isPresent()) {
@@ -358,10 +359,13 @@ public class TraitService {
         }
 
         // check if any of the traits have associated observations
-        // search by name, check number expected or get traits for external reference ids and use those
+        List<UUID> ids = traits.stream()
+                .map(trait -> trait.getId())
+                .collect(Collectors.toList());
 
-
-        //traitDAO.getObservationsForTrait()
+        if (!traitDAO.getObservationsForTraits(ids).isEmpty()) {
+            throw new HttpStatusException(HttpStatus.METHOD_NOT_ALLOWED, "Observations exist for trait, cannot edit");
+        }
 
         // Create the traits
         List<Trait> updatedTraits = new ArrayList<>();
