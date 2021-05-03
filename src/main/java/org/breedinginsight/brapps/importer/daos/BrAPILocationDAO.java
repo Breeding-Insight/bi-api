@@ -24,6 +24,7 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -31,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
-public class BrAPILocationDAO extends BrAPIDAO {
+public class BrAPILocationDAO {
 
     private BrAPIProvider brAPIProvider;
 
@@ -46,7 +47,7 @@ public class BrAPILocationDAO extends BrAPIDAO {
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
         //TODO: Locations don't connect to programs. How to get locations for the program?
         LocationsApi api = brAPIProvider.getLocationsApi(BrAPIClientType.CORE);
-        return this.search(
+        return BrAPIDAOUtil.search(
                 api::searchLocationsPost,
                 api::searchLocationsSearchResultsDbIdGet,
                 locationSearchRequest

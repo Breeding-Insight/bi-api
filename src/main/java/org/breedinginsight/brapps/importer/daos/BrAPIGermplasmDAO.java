@@ -25,8 +25,10 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmAttribute;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmAttributeSearchRequest;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
-public class BrAPIGermplasmDAO extends BrAPIDAO {
+public class BrAPIGermplasmDAO {
 
     private BrAPIProvider brAPIProvider;
 
@@ -48,9 +50,9 @@ public class BrAPIGermplasmDAO extends BrAPIDAO {
         germplasmSearch.germplasmNames(germplasmNames);
         // Germplasm doesn't have program attached. Do species as next best thing
         germplasmSearch.setCommonCropNames(List.of(brAPIProgram.getCommonCropName()));
-        germplasmSearch.setPageSize(RESULTS_PER_QUERY);
+        germplasmSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
-        return this.search(
+        return BrAPIDAOUtil.search(
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
@@ -62,7 +64,7 @@ public class BrAPIGermplasmDAO extends BrAPIDAO {
         BrAPIGermplasmAttributeSearchRequest germplasmAttributeSearch = new BrAPIGermplasmAttributeSearchRequest();
         germplasmAttributeSearch.setAttributeNames(new ArrayList<>(germplasmAttributeNames));
         GermplasmAttributesApi api = brAPIProvider.getGermplasmAttributesApi(BrAPIClientType.CORE);
-        return this.search(
+        return BrAPIDAOUtil.search(
                 api::searchAttributesPost,
                 api::searchAttributesSearchResultsDbIdGet,
                 germplasmAttributeSearch
@@ -71,6 +73,6 @@ public class BrAPIGermplasmDAO extends BrAPIDAO {
 
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList) throws ApiException {
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
-        return this.post(brAPIGermplasmList, api::germplasmPost);
+        return BrAPIDAOUtil.post(brAPIGermplasmList, api::germplasmPost);
     }
 }

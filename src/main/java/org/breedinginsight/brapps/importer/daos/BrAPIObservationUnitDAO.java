@@ -25,6 +25,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,7 +34,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Singleton
-public class BrAPIObservationUnitDAO extends BrAPIDAO {
+public class BrAPIObservationUnitDAO {
 
     public static String OU_ID_REFERENCE_SOURCE = "ou_id";
 
@@ -51,7 +52,7 @@ public class BrAPIObservationUnitDAO extends BrAPIDAO {
         observationUnitSearchRequest.setObservationUnitNames(new ArrayList<>(observationUnitNames));
         observationUnitSearchRequest.setProgramDbIds(List.of(brAPIProgram.getProgramDbId()));
         ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        List<BrAPIObservationUnit> observationUnits = this.search(
+        List<BrAPIObservationUnit> observationUnits = BrAPIDAOUtil.search(
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearchRequest
@@ -63,6 +64,6 @@ public class BrAPIObservationUnitDAO extends BrAPIDAO {
 
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList) throws ApiException {
         ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        return this.post(brAPIObservationUnitList, api::observationunitsPost);
+        return BrAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
     }
 }

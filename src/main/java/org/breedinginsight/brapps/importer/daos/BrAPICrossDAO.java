@@ -22,13 +22,14 @@ import org.brapi.client.v2.modules.germplasm.CrossesApi;
 import org.brapi.v2.model.germ.BrAPICross;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 
 @Singleton
-public class BrAPICrossDAO extends BrAPIDAO {
+public class BrAPICrossDAO {
 
     private BrAPIProvider brAPIProvider;
 
@@ -39,6 +40,6 @@ public class BrAPICrossDAO extends BrAPIDAO {
 
     public List<BrAPICross> createBrAPICrosses(List<BrAPICross> brAPICrossList) throws ApiException {
         CrossesApi api = brAPIProvider.getCrossesApi(BrAPIClientType.CORE);
-        return this.post(brAPICrossList, api::crossesPost);
+        return BrAPIDAOUtil.post(brAPICrossList, api::crossesPost);
     }
 }

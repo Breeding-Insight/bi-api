@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.daos;
+package org.breedinginsight.utilities;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Function;
@@ -33,15 +33,14 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
-@Singleton
-public abstract class BrAPIDAO {
+public class BrAPIDAOUtil {
 
-    private static Integer SEARCH_WAIT_TIME = 1000;
-    private static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
-    protected static Integer RESULTS_PER_QUERY = 100000;
+    public static Integer SEARCH_WAIT_TIME = 1000;
+    public static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
+    public static Integer RESULTS_PER_QUERY = 100000;
     public static Integer POST_GROUP_SIZE = 1000;
 
-    public <T, U, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+    public static <T, U, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                     Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                     U searchBody
     ) throws ApiException {
@@ -59,13 +58,14 @@ public abstract class BrAPIDAO {
             } else {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;
-                ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse = null;
-                while (searchGetResponse == null) {
+                Boolean searchFinished = false;
+                while (!searchFinished) {
                     BrAPIAcceptedSearchResponse searchResult = response.getBody().getRight().get();
 
                     // TODO: Check if we have more to get for pages
-                    searchGetResponse = searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), 0, RESULTS_PER_QUERY);
+                    ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse = searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), 0, RESULTS_PER_QUERY);
                     if (searchGetResponse.getBody().getLeft().isPresent()) {
+                        searchFinished = true;
                         BrAPIResponse listResponse = (BrAPIResponse) searchGetResponse.getBody().getLeft().get();
                         BrAPIResponseResult responseResult = (BrAPIResponseResult) listResponse.getResult();
                         listResult = responseResult != null ? responseResult.getData() :
@@ -89,7 +89,7 @@ public abstract class BrAPIDAO {
         }
     }
 
-    public <T> List<T> post(List<T> brapiObjects, Function<List<T>, ApiResponse> postMethod) throws ApiException {
+    public static <T> List<T> post(List<T> brapiObjects, Function<List<T>, ApiResponse> postMethod) throws ApiException {
 
         List<T> listResult = new ArrayList<>();
         try {
