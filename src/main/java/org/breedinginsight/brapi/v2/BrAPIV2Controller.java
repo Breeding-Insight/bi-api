@@ -71,8 +71,6 @@ public class BrAPIV2Controller {
         return new BrAPIServerInfoResponse().result(serverInfo);
     }
 
-    //TODO override program serverinfo endpoint to replace some of the data points (contactEmail, organizationName, organizationURL, etc)
-
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
