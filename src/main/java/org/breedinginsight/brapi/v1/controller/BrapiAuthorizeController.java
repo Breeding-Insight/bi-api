@@ -46,15 +46,11 @@ public class BrapiAuthorizeController {
     @Get("/programs/{programId}/brapi/authorize")
     @Secured(SecurityRule.IS_ANONYMOUS)
     public HttpResponse authorize(@QueryValue @NotBlank String display_name, @QueryValue @NotBlank String return_url, @PathVariable("programId") String programId) {
-        if(programDAO.existsById(UUID.fromString(programId))) {
-            URI location = UriBuilder.of(String.format("%s/programs/%s/brapi/authorize", webBaseUrl, programId))
-                                     .queryParam("display_name", display_name)
-                                     .queryParam("return_url", return_url)
-                                     .build();
-            return HttpResponse.seeOther(location);
-        }
-
-        return HttpResponse.notFound();
+        URI location = UriBuilder.of(String.format("%s/programs/%s/brapi/authorize", webBaseUrl, programId))
+                                 .queryParam("display_name", display_name)
+                                 .queryParam("return_url", return_url)
+                                 .build();
+        return HttpResponse.seeOther(location);
     }
 
 }

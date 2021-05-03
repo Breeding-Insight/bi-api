@@ -1,5 +1,6 @@
 /*
- * See the NOTICE file distributed with this work for additional information regarding copyright ownership.
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -39,8 +40,8 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import java.io.IOException;
-import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller
@@ -97,11 +98,15 @@ public class BrAPIV2Controller {
 
     private HttpResponse<String> executeRequest(String path, UUID programId, HttpRequest<String> request, String method) {
         AuthenticatedUser actingUser = securityService.getUser();
-        System.out.println(actingUser.getId());
 
-        System.out.println("Params");
-        request.getParameters()
-               .forEach((key, vals) -> System.out.println(key + ": " + vals));
+        log.debug("Params for brapi proxy call: " + String.join("\n",
+                                           request.getParameters()
+                                                  .asMap()
+                                                  .entrySet()
+                                                  .stream()
+                                                  .map(entry -> entry.getKey() + ": " + entry.getValue())
+                                                  .collect(Collectors.joining("\n"))
+        ));
 
         if (programId != null) {
             ProgramBrAPIEndpoints programBrAPIEndpoints;

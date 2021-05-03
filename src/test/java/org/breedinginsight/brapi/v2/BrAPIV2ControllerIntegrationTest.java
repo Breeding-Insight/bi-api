@@ -145,7 +145,8 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    public void testPostGetVariablesProxy() throws Exception {
+    @SneakyThrows
+    public void testPostGetVariablesProxy() {
         BrAPIObservationVariable variable = generateVariable();
 
         Flowable<HttpResponse<String>> postCall = biClient.exchange(
@@ -242,7 +243,8 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    public void testPutVariablesProxy() throws Exception {
+    @SneakyThrows
+    public void testPutVariablesProxy() {
         BrAPIObservationVariable variable = generateVariable();
 
         Flowable<HttpResponse<String>> postCall = biClient.exchange(
@@ -284,7 +286,7 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
         } catch (Exception e) {
             throw new Exception(e);
         }
-        //check the POST call was successful
+        //check the PUT call was successful
         assertEquals(HttpStatus.OK, putResponse.getStatus());
 
         Flowable<HttpResponse<String>> getCall = biClient.exchange(
@@ -310,7 +312,8 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    public void testPostGetStudiesProxy() throws Exception {
+    @SneakyThrows
+    public void testPostGetStudiesProxy() {
         BrAPIStudy study = new BrAPIStudy().studyName("test study")
                                            .studyCode("123")
                                            .studyType("Phenotyping Trial")
