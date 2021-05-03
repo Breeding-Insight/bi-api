@@ -1,0 +1,89 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.breedinginsight.brapps.importer.daos;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.MappingField;
+import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
+import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
+import org.breedinginsight.services.parsers.ParsingException;
+import org.breedinginsight.utilities.FileUtil;
+import org.jooq.Configuration;
+import org.jooq.DSLContext;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.*;
+
+@Singleton
+public class ImportMappingDAO extends ImportMappingDao {
+
+    private DSLContext dsl;
+    private ObjectMapper objectMapper;
+
+    @Inject
+    public ImportMappingDAO(Configuration config, DSLContext dsl, ObjectMapper objectMapper) {
+        super(config);
+        this.dsl = dsl;
+        this.objectMapper = objectMapper;
+    }
+
+    public Optional<ImportMapping> getMapping(UUID id) {
+        ImportMappingEntity importMappingEntity = fetchOneById(id);
+        if (importMappingEntity != null) {
+            ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
+            return Optional.of(importMapping);
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public List<ImportMapping> getAllMappings(UUID programId, Boolean draft) {
+
+        List<ImportMappingEntity> importMappingEntities = fetchByDraft(draft);
+        List<ImportMapping> importMappings = new ArrayList<>();
+        for (ImportMappingEntity importMappingEntity: importMappingEntities) {
+            if (importMappingEntity.getProgramId().equals(programId)) {
+                ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
+                importMappings.add(importMapping);
+            }
+        }
+        return importMappings;
+    }
+
+    private ImportMapping parseBrAPIImportMapping(ImportMappingEntity importMappingEntity) {
+
+        ImportMapping importMapping = new ImportMapping(importMappingEntity);
+        try {
+            if (importMappingEntity.getFile() != null){
+                importMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
+            }
+            if (importMappingEntity.getMapping() != null) {
+                MappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), MappingField[].class);
+                importMapping.setMapping(Arrays.asList(mappingFields));
+            }
+        } catch (ParsingException | JsonProcessingException e) {
+            throw new InternalServerException(e.toString());
+        }
+
+        return importMapping;
+    }
+}
