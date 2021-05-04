@@ -33,7 +33,17 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
+import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
+import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
@@ -580,8 +590,82 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @SneakyThrows
     @Order(6)
+    public void editableNoObservations() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId() + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(true, result.getAsJsonPrimitive("editable").getAsBoolean(), "expected to be editable");
+    }
+
+    @Test
+    @Order(7)
+    @SneakyThrows
+    public void editableHasObservations() {
+
+        // add observation and make sure not editable
+        BrAPIClient brapiClient = new BrAPIClient(getProperties().get("brapi.server.pheno-url"));
+        ObservationsApi obsApi = new ObservationsApi(brapiClient);
+        ObservationVariablesApi varApi = new ObservationVariablesApi(brapiClient);
+
+        VariableQueryParams params = VariableQueryParams.builder()
+                .externalReferenceID(validTraits.get(0).getId().toString()).build();
+
+        ApiResponse<BrAPIObservationVariableListResponse> res = varApi.variablesGet(params);
+        BrAPIObservationVariableListResponse list = res.getBody();
+        List<BrAPIObservationVariable> vars = list.getResult().getData();
+
+        BrAPIObservation observation = new BrAPIObservation().observationVariableDbId(vars.get(0).getObservationVariableDbId());
+        ApiResponse<BrAPIObservationListResponse> obsRes = obsApi.observationsPost(List.of(observation));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId() + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(false, result.getAsJsonPrimitive("editable").getAsBoolean(), "expected not to be editable");
+
+    }
+
+    @Test
+    @Order(8)
+    public void editableNotAllowed() {
+
+        // try updating a trait that has observations
+
+        Flowable<HttpResponse<String>> call1 = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId())
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response1 = call1.blockingFirst();
+        assertEquals(HttpStatus.OK, response1.getStatus());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", List.of(validTraits.get(0)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, e.getStatus());
+
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(9)
     public void getTraitsExistsInBrAPINotInSystem() {
 
         dsl.execute(fp.get("DeleteTrait"));
@@ -676,7 +760,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     //endregion
 
     @Test
-    @Order(7)
+    @Order(10)
     public void postTraitNominalMissingCategoryValue() {
 
         Trait trait1 = new Trait();
@@ -731,7 +815,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(7)
+    @Order(10)
     public void postTraitOrdinalMissingCategoryVariables() {
 
         Trait trait1 = new Trait();
@@ -798,7 +882,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(8)
+    @Order(11)
     public void getTraitsQuery() {
         List<Trait> newTraits = new ArrayList<>();
         for (int i = 0; i < 30; i++){
@@ -848,7 +932,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(9)
+    @Order(12)
     public void searchTraits() {
 
         SearchRequest searchRequest = new SearchRequest();
@@ -871,7 +955,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(10)
+    @Order(13)
     public void postTraitComputation() {
 
         dsl.execute(fp.get("DeleteTrait"));
@@ -920,7 +1004,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(11)
+    @Order(14)
     public void putTraitComputation() {
 
         Trait updateTrait = validTraits.get(0);
@@ -974,7 +1058,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(11)
+    @Order(14)
     public void putTraitMultipleValidationErrors() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1022,7 +1106,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(12)
+    @Order(15)
     public void archiveTrait() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1040,7 +1124,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(12)
+    @Order(15)
     public void restoreTrait() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1058,7 +1142,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(13)
+    @Order(16)
     public void putTraitIdDoesNotExist() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1099,7 +1183,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(14)
+    @Order(17)
     public void archiveTraitIdNotExist() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1116,4 +1200,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
     }
+
+
+
+
+
 }
