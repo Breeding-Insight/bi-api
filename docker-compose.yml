@@ -69,7 +69,7 @@ services:
         aliases:
           - dbserver
   brapi-server:
-    image: breedinginsight/brapi-java-server:v2.0-3
+    image: breedinginsight/brapi-java-server:v2.0-4
     container_name: brapi-server
     depends_on:
       - bidb
