@@ -388,13 +388,6 @@ public class TraitDAO extends TraitDao {
 
         return createdTraits;
     }
-/*
-    public List<BrAPIObservation> getObservationsForTrait(Trait trait) {
-        // check if variable has any observations associated with it to see if updating is allowed
-        BrAPIObservationVariable variable = getBrAPIVariable(brAPIProvider.getVariablesAPI(PHENO), trait.getId());
-        return observationDao.getObservationsByVariableDbId(variable.getObservationVariableDbId());
-    }
-*/
 
     public Trait updateTraitBrAPI(Trait trait, Program program) {
 
@@ -456,22 +449,6 @@ public class TraitDAO extends TraitDao {
         }
 
         return updatedTrait;
-    }
-
-    private List<BrAPIObservationVariable> getBrAPIVariables(ObservationVariablesApi variablesAPI) {
-        List<BrAPIObservationVariable> variableList = new ArrayList<>();
-        try {
-            VariableQueryParams queryParams = new VariableQueryParams();
-            queryParams.pageSize(10000);
-            queryParams.externalReferenceSource(referenceSource);
-            ApiResponse<BrAPIObservationVariableListResponse> existingVariableResponse =
-                    variablesAPI.variablesGet(queryParams);
-            variableList = existingVariableResponse.getBody().getResult().getData();
-        } catch (ApiException e) {
-            throw new InternalServerException("Error getting variables from brapi service");
-        }
-
-        return variableList;
     }
 
     private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {
