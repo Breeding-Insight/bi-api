@@ -24,4 +24,5 @@ import lombok.Setter;
 @Setter
 public class ImportPreviewStatistics {
     private Integer newObjectCount;
+    private Integer ignoredObjectCount;
 }
