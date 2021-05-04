@@ -590,6 +590,36 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    @Order(5)
+    public void editableTraitNotExist() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + invalidUUID + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @Order(5)
+    public void editableProgramNotExist() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + invalidUUID + "/traits/" + validTraits.get(0).getId() + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
     @Order(6)
     public void editableNoObservations() {
         Flowable<HttpResponse<String>> call = client.exchange(

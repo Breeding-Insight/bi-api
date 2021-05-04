@@ -115,6 +115,12 @@ public class TraitService {
 
     public Editable getEditable(UUID programId, UUID traitId) {
         // BrAPIService filter now checks program exists so don't need to do explicitly
+
+        // check if trait exists
+        if (!exists(traitId)) {
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "traitId does not exist");
+        }
+
         List<BrAPIObservation> observations = traitDAO.getObservationsForTrait(traitId);
         return Editable.builder().editable(observations.isEmpty()).build();
     }
@@ -435,5 +441,9 @@ public class TraitService {
         Trait fullTrait = traitDAO.getTraitFull(programId, traitId).get();
         fullTrait.setActive(active);
         return traitDAO.updateTraitBrAPI(fullTrait, program);
+    }
+
+    public boolean exists(UUID traitId) {
+        return traitDAO.existsById(traitId);
     }
 }
