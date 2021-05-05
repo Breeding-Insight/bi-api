@@ -21,9 +21,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -113,10 +115,16 @@ public class Germplasm implements BrAPIObject {
         return germplasm;
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(String species) {
+    public BrAPIGermplasm constructBrAPIGermplasm(BrAPIProgram brAPIProgram) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm();
-        germplasm.setSpecies(species);
-        germplasm.setCommonCropName(species);
+        //germplasm.setSpecies(species);
+        germplasm.setCommonCropName(brAPIProgram.getCommonCropName());
+
+        // Set programId in additionalInfo
+        Map<String, String> additionalInfo = germplasm.getAdditionalInfo() != null ? germplasm.getAdditionalInfo() : new HashMap<>();
+        additionalInfo.put("programId", brAPIProgram.getProgramDbId());
+        germplasm.setAdditionalInfo(additionalInfo);
+
         return germplasm;
     }
 

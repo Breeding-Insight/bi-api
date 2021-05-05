@@ -132,7 +132,7 @@ public class GermplasmImportService extends BrAPIImportService {
             // Germplasm
             if (germplasm != null && germplasm.getGermplasmName() != null) {
                 if (!germplasmByName.containsKey(germplasm.getGermplasmName())) {
-                    BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(brAPIProgram.getCommonCropName());
+                    BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(brAPIProgram);
 
                     // Check the parents exist
                     String femaleParent = germplasm.getFemaleParent() != null ? germplasm.getFemaleParent().getReferenceValue() : null;
