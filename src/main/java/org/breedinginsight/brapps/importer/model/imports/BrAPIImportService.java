@@ -17,8 +17,11 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUpload;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import tech.tablesaw.api.Table;
 
@@ -27,5 +30,8 @@ import java.util.List;
 public abstract class BrAPIImportService {
     public String getImportTypeId() {return null;}
     public BrAPIImport getImportClass() {return null;}
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, Boolean commit) throws UnprocessableEntityException {return null;}
+    public ImportPreviewResponse processAsync(List<BrAPIImport> brAPIImports, Table data, Program program,
+                                              ProgramUpload upload, AuthenticatedUser actingUser, Boolean commit) {return null;}
+    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ProgramUpload upload, Boolean commit)
+            throws UnprocessableEntityException, DoesNotExistException {return null;}
 }

@@ -24,16 +24,21 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MediaType;
 import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
+import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.constants.SupportedMediaType;
@@ -65,11 +70,12 @@ public class FileImportService {
     private ObjectMapper objectMapper;
     private MappingManager mappingManager;
     private ImportConfigManager configManager;
+    private ProgramUploadDAO programUploadDAO;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
-                      ImportConfigManager configManager) {
+                      ImportConfigManager configManager, ProgramUploadDAO programUploadDAO) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -77,6 +83,7 @@ public class FileImportService {
         this.objectMapper = objectMapper;
         this.mappingManager = mappingManager;
         this.configManager = configManager;
+        this.programUploadDAO = programUploadDAO;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -207,7 +214,7 @@ public class FileImportService {
         return importMappingDAO.existsById(mappingId);
     }
 
-    public ImportPreviewResponse uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
+    public ImportResponse uploadData(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file, Boolean commit)
             throws DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpStatusException, UnprocessableEntityException {
 
         Program program = validateRequest(programId, actingUser);
@@ -231,9 +238,46 @@ public class FileImportService {
 
         //TODO: Get better errors for these
         List<BrAPIImport> brAPIImportList = mappingManager.map(importMapping, data);
-        ImportPreviewResponse mappedImportResult = importService.process(brAPIImportList, data, program, commit);
 
-        return mappedImportResult;
+        // Create our import progress object
+        ProgramUpload upload = new ProgramUpload();
+        upload.setProgramId(programId);
+        upload.setType(UploadType.BRAPI);
+        String jsonString = data.write().toString("json");
+        JSONB jsonb = JSONB.valueOf(jsonString);
+        upload.setData(jsonb);
+        upload.setUserId(actingUser.getId());
+        upload.setCreatedBy(actingUser.getId());
+        upload.setUpdatedBy(actingUser.getId());
+        programUploadDAO.create(upload);
+
+        // Spin off new process for processing the file
+        importService.processAsync(brAPIImportList, data, program, upload, actingUser, commit);
+
+        // Construct our return with our import id
+        ImportResponse response = new ImportResponse();
+        response.setImportId(upload.getId());
+        return response;
+    }
+
+    public Pair<HttpStatus, ImportResponse> getDataUpload(UUID uploadId) throws DoesNotExistException {
+
+        Optional<ProgramUpload> uploadOptional = programUploadDAO.getUploadById(uploadId);
+        if (uploadOptional.isEmpty()){
+            throw new DoesNotExistException("Upload with that id does not exist");
+        }
+        ProgramUpload upload = uploadOptional.get();
+
+        // Parse our our response
+        ImportResponse response = new ImportResponse();
+        response.setImportId(uploadId);
+        response.setProgress(upload.getProgress());
+        response.setPreview(upload.getMappedData());
+
+        Integer statusCode = (int) upload.getProgress().getStatuscode();
+        HttpStatus status = HttpStatus.valueOf(statusCode);
+
+        return new ImmutablePair<>(status, response);
     }
 
     public List<ImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)

@@ -15,19 +15,22 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+package org.breedinginsight.daos;
 
-import lombok.Getter;
-import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.dao.db.tables.daos.BatchUploadProgressDao;
+import org.jooq.Configuration;
+import org.jooq.DSLContext;
 
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 
-@Getter
-@Setter
-public class ImportPreviewResponse {
-    private Map<String, ImportPreviewStatistics> statistics;
-    private List<PendingImport> rows;
+@Singleton
+public class ProgramUploadProgressDAO extends BatchUploadProgressDao {
+
+    private DSLContext dsl;
+
+    @Inject
+    public ProgramUploadProgressDAO(Configuration config, DSLContext dsl) {
+        super(config);
+    }
 }

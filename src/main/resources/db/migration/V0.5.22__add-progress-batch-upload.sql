@@ -15,19 +15,15 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+create table batch_upload_progress (
+	like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+	statusCode SMALLINT,
+	message TEXT,
+    total BIGINT,
+    finished BIGINT,
+    in_progress BIGINT,
+    like base_edit_track_entity INCLUDING ALL
+);
 
-import lombok.Getter;
-import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-@Getter
-@Setter
-public class ImportPreviewResponse {
-    private Map<String, ImportPreviewStatistics> statistics;
-    private List<PendingImport> rows;
-}
+alter table batch_upload add column batch_upload_progress_id UUID;
+ALTER TABLE batch_upload ADD FOREIGN KEY (batch_upload_progress_id) REFERENCES batch_upload_progress (id);

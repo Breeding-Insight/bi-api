@@ -17,17 +17,24 @@
 
 package org.breedinginsight.brapps.importer.model.response;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import lombok.Getter;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.model.ProgramUploadProgress;
+import org.jooq.JSONB;
 
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 @Getter
 @Setter
-public class ImportPreviewResponse {
-    private Map<String, ImportPreviewStatistics> statistics;
-    private List<PendingImport> rows;
+public class ImportResponse {
+    private UUID importId;
+    private ProgramUploadProgress progress;
+    // Since we are only ever returning the preview, don't worry about trying to deserialize it from the db
+    private JSONB preview;
+
+    @JsonRawValue
+    public String getPreview() {
+        return preview != null ? preview.data() : null;
+    }
 }

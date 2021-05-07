@@ -25,6 +25,7 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -34,8 +35,8 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
@@ -186,13 +187,13 @@ public class ImportController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<ImportPreviewResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                    @Part("file") CompletedFileUpload file,
-                                                                    @QueryValue(defaultValue="false") Boolean commit) {
+    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                               @Part("file") CompletedFileUpload file,
+                                                               @QueryValue(defaultValue="false") Boolean commit) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportPreviewResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file, commit);
-            Response<ImportPreviewResponse> response = new Response(result);
+            ImportResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file, commit);
+            Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -210,5 +211,21 @@ public class ImportController {
     }
 
 
-
+    @Get("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+                                                                    @PathVariable UUID uploadId) {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId);
+            Response<ImportResponse> response = new Response(result.getRight());
+            return HttpResponse.ok(response).status(result.getLeft());
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        }
+    }
 }
