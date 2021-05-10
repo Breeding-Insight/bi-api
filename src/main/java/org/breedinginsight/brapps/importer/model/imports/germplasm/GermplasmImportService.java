@@ -107,8 +107,7 @@ public class GermplasmImportService extends BrAPIImportService {
         }
 
         // Setting up our data elements
-        List<GermplasmImportPending> mappedBrAPIImport = germplasmImports.stream()
-                .map(germplasmImport -> new GermplasmImportPending()).collect(Collectors.toList());
+        List<GermplasmImportPending> mappedBrAPIImport = new ArrayList<>();
         Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
 
         // Get existing objects
@@ -126,7 +125,8 @@ public class GermplasmImportService extends BrAPIImportService {
         // Create new objects
         for (int i = 0; i < germplasmImports.size(); i++) {
             GermplasmImport germplasmImport = germplasmImports.get(i);
-            GermplasmImportPending mappedImportRow = mappedBrAPIImport.get(i);
+            GermplasmImportPending mappedImportRow = new GermplasmImportPending();
+            mappedBrAPIImport.add(mappedImportRow);
             Germplasm germplasm = germplasmImport.getGermplasm();
 
             // Germplasm
@@ -226,15 +226,7 @@ public class GermplasmImportService extends BrAPIImportService {
                 "Pedigree Connections", pedigreeConnectStats
         ));
         response.setRows((List<PendingImport>)(List<?>) mappedBrAPIImport);
-        // Preview Class
-        //  statistics
-        //    Germplasm
-        //      new
-        //    ObservationUnits
-        //      new
-        //  rows
-        //    germplasm BrAPIPreview
-        //    ou  BrAPIPReview
+
         if (!commit) {
             return response;
         } else {

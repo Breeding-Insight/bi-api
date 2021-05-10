@@ -48,7 +48,6 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
     })
-    @ImportMappingRequired
     @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
     private MappedImportRelation femaleParent;
 
@@ -94,7 +93,6 @@ public class Germplasm implements BrAPIObject {
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setAccessionNumber(getAccessionNumber());
-        germplasm.setAccessionNumber(getAccessionNumber());
         germplasm.setCollection(getCollection());
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
@@ -117,7 +115,6 @@ public class Germplasm implements BrAPIObject {
 
     public BrAPIGermplasm constructBrAPIGermplasm(BrAPIProgram brAPIProgram) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm();
-        //germplasm.setSpecies(species);
         germplasm.setCommonCropName(brAPIProgram.getCommonCropName());
 
         // Set programId in additionalInfo

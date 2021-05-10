@@ -32,7 +32,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 @Setter
 @NoArgsConstructor
 @ImportConfigMetadata(id="GermplasmImport", name="Germplasm Import",
-        description = "This import is used to create germplasm and create a pedigree by specify parental connections.")
+        description = "This import is used to create germplasm and create a pedigree by specifying parental connections.")
 public class GermplasmImport implements BrAPIImport {
     @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
     @ImportMappingRequired
