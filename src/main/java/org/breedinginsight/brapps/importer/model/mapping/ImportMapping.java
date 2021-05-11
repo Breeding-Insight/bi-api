@@ -17,35 +17,60 @@
 
 package org.breedinginsight.brapps.importer.model.mapping;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
+import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
 import org.breedinginsight.brapps.importer.model.TableConverter;
-import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
 
+import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
+import org.jooq.Record;
 import tech.tablesaw.api.Table;
-
 import java.util.List;
-import java.util.UUID;
+
+import static org.breedinginsight.dao.db.tables.ImporterMappingTable.IMPORTER_MAPPING;
 
 @Getter
 @Setter
+@Accessors(chain=true)
+@ToString
 @NoArgsConstructor
-public class ImportMapping {
-    private UUID id;
-    private String name;
-    private String importTypeId;
-    private List<MappingField> mapping;
+@SuperBuilder()
+public class ImportMapping extends ImporterMappingEntity {
+    @JsonProperty("mapping")
+    private List<MappingField> mappingConfig;
+    @JsonProperty("file")
     @JsonSerialize(converter = TableConverter.class)
-    private Table file;
-    private Boolean draft;
+    private Table fileTable;
 
 
-    public ImportMapping(ImportMappingEntity importMappingEntity) {
-        this.id = importMappingEntity.getId();
-        this.name = importMappingEntity.getName();
-        this.importTypeId = importMappingEntity.getImportTypeId();
-        this.draft = importMappingEntity.getDraft();
+    public ImportMapping(ImporterMappingEntity importMappingEntity) {
+        this.setId(importMappingEntity.getId());
+        this.setName(importMappingEntity.getName());
+        this.setImportTypeId(importMappingEntity.getImportTypeId());
+        this.setDraft(importMappingEntity.getDraft());
+    }
+
+    public static ImportMapping parseSQLRecord(Record record) {
+
+        return ImportMapping.builder()
+                .id(record.getValue(IMPORTER_MAPPING.ID))
+                .programId(record.getValue(IMPORTER_MAPPING.PROGRAM_ID))
+                .importTypeId(record.getValue(IMPORTER_MAPPING.IMPORT_TYPE_ID))
+                .draft(record.getValue(IMPORTER_MAPPING.DRAFT))
+                .name(record.getValue(IMPORTER_MAPPING.NAME))
+                .mapping(record.getValue(IMPORTER_MAPPING.MAPPING))
+                .file(record.getValue(IMPORTER_MAPPING.FILE))
+                .createdAt(record.getValue(IMPORTER_MAPPING.CREATED_AT))
+                .updatedAt(record.getValue(IMPORTER_MAPPING.UPDATED_AT))
+                .createdBy(record.getValue(IMPORTER_MAPPING.CREATED_BY))
+                .updatedBy(record.getValue(IMPORTER_MAPPING.UPDATED_BY))
+                .build();
     }
 }

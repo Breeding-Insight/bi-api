@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.daos;
 
-import io.micronaut.http.HttpStatus;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.BatchUploadDao;
@@ -26,10 +25,7 @@ import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.breedinginsight.dao.db.Tables.*;
 
@@ -37,34 +33,11 @@ import static org.breedinginsight.dao.db.Tables.*;
 public class ProgramUploadDAO extends BatchUploadDao {
 
     private DSLContext dsl;
-    private ProgramUploadProgressDAO progressDAO;
 
     @Inject
-    public ProgramUploadDAO(Configuration config, DSLContext dsl, ProgramUploadProgressDAO progressDAO) {
+    public ProgramUploadDAO(Configuration config, DSLContext dsl) {
         super(config);
         this.dsl = dsl;
-        this.progressDAO = progressDAO;
-    }
-
-    public ProgramUpload create(ProgramUpload programUpload) {
-        // TODO: Put in a transaction
-        ProgramUploadProgress progress = new ProgramUploadProgress();
-        progress.setStatuscode((short) HttpStatus.SEE_OTHER.getCode());
-        progress.setCreatedBy(programUpload.getCreatedBy());
-        progress.setUpdatedBy(programUpload.getUpdatedBy());
-        progressDAO.insert(progress);
-        programUpload.setBatchUploadProgressId(progress.getId());
-        programUpload.setProgress(progress);
-        super.insert(programUpload);
-        return programUpload;
-    }
-
-    public ProgramUpload update(ProgramUpload programUpload) {
-        // TODO: Put in transaction
-        super.update(programUpload);
-        ProgramUploadProgress progress = programUpload.getProgress();
-        progressDAO.update(progress);
-        return programUpload;
     }
 
     public List<ProgramUpload> getUploads(UUID programId, UUID userId, UploadType type) {
@@ -99,7 +72,6 @@ public class ProgramUploadDAO extends BatchUploadDao {
 
         return dsl.select()
                 .from(BATCH_UPLOAD)
-                .leftJoin(BATCH_UPLOAD_PROGRESS).on(BATCH_UPLOAD.BATCH_UPLOAD_PROGRESS_ID.eq(BATCH_UPLOAD_PROGRESS.ID))
                 .innerJoin(PROGRAM).on(BATCH_UPLOAD.PROGRAM_ID.eq(PROGRAM.ID))
                 .innerJoin(BI_USER).on(BATCH_UPLOAD.USER_ID.eq(BI_USER.ID))
                 .innerJoin(createdByUser).on(BATCH_UPLOAD.CREATED_BY.eq(createdByUser.ID))
@@ -119,7 +91,6 @@ public class ProgramUploadDAO extends BatchUploadDao {
             upload.setUser(User.parseSQLRecord(record));
             upload.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
             upload.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
-            upload.setProgress(ProgramUploadProgress.parseSQLRecord(record));
             resultUploads.add(upload);
         }
 

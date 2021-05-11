@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model;
+package org.breedinginsight.brapps.importer.model;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -23,11 +23,11 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.breedinginsight.dao.db.tables.pojos.BatchUploadProgressEntity;
+import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
 import org.jooq.Record;
 
-import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
-import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD_PROGRESS;
+import static org.breedinginsight.dao.db.tables.ImporterProgressTable.IMPORTER_PROGRESS;
+
 
 @Getter
 @Setter
@@ -35,16 +35,17 @@ import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD_PROGRESS;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
-public class ProgramUploadProgress extends BatchUploadProgressEntity {
+public class ImportProgress extends ImporterProgressEntity {
 
-    public static ProgramUploadProgress parseSQLRecord(Record record) {
+    public static ImportProgress parseSQLRecord(Record record) {
 
-        return ProgramUploadProgress.builder()
-                .id(record.getValue(BATCH_UPLOAD_PROGRESS.ID))
-                .statuscode(record.getValue(BATCH_UPLOAD_PROGRESS.STATUSCODE))
-                .total(record.getValue(BATCH_UPLOAD_PROGRESS.TOTAL))
-                .finished(record.getValue(BATCH_UPLOAD_PROGRESS.FINISHED))
-                .inProgress(record.getValue(BATCH_UPLOAD_PROGRESS.IN_PROGRESS))
+        return ImportProgress.builder()
+                .id(record.getValue(IMPORTER_PROGRESS.ID))
+                .statuscode(record.getValue(IMPORTER_PROGRESS.STATUSCODE))
+                .message(record.getValue(IMPORTER_PROGRESS.MESSAGE))
+                .total(record.getValue(IMPORTER_PROGRESS.TOTAL))
+                .finished(record.getValue(IMPORTER_PROGRESS.FINISHED))
+                .inProgress(record.getValue(IMPORTER_PROGRESS.IN_PROGRESS))
                 .build();
     }
 }

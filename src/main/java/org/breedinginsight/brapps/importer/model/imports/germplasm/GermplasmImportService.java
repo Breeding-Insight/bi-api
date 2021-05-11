@@ -26,9 +26,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.*;
-import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPIProgramDAO;
+import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
@@ -37,10 +38,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
-import org.breedinginsight.dao.db.tables.pojos.BatchUploadProgressEntity;
-import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.JSONB;
@@ -59,16 +57,16 @@ public class GermplasmImportService extends BrAPIImportService {
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
     private BrAPIProgramDAO brAPIProgramDAO;
-    private ProgramUploadDAO programUploadDAO;
+    private ImportDAO importDAO;
     private ObjectMapper objMapper;
 
     @Inject
-    public GermplasmImportService(BrAPIProgramDAO brAPIProgramDAO, BrAPIGermplasmDAO brAPIGermplasmDAO, ProgramUploadDAO programUploadDAO,
+    public GermplasmImportService(BrAPIProgramDAO brAPIProgramDAO, BrAPIGermplasmDAO brAPIGermplasmDAO, ImportDAO importDAO,
                                   ObjectMapper objMapper)
     {
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
         this.brAPIProgramDAO = brAPIProgramDAO;
-        this.programUploadDAO = programUploadDAO;
+        this.importDAO = importDAO;
         this.objMapper = objMapper;
     }
 
@@ -83,43 +81,15 @@ public class GermplasmImportService extends BrAPIImportService {
     }
 
     @Override
-    public ImportPreviewResponse processAsync(List<BrAPIImport> brAPIImports, Table data, Program program,
-                                              ProgramUpload upload, AuthenticatedUser actingUser, Boolean commit) {
-
-        // TODO: When we move into Micronaut 2.2 move this into the FileImportService. @RequestScope doesn't work for async processes in our version.
-        try {
-            process(brAPIImports, data, program, upload, commit);
-        } catch (UnprocessableEntityException e){
-            BatchUploadProgressEntity progress = upload.getProgress();
-            progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
-            progress.setMessage(e.getMessage());
-            progress.setUpdatedBy(actingUser.getId());
-            programUploadDAO.update(upload);
-        } catch (DoesNotExistException e)  {
-            BatchUploadProgressEntity progress = upload.getProgress();
-            progress.setStatuscode((short) HttpStatus.NOT_FOUND.getCode());
-            progress.setMessage(e.getMessage());
-            progress.setUpdatedBy(actingUser.getId());
-            programUploadDAO.update(upload);
-        } catch (Exception e) {
-            BatchUploadProgressEntity progress = upload.getProgress();
-            progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
-            // TODO: Probably don't want to return this message. But do it for now
-            progress.setMessage(e.getMessage());
-            progress.setUpdatedBy(actingUser.getId());
-            programUploadDAO.update(upload);
-        }
-        return null;
-    }
-
-    @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ProgramUpload upload, Boolean commit)
+    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, Boolean commit)
             throws UnprocessableEntityException, DoesNotExistException {
 
         //BrAPI Objects per row
         List<GermplasmImport> germplasmImports = (List<GermplasmImport>)(List<?>) brAPIImports;
 
         // Get BrAPI Program
+        upload.getProgress().setMessage("Checking program in brapi service");
+        importDAO.update(upload);
         BrAPIProgram brAPIProgram;
         try {
             Optional<BrAPIProgram> optionalBrAPIProgram = brAPIProgramDAO.getProgram(program.getId());
@@ -130,6 +100,8 @@ public class GermplasmImportService extends BrAPIImportService {
         }
 
         // Get all of our objects specified in the data file by their unique attributes
+        upload.getProgress().setMessage("Checking existing germplasm in brapi service");
+        importDAO.update(upload);
         Set<String> germplasmNames = new HashSet<>();
         for (int i = 0; i < germplasmImports.size(); i++) {
             GermplasmImport germplasmImport = germplasmImports.get(i);
@@ -155,7 +127,7 @@ public class GermplasmImportService extends BrAPIImportService {
         // Get existing objects
         List<BrAPIGermplasm> existingGermplasms;
         try {
-            existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames), brAPIProgram);
+            existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames), program.getId(), brAPIProgram);
             existingGermplasms.forEach(existingGermplasm -> {
                 germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
@@ -165,6 +137,8 @@ public class GermplasmImportService extends BrAPIImportService {
         }
 
         // Create new objects
+        upload.getProgress().setMessage("Creating brapi objects from data");
+        importDAO.update(upload);
         for (int i = 0; i < germplasmImports.size(); i++) {
             GermplasmImport germplasmImport = germplasmImports.get(i);
             GermplasmImportPending mappedImportRow = new GermplasmImportPending();
@@ -279,20 +253,23 @@ public class GermplasmImportService extends BrAPIImportService {
             throw new InternalServerException("Problem converting mapping to json", e);
         }
         upload.setMappedData(JSONB.valueOf(json));
-        programUploadDAO.update(upload);
+        upload.getProgress().setTotal((long) newGermplasmList.size());
+        importDAO.update(upload);
 
         if (!commit) {
             // Set our upload in the db to be finished
             upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
-            programUploadDAO.update(upload);
+            importDAO.update(upload);
             return response;
         } else {
             // POST Germplasm
+            upload.getProgress().setMessage("Creating new germplasm in brapi service");
+            importDAO.update(upload);
             List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
             if (newGermplasmList.size() > 0) {
                 try {
                     for (List<BrAPIGermplasm> postGroup: postOrder){
-                        createdGermplasm.addAll(brAPIGermplasmDAO.createBrAPIGermplasm(postGroup));
+                        createdGermplasm.addAll(brAPIGermplasmDAO.createBrAPIGermplasm(postGroup, program.getId(), upload));
                     }
                 } catch (ApiException e) {
                     throw new InternalServerException(e.toString(), e);
@@ -305,6 +282,10 @@ public class GermplasmImportService extends BrAPIImportService {
                 PendingImportObject<BrAPIGermplasm> preview = germplasmByName.get(germplasm.getGermplasmName());
                 preview.setBrAPIObject(germplasm);
             });
+
+            upload.getProgress().setMessage("Finished!");
+            upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
+            importDAO.update(upload);
         }
 
         //DONE!

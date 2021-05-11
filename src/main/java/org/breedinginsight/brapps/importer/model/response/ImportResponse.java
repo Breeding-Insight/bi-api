@@ -20,7 +20,7 @@ package org.breedinginsight.brapps.importer.model.response;
 import com.fasterxml.jackson.annotation.JsonRawValue;
 import lombok.Getter;
 import lombok.Setter;
-import org.breedinginsight.model.ProgramUploadProgress;
+import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.jooq.JSONB;
 
 import java.util.UUID;
@@ -29,7 +29,7 @@ import java.util.UUID;
 @Setter
 public class ImportResponse {
     private UUID importId;
-    private ProgramUploadProgress progress;
+    private ImportProgress progress;
     // Since we are only ever returning the preview, don't worry about trying to deserialize it from the db
     private JSONB preview;
 

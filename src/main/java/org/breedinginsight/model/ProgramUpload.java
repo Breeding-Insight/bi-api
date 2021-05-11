@@ -28,11 +28,15 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
 import org.jooq.JSONB;
 import org.jooq.Record;
+import tech.tablesaw.api.Table;
+import tech.tablesaw.io.json.JsonReadOptions;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -51,22 +55,16 @@ public class ProgramUpload<T> extends BatchUploadEntity {
     private User user;
     private User createdByUser;
     private User updatedByUser;
-    private ProgramUploadProgress progress;
 
     @JsonProperty("data")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     private List<T> parsedData;
 
+
     @JsonIgnore
     public Trait[] getDataJson() throws JsonProcessingException {
         ObjectMapper objMapper = new ObjectMapper();
         return objMapper.readValue(super.getData().data(), Trait[].class);
-    }
-
-    @JsonProperty("preview")
-    public Map<String, Object> getPreview() throws JsonProcessingException {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue(super.getMappedData().data(), Map.class);
     }
 
     public ProgramUpload(BatchUploadEntity uploadEntity) {
@@ -88,7 +86,6 @@ public class ProgramUpload<T> extends BatchUploadEntity {
                     .programId(record.getValue(BATCH_UPLOAD.PROGRAM_ID))
                     .userId(record.getValue(BATCH_UPLOAD.USER_ID))
                     .data(record.getValue(BATCH_UPLOAD.DATA))
-                    .mappedData(record.getValue(BATCH_UPLOAD.MAPPED_DATA))
                     .type(record.getValue(BATCH_UPLOAD.TYPE))
                     .createdAt(record.getValue(BATCH_UPLOAD.CREATED_AT))
                     .updatedAt(record.getValue(BATCH_UPLOAD.UPDATED_AT))
@@ -96,5 +93,4 @@ public class ProgramUpload<T> extends BatchUploadEntity {
                     .updatedBy(record.getValue(BATCH_UPLOAD.UPDATED_BY))
                     .build();
     }
-
 }

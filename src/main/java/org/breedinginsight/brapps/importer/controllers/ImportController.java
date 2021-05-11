@@ -36,7 +36,6 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
-import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
@@ -180,52 +179,5 @@ public class ImportController {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         }
 
-    }
-
-    @Post("programs/{programId}/import/mappings/{mappingId}/data{?commit}")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                               @Part("file") CompletedFileUpload file,
-                                                               @QueryValue(defaultValue="false") Boolean commit) {
-        try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file, commit);
-            Response<ImportResponse> response = new Response(result);
-            return HttpResponse.ok(response);
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
-        } catch (AuthorizationException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
-        } catch (UnsupportedTypeException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
-        } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        }
-    }
-
-
-    @Get("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                    @PathVariable UUID uploadId) {
-        try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId);
-            Response<ImportResponse> response = new Response(result.getRight());
-            return HttpResponse.ok(response).status(result.getLeft());
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
-        }
     }
 }
