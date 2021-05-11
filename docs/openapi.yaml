@@ -2316,6 +2316,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+        "405":
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Trait has associated observations and cannot be updated
         "422":
           description: Multi-error UnprocessableEntity
           content:
