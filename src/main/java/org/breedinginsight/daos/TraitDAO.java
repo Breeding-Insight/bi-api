@@ -33,7 +33,7 @@ import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
-import org.breedinginsight.services.brapi.BrAPIQueryService;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.jooq.*;
 
 import javax.inject.Inject;
@@ -55,16 +55,13 @@ public class TraitDAO extends TraitDao {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
     private ObservationDAO observationDao;
-    private BrAPIQueryService brapiQueryService;
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao,
-                    BrAPIQueryService brapiQueryService) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
-        this.brapiQueryService = brapiQueryService;
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -236,7 +233,7 @@ public class TraitDAO extends TraitDao {
                     .externalReferenceIDs(variableIds);
 
             ObservationVariablesApi api = brAPIProvider.getVariablesAPI(PHENO);
-            return brapiQueryService.search(
+            return BrAPIDAOUtil.search(
                     api::searchVariablesPost,
                     api::searchVariablesSearchResultsDbIdGet,
                     request

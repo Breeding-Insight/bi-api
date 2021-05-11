@@ -28,7 +28,7 @@ import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
-import org.breedinginsight.services.brapi.BrAPIQueryService;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -38,12 +38,10 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 public class ObservationDAO {
     private BrAPIProvider brAPIProvider;
-    private BrAPIQueryService brapiQueryService;
 
     @Inject
-    public ObservationDAO(BrAPIProvider brAPIProvider, BrAPIQueryService brapiQueryService) {
+    public ObservationDAO(BrAPIProvider brAPIProvider) {
         this.brAPIProvider = brAPIProvider;
-        this.brapiQueryService = brapiQueryService;
     }
 
     public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId) {
@@ -68,7 +66,7 @@ public class ObservationDAO {
                     .observationVariableDbIds(observationVariableDbIds);
 
             ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return brapiQueryService.search(
+            return BrAPIDAOUtil.search(
                     api::searchObservationsPost,
                     this::searchObservationsSearchResultsDbIdGet,
                     request
