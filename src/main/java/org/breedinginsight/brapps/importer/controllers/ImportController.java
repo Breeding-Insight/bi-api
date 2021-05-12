@@ -26,6 +26,8 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -79,7 +81,7 @@ public class ImportController {
     @Get("/programs/{programId}/import/mappings{?draft}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<DataResponse<ImportMapping>>> getMappings(@PathVariable UUID programId,
                                                                            @QueryValue(defaultValue = "false") Boolean draft) {
 
@@ -107,7 +109,7 @@ public class ImportController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportMapping>> createMapping(@PathVariable UUID programId, @Part CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
@@ -130,7 +132,7 @@ public class ImportController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportMapping>> editMappingFile(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                                  @Part("file") CompletedFileUpload file) {
         try {

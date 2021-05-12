@@ -23,11 +23,11 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
-import io.micronaut.security.annotation.Secured;
-import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
@@ -57,7 +57,7 @@ public class UploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @Part("file") CompletedFileUpload file) {
         try {
@@ -85,7 +85,7 @@ public class UploadController {
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @QueryValue(defaultValue = "false") Boolean mapping) {
         try {
@@ -102,7 +102,7 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/commit")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId) {
         try {
@@ -128,7 +128,7 @@ public class UploadController {
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/preview")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                               @PathVariable UUID uploadId) {
         try {
