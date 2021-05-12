@@ -133,7 +133,7 @@ public class UploadController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             // TODO: We know this will be a 202
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, true);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, false);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
@@ -167,7 +167,7 @@ public class UploadController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId);
+            Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, false);
             Response<ImportResponse> response = new Response(result.getRight());
             return HttpResponse.ok(response).status(result.getLeft());
         } catch (DoesNotExistException e) {

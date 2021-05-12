@@ -358,7 +358,6 @@ public class FileImportService {
             response.setPreview(upload.getMappedData());
         }
 
-
         Integer statusCode = (int) upload.getProgress().getStatuscode();
         HttpStatus status = HttpStatus.valueOf(statusCode);
 

@@ -253,7 +253,7 @@ public class GermplasmImportService extends BrAPIImportService {
             throw new InternalServerException("Problem converting mapping to json", e);
         }
         upload.setMappedData(JSONB.valueOf(json));
-        upload.getProgress().setTotal((long) newGermplasmList.size());
+        upload.getProgress().setMessage("Finished mapping data to brapi objects");
         importDAO.update(upload);
 
         if (!commit) {
@@ -263,6 +263,7 @@ public class GermplasmImportService extends BrAPIImportService {
             return response;
         } else {
             // POST Germplasm
+            upload.getProgress().setTotal((long) newGermplasmList.size());
             upload.getProgress().setMessage("Creating new germplasm in brapi service");
             importDAO.update(upload);
             List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();

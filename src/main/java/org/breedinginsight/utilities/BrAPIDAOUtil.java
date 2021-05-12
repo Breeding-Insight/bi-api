@@ -127,6 +127,11 @@ public class BrAPIDAOUtil {
                 currentRightBorder += POST_GROUP_SIZE;
             }
 
+            if (upload != null) {
+                upload.updateProgress(listResult.size(), 0);
+                progressUpdateMethod.accept(upload);
+            }
+
             return listResult;
         } catch (ApiException e) {
             throw e;
