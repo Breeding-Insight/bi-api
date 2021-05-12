@@ -28,10 +28,13 @@ import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
+import org.jooq.Record;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+
+import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
 public class ImportMappingDAO extends ImporterMappingDao {
@@ -67,6 +70,20 @@ public class ImportMappingDAO extends ImporterMappingDao {
             }
         }
         return importMappings;
+    }
+
+    public List<ImportMapping> getMappingsByName(UUID programId, String name) {
+        List<Record> records = dsl.select()
+                .from(IMPORTER_MAPPING)
+                .where(IMPORTER_MAPPING.NAME.equalIgnoreCase(name))
+                .and(IMPORTER_MAPPING.PROGRAM_ID.eq(programId))
+                .fetch();
+
+        List<ImportMapping> mappings = new ArrayList<>();
+        for (Record record: records) {
+            mappings.add(ImportMapping.parseSQLRecord(record));
+        }
+        return mappings;
     }
 
     private ImportMapping parseBrAPIImportMapping(ImporterMappingEntity importMappingEntity) {

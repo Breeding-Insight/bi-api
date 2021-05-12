@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.model.Program;
@@ -26,7 +25,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import tech.tablesaw.api.Table;
 
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
 public abstract class BrAPIImportService {
     public String getImportTypeId() {return null;}

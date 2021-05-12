@@ -25,8 +25,6 @@ import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;

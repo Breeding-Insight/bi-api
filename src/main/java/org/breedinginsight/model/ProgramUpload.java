@@ -28,17 +28,10 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.dao.db.tables.pojos.BatchUploadEntity;
-import org.jooq.JSONB;
 import org.jooq.Record;
-import tech.tablesaw.api.Table;
-import tech.tablesaw.io.json.JsonReadOptions;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 

@@ -17,8 +17,6 @@
 
 package org.breedinginsight.brapps.importer.daos;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -27,8 +25,6 @@ import org.breedinginsight.dao.db.tables.daos.ImporterImportDao;
 import org.breedinginsight.dao.db.tables.daos.ImporterProgressDao;
 import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUpload;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.utilities.FileUtil;

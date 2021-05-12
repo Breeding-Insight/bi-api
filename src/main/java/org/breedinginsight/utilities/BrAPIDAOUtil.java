@@ -28,9 +28,7 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPIResponseResult;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.model.ProgramUpload;
 
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

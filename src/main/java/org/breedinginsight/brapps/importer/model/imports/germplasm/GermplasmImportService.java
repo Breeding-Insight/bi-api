@@ -278,7 +278,6 @@ public class GermplasmImportService extends BrAPIImportService {
             }
 
             // Update our records
-            //TODO: Get the progress to update in the db
             createdGermplasm.forEach(germplasm -> {
                 PendingImportObject<BrAPIGermplasm> preview = germplasmByName.get(germplasm.getGermplasmName());
                 preview.setBrAPIObject(germplasm);

@@ -21,6 +21,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -32,7 +33,6 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
-import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -62,7 +62,6 @@ public class UploadController {
                                                              @Part("file") CompletedFileUpload file) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            // TODO: We know this will be a 202
             ImportResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response);
@@ -108,7 +107,6 @@ public class UploadController {
                                                              @PathVariable UUID uploadId) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            // TODO: We know this will be a 202
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, true);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
@@ -121,6 +119,9 @@ public class UploadController {
         } catch (UnprocessableEntityException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (HttpStatusException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(e.getStatus(), e.getMessage());
         }
     }
 
@@ -132,7 +133,6 @@ public class UploadController {
                                                               @PathVariable UUID uploadId) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            // TODO: We know this will be a 202
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, false);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
@@ -145,34 +145,9 @@ public class UploadController {
         } catch (UnprocessableEntityException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        }
-    }
-
-    @Get("programs/{programId}/import/mappings/{mappingId}/data")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<ImportResponse>> getActiveUploads(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                                   @PathVariable UUID uploadId) {
-        // Gets the active uploads that are committing data
-        // We want to see, mapping uploads, and committed uploads
-        // Don't want a duplicate for each preview (one mapping, one committed)
-        // POST /data -> Creates the upload, saves the data
-        // GET /data/{importId} -> checks the status of the current import
-        // PUT /data/{importId}/commit -> commits the data
-        // PUT /data/{importId}/preview -> gets a fresh preview of the data
-        // GET /data -> Gets all imports
-        // Will need to check for ongoing imports for that id to make sure its not in processing currently
-
-        try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, false);
-            Response<ImportResponse> response = new Response(result.getRight());
-            return HttpResponse.ok(response).status(result.getLeft());
-        } catch (DoesNotExistException e) {
+        } catch (HttpStatusException e) {
             log.info(e.getMessage());
-            return HttpResponse.notFound();
+            return HttpResponse.status(e.getStatus(), e.getMessage());
         }
     }
 }

@@ -18,7 +18,6 @@
 package org.breedinginsight.brapps.importer.daos;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmAttributesApi;
 import org.brapi.v2.model.core.BrAPIProgram;
@@ -28,8 +27,6 @@ import org.brapi.v2.model.germ.request.BrAPIGermplasmAttributeSearchRequest;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -41,7 +38,6 @@ import java.util.UUID;
 @Singleton
 public class BrAPIGermplasmDAO {
 
-    // TODO: Need a different way to get these
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
 

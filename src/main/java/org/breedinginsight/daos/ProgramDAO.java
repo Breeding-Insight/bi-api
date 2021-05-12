@@ -47,7 +47,6 @@ import org.jooq.*;
 import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -57,8 +56,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.jooq.impl.DSL.asterisk;
-import static org.jooq.impl.DSL.selectCount;
 
 @Slf4j
 @Singleton

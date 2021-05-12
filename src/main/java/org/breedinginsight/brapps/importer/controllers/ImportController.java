@@ -25,7 +25,6 @@ import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -39,10 +38,7 @@ import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.UnsupportedTypeException;
+import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -71,7 +67,6 @@ public class ImportController {
     public HttpResponse<Response<DataResponse<ImportConfigResponse>>> getImportTypes() {
         List<ImportConfigResponse> configs = fileImportService.getAllImportTypeConfigs();
 
-        //TODO: Add actual page size
         List<Status> metadataStatus = new ArrayList<>();
         metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
         Pagination pagination = new Pagination(configs.size(), 1, 1, 0);
@@ -177,7 +172,9 @@ public class ImportController {
         } catch (UnprocessableEntityException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (AlreadyExistsException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         }
-
     }
 }

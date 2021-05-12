@@ -23,7 +23,6 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Getter
 @Setter

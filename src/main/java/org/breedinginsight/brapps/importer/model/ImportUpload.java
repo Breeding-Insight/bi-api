@@ -29,17 +29,13 @@ import lombok.experimental.SuperBuilder;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
 import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.model.User;
 import org.jooq.Record;
 import tech.tablesaw.api.Table;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
 
-import static org.breedinginsight.dao.db.Tables.BATCH_UPLOAD;
 import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
 
 @Getter

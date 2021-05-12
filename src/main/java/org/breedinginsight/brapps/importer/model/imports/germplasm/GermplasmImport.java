@@ -20,7 +20,6 @@ package org.breedinginsight.brapps.importer.model.imports.germplasm;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.base.Cross;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;

@@ -19,7 +19,6 @@ package org.breedinginsight.brapps.importer.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.xml.fastinfoset.algorithm.BooleanEncodingAlgorithm;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
@@ -37,22 +36,17 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
-import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
-import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.constants.SupportedMediaType;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.UnsupportedTypeException;
+import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.utilities.FileUtil;
+import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import tech.tablesaw.api.Table;
 
@@ -64,6 +58,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -77,11 +72,12 @@ public class FileImportService {
     private MappingManager mappingManager;
     private ImportConfigManager configManager;
     private ImportDAO importDAO;
+    private DSLContext dsl;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
-                      ImportConfigManager configManager, ImportDAO importDAO) {
+                      ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -90,6 +86,7 @@ public class FileImportService {
         this.mappingManager = mappingManager;
         this.configManager = configManager;
         this.importDAO = importDAO;
+        this.dsl = dsl;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -179,7 +176,7 @@ public class FileImportService {
 
     public ImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
                                        ImportMapping mappingRequest, Boolean validate) throws
-            DoesNotExistException, AuthorizationException, HttpStatusException, UnprocessableEntityException {
+            DoesNotExistException, AuthorizationException, HttpStatusException, UnprocessableEntityException, AlreadyExistsException {
 
         Program program = validateRequest(programId, actingUser);
 
@@ -188,6 +185,14 @@ public class FileImportService {
             throw new DoesNotExistException("Mapping with that id does not exist");
         }
         ImportMapping importMapping = optionalImportMapping.get();
+
+        // Check mappings within the given program with the same name
+        List<ImportMapping> matchingMappings = importMappingDAO.getMappingsByName(programId, mappingRequest.getName());
+        List<ImportMapping> nonSelfMappings = matchingMappings.stream()
+                .filter(mapping -> !mapping.getId().equals(mappingId)).collect(Collectors.toList());
+        if (nonSelfMappings.size() > 0){
+            throw new AlreadyExistsException("A mapping with that name already exists");
+        }
 
         // If validate is true, validate the mapping
         if (validate) {
@@ -225,6 +230,8 @@ public class FileImportService {
 
         Program program = validateRequest(programId, actingUser);
 
+        // TODO: Security sweep
+
         // Find the mapping
         Optional<ImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
         if (optionalMapping.isEmpty()) {
@@ -241,28 +248,29 @@ public class FileImportService {
         List<BrAPIImport> brAPIImportList = mappingManager.map(importMapping, data);
 
         // Create our import progress object
-        // TODO: Transaction
-        ImportUpload upload = new ImportUpload();
-        upload.setProgramId(programId);
-        String jsonString = data.write().toString("json");
-        JSONB jsonb = JSONB.valueOf(jsonString);
-        //TODO: Do we need to store the data?
-        upload.setFileData(jsonb);
-        upload.setImporterMappingId(mappingId);
-        upload.setUploadFileName(filename);
-        upload.setUserId(actingUser.getId());
-        upload.setCreatedBy(actingUser.getId());
-        upload.setUpdatedBy(actingUser.getId());
+        ImportUpload upload = dsl.transactionResult(configuration -> {
+            ImportUpload newUpload = new ImportUpload();
+            newUpload.setProgramId(programId);
+            String jsonString = data.write().toString("json");
+            JSONB jsonb = JSONB.valueOf(jsonString);
+            newUpload.setFileData(jsonb);
+            newUpload.setImporterMappingId(mappingId);
+            newUpload.setUploadFileName(filename);
+            newUpload.setUserId(actingUser.getId());
+            newUpload.setCreatedBy(actingUser.getId());
+            newUpload.setUpdatedBy(actingUser.getId());
 
-        // Create a progress object
-        ImportProgress importProgress = new ImportProgress();
-        importProgress.setCreatedBy(actingUser.getId());
-        importProgress.setUpdatedBy(actingUser.getId());
-        importProgress.setStatuscode((short) HttpStatus.OK.getCode());
-        importDAO.createProgress(importProgress);
+            // Create a progress object
+            ImportProgress importProgress = new ImportProgress();
+            importProgress.setCreatedBy(actingUser.getId());
+            importProgress.setUpdatedBy(actingUser.getId());
+            importProgress.setStatuscode((short) HttpStatus.OK.getCode());
+            importDAO.createProgress(importProgress);
 
-        upload.setImporterProgressId(importProgress.getId());
-        importDAO.insert(upload);
+            newUpload.setImporterProgressId(importProgress.getId());
+            importDAO.insert(newUpload);
+            return newUpload;
+        });
 
         // Construct our return with our import id
         ImportResponse response = new ImportResponse();
@@ -280,6 +288,11 @@ public class FileImportService {
         if (uploadOptional.isEmpty()) throw new DoesNotExistException("Upload with that id does not exist");
         ImportUpload upload = uploadOptional.get();
 
+        if (upload.getProgress() != null && upload.getProgress().getStatuscode().equals((short) HttpStatus.ACCEPTED.getCode())) {
+            // Another action is in process for this import, throw an error
+            throw new HttpStatusException(HttpStatus.LOCKED, "Another action is currently being performed on this import.");
+        }
+
         // Check that the program that the user created the import for is the one they are updating for
         if (!programId.equals(upload.getProgramId())){
             throw new BadRequestException("Unable to update upload for a different program than the upload was created in.");
@@ -296,7 +309,6 @@ public class FileImportService {
 
         // Get our data
         Table data = upload.getFileDataTable();
-
 
         upload.setMappedData(null);
         // Get fresh progress
@@ -339,6 +351,7 @@ public class FileImportService {
 
         ImportResponse importResponse = new ImportResponse();
         importResponse.setImportId(upload.getId());
+        importResponse.setProgress(upload.getProgress());
         return importResponse;
     }
 
