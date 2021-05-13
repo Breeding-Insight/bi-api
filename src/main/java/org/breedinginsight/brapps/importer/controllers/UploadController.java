@@ -92,7 +92,11 @@ public class UploadController {
             AuthenticatedUser actingUser = securityService.getUser();
             Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, mapping);
             Response<ImportResponse> response = new Response(result.getRight());
-            return HttpResponse.ok(response).status(result.getLeft());
+            if (result.getLeft().equals(HttpStatus.ACCEPTED)) {
+                return HttpResponse.ok(response).status(result.getLeft());
+            } else {
+                return HttpResponse.ok(response);
+            }
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
