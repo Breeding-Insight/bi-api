@@ -21,12 +21,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
+import org.breedinginsight.brapps.importer.model.config.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,10 +37,26 @@ import java.util.stream.Collectors;
         description = "A germplasm object corresponds to a non-physical entity and is used to track a unique genetic composition. This is commonly used for populations.")
 public class Germplasm implements BrAPIObject {
 
+    public static final String GERMPLASM_NAME_TARGET = "germplasmName";
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
     private String germplasmName;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportFieldRelations(relations = {
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
+    })
+    @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
+    private MappedImportRelation femaleParent;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportFieldRelations(relations = {
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
+    })
+    @ImportFieldMetadata(id="maleParent", name="Male Parent", description = "The male parent of the germplasm. Can be left blank for self crosses.")
+    private MappedImportRelation maleParent;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmPUI", name="Germplasm Permanent Unique Identifier", description = "The Permanent Unique Identifier which represents a germplasm from the source or donor.")
@@ -78,7 +93,6 @@ public class Germplasm implements BrAPIObject {
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setAccessionNumber(getAccessionNumber());
-        germplasm.setAccessionNumber(getAccessionNumber());
         germplasm.setCollection(getCollection());
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
@@ -99,10 +113,15 @@ public class Germplasm implements BrAPIObject {
         return germplasm;
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(String species) {
+    public BrAPIGermplasm constructBrAPIGermplasm(BrAPIProgram brAPIProgram) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm();
-        germplasm.setSpecies(species);
-        germplasm.setCommonCropName(species);
+        germplasm.setCommonCropName(brAPIProgram.getCommonCropName());
+
+        // Set programId in additionalInfo
+        Map<String, String> additionalInfo = germplasm.getAdditionalInfo() != null ? germplasm.getAdditionalInfo() : new HashMap<>();
+        additionalInfo.put("programId", brAPIProgram.getProgramDbId());
+        germplasm.setAdditionalInfo(additionalInfo);
+
         return germplasm;
     }
 

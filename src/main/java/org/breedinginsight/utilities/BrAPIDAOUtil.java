@@ -96,8 +96,9 @@ public class BrAPIDAOUtil {
             // Make the POST calls in chunks so we don't overload the brapi server
             Integer currentRightBorder = 0;
             while (currentRightBorder < brapiObjects.size()) {
-                List<T> postChunk = brapiObjects.size() > (currentRightBorder + POST_GROUP_SIZE - 1) ?
-                        brapiObjects.subList(currentRightBorder, currentRightBorder + POST_GROUP_SIZE - 1) : brapiObjects.subList(currentRightBorder, brapiObjects.size() - 1);
+                List<T> postChunk = brapiObjects.size() > (currentRightBorder + POST_GROUP_SIZE) ?
+                        brapiObjects.subList(currentRightBorder, currentRightBorder + POST_GROUP_SIZE) :
+                        brapiObjects.subList(currentRightBorder, brapiObjects.size());
                 ApiResponse response = postMethod.apply(postChunk);
                 if (response.getBody() == null) throw new ApiException("Response is missing body");
                 BrAPIResponse body = (BrAPIResponse) response.getBody();

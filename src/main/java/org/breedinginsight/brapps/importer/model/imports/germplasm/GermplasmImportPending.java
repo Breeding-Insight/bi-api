@@ -15,22 +15,20 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.imports.germplasm;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.brapi.v2.model.germ.BrAPICross;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
 @Getter
 @Setter
 @NoArgsConstructor
-public class PedigreeImportPending implements PendingImport {
+public class GermplasmImportPending implements PendingImport {
     @JsonInclude
     private PendingImportObject<BrAPIGermplasm> germplasm;
-    @JsonInclude
-    private PendingImportObject<BrAPICross> cross;
 }

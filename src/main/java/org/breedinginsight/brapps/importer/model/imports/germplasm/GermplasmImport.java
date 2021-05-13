@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.imports.germplasm;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -26,17 +26,15 @@ import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportConfigMetadata(id="PedigreeImport", name="Pedigree Import",
-        description = "This import is used to create a pedigree history by importing germplasm.")
-public class PedigreeImport implements BrAPIImport {
+@ImportConfigMetadata(id="GermplasmImport", name="Germplasm Import",
+        description = "This import is used to create germplasm and create a pedigree by specifying parental connections.")
+public class GermplasmImport implements BrAPIImport {
     @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
     @ImportMappingRequired
     private Germplasm germplasm;
-
-    @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
-    private Cross cross;
 }
