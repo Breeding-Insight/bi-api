@@ -20,33 +20,37 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.breedinginsight.daos.ProgramDAO;
 
+import javax.inject.Inject;
 import javax.validation.constraints.NotBlank;
 import java.net.URI;
+import java.util.UUID;
 
 @Slf4j
-@Controller(BrapiVersion.BRAPI_NO_VERSION)
+@Controller("/${micronaut.bi.api.version}")
 public class BrapiAuthorizeController {
+
+    @Inject
+    private ProgramDAO programDAO;
 
     @Property(name = "web.base-url")
     protected String webBaseUrl;
 
-
-    @Get("/authorize")
+    @Get("/programs/{programId}/brapi/authorize")
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse authorize(@QueryValue @NotBlank String display_name, @QueryValue @NotBlank String return_url) {
-
-        URI location = UriBuilder.of(webBaseUrl + "/brapi/authorize")
-                .queryParam("display_name", display_name)
-                .queryParam("return_url", return_url)
-                .build();
+    public HttpResponse authorize(@QueryValue @NotBlank String display_name, @QueryValue @NotBlank String return_url, @PathVariable("programId") String programId) {
+        URI location = UriBuilder.of(String.format("%s/programs/%s/brapi/authorize", webBaseUrl, programId))
+                                 .queryParam("display_name", display_name)
+                                 .queryParam("return_url", return_url)
+                                 .build();
         return HttpResponse.seeOther(location);
-
     }
 
 }
