@@ -39,7 +39,7 @@ public class BrAPIDAOUtil {
     public static Integer SEARCH_WAIT_TIME = 1000;
     public static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
     public static Integer RESULTS_PER_QUERY = 100000;
-    public static Integer POST_GROUP_SIZE = 1000;
+    public static Integer POST_GROUP_SIZE = 100;
 
     public static <T, U, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                     Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
