@@ -214,7 +214,7 @@ public class TraitUploadService {
         Optional<ProgramUpload<Trait>> upload = getTraitUpload(programId, actingUser);
         if (upload.isPresent()){
             if (upload.get().getId().equals(traitUploadId)) {
-                List<Trait> traits =upload.get().getParsedData();
+                List<Trait> traits = new ArrayList<>(upload.get().getParsedData());
                 traitService.createTraits(programId, traits, actingUser, false);
                 deleteTraitUpload(programId, actingUser);
                 return;

@@ -230,8 +230,6 @@ public class FileImportService {
 
         Program program = validateRequest(programId, actingUser);
 
-        // TODO: Security sweep
-
         // Find the mapping
         Optional<ImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
         if (optionalMapping.isEmpty()) {

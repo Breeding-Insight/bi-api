@@ -70,17 +70,6 @@ public class ImportDAO extends ImporterImportDao {
 
     public void update(ImportUpload upload) {
         super.update(upload);
-
-        ImporterProgressEntity importerProgressEntity = new ImporterProgressEntity();
-        importerProgressEntity.setId(upload.getProgress().getId());
-        importerProgressEntity.setMessage(upload.getProgress().getMessage());
-        importerProgressEntity.setStatuscode(upload.getProgress().getStatuscode());
-        importerProgressEntity.setBody(upload.getProgress().getBody());
-        importerProgressEntity.setCreatedBy(upload.getProgress().getCreatedBy());
-        importerProgressEntity.setUpdatedBy(upload.getProgress().getUpdatedBy());
-        importerProgressEntity.setFinished(upload.getProgress().getFinished());
-        importerProgressEntity.setTotal(upload.getProgress().getTotal());
-        importerProgressEntity.setInProgress(upload.getProgress().getInProgress());
         progressDao.update(upload.getProgress());
     }
 
