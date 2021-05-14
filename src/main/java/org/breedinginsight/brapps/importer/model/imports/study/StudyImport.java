@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.imports.study;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +25,7 @@ import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 
 @Getter
 @Setter
