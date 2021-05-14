@@ -14,36 +14,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.brapps.importer.model.imports.study;
+package org.breedinginsight.brapps.importer.model.base;
 
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.base.Observation;
-import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
-import org.breedinginsight.brapps.importer.model.base.Study;
-import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportConfigMetadata(id="StudyImport", name="Study Import",
-        description = "This import is used to create a study.")
-public class StudyImport implements BrAPIImport {
-
-    @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
+@EqualsAndHashCode
+@ImportFieldMetadata(id="Study", name="Study",
+        description = "A study.")
+public class Study implements BrAPIObject {
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
-    private Study study;
+    @ImportFieldMetadata(id="studyName", name="Study Name", description = "The name of the study.")
+    private String studyName;
 
-    @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
-    @ImportMappingRequired
-    private ObservationUnit observationUnit;
+    public BrAPIStudy constructBrAPIStudy() {
+        BrAPIStudy study = new BrAPIStudy();
+        study.setStudyName(getStudyName());
+        return study;
+    }
 
-    @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
-    private Observation observation;
-
+    public Study constructStudy() {
+        Study study = new Study();
+        study.setStudyName(getStudyName());
+        return study;
+    }
 }

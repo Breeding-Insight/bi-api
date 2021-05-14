@@ -21,6 +21,7 @@ import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.client.v2.modules.core.ServerInfoApi;
+import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.client.v2.modules.germplasm.CrossesApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmAttributeValuesApi;
@@ -60,6 +61,11 @@ public class BrAPIProvider {
     public ObservationsApi getObservationsAPI(BrAPIClientType clientType){
         BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
         return new ObservationsApi(brAPIClient);
+    }
+
+    public StudiesApi getStudiesAPI(BrAPIClientType clientType){
+        BrAPIClient brAPIClient = brAPIClientProvider.get().getClient(clientType);
+        return new StudiesApi(brAPIClient);
     }
 
     public ServerInfoApi getServerInfoAPI(BrAPIClientType clientType) {
