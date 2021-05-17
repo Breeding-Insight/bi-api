@@ -86,7 +86,7 @@ public class UploadController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
+    public HttpResponse<Response<ImportResponse>> getUploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @QueryValue(defaultValue = "false") Boolean mapping) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
