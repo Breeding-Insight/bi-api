@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-create table import_mapping (
+create table importer_mapping (
 	like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
 	name TEXT,
 	import_type_id TEXT,
@@ -26,20 +26,34 @@ create table import_mapping (
     like base_edit_track_entity INCLUDING ALL
 );
 
-ALTER TABLE import_mapping ADD FOREIGN KEY (program_id) REFERENCES program (id);
-ALTER TABLE import_mapping ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
-ALTER TABLE import_mapping ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
-
-alter table batch_upload add column modified_data jsonb;
-
-alter table batch_upload add column mapped_data jsonb;
-
-ALTER TABLE batch_upload ALTER COLUMN "type" TYPE VARCHAR(255);
-DROP TYPE IF EXISTS upload_type;
-CREATE TYPE "upload_type" AS ENUM (
-  'TRAIT',
-  'INVENTORY',
-  'BRAPI'
+create table importer_import (
+    like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+    program_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    importer_mapping_id UUID NOT NULL,
+    importer_progress_id UUID,
+    upload_file_name TEXT NOT NULL,
+    file_data jsonb,
+    modified_data jsonb,
+    mapped_data jsonb,
+    like base_edit_track_entity INCLUDING ALL
 );
-ALTER TABLE batch_upload ALTER COLUMN "type" TYPE upload_type using (type::upload_type);
+
+create table importer_progress (
+	like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
+	statusCode SMALLINT,
+	message TEXT,
+	body JSONB,
+    total BIGINT,
+    finished BIGINT,
+    in_progress BIGINT,
+    like base_edit_track_entity INCLUDING ALL
+);
+
+ALTER TABLE importer_mapping ADD FOREIGN KEY (program_id) REFERENCES program (id);
+ALTER TABLE importer_mapping ADD FOREIGN KEY (created_by) REFERENCES bi_user (id);
+ALTER TABLE importer_mapping ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
+
+ALTER TABLE importer_import ADD FOREIGN KEY (importer_progress_id) REFERENCES importer_progress (id);
+ALTER TABLE importer_import ADD FOREIGN KEY (importer_mapping_id) REFERENCES importer_mapping (id);
 

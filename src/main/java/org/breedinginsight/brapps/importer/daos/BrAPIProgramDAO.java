@@ -24,8 +24,7 @@ import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.modules.core.ProgramsApi;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.daos.ProgramDAO;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -36,17 +35,17 @@ import java.util.UUID;
 @Singleton
 public class BrAPIProgramDAO {
 
-    private BrAPIProvider brAPIProvider;
+    private ProgramDAO programDAO;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
     @Inject
-    public BrAPIProgramDAO(BrAPIProvider brAPIProvider) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIProgramDAO(ProgramDAO programDAO) {
+        this.programDAO = programDAO;
     }
 
     public Optional<BrAPIProgram> getProgram(UUID programId) throws ApiException {
-        ProgramsApi programsApi = brAPIProvider.getProgramsAPI(BrAPIClientType.CORE);
+        ProgramsApi programsApi = new ProgramsApi(programDAO.getCoreClient(programId));
         ProgramQueryParams params = new ProgramQueryParams();
         params.externalReferenceID(programId.toString());
         params.externalReferenceSource(referenceSource);

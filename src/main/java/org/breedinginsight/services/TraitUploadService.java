@@ -178,7 +178,7 @@ public class TraitUploadService {
             throw new IllegalStateException("More than one trait upload found, only 1 allowed");
         }
 
-        ProgramUpload programUpload = (ProgramUpload<Trait>) uploads.get(0);
+        ProgramUpload programUpload = uploads.get(0);
         programUpload.setParsedData(parseUpload(programUpload));
         return Optional.of(programUpload);
     }

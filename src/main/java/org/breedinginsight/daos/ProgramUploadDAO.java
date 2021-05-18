@@ -25,10 +25,7 @@ import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.breedinginsight.dao.db.Tables.*;
 

@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 import org.apache.commons.lang3.tuple.Pair;
@@ -26,8 +27,8 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPIResponseResult;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 
-import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -38,7 +39,7 @@ public class BrAPIDAOUtil {
     public static Integer SEARCH_WAIT_TIME = 1000;
     public static Integer SEARCH_TIMEOUT = Long.valueOf(TimeUnit.MINUTES.toMillis(10)).intValue();
     public static Integer RESULTS_PER_QUERY = 100000;
-    public static Integer POST_GROUP_SIZE = 1000;
+    public static Integer POST_GROUP_SIZE = 100;
 
     public static <T, U, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                     Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
@@ -89,16 +90,27 @@ public class BrAPIDAOUtil {
         }
     }
 
-    public static <T> List<T> post(List<T> brapiObjects, Function<List<T>, ApiResponse> postMethod) throws ApiException {
+    public static <T> List<T> post(List<T> brapiObjects,
+                                   ImportUpload upload,
+                                   Function<List<T>, ApiResponse> postMethod,
+                                   Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
 
         List<T> listResult = new ArrayList<>();
         try {
             // Make the POST calls in chunks so we don't overload the brapi server
             Integer currentRightBorder = 0;
+            // Set our finished to our current value for different objects were posted before
+            Integer finished = upload != null && upload.getProgress().getFinished() != null ?
+                    Math.toIntExact(upload.getProgress().getFinished()) : 0;
             while (currentRightBorder < brapiObjects.size()) {
                 List<T> postChunk = brapiObjects.size() > (currentRightBorder + POST_GROUP_SIZE) ?
                         brapiObjects.subList(currentRightBorder, currentRightBorder + POST_GROUP_SIZE) :
                         brapiObjects.subList(currentRightBorder, brapiObjects.size());
+                // Update our progress in the db
+                if (upload != null) {
+                    upload.updateProgress(finished, postChunk.size());
+                    progressUpdateMethod.accept(upload);
+                }
                 ApiResponse response = postMethod.apply(postChunk);
                 if (response.getBody() == null) throw new ApiException("Response is missing body");
                 BrAPIResponse body = (BrAPIResponse) response.getBody();
@@ -109,7 +121,13 @@ public class BrAPIDAOUtil {
                 // TODO: Maybe move this outside of the loop
                 if (data.size() != postChunk.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");
                 listResult.addAll(data);
+                finished += data.size();
                 currentRightBorder += POST_GROUP_SIZE;
+            }
+
+            if (upload != null) {
+                upload.updateProgress(listResult.size(), 0);
+                progressUpdateMethod.accept(upload);
             }
 
             return listResult;
@@ -118,5 +136,10 @@ public class BrAPIDAOUtil {
         } catch (Exception e) {
             throw new InternalServerException(e.toString(), e);
         }
+    }
+
+    public static <T> List<T> post(List<T> brapiObjects,
+                                   Function<List<T>, ApiResponse> postMethod) throws ApiException {
+        return post(brapiObjects, null, postMethod, null);
     }
 }

@@ -47,16 +47,15 @@ import org.jooq.*;
 import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.jooq.impl.DSL.asterisk;
-import static org.jooq.impl.DSL.selectCount;
 
 @Slf4j
 @Singleton
@@ -69,20 +68,24 @@ public class ProgramDAO extends ProgramDao {
     @Property(name = "brapi.server.geno-url")
     private String defaultBrAPIGenoUrl;
 
+
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
     private BrAPIClientProvider brAPIClientProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+    private Duration requestTimeout;
 
     private final static String SYSTEM_DEFAULT = "System Default";
 
     @Inject
-    public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider) {
+    public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider,
+                      @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.brAPIClientProvider = brAPIClientProvider;
+        this.requestTimeout = requestTimeout;
     }
 
     public List<Program> get(List<UUID> programIds){
@@ -256,6 +259,30 @@ public class ProgramDAO extends ProgramDao {
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
         }
+    }
+
+    public BrAPIClient getCoreClient(UUID programId) {
+        Program program = get(programId).get(0);
+        String brapiUrl = !program.getBrapiUrl().equals(SYSTEM_DEFAULT) ? program.getBrapiUrl() : defaultBrAPICoreUrl;
+        BrAPIClient client = new BrAPIClient(brapiUrl);
+        initializeHttpClient(client);
+        return client;
+    }
+
+    private void initializeHttpClient(BrAPIClient brapiClient) {
+        brapiClient.setHttpClient(brapiClient.getHttpClient()
+                .newBuilder()
+                .readTimeout(getRequestTimeout())
+                .build());
+    }
+
+    //TODO figure out why BrAPIServiceFilterIntegrationTest fails when requestTimeout is set in the constructor
+    private Duration getRequestTimeout() {
+        if(requestTimeout != null) {
+            return requestTimeout;
+        }
+
+        return Duration.of(5, ChronoUnit.MINUTES);
     }
 
 }
