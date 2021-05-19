@@ -55,7 +55,7 @@ public class MappingManager {
     public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException {
 
         // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
-        if (importMapping.getMapping() == null) {
+        if (importMapping.getMappingConfig() == null) {
             throw new NullPointerException("Mapping must be supplied");
         }
 
@@ -74,7 +74,7 @@ public class MappingManager {
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMapping(), data, rowIndex);
+                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex);
             }
 
             brAPIImports.add(brAPIImport);

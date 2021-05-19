@@ -99,6 +99,7 @@ public class Germplasm implements BrAPIObject {
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());
         if (additionalInfos != null) {
             Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
+                    .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
                     .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
             germplasm.setAdditionalInfo(brAPIAdditionalInfos);
         }

@@ -23,6 +23,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPIProgramDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.base.Study;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -78,7 +79,7 @@ public class StudyImportService extends BrAPIImportService {
     }
 
     @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, Boolean commit)
+    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, Boolean commit)
             throws UnprocessableEntityException {
 
         // brapi objects per row

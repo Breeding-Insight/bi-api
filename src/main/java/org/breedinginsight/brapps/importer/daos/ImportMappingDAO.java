@@ -22,19 +22,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
-import org.breedinginsight.dao.db.tables.daos.ImportMappingDao;
-import org.breedinginsight.dao.db.tables.pojos.ImportMappingEntity;
+import org.breedinginsight.dao.db.tables.daos.ImporterMappingDao;
+import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
+import org.jooq.Record;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 
+import static org.breedinginsight.dao.db.Tables.*;
+
 @Singleton
-public class ImportMappingDAO extends ImportMappingDao {
+public class ImportMappingDAO extends ImporterMappingDao {
 
     private DSLContext dsl;
     private ObjectMapper objectMapper;
@@ -47,7 +50,7 @@ public class ImportMappingDAO extends ImportMappingDao {
     }
 
     public Optional<ImportMapping> getMapping(UUID id) {
-        ImportMappingEntity importMappingEntity = fetchOneById(id);
+        ImporterMappingEntity importMappingEntity = fetchOneById(id);
         if (importMappingEntity != null) {
             ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
             return Optional.of(importMapping);
@@ -58,9 +61,9 @@ public class ImportMappingDAO extends ImportMappingDao {
 
     public List<ImportMapping> getAllMappings(UUID programId, Boolean draft) {
 
-        List<ImportMappingEntity> importMappingEntities = fetchByDraft(draft);
+        List<ImporterMappingEntity> importMappingEntities = fetchByDraft(draft);
         List<ImportMapping> importMappings = new ArrayList<>();
-        for (ImportMappingEntity importMappingEntity: importMappingEntities) {
+        for (ImporterMappingEntity importMappingEntity: importMappingEntities) {
             if (importMappingEntity.getProgramId().equals(programId)) {
                 ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
                 importMappings.add(importMapping);
@@ -69,16 +72,30 @@ public class ImportMappingDAO extends ImportMappingDao {
         return importMappings;
     }
 
-    private ImportMapping parseBrAPIImportMapping(ImportMappingEntity importMappingEntity) {
+    public List<ImportMapping> getMappingsByName(UUID programId, String name) {
+        List<Record> records = dsl.select()
+                .from(IMPORTER_MAPPING)
+                .where(IMPORTER_MAPPING.NAME.equalIgnoreCase(name))
+                .and(IMPORTER_MAPPING.PROGRAM_ID.eq(programId))
+                .fetch();
+
+        List<ImportMapping> mappings = new ArrayList<>();
+        for (Record record: records) {
+            mappings.add(ImportMapping.parseSQLRecord(record));
+        }
+        return mappings;
+    }
+
+    private ImportMapping parseBrAPIImportMapping(ImporterMappingEntity importMappingEntity) {
 
         ImportMapping importMapping = new ImportMapping(importMappingEntity);
         try {
             if (importMappingEntity.getFile() != null){
-                importMapping.setFile(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
+                importMapping.setFileTable(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
             }
             if (importMappingEntity.getMapping() != null) {
                 MappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), MappingField[].class);
-                importMapping.setMapping(Arrays.asList(mappingFields));
+                importMapping.setMappingConfig(Arrays.asList(mappingFields));
             }
         } catch (ParsingException | JsonProcessingException e) {
             throw new InternalServerException(e.toString());
