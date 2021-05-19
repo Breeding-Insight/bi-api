@@ -45,7 +45,7 @@ public class BrAPIGermplasmDAO {
         this.brAPIProvider = brAPIProvider;
     }
 
-    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, BrAPIProgram brAPIProgram) throws ApiException {
+    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames) throws ApiException {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.germplasmNames(germplasmNames);
         germplasmSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
@@ -57,7 +57,7 @@ public class BrAPIGermplasmDAO {
         );
     }
 
-    public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames, BrAPIProgram program) throws ApiException {
+    public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames) throws ApiException {
 
         BrAPIGermplasmAttributeSearchRequest germplasmAttributeSearch = new BrAPIGermplasmAttributeSearchRequest();
         germplasmAttributeSearch.setAttributeNames(new ArrayList<>(germplasmAttributeNames));

@@ -40,6 +40,7 @@ public class BrAPIStudyDAO {
 
     public List<BrAPIStudy> getStudyByName(List<String> studyNames) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
+        // could also add programId but
         studySearch.studyNames(studyNames);
         studySearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         StudiesApi api = brAPIProvider.getStudiesAPI(BrAPIClientType.CORE);

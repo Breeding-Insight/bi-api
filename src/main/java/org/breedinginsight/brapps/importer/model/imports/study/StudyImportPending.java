@@ -21,8 +21,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIStudy;
-import org.breedinginsight.brapps.importer.model.base.Observation;
-import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
@@ -33,8 +33,8 @@ public class StudyImportPending implements PendingImport {
     @JsonInclude
     private PendingImportObject<BrAPIStudy> study;
     @JsonInclude
-    private PendingImportObject<ObservationUnit> observationUnit;
+    private PendingImportObject<BrAPIObservationUnit> observationUnit;
     @JsonInclude
-    private PendingImportObject<Observation> observation;
+    private PendingImportObject<BrAPIObservation> observation;
 
 }

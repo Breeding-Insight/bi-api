@@ -19,8 +19,11 @@ package org.breedinginsight.brapps.importer.daos;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.services.brapi.BrAPIClientType;
@@ -60,6 +63,19 @@ public class BrAPIObservationUnitDAO {
 
         // TODO: Select for study as well
         return observationUnits;
+    }
+
+    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames) throws ApiException {
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
+        // could also add programId but
+        observationUnitSearchRequest.observationUnitNames(observationUnitNames);
+        observationUnitSearchRequest.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
+        ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.PHENO);
+        return BrAPIDAOUtil.search(
+                api::searchObservationunitsPost,
+                api::searchObservationunitsSearchResultsDbIdGet,
+                observationUnitSearchRequest
+        );
     }
 
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList) throws ApiException {

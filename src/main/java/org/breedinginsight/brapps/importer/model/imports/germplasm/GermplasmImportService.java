@@ -113,7 +113,7 @@ public class GermplasmImportService extends BrAPIImportService {
         // Get existing objects
         List<BrAPIGermplasm> existingGermplasms;
         try {
-            existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames), brAPIProgram);
+            existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames));
             existingGermplasms.forEach(existingGermplasm -> {
                 germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });

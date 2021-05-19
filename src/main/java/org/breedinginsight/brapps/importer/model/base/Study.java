@@ -42,6 +42,7 @@ public class Study implements BrAPIObject {
     public BrAPIStudy constructBrAPIStudy() {
         BrAPIStudy study = new BrAPIStudy();
         study.setStudyName(getStudyName());
+        study.setActive(true);
         return study;
     }
 
