@@ -19,7 +19,7 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPILocation;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
@@ -28,24 +28,24 @@ import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportFieldMetadata(id="Study", name="Study",
-        description = "A study.")
-public class Study implements BrAPIObject {
+@ImportFieldMetadata(id="Location", name="Location",
+        description = "A location.")
+public class Location implements BrAPIObject {
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
-    @ImportFieldMetadata(id="studyName", name="Study Name", description = "The name of the study.")
-    private String studyName;
+    @ImportFieldMetadata(id="locationName", name="Location Name", description = "The name of the location.")
+    private String locationName;
 
-    public BrAPIStudy constructBrAPIStudy() {
-        BrAPIStudy study = new BrAPIStudy();
-        study.setStudyName(getStudyName());
-        study.setActive(true);
-        return study;
+    public BrAPILocation constructBrAPILocation() {
+        BrAPILocation location = new BrAPILocation();
+        location.setLocationName(getLocationName());
+        return location;
     }
 
-    public Study constructStudy() {
-        Study study = new Study();
-        study.setStudyName(getStudyName());
-        return study;
+    public Location constructLocation() {
+        Location location = new Location();
+        location.setLocationName(getLocationName());
+        return location;
     }
+
 }

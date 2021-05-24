@@ -19,7 +19,7 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
@@ -28,24 +28,25 @@ import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportFieldMetadata(id="Study", name="Study",
-        description = "A study.")
-public class Study implements BrAPIObject {
+@ImportFieldMetadata(id="Trial", name="Trial",
+        description = "A trial.")
+public class Trial implements BrAPIObject {
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
-    @ImportFieldMetadata(id="studyName", name="Study Name", description = "The name of the study.")
-    private String studyName;
+    @ImportFieldMetadata(id="trialName", name="Trial Name", description = "The name of the trial.")
+    private String trialName;
 
-    public BrAPIStudy constructBrAPIStudy() {
-        BrAPIStudy study = new BrAPIStudy();
-        study.setStudyName(getStudyName());
-        study.setActive(true);
-        return study;
+    public BrAPITrial constructBrAPITrial() {
+        BrAPITrial trial = new BrAPITrial();
+        trial.setTrialName(getTrialName());
+        trial.setActive(true);
+        return trial;
     }
 
-    public Study constructStudy() {
-        Study study = new Study();
-        study.setStudyName(getStudyName());
-        return study;
+    public Trial constructTrial() {
+        Trial trial = new Trial();
+        trial.setTrialName(getTrialName());
+        return trial;
     }
 }

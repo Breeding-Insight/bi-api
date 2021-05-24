@@ -23,7 +23,6 @@ import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
-import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.config.*;
 
 import java.util.ArrayList;
@@ -75,6 +74,15 @@ public class ObservationUnit implements BrAPIObject {
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
             @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"studyDbId", "studyName"})
+    })
+    @ImportFieldMetadata(id="study", name="Study", description = "The study the observation unit is in.")
+    @ImportMappingRequired
+    private MappedImportRelation study;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportFieldRelations(relations = {
+            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmDbId", "germplasmName"})
     })
     @ImportFieldMetadata(id="germplasm", name="Germplasm", description = "The germplasm that this observation unit represents.")
@@ -93,6 +101,15 @@ public class ObservationUnit implements BrAPIObject {
 
         BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel();
         level.setLevelName(getObservationLevel());
+
+        // set study information
+        if (getStudy().getTargetColumn().equals("studyName")) {
+            observationUnit.setStudyName(getStudy().getReferenceValue());
+        } else if (getStudy().getTargetColumn().equals("studyDbId")) {
+            observationUnit.setStudyDbId(getStudy().getReferenceValue());
+        }
+
+
 
         List<BrAPIExternalReference> brAPIexternalReferences = new ArrayList<>();
         //TODO: Should we be checking this back here, or depending on the user to set it properly?
