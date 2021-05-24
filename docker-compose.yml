@@ -23,6 +23,7 @@ services:
     image: biapi
     build:
       context: .
+      dockerfile: ./Dockerfile-dev
       args:
         HOST_USER_ID: ${USER_ID:-0}
         HOST_GROUP_ID: ${GROUP_ID:-0}
