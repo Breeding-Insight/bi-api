@@ -20,9 +20,10 @@ version: "3.7"
 services:
   biapi-dev:
     container_name: biapi
-    image: biapi
+    image: breedinginsight/biapi:latest
     build:
       context: .
+      dockerfile: ./Dockerfile-dev
       args:
         HOST_USER_ID: ${USER_ID:-0}
         HOST_GROUP_ID: ${GROUP_ID:-0}

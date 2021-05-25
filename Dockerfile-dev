@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM adoptopenjdk/openjdk13
+FROM maven:3.6.3-jdk-13
 
 ARG HOST_USER_ID=1001
 ARG HOST_GROUP_ID=1001
@@ -37,6 +37,10 @@ ARG CONT_GROUPNAME="host"
 WORKDIR /home/${CONT_USERNAME}/biapi
 
 #install bi-api source
-COPY ./target/bi-api*.jar ./
+COPY pom.xml ./
+COPY entrypoint.sh ./entrypoint.sh
+COPY settings.xml ./
+COPY ./src ./src/
 
-ENTRYPOINT java -jar --enable-preview -Dmicronaut.environment=prod bi-api*.jar
+ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]
+CMD ["java", "--enable-preview", "-Dmicronaut.environments=prod", "-jar", "bi-api*.jar"]
