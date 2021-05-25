@@ -42,8 +42,8 @@ micronaut:
       default-provider: orcid
       clients:
         orcid:
-          client-id: '${OAUTH_CLIENT_ID}'
-          client-secret: '${OAUTH_CLIENT_SECRET}'
+          client-id: ${OAUTH_CLIENT_ID}
+          client-secret: ${OAUTH_CLIENT_SECRET}
           scopes:
             - openid
             - /authenticate
