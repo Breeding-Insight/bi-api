@@ -5,6 +5,7 @@ on:
     branches:
       - develop
       - release/**
+  workflow_dispatch:
 
 jobs:
   version:
@@ -32,3 +33,56 @@ jobs:
           github_token: ${{ secrets.ROB_OUSER_TOKEN }}
           branch: ${{ github.ref }}
           force: true
+
+  docker:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: bidb
+        ports:
+          - 5432:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up JDK 13
+        uses: actions/setup-java@v1.4.3
+        with:
+          java-version: 13
+
+      - name: Build with Maven
+        run: mvn validate -B flyway:migrate clean install --file pom.xml --settings settings.xml
+        env:
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_SERVER: localhost
+          DB_NAME: bidb
+          GITHUB_ACTOR: $GITHUB_ACTOR
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WEB_BASE_URL: http://localhost:8080
+          BRAPI_DEFAULT_URL: https://test-server.brapi.org
+          API_INTERNAL_TEST_PORT: 8081
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+      - name: Log in to DockerHub
+        run: echo ${{ secrets.DOCKERHUB_PASSWORD}} | docker login -u ${{secrets.DOCKERHUB_USERNAME}} --password-stdin
+      - name: Get version
+        id: vars
+        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:$(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
+      - name: Build Docker and push image
+        run: |
+          docker build . --file Dockerfile --tag ${{steps.vars.outputs.imageName}}
+          docker push ${{steps.vars.outputs.imageName}}
+      - name: Tag develop
+        if: ${{GITHUB_REF##*/}} == 'develop'
+        run: |
+          docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:develop
+          docker push breedinginsight/biapi:develop
+      - name: Tag release candidate
+        if: contains(github.ref, '/release/')
+        run: |
+          docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:rc
+          docker push breedinginsight/biapi:rc
