@@ -21,7 +21,7 @@ micronaut:
     instance:
       id: ${random.shortuuid}
   server:
-    port: ${server.port}
+    port: ${API_INTERNAL_PORT:8081}
     cors:
       enabled: true
     multipart:
@@ -42,21 +42,21 @@ micronaut:
       default-provider: orcid
       clients:
         orcid:
-          client-id: '${oauth.clientId}'
-          client-secret: '${oauth.clientSecret}'
+          client-id: '${OAUTH_CLIENT_ID}'
+          client-secret: '${OAUTH_CLIENT_SECRET}'
           scopes:
             - openid
             - /authenticate
           authorization:
-            url: ${oauth.authUrl:`https://sandbox.orcid.org/oauth/authorize`}
+            url: ${OAUTH_AUTH_URL:`https://sandbox.orcid.org/oauth/authorize`}
           token:
-              url: ${oauth.tokenUrl:`https://sandbox.orcid.org/oauth/token`}
+              url: ${OAUTH_TOKEN_URL:`https://sandbox.orcid.org/oauth/token`}
               auth-method: client-secret-post
           openid:
-            issuer: ${oauth.openId.Issuer:`https://sandbox.orcid.org`}
-            jwks-uri: ${oauth.openId.jwksUri:`https://sandbox.orcid.org/oauth/jwks`}
+            issuer: ${OAUTH_OPENID_ISSUER:`https://sandbox.orcid.org`}
+            jwks-uri: ${OAUTH_OPENID_JWKSURI:`https://sandbox.orcid.org/oauth/jwks`}
             user-info:
-              url: ${oauth.openId.userInfoUrl:`https://sandbox.orcid.org/oauth/userinfo`}
+              url: ${OAUTH_OPENID_USERINFOURL:`https://sandbox.orcid.org/oauth/userinfo`}
       state:
         cookie:
           cookie-max-age: 10m
@@ -66,9 +66,9 @@ micronaut:
         cookie:
           enabled: true
           cookie-name: phylo-token
-          cookie-secure: ${jwt.cookie.secure:true}
+          cookie-secure: ${JWT_SECURE:true}
           http-only: true
-          cookie-domain: ${jwt.cookie.domain}
+          cookie-domain: ${JWT_DOMAIN:localhost}
           login-success-target-url: ${web.login.success.url}
           login-failure-target-url: ${web.login.failure.url}
           logout-target-url: ${web.logout.url}
@@ -77,7 +77,7 @@ micronaut:
         signatures:
           secret:
             generator:
-              secret: ${jwt.secret}
+              secret: ${JWT_SECRET}
               jws-algorithm: HS256
     api-token:
       jwt:
@@ -106,9 +106,9 @@ jooq:
 
 datasources:
   default:
-    url: jdbc:postgresql://${db.default.host}/${db.default.name}
-    username: ${db.default.username}
-    password: ${db.default.password}
+    url: jdbc:postgresql://${DB_SERVER:`localhost:5432`}/${DB_NAME:bidb}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driverClassName: 'org.postgresql.Driver'
 #
 #api:
@@ -118,42 +118,42 @@ datasources:
 #        url: ${oauth.user-search-url:`https://pub.sandbox.orcid.org/v2.1/search`}
 #
 web:
-  base-url: ${web.base-url}
+  base-url: ${WEB_BASE_URL:`http://localhost:8080`}
   cookies:
     login-redirect: redirect-login
     account-token: account-token
   login:
     success:
-      url: ${web.base-url:`http://localhost:8080`}/program-selection
+      url: ${web.base-url}/program-selection
     failure:
-      url: ${web.base-url:`http://localhost:8080`}/401
+      url: ${web.base-url}/401
     error:
-      url: ${web.base-url:`http://localhost:8080`}?loginError=true
+      url: ${web.base-url}?loginError=true
   logout:
-    url: ${web.base-url:`http://localhost:8080`}
+    url: ${web.base-url}
   signup:
     url-timeout: 60m
     signup:
-      url: ${web.base-url:`http://localhost:8080`}/signup
+      url: ${web.base-url}/signup
     success:
-      url: ${web.base-url:`http://localhost:8080`}/account-success
+      url: ${web.base-url}/account-success
     error:
-      url: ${web.base-url:`http://localhost:8080`}/account-error
+      url: ${web.base-url}/account-error
 
 brapi:
   server:
-    default-url: ${brapi.server.default-url}
+    default-url: ${BRAPI_DEFAULT_URL:`https://test-server.brapi.org`}
     # leave these for future but all point to default for now
     core-url: ${brapi.server.default-url}
     pheno-url: ${brapi.server.default-url}
     geno-url: ${brapi.server.default-url}
-    reference-source: ${brapi.server.reference-source}
+    reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
   read-timeout: 10m
 
 email:
   relay-server:
-    host: ${email.relay-server.host}
-    port: ${email.relay-server.port}
-  from: ${email.from}
+    host: ${EMAIL_RELAY_HOST}
+    port: ${EMAIL_RELAY_PORT}
+  from: ${EMAIL_FROM}
 
 
