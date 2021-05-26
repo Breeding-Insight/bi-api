@@ -26,6 +26,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
@@ -34,6 +35,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -41,13 +43,14 @@ public class BrAPIObservationUnitDAO {
 
     public static String OU_ID_REFERENCE_SOURCE = "ou_id";
 
-    private BrAPIProvider brAPIProvider;
+    private ProgramDAO programDAO;
 
     @Inject
-    public BrAPIObservationUnitDAO(BrAPIProvider brAPIProvider) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIObservationUnitDAO(ProgramDAO programDAO) {
+        this.programDAO = programDAO;
     }
 
+    /*
     public List<BrAPIObservationUnit> getObservationUnitsByNameAndStudyName(List<Pair<String, String>> nameStudyPairs, BrAPIProgram brAPIProgram) throws ApiException {
 
         List<String> observationUnitNames = nameStudyPairs.stream().map(Pair::getLeft).collect(Collectors.toList());
@@ -64,13 +67,14 @@ public class BrAPIObservationUnitDAO {
         // TODO: Select for study as well
         return observationUnits;
     }
+     */
 
-    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames) throws ApiException {
+    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, UUID programId) throws ApiException {
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         // could also add programId but
         observationUnitSearchRequest.observationUnitNames(observationUnitNames);
         observationUnitSearchRequest.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.PHENO);
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getPhenoClient(programId));
         return BrAPIDAOUtil.search(
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
@@ -78,8 +82,8 @@ public class BrAPIObservationUnitDAO {
         );
     }
 
-    public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList) throws ApiException {
-        ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
+    public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId) throws ApiException {
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getPhenoClient(programId));
         return BrAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
     }
 }

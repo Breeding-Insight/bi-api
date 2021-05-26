@@ -18,8 +18,10 @@ package org.breedinginsight.brapps.importer.daos;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.StudiesApi;
+import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
@@ -27,23 +29,24 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.UUID;
 
 @Singleton
 public class BrAPIStudyDAO {
 
-    private BrAPIProvider brAPIProvider;
+    private ProgramDAO programDAO;
 
     @Inject
-    public BrAPIStudyDAO(BrAPIProvider brAPIProvider) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIStudyDAO(ProgramDAO programDAO) {
+        this.programDAO = programDAO;
     }
 
-    public List<BrAPIStudy> getStudyByName(List<String> studyNames) throws ApiException {
+    public List<BrAPIStudy> getStudyByName(List<String> studyNames, UUID programId) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         // could also add programId but
         studySearch.studyNames(studyNames);
         studySearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        StudiesApi api = brAPIProvider.getStudiesAPI(BrAPIClientType.CORE);
+        StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
@@ -51,8 +54,8 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList) throws ApiException {
-        StudiesApi api = brAPIProvider.getStudiesAPI(BrAPIClientType.CORE);
+    public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId) throws ApiException {
+        StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.post(brAPIStudyList, api::studiesPost);
     }
 }
