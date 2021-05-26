@@ -269,6 +269,14 @@ public class ProgramDAO extends ProgramDao {
         return client;
     }
 
+    public BrAPIClient getPhenoClient(UUID programId) {
+        Program program = get(programId).get(0);
+        String brapiUrl = !program.getBrapiUrl().equals(SYSTEM_DEFAULT) ? program.getBrapiUrl() : defaultBrAPIPhenoUrl;
+        BrAPIClient client = new BrAPIClient(brapiUrl);
+        initializeHttpClient(client);
+        return client;
+    }
+
     private void initializeHttpClient(BrAPIClient brapiClient) {
         brapiClient.setHttpClient(brapiClient.getHttpClient()
                 .newBuilder()
