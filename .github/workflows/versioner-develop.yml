@@ -73,8 +73,11 @@ jobs:
       - name: Log in to DockerHub
         run: echo ${{ secrets.DOCKERHUB_PASSWORD}} | docker login -u ${{secrets.DOCKERHUB_USERNAME}} --password-stdin
       - name: Get version
+        id: version
+        run: echo ::set-output name=version::$(echo $(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
+      - name: Set tag
         id: vars
-        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:$(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
+        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:$(sed -nE "s/\+/-/p" <<< ${{steps.version.outputs.version}}))
       - name: Build Docker and push image
         run: |
           docker build . --file Dockerfile --tag ${{steps.vars.outputs.imageName}}
