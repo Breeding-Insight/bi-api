@@ -78,8 +78,12 @@ jobs:
         run: |
           docker build . --file Dockerfile --tag ${{steps.vars.outputs.imageName}}
           docker push ${{steps.vars.outputs.imageName}}
+      - name: Extract branch name
+        shell: bash
+        run: echo "::set-env name=BRANCH::$(echo ${GITHUB_REF#refs/heads/})"
+        id: extract_branch
       - name: Tag develop
-        if: ${{GITHUB_REF##*/}} == 'develop'
+        if: $BRANCH == 'develop'
         run: |
           docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:develop
           docker push breedinginsight/biapi:develop
