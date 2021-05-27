@@ -29,7 +29,6 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import java.util.List;
 
 @Prototype
@@ -39,17 +38,20 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
     private final String IMPORT_TYPE_ID = "PhenotypingStudyWithDataImport";
 
     private GermplasmProcessor germplasmProcessor;
+    private TrialProcessor trialProcessor;
     private StudyProcessor studyProcessor;
     private ObservationUnitProcessor observationUnitProcessor;
     private ProcessorManager processorManager;
 
     @Inject
     public PhenotypingStudyWithDataImportService(GermplasmProcessor germplasmProcessor,
+                                                 TrialProcessor trialProcessor,
                                                  StudyProcessor studyProcessor,
                                                  ObservationUnitProcessor observationUnitProcessor,
                                                  ProcessorManager processorManager)
     {
         this.germplasmProcessor = germplasmProcessor;
+        this.trialProcessor = trialProcessor;
         this.studyProcessor = studyProcessor;
         this.observationUnitProcessor = observationUnitProcessor;
         this.processorManager = processorManager;
@@ -71,6 +73,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessor,
+                                             trialProcessor,
                                              studyProcessor,
                                              observationUnitProcessor);
         try {

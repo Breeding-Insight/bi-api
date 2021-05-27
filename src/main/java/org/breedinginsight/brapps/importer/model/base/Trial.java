@@ -19,11 +19,14 @@ package org.breedinginsight.brapps.importer.model.base;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+
+import java.util.List;
 
 @Getter
 @Setter
@@ -37,10 +40,11 @@ public class Trial implements BrAPIObject {
     @ImportFieldMetadata(id="trialName", name="Trial Name", description = "The name of the trial.")
     private String trialName;
 
-    public BrAPITrial constructBrAPITrial() {
+    public BrAPITrial constructBrAPITrial(BrAPIProgram brapiProgram) {
         BrAPITrial trial = new BrAPITrial();
         trial.setTrialName(getTrialName());
         trial.setActive(true);
+        trial.setProgramDbId(brapiProgram.getProgramDbId());
         return trial;
     }
 

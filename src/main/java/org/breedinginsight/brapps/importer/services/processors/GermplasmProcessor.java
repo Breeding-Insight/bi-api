@@ -46,7 +46,7 @@ public class GermplasmProcessor implements Processor {
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
     private BrAPIProgramDAO brAPIProgramDAO;
-    private BrAPIProgram brAPIProgram;
+    //private BrAPIProgram brAPIProgram;
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
     List<BrAPIGermplasm> existingGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
@@ -60,6 +60,7 @@ public class GermplasmProcessor implements Processor {
     private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
 
         // Get BrAPI Program
+        /*
         try {
             Optional<BrAPIProgram> optionalBrAPIProgram = brAPIProgramDAO.getProgram(program.getId());
             if (optionalBrAPIProgram.isEmpty()) throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program was not found in the brapi service");
@@ -67,6 +68,7 @@ public class GermplasmProcessor implements Processor {
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
+         */
 
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmNames = new HashSet<>();
@@ -113,7 +115,7 @@ public class GermplasmProcessor implements Processor {
             // Germplasm
             if (germplasm != null && germplasm.getGermplasmName() != null) {
                 if (!germplasmByName.containsKey(germplasm.getGermplasmName())) {
-                    BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(brAPIProgram);
+                    BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram());
 
                     // Check the parents exist
                     String femaleParent = germplasm.getFemaleParent() != null ? germplasm.getFemaleParent().getReferenceValue() : null;

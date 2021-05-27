@@ -194,6 +194,28 @@ public class ProgramDAO extends ProgramDao {
         return supported;
     }
 
+    public BrAPIProgram getProgramBrAPI(Program program) {
+
+        ProgramQueryParams searchRequest = new ProgramQueryParams()
+                .externalReferenceID(program.getId().toString())
+                .externalReferenceSource(referenceSource);
+
+        ProgramsApi programsApi = brAPIProvider.getProgramsAPI(BrAPIClientType.CORE);
+        // Get existing brapi program
+        ApiResponse<BrAPIProgramListResponse> brApiPrograms;
+        try {
+            brApiPrograms = programsApi.programsGet(searchRequest);
+        } catch (ApiException e) {
+            throw new HttpServerException("Could not find program in BrAPI service.");
+        }
+
+        if (brApiPrograms.getBody().getResult().getData().isEmpty()) {
+            throw new HttpServerException("Could not find program in BrAPI service.");
+        }
+
+        return brApiPrograms.getBody().getResult().getData().get(0);
+    }
+
     public void createProgramBrAPI(Program program) {
 
         BrAPIExternalReference externalReference = new BrAPIExternalReference()
