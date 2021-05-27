@@ -65,16 +65,14 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"locationDbId", "locationName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"locationName"})
     })
     @ImportFieldMetadata(id="location", name="Location", description = "The location the observation unit is in.")
     private MappedImportRelation location;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"studyDbId", "studyName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"studyName"})
     })
     @ImportFieldMetadata(id="study", name="Study", description = "The study the observation unit is in.")
     @ImportMappingRequired
@@ -82,8 +80,7 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.FILE_LOOKUP),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmDbId", "germplasmName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName"})
     })
     @ImportFieldMetadata(id="germplasm", name="Germplasm", description = "The germplasm that this observation unit represents.")
     private MappedImportRelation germplasm;
