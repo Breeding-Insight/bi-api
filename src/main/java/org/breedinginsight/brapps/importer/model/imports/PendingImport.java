@@ -17,5 +17,25 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-public interface PendingImport {
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class PendingImport {
+
+    private PendingImportObject<BrAPIGermplasm> germplasm;
+    private PendingImportObject<BrAPITrial> trial;
+    private PendingImportObject<BrAPIStudy> study;
+    private PendingImportObject<BrAPIObservationUnit> observationUnit;
+    private PendingImportObject<BrAPIObservation> observation;
+
 }

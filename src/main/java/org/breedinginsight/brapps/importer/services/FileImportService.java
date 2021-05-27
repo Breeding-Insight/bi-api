@@ -305,6 +305,8 @@ public class FileImportService {
         if (optionalImportService.isEmpty()) throw new DoesNotExistException("Config with that id does not exist");
         BrAPIImportService importService = optionalImportService.get();
 
+        // TODO: maybe return brapiimport from configmanager
+
         // Get our data
         Table data = upload.getFileDataTable();
 
