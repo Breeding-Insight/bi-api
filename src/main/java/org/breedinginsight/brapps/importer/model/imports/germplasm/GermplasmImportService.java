@@ -121,7 +121,7 @@ public class GermplasmImportService extends BrAPIImportService {
         }
 
         // Setting up our data elements
-        List<GermplasmImportPending> mappedBrAPIImport = new ArrayList<>();
+        List<PendingImport> mappedBrAPIImport = new ArrayList<>();
         Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
 
         // Get existing objects
@@ -141,7 +141,7 @@ public class GermplasmImportService extends BrAPIImportService {
         importDAO.update(upload);
         for (int i = 0; i < germplasmImports.size(); i++) {
             GermplasmImport germplasmImport = germplasmImports.get(i);
-            GermplasmImportPending mappedImportRow = new GermplasmImportPending();
+            PendingImport mappedImportRow = new PendingImport();
             mappedBrAPIImport.add(mappedImportRow);
             Germplasm germplasm = germplasmImport.getGermplasm();
 
@@ -227,16 +227,17 @@ public class GermplasmImportService extends BrAPIImportService {
 
         // Construct our response object
         ImportPreviewResponse response = new ImportPreviewResponse();
-        ImportPreviewStatistics germplasmStats = new ImportPreviewStatistics();
-        germplasmStats.setNewObjectCount(newGermplasmList.size());
-        ImportPreviewStatistics pedigreeConnectStats = new ImportPreviewStatistics();
-        pedigreeConnectStats.setNewObjectCount(
-                newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size());
-        pedigreeConnectStats.setIgnoredObjectCount(
-                germplasmImports.stream().filter(germplasmImport ->
+        ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
+                .newObjectCount(newGermplasmList.size())
+                .build();
+
+        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
+        ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
+                .newObjectCount(newObjectCount)
+                .ignoredObjectCount(germplasmImports.stream().filter(germplasmImport ->
                         germplasmImport.getGermplasm() != null &&
                                 (germplasmImport.getGermplasm().getFemaleParent() != null || germplasmImport.getGermplasm().getMaleParent() != null)
-                ).collect(Collectors.toList()).size() - pedigreeConnectStats.getNewObjectCount());
+                ).collect(Collectors.toList()).size() - newObjectCount).build();
         response.setStatistics(Map.of(
                 "Germplasm", germplasmStats,
                 "Pedigree Connections", pedigreeConnectStats
