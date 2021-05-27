@@ -50,6 +50,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
+      
+      - name: Extract branch name
+        shell: bash
+        run: echo ::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})
+        id: extract_branch
+        
+      - run: git pull origin ${{steps.extract_branch.outputs.branch}}
+      
       - name: Set up JDK 13
         uses: actions/setup-java@v1.4.3
         with:
@@ -85,10 +93,6 @@ jobs:
         run: |
           docker build . --file Dockerfile --tag ${{steps.vars.outputs.imageName}}
           docker push ${{steps.vars.outputs.imageName}}
-      - name: Extract branch name
-        shell: bash
-        run: echo ::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})
-        id: extract_branch
       - name: Tag develop
         if: steps.extract_branch.outputs.branch == 'develop'
         run: |
