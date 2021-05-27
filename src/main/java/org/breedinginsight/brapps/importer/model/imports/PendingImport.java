@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.model.imports;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -34,6 +35,7 @@ public class PendingImport {
 
     private PendingImportObject<BrAPIGermplasm> germplasm;
     private PendingImportObject<BrAPITrial> trial;
+    private PendingImportObject<BrAPILocation> location;
     private PendingImportObject<BrAPIStudy> study;
     private PendingImportObject<BrAPIObservationUnit> observationUnit;
     private PendingImportObject<BrAPIObservation> observation;

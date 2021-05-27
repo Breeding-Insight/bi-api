@@ -39,6 +39,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
 
     private GermplasmProcessor germplasmProcessor;
     private TrialProcessor trialProcessor;
+    private LocationProcessor locationProcessor;
     private StudyProcessor studyProcessor;
     private ObservationUnitProcessor observationUnitProcessor;
     private ProcessorManager processorManager;
@@ -46,12 +47,14 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
     @Inject
     public PhenotypingStudyWithDataImportService(GermplasmProcessor germplasmProcessor,
                                                  TrialProcessor trialProcessor,
+                                                 LocationProcessor locationProcessor,
                                                  StudyProcessor studyProcessor,
                                                  ObservationUnitProcessor observationUnitProcessor,
                                                  ProcessorManager processorManager)
     {
         this.germplasmProcessor = germplasmProcessor;
         this.trialProcessor = trialProcessor;
+        this.locationProcessor = locationProcessor;
         this.studyProcessor = studyProcessor;
         this.observationUnitProcessor = observationUnitProcessor;
         this.processorManager = processorManager;
@@ -74,6 +77,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessor,
                                              trialProcessor,
+                                             locationProcessor,
                                              studyProcessor,
                                              observationUnitProcessor);
         try {

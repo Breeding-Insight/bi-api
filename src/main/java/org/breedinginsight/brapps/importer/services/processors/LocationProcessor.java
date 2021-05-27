@@ -19,10 +19,11 @@ package org.breedinginsight.brapps.importer.services.processors;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
-import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPILocationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.Location;
 import org.breedinginsight.brapps.importer.model.base.Trial;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -39,30 +40,30 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Prototype
-public class TrialProcessor implements Processor {
+public class LocationProcessor implements Processor {
 
-    private static final String NAME = "Trial";
+    private static final String NAME = "Location";
 
-    private BrAPITrialDAO brapiTrialDAO;
-    private Map<String, PendingImportObject<BrAPITrial>> trialByName = new HashMap<>();
+    private BrAPILocationDAO brAPILocationDAO;
+    private Map<String, PendingImportObject<BrAPILocation>> locationByName = new HashMap<>();
 
     @Inject
-    public TrialProcessor(BrAPITrialDAO brapiTrialDAO) {
-        this.brapiTrialDAO = brapiTrialDAO;
+    public LocationProcessor(BrAPILocationDAO brAPILocationDAO) {
+        this.brAPILocationDAO = brAPILocationDAO;
     }
 
     private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
 
-        List<String> uniqueTrialNames = importRows.stream()
-                .map(trialImport -> trialImport.getTrial().getTrialName())
+        List<String> uniqueLocationNames = importRows.stream()
+                .map(locationImport -> locationImport.getLocation().getLocationName())
                 .distinct()
                 .collect(Collectors.toList());
-        List<BrAPITrial> existingTrials;
+        List<BrAPILocation> existingLocations;
 
         try {
-            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program.getId());
-            existingTrials.forEach(existingTrial -> {
-                trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
+            existingLocations = brAPILocationDAO.getLocationsByName(uniqueLocationNames, program.getId());
+            existingLocations.forEach(existingLocation -> {
+                locationByName.put(existingLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation));
             });
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
@@ -79,23 +80,23 @@ public class TrialProcessor implements Processor {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
-            Trial trial = brapiImport.getTrial();
+            Location location = brapiImport.getLocation();
 
-            BrAPITrial brapiTrial = trial.constructBrAPITrial(program.getBrapiProgram());
-            if (!trialByName.containsKey(trial.getTrialName())) {
-                trialByName.put(brapiTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.NEW, brapiTrial));
-                mappedImportRow.setTrial(new PendingImportObject<>(ImportObjectState.NEW, brapiTrial));
+            BrAPILocation brapiLocation = location.constructBrAPILocation();
+            if (!locationByName.containsKey(location.getLocationName())) {
+                locationByName.put(brapiLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
+                mappedImportRow.setLocation(new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
             }
-            mappedImportRow.setTrial(trialByName.get(trial.getTrialName()));
+            mappedImportRow.setLocation(locationByName.get(location.getLocationName()));
             mappedBrAPIImport.put(i, mappedImportRow);
         }
 
-        ImportPreviewStatistics studyStats = ImportPreviewStatistics.builder()
-                .newObjectCount(ProcessorData.getNumNewObjects(trialByName))
-                .ignoredObjectCount(ProcessorData.getNumExistingObjects(trialByName))
+        ImportPreviewStatistics stats = ImportPreviewStatistics.builder()
+                .newObjectCount(ProcessorData.getNumNewObjects(locationByName))
+                .ignoredObjectCount(ProcessorData.getNumExistingObjects(locationByName))
                 .build();
 
-        return Map.of(NAME, studyStats);
+        return Map.of(NAME, stats);
     }
 
     @Override
@@ -113,4 +114,3 @@ public class TrialProcessor implements Processor {
         return NAME;
     }
 }
-
