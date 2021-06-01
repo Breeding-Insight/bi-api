@@ -120,7 +120,6 @@ public class TrialProcessor implements Processor {
             PendingImportObject<BrAPITrial> preview = trialByName.get(trial.getTrialName());
             preview.setBrAPIObject(trial);
         });
-
     }
 
     @Override

@@ -32,6 +32,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -99,12 +100,26 @@ public class LocationProcessor implements Processor {
 
     @Override
     public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException {
-
+        // no dependencies
     }
 
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
+        List<BrAPILocation> locations = ProcessorData.getNewObjects(locationByName);
 
+        // POST Study
+        List<BrAPILocation> createdLocations = new ArrayList<>();
+        try {
+            createdLocations.addAll(brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload));
+        } catch (ApiException e) {
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Update our records
+        createdLocations.forEach(location -> {
+            PendingImportObject<BrAPILocation> preview = locationByName.get(location.getLocationName());
+            preview.setBrAPIObject(location);
+        });
     }
 
     @Override

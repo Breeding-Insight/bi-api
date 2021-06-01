@@ -20,11 +20,9 @@ package org.breedinginsight.brapps.importer.daos;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.v2.model.core.BrAPILocation;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -37,10 +35,12 @@ import java.util.UUID;
 public class BrAPILocationDAO {
 
     private ProgramDAO programDAO;
+    private ImportDAO importDAO;
 
     @Inject
-    public BrAPILocationDAO(ProgramDAO programDAO) {
+    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO) {
         this.programDAO = programDAO;
+        this.importDAO = importDAO;
     }
 
     public List<BrAPILocation> getLocationsByName(List<String> locationNames, UUID programId) throws ApiException {
@@ -56,5 +56,9 @@ public class BrAPILocationDAO {
         );
     }
 
+    public List<BrAPILocation> createBrAPILocation(List<BrAPILocation> brAPILocationList, UUID programId, ImportUpload upload) throws ApiException {
+        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
+        return BrAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
+    }
 
 }
