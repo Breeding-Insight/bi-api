@@ -20,7 +20,6 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Trial;
@@ -33,6 +32,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,11 +100,26 @@ public class TrialProcessor implements Processor {
 
     @Override
     public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException {
-
+        // no dependencies
     }
 
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
+        List<BrAPITrial> trials = ProcessorData.getNewObjects(trialByName);
+
+        // POST Study
+        List<BrAPITrial> createdTrials = new ArrayList<>();
+        try {
+            createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));
+        } catch (ApiException e) {
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Update our records
+        createdTrials.forEach(trial -> {
+            PendingImportObject<BrAPITrial> preview = trialByName.get(trial.getTrialName());
+            preview.setBrAPIObject(trial);
+        });
 
     }
 

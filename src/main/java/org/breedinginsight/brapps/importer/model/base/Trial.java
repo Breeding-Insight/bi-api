@@ -45,6 +45,7 @@ public class Trial implements BrAPIObject {
         trial.setTrialName(getTrialName());
         trial.setActive(true);
         trial.setProgramDbId(brapiProgram.getProgramDbId());
+        trial.setProgramName(brapiProgram.getProgramName());
         return trial;
     }
 
