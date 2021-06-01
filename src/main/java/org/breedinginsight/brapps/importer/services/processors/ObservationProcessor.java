@@ -17,12 +17,10 @@
 package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Prototype;
-import io.micronaut.http.server.exceptions.InternalServerException;
-import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPILocation;
-import org.breedinginsight.brapps.importer.daos.BrAPILocationDAO;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.Location;
+import org.breedinginsight.brapps.importer.model.base.Observation;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -35,63 +33,68 @@ import javax.inject.Inject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Prototype
-public class LocationProcessor implements Processor {
+public class ObservationProcessor implements Processor {
 
-    private static final String NAME = "Location";
+    private static final String NAME = "Observation";
 
-    private BrAPILocationDAO brAPILocationDAO;
-    private Map<String, PendingImportObject<BrAPILocation>> locationByName = new HashMap<>();
+    private BrAPIObservationDAO brAPIObservationDAO;
+    private Map<Observation, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
 
     @Inject
-    public LocationProcessor(BrAPILocationDAO brAPILocationDAO) {
-        this.brAPILocationDAO = brAPILocationDAO;
+    public ObservationProcessor(BrAPIObservationDAO brAPIObservationDAO) {
+        this.brAPIObservationDAO = brAPIObservationDAO;
     }
 
-    private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
+    private void checkExistingObservations(List<BrAPIImport> importRows, Program program) {
+        // TODO: check according to breedbase rules and report issues
+    }
 
-        List<String> uniqueLocationNames = importRows.stream()
-                .map(locationImport -> locationImport.getLocation().getLocationName())
-                .distinct()
-                .collect(Collectors.toList());
-        List<BrAPILocation> existingLocations;
+    private void getDependentDbIds(List<BrAPIImport> importRows) {
 
-        try {
-            existingLocations = brAPILocationDAO.getLocationsByName(uniqueLocationNames, program.getId());
-            existingLocations.forEach(existingLocation -> {
-                locationByName.put(existingLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation));
-            });
-        } catch (ApiException e) {
-            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
-            throw new InternalServerException(e.toString(), e);
+        // TODO: any dependency not in import must already exist is service
+        if (!importRows.isEmpty()) {
+            if (importRows.get(0).getGermplasm() == null) {
+                // get and set germplasmDbId in all observations based on name lookup
+            }
+            if (importRows.get(0).getStudy() == null) {
+
+            }
+            if (importRows.get(0).getObservationUnit() == null) {
+
+            }
+            if (importRows.get(0).getObservationVariable() == null) {
+
+            }
         }
-
     }
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
-        getExistingBrapiObjects(importRows, program);
+
+        checkExistingObservations(importRows, program);
+
+        getDependentDbIds(importRows);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
-            Location location = brapiImport.getLocation();
+            Observation observation = brapiImport.getObservation();
+            BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
 
-            BrAPILocation brapiLocation = location.constructBrAPILocation();
-            if (!locationByName.containsKey(location.getLocationName())) {
-                locationByName.put(brapiLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
-                mappedImportRow.setLocation(new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
+            if (!observationByHash.containsKey(observation)) {
+                observationByHash.put(observation, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
+                mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
             }
-            mappedImportRow.setLocation(locationByName.get(location.getLocationName()));
+            mappedImportRow.setObservation(observationByHash.get(observation));
             mappedBrAPIImport.put(i, mappedImportRow);
         }
 
         ImportPreviewStatistics stats = ImportPreviewStatistics.builder()
-                .newObjectCount(ProcessorData.getNumNewObjects(locationByName))
-                .ignoredObjectCount(ProcessorData.getNumExistingObjects(locationByName))
+                .newObjectCount(ProcessorData.getNumNewObjects(observationByHash))
+                .ignoredObjectCount(ProcessorData.getNumExistingObjects(observationByHash))
                 .build();
 
         return Map.of(NAME, stats);

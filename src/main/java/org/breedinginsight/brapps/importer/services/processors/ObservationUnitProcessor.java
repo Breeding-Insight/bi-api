@@ -86,10 +86,6 @@ public class ObservationUnitProcessor implements Processor {
 
         getExistingBrapiObjects(importRows, program);
 
-        if (!importRows.isEmpty() && importRows.get(0).getStudy() == null) {
-            // TODO: get existing study dbIds
-        }
-
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());

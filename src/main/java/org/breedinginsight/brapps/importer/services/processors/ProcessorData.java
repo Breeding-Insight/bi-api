@@ -33,14 +33,14 @@ import java.util.stream.Collectors;
 public class ProcessorData<T> {
     //private Map<String, PendingImportObject<T>> data;
 
-    static <T> int getNumNewObjects(Map<String, PendingImportObject<T>> objectsByName) {
+    static <T, V> int getNumNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
         long numNewObjects = objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
                 .count();
         return Math.toIntExact(numNewObjects);
     }
 
-    static <T> int getNumExistingObjects(Map<String, PendingImportObject<T>> objectsByName) {
+    static <T, V> int getNumExistingObjects(Map<V, PendingImportObject<T>> objectsByName) {
         long numExistingObjects = objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.EXISTING)
                 .count();

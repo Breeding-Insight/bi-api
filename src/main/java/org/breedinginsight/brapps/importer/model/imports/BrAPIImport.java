@@ -27,5 +27,6 @@ public interface BrAPIImport {
     default Study getStudy() { return null; }
     default ObservationUnit getObservationUnit() { return null; }
     default Observation getObservation() { return null; }
+    default ObservationVariable getObservationVariable() { return null; }
 
 }

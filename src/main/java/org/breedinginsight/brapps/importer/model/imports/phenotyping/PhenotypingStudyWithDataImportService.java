@@ -42,6 +42,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
     private LocationProcessor locationProcessor;
     private StudyProcessor studyProcessor;
     private ObservationUnitProcessor observationUnitProcessor;
+    private ObservationProcessor observationProcessor;
     private ProcessorManager processorManager;
 
     @Inject
@@ -50,6 +51,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
                                                  LocationProcessor locationProcessor,
                                                  StudyProcessor studyProcessor,
                                                  ObservationUnitProcessor observationUnitProcessor,
+                                                 ObservationProcessor observationProcessor,
                                                  ProcessorManager processorManager)
     {
         this.germplasmProcessor = germplasmProcessor;
@@ -57,6 +59,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
         this.locationProcessor = locationProcessor;
         this.studyProcessor = studyProcessor;
         this.observationUnitProcessor = observationUnitProcessor;
+        this.observationProcessor = observationProcessor;
         this.processorManager = processorManager;
     }
 
@@ -79,7 +82,8 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
                                              trialProcessor,
                                              locationProcessor,
                                              studyProcessor,
-                                             observationUnitProcessor);
+                                             observationUnitProcessor,
+                                             observationProcessor);
         try {
             response = processorManager.process(brAPIImports, processors, program, upload, commit);
         } catch (ValidatorException e) {
