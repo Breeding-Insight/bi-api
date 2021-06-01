@@ -47,7 +47,7 @@ public class ProcessorData<T> {
         return Math.toIntExact(numExistingObjects);
     }
 
-    static <T> List<T> getNewObjects(Map<String, PendingImportObject<T>> objectsByName) {
+    static <T, V> List<T> getNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
         return objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
                 .map(preview -> preview.getBrAPIObject())

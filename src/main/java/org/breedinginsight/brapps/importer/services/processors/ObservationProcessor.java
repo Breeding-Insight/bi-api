@@ -17,6 +17,9 @@
 package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Prototype;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -30,9 +33,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Prototype
 public class ObservationProcessor implements Processor {
@@ -102,12 +103,33 @@ public class ObservationProcessor implements Processor {
 
     @Override
     public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException {
-
+        // TODO
     }
 
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
+        // check shared data object for dependency data and update observation units
+        updateDependencyValues(mappedBrAPIImport);
 
+        List<BrAPIObservation> observations = ProcessorData.getNewObjects(observationByHash);
+
+        // POST Study
+        List<BrAPIObservation> createdObservations = new ArrayList<>();
+        try {
+            createdObservations.addAll(brAPIObservationDAO.createBrAPIObservation(observations, program.getId(), upload));
+        } catch (ApiException e) {
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Update our records
+        createdObservations.forEach(observation -> {
+            PendingImportObject<BrAPIObservation> preview = observationByHash.get(Observation.observationFromBrapiObservation(observation));
+            preview.setBrAPIObject(observation);
+        });
+    }
+
+    private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
+        // TODO
     }
 
     @Override

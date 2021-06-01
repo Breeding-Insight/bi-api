@@ -23,9 +23,10 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@EqualsAndHashCode
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class MappedImportRelation {
     private String targetColumn;
+    @EqualsAndHashCode.Include
     private String referenceValue;
     private ImportRelationType type;
 }

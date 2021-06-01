@@ -47,7 +47,7 @@ public class Observation implements BrAPIObject {
     })
     @ImportFieldMetadata(id="study", name="Study",
             description = "Study that the observation belongs to.")
-    @EqualsAndHashCode.Include
+    //@EqualsAndHashCode.Include
     private MappedImportRelation study;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
@@ -115,6 +115,22 @@ public class Observation implements BrAPIObject {
         ZonedDateTime zoned = datetime.atZone(ZoneId.of("US/Eastern"));
         OffsetDateTime timestamp = zoned.toOffsetDateTime();
         observation.setObservationTimeStamp(timestamp);
+
+        return observation;
+    }
+
+    public static Observation observationFromBrapiObservation(BrAPIObservation brapiObservation) {
+        Observation observation = new Observation();
+        // TODO: figure out how to handle study
+        MappedImportRelation germplasmRelation = new MappedImportRelation();
+        germplasmRelation.setReferenceValue(brapiObservation.getGermplasmName());
+        observation.setStudy(germplasmRelation);
+        MappedImportRelation ouRelation = new MappedImportRelation();
+        ouRelation.setReferenceValue(brapiObservation.getObservationUnitName());
+        observation.setObservationUnit(ouRelation);
+        MappedImportRelation traitRelation = new MappedImportRelation();
+        traitRelation.setReferenceValue(brapiObservation.getObservationVariableName());
+        observation.setObservationUnit(traitRelation);
 
         return observation;
     }
