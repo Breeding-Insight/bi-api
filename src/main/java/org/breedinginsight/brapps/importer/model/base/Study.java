@@ -20,10 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIStudy;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
-import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+import org.breedinginsight.brapps.importer.model.config.*;
 
 @Getter
 @Setter
@@ -31,15 +28,47 @@ import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 @ImportFieldMetadata(id="Study", name="Study",
         description = "A study.")
 public class Study implements BrAPIObject {
+
+    private static final String LOCATION_NAME = "locationName";
+    private static final String TRIAL_NAME = "trialName";
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
     @ImportFieldMetadata(id="studyName", name="Study Name", description = "The name of the study.")
     private String studyName;
 
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportMappingRequired
+    @ImportFieldRelations(relations={
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={LOCATION_NAME})
+    })
+    @ImportFieldMetadata(id="location", name="Location",
+            description = "Location that the study is at.")
+    private MappedImportRelation location;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportMappingRequired
+    @ImportFieldRelations(relations={
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={TRIAL_NAME})
+    })
+    @ImportFieldMetadata(id="trial", name="Trial",
+            description = "Trial that the study is a part of.")
+    private MappedImportRelation trial;
+
+
     public BrAPIStudy constructBrAPIStudy() {
         BrAPIStudy study = new BrAPIStudy();
         study.setStudyName(getStudyName());
         study.setActive(true);
+
+        if (getLocation().getTargetColumn().equals(LOCATION_NAME)) {
+            study.setLocationName(getLocation().getReferenceValue());
+        }
+
+        if (getTrial().getTargetColumn().equals(TRIAL_NAME)) {
+            study.setTrialName(getTrial().getReferenceValue());
+        }
+
         return study;
     }
 

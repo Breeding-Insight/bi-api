@@ -43,7 +43,7 @@ public class BrAPITrialDAO {
 
     public List<BrAPITrial> getTrialByName(List<String> trialNames, UUID programId) throws ApiException {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
-        trialSearch.studyNames(trialNames);
+        trialSearch.trialNames(trialNames);
         trialSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.search(
