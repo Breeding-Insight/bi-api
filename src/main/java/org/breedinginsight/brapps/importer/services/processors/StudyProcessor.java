@@ -19,7 +19,9 @@ package org.breedinginsight.brapps.importer.services.processors;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Study;
@@ -32,10 +34,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Prototype
@@ -113,12 +112,15 @@ public class StudyProcessor implements Processor {
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) {
 
+        // check shared data object for dependency data and update observation units
+        updateDependencyValues(mappedBrAPIImport);
+
         List<BrAPIStudy> studies = ProcessorData.getNewObjects(studyByName);
 
         // POST Study
         List<BrAPIStudy> createdStudies = new ArrayList<>();
         try {
-            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId()));
+            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
@@ -132,7 +134,33 @@ public class StudyProcessor implements Processor {
     }
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
-        // TODO
+        // update location DbIds in studies for all distinct locations
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getLocation)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateLocationDbId);
+
+        // update trial DbIds in studies for all distinct trials
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getTrial)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateTrialDbId);
+    }
+
+    private void updateLocationDbId(BrAPILocation location) {
+        studyByName.values().stream()
+                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getLocationName()))
+                .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
+    }
+
+    private void updateTrialDbId(BrAPITrial trial) {
+        studyByName.values().stream()
+                .filter(study -> study.getBrAPIObject().getTrialName().equals(trial.getTrialName()))
+                .forEach(study -> study.getBrAPIObject().setTrialDbId(trial.getTrialDbId()));
     }
 
     @Override

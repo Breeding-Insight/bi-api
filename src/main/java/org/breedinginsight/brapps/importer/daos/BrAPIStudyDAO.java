@@ -18,12 +18,10 @@ package org.breedinginsight.brapps.importer.daos;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.StudiesApi;
-import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -35,10 +33,12 @@ import java.util.UUID;
 public class BrAPIStudyDAO {
 
     private ProgramDAO programDAO;
+    private ImportDAO importDAO;
 
     @Inject
-    public BrAPIStudyDAO(ProgramDAO programDAO) {
+    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO) {
         this.programDAO = programDAO;
+        this.importDAO = importDAO;
     }
 
     public List<BrAPIStudy> getStudyByName(List<String> studyNames, UUID programId) throws ApiException {
@@ -54,8 +54,9 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId) throws ApiException {
+    public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPIStudyList, api::studiesPost);
+        return BrAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
     }
+
 }
