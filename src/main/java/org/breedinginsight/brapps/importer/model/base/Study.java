@@ -43,9 +43,4 @@ public class Study implements BrAPIObject {
         return study;
     }
 
-    public Study constructStudy() {
-        Study study = new Study();
-        study.setStudyName(getStudyName());
-        return study;
-    }
 }

@@ -48,9 +48,4 @@ public class Trial implements BrAPIObject {
         return trial;
     }
 
-    public Trial constructTrial() {
-        Trial trial = new Trial();
-        trial.setTrialName(getTrialName());
-        return trial;
-    }
 }

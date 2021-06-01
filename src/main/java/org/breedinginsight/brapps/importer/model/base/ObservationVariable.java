@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPILocation;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
@@ -28,18 +29,19 @@ import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportFieldMetadata(id="Location", name="Location",
-        description = "A location.")
-public class Location implements BrAPIObject {
+@ImportFieldMetadata(id="ObservationVariable", name="Observation Variable",
+        description = "An observation variable.")
+public class ObservationVariable implements BrAPIObject {
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
-    @ImportFieldMetadata(id="locationName", name="Location Name", description = "The name of the location.")
-    private String locationName;
+    @ImportFieldMetadata(id="observationVariableName", name="Observation Variable Name", description = "The name of the observation variable.")
+    private String observationVariableName;
 
-    public BrAPILocation constructBrAPILocation() {
-        BrAPILocation location = new BrAPILocation();
-        location.setLocationName(getLocationName());
-        return location;
+    public BrAPIObservationVariable constructBrAPILocation() {
+        BrAPIObservationVariable variable = new BrAPIObservationVariable();
+        variable.setObservationVariableName(getObservationVariableName());
+        return variable;
     }
 
 }
