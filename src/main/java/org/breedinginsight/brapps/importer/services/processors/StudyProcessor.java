@@ -58,10 +58,6 @@ public class StudyProcessor implements Processor {
                 .distinct()
                 .collect(Collectors.toList());
 
-        // check for existing studies. Don't want to update existing, just create new.
-        // TODO: do we allow adding observation units/observations to existing studies? for now, no.
-        // ignore all data for studies existing in system
-
         List<BrAPIStudy> existingStudies;
 
         try {

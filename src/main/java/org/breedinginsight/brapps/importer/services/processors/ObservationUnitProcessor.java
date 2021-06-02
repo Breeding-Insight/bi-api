@@ -20,6 +20,7 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -160,24 +161,34 @@ public class ObservationUnitProcessor implements Processor {
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
 
-        // what if no study mapped?
-
-
-        // update study DbIds in observation units for NEW distinct studies
+        // update study DbIds
         mappedBrAPIImport.values().stream()
                 .map(PendingImport::getStudy)
-                .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
+                .filter(Objects::nonNull)
                 .distinct()
                 .map(PendingImportObject::getBrAPIObject)
                 .forEach(this::updateStudyDbId);
 
         // update germplasm DbIds
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getGermplasm)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateGermplasmDbId);
+
     }
 
     private void updateStudyDbId(BrAPIStudy study) {
         observationUnitByName.values().stream()
                 .filter(obsUnit -> obsUnit.getBrAPIObject().getStudyName().equals(study.getStudyName()))
                 .forEach(obsUnit -> obsUnit.getBrAPIObject().setStudyDbId(study.getStudyDbId()));
+    }
+
+    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
+        observationUnitByName.values().stream()
+                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
+                .forEach(obsUnit -> obsUnit.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
 
     @Override

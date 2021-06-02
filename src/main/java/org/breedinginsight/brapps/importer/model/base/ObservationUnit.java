@@ -37,6 +37,11 @@ import java.util.stream.Collectors;
         description = "An observation unit is the physical representation of a breeding unit. This is the unit that an observation is being made on. Example: Plant, Plot")
 public class ObservationUnit implements BrAPIObject {
 
+    private static final String LOCATION_NAME = "locationName";
+    private static final String TRIAL_NAME = "trialName";
+    private static final String STUDY_NAME = "studyName";
+    private static final String GERMPLASM_NAME = "germplasmName";
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationUnitName", name="Observation Unit Name",
             description = "The name of the observation unit.")
@@ -64,14 +69,14 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"locationName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {LOCATION_NAME})
     })
     @ImportFieldMetadata(id="location", name="Location", description = "The location the observation unit is in.")
     private MappedImportRelation location;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"studyName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {STUDY_NAME})
     })
     @ImportFieldMetadata(id="study", name="Study", description = "The study the observation unit is in.")
     @ImportMappingRequired
@@ -79,7 +84,7 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"germplasmName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME})
     })
     @ImportFieldMetadata(id="germplasm", name="Germplasm", description = "The germplasm that this observation unit represents.")
     private MappedImportRelation germplasm;
@@ -98,12 +103,19 @@ public class ObservationUnit implements BrAPIObject {
         BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel();
         level.setLevelName(getObservationLevel());
 
-        // set study information
-        if (getStudy().getTargetColumn().equals("studyName")) {
+        if (getStudy().getTargetColumn().equals(STUDY_NAME)) {
             observationUnit.setStudyName(getStudy().getReferenceValue());
         }
 
+        if (getGermplasm().getTargetColumn().equals(GERMPLASM_NAME)) {
+            observationUnit.setGermplasmName(getGermplasm().getReferenceValue());
+        }
 
+        /*
+        if (getLocation().getTargetColumn().equals(LOCATION_NAME)) {
+            observationUnit.setLocationName(getLocation().getReferenceValue());
+        }
+         */
 
         List<BrAPIExternalReference> brAPIexternalReferences = new ArrayList<>();
         //TODO: Should we be checking this back here, or depending on the user to set it properly?
