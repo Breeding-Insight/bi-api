@@ -57,7 +57,7 @@ public class TraitFileParserUnitTest {
     @Test
     @SneakyThrows
     void parseCsvMissingColumnData() {
-        File file = new File("src/test/resources/files/missing_method_name_with_data.csv");
+        File file = new File("src/test/resources/files/missing_trait_name_with_data.csv");
         InputStream inputStream = new FileInputStream(file);
         ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
         assertEquals(ParsingExceptionType.MISSING_EXPECTED_COLUMNS, e.getType(), "Wrong type");
@@ -287,12 +287,10 @@ public class TraitFileParserUnitTest {
         assertEquals("PM_LEAF_P4", abbreviations.get(1), "wrong abbreviation");
         assertEquals("Powdery Mildew", synonyms.get(0), "wrong synonym");
         assertEquals("Powdery Mildew Severity", synonyms.get(1), "wrong synonym");
-        assertEquals("Powdery mildew (PM) due to Erysiphe necator severity in field, leaves only", trait.getDescription(), "wrong description");
         assertEquals("Plant", trait.getProgramObservationLevel().getName(), "wrong level name");
         assertEquals(true, trait.getActive(), "wrong status");
         // TODO: trait lists
         Method method = trait.getMethod();
-        assertEquals("Powdery Mildew severity, leaves - Estimation", method.getMethodName(), "wrong method name");
         assertEquals("Observed severity of Powdery Mildew on leaves", method.getDescription(), "wrong method description");
         assertEquals("Estimation", method.getMethodClass(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.getFormula(), "wrong method formula");

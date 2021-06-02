@@ -22,7 +22,6 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -71,9 +70,6 @@ public class TraitUploadController {
             ProgramUpload programUpload = traitUploadService.updateTraitUpload(programId, file, actingUser);
             Response<ProgramUpload> response = new Response(programUpload);
             return HttpResponse.ok(response);
-        } catch (HttpBadRequestException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -143,5 +139,23 @@ public class TraitUploadController {
 
     }
 
+    @Post("/programs/{programId}/trait-upload/{traitUploadId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse confirmTraitUpload(@PathVariable UUID programId,
+                                           @PathVariable UUID traitUploadId) {
+        try {
+            AuthenticatedUser actingUser = securityService.getUser();
+            traitUploadService.confirmUpload(programId, traitUploadId, actingUser);
+            return HttpResponse.ok();
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (ValidatorException e) {
+            log.info(e.getErrors().toString());
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
+        }
+    }
 
 }

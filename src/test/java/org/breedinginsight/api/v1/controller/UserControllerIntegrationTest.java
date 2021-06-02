@@ -793,7 +793,7 @@ public class UserControllerIntegrationTest extends DatabaseTest {
         JsonArray data = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").getAsJsonArray("data");
 
         // TODO: depends on db setup
-        assertTrue(data.size() == numUsers - 1, "Wrong number users");
+        assertEquals(numUsers - 1, data.size(), "Wrong number users");
 
         for (JsonElement jsonUser : data.getAsJsonArray()){
             JsonObject exampleUser = (JsonObject) jsonUser;

@@ -18,7 +18,7 @@
 package org.breedinginsight.utilities.response.mappers;
 
 import lombok.SneakyThrows;
-import org.brapi.v2.phenotyping.model.BrApiScaleCategories;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.model.*;
 import org.junit.jupiter.api.*;
 
@@ -48,12 +48,10 @@ public class TraitQueryMapperUnitTest {
                 .abbreviations(List.of("t1", "1").toArray(String[]::new))
                 .mainAbbreviation("test")
                 .synonyms(List.of("t1", "t2"))
-                .description("A trait")
                 .programObservationLevel(ProgramObservationLevel.builder().name("Plant").build())
                 .active(true)
                 .method(
                         Method.builder()
-                        .methodName("A method")
                         .description("A method for real")
                         .methodClass("Estimation")
                         .formula("a + b = c")
@@ -65,7 +63,7 @@ public class TraitQueryMapperUnitTest {
                         .decimalPlaces(3)
                         .validValueMin(0)
                         .validValueMax(999)
-                        .categories(List.of(BrApiScaleCategories.builder().label("1").value("green").build()))
+                        .categories(List.of(new BrAPIScaleValidValuesCategories().label("1").value("green")))
                         .build()
                 )
                 .createdAt(OffsetDateTime.now())
@@ -78,10 +76,8 @@ public class TraitQueryMapperUnitTest {
         assertEquals(trait.getAbbreviations(), traitQueryMapper.getField("abbreviations").apply(trait), "Wrong getter");
         assertEquals(trait.getMainAbbreviation(), traitQueryMapper.getField("mainAbbreviation").apply(trait), "Wrong getter");
         assertEquals(trait.getSynonyms(), traitQueryMapper.getField("synonyms").apply(trait), "Wrong getter");
-        assertEquals(trait.getDescription(), traitQueryMapper.getField("description").apply(trait), "Wrong getter");
         assertEquals(trait.getProgramObservationLevel().getName(), traitQueryMapper.getField("level").apply(trait), "Wrong getter");
         assertEquals(trait.getActive(), traitQueryMapper.getField("status").apply(trait), "Wrong getter");
-        assertEquals(trait.getMethod().getMethodName(), traitQueryMapper.getField("methodName").apply(trait), "Wrong getter");
         assertEquals(trait.getMethod().getDescription(), traitQueryMapper.getField("methodDescription").apply(trait), "Wrong getter");
         assertEquals(trait.getMethod().getMethodClass(), traitQueryMapper.getField("methodClass").apply(trait), "Wrong getter");
         assertEquals(trait.getMethod().getFormula(), traitQueryMapper.getField("methodFormula").apply(trait), "Wrong getter");

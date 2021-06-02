@@ -45,10 +45,11 @@ services:
       - OAUTH_CLIENT_SECRET=${OAUTH_CLIENT_SECRET}
       - GITHUB_TOKEN=${GITHUB_TOKEN}
       - GITHUB_ACTOR=${GITHUB_ACTOR}
-      - BRAPI_CORE_URL=${BRAPI_CORE_URL}
-      - BRAPI_PHENO_URL=${BRAPI_PHENO_URL}
-      - BRAPI_GENO_URL=${BRAPI_GENO_URL}
+      - BRAPI_DEFAULT_URL=${BRAPI_DEFAULT_URL}
       - BRAPI_REFERENCE_SOURCE=${BRAPI_REFERENCE_SOURCE}
+      - EMAIL_RELAY_HOST=${EMAIL_RELAY_HOST}
+      - EMAIL_RELAY_PORT=${EMAIL_RELAY_PORT}
+      - EMAIL_FROM=${EMAIL_FROM}
     ports:
       - ${API_INTERNAL_PORT}:${API_INTERNAL_PORT}
     networks:
@@ -68,7 +69,7 @@ services:
         aliases:
           - dbserver
   brapi-server:
-    image: breedinginsight/brapi-java-server:v2.0-2
+    image: breedinginsight/brapi-java-server:v2.0-3
     container_name: brapi-server
     depends_on:
       - bidb

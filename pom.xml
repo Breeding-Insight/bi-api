@@ -67,7 +67,7 @@
         <jooq.version>3.12.3</jooq.version>
         <postgres.version>42.2.6</postgres.version>
         <logback.version>1.2.3</logback.version>
-        <lombok.version>1.18.10</lombok.version>
+        <lombok.version>1.18.16</lombok.version>
         <gson.version>2.8.6</gson.version>
         <spock.version>1.1.2</spock.version>
         <geojson-jackson.version>1.14</geojson-jackson.version>
@@ -296,7 +296,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.15.0</version>
+            <version>1.15.1</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -306,17 +306,7 @@
         </dependency>
         <dependency>
             <groupId>org.brapi</groupId>
-            <artifactId>brapi-client</artifactId>
-            <version>2.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.brapi</groupId>
-            <artifactId>brapi-pheno-model</artifactId>
-            <version>2.0-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.brapi</groupId>
-            <artifactId>brapi-core-model</artifactId>
+            <artifactId>brapi-java-client</artifactId>
             <version>2.0-SNAPSHOT</version>
         </dependency>
         <dependency>
@@ -568,6 +558,7 @@
                             <brapi.server.core-url>${BRAPI_CORE_URL}</brapi.server.core-url>
                             <brapi.server.pheno-url>${BRAPI_PHENO_URL}</brapi.server.pheno-url>
                             <brapi.server.geno-url>${BRAPI_GENO_URL}</brapi.server.geno-url>
+                            <brapi.server.default-url>${BRAPI_DEFAULT_URL}</brapi.server.default-url>
                             <brapi.server.reference-source>breeding-insight.org</brapi.server.reference-source>
                             <email.relay-server.host>test</email.relay-server.host>
                             <email.relay-server.port>25</email.relay-server.port>

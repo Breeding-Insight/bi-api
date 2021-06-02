@@ -92,6 +92,8 @@ micronaut:
         path: /logout
 jackson:
   date-format: yyyy-MM-dd'T'HH:mm:ssZ
+  mapper:
+    acceptCaseInsensitiveEnums: true
 flyway:
   datasources:
     default:
@@ -140,10 +142,13 @@ web:
 
 brapi:
   server:
-    core-url: ${brapi.server.core-url}
-    pheno-url: ${brapi.server.pheno-url}
-    geno-url: ${brapi.server.geno-url}
+    default-url: ${brapi.server.default-url}
+    # leave these for future but all point to default for now
+    core-url: ${brapi.server.default-url}
+    pheno-url: ${brapi.server.default-url}
+    geno-url: ${brapi.server.default-url}
     reference-source: ${brapi.server.reference-source}
+  read-timeout: 10m
 
 email:
   relay-server:

@@ -18,13 +18,14 @@ package org.breedinginsight.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.tika.mime.MediaType;
-import org.brapi.client.v2.model.exceptions.HttpBadRequestException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.UploadType;
@@ -80,7 +81,7 @@ public class TraitUploadService {
     private ObjectMapper objMapper;
 
     public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
-            throws DoesNotExistException, UnsupportedTypeException, AuthorizationException, ValidatorException, HttpBadRequestException {
+            throws DoesNotExistException, UnsupportedTypeException, AuthorizationException, ValidatorException, HttpStatusException {
 
         if (!programService.exists(programId))
         {
@@ -95,7 +96,7 @@ public class TraitUploadService {
         try {
             mediaType = mimeTypeParser.getMimeType(file);
         } catch (IOException e){
-            throw new HttpBadRequestException("Could not determine file type");
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Could not determine file type");
         }
 
         List<Trait> traits;
@@ -105,7 +106,7 @@ public class TraitUploadService {
                 traits = parser.parseCsv(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
-                throw new HttpBadRequestException("Error parsing csv: " + e.getMessage());
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing csv: " + e.getMessage());
             }
         } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
                    mediaType.toString().equals(SupportedMediaType.XLSX)) {
@@ -113,18 +114,16 @@ public class TraitUploadService {
                 traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
-                throw new HttpBadRequestException("Error parsing excel: " + e.getMessage());
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing excel: " + e.getMessage());
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
 
+        // Preprocess traits
+        traitService.preprocessTraits(traits);
+
         ValidationErrors validationErrors = new ValidationErrors();
-        try {
-            traitService.assignTraitsProgramObservationLevel(traits, programId, traitValidatorError);
-        } catch (ValidatorException e){
-            validationErrors.merge(e.getErrors());
-        }
 
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
         if (optionalValidationErrors.isPresent()){
@@ -135,13 +134,15 @@ public class TraitUploadService {
             throw new ValidatorException(validationErrors);
         }
 
+        traitService.assignTraitsProgramObservationLevel(traits, programId);
+
         String json = null;
         try {
             json = objMapper.writeValueAsString(traits);
         } catch(JsonProcessingException e) {
-            log.error(e.getMessage());
+            log.error("Problem converting traits json", e);
             // If we didn't catch this error in the validator, this is an unexpected server error.
-            throw new InternalServerException("Problem converting traits json");
+            throw new InternalServerException("Problem converting traits json", e);
         }
 
         // delete any existing records for traits since we only want to allow one at a time
@@ -207,5 +208,19 @@ public class TraitUploadService {
 
     }
 
+    public void confirmUpload(UUID programId, UUID traitUploadId, AuthenticatedUser actingUser)
+            throws DoesNotExistException, ValidatorException {
 
+        Optional<ProgramUpload<Trait>> upload = getTraitUpload(programId, actingUser);
+        if (upload.isPresent()){
+            if (upload.get().getId().equals(traitUploadId)) {
+                List<Trait> traits = new ArrayList<>(upload.get().getParsedData());
+                traitService.createTraits(programId, traits, actingUser, false);
+                deleteTraitUpload(programId, actingUser);
+                return;
+            }
+        }
+
+        throw new DoesNotExistException("Upload does not exist");
+    }
 }

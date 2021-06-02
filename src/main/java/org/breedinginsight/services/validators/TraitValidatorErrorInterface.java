@@ -19,26 +19,27 @@ package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
 
-import javax.validation.Validation;
 import java.util.List;
 
 public interface TraitValidatorErrorInterface {
     Integer getRowNumber(Integer row);
+    ValidationError getTraitIdDoesNotExistMsg();
     ValidationError getMissingMethodMsg();
-    ValidationError getMissingMethodNameMsg();
     ValidationError getMissingMethodDescriptionMsg();
     ValidationError getMissingMethodClassMsg();
     ValidationError getMissingScaleMsg();
     ValidationError getMissingScaleNameMsg();
     ValidationError getMissingScaleDataTypeMsg();
     ValidationError getMissingTraitNameMsg();
-    ValidationError getMissingTraitDescriptionMsg();
     ValidationError getMissingProgramObservationLevelMsg();
     ValidationError getMissingMethodFormulaMsg();
     ValidationError getMissingScaleCategoriesMsg();
+    ValidationError getBadScaleCategory();
+    ValidationError getBlankScaleCategoryLabelMsg();
+    ValidationError getBlankScaleCategoryValueMsg();
+    ValidationError getMaxLessThenMinError();
     ValidationError getDuplicateTraitByNamesMsg();
     ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);
     ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows);
-    ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels);
 }

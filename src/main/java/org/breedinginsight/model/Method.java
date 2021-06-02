@@ -24,7 +24,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.brapi.v2.phenotyping.model.BrApiMethod;
+import org.brapi.v2.model.pheno.BrAPIMethod;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.jooq.Record;
 
@@ -50,7 +50,6 @@ public class Method extends MethodEntity {
 
     public Method(MethodEntity methodEntity) {
         this.setId(methodEntity.getId());
-        this.setMethodName(methodEntity.getMethodName());
         this.setProgramOntologyId(methodEntity.getProgramOntologyId());
         this.setCreatedAt(methodEntity.getCreatedAt());
         this.setCreatedBy(methodEntity.getCreatedBy());
@@ -61,7 +60,6 @@ public class Method extends MethodEntity {
     public static Method parseSqlRecord(Record record) {
         return Method.builder()
             .id(record.getValue(METHOD.ID))
-            .methodName(record.getValue(METHOD.METHOD_NAME))
             .programOntologyId(record.getValue(METHOD.PROGRAM_ONTOLOGY_ID))
             .createdAt(record.getValue(METHOD.CREATED_AT))
             .createdBy(record.getValue(METHOD.CREATED_BY))
@@ -70,7 +68,7 @@ public class Method extends MethodEntity {
             .build();
     }
 
-    public void setBrAPIProperties(BrApiMethod brApiMethod){
+    public void setBrAPIProperties(BrAPIMethod brApiMethod){
         this.setMethodClass(brApiMethod.getMethodClass());
         this.setDescription(brApiMethod.getDescription());
         this.setFormula(brApiMethod.getFormula());

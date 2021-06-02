@@ -17,6 +17,7 @@
 package org.breedinginsight.services.parsers.excel;
 
 import lombok.NonNull;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.poi.ss.usermodel.Cell;
 
 import java.util.Map;
@@ -24,9 +25,14 @@ import java.util.Objects;
 
 public class ExcelRecord {
 
-    private Map<String, Cell> values;
+    private CaseInsensitiveMap<String, Cell> values;
 
     public ExcelRecord(@NonNull Map<String, Cell> values) {
+        this.values = new CaseInsensitiveMap<>();
+        this.values.putAll(values);
+    }
+
+    public ExcelRecord(@NonNull CaseInsensitiveMap<String, Cell> values) {
         this.values = values;
     }
 

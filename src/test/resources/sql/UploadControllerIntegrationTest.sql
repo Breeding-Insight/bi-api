@@ -19,7 +19,8 @@
 -- name: InsertProgram
 insert into program (species_id, name, created_by, updated_by)
 select species.id, 'Test Program', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'system' limit 1;
+join bi_user on bi_user.name = 'system' limit 1
+
 
 -- name: InsertProgramUser
 insert into program_user_role(program_id, user_id, role_id, active, created_by, updated_by)
@@ -44,8 +45,8 @@ select program.id, bi_user.id, bi_user.id from program
 join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 1
 
 -- name: InsertMethod
-insert into method (program_ontology_id, method_name, created_by, updated_by)
-select program_ontology.id, 'Powdery Mildew severity, leaves - Estimation', bi_user.id, bi_user.id from program_ontology
+insert into method (program_ontology_id, created_by, updated_by)
+select program_ontology.id, bi_user.id, bi_user.id from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
 join bi_user on bi_user.name = 'system' limit 1
 
@@ -61,7 +62,7 @@ insert into trait (program_ontology_id, trait_name, abbreviations, method_id, sc
 select program_ontology.id, 'Powdery Mildew severity field, leaves', ARRAY['PMSevLeaf', 'PM_LEAF_P4'], method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join method on method.program_ontology_id = program_ontology.id and method.method_name = 'Powdery Mildew severity, leaves - Estimation'
+join method on method.program_ontology_id = program_ontology.id
 join scale on scale.program_ontology_id = program_ontology.id and scale.scale_name = '1-4 Parlier field response score'
 join program_observation_level on program_ontology.program_id = program_observation_level.program_id and program_observation_level.name = 'Plant'
 join bi_user on bi_user.name = 'system' limit 1

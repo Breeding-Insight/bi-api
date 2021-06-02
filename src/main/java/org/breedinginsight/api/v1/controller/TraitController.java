@@ -124,12 +124,12 @@ public class TraitController {
     public HttpResponse<Response<DataResponse<Trait>>> createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
-            List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser);
+            List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser, true);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
-            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
             // Construct our metadata and response
-            Pagination pagination = new Pagination(traits.size(), 1, 1, 0);
+            Pagination pagination = new Pagination(createdTraits.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(createdTraits));
             return HttpResponse.ok(response);
@@ -140,6 +140,48 @@ public class TraitController {
             log.info(e.getErrors().toString());
             HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
             return response;
+        }
+    }
+
+    @Put("/programs/{programId}/traits")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse<Response<DataResponse<Trait>>> updateTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
+        AuthenticatedUser actingUser = securityService.getUser();
+        try {
+            List<Trait> updatedTraits = traitService.updateTraits(programId, traits, actingUser);
+            List<Status> metadataStatus = new ArrayList<>();
+            // Users query successfully
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
+            // Construct our metadata and response
+            Pagination pagination = new Pagination(updatedTraits.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(updatedTraits));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
+        } catch (ValidatorException e){
+            log.info(e.getErrors().toString());
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
+        }
+    }
+
+    @Put("/programs/{programId}/traits/{traitId}/archive{?active}")
+    @AddMetadata
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse<Response<Trait>> archiveTrait(@PathVariable UUID programId, @PathVariable UUID traitId, @QueryValue(defaultValue = "false") Boolean active) {
+
+        AuthenticatedUser actingUser = securityService.getUser();
+        try {
+            Trait updatedTrait = traitService.setTraitActiveStatus(programId, traitId, active, actingUser);
+            Response<Trait> response = new Response<>(updatedTrait);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e){
+            log.info(e.getMessage());
+            return HttpResponse.notFound();
         }
     }
 }

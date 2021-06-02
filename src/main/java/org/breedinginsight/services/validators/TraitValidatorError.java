@@ -34,13 +34,13 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingMethodMsg() {
-        return new ValidationError("method", "Missing method", HttpStatus.BAD_REQUEST);
+    public ValidationError getTraitIdDoesNotExistMsg() {
+        return new ValidationError("traitId", "Trait with that id does not exist", HttpStatus.NOT_FOUND);
     }
 
     @Override
-    public ValidationError getMissingMethodNameMsg() {
-        return new ValidationError("method.methodName", "Missing method name", HttpStatus.BAD_REQUEST);
+    public ValidationError getMissingMethodMsg() {
+        return new ValidationError("method", "Missing method", HttpStatus.BAD_REQUEST);
     }
 
     @Override
@@ -74,11 +74,6 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingTraitDescriptionMsg() {
-        return new ValidationError("description", "Missing description", HttpStatus.BAD_REQUEST);
-    }
-
-    @Override
     public ValidationError getMissingProgramObservationLevelMsg() {
         return new ValidationError("programObservationLevel.name", "Missing program observation level", HttpStatus.BAD_REQUEST);
     }
@@ -94,8 +89,34 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getBadScaleCategory() {
+        return new ValidationError("scale.categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getBlankScaleCategoryLabelMsg() {
+        return new ValidationError("scale.categories.label",
+                "Label missing.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getBlankScaleCategoryValueMsg() {
+        return new ValidationError("scale.categories.value",
+                "Value missing.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getMaxLessThenMinError() {
+        return new ValidationError("scale.validValueMax",
+                "Scale valid value max must be greater than valid value min.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
-        return new ValidationError("traitName", "Trait name - Scale name - Method name combination already exists", HttpStatus.CONFLICT);
+        return new ValidationError("traitName", "Trait name already exists", HttpStatus.CONFLICT);
     }
 
     @Override
@@ -107,7 +128,7 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
         matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
         return new ValidationError("traitName",
-                "traitName - scaleName - methodName combination is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
+                "traitName is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
     }
 
@@ -117,11 +138,5 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("abbreviations",
                 "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
-    }
-
-    @Override
-    public ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels) {
-        return new ValidationError("programObservationLevel.name",
-                "Program Observation Level does not exist. Available levels are " + availableTraitLevels.toString(), HttpStatus.NOT_FOUND);
     }
 }

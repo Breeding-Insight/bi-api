@@ -23,6 +23,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -48,7 +49,6 @@ import org.breedinginsight.daos.ProgramUserDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.*;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.email.EmailUtil;
 import org.geojson.Feature;
 import org.geojson.Point;
@@ -57,7 +57,6 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -368,6 +367,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .abbreviation("Test")
                 .documentationUrl("localhost")
                 .objective("Testing things")
+                .brapiUrl(getProperties().get("brapi.server.core-url"))
                 .species(validSpecies)
                 .speciesId(validSpecies.getId())
                 .build();
@@ -439,6 +439,32 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs", gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void postProgramsUnsupportedBrapiUrl() {
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(validProgram.getName())
+                .species(speciesRequest)
+                .brapiUrl("http://www.notabrapiserver.com")
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(validRequest))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -1994,6 +2020,44 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(7)
+    void getProgramNumUsers() {
+        String validProgramId = otherProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        int numUsers = result.get("numUsers").getAsInt();
+        assertEquals(numUsers,2, "Wrong numUsers");
+    }
+
+    @Test
+    @Order(7)
+    void getProgramBrapiUrl() {
+        String validProgramId = otherProgram.getId().toString();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+validProgramId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String brapiUrl = result.get("brapiUrl").getAsString();
+        assertEquals(brapiUrl,"System Default", "Wrong brapiUrl");
+    }
+
+    @Test
+    @Order(7)
     @SneakyThrows
     void getProgramsUsersMultipleUsersSingleRoleSuccess() {
 
@@ -2280,6 +2344,22 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
         assertEquals(13, pagination.get("totalCount").getAsInt(), "Wrong total count");
         assertEquals(1, pagination.get("currentPage").getAsInt(), "Wrong current page");
+    }
+
+    @Test
+    public void getObservationLevels() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + otherProgram.getId() + "/observation-levels")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(1, data.size(), "Wrong number of levels returned");
     }
 
     private List<List<String>> getRoles(JsonArray data) {

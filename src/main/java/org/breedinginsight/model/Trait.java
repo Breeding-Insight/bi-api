@@ -19,13 +19,16 @@ package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
-import org.brapi.v2.phenotyping.model.BrApiVariable;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
+import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
+import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
@@ -55,14 +58,20 @@ public class Trait extends TraitEntity {
     private User updatedByUser;
 
     // Properties from brapi
-    private String description;
     private String traitClass;
     private String attribute;
     private String defaultValue;
     @JsonIgnore
     private String entity;
     private String mainAbbreviation;
+    @JsonDeserialize(using = ListOfStringDeserializer.class)
     private List<String> synonyms;
+
+    @Override
+    @JsonDeserialize(using = ArrayOfStringDeserializer.class)
+    public void setAbbreviations(String... abbreviations) {
+        super.setAbbreviations(abbreviations);
+    }
 
     public Trait(TraitEntity traitEntity) {
         this.setId(traitEntity.getId());
@@ -96,9 +105,8 @@ public class Trait extends TraitEntity {
             .build();
     }
 
-    public void setBrAPIProperties(BrApiVariable brApiVariable) {
+    public void setBrAPIProperties(BrAPIObservationVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
-            this.setDescription(brApiVariable.getTrait().getTraitDescription());
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());

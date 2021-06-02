@@ -18,6 +18,7 @@
 package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -27,6 +28,7 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.model.*;
+import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
@@ -49,16 +51,18 @@ public class ProgramService {
     private SpeciesService speciesService;
     private DSLContext dsl;
     private SecurityService securityService;
+    private BrAPIClientProvider brAPIClientProvider;
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
-                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService) {
+                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService, BrAPIClientProvider brAPIClientProvider) {
         this.dao = dao;
         this.programOntologyDAO = programOntologyDAO;
         this.programObservationLevelDAO = programObservationLevelDAO;
         this.speciesService = speciesService;
         this.dsl = dsl;
         this.securityService = securityService;
+        this.brAPIClientProvider = brAPIClientProvider;
     }
 
     @Inject
@@ -103,6 +107,19 @@ public class ProgramService {
             throw new UnprocessableEntityException("Species does not exist");
         }
 
+        String brapiUrl = programRequest.getBrapiUrl();
+
+        // if specified, check if brapi url is supported
+        if (!StringUtils.isBlank(brapiUrl)) {
+            if (!dao.brapiUrlSupported(brapiUrl)) {
+                throw new UnprocessableEntityException("Unsupported BrAPI URL");
+            }
+            // need to refresh client url for brapi program creation below
+            brAPIClientProvider.setCoreClient(brapiUrl);
+            brAPIClientProvider.setPhenoClient(brapiUrl);
+            brAPIClientProvider.setGenoClient(brapiUrl);
+        }
+
         Program program = dsl.transactionResult(configuration -> {
             // Parse and create the program object
             ProgramEntity programEntity = ProgramEntity.builder()
@@ -111,6 +128,7 @@ public class ProgramService {
                     .abbreviation(programRequest.getAbbreviation())
                     .objective(programRequest.getObjective())
                     .documentationUrl(programRequest.getDocumentationUrl())
+                    .brapiUrl(brapiUrl)
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();
@@ -126,15 +144,6 @@ public class ProgramService {
                     .build();
             programOntologyDAO.insert(programOntologyEntity);
 
-            //TODO: Remove this insert when we have an endpoint for it
-            ProgramObservationLevelEntity programObservationLevelEntity = ProgramObservationLevelEntity.builder()
-                    .name("Plant")
-                    .programId(programEntity.getId())
-                    .createdBy(actingUser.getId())
-                    .updatedBy(actingUser.getId())
-                    .build();
-            programObservationLevelDAO.insert(programObservationLevelEntity);
-
             // Add program to brapi service
             dao.createProgramBrAPI(createdProgram);
 
@@ -143,9 +152,6 @@ public class ProgramService {
 
             return createdProgram;
         });
-
-
-
 
         return program;
     }
@@ -202,8 +208,14 @@ public class ProgramService {
         return dao.existsById(programId);
     }
 
-    public ProgramBrAPIEndpoints getBrapiEndpoints(UUID programId) {
-        return dao.getProgramBrAPIEndpoints();
+    public ProgramBrAPIEndpoints getBrapiEndpoints(UUID programId) throws DoesNotExistException {
+
+        ProgramEntity programEntity = dao.fetchOneById(programId);
+        if (programEntity == null){
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        return dao.getProgramBrAPIEndpoints(programId);
     }
 
 }

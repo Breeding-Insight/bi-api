@@ -58,7 +58,7 @@ public class ExcelParser {
                 throw new ParsingException(ParsingExceptionType.COLUMN_NAME_NOT_STRING);
             }
             if (cell != null && isNotBlank(cell.getStringCellValue())) {
-                indexColNameMap.put(colIndex, cell.getStringCellValue());
+                indexColNameMap.put(colIndex, cell.getStringCellValue().toLowerCase());
             } else
             {
                 // not throwing an exception here in case they have empty cells to right of columns or even
@@ -73,7 +73,7 @@ public class ExcelParser {
         }
 
         // check all column names were present
-        List<String> missingColumns = columns.stream().filter(col -> !indexColNameMap.containsValue(col)).collect(Collectors.toList());
+        List<String> missingColumns = columns.stream().filter(col -> !indexColNameMap.containsValue(col.toLowerCase())).collect(Collectors.toList());
         if (missingColumns.size() > 0){
             throw new ParsingException(ParsingExceptionType.MISSING_EXPECTED_COLUMNS, missingColumns);
         }

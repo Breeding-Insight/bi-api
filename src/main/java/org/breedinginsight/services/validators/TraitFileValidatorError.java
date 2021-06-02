@@ -34,13 +34,13 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingMethodMsg() {
-        return new ValidationError("method", "Missing method", HttpStatus.UNPROCESSABLE_ENTITY);
+    public ValidationError getTraitIdDoesNotExistMsg() {
+        return new ValidationError("traitId", "Missing trait id", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
-    public ValidationError getMissingMethodNameMsg() {
-        return new ValidationError("Method name", "Missing method name", HttpStatus.UNPROCESSABLE_ENTITY);
+    public ValidationError getMissingMethodMsg() {
+        return new ValidationError("method", "Missing method", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -74,11 +74,6 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingTraitDescriptionMsg() {
-        return new ValidationError("Trait description", "Missing trait description", HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-
-    @Override
     public ValidationError getMissingProgramObservationLevelMsg() {
         return new ValidationError("Trait level", "Missing trait level", HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -94,8 +89,34 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getBadScaleCategory() {
+        return new ValidationError("Scale categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getBlankScaleCategoryLabelMsg() {
+        return new ValidationError("Scale Categories",
+                "Scale category label cannot be blank.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getBlankScaleCategoryValueMsg() {
+        return new ValidationError("Scale Categories",
+                "Scale category value cannot be blank.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getMaxLessThenMinError() {
+        return new ValidationError("Scale upper limit/Scale lower limit",
+                "Scale upper limit must be greater than scale lower limit.",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
-        return new ValidationError("Trait name", "Trait name - Scale name - Method name combination already exists", HttpStatus.CONFLICT);
+        return new ValidationError("Trait name", "Trait name already exists", HttpStatus.CONFLICT);
     }
 
     @Override
@@ -107,7 +128,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
         matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
         return new ValidationError("Trait name",
-                "traitName - scaleName - methodName combination is a duplicate. Duplicate set of traits are rows " + matchingRows.toString(),
+                "Trait name duplicated in file. Duplicate set of traits are rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
     }
 
@@ -118,11 +139,5 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("Trait abbreviations",
                 "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
-    }
-
-    @Override
-    public ValidationError getTraitLevelDoesNotExist(List<String> availableTraitLevels) {
-        return new ValidationError("Trait level",
-                "Trait level does not exist. Available levels are " + availableTraitLevels.toString(), HttpStatus.NOT_FOUND);
     }
 }

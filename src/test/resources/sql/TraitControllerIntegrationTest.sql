@@ -32,8 +32,8 @@ select program.id, bi_user.id, bi_user.id from program
 join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 1
 
 -- name: InsertMethod
-insert into method (program_ontology_id, method_name, created_by, updated_by)
-select program_ontology.id, 'Test Method', bi_user.id, bi_user.id from program_ontology
+insert into method (program_ontology_id, created_by, updated_by)
+select program_ontology.id, bi_user.id, bi_user.id from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
 join bi_user on bi_user.name = 'system' limit 1
 
@@ -49,7 +49,7 @@ insert into trait (program_ontology_id, trait_name, abbreviations, method_id, sc
 select program_ontology.id, 'Test Trait', ARRAY['t1', 't2'], method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join method on method.program_ontology_id = program_ontology.id and method.method_name = 'Test Method'
+join method on method.program_ontology_id = program_ontology.id
 join scale on scale.program_ontology_id = program_ontology.id and scale.scale_name = 'Test Scale'
 join program_observation_level on program_ontology.program_id = program_observation_level.program_id and program_observation_level.name = 'Plant'
 join bi_user on bi_user.name = 'system' limit 1
@@ -86,7 +86,7 @@ BEGIN
 
 user_id := (SELECT id from bi_user where name = 'system');
 program_ontology_id := (SELECT program_ontology.id from program_ontology join program on program.id = program_ontology.program_id and program.name = 'Other Test Program');
-method_id := (SELECT method.id from method where method.method_name = 'Test Method');
+method_id := (SELECT method.id from method limit 1);
 scale_id := (SELECT scale.id from scale where scale.scale_name = 'Test Scale');
 program_observation_level_id := (SELECT program_observation_level.id from program_observation_level join program on program.id = program_observation_level.program_id and program.name = 'Test Program');
 

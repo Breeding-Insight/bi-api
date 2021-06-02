@@ -68,9 +68,6 @@ public class BrapiObservationVariableService {
         TraitDataType traitDataType;
 
         switch (dataType) {
-            case CODE:
-                traitDataType = TraitDataType.CODE;
-                break;
             case DATE:
                 traitDataType = TraitDataType.DATE;
                 break;
@@ -103,7 +100,7 @@ public class BrapiObservationVariableService {
         org.breedinginsight.model.Scale biScale = trait.getScale();
 
         Method brapiMethod = Method.builder()
-                .methodName(biMethod.getMethodName())
+                .methodName(String.format("%s %s", trait.getTraitName(), biMethod.getMethodClass()))
                 .description(biMethod.getDescription())
                 .methodDbId(biMethod.getId().toString())
                 .propertyClass(biMethod.getMethodClass())
@@ -144,9 +141,9 @@ public class BrapiObservationVariableService {
                 //.alternativeAbbreviations(Arrays.asList(trait.getAbbreviations().clone()))
                 .attribute(trait.getAttribute())
                 .propertyClass(trait.getTraitClass())
-                .description(trait.getDescription())
                 .entity(trait.getEntity())
                 .mainAbbreviation(trait.getMainAbbreviation())
+                .description(trait.getMethod().getDescription())
                 //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service
                 //.status(trait.getStatus())
                 .synonyms(trait.getSynonyms())

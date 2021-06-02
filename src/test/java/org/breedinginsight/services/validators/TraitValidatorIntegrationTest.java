@@ -85,7 +85,6 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
         Method method1 = new Method();
-        method1.setMethodName("Test Method");
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
@@ -107,7 +106,6 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
         Method method1 = new Method();
-        method1.setMethodName("Test Method");
         trait1.setScale(scale1);
         trait1.setMethod(method1);
 
