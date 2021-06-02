@@ -39,12 +39,6 @@ jobs:
         run: |
           git config --local user.email "bidevteam@cornell.edu"
           git config --local user.name "rob-ouser-bi"
-          git add .
-          git commit -m "[autocommit] Updating version.properties"
-      - name: Push changes  # push the output folder to your repo
-        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.ROB_OUSER_TOKEN }}
-          branch: ${{ github.ref }}
-          force: true
+          git remote set-url origin https://x-access-token:${{ secrets.ROB_OUSER_TOKEN }}@github.com/${{ github.repository }}
+          git commit -am "[autocommit] Updating version.properties"
+          git push || echo "No changes to commit"
