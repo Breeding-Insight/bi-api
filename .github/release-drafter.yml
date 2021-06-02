@@ -7,8 +7,6 @@ categories:
     label: 'bug'
   - title: 'Hotfixes'
     label: 'hotfix'
-  - title: 'Releases'
-    label: 'release'
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 version-resolver:
   major:
@@ -20,7 +18,7 @@ version-resolver:
   patch:
     labels:
       - 'patch'
-  default: patch
+  default: minor
 template: |
   ## Changes
 
