@@ -76,7 +76,7 @@ jobs:
         run: echo ::set-output name=version::$(echo $(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
       - name: Set tag
         id: vars
-        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:$(sed -nE "s/\+/-/p" <<< ${{steps.version.outputs.version}}))
+        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:${{steps.version.outputs.version}})
       - name: Build Docker and push image
         run: |
           docker build . --file Dockerfile --tag ${{steps.vars.outputs.imageName}}
