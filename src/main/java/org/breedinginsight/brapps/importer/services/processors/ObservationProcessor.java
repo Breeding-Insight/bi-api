@@ -19,7 +19,6 @@ package org.breedinginsight.brapps.importer.services.processors;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;

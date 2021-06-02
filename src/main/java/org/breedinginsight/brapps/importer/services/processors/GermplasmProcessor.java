@@ -21,10 +21,8 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
-import org.breedinginsight.brapps.importer.daos.BrAPIProgramDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -45,30 +43,16 @@ public class GermplasmProcessor implements Processor {
     private static final String NAME = "Germplasm";
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
-    private BrAPIProgramDAO brAPIProgramDAO;
-    //private BrAPIProgram brAPIProgram;
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
     List<BrAPIGermplasm> existingGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
 
     @Inject
-    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO, BrAPIProgramDAO brAPIProgramDAO) {
+    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO) {
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
-        this.brAPIProgramDAO = brAPIProgramDAO;
     }
 
     private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
-
-        // Get BrAPI Program
-        /*
-        try {
-            Optional<BrAPIProgram> optionalBrAPIProgram = brAPIProgramDAO.getProgram(program.getId());
-            if (optionalBrAPIProgram.isEmpty()) throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program was not found in the brapi service");
-            brAPIProgram = optionalBrAPIProgram.get();
-        } catch (ApiException e) {
-            throw new InternalServerException(e.toString(), e);
-        }
-         */
 
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmNames = new HashSet<>();

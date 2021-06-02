@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.brapps.importer.model.imports.phenotyping;
 
-import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -29,38 +28,40 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
+import javax.inject.Singleton;
 import java.util.List;
 
-@Prototype
+@Singleton
 @Slf4j
 public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
 
     private final String IMPORT_TYPE_ID = "PhenotypingStudyWithDataImport";
 
-    private GermplasmProcessor germplasmProcessor;
-    private TrialProcessor trialProcessor;
-    private LocationProcessor locationProcessor;
-    private StudyProcessor studyProcessor;
-    private ObservationUnitProcessor observationUnitProcessor;
-    private ObservationProcessor observationProcessor;
-    private ProcessorManager processorManager;
+    private Provider<GermplasmProcessor> germplasmProcessorProvider;
+    private Provider<TrialProcessor> trialProcessorProvider;
+    private Provider<LocationProcessor> locationProcessorProvider;
+    private Provider<StudyProcessor> studyProcessorProvider;
+    private Provider<ObservationUnitProcessor> observationUnitProcessorProvider;
+    private Provider<ObservationProcessor> observationProcessorProvider;
+    private Provider<ProcessorManager> processorManagerProvider;
 
     @Inject
-    public PhenotypingStudyWithDataImportService(GermplasmProcessor germplasmProcessor,
-                                                 TrialProcessor trialProcessor,
-                                                 LocationProcessor locationProcessor,
-                                                 StudyProcessor studyProcessor,
-                                                 ObservationUnitProcessor observationUnitProcessor,
-                                                 ObservationProcessor observationProcessor,
-                                                 ProcessorManager processorManager)
+    public PhenotypingStudyWithDataImportService(Provider<GermplasmProcessor> germplasmProcessorProvider,
+                                                 Provider<TrialProcessor> trialProcessorProvider,
+                                                 Provider<LocationProcessor> locationProcessorProvider,
+                                                 Provider<StudyProcessor> studyProcessorProvider,
+                                                 Provider<ObservationUnitProcessor> observationUnitProcessorProvider,
+                                                 Provider<ObservationProcessor> observationProcessorProvider,
+                                                 Provider<ProcessorManager> processorManagerProvider)
     {
-        this.germplasmProcessor = germplasmProcessor;
-        this.trialProcessor = trialProcessor;
-        this.locationProcessor = locationProcessor;
-        this.studyProcessor = studyProcessor;
-        this.observationUnitProcessor = observationUnitProcessor;
-        this.observationProcessor = observationProcessor;
-        this.processorManager = processorManager;
+        this.germplasmProcessorProvider = germplasmProcessorProvider;
+        this.trialProcessorProvider = trialProcessorProvider;
+        this.locationProcessorProvider = locationProcessorProvider;
+        this.studyProcessorProvider = studyProcessorProvider;
+        this.observationUnitProcessorProvider = observationUnitProcessorProvider;
+        this.observationProcessorProvider = observationProcessorProvider;
+        this.processorManagerProvider = processorManagerProvider;
     }
 
     @Override
@@ -78,14 +79,14 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
             throws UnprocessableEntityException {
 
         ImportPreviewResponse response = null;
-        List<Processor> processors = List.of(germplasmProcessor,
-                                             trialProcessor,
-                                             locationProcessor,
-                                             studyProcessor,
-                                             observationUnitProcessor,
-                                             observationProcessor);
+        List<Processor> processors = List.of(germplasmProcessorProvider.get(),
+                                             trialProcessorProvider.get(),
+                                             locationProcessorProvider.get(),
+                                             studyProcessorProvider.get(),
+                                             observationUnitProcessorProvider.get(),
+                                             observationProcessorProvider.get());
         try {
-            response = processorManager.process(brAPIImports, processors, program, upload, commit);
+            response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, commit);
         } catch (ValidatorException e) {
             log.error(e.getMessage());
         }
