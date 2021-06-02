@@ -40,5 +40,4 @@ jobs:
           git config --local user.email "bidevteam@cornell.edu"
           git config --local user.name "rob-ouser-bi"
           git remote set-url origin https://x-access-token:${{ secrets.ROB_OUSER_TOKEN }}@github.com/${{ github.repository }}
-          git commit -am "[autocommit] Updating version.properties"
-          git push || echo "No changes to commit"
+          git commit -am "[autocommit] Updating version.properties" && git push || echo "No changes to commit"
