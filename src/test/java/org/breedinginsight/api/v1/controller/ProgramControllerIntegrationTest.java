@@ -77,7 +77,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private FannyPack securityFp;
 
     private ProgramEntity validProgram;
-    private ProgramEntity otherProgram;
+    private Program otherProgram;
     private User validUser;
     private Species validSpecies;
     private Role validRole;
@@ -183,20 +183,50 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         }
 
         actingUser = getActingUser();
-
-        // Insert and get program for tests
-        dsl.execute(fp.get("InsertOtherProgram"));
-        otherProgram = programDao.fetchByName("Other Test Program").get(0);
+        otherProgram = insertAndFetchTestProgram();
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
 
         // Insert and get location for tests
+        validLocation = insertAndFetchTestLocation();
+
+    }
+
+    public Program insertAndFetchTestProgram() throws Exception {
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest programRequest = ProgramRequest.builder()
+                .name("Other Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .build();
+
+        String json;
         try {
-            validLocation = insertAndFetchTestLocation();
-        } catch (Exception e){
-            throw new Exception(e.toString());
+            json = objMapper.writeValueAsString(programRequest);
+        } catch (JsonProcessingException e) {
+            throw new Exception("Problem parsing program");
         }
 
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/", json)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String programId = result.get("id").getAsString();
+
+        Optional<Program> program = programService.getById(UUID.fromString(programId));
+        return program.orElseThrow(() -> new Exception("Unable to get test program"));
     }
 
     public ProgramLocation insertAndFetchTestLocation() throws Exception {
