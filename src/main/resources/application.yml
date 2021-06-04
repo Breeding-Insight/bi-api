@@ -140,6 +140,9 @@ web:
     error:
       url: ${web.base-url}/account-error
 
+backend:
+  base-url: ${WEB_BASE_URL:`http://localhost:8081`}
+
 brapi:
   server:
     default-url: ${BRAPI_DEFAULT_URL:`https://test-server.brapi.org`}
