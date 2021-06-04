@@ -31,12 +31,15 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.brapi.auth.model.OpenIdConfiguration;
 import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.services.TokenService;
 
 import javax.inject.Inject;
 import javax.validation.constraints.NotBlank;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -94,7 +97,7 @@ public class TokenController {
 
     @Get("/programs/{programId}/.well-known/openid-configuration")
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse getConfiguration(@PathVariable("programId") UUID programId) {
+    public HttpResponse<OpenIdConfiguration> getConfiguration(@PathVariable("programId") UUID programId) {
 
         /*
             {
@@ -108,23 +111,20 @@ public class TokenController {
               "id_token_signing_alg_values_supported": []
             }
          */
-        JsonObject configuration = new JsonObject();
-        configuration.add("issuer", new JsonPrimitive(""));
+        OpenIdConfiguration configuration = new OpenIdConfiguration();
+        configuration.setIssuer("");
         String authorizeUrl = String.format("%s/%s/programs/%s/brapi/authorize", backendBaseUrl, biapiVersion, programId);
-        configuration.add("authorization_endpoint", new JsonPrimitive(authorizeUrl));
-        configuration.add("jwks_uri", new JsonPrimitive(""));
-        configuration.add("token_endpoint", new JsonPrimitive(""));
-        JsonArray grants = new JsonArray();
-        grants.add("implict");
-        configuration.add("grant_types_supported", grants);
+        configuration.setAuthorization_endpoint(authorizeUrl);
+        configuration.setJwks_uri("");
+        configuration.setToken_endpoint("");
+        configuration.setGrant_types_supported(List.of("implicit"));
         JsonArray responseTypes = new JsonArray();
         responseTypes.add("token");
-        configuration.add("response_types_supported", responseTypes);
+        configuration.setResponse_types_supported(List.of("token"));
         JsonArray subjectTypes = new JsonArray();
         subjectTypes.add("public");
-        configuration.add("subject_types_supported", subjectTypes);
-        JsonArray signingValues = new JsonArray();
-        configuration.add("id_token_signing_alg_values_supported", signingValues);
+        configuration.setSubject_types_supported(List.of("public"));
+        configuration.setId_token_signing_alg_values_supported(new ArrayList());
 
         return HttpResponse.ok(configuration);
     }
