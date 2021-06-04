@@ -17,10 +17,14 @@
 package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Prototype;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPIObservationVariableDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Observation;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -33,17 +37,24 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.toSet;
 
 @Prototype
 public class ObservationProcessor implements Processor {
 
     private static final String NAME = "Observation";
 
+    private BrAPIObservationVariableDAO brAPIVariableDAO;
     private BrAPIObservationDAO brAPIObservationDAO;
-    private Map<Observation, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
+    private Map<Integer, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
+    private Map<String, BrAPIObservationVariable> variableByName = new HashMap<>();
 
     @Inject
-    public ObservationProcessor(BrAPIObservationDAO brAPIObservationDAO) {
+    public ObservationProcessor(BrAPIObservationVariableDAO brAPIVariableDAO,
+                                BrAPIObservationDAO brAPIObservationDAO) {
+        this.brAPIVariableDAO = brAPIVariableDAO;
         this.brAPIObservationDAO = brAPIObservationDAO;
     }
 
@@ -51,21 +62,41 @@ public class ObservationProcessor implements Processor {
         // TODO: check according to breedbase rules and report issues
     }
 
-    private void getDependentDbIds(List<BrAPIImport> importRows) {
+    private void getDependentDbIds(List<BrAPIImport> importRows, Program program) {
 
-        // TODO: any dependency not in import must already exist is service
+        // TODO: any dependency not in import must already exist in brapi service
         if (!importRows.isEmpty()) {
             if (importRows.get(0).getGermplasm() == null) {
-                // get and set germplasmDbId in all observations based on name lookup
+                // TODO: get and set germplasmDbId in all observations based on name lookup
             }
             if (importRows.get(0).getStudy() == null) {
-
+                // TODO
             }
             if (importRows.get(0).getObservationUnit() == null) {
-
+                // TODO
             }
             if (importRows.get(0).getObservationVariable() == null) {
+                List<String> uniqueVariableNames = importRows.stream()
+                        .map(observationImport -> observationImport.getObservation().getTrait().getReferenceValue())
+                        .distinct()
+                        .collect(Collectors.toList());
+                List<BrAPIObservationVariable> existingVariables;
 
+                try {
+                    existingVariables = brAPIVariableDAO.getVariableByName(uniqueVariableNames, program.getId());
+                } catch (ApiException e) {
+                    // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+                    throw new InternalServerException(e.toString(), e);
+                }
+
+                Set<String> names = existingVariables.stream().map(BrAPIObservationVariable::getObservationVariableName).collect(toSet());
+                if (!names.containsAll(uniqueVariableNames)) {
+                    throw new HttpStatusException(HttpStatus.NOT_FOUND, "Observation variables must exist in brapi service");
+                }
+
+                existingVariables.forEach(existingVariable -> {
+                    variableByName.put(existingVariable.getObservationVariableName(), existingVariable);
+                });
             }
         }
     }
@@ -75,20 +106,23 @@ public class ObservationProcessor implements Processor {
 
         checkExistingObservations(importRows, program);
 
-        getDependentDbIds(importRows);
+        getDependentDbIds(importRows, program);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
             Observation observation = brapiImport.getObservation();
+
+            BrAPIObservationVariable variable = variableByName.get(observation.getTrait().getReferenceValue());
             BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
 
-            if (!observationByHash.containsKey(observation)) {
-                observationByHash.put(observation, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
+            int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(), variable.getObservationVariableName());
+            if (!observationByHash.containsKey(hash)) {
+                observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
                 mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
             }
-            mappedImportRow.setObservation(observationByHash.get(observation));
+            mappedImportRow.setObservation(observationByHash.get(hash));
             mappedBrAPIImport.put(i, mappedImportRow);
         }
 
@@ -112,7 +146,6 @@ public class ObservationProcessor implements Processor {
 
         List<BrAPIObservation> observations = ProcessorData.getNewObjects(observationByHash);
 
-        // POST Study
         List<BrAPIObservation> createdObservations = new ArrayList<>();
         try {
             createdObservations.addAll(brAPIObservationDAO.createBrAPIObservation(observations, program.getId(), upload));
@@ -122,13 +155,18 @@ public class ObservationProcessor implements Processor {
 
         // Update our records
         createdObservations.forEach(observation -> {
-            PendingImportObject<BrAPIObservation> preview = observationByHash.get(Observation.observationFromBrapiObservation(observation));
+            int hash = getObservationHash(observation.getObservationUnitName(), observation.getObservationVariableName());
+            PendingImportObject<BrAPIObservation> preview = observationByHash.get(hash);
             preview.setBrAPIObject(observation);
         });
     }
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
         // TODO
+    }
+
+    private static int getObservationHash(String observationUnitName, String variableName) {
+        return Objects.hash(observationUnitName, variableName);
     }
 
     @Override

@@ -107,7 +107,6 @@ public class TrialProcessor implements Processor {
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
         List<BrAPITrial> trials = ProcessorData.getNewObjects(trialByName);
 
-        // POST Study
         List<BrAPITrial> createdTrials = new ArrayList<>();
         try {
             createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));

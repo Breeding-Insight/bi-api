@@ -22,8 +22,8 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -42,6 +42,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -57,7 +58,9 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -103,7 +106,10 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private String invalidAccessibility = invalidUUID;
     private String invalidTopography = invalidUUID;
 
-    private Gson gson = new Gson();
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
+
     private ObjectMapper objMapper = new ObjectMapper();
     private ListAppender<ILoggingEvent> loggingEventListAppender;
 
@@ -207,26 +213,47 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .species(speciesRequest)
                 .build();
 
-        String json;
-        try {
-            json = objMapper.writeValueAsString(programRequest);
-        } catch (JsonProcessingException e) {
-            throw new Exception("Problem parsing program");
-        }
-
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/", json)
+                POST("/programs/", gson.toJson(programRequest))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
+        /*
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        Program program = gson.fromJson(result, Program.class);
+         */
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String programId = result.get("id").getAsString();
 
-        Optional<Program> program = programService.getById(UUID.fromString(programId));
-        return program.orElseThrow(() -> new Exception("Unable to get test program"));
+        Program program = getProgramById(UUID.fromString(programId));
+
+        return program;
+    }
+
+    private Program getProgramById(UUID programId) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        Program program = gson.fromJson(result, Program.class);
+
+        return program;
     }
 
     public ProgramLocation insertAndFetchTestLocation() throws Exception {
@@ -567,9 +594,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String newProgramId = result.getAsJsonPrimitive("id").getAsString();
 
-        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
-        assertTrue(createdProgram.isPresent(), "Created program was not found");
-        Program program = createdProgram.get();
+        Program program = getProgramById(UUID.fromString(newProgramId));
 
         checkMinimalValidProgram(validProgram, result);
 
@@ -748,9 +773,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        Optional<Program> createdProgram = programService.getById(validProgram.getId());
-        assertTrue(createdProgram.isPresent(), "Created program was not found");
-        Program program = createdProgram.get();
+        Program program = getProgramById(validProgram.getId());
 
         assertEquals(true, program.getActive(), "Inactive flag not set in database");
     }
@@ -792,6 +815,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
         assertTrue(createdProgram.isPresent(), "Created program was not found");
         Program program = createdProgram.get();
+
 
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 

@@ -107,7 +107,6 @@ public class LocationProcessor implements Processor {
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
         List<BrAPILocation> locations = ProcessorData.getNewObjects(locationByName);
 
-        // POST Study
         List<BrAPILocation> createdLocations = new ArrayList<>();
         try {
             createdLocations.addAll(brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload));
