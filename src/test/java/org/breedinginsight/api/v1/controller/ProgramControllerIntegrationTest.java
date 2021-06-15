@@ -190,6 +190,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         actingUser = getActingUser();
         otherProgram = insertAndFetchTestProgram();
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
 
@@ -220,15 +221,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         );
 
         HttpResponse<String> response = call.blockingFirst();
-        /*
-        HttpResponse<String> response = call.blockingFirst();
-
-        JsonObject result = JsonParser.parseString(response.body())
-                .getAsJsonObject()
-                .getAsJsonObject("result");
-
-        Program program = gson.fromJson(result, Program.class);
-         */
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String programId = result.get("id").getAsString();
@@ -374,6 +366,23 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
         assertEquals(program.getUpdatedBy().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+    }
+
+    public void checkValidProgram(Program program, JsonObject programJson){
+
+        assertEquals(program.getName(), programJson.get("name").getAsString(), "Wrong name");
+        assertEquals(program.getAbbreviation(), programJson.get("abbreviation").getAsString(), "Wrong abbreviation");
+        assertEquals(program.getDocumentationUrl(), programJson.get("documentationUrl").getAsString(), "Wrong documentation url");
+        assertEquals(program.getObjective(), programJson.get("objective").getAsString(), "Wrong objective");
+
+        JsonObject species = programJson.getAsJsonObject("species");
+        assertEquals(program.getSpecies().getId().toString(), species.get("id").getAsString(), "Wrong species");
+
+        JsonObject createdByUser = programJson.getAsJsonObject("createdByUser");
+        assertEquals(program.getCreatedByUser().getId().toString(), createdByUser.get("id").getAsString(), "Wrong created by user");
+
+        JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
+        assertEquals(program.getUpdatedByUser().getId().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
     }
 
     public void checkMinimalValidProgram(ProgramEntity program, JsonObject programJson){
@@ -812,11 +821,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         HttpResponse<String> archiveResponse = archiveCall.blockingFirst();
         assertEquals(HttpStatus.OK, archiveResponse.getStatus());
 
-        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
-        assertTrue(createdProgram.isPresent(), "Created program was not found");
-        Program program = createdProgram.get();
-
-
+        Program program = getProgramById(UUID.fromString(newProgramId));
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
         dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);
