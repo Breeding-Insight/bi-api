@@ -16,10 +16,7 @@
  */
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -35,6 +32,8 @@ import junit.framework.AssertionFailedError;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -44,17 +43,18 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
@@ -76,12 +76,21 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     private UserDAO userDAO;
     @Inject
     private TraitDAO traitDAO;
+    @Inject
+    private SpeciesService speciesService;
+
+    private Species validSpecies;
+
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
+
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
-    private ProgramEntity validProgram;
+    private Program validProgram;
     private File validFile = new File("src/test/resources/files/data_one_row.csv");
     private String validUploadId;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
@@ -98,7 +107,21 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         // Insert program
-        dsl.execute(fp.get("InsertProgram"));
+        //dsl.execute(fp.get("InsertProgram"));
+
+        validSpecies = getTestSpecies();
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest program = ProgramRequest.builder()
+                .name("Test Program")
+                .species(speciesRequest)
+                .build();
+
+        validProgram = insertAndFetchTestProgram(program);
 
         // Insert user into program
         dsl.execute(fp.get("InsertProgramUser"));
@@ -108,13 +131,52 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         // Insert Trait
         dsl.execute(fp.get("InsertProgramObservationLevel"));
-        dsl.execute(fp.get("InsertProgramOntology"));
+        //dsl.execute(fp.get("InsertProgramOntology"));
         dsl.execute(fp.get("InsertMethod"));
         dsl.execute(fp.get("InsertScale"));
         dsl.execute(fp.get("InsertTrait"));
 
-        // Retrieve our new data
-        validProgram = programDao.findAll().get(0);
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
+    }
+
+    public Program insertAndFetchTestProgram(ProgramRequest programRequest) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/", gson.toJson(programRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String programId = result.get("id").getAsString();
+
+        Program program = getProgramById(UUID.fromString(programId));
+
+        return program;
+    }
+
+    private Program getProgramById(UUID programId) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        Program program = gson.fromJson(result, Program.class);
+
+        return program;
     }
 
     @Test
