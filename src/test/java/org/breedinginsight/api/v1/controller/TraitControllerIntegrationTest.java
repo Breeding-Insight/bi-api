@@ -66,6 +66,7 @@ import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -95,6 +96,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     private List<Trait> validTraits;
     private Program validProgram;
     private Program otherValidProgram;
+    private ProgramEntity missingBrapiProgram;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
@@ -121,7 +123,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
-        //dsl.execute(fp.get("InsertProgram"));
+        dsl.execute(fp.get("InsertProgram"));
+        missingBrapiProgram = programDao.findAll().get(0);
 
         validSpecies = getTestSpecies();
 
@@ -138,7 +141,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 .species(speciesRequest)
                 .build();
 
-        validProgram = insertAndFetchTestProgram(program);
+        validProgram = insertAndFetchTestProgram(gson, client, program);
 
         // Insert program observation level
         dsl.execute(fp.get("InsertProgramObservationLevel"));
@@ -151,8 +154,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("InsertScale"));
         dsl.execute(fp.get("InsertTrait"));
 
-        // Retrieve our new data
-        //validProgram = programDao.findAll().get(0);
+
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
 
@@ -170,7 +172,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 .species(speciesRequest)
                 .build();
 
-        otherValidProgram = insertAndFetchTestProgram(otherProgram);
+        otherValidProgram = insertAndFetchTestProgram(gson, client, otherProgram);
 
         dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
         //dsl.execute(fp.get("InsertOtherProgramOntology"));
@@ -185,42 +187,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public Species getTestSpecies() {
         List<Species> species = speciesService.getAll();
         return species.get(0);
-    }
-
-    public Program insertAndFetchTestProgram(ProgramRequest programRequest) throws Exception {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/", gson.toJson(programRequest))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        String programId = result.get("id").getAsString();
-
-        Program program = getProgramById(UUID.fromString(programId));
-
-        return program;
-    }
-
-    private Program getProgramById(UUID programId) {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body())
-                .getAsJsonObject()
-                .getAsJsonObject("result");
-
-        Program program = gson.fromJson(result, Program.class);
-
-        return program;
     }
 
     @Test
@@ -273,7 +239,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait);
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait))
+                POST("/programs/" + missingBrapiProgram.getId() + "/traits", List.of(trait))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );

@@ -65,6 +65,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.TestUtils.getProgramById;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -189,17 +191,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         }
 
         actingUser = getActingUser();
-        otherProgram = insertAndFetchTestProgram();
-        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
-
-        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
-
-        // Insert and get location for tests
-        validLocation = insertAndFetchTestLocation();
-
-    }
-
-    public Program insertAndFetchTestProgram() throws Exception {
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
                 .commonName(validSpecies.getCommonName())
@@ -214,38 +205,14 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .species(speciesRequest)
                 .build();
 
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/", gson.toJson(programRequest))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
+        otherProgram = insertAndFetchTestProgram(gson, client, programRequest);
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
 
-        HttpResponse<String> response = call.blockingFirst();
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
 
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        String programId = result.get("id").getAsString();
+        // Insert and get location for tests
+        validLocation = insertAndFetchTestLocation();
 
-        Program program = getProgramById(UUID.fromString(programId));
-
-        return program;
-    }
-
-    private Program getProgramById(UUID programId) {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body())
-                .getAsJsonObject()
-                .getAsJsonObject("result");
-
-        Program program = gson.fromJson(result, Program.class);
-
-        return program;
     }
 
     public ProgramLocation insertAndFetchTestLocation() throws Exception {
@@ -603,7 +570,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String newProgramId = result.getAsJsonPrimitive("id").getAsString();
 
-        Program program = getProgramById(UUID.fromString(newProgramId));
+        Program program = getProgramById(gson, client, UUID.fromString(newProgramId));
 
         checkMinimalValidProgram(validProgram, result);
 
@@ -782,7 +749,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        Program program = getProgramById(validProgram.getId());
+        Program program = getProgramById(gson, client, validProgram.getId());
 
         assertEquals(true, program.getActive(), "Inactive flag not set in database");
     }
@@ -821,7 +788,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         HttpResponse<String> archiveResponse = archiveCall.blockingFirst();
         assertEquals(HttpStatus.OK, archiveResponse.getStatus());
 
-        Program program = getProgramById(UUID.fromString(newProgramId));
+        Program program = getProgramById(gson, client, UUID.fromString(newProgramId));
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
         dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);

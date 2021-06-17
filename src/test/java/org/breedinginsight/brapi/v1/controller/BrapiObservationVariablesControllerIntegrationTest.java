@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
@@ -120,7 +121,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
                 .species(speciesRequest)
                 .build();
 
-        validProgram = insertAndFetchTestProgram(program);
+        validProgram = insertAndFetchTestProgram(gson, biClient, program);
 
         // Insert program observation level
         dsl.execute(fp.get("InsertProgramObservationLevel"));
@@ -135,7 +136,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
                 .species(speciesRequest)
                 .build();
 
-        otherValidProgram = insertAndFetchTestProgram(otherProgram);
+        otherValidProgram = insertAndFetchTestProgram(gson, biClient, otherProgram);
 
         dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
         dsl.execute(fp.get("InsertOtherTestOtherProgramUser"));
@@ -148,42 +149,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     public Species getTestSpecies() {
         List<Species> species = speciesService.getAll();
         return species.get(0);
-    }
-
-    public Program insertAndFetchTestProgram(ProgramRequest programRequest) throws Exception {
-
-        Flowable<HttpResponse<String>> call = biClient.exchange(
-                POST("/programs/", gson.toJson(programRequest))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        String programId = result.get("id").getAsString();
-
-        Program program = getProgramById(UUID.fromString(programId));
-
-        return program;
-    }
-
-    private Program getProgramById(UUID programId) {
-
-        Flowable<HttpResponse<String>> call = biClient.exchange(
-                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body())
-                .getAsJsonObject()
-                .getAsJsonObject("result");
-
-        Program program = gson.fromJson(result, Program.class);
-
-        return program;
     }
 
     Trait buildTestTrait(String name, String traitClass) {
