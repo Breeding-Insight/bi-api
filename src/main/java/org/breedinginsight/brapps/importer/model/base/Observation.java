@@ -36,6 +36,8 @@ import java.time.format.DateTimeFormatter;
         description = "An observation object is data that is collected on a trait for a given object being observed.")
 public class Observation implements BrAPIObject {
 
+    public static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
     private static final String TRAIT_NAME = "traitName";
     private static final String OBSERVATION_UNIT_NAME = "observationUnitName";
     private static final String STUDY_NAME = "studyName";
@@ -110,7 +112,6 @@ public class Observation implements BrAPIObject {
 
 
         // TODO: use common time format, using discrete analyzer format for now 16/12/2020 16:16:49
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
         ZonedDateTime zoned = datetime.atZone(ZoneId.of("US/Eastern"));
         OffsetDateTime timestamp = zoned.toOffsetDateTime();

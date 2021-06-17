@@ -117,7 +117,7 @@ public class ObservationProcessor implements Processor {
             BrAPIObservationVariable variable = variableByName.get(observation.getTrait().getReferenceValue());
             BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
 
-            int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(), variable.getObservationVariableName());
+            int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(), variable.getObservationVariableName(), observation.getObservationDate());
             if (!observationByHash.containsKey(hash)) {
                 observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
                 mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
@@ -155,7 +155,7 @@ public class ObservationProcessor implements Processor {
 
         // Update our records
         createdObservations.forEach(observation -> {
-            int hash = getObservationHash(observation.getObservationUnitName(), observation.getObservationVariableName());
+            int hash = getObservationHash(observation.getObservationUnitName(), observation.getObservationVariableName(), observation.getObservationTimeStamp().format(Observation.formatter));
             PendingImportObject<BrAPIObservation> preview = observationByHash.get(hash);
             preview.setBrAPIObject(observation);
         });
@@ -165,8 +165,8 @@ public class ObservationProcessor implements Processor {
         // TODO
     }
 
-    private static int getObservationHash(String observationUnitName, String variableName) {
-        return Objects.hash(observationUnitName, variableName);
+    private static int getObservationHash(String observationUnitName, String variableName, String observationDate) {
+        return Objects.hash(observationUnitName, variableName, observationDate);
     }
 
     @Override
