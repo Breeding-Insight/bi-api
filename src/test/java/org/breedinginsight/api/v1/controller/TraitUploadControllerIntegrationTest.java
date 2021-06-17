@@ -121,10 +121,10 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
                 .species(speciesRequest)
                 .build();
 
-        validProgram = insertAndFetchTestProgram(gson, client, program);
+        validProgram = insertAndFetchTestProgram(program);
 
         // Insert user into program
-        dsl.execute(fp.get("InsertProgramUser"));
+        //dsl.execute(fp.get("InsertProgramUser"));
 
         // Insert user into program as not active
         dsl.execute(fp.get("InsertInactiveProgramUser"));
@@ -141,6 +141,44 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     public Species getTestSpecies() {
         List<Species> species = speciesService.getAll();
         return species.get(0);
+    }
+
+    public Program insertAndFetchTestProgram(ProgramRequest programRequest) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/", gson.toJson(programRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String programId = result.get("id").getAsString();
+
+        Program program = getProgramById(UUID.fromString(programId));
+
+        return program;
+    }
+
+    public Program getProgramById(UUID programId) {
+
+        dsl.execute(fp.get("InsertProgramUser"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        Program program = gson.fromJson(result, Program.class);
+
+        return program;
     }
 
     @Test
