@@ -21,7 +21,10 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationVariableDAO;
@@ -116,6 +119,7 @@ public class ObservationProcessor implements Processor {
 
             BrAPIObservationVariable variable = variableByName.get(observation.getTrait().getReferenceValue());
             BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
+            brapiObservation.setObservationVariableDbId(variable.getObservationVariableDbId());
 
             int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(), variable.getObservationVariableName(), observation.getObservationDate());
             if (!observationByHash.containsKey(hash)) {
@@ -162,7 +166,50 @@ public class ObservationProcessor implements Processor {
     }
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
-        // TODO
+        // update study DbIds
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getStudy)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateStudyDbId);
+
+        // update germplasm DbIds
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getGermplasm)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateGermplasmDbId);
+
+        // update observation unit DbIds
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getObservationUnit)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateObservationUnitDbId);
+
+        // variables must already exist so don't need to update
+
+    }
+
+    private void updateStudyDbId(BrAPIStudy study) {
+        observationByHash.values().stream()
+                .filter(obs -> obs.getBrAPIObject().getStudyDbId().equals(study.getStudyName()))
+                .forEach(obs -> obs.getBrAPIObject().setStudyDbId(study.getStudyDbId()));
+    }
+
+    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
+        observationByHash.values().stream()
+                .filter(obs -> obs.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
+                .forEach(obs -> obs.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
+    }
+
+    private void updateObservationUnitDbId(BrAPIObservationUnit observationUnit) {
+        observationByHash.values().stream()
+                .filter(obs -> obs.getBrAPIObject().getObservationUnitName().equals(observationUnit.getObservationUnitName()))
+                .forEach(obs -> obs.getBrAPIObject().setObservationUnitDbId(observationUnit.getObservationUnitDbId()));
     }
 
     private static int getObservationHash(String observationUnitName, String variableName, String observationDate) {
