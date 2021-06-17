@@ -123,7 +123,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
-        dsl.execute(fp.get("InsertProgram"));
+        dsl.execute(fp.get("InsertProgramNotBrapi"));
         missingBrapiProgram = programDao.findAll().get(0);
 
         validSpecies = getTestSpecies();
