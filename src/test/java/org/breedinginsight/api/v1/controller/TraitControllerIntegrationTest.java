@@ -126,6 +126,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("InsertProgramNotBrapi"));
         missingBrapiProgram = programDao.findAll().get(0);
 
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), missingBrapiProgram.getId().toString());
+
         validSpecies = getTestSpecies();
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
@@ -153,8 +155,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("InsertMethod"));
         dsl.execute(fp.get("InsertScale"));
         dsl.execute(fp.get("InsertTrait"));
-
-
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
 
