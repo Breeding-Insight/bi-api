@@ -130,7 +130,7 @@ public class ObservationUnitProcessor implements Processor {
 
         List<BrAPIObservationUnit> createdObservationUnits = new ArrayList<>();
         try {
-            createdObservationUnits.addAll(brAPIObservationUnitDAO.createBrAPIObservationUnits(observationUnits, program.getId()));
+            createdObservationUnits.addAll(brAPIObservationUnitDAO.createBrAPIObservationUnits(observationUnits, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
