@@ -21,6 +21,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
@@ -62,7 +63,33 @@ public class ObservationProcessor implements Processor {
     }
 
     private void checkExistingObservations(List<BrAPIImport> importRows, Program program) {
-        // TODO: check according to breedbase rules and report issues
+        // will skip existing observations, no error reported
+
+        List<String> uniqueStudyNames = importRows.stream()
+                .map(observationImport -> observationImport.getObservation().getStudy().getReferenceValue())
+                .distinct()
+                .collect(Collectors.toList());
+        List<BrAPIObservation> existingObservations;
+
+        Set<Integer> observationHashes = importRows.stream()
+                .map(observationImport -> getObservationHash(observationImport.getObservation().getObservationUnit().getReferenceValue(),
+                        observationImport.getObservation().getTrait().getReferenceValue(),
+                        observationImport.getObservation().getObservationDate()))
+                .collect(Collectors.toSet());
+
+        try {
+            existingObservations = brAPIObservationDAO.getObservationsByStudyName(uniqueStudyNames, program.getId());
+            existingObservations.forEach(existingObservation -> {
+                int hash = getBrapiObservationHash(existingObservation);
+                if (observationHashes.contains(hash)) {
+                    observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.EXISTING, existingObservation));
+                }
+
+            });
+        } catch (ApiException e) {
+            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+            throw new InternalServerException(e.toString(), e);
+        }
     }
 
     private void getDependentDbIds(List<BrAPIImport> importRows, Program program) {
@@ -107,7 +134,8 @@ public class ObservationProcessor implements Processor {
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
 
-        checkExistingObservations(importRows, program);
+        // TODO: enable when brapi test server working
+        //checkExistingObservations(importRows, program);
 
         getDependentDbIds(importRows, program);
 
@@ -121,7 +149,9 @@ public class ObservationProcessor implements Processor {
             BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
             brapiObservation.setObservationVariableDbId(variable.getObservationVariableDbId());
 
-            int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(), variable.getObservationVariableName(), observation.getObservationDate());
+            int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(),
+                    variable.getObservationVariableName(),
+                    observation.getObservationDate());
             if (!observationByHash.containsKey(hash)) {
                 observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
                 mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
@@ -159,7 +189,7 @@ public class ObservationProcessor implements Processor {
 
         // Update our records
         createdObservations.forEach(observation -> {
-            int hash = getObservationHash(observation.getObservationUnitName(), observation.getObservationVariableName(), observation.getObservationTimeStamp().format(Observation.formatter));
+            int hash = getBrapiObservationHash(observation);
             PendingImportObject<BrAPIObservation> preview = observationByHash.get(hash);
             preview.setBrAPIObject(observation);
         });
@@ -210,6 +240,12 @@ public class ObservationProcessor implements Processor {
         observationByHash.values().stream()
                 .filter(obs -> obs.getBrAPIObject().getObservationUnitName().equals(observationUnit.getObservationUnitName()))
                 .forEach(obs -> obs.getBrAPIObject().setObservationUnitDbId(observationUnit.getObservationUnitDbId()));
+    }
+
+    private static int getBrapiObservationHash(BrAPIObservation observation) {
+        return getObservationHash(observation.getObservationUnitName(),
+               observation.getObservationVariableName(),
+               observation.getObservationTimeStamp().format(Observation.formatter));
     }
 
     private static int getObservationHash(String observationUnitName, String variableName, String observationDate) {
