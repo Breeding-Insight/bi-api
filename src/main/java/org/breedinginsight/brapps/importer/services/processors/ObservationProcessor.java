@@ -189,9 +189,12 @@ public class ObservationProcessor implements Processor {
 
         // Update our records
         createdObservations.forEach(observation -> {
+            // TODO: hashing mismatch issue and nothing depends on this so omit for now
+            /*
             int hash = getBrapiObservationHash(observation);
             PendingImportObject<BrAPIObservation> preview = observationByHash.get(hash);
             preview.setBrAPIObject(observation);
+             */
         });
     }
 
