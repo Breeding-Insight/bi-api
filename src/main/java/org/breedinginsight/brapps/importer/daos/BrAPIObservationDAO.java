@@ -73,7 +73,7 @@ public class BrAPIObservationDAO {
     }
 
     public List<BrAPIObservation> createBrAPIObservation(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
+        ObservationsApi api = new ObservationsApi(programDAO.getPhenoClient(programId));
         return BrAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
     }
 
