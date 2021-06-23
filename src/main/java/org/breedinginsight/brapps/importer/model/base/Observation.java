@@ -113,7 +113,7 @@ public class Observation implements BrAPIObject {
 
         // TODO: use common time format, using discrete analyzer format for now 16/12/2020 16:16:49
         LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
-        ZonedDateTime zoned = datetime.atZone(ZoneId.of("US/Eastern"));
+        ZonedDateTime zoned = datetime.atZone(ZoneId.of("UTC"));
         OffsetDateTime timestamp = zoned.toOffsetDateTime();
         observation.setObservationTimeStamp(timestamp);
 

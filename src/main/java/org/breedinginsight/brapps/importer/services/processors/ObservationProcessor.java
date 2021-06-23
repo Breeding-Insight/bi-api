@@ -21,7 +21,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
@@ -40,6 +39,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -134,8 +134,7 @@ public class ObservationProcessor implements Processor {
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
 
-        // TODO: enable when brapi test server working
-        //checkExistingObservations(importRows, program);
+        checkExistingObservations(importRows, program);
 
         getDependentDbIds(importRows, program);
 
@@ -189,12 +188,10 @@ public class ObservationProcessor implements Processor {
 
         // Update our records
         createdObservations.forEach(observation -> {
-            // TODO: hashing mismatch issue and nothing depends on this so omit for now
-            /*
             int hash = getBrapiObservationHash(observation);
             PendingImportObject<BrAPIObservation> preview = observationByHash.get(hash);
             preview.setBrAPIObject(observation);
-             */
+
         });
     }
 
@@ -248,7 +245,7 @@ public class ObservationProcessor implements Processor {
     private static int getBrapiObservationHash(BrAPIObservation observation) {
         return getObservationHash(observation.getObservationUnitName(),
                observation.getObservationVariableName(),
-               observation.getObservationTimeStamp().format(Observation.formatter));
+               observation.getObservationTimeStamp().withOffsetSameInstant(ZoneOffset.UTC).format(Observation.formatter));
     }
 
     private static int getObservationHash(String observationUnitName, String variableName, String observationDate) {
