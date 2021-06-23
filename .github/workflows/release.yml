@@ -1,41 +1,29 @@
-name: Versioning (develop)
+#
+#    See the NOTICE file distributed with this work for additional information
+#    regarding copyright ownership.
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+#
+
+name: Build Latest Docker
 
 on:
-  push:
-    branches:
-      - develop
-      - release/**
+  release:
+    types: [published]
   workflow_dispatch:
 
 jobs:
-  version:
-    if: github.actor != 'rob-ouser-bi'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          fetch-depth: 0
-      - name: Update version
-        run: sed -i -E "s/version=(v[0-9]*\.[0-9]*\.[0-9]*).*/version=\1+${{ github.run_number }}/" src/main/resources/version.properties
-      - name: Update version info
-        run: sed -i -E "s~versionInfo=.*~versionInfo=https://github.com/Breeding-Insight/bi-api/commit/${{ github.sha }}~" src/main/resources/version.properties
-      - name: Commit version.properties
-        run: |
-          git config --local user.email "bidevteam@cornell.edu"
-          git config --local user.name "rob-ouser-bi"
-          git add .
-          git commit -m "[autocommit] bumping build number"
-      - name: Push changes
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.ROB_OUSER_TOKEN }}
-          branch: ${{ github.ref }}
-          force: true
-
   docker:
-    needs: version
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -50,14 +38,14 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      
+
       - name: Extract branch name
         shell: bash
         run: echo ::set-output name=branch::$(echo ${GITHUB_REF#refs/heads/})
         id: extract_branch
-        
+
       - run: git pull origin ${{steps.extract_branch.outputs.branch}}
-      
+
       - name: Set up JDK 13
         uses: actions/setup-java@v1.4.3
         with:
@@ -88,18 +76,10 @@ jobs:
         run: echo ::set-output name=version::$(echo $(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
       - name: Set tag
         id: vars
-        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:$(sed -nE "s/\+/-/p" <<< ${{steps.version.outputs.version}}))
+        run: echo ::set-output name=imageName::$(echo breedinginsight/biapi:${{steps.version.outputs.version}})
       - name: Build Docker and push image
         run: |
           docker build . --file Dockerfile --tag ${{steps.vars.outputs.imageName}}
           docker push ${{steps.vars.outputs.imageName}}
-      - name: Tag develop
-        if: steps.extract_branch.outputs.branch == 'develop'
-        run: |
-          docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:develop
-          docker push breedinginsight/biapi:develop
-      - name: Tag release candidate
-        if: contains(github.ref, '/release/')
-        run: |
-          docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:rc
-          docker push breedinginsight/biapi:rc
+          docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:latest
+          docker push breedinginsight/biapi:latest
