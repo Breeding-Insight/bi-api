@@ -243,7 +243,10 @@ public class MappingManager {
                 ColumnType columnType = focusRow.getColumnType(matchedMapping.getValue().getFileFieldName());
                 if (columnType == ColumnType.DOUBLE) {
                     fileValue = String.valueOf(focusRow.getDouble(matchedMapping.getValue().getFileFieldName()));
-                } else {
+                } else if (columnType == ColumnType.INTEGER) {
+                    fileValue = String.valueOf(focusRow.getInt(matchedMapping.getValue().getFileFieldName()));
+                }
+                else {
                     fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
                 }
 
