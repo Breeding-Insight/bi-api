@@ -66,15 +66,19 @@ public class ObservationProcessor implements Processor {
         // will skip existing observations, no error reported
 
         List<String> uniqueStudyNames = importRows.stream()
-                .map(observationImport -> observationImport.getObservation().getStudy().getReferenceValue())
+                .map(BrAPIImport::getObservations)
+                .flatMap(Collection::stream)
+                .map(observation -> observation.getStudy().getReferenceValue())
                 .distinct()
                 .collect(Collectors.toList());
         List<BrAPIObservation> existingObservations;
 
         Set<Integer> observationHashes = importRows.stream()
-                .map(observationImport -> getObservationHash(observationImport.getObservation().getObservationUnit().getReferenceValue(),
-                        observationImport.getObservation().getTrait().getReferenceValue(),
-                        observationImport.getObservation().getObservationDate()))
+                .map(BrAPIImport::getObservations)
+                .flatMap(Collection::stream)
+                .map(observationImport -> getObservationHash(observationImport.getObservationUnit().getReferenceValue(),
+                        observationImport.getTrait().getReferenceValue(),
+                        observationImport.getObservationDate()))
                 .collect(Collectors.toSet());
 
         try {
@@ -107,7 +111,9 @@ public class ObservationProcessor implements Processor {
             }
             if (importRows.get(0).getObservationVariable() == null) {
                 List<String> uniqueVariableNames = importRows.stream()
-                        .map(observationImport -> observationImport.getObservation().getTrait().getReferenceValue())
+                        .map(BrAPIImport::getObservations)
+                        .flatMap(Collection::stream)
+                        .map(observation -> observation.getTrait().getReferenceValue())
                         .distinct()
                         .collect(Collectors.toList());
                 List<BrAPIObservationVariable> existingVariables;
@@ -134,29 +140,35 @@ public class ObservationProcessor implements Processor {
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
 
-        checkExistingObservations(importRows, program);
+        if (!importRows.isEmpty() && importRows.get(0).getObservations() != null) {
 
-        getDependentDbIds(importRows, program);
+            checkExistingObservations(importRows, program);
 
-        for (int i = 0; i < importRows.size(); i++) {
-            BrAPIImport brapiImport = importRows.get(i);
-            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+            getDependentDbIds(importRows, program);
 
-            Observation observation = brapiImport.getObservation();
+            for (int i = 0; i < importRows.size(); i++) {
+                BrAPIImport brapiImport = importRows.get(i);
+                PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
-            BrAPIObservationVariable variable = variableByName.get(observation.getTrait().getReferenceValue());
-            BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
-            brapiObservation.setObservationVariableDbId(variable.getObservationVariableDbId());
+                List<Observation> observations = brapiImport.getObservations();
 
-            int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(),
-                    variable.getObservationVariableName(),
-                    observation.getObservationDate());
-            if (!observationByHash.containsKey(hash)) {
-                observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
-                mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
+                for (Observation observation : observations) {
+                    BrAPIObservationVariable variable = variableByName.get(observation.getTrait().getReferenceValue());
+                    BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
+                    brapiObservation.setObservationVariableDbId(variable.getObservationVariableDbId());
+
+                    int hash = getObservationHash(observation.getObservationUnit().getReferenceValue(),
+                            variable.getObservationVariableName(),
+                            observation.getObservationDate());
+                    if (!observationByHash.containsKey(hash)) {
+                        observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
+                        mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
+                    }
+                    mappedImportRow.setObservation(observationByHash.get(hash));
+                    mappedBrAPIImport.put(i, mappedImportRow);
+                }
+
             }
-            mappedImportRow.setObservation(observationByHash.get(hash));
-            mappedBrAPIImport.put(i, mappedImportRow);
         }
 
         ImportPreviewStatistics stats = ImportPreviewStatistics.builder()
