@@ -60,7 +60,7 @@ public class TrialProcessor implements Processor {
         List<BrAPITrial> existingTrials;
 
         try {
-            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program.getId());
+            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
                 trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
             });

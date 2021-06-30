@@ -61,7 +61,7 @@ public class StudyProcessor implements Processor {
         List<BrAPIStudy> existingStudies;
 
         try {
-            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program.getId());
+            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
             existingStudies.forEach(existingStudy -> {
                 studyByName.put(existingStudy.getStudyName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
             });

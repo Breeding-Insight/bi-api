@@ -22,6 +22,7 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -41,11 +42,12 @@ public class BrAPITrialDAO {
         this.importDAO = importDAO;
     }
 
-    public List<BrAPITrial> getTrialByName(List<String> trialNames, UUID programId) throws ApiException {
+    public List<BrAPITrial> getTrialByName(List<String> trialNames, Program program) throws ApiException {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
         trialSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        TrialsApi api = new TrialsApi(programDAO.getCoreClient(programId));
+        TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,

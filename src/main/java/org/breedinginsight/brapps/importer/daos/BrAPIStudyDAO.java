@@ -22,6 +22,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -41,12 +42,12 @@ public class BrAPIStudyDAO {
         this.importDAO = importDAO;
     }
 
-    public List<BrAPIStudy> getStudyByName(List<String> studyNames, UUID programId) throws ApiException {
+    public List<BrAPIStudy> getStudyByName(List<String> studyNames, Program program) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
-        // could also add programId but
+        studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
         studySearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
+        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,

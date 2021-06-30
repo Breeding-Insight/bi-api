@@ -27,6 +27,7 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -51,12 +52,13 @@ public class BrAPIObservationDAO {
         this.importDAO = importDAO;
     }
 
-    public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, UUID programId) throws ApiException {
+    public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
 
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
+        observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationSearchRequest.setStudyNames(new ArrayList<>(studyNames));
-        ObservationsApi api = new ObservationsApi(programDAO.getPhenoClient(programId));
-        this.programId = programId;
+        ObservationsApi api = new ObservationsApi(programDAO.getPhenoClient(program.getId()));
+        this.programId = program.getId();
         return BrAPIDAOUtil.search(
                 api::searchObservationsPost,
                 this::searchObservationsSearchResultsDbIdGet,
