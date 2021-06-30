@@ -204,14 +204,6 @@ public class ObservationProcessor implements Processor {
                 .map(PendingImportObject::getBrAPIObject)
                 .forEach(this::updateStudyDbId);
 
-        // update germplasm DbIds
-        mappedBrAPIImport.values().stream()
-                .map(PendingImport::getGermplasm)
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(PendingImportObject::getBrAPIObject)
-                .forEach(this::updateGermplasmDbId);
-
         // update observation unit DbIds
         mappedBrAPIImport.values().stream()
                 .map(PendingImport::getObservationUnit)
@@ -228,12 +220,6 @@ public class ObservationProcessor implements Processor {
         observationByHash.values().stream()
                 .filter(obs -> obs.getBrAPIObject().getStudyDbId().equals(study.getStudyName()))
                 .forEach(obs -> obs.getBrAPIObject().setStudyDbId(study.getStudyDbId()));
-    }
-
-    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
-        observationByHash.values().stream()
-                .filter(obs -> obs.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
-                .forEach(obs -> obs.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
 
     private void updateObservationUnitDbId(BrAPIObservationUnit observationUnit) {
