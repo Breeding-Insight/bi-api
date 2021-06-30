@@ -78,7 +78,7 @@ public class ObservationProcessor implements Processor {
                 .collect(Collectors.toSet());
 
         try {
-            existingObservations = brAPIObservationDAO.getObservationsByStudyName(uniqueStudyNames, program.getId());
+            existingObservations = brAPIObservationDAO.getObservationsByStudyName(uniqueStudyNames, program);
             existingObservations.forEach(existingObservation -> {
                 int hash = getBrapiObservationHash(existingObservation);
                 if (observationHashes.contains(hash)) {

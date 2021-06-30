@@ -66,7 +66,7 @@ public class ObservationUnitProcessor implements Processor {
         List<BrAPIObservationUnit> existingObservationUnits;
 
         try {
-            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program.getId());
+            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program);
             existingObservationUnits.forEach(existingObservationUnit -> {
 
                 // update mapped brapi import, does in process
