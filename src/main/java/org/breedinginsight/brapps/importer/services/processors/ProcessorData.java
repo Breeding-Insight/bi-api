@@ -16,9 +16,6 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
@@ -26,12 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-@Getter
-@Setter
-//@Builder
-@NoArgsConstructor
-public class ProcessorData<T> {
-    //private Map<String, PendingImportObject<T>> data;
+public class ProcessorData {
 
     static <T, V> int getNumNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
         long numNewObjects = objectsByName.values().stream()

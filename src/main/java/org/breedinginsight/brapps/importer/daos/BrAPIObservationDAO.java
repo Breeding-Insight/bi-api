@@ -42,14 +42,12 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 public class BrAPIObservationDAO {
 
     private ProgramDAO programDAO;
-    private ObservationDAO observationDAO;
     private ImportDAO importDAO;
     private UUID programId;
 
     @Inject
-    public BrAPIObservationDAO(ProgramDAO programDAO, ObservationDAO observationDAO, ImportDAO importDAO) {
+    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO) {
         this.programDAO = programDAO;
-        this.observationDAO = observationDAO;
         this.importDAO = importDAO;
     }
 
