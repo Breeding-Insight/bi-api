@@ -17,16 +17,13 @@
 
 package org.breedinginsight.brapps.importer.model.config;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class MappedImportRelation {
     private String targetColumn;
-    @EqualsAndHashCode.Include
     private String referenceValue;
     private ImportRelationType type;
 }
