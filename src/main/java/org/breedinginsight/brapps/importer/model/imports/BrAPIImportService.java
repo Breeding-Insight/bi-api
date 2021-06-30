@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
-import io.micronaut.context.annotation.Prototype;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.model.Program;
@@ -27,7 +26,6 @@ import tech.tablesaw.api.Table;
 
 import java.util.List;
 
-@Prototype
 public abstract class BrAPIImportService {
     public String getImportTypeId() {return null;}
     public BrAPIImport getImportClass() {return null;}
