@@ -39,7 +39,6 @@ public class Observation implements BrAPIObject {
     private static final String TRAIT_NAME = "traitName";
     private static final String OBSERVATION_UNIT_NAME = "observationUnitName";
     private static final String STUDY_NAME = "studyName";
-    private static final String GERMPLASM_NAME = "germplasmName";
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
@@ -48,14 +47,6 @@ public class Observation implements BrAPIObject {
     @ImportFieldMetadata(id="study", name="Study",
             description = "Study that the observation belongs to.")
     private MappedImportRelation study;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
-    @ImportFieldRelations(relations={
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={GERMPLASM_NAME})
-    })
-    @ImportFieldMetadata(id="germplasm", name="Germplasm",
-            description = "Germplasm that the observation belongs to.")
-    private MappedImportRelation germplasm;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
@@ -98,11 +89,6 @@ public class Observation implements BrAPIObject {
             // don't have name field so store in DbId and lookup or require a DbId in file?
             observation.setStudyDbId(getStudy().getReferenceValue());
         }
-
-        if (getGermplasm().getTargetColumn().equals(GERMPLASM_NAME)) {
-            observation.setGermplasmName(getGermplasm().getReferenceValue());
-        }
-
 
         // TODO: use common time format, using discrete analyzer format for now 16/12/2020 16:16:49
         LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
