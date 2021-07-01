@@ -57,7 +57,7 @@ public class BrAPIObservationDAO {
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
         observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationSearchRequest.setStudyNames(new ArrayList<>(studyNames));
-        ObservationsApi api = new ObservationsApi(programDAO.getPhenoClient(program.getId()));
+        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(program.getId()));
         this.programId = program.getId();
         return BrAPIDAOUtil.search(
                 api::searchObservationsPost,
@@ -68,12 +68,12 @@ public class BrAPIObservationDAO {
 
     private ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>>
     searchObservationsSearchResultsDbIdGet(String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getPhenoClient(programId));
+        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
         return api.searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchResultsDbId, page, pageSize);
     }
 
     public List<BrAPIObservation> createBrAPIObservation(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getPhenoClient(programId));
+        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
     }
 

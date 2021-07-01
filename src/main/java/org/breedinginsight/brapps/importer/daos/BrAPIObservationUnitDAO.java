@@ -69,7 +69,7 @@ public class BrAPIObservationUnitDAO {
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationUnitSearchRequest.observationUnitNames(observationUnitNames);
         observationUnitSearchRequest.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getPhenoClient(program.getId()));
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
@@ -78,7 +78,7 @@ public class BrAPIObservationUnitDAO {
     }
 
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException {
-        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getPhenoClient(programId));
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
     }
 }
