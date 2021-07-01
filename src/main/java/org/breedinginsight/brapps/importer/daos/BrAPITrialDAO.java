@@ -46,7 +46,6 @@ public class BrAPITrialDAO {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
-        trialSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchTrialsPost,

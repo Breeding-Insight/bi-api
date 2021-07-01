@@ -68,7 +68,6 @@ public class BrAPIObservationUnitDAO {
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationUnitSearchRequest.observationUnitNames(observationUnitNames);
-        observationUnitSearchRequest.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchObservationunitsPost,
