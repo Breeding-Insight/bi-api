@@ -42,7 +42,7 @@ public class BrAPIObservationVariableDAO {
         BrAPIObservationVariableSearchRequest variableSearch = new BrAPIObservationVariableSearchRequest();
         variableSearch.observationVariableNames(variableNames);
         variableSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        ObservationVariablesApi api = new ObservationVariablesApi(programDAO.getPhenoClient(programId));
+        ObservationVariablesApi api = new ObservationVariablesApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.search(
                 api::searchVariablesPost,
                 api::searchVariablesSearchResultsDbIdGet,
