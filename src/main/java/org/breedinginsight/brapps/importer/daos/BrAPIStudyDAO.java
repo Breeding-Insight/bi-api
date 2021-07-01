@@ -46,7 +46,6 @@ public class BrAPIStudyDAO {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
-        studySearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchStudiesPost,

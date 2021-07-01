@@ -41,7 +41,6 @@ public class BrAPIObservationVariableDAO {
     public List<BrAPIObservationVariable> getVariableByName(List<String> variableNames, UUID programId) throws ApiException {
         BrAPIObservationVariableSearchRequest variableSearch = new BrAPIObservationVariableSearchRequest();
         variableSearch.observationVariableNames(variableNames);
-        variableSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         ObservationVariablesApi api = new ObservationVariablesApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.search(
                 api::searchVariablesPost,
