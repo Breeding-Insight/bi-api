@@ -17,10 +17,7 @@
 
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -46,6 +43,8 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -56,15 +55,18 @@ import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
+import org.breedinginsight.services.SpeciesService;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -75,6 +77,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     private TraitEntity validTrait;
     private FannyPack fp;
+    private FannyPack brapiFp;
 
     @Inject
     private DSLContext dsl;
@@ -86,11 +89,19 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     private TraitService traitService;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private SpeciesService speciesService;
 
+    private Species validSpecies;
     private List<Trait> validTraits;
-    private ProgramEntity validProgram;
-    private ProgramEntity otherValidProgram;
+    private Program validProgram;
+    private Program otherValidProgram;
+    private ProgramEntity missingBrapiProgram;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -99,6 +110,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @BeforeAll
     @SneakyThrows
     public void setup() {
+
+        brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
@@ -109,21 +123,38 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
-        dsl.execute(fp.get("InsertProgram"));
+        dsl.execute(fp.get("InsertProgramNotBrapi"));
+        missingBrapiProgram = programDao.findAll().get(0);
+
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), missingBrapiProgram.getId().toString());
+
+        validSpecies = getTestSpecies();
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest program = ProgramRequest.builder()
+                .name("Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .build();
+
+        validProgram = insertAndFetchTestProgram(gson, client, program);
 
         // Insert program observation level
         dsl.execute(fp.get("InsertProgramObservationLevel"));
 
         // Insert program ontology sql
-        dsl.execute(fp.get("InsertProgramOntology"));
+        //dsl.execute(fp.get("InsertProgramOntology"));
 
         // Insert Trait
         dsl.execute(fp.get("InsertMethod"));
         dsl.execute(fp.get("InsertScale"));
         dsl.execute(fp.get("InsertTrait"));
-
-        // Retrieve our new data
-        validProgram = programDao.findAll().get(0);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
 
@@ -131,13 +162,31 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         validTrait = traitDao.findAll().get(0);
 
         // Insert other program
-        dsl.execute(fp.get("InsertOtherProgram"));
-        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
-        dsl.execute(fp.get("InsertOtherProgramOntology"));
+        //dsl.execute(fp.get("InsertOtherProgram"));
 
-        otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
+        ProgramRequest otherProgram = ProgramRequest.builder()
+                .name("Other Test Program")
+                .abbreviation("othertest")
+                .documentationUrl("localhost:8080")
+                .objective("To test other things")
+                .species(speciesRequest)
+                .build();
+
+        otherValidProgram = insertAndFetchTestProgram(gson, client, otherProgram);
+
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
+        //dsl.execute(fp.get("InsertOtherProgramOntology"));
+
+
+
+        //otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherValidProgram.getId().toString());
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
     }
 
     @Test
@@ -190,7 +239,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait);
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait))
+                POST("/programs/" + missingBrapiProgram.getId() + "/traits", List.of(trait))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -207,8 +256,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void postTraitsMultiple() {
 
         // Add species to BrAPI server
-        var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
-        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
+        //var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+        //super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         dsl.execute(fp.get("DeleteTrait"));
 

@@ -17,10 +17,13 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.jooq.Record;
@@ -40,6 +43,9 @@ public class Program extends ProgramEntity {
     private User createdByUser;
     private User updatedByUser;
     private int numUsers;
+
+    @JsonIgnore
+    private BrAPIProgram brapiProgram;
 
     public Program(ProgramEntity programEntity){
 
@@ -75,6 +81,10 @@ public class Program extends ProgramEntity {
                 .build();
 
         return program;
+    }
+
+    public void setBrAPIProperties(BrAPIProgram brapiProgram) {
+        this.setBrapiProgram(brapiProgram);
     }
 
 }

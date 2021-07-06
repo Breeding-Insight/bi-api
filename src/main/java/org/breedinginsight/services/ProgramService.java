@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -84,7 +85,11 @@ public class ProgramService {
             return Optional.empty();
         }
 
-        return Optional.of(programs.get(0));
+        Program program = programs.get(0);
+        BrAPIProgram brapiProgram = dao.getProgramBrAPI(program);
+        program.setBrAPIProperties(brapiProgram);
+
+        return Optional.of(program);
     }
 
     public List<Program> getAll(AuthenticatedUser actingUser){

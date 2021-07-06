@@ -19,7 +19,14 @@ package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
 import lombok.Setter;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.config.*;
+
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Getter
 @Setter
@@ -27,9 +34,15 @@ import org.breedinginsight.brapps.importer.model.config.*;
         description = "An observation object is data that is collected on a trait for a given object being observed.")
 public class Observation implements BrAPIObject {
 
+    public static DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+
+    private static final String TRAIT_NAME = "traitName";
+    private static final String OBSERVATION_UNIT_NAME = "observationUnitName";
+    private static final String STUDY_NAME = "studyName";
+
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"studyDbId", "studyName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={STUDY_NAME})
     })
     @ImportFieldMetadata(id="study", name="Study",
             description = "Study that the observation belongs to.")
@@ -37,7 +50,7 @@ public class Observation implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"observationUnitDbId", "observationName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={OBSERVATION_UNIT_NAME})
     })
     @ImportFieldMetadata(id="observationUnit", name="Observation Unit",
             description = "Observation unit that the observation is taken on.")
@@ -45,8 +58,8 @@ public class Observation implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={"traitId", "traitName"}),
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP_CONSTANT_VALUE, importFields={"traitId", "traitName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={TRAIT_NAME}),
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP_CONSTANT_VALUE, importFields={TRAIT_NAME})
     })
     @ImportFieldMetadata(id="trait", name="Trait",
             description = "Trait that the observation is recording.")
@@ -59,4 +72,47 @@ public class Observation implements BrAPIObject {
     @ImportFieldType(type= ImportFieldTypeEnum.DATE)
     @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
     private String observationDate;
+
+    public BrAPIObservation constructBrAPIObservation() {
+        BrAPIObservation observation = new BrAPIObservation();
+        observation.setValue(getValue());
+
+        if (getTrait().getTargetColumn().equals(TRAIT_NAME)) {
+            observation.setObservationVariableName(getTrait().getReferenceValue());
+        }
+
+        if (getObservationUnit().getTargetColumn().equals(OBSERVATION_UNIT_NAME)) {
+            observation.setObservationUnitName(getObservationUnit().getReferenceValue());
+        }
+
+        if (getStudy().getTargetColumn().equals(STUDY_NAME)) {
+            // don't have name field so store in DbId and lookup or require a DbId in file?
+            observation.setStudyDbId(getStudy().getReferenceValue());
+        }
+
+        // TODO: use common time format, using discrete analyzer format for now 16/12/2020 16:16:49
+        LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
+        ZonedDateTime zoned = datetime.atZone(ZoneId.of("UTC"));
+        OffsetDateTime timestamp = zoned.toOffsetDateTime();
+        observation.setObservationTimeStamp(timestamp);
+
+        return observation;
+    }
+
+    public static Observation observationFromBrapiObservation(BrAPIObservation brapiObservation) {
+        Observation observation = new Observation();
+        // TODO: figure out how to handle study
+        MappedImportRelation germplasmRelation = new MappedImportRelation();
+        germplasmRelation.setReferenceValue(brapiObservation.getGermplasmName());
+        observation.setStudy(germplasmRelation);
+        MappedImportRelation ouRelation = new MappedImportRelation();
+        ouRelation.setReferenceValue(brapiObservation.getObservationUnitName());
+        observation.setObservationUnit(ouRelation);
+        MappedImportRelation traitRelation = new MappedImportRelation();
+        traitRelation.setReferenceValue(brapiObservation.getObservationVariableName());
+        observation.setObservationUnit(traitRelation);
+
+        return observation;
+    }
+
 }

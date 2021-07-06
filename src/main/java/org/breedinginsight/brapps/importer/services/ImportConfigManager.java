@@ -38,6 +38,7 @@ public class ImportConfigManager {
 
     private Map<String, BrAPIImportService> brAPIImportsMap;
 
+    // brapiimport instead of brapiimportservice
     @Inject
     ImportConfigManager(BrAPIImportService[] importServices) {
         // Get all imports

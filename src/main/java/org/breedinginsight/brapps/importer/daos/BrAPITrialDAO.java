@@ -14,51 +14,51 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.breedinginsight.brapps.importer.daos;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.core.LocationsApi;
-import org.brapi.v2.model.core.BrAPILocation;
-import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
+import org.brapi.client.v2.modules.core.TrialsApi;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 @Singleton
-public class BrAPILocationDAO {
+public class BrAPITrialDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
 
     @Inject
-    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPITrialDAO(ProgramDAO programDAO, ImportDAO importDAO) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
     }
 
-    public List<BrAPILocation> getLocationsByName(List<String> locationNames, UUID programId) throws ApiException {
-
-        BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
-        locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
-        //TODO: Locations don't connect to programs. How to get locations for the program?
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
+    public List<BrAPITrial> getTrialByName(List<String> trialNames, Program program) throws ApiException {
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        trialSearch.trialNames(trialNames);
+        TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
-                api::searchLocationsPost,
-                api::searchLocationsSearchResultsDbIdGet,
-                locationSearchRequest
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
         );
     }
 
-    public List<BrAPILocation> createBrAPILocation(List<BrAPILocation> brAPILocationList, UUID programId, ImportUpload upload) throws ApiException {
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
+    public List<BrAPITrial> createBrAPITrial(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) throws ApiException {
+        TrialsApi api = new TrialsApi(programDAO.getCoreClient(programId));
+        return BrAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
     }
 
 }
+
+
