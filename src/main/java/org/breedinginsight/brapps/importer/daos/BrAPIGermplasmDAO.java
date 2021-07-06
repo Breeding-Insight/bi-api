@@ -51,7 +51,6 @@ public class BrAPIGermplasmDAO {
     public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId) throws ApiException {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.germplasmNames(germplasmNames);
-        germplasmSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.search(
                 api::searchGermplasmPost,

@@ -51,7 +51,7 @@ public class TrialProcessor implements Processor {
         this.brapiTrialDAO = brapiTrialDAO;
     }
 
-    private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         List<String> uniqueTrialNames = importRows.stream()
                 .map(trialImport -> trialImport.getTrial().getTrialName())
@@ -60,7 +60,7 @@ public class TrialProcessor implements Processor {
         List<BrAPITrial> existingTrials;
 
         try {
-            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program.getId());
+            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
                 trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
             });
@@ -73,7 +73,7 @@ public class TrialProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
-        getExistingBrapiObjects(importRows, program);
+        getExistingBrapiData(importRows, program);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);

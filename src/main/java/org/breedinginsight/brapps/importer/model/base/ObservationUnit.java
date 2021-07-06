@@ -37,10 +37,10 @@ import java.util.stream.Collectors;
         description = "An observation unit is the physical representation of a breeding unit. This is the unit that an observation is being made on. Example: Plant, Plot")
 public class ObservationUnit implements BrAPIObject {
 
-    private static final String LOCATION_NAME = "locationName";
     private static final String TRIAL_NAME = "trialName";
     private static final String STUDY_NAME = "studyName";
     private static final String GERMPLASM_NAME = "germplasmName";
+    private static final String OBSERVATION_UNIT_NAME = "observationUnitName";
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationUnitName", name="Observation Unit Name",
@@ -62,17 +62,10 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {"observationUnitName"})
+            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {OBSERVATION_UNIT_NAME})
     })
     @ImportFieldMetadata(id="observationUnitParent", name="Parent Observation Unit", description = "The observation unit that contains this observation unit.")
     private MappedImportRelation observationUnitParent;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
-    @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {LOCATION_NAME})
-    })
-    @ImportFieldMetadata(id="location", name="Location", description = "The location the observation unit is in.")
-    private MappedImportRelation location;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations = {
@@ -110,12 +103,6 @@ public class ObservationUnit implements BrAPIObject {
         if (getGermplasm().getTargetColumn().equals(GERMPLASM_NAME)) {
             observationUnit.setGermplasmName(getGermplasm().getReferenceValue());
         }
-
-        /*
-        if (getLocation().getTargetColumn().equals(LOCATION_NAME)) {
-            observationUnit.setLocationName(getLocation().getReferenceValue());
-        }
-         */
 
         List<BrAPIExternalReference> brAPIexternalReferences = new ArrayList<>();
         //TODO: Should we be checking this back here, or depending on the user to set it properly?

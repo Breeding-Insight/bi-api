@@ -51,7 +51,7 @@ public class LocationProcessor implements Processor {
         this.brAPILocationDAO = brAPILocationDAO;
     }
 
-    private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         List<String> uniqueLocationNames = importRows.stream()
                 .map(locationImport -> locationImport.getLocation().getLocationName())
@@ -73,7 +73,6 @@ public class LocationProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
-        getExistingBrapiObjects(importRows, program);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);

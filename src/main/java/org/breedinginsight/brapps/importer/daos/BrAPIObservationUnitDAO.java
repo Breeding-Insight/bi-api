@@ -23,6 +23,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -63,12 +64,11 @@ public class BrAPIObservationUnitDAO {
     }
      */
 
-    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, UUID programId) throws ApiException {
+    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
-        // could also add programId but
+        observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationUnitSearchRequest.observationUnitNames(observationUnitNames);
-        observationUnitSearchRequest.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
-        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getPhenoClient(programId));
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
@@ -77,7 +77,7 @@ public class BrAPIObservationUnitDAO {
     }
 
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException {
-        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getPhenoClient(programId));
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
     }
 }
