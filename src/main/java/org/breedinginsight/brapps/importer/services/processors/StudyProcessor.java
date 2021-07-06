@@ -50,7 +50,7 @@ public class StudyProcessor implements Processor {
         this.brAPIStudyDAO = brAPIStudyDAO;
     }
 
-    private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         // get unique study names
         List<String> uniqueStudyNames = importRows.stream()
@@ -74,8 +74,6 @@ public class StudyProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) {
-
-        getExistingBrapiObjects(importRows, program);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
