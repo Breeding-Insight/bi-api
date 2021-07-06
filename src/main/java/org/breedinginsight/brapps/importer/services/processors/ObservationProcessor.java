@@ -62,7 +62,7 @@ public class ObservationProcessor implements Processor {
         this.brAPIObservationDAO = brAPIObservationDAO;
     }
 
-    private void checkExistingObservations(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
         // will skip existing observations, no error reported
 
         List<String> uniqueStudyNames = importRows.stream()
@@ -82,7 +82,7 @@ public class ObservationProcessor implements Processor {
                 .collect(Collectors.toSet());
 
         try {
-            existingObservations = brAPIObservationDAO.getObservationsByStudyName(uniqueStudyNames, program.getId());
+            existingObservations = brAPIObservationDAO.getObservationsByStudyName(uniqueStudyNames, program);
             existingObservations.forEach(existingObservation -> {
                 int hash = getBrapiObservationHash(existingObservation);
                 if (observationHashes.contains(hash)) {
@@ -94,6 +94,8 @@ public class ObservationProcessor implements Processor {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
             throw new InternalServerException(e.toString(), e);
         }
+
+        getDependentDbIds(importRows, program);
     }
 
     private void getDependentDbIds(List<BrAPIImport> importRows, Program program) {
@@ -141,10 +143,6 @@ public class ObservationProcessor implements Processor {
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
 
         if (!importRows.isEmpty() && importRows.get(0).getObservations() != null) {
-
-            checkExistingObservations(importRows, program);
-
-            getDependentDbIds(importRows, program);
 
             for (int i = 0; i < importRows.size(); i++) {
                 BrAPIImport brapiImport = importRows.get(i);
@@ -216,14 +214,6 @@ public class ObservationProcessor implements Processor {
                 .map(PendingImportObject::getBrAPIObject)
                 .forEach(this::updateStudyDbId);
 
-        // update germplasm DbIds
-        mappedBrAPIImport.values().stream()
-                .map(PendingImport::getGermplasm)
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(PendingImportObject::getBrAPIObject)
-                .forEach(this::updateGermplasmDbId);
-
         // update observation unit DbIds
         mappedBrAPIImport.values().stream()
                 .map(PendingImport::getObservationUnit)
@@ -240,12 +230,6 @@ public class ObservationProcessor implements Processor {
         observationByHash.values().stream()
                 .filter(obs -> obs.getBrAPIObject().getStudyDbId().equals(study.getStudyName()))
                 .forEach(obs -> obs.getBrAPIObject().setStudyDbId(study.getStudyDbId()));
-    }
-
-    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
-        observationByHash.values().stream()
-                .filter(obs -> obs.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
-                .forEach(obs -> obs.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
 
     private void updateObservationUnitDbId(BrAPIObservationUnit observationUnit) {

@@ -51,7 +51,7 @@ public class ObservationUnitProcessor implements Processor {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
     }
 
-    private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         // get unique observation unit names
         List<String> uniqueObservationUnitNames = importRows.stream()
@@ -66,7 +66,7 @@ public class ObservationUnitProcessor implements Processor {
         List<BrAPIObservationUnit> existingObservationUnits;
 
         try {
-            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program.getId());
+            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program);
             existingObservationUnits.forEach(existingObservationUnit -> {
 
                 // update mapped brapi import, does in process
@@ -84,8 +84,6 @@ public class ObservationUnitProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) {
-
-        getExistingBrapiObjects(importRows, program);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);

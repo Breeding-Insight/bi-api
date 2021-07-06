@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import org.brapi.v2.model.pheno.BrAPIObservation;
@@ -34,7 +33,6 @@ import java.util.stream.Collectors;
 
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @ImportFieldMetadata(id="Observation", name="Observation",
         description = "An observation object is data that is collected on a trait for a given object being observed.")
 public class Observation implements BrAPIObject {
@@ -44,7 +42,6 @@ public class Observation implements BrAPIObject {
     private static final String TRAIT_NAME = "traitName";
     private static final String OBSERVATION_UNIT_NAME = "observationUnitName";
     private static final String STUDY_NAME = "studyName";
-    private static final String GERMPLASM_NAME = "germplasmName";
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
@@ -52,17 +49,7 @@ public class Observation implements BrAPIObject {
     })
     @ImportFieldMetadata(id="study", name="Study",
             description = "Study that the observation belongs to.")
-    //@EqualsAndHashCode.Include
     private MappedImportRelation study;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
-    @ImportFieldRelations(relations={
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={GERMPLASM_NAME})
-    })
-    @ImportFieldMetadata(id="germplasm", name="Germplasm",
-            description = "Germplasm that the observation belongs to.")
-    @EqualsAndHashCode.Include
-    private MappedImportRelation germplasm;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportFieldRelations(relations={
@@ -70,7 +57,6 @@ public class Observation implements BrAPIObject {
     })
     @ImportFieldMetadata(id="observationUnit", name="Observation Unit",
             description = "Observation unit that the observation is taken on.")
-    @EqualsAndHashCode.Include
     private MappedImportRelation observationUnit;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
@@ -80,7 +66,6 @@ public class Observation implements BrAPIObject {
     })
     @ImportFieldMetadata(id="trait", name="Trait",
             description = "Trait that the observation is recording.")
-    @EqualsAndHashCode.Include
     private MappedImportRelation trait;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
@@ -89,7 +74,6 @@ public class Observation implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.DATE)
     @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
-    @EqualsAndHashCode.Include
     private String observationDate;
 
     @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = AdditionalInfo.class)
@@ -111,11 +95,6 @@ public class Observation implements BrAPIObject {
             // don't have name field so store in DbId and lookup or require a DbId in file?
             observation.setStudyDbId(getStudy().getReferenceValue());
         }
-
-        if (getGermplasm().getTargetColumn().equals(GERMPLASM_NAME)) {
-            observation.setGermplasmName(getGermplasm().getReferenceValue());
-        }
-
 
         // TODO: use common time format, using discrete analyzer format for now 16/12/2020 16:16:49
         LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
