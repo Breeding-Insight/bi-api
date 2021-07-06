@@ -27,6 +27,7 @@ import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
@@ -236,7 +237,16 @@ public class MappingManager {
                 if (!focusRow.columnNames().contains(matchedMapping.getValue().getFileFieldName())) {
                     throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", matchedMapping.getValue().getFileFieldName()));
                 }
-                String fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
+
+                // TODO: should handle all types, not sure if better way to do this with tablesaw?
+                String fileValue;
+                ColumnType columnType = focusRow.getColumnType(matchedMapping.getValue().getFileFieldName());
+                if (columnType == ColumnType.DOUBLE) {
+                    fileValue = String.valueOf(focusRow.getDouble(matchedMapping.getValue().getFileFieldName()));
+                } else {
+                    fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
+                }
+
                 if (StringUtils.isBlank(fileValue)) fileValue = null;
                 try {
                     field.setAccessible(true);

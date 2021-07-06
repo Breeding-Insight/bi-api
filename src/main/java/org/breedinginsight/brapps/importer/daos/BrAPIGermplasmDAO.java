@@ -47,10 +47,10 @@ public class BrAPIGermplasmDAO {
         this.importDAO = importDAO;
     }
 
-    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId, BrAPIProgram brAPIProgram) throws ApiException {
+
+    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId) throws ApiException {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.germplasmNames(germplasmNames);
-        germplasmSearch.setPageSize(BrAPIDAOUtil.RESULTS_PER_QUERY);
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
         return BrAPIDAOUtil.search(
                 api::searchGermplasmPost,
@@ -59,8 +59,7 @@ public class BrAPIGermplasmDAO {
         );
     }
 
-    public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames, UUID programId, BrAPIProgram program) throws ApiException {
-
+    public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames, UUID programId) throws ApiException {
         BrAPIGermplasmAttributeSearchRequest germplasmAttributeSearch = new BrAPIGermplasmAttributeSearchRequest();
         germplasmAttributeSearch.setAttributeNames(new ArrayList<>(germplasmAttributeNames));
         GermplasmAttributesApi api = new GermplasmAttributesApi(programDAO.getCoreClient(programId));

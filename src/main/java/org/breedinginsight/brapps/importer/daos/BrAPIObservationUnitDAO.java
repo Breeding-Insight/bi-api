@@ -17,34 +17,35 @@
 
 package org.breedinginsight.brapps.importer.daos;
 
-import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Singleton
 public class BrAPIObservationUnitDAO {
 
     public static String OU_ID_REFERENCE_SOURCE = "ou_id";
 
-    private BrAPIProvider brAPIProvider;
+    private ProgramDAO programDAO;
+    private ImportDAO importDAO;
 
     @Inject
-    public BrAPIObservationUnitDAO(BrAPIProvider brAPIProvider) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+        this.programDAO = programDAO;
+        this.importDAO = importDAO;
     }
 
+    /*
     public List<BrAPIObservationUnit> getObservationUnitsByNameAndStudyName(List<Pair<String, String>> nameStudyPairs, BrAPIProgram brAPIProgram) throws ApiException {
 
         List<String> observationUnitNames = nameStudyPairs.stream().map(Pair::getLeft).collect(Collectors.toList());
@@ -61,9 +62,22 @@ public class BrAPIObservationUnitDAO {
         // TODO: Select for study as well
         return observationUnits;
     }
+     */
 
-    public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList) throws ApiException {
-        ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        return BrAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
+    public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
+        observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        observationUnitSearchRequest.observationUnitNames(observationUnitNames);
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
+        return BrAPIDAOUtil.search(
+                api::searchObservationunitsPost,
+                api::searchObservationunitsSearchResultsDbIdGet,
+                observationUnitSearchRequest
+        );
+    }
+
+    public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException {
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(programId));
+        return BrAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
     }
 }

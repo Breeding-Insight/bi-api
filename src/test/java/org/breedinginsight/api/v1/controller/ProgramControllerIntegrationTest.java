@@ -22,8 +22,8 @@ import ch.qos.logback.core.read.ListAppender;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -42,6 +42,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -57,11 +58,15 @@ import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import java.lang.reflect.Type;
 import java.math.BigDecimal;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.TestUtils.getProgramById;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -77,7 +82,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private FannyPack securityFp;
 
     private ProgramEntity validProgram;
-    private ProgramEntity otherProgram;
+    private Program otherProgram;
     private User validUser;
     private Species validSpecies;
     private Role validRole;
@@ -103,7 +108,10 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private String invalidAccessibility = invalidUUID;
     private String invalidTopography = invalidUUID;
 
-    private Gson gson = new Gson();
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
+
     private ObjectMapper objMapper = new ObjectMapper();
     private ListAppender<ILoggingEvent> loggingEventListAppender;
 
@@ -184,18 +192,26 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         actingUser = getActingUser();
 
-        // Insert and get program for tests
-        dsl.execute(fp.get("InsertOtherProgram"));
-        otherProgram = programDao.fetchByName("Other Test Program").get(0);
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest programRequest = ProgramRequest.builder()
+                .name("Other Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .build();
+
+        otherProgram = insertAndFetchTestProgram(gson, client, programRequest);
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
 
         // Insert and get location for tests
-        try {
-            validLocation = insertAndFetchTestLocation();
-        } catch (Exception e){
-            throw new Exception(e.toString());
-        }
+        validLocation = insertAndFetchTestLocation();
 
     }
 
@@ -317,6 +333,23 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
         assertEquals(program.getUpdatedBy().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+    }
+
+    public void checkValidProgram(Program program, JsonObject programJson){
+
+        assertEquals(program.getName(), programJson.get("name").getAsString(), "Wrong name");
+        assertEquals(program.getAbbreviation(), programJson.get("abbreviation").getAsString(), "Wrong abbreviation");
+        assertEquals(program.getDocumentationUrl(), programJson.get("documentationUrl").getAsString(), "Wrong documentation url");
+        assertEquals(program.getObjective(), programJson.get("objective").getAsString(), "Wrong objective");
+
+        JsonObject species = programJson.getAsJsonObject("species");
+        assertEquals(program.getSpecies().getId().toString(), species.get("id").getAsString(), "Wrong species");
+
+        JsonObject createdByUser = programJson.getAsJsonObject("createdByUser");
+        assertEquals(program.getCreatedByUser().getId().toString(), createdByUser.get("id").getAsString(), "Wrong created by user");
+
+        JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
+        assertEquals(program.getUpdatedByUser().getId().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
     }
 
     public void checkMinimalValidProgram(ProgramEntity program, JsonObject programJson){
@@ -537,9 +570,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         String newProgramId = result.getAsJsonPrimitive("id").getAsString();
 
-        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
-        assertTrue(createdProgram.isPresent(), "Created program was not found");
-        Program program = createdProgram.get();
+        Program program = getProgramById(gson, client, UUID.fromString(newProgramId));
 
         checkMinimalValidProgram(validProgram, result);
 
@@ -718,9 +749,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
-        Optional<Program> createdProgram = programService.getById(validProgram.getId());
-        assertTrue(createdProgram.isPresent(), "Created program was not found");
-        Program program = createdProgram.get();
+        Program program = getProgramById(gson, client, validProgram.getId());
 
         assertEquals(true, program.getActive(), "Inactive flag not set in database");
     }
@@ -759,10 +788,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         HttpResponse<String> archiveResponse = archiveCall.blockingFirst();
         assertEquals(HttpStatus.OK, archiveResponse.getStatus());
 
-        Optional<Program> createdProgram = programService.getById(UUID.fromString(newProgramId));
-        assertTrue(createdProgram.isPresent(), "Created program was not found");
-        Program program = createdProgram.get();
-
+        Program program = getProgramById(gson, client, UUID.fromString(newProgramId));
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
         dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);

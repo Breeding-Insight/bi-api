@@ -17,11 +17,13 @@
 
 package org.breedinginsight.brapps.importer.model.response;
 
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
+@Builder
 public class ImportPreviewStatistics {
     private Integer newObjectCount;
     private Integer ignoredObjectCount;
