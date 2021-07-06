@@ -52,7 +52,7 @@ public class GermplasmProcessor implements Processor {
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
     }
 
-    private void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmNames = new HashSet<>();
@@ -86,8 +86,6 @@ public class GermplasmProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) {
-
-        getExistingBrapiObjects(importRows, program);
 
         // Create new objects
         for (int i = 0; i < importRows.size(); i++) {

@@ -62,7 +62,7 @@ public class ObservationProcessor implements Processor {
         this.brAPIObservationDAO = brAPIObservationDAO;
     }
 
-    private void checkExistingObservations(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
         // will skip existing observations, no error reported
 
         List<String> uniqueStudyNames = importRows.stream()
@@ -90,6 +90,8 @@ public class ObservationProcessor implements Processor {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
             throw new InternalServerException(e.toString(), e);
         }
+
+        getDependentDbIds(importRows, program);
     }
 
     private void getDependentDbIds(List<BrAPIImport> importRows, Program program) {
@@ -133,10 +135,6 @@ public class ObservationProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
-
-        checkExistingObservations(importRows, program);
-
-        getDependentDbIds(importRows, program);
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);

@@ -34,7 +34,7 @@ public interface Processor {
      * @param program
      * @throws ValidatorException
      */
-    //void getExistingBrapiObjects(List<BrAPIImport> importRows, Program program) throws ValidatorException;
+    void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ValidatorException;
 
     /**
      * Update mappedBrAPIImport mapping with PendingImport data for brapi object based on new and existing objects.
