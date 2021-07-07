@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.model.config.ImportRelationType.DB_LOOKUP_CONSTANT_VALUE;
+
 @Singleton
 public class MappingManager {
 
@@ -207,7 +209,11 @@ public class MappingManager {
             relationship.setTargetColumn(value.getRelationMap().getTarget());
             String referenceColumn = value.getRelationMap().getReference();
             if (referenceColumn != null){
-                relationship.setReferenceValue(focusRow.getString(referenceColumn));
+                if (relationship.getType() == DB_LOOKUP_CONSTANT_VALUE) {
+                    relationship.setReferenceValue(referenceColumn);
+                } else {
+                    relationship.setReferenceValue(focusRow.getString(referenceColumn));
+                }
             }
             if (StringUtils.isBlank(relationship.getReferenceValue())) relationship = null;
             try {
