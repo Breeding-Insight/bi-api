@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.brapi.v1.controller;
+package org.breedinginsight.brapi.auth;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
@@ -45,12 +45,11 @@ public class BrapiAuthorizeController {
 
     @Get("/programs/{programId}/brapi/authorize")
     @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse authorize(@QueryValue @NotBlank String display_name, @QueryValue @NotBlank String return_url, @PathVariable("programId") String programId) {
+    public HttpResponse authorize(@QueryValue @NotBlank String client_id, @QueryValue @NotBlank String redirect_uri, @PathVariable("programId") String programId) {
         URI location = UriBuilder.of(String.format("%s/programs/%s/brapi/authorize", webBaseUrl, programId))
-                                 .queryParam("display_name", display_name)
-                                 .queryParam("return_url", return_url)
+                                 .queryParam("display_name", client_id)
+                                 .queryParam("return_url", redirect_uri)
                                  .build();
         return HttpResponse.seeOther(location);
     }
-
 }
