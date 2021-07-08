@@ -17,6 +17,7 @@
 
 package org.breedinginsight.daos;
 
+import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.ApiResponse;
@@ -55,6 +56,7 @@ public class TraitDAO extends TraitDao {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
     private ObservationDAO observationDao;
+    private Gson gson;
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
@@ -62,6 +64,7 @@ public class TraitDAO extends TraitDao {
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
+        this.gson = new Gson();
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -106,7 +109,12 @@ public class TraitDAO extends TraitDao {
             // assumes external reference id is unique to each brapi variable
             if (brApiVariableMap.containsKey(trait.getId().toString())){
                 BrAPIObservationVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
-                trait.setBrAPIProperties(brApiVariable);
+                if (brApiVariable.getAdditionalInfo() != null && brApiVariable.getAdditionalInfo().has("tags")) {
+                    List<String> tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray("tags"), List.class);
+                    trait.setBrAPIProperties(brApiVariable, tags);
+                } else {
+                    trait.setBrAPIProperties(brApiVariable);
+                }
 
                 Method method = trait.getMethod();
                 method.setBrAPIProperties(brApiVariable.getMethod());
@@ -327,6 +335,7 @@ public class TraitDAO extends TraitDao {
                     .synonyms(trait.getSynonyms())
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
+            brApiVariable.putAdditionalInfoItem("tags", trait.getTags());
 
             if (trait.getActive() == null || trait.getActive()){
                 brApiVariable.setStatus("active");
