@@ -446,4 +446,19 @@ public class TraitService {
     public boolean exists(UUID traitId) {
         return traitDAO.existsById(traitId);
     }
+
+    public List<String> getAllTraitTags(UUID programId) {
+
+        // Get all traits
+        List<Trait> traits = traitDAO.getTraitsFullByProgramId(programId);
+
+        // Parse out tags into unique list
+        Set<String> tags = new HashSet<>();
+        for (Trait trait: traits) {
+            if (trait.getTags() != null) {
+                tags.addAll(trait.getTags());
+            }
+        }
+        return new ArrayList<>(tags);
+    }
 }
