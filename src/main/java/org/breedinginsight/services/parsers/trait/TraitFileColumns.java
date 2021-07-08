@@ -36,7 +36,8 @@ public enum TraitFileColumns {
     SCALE_DECIMAL_PLACES("Scale decimal places"),
     SCALE_LOWER_LIMIT("Scale lower limit"),
     SCALE_UPPER_LIMIT("Scale upper limit"),
-    SCALE_CATEGORIES("Scale categories");
+    SCALE_CATEGORIES("Scale categories"),
+    TAGS("Tags");
 
     private String value;
 
