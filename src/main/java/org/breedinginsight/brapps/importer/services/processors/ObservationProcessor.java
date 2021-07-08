@@ -78,9 +78,7 @@ public class ObservationProcessor implements Processor {
             Set<String> observationHashes = importRows.stream()
                     .map(BrAPIImport::getObservations)
                     .flatMap(Collection::stream)
-                    .map(observationImport -> getObservationHash(observationImport.getObservationUnit().getReferenceValue(),
-                            observationImport.getTrait().getReferenceValue(),
-                            observationImport.getObservationDate()))
+                    .map(ObservationProcessor::getImportObservationHash)
                     .collect(Collectors.toSet());
 
             try {
@@ -157,9 +155,7 @@ public class ObservationProcessor implements Processor {
                     BrAPIObservation brapiObservation = observation.constructBrAPIObservation();
                     brapiObservation.setObservationVariableDbId(variable.getObservationVariableDbId());
 
-                    String hash = getObservationHash(observation.getObservationUnit().getReferenceValue(),
-                            variable.getObservationVariableName(),
-                            observation.getObservationDate());
+                    String hash = getImportObservationHash(observation);
                     if (!observationByHash.containsKey(hash)) {
                         observationByHash.put(hash, new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
                         mappedImportRow.setObservation(new PendingImportObject<>(ImportObjectState.NEW, brapiObservation));
@@ -244,6 +240,12 @@ public class ObservationProcessor implements Processor {
         return getObservationHash(observation.getObservationUnitName(),
                observation.getObservationVariableName(),
                observation.getObservationTimeStamp().withOffsetSameInstant(ZoneOffset.UTC).format(Observation.formatter));
+    }
+
+    private static String getImportObservationHash(Observation observation) {
+        return getObservationHash(observation.getObservationUnit().getReferenceValue(),
+                observation.getTrait().getReferenceValue(),
+                observation.getObservationDate());
     }
 
     private static String getObservationHash(String observationUnitName, String variableName, String observationDate) {
