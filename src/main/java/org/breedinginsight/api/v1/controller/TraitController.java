@@ -197,4 +197,19 @@ public class TraitController {
             return HttpResponse.notFound();
         }
     }
+
+    @Get("/programs/{programId}/traits/tags")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<DataResponse<String>>> getAllTraitTags(
+            @PathVariable UUID programId) {
+
+        List<String> tags = traitService.getAllTraitTags(programId);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
+        Pagination pagination = new Pagination(tags.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<DataResponse<String>> response = new Response<>(metadata, new DataResponse<>(tags));
+        return HttpResponse.ok(response);
+    }
 }

@@ -66,6 +66,8 @@ public class Trait extends TraitEntity {
     private String mainAbbreviation;
     @JsonDeserialize(using = ListOfStringDeserializer.class)
     private List<String> synonyms;
+    @JsonDeserialize(using = ListOfStringDeserializer.class)
+    private List<String> tags;
 
     @Override
     @JsonDeserialize(using = ArrayOfStringDeserializer.class)
@@ -115,6 +117,11 @@ public class Trait extends TraitEntity {
         }
 
         this.setDefaultValue(brApiVariable.getDefaultValue());
+    }
+
+    public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags) {
+        setBrAPIProperties(brApiVariable);
+        this.tags = tags;
     }
 
 }
