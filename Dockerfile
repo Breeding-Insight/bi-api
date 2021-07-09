@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM maven:3.6.3-jdk-13
+FROM adoptopenjdk/openjdk13
 
 ARG HOST_USER_ID=1001
 ARG HOST_GROUP_ID=1001
@@ -31,17 +31,12 @@ ARG CONT_GROUPNAME="host"
 #USER ${CONT_USERNAME}
 
 # Switch to the working directory
-# NOTE: be sure to make the working directory explictly. If you let the WORKDIR
+# NOTE: be sure to make the working directory explicitly. If you let the WORKDIR
 # command make it then it will be owned by root
 #RUN ["mkdir", "/home/host/biapi"]
 WORKDIR /home/${CONT_USERNAME}/biapi
 
 #install bi-api source
-COPY pom.xml ./
-COPY entrypoint.sh ./
-COPY settings.xml ./
-COPY ./src ./src/
-COPY ./io-micronaut/jar_files/ ./jar_files
+COPY ./target/bi-api*.jar ./
 
-ENTRYPOINT ["/bin/bash", "./entrypoint.sh"]
-CMD ["java", "--enable-preview", "-Dmicronaut.environments=prod", "-jar", "bi-api*.jar"]
+ENTRYPOINT java -jar --enable-preview -Dmicronaut.environment=prod bi-api*.jar
