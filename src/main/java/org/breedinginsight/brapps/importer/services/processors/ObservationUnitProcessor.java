@@ -47,7 +47,7 @@ public class ObservationUnitProcessor implements Processor {
     private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByName = new HashMap<>();
     private Set<String> studyNames = new HashSet();
-    private static final Set<String> allowedLevels = Set.of("plot", "plant");
+    private static final Set<String> ALLOWED_LEVELS = Set.of("plot", "plant");
 
     @Inject
     public ObservationUnitProcessor(BrAPIObservationUnitDAO brAPIObservationUnitDAO) {
@@ -100,7 +100,7 @@ public class ObservationUnitProcessor implements Processor {
             BrAPIObservationUnit brapiObservationUnit = observationUnit.constructBrAPIObservationUnit();
 
             String levelName = brapiObservationUnit.getObservationUnitPosition().getObservationLevel().getLevelName().toLowerCase();
-            if (!allowedLevels.contains(levelName)) {
+            if (!ALLOWED_LEVELS.contains(levelName)) {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Observation unit level name not allowed");
             }
             brapiObservationUnit.getObservationUnitPosition().getObservationLevel().setLevelName(levelName);
