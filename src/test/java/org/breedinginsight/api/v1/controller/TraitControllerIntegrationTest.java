@@ -206,6 +206,25 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
+    @Order(1)
+    public void getTraitTagsDefaultFavorites() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + otherValidProgram.getId() + "/traits/tags").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(1, data.size(), "Wrong number of results returned.");
+        assertEquals("favorites", data.get(0).getAsString(), "Wrong default tag returned");
+    }
+
+    @Test
+    @SneakyThrows
     @Order(2)
     public void getTraitSingleNoExistInBrAPI() {
 
@@ -287,6 +306,10 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait1);
         setBrAPIProperties(trait2);
 
+        // Set the tags
+        trait1.setTags(List.of("leaf trait"));
+        trait2.setTags(List.of("stem trait"));
+
         List<Trait> traits = List.of(trait1, trait2);
 
         // Call endpoint
@@ -324,6 +347,31 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         }
 
         validTraits = traits;
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void getTraitTags() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/tags").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(3, data.size(), "Wrong number of results returned.");
+        Set<String> tagsList = new HashSet<>(List.of("favorites", "leaf trait", "stem trait"));
+        Set<String> foundTags = new HashSet<>();
+        for (JsonElement tagElement: data) {
+            foundTags.add(tagElement.getAsString());
+        }
+
+        assertTrue(tagsList.equals(foundTags), "Returned tags do not equal expected tags");
     }
 
     @Test
