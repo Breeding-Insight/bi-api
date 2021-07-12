@@ -59,6 +59,8 @@ public class TraitService {
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
 
+    private String FAVORITES_TAG = "favorites";
+
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
@@ -459,6 +461,8 @@ public class TraitService {
                 tags.addAll(trait.getTags());
             }
         }
+
+        tags.add(FAVORITES_TAG);
         return new ArrayList<>(tags);
     }
 }
