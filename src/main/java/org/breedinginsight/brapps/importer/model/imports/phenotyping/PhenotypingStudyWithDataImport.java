@@ -26,6 +26,8 @@ import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -53,7 +55,7 @@ public class PhenotypingStudyWithDataImport implements BrAPIImport {
     @ImportMappingRequired
     private ObservationUnit observationUnit;
 
-    @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
-    private Observation observation;
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = Observation.class)
+    private List<Observation> observations;
 
 }

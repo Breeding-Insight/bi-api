@@ -54,16 +54,17 @@ public class FileUtil {
         //TODO: May want to keep excel types in the future
         Map<String, List<String>> columns;
         Row headerRow;
+        DataFormatter formatter = new DataFormatter();
         try {
             columns = new HashMap<>();
             headerRow = sheet.getRow(headerRowIndex);
-            headerRow.forEach(cell -> columns.put(cell.getStringCellValue(), new ArrayList<>()));
+            headerRow.forEach(cell -> columns.put(formatter.formatCellValue(cell), new ArrayList<>()));
             for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 Iterator<Cell> cellIterator = row.cellIterator();
                 for (int k=0; k < columns.values().size(); k++) {
                     Cell cell = row.getCell(k, Row.MissingCellPolicy.RETURN_BLANK_AS_NULL);
-                    String header = headerRow.getCell(k).getStringCellValue();
+                    String header = formatter.formatCellValue(headerRow.getCell(k));
                     if (cell == null) {
                         columns.get(header).add(null);
                     } else if (cell.getCellType() == CellType.NUMERIC) {
@@ -71,7 +72,7 @@ public class FileUtil {
                         String stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
                         columns.get(header).add(stringValue);
                     } else {
-                        columns.get(header).add(cell.getStringCellValue());
+                        columns.get(header).add(formatter.formatCellValue(cell));
                     }
                 }
             }
@@ -85,7 +86,7 @@ public class FileUtil {
         Iterator<Cell> headerIterator = headerRow.cellIterator();
         while (headerIterator.hasNext()) {
             Cell cell = headerIterator.next();
-            StringColumn column = StringColumn.create(cell.getStringCellValue(), columns.get(cell.getStringCellValue()));
+            StringColumn column = StringColumn.create(formatter.formatCellValue(cell), columns.get(formatter.formatCellValue(cell)));
             table.addColumns(column);
         }
 
@@ -108,7 +109,7 @@ public class FileUtil {
             return Table.read()
                     .usingOptions(
                             JsonReadOptions
-                                    .builderFromString(jsonString.toString())
+                                    .builderFromString(jsonString)
                                     .columnTypesToDetect(List.of(ColumnType.STRING))
                     );
         } catch (IOException e) {
