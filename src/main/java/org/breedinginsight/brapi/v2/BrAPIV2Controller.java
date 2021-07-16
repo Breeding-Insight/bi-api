@@ -122,7 +122,8 @@ public class BrAPIV2Controller {
             }
             var programBrAPIBaseUrl = programBrAPIEndpoints.getCoreUrl().get();
             programBrAPIBaseUrl = programBrAPIBaseUrl.endsWith("/") ? programBrAPIBaseUrl.substring(0, programBrAPIBaseUrl.length() - 1) : programBrAPIBaseUrl;
-            var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + BrapiVersion.BRAPI_V2 + "/" + path)
+            String urlString = programBrAPIBaseUrl.endsWith(BrapiVersion.BRAPI_V2) ? programBrAPIBaseUrl : programBrAPIBaseUrl + BrapiVersion.BRAPI_V2;
+            var requestUrl = HttpUrl.parse(urlString + "/" + path)
                                     .newBuilder();
 
             request.getParameters()
