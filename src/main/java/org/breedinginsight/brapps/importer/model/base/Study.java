@@ -20,7 +20,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPIStudyExperimentalDesign;
 import org.breedinginsight.brapps.importer.model.config.*;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -36,6 +40,13 @@ public class Study implements BrAPIObject {
     @ImportMappingRequired
     @ImportFieldMetadata(id="studyName", name="Study Name", description = "The name of the study.")
     private String studyName;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
+    @ImportFieldMetadata(id="experimentalDesignPUI", name="Experimental Design PUI",
+            description = "Type of experimental design, must be one of the following: " +
+                    "CRD, Alpha, MAD, Lattice, Augmented, RCBD, p-rep, splitplot, greenhouse, Westcott, Analysis")
+    private String experimentalDesignPUI;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportMappingRequired
@@ -60,6 +71,10 @@ public class Study implements BrAPIObject {
         BrAPIStudy study = new BrAPIStudy();
         study.setStudyName(getStudyName());
         study.setActive(true);
+
+        BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
+        design.setPUI(getExperimentalDesignPUI());
+        study.setExperimentalDesign(design);
 
         if (getLocation().getTargetColumn().equals(LOCATION_NAME)) {
             study.setLocationName(getLocation().getReferenceValue());
