@@ -58,7 +58,7 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationLevelCode", name="Observation Level Code",
-            description = "An ID code for this level tag. Example: plot number for a plot observation level.")
+            description = "An ID code for this level tag. Example: plot number for a plot observation level. Plot numbers must be unique within a study.")
     @ImportMappingRequired
     private String observationLevelCode;
 
