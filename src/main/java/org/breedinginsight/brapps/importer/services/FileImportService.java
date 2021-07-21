@@ -50,11 +50,13 @@ import org.breedinginsight.utilities.FileUtil;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -148,6 +150,22 @@ public class FileImportService {
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");
         }
+
+        // replace "." with "" in column names to deal with json flattening issue in tablesaw
+        List<String> columnNames = df.columnNames();
+        List<String> namesToReplace = new ArrayList<>();
+        for (String name : columnNames) {
+            if (name.contains(".")) {
+                namesToReplace.add(name);
+            }
+        }
+
+        List<Column<?>> columns = df.columns(namesToReplace.stream().toArray(String[]::new));
+        for (int i=0; i<columns.size(); i++) {
+            Column<?> column = columns.get(i);
+            column.setName(namesToReplace.get(i).replace(".",""));
+        }
+
         return df;
     }
 
