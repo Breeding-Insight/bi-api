@@ -159,7 +159,7 @@ public class BrAPIV2Controller {
         try {
             programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
         } catch (DoesNotExistException e) {
-            throw new NotFoundException("Program does not exist");
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
         }
 
         if(programBrAPIEndpoints.getCoreUrl().isEmpty()) {
