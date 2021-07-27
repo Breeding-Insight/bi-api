@@ -153,7 +153,7 @@ public class BrAPIV2Controller {
         }
     }
 
-    private HttpUrl getUrl(UUID programId, String path, HttpRequest<?> request) throws NotFoundException {
+    private HttpUrl getUrl(UUID programId, String path, HttpRequest<?> request) {
 
         ProgramBrAPIEndpoints programBrAPIEndpoints;
         try {
