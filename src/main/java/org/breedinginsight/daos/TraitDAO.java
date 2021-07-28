@@ -58,7 +58,7 @@ public class TraitDAO extends TraitDao {
     private ObservationDAO observationDao;
     private Gson gson;
 
-    private String TAGS_KEY = "tags";
+    private final static String TAGS_KEY = "tags";
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
