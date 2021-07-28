@@ -59,7 +59,7 @@ public class TraitService {
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
 
-    private String FAVORITES_TAG = "favorites";
+    private final static String FAVORITES_TAG = "favorites";
 
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
