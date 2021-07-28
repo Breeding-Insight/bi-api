@@ -27,7 +27,6 @@ public enum TraitFileColumns {
     TRAIT_SYNONYMS("Trait synonyms"),
     TRAIT_LEVEL("Trait level"),
     TRAIT_STATUS("Trait status"),
-    TRAIT_LISTS("Trait lists"),
     METHOD_DESCRIPTION("Method description"),
     METHOD_CLASS("Method class"),
     METHOD_FORMULA("Method formula"),
