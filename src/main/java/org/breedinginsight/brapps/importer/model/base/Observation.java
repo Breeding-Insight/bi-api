@@ -103,10 +103,9 @@ public class Observation implements BrAPIObject {
         observation.setObservationTimeStamp(timestamp);
 
         if (additionalInfos != null) {
-            Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
-                    .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
-                    .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
-            observation.setAdditionalInfo(brAPIAdditionalInfos);
+            additionalInfos.stream()
+                .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
+                .forEach(additionalInfo -> observation.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
         }
 
         return observation;
