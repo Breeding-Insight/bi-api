@@ -132,9 +132,9 @@ public class ObservationUnit implements BrAPIObject {
         observationUnit.setExternalReferences(brAPIexternalReferences);
 
         if (additionalInfos != null) {
-            Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
-                    .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
-            observationUnit.setAdditionalInfo(brAPIAdditionalInfos);
+            additionalInfos.stream()
+                .forEach(additionalInfo ->
+                        observationUnit.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
         }
 
         return observationUnit;
