@@ -98,10 +98,9 @@ public class Germplasm implements BrAPIObject {
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());
         if (additionalInfos != null) {
-            Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
+            additionalInfos.stream()
                     .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
-                    .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
-            germplasm.setAdditionalInfo(brAPIAdditionalInfos);
+                    .forEach(additionalInfo -> germplasm.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
         }
 
         if (externalReferences != null) {
@@ -119,9 +118,7 @@ public class Germplasm implements BrAPIObject {
         germplasm.setCommonCropName(brAPIProgram.getCommonCropName());
 
         // Set programId in additionalInfo
-        Map<String, String> additionalInfo = germplasm.getAdditionalInfo() != null ? germplasm.getAdditionalInfo() : new HashMap<>();
-        additionalInfo.put("programId", brAPIProgram.getProgramDbId());
-        germplasm.setAdditionalInfo(additionalInfo);
+        germplasm.putAdditionalInfoItem("programId", brAPIProgram.getProgramDbId());
 
         return germplasm;
     }

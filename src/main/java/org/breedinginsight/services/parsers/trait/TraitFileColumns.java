@@ -27,7 +27,6 @@ public enum TraitFileColumns {
     TRAIT_SYNONYMS("Trait synonyms"),
     TRAIT_LEVEL("Trait level"),
     TRAIT_STATUS("Trait status"),
-    TRAIT_LISTS("Trait lists"),
     METHOD_DESCRIPTION("Method description"),
     METHOD_CLASS("Method class"),
     METHOD_FORMULA("Method formula"),
@@ -36,7 +35,8 @@ public enum TraitFileColumns {
     SCALE_DECIMAL_PLACES("Scale decimal places"),
     SCALE_LOWER_LIMIT("Scale lower limit"),
     SCALE_UPPER_LIMIT("Scale upper limit"),
-    SCALE_CATEGORIES("Scale categories");
+    SCALE_CATEGORIES("Scale categories"),
+    TAGS("Tags");
 
     private String value;
 

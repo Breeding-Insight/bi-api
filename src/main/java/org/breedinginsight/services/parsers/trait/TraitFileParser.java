@@ -236,6 +236,9 @@ public class TraitFileParser {
             String synonymsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS);
             List<String> traitSynonyms = parseListValue(synonymsString);
 
+            String tagsString = parseExcelValueAsString(record, TraitFileColumns.TAGS);
+            List<String> traitTags = parseListValue(tagsString);
+
             Trait trait = Trait.builder()
                     .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
                     .abbreviations(traitAbbreviations.toArray(String[]::new))
@@ -245,6 +248,7 @@ public class TraitFileParser {
                     // TODO: trait lists
                     .method(method)
                     .scale(scale)
+                    .tags(traitTags)
                     .build();
 
             traits.add(trait);

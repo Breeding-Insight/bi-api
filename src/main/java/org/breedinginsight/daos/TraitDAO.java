@@ -17,6 +17,7 @@
 
 package org.breedinginsight.daos;
 
+import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.ApiResponse;
@@ -55,6 +56,9 @@ public class TraitDAO extends TraitDao {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
     private ObservationDAO observationDao;
+    private Gson gson;
+
+    private final static String TAGS_KEY = "tags";
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
@@ -62,6 +66,7 @@ public class TraitDAO extends TraitDao {
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
+        this.gson = new Gson();
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -106,14 +111,7 @@ public class TraitDAO extends TraitDao {
             // assumes external reference id is unique to each brapi variable
             if (brApiVariableMap.containsKey(trait.getId().toString())){
                 BrAPIObservationVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
-                trait.setBrAPIProperties(brApiVariable);
-
-                Method method = trait.getMethod();
-                method.setBrAPIProperties(brApiVariable.getMethod());
-
-                Scale scale = trait.getScale();
-                scale.setBrAPIProperties(brApiVariable.getScale());
-
+                saturateTrait(trait, brApiVariable);
                 saturatedTraits.add(trait);
             } else {
                 throw new InternalServerException("Could not find trait in returned brapi server results");
@@ -190,15 +188,7 @@ public class TraitDAO extends TraitDao {
             throw new InternalServerException("No variable found in brapi server");
         }
 
-        dbTrait.setBrAPIProperties(brApiVariable);
-        Method method = dbTrait.getMethod();
-        method.setBrAPIProperties(brApiVariable.getMethod());
-        dbTrait.setMethod(method);
-
-        Scale scale = dbTrait.getScale();
-        scale.setBrAPIProperties(brApiVariable.getScale());
-        dbTrait.setScale(scale);
-
+        saturateTrait(dbTrait, brApiVariable);
         return Optional.of(dbTrait);
     }
 
@@ -327,6 +317,7 @@ public class TraitDAO extends TraitDao {
                     .synonyms(trait.getSynonyms())
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
+            brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
 
             if (trait.getActive() == null || trait.getActive()){
                 brApiVariable.setStatus("active");
@@ -372,11 +363,7 @@ public class TraitDAO extends TraitDao {
                         if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
                                 brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
 
-                            trait.setBrAPIProperties(variable);
-                            Method method = trait.getMethod();
-                            method.setBrAPIProperties(variable.getMethod());
-                            Scale scale = trait.getScale();
-                            scale.setBrAPIProperties(variable.getScale());
+                            saturateTrait(trait, variable);
                         }
                     }
                 }
@@ -431,6 +418,7 @@ public class TraitDAO extends TraitDao {
             } else {
                 existingVariable.setStatus("archived");
             }
+            existingVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
 
 
             // PUT brapi trait
@@ -438,11 +426,7 @@ public class TraitDAO extends TraitDao {
 
             // Retrieve our update trait from the db
             updatedTrait = getTrait(program.getId(), trait.getId()).get();
-            updatedTrait.setBrAPIProperties(updatedVariable);
-            Method method = updatedTrait.getMethod();
-            method.setBrAPIProperties(updatedVariable.getMethod());
-            Scale scale = updatedTrait.getScale();
-            scale.setBrAPIProperties(updatedVariable.getScale());
+            saturateTrait(updatedTrait, updatedVariable);
         }
 
         return updatedTrait;
@@ -566,6 +550,22 @@ public class TraitDAO extends TraitDao {
         }
 
         return traitResults;
+    }
+
+    private void saturateTrait(Trait trait, BrAPIObservationVariable brApiVariable) {
+
+        if (brApiVariable.getAdditionalInfo() != null && brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
+            List<String> tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
+            trait.setBrAPIProperties(brApiVariable, tags);
+        } else {
+            trait.setBrAPIProperties(brApiVariable);
+        }
+
+        Method method = trait.getMethod();
+        method.setBrAPIProperties(brApiVariable.getMethod());
+
+        Scale scale = trait.getScale();
+        scale.setBrAPIProperties(brApiVariable.getScale());
     }
 
 }

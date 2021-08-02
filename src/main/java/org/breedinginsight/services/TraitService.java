@@ -59,6 +59,8 @@ public class TraitService {
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
 
+    private final static String FAVORITES_TAG = "favorites";
+
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
@@ -445,5 +447,22 @@ public class TraitService {
 
     public boolean exists(UUID traitId) {
         return traitDAO.existsById(traitId);
+    }
+
+    public List<String> getAllTraitTags(UUID programId) {
+
+        // Get all traits
+        List<Trait> traits = traitDAO.getTraitsFullByProgramId(programId);
+
+        // Parse out tags into unique list
+        Set<String> tags = new HashSet<>();
+        for (Trait trait: traits) {
+            if (trait.getTags() != null) {
+                tags.addAll(trait.getTags());
+            }
+        }
+
+        tags.add(FAVORITES_TAG);
+        return new ArrayList<>(tags);
     }
 }
