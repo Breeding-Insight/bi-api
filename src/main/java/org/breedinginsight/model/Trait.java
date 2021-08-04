@@ -79,7 +79,6 @@ public class Trait extends TraitEntity {
         this.setId(traitEntity.getId());
         this.setMethodId(traitEntity.getMethodId());
         this.setScaleId(traitEntity.getScaleId());
-        this.setTraitName(traitEntity.getTraitName());
         this.setAbbreviations(traitEntity.getAbbreviations());
         this.setProgramOntologyId(traitEntity.getProgramOntologyId());
         this.setProgramObservationLevelId(traitEntity.getProgramObservationLevelId());
@@ -110,6 +109,7 @@ public class Trait extends TraitEntity {
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
+            this.setTraitName(brApiVariable.getTrait().getEntity().toString() + " " + brApiVariable.getTrait().getAttribute().toString());
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
