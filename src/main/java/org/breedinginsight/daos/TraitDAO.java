@@ -263,7 +263,7 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getMethod().getId().toString())
                     .referenceSource(referenceSource);
             BrAPIMethod brApiMethod = new BrAPIMethod()
-                                                 .methodName(String.format("%s %s", trait.getTraitName(), trait.getMethod().getMethodClass()))
+                                                 .methodName(String.format("%s %s", trait.getMethod().getDescription(), trait.getMethod().getMethodClass()))
                                                  .externalReferences(List.of(methodReference))
                                                  .methodClass(trait.getMethod().getMethodClass())
                                                  .description(trait.getMethod().getDescription())
