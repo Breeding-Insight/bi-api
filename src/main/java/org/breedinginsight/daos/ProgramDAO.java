@@ -240,7 +240,6 @@ public class ProgramDAO extends ProgramDao {
         } catch (ApiException e) {
             log.debug(e.getMessage());
             log.debug(e.getResponseBody());
-            log.debug(e.getCode());
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
