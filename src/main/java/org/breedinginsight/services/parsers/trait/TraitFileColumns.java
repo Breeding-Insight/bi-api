@@ -25,7 +25,7 @@ public enum TraitFileColumns {
     TRAIT_NAME("Trait name"),
     TRAIT_ABBREVIATIONS("Trait abbreviations"),
     TRAIT_SYNONYMS("Trait synonyms"),
-    TRAIT_LEVEL("Trait level"),
+    TRAIT_LEVEL("Trait entity"),
     TRAIT_STATUS("Trait status"),
     METHOD_DESCRIPTION("Method description"),
     METHOD_CLASS("Method class"),
