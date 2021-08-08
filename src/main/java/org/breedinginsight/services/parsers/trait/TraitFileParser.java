@@ -244,6 +244,8 @@ public class TraitFileParser {
 
             Trait trait = Trait.builder()
                     .traitName(name)
+                    .entity(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ENTITY))
+                    .attribute(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ATTRIBUTE))
                     .abbreviations(traitAbbreviations.toArray(String[]::new))
                     .synonyms(traitSynonyms)
                     .programObservationLevel(level)
