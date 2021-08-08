@@ -125,7 +125,7 @@ public class TraitFileParser {
             ExcelRecord record = records.get(i);
 
             ProgramObservationLevel level = ProgramObservationLevel.builder()
-                    .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_LEVEL))
+                    .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ENTITY))
                     .build();
 
 
