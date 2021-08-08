@@ -291,7 +291,7 @@ public class TraitDAO extends TraitDao {
                     .referenceSource(referenceSource);
             BrAPITrait brApiTrait = new BrAPITrait()
                     .traitName(String.format("%s %s", trait.getProgramObservationLevel().getName(), trait.getAttribute()))
-                    .traitDescription(trait.getMethod().getDescription())
+                    .traitDescription(trait.getTraitDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
                     .entity(trait.getProgramObservationLevel().getName())
@@ -401,7 +401,7 @@ public class TraitDAO extends TraitDao {
 
             // Change trait
             existingVariable.getTrait().setTraitName(String.format("%s %s", trait.getProgramObservationLevel().getName(), trait.getAttribute()));
-            existingVariable.getTrait().setTraitDescription(trait.getMethod().getDescription());
+            existingVariable.getTrait().setTraitDescription(trait.getTraitDescription());
             existingVariable.getTrait().setSynonyms(trait.getSynonyms());
             existingVariable.getTrait().setEntity(trait.getProgramObservationLevel().getName());
             existingVariable.getTrait().setMainAbbreviation(trait.getMainAbbreviation());
