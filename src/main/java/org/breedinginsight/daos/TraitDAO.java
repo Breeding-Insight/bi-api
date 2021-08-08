@@ -309,7 +309,7 @@ public class TraitDAO extends TraitDao {
                     .scale(brApiScale)
                     .trait(brApiTrait)
                     .externalReferences(List.of(variableReference))
-                    .observationVariableName(trait.getTraitName())
+                    .observationVariableName(trait.getObservationVariableName())
                     .status("active")
                     .language("english")
                     .scientist(actingUser.getName())
@@ -410,7 +410,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.getTrait().setAttribute(trait.getAttribute());
 
             // Change variable
-            existingVariable.setObservationVariableName(trait.getTraitName());
+            existingVariable.setObservationVariableName(trait.getObservationVariableName());
             existingVariable.setDefaultValue(trait.getDefaultValue());
             existingVariable.setSynonyms(trait.getSynonyms());
             if (trait.getActive() == null || trait.getActive()){
