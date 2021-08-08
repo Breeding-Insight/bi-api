@@ -60,6 +60,7 @@ public class Trait extends TraitEntity {
     // Properties from brapi
     private String traitClass;
     private String traitDescription;
+    private String observationVariableName;
     private String attribute;
     private String defaultValue;
     @JsonIgnore
