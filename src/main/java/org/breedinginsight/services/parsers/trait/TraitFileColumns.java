@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 
 public enum TraitFileColumns {
 
-    TRAIT_NAME("Trait name"),
+    ONTOLOGY_TERM_NAME("Ontology Term name"),
     TRAIT_ABBREVIATIONS("Trait abbreviations"),
     TRAIT_SYNONYMS("Trait synonyms"),
     TRAIT_ENTITY("Trait entity"),
