@@ -111,7 +111,7 @@ public class Trait extends TraitEntity {
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
-            this.setTraitName(brApiVariable.getTrait().getEntity().toString() + " " + brApiVariable.getTrait().getAttribute().toString());
+            this.setTraitName(String.format("%s %s",brApiVariable.getTrait().getEntity(), brApiVariable.getTrait().getAttribute()));
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
