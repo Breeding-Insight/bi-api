@@ -290,11 +290,11 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getId().toString())
                     .referenceSource(referenceSource);
             BrAPITrait brApiTrait = new BrAPITrait()
-                    .traitName(String.format("%s %s", trait.getProgramObservationLevel().getName(), trait.getAttribute()))
+                    .traitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()))
                     .traitDescription(trait.getTraitDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
-                    .entity(trait.getProgramObservationLevel().getName())
+                    .entity(trait.getEntity())
                     .mainAbbreviation(trait.getMainAbbreviation())
                     .alternativeAbbreviations(trait.getAbbreviations() != null ? List.of(trait.getAbbreviations()) : null)
                     .traitClass(trait.getTraitClass())
