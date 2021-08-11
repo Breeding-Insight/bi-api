@@ -63,7 +63,6 @@ public class Trait extends TraitEntity {
     private String observationVariableName;
     private String attribute;
     private String defaultValue;
-    @JsonIgnore
     private String entity;
     private String mainAbbreviation;
     @JsonDeserialize(using = ListOfStringDeserializer.class)
