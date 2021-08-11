@@ -195,7 +195,7 @@ public class TraitService {
 
                     // Create trait
                     TraitEntity jooqTrait = TraitEntity.builder()
-                            .traitName(String.format("%s %s", trait.getProgramObservationLevel().getName(), trait.getAttribute()))
+                            .traitName(trait.getObservationVariableName())
                             .abbreviations(trait.getAbbreviations())
                             .programOntologyId(programOntology.getId())
                             .programObservationLevelId(trait.getProgramObservationLevel().getId())
