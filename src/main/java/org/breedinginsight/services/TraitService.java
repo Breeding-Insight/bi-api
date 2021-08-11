@@ -404,7 +404,7 @@ public class TraitService {
                     scaleDAO.update(existingScaleEntity);
 
                     // Update trait
-                    existingTraitEntity.setTraitName(updatedTrait.getTraitName());
+                    existingTraitEntity.setTraitName(updatedTrait.getObservationVariableName());
                     existingTraitEntity.setAbbreviations(updatedTrait.getAbbreviations());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());

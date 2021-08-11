@@ -400,7 +400,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.getScale().setValidValues(brApiScaleValidValues);
 
             // Change trait
-            existingVariable.getTrait().setTraitName(String.format("%s %s", trait.getProgramObservationLevel().getName(), trait.getAttribute()));
+            existingVariable.getTrait().setTraitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()));
             existingVariable.getTrait().setTraitDescription(trait.getTraitDescription());
             existingVariable.getTrait().setSynonyms(trait.getSynonyms());
             existingVariable.getTrait().setEntity(trait.getProgramObservationLevel().getName());
