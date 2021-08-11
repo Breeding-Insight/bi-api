@@ -309,7 +309,7 @@ public class TraitDAO extends TraitDao {
                     .scale(brApiScale)
                     .trait(brApiTrait)
                     .externalReferences(List.of(variableReference))
-                    .observationVariableName(trait.getTraitName())
+                    .observationVariableName(trait.getObservationVariableName())
                     .status("active")
                     .language("english")
                     .scientist(actingUser.getName())

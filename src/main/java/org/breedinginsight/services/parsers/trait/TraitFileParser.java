@@ -244,6 +244,7 @@ public class TraitFileParser {
 
             Trait trait = Trait.builder()
                     .observationVariableName(parseExcelValueAsString(record, TraitFileColumns.ONTOLOGY_TERM_NAME))
+                    .traitName(name)
                     .traitDescription(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
                     .entity(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ENTITY))
                     .attribute(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ATTRIBUTE))
