@@ -74,6 +74,21 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getMissingTraitEntityMsg() {
+        return new ValidationError("Trait entity", "Missing trait entity", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getMissingTraitAttributeMsg() {
+        return new ValidationError("Trait attribute", "Missing trait attribute", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getMissingTraitDescriptionMsg() {
+        return new ValidationError("Trait description", "Missing trait description", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getMissingProgramObservationLevelMsg() {
         return new ValidationError("Trait level", "Missing trait level", HttpStatus.UNPROCESSABLE_ENTITY);
     }
