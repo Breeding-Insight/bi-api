@@ -81,6 +81,18 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingTraitNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
+            if (isBlank(trait.getEntity()) || trait.getEntity() == null) {
+                ValidationError error = traitValidatorErrors.getMissingTraitEntityMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (isBlank(trait.getAttribute()) || trait.getAttribute() == null) {
+                ValidationError error = traitValidatorErrors.getMissingTraitAttributeMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (isBlank(trait.getTraitDescription()) || trait.getTraitDescription() == null) {
+                ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
             if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
                 ValidationError error = traitValidatorErrors.getMissingProgramObservationLevelMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
