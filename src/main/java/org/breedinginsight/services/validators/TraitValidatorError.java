@@ -74,6 +74,21 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getMissingTraitEntityMsg() {
+        return new ValidationError("entity", "Missing trait entity", HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
+    public ValidationError getMissingTraitAttributeMsg() {
+        return new ValidationError("attribute", "Missing trait attribute", HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
+    public ValidationError getMissingTraitDescriptionMsg() {
+        return new ValidationError("traitDescription", "Missing trait description", HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
     public ValidationError getMissingProgramObservationLevelMsg() {
         return new ValidationError("programObservationLevel.name", "Missing program observation level", HttpStatus.BAD_REQUEST);
     }
