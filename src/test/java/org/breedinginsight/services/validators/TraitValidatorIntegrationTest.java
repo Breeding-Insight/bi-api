@@ -79,7 +79,7 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
     public void duplicateTrait() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait");
+        trait1.setObservationVariableName("Test Trait");
         trait1.setAbbreviations("t1", "t2");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
@@ -100,7 +100,7 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
     public void uniqueTraitSuccess() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait Unique");
+        trait1.setObservationVariableName("Test Trait Unique");
         trait1.setAbbreviations(List.of("t1Unique", "t2Unique").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();

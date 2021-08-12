@@ -44,7 +44,7 @@ public class TraitQueryMapperUnitTest {
     @Test
     public void testMappings() {
         Trait trait = Trait.builder()
-                .traitName("Test trait")
+                .observationVariableName("Test trait")
                 .abbreviations(List.of("t1", "1").toArray(String[]::new))
                 .mainAbbreviation("test")
                 .synonyms(List.of("t1", "t2"))
@@ -72,7 +72,7 @@ public class TraitQueryMapperUnitTest {
                 .updatedByUser(User.builder().name("User2").id(UUID.randomUUID()).build())
                 .build();
 
-        assertEquals(trait.getTraitName(), traitQueryMapper.getField("name").apply(trait), "Wrong getter");
+        assertEquals(trait.getObservationVariableName(), traitQueryMapper.getField("name").apply(trait), "Wrong getter");
         assertEquals(trait.getAbbreviations(), traitQueryMapper.getField("abbreviations").apply(trait), "Wrong getter");
         assertEquals(trait.getMainAbbreviation(), traitQueryMapper.getField("mainAbbreviation").apply(trait), "Wrong getter");
         assertEquals(trait.getSynonyms(), traitQueryMapper.getField("synonyms").apply(trait), "Wrong getter");

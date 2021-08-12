@@ -100,7 +100,7 @@ public class BrapiObservationVariableService {
         org.breedinginsight.model.Scale biScale = trait.getScale();
 
         Method brapiMethod = Method.builder()
-                .methodName(String.format("%s %s", trait.getTraitName(), biMethod.getMethodClass()))
+                .methodName(String.format("%s %s", trait.getObservationVariableName(), biMethod.getMethodClass()))
                 .description(biMethod.getDescription())
                 .methodDbId(biMethod.getId().toString())
                 .propertyClass(biMethod.getMethodClass())
@@ -148,12 +148,12 @@ public class BrapiObservationVariableService {
                 //.status(trait.getStatus())
                 .synonyms(trait.getSynonyms())
                 .traitDbId(trait.getId().toString())
-                .traitName(trait.getTraitName())
+                .traitName(trait.getObservationVariableName())
                 .xref(trait.getId().toString())
                 .build();
 
         List<String> synonyms = new ArrayList<>();
-        synonyms.add(trait.getTraitName());
+        synonyms.add(trait.getObservationVariableName());
 
         ObservationVariable brapiVariable = ObservationVariable.builder()
                 //.contextOfUse() // not stored in brapi service
@@ -173,7 +173,7 @@ public class BrapiObservationVariableService {
                 .trait(brapiTrait)
                 .xref(trait.getId().toString())
                 .observationVariableDbId(trait.getId().toString())
-                .observationVariableName(trait.getTraitName())
+                .observationVariableName(trait.getObservationVariableName())
                 .build();
 
         return brapiVariable;
