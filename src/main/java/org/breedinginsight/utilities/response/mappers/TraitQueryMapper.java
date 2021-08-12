@@ -34,7 +34,7 @@ public class TraitQueryMapper extends AbstractQueryMapper {
     public TraitQueryMapper() {
 
         fields = Map.ofEntries(
-                Map.entry("name", Trait::getTraitName),
+                Map.entry("name", Trait::getObservationVariableName),
                 Map.entry("abbreviations", Trait::getAbbreviations),
                 Map.entry("mainAbbreviation", Trait::getMainAbbreviation),
                 Map.entry("synonyms", Trait::getSynonyms),

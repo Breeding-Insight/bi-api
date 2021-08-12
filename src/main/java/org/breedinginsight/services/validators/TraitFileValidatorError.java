@@ -69,8 +69,8 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingTraitNameMsg() {
-        return new ValidationError("Trait name", "Missing trait name", HttpStatus.UNPROCESSABLE_ENTITY);
+    public ValidationError getMissingObsVarNameMsg() {
+        return new ValidationError("Observation variable name", "Missing observation variable name", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override

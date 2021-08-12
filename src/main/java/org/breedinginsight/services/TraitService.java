@@ -195,7 +195,7 @@ public class TraitService {
 
                     // Create trait
                     TraitEntity jooqTrait = TraitEntity.builder()
-                            .traitName(trait.getObservationVariableName())
+                            .observationVariableName(trait.getObservationVariableName())
                             .abbreviations(trait.getAbbreviations())
                             .programOntologyId(programOntology.getId())
                             .programObservationLevelId(trait.getProgramObservationLevel().getId())
@@ -404,7 +404,7 @@ public class TraitService {
                     scaleDAO.update(existingScaleEntity);
 
                     // Update trait
-                    existingTraitEntity.setTraitName(updatedTrait.getObservationVariableName());
+                    existingTraitEntity.setObservationVariableName(updatedTrait.getObservationVariableName());
                     existingTraitEntity.setAbbreviations(updatedTrait.getAbbreviations());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());

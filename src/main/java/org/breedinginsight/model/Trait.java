@@ -60,7 +60,7 @@ public class Trait extends TraitEntity {
     // Properties from brapi
     private String traitClass;
     private String traitDescription;
-    private String observationVariableName;
+    //private String observationVariableName;
     private String attribute;
     private String defaultValue;
     private String entity;
@@ -95,7 +95,7 @@ public class Trait extends TraitEntity {
             .id(record.getValue(TRAIT.ID))
             .methodId(record.getValue(TRAIT.METHOD_ID))
             .scaleId(record.getValue(TRAIT.SCALE_ID))
-            .traitName(record.getValue(TRAIT.TRAIT_NAME))
+            .observationVariableName(record.getValue(TRAIT.OBSERVATION_VARIABLE_NAME))
             .abbreviations(record.getValue(TRAIT.ABBREVIATIONS))
             .programOntologyId(record.getValue(TRAIT.PROGRAM_ONTOLOGY_ID))
             .programObservationLevelId(record.getValue(TRAIT.PROGRAM_OBSERVATION_LEVEL_ID))
@@ -110,7 +110,7 @@ public class Trait extends TraitEntity {
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
-            this.setTraitName(String.format("%s %s",brApiVariable.getTrait().getEntity(), brApiVariable.getTrait().getAttribute()));
+            this.setObservationVariableName(brApiVariable.getObservationVariableName());
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());

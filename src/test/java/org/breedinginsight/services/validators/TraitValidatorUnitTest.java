@@ -60,7 +60,7 @@ public class TraitValidatorUnitTest {
     public void missingMethod() {
 
         Trait trait = new Trait();
-        trait.setTraitName("Test Trait");
+        trait.setObservationVariableName("Test Trait");
         trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
@@ -98,7 +98,7 @@ public class TraitValidatorUnitTest {
     public void missingScale() {
 
         Trait trait = new Trait();
-        trait.setTraitName("Test Trait");
+        trait.setObservationVariableName("Test Trait");
         trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Method method = new Method();
@@ -207,7 +207,7 @@ public class TraitValidatorUnitTest {
     public void duplicateTraitsInFile() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait");
+        trait1.setObservationVariableName("Test Trait");
         trait1.setAbbreviations("t1", "t2");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
@@ -217,7 +217,7 @@ public class TraitValidatorUnitTest {
         trait1.setMethod(method1);
 
         Trait trait2 = new Trait();
-        trait2.setTraitName("Test Trait");
+        trait2.setObservationVariableName("Test Trait");
         trait2.setAbbreviations("t1", "t2");
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
@@ -227,7 +227,7 @@ public class TraitValidatorUnitTest {
         trait2.setMethod(method2);
 
         Trait trait3 = new Trait();
-        trait3.setTraitName("Test Trait");
+        trait3.setObservationVariableName("Test Trait");
         trait3.setAbbreviations("t1", "t2");
         trait3.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale3 = new Scale();
