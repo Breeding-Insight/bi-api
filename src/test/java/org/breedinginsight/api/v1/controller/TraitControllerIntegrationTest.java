@@ -246,7 +246,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Turn off brapi container to fake error
         Trait trait = new Trait();
-        trait.setTraitName("Test Trait3");
+        trait.setObservationVariableName("Test Trait3");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");
@@ -281,7 +281,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("DeleteTrait"));
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait");
+        trait1.setObservationVariableName("Test Trait");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
@@ -292,7 +292,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setMethod(method1);
 
         Trait trait2 = new Trait();
-        trait2.setTraitName("Test Trait1");
+        trait2.setObservationVariableName("Test Trait1");
         trait2.setAbbreviations(List.of("t3", "t4").toArray(String[]::new));
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
@@ -331,11 +331,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         for (JsonElement traitJson: data) {
             JsonObject trait = (JsonObject) traitJson;
             String traitName = trait.get("traitName").getAsString();
-            if (traitName.equals(trait1.getTraitName())){
+            if (traitName.equals(trait1.getObservationVariableName())){
                 trait1Found = true;
                 checkTraitFullResponse(trait, trait1);
                 trait1.setId(UUID.fromString(trait.get("id").getAsString()));
-            } else if (traitName.equals(trait2.getTraitName())) {
+            } else if (traitName.equals(trait2.getObservationVariableName())) {
                 trait2Found = true;
                 checkTraitFullResponse(trait, trait2);
                 trait2.setId(UUID.fromString(trait.get("id").getAsString()));
@@ -456,7 +456,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Order(4)
     public void createTraitsLevelDoesNotExist() {
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait that is unique");
+        trait1.setObservationVariableName("Test Trait that is unique");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Not Exist").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -486,7 +486,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void createTraitsValidationError() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait3");
+        trait1.setObservationVariableName("Test Trait3");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -815,7 +815,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         if (trait.getId() != null){
             assertEquals(trait.getId().toString(), traitJson.get("id").getAsString(), "Ids don't match");
         }
-        assertEquals(trait.getTraitName(), traitJson.get("traitName").getAsString(),"Names don't match");
+        assertEquals(trait.getObservationVariableName(), traitJson.get("traitName").getAsString(),"Names don't match");
 
         if (trait.getActive() != null){
             assertEquals(trait.getActive().toString(), traitJson.get("active").getAsString(), "Actives don't match");
@@ -891,7 +891,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void postTraitNominalMissingCategoryValue() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait14");
+        trait1.setObservationVariableName("Test Trait14");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
@@ -946,7 +946,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void postTraitOrdinalMissingCategoryVariables() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait14");
+        trait1.setObservationVariableName("Test Trait14");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
@@ -1014,7 +1014,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         List<Trait> newTraits = new ArrayList<>();
         for (int i = 0; i < 30; i++){
             Trait trait = new Trait();
-            trait.setTraitName("Test Trait" + i);
+            trait.setObservationVariableName("Test Trait" + i);
             trait.setAbbreviations(List.of(String.valueOf(i), "t" + i).toArray(String[]::new));
             trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
             Scale scale = new Scale();
@@ -1088,7 +1088,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("DeleteTrait"));
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait5");
+        trait1.setObservationVariableName("Test Trait5");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
@@ -1136,7 +1136,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         Trait updateTrait = validTraits.get(0);
 
-        updateTrait.setTraitName("Updated name");
+        updateTrait.setObservationVariableName("Updated name");
         updateTrait.setAbbreviations(List.of("update1", "update2").toArray(String[]::new));
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
@@ -1163,7 +1163,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
         JsonObject trait = data.get(0).getAsJsonObject();
 
-        assertEquals(updateTrait.getTraitName(), trait.get("traitName").getAsString(), "wrong trait name");
+        assertEquals(updateTrait.getObservationVariableName(), trait.get("traitName").getAsString(), "wrong trait name");
         assertEquals(updateTrait.getProgramObservationLevel().getName(),
                 trait.get("programObservationLevel").getAsJsonObject().get("name").getAsString(), "wrong observation level");
         assertEquals(updateTrait.getScale().getScaleName(),
@@ -1190,14 +1190,14 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         Trait updateTrait = validTraits.get(0);
 
-        updateTrait.setTraitName(null);
+        updateTrait.setObservationVariableName(null);
 
         // Set scale class to computation
         updateTrait.getMethod().setMethodClass("Observation");
 
         Trait badIdTrait = new Trait();
         badIdTrait.setId(UUID.randomUUID());
-        badIdTrait.setTraitName("Bad Trait");
+        badIdTrait.setObservationVariableName("Bad Trait");
         badIdTrait.setScale(updateTrait.getScale());
         badIdTrait.setMethod(updateTrait.getMethod());
         badIdTrait.setProgramObservationLevel(updateTrait.getProgramObservationLevel());
@@ -1275,7 +1275,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Trait updateTrait = validTraits.get(0);
 
         updateTrait.setId(UUID.randomUUID());
-        updateTrait.setTraitName("Updated names");
+        updateTrait.setObservationVariableName("Updated names");
         updateTrait.setAbbreviations(null);
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");

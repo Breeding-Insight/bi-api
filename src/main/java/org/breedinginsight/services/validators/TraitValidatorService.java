@@ -77,8 +77,8 @@ public class TraitValidatorService {
                 }
             }
 
-            if (isBlank(trait.getTraitName()) || trait.getTraitName() == null) {
-                ValidationError error = traitValidatorErrors.getMissingTraitNameMsg();
+            if (isBlank(trait.getObservationVariableName()) || trait.getObservationVariableName() == null) {
+                ValidationError error = traitValidatorErrors.getMissingObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (isBlank(trait.getEntity()) || trait.getEntity() == null) {
@@ -176,7 +176,7 @@ public class TraitValidatorService {
         for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             Boolean isDuplicate = duplicateNameTraits.stream().filter(duplicateTrait ->
-                    duplicateTrait.getTraitName().toLowerCase().strip().equals(trait.getTraitName().toLowerCase().strip())
+                    duplicateTrait.getObservationVariableName().toLowerCase().strip().equals(trait.getObservationVariableName().toLowerCase().strip())
                     && !duplicateTrait.getId().equals(trait.getId())
             ).collect(Collectors.toList()).size() > 0;
 
@@ -226,8 +226,8 @@ public class TraitValidatorService {
         Map<String, List<Integer>> namesMap = new HashMap<>();
         for (Integer i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
-            if (trait.getTraitName() != null){
-                String key = trait.getTraitName().toLowerCase();
+            if (trait.getObservationVariableName() != null){
+                String key = trait.getObservationVariableName().toLowerCase();
                 if (namesMap.containsKey(key)) {
                     namesMap.get(key).add(i);
                 } else {

@@ -69,8 +69,8 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingTraitNameMsg() {
-        return new ValidationError("traitName", "Missing trait name", HttpStatus.BAD_REQUEST);
+    public ValidationError getMissingObsVarNameMsg() {
+        return new ValidationError("observationVariableName", "Missing observation variable name", HttpStatus.BAD_REQUEST);
     }
 
     @Override
