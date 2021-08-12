@@ -72,6 +72,5 @@ public class Method extends MethodEntity {
         this.setMethodClass(brApiMethod.getMethodClass());
         this.setDescription(brApiMethod.getDescription());
         this.setFormula(brApiMethod.getFormula());
-        this.setMethodName(brApiMethod.getDescription().toString() + " " + brApiMethod.getMethodClass().toString());
     }
 }
