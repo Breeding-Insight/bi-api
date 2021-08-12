@@ -47,7 +47,6 @@ public class Method extends MethodEntity {
     private String methodClass;
     private String description;
     private String formula;
-    private String methodName;
 
     public Method(MethodEntity methodEntity) {
         this.setId(methodEntity.getId());
