@@ -43,6 +43,17 @@ public class Study implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
+    @ImportFieldMetadata(id="studyType", name="Study Type",
+            description = "Type of study, can be one of the predefined breedbase types or custom: " +
+                    "misc_trial, Preliminary Yield Trial, Uniform Yield Trial, heterosis_trial, " +
+                    "storage_trial, genetic_gain_trial, health_status_trial Seedling Nursery, " +
+                    "Variety Release Trial, Clonal Evaluation, Advanced Yield Trial, crossing_trial, " +
+                    "grafting_trial, pollinating_trial, phenotyping_trial, genotyping_trial, " +
+                    "Seed Multiplication, Screen House, crossing_block_trial, Specialty Trial, etc.")
+    private String studyType;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="experimentalDesignPUI", name="Experimental Design PUI",
             description = "Type of experimental design, must be one of the following: " +
                     "CRD, Alpha, MAD, Lattice, Augmented, RCBD, p-rep, splitplot, greenhouse, Westcott, Analysis")
@@ -71,6 +82,7 @@ public class Study implements BrAPIObject {
         BrAPIStudy study = new BrAPIStudy();
         study.setStudyName(getStudyName());
         study.setActive(true);
+        study.setStudyType(getStudyType());
 
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
         design.setPUI(getExperimentalDesignPUI());
