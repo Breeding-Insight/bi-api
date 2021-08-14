@@ -287,7 +287,8 @@ public class TraitFileParserUnitTest {
         assertEquals("PM_LEAF_P4", abbreviations.get(1), "wrong abbreviation");
         assertEquals("Powdery Mildew", synonyms.get(0), "wrong synonym");
         assertEquals("Powdery Mildew Severity", synonyms.get(1), "wrong synonym");
-        assertEquals("Plant", trait.getProgramObservationLevel().getName(), "wrong level name");
+        assertEquals("leaf", trait.getEntity(), "wrong entity");
+        assertEquals("powdery mildew severity", trait.getAttribute(), "wrong attribute");
         assertEquals(true, trait.getActive(), "wrong status");
         // TODO: trait lists
         Method method = trait.getMethod();
