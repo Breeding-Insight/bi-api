@@ -70,7 +70,9 @@ public class TraitValidatorUnitTest {
 
         // Trait
         trait.setTraitClass("Pheno trait");
-        trait.setAttribute("leaf length");
+        trait.setEntity("leaf");
+        trait.setAttribute("length");
+        trait.setTraitDescription("testing the test trait");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
         trait.setSynonyms(List.of("test1", "test2"));
@@ -106,7 +108,9 @@ public class TraitValidatorUnitTest {
 
         // Trait
         trait.setTraitClass("Pheno trait");
-        trait.setAttribute("leaf length");
+        trait.setEntity("leaf");
+        trait.setAttribute("length");
+        trait.setTraitDescription("testing the test trait");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
         trait.setSynonyms(List.of("test1", "test2"));
@@ -139,9 +143,12 @@ public class TraitValidatorUnitTest {
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
-        assertEquals(6, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        assertEquals(9, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("traitName", 400);
+        expectedColumns.put("observationVariableName", 400);
+        expectedColumns.put("entity", 400);
+        expectedColumns.put("attribute", 400);
+        expectedColumns.put("traitDescription", 400);
         expectedColumns.put("programObservationLevel.name", 400);
         expectedColumns.put("method.description", 400);
         expectedColumns.put("method.methodClass", 400);
