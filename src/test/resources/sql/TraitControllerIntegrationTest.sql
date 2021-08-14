@@ -50,7 +50,7 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join bi_user on bi_user.name = 'system' limit 1
 
 -- name: InsertTrait
-insert into trait (program_ontology_id, trait_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+insert into trait (program_ontology_id, observation_variable_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
 select program_ontology.id, 'Test Trait', ARRAY['t1', 't2'], method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
@@ -95,7 +95,7 @@ method_id := (SELECT method.id from method limit 1);
 scale_id := (SELECT scale.id from scale where scale.scale_name = 'Test Scale');
 program_observation_level_id := (SELECT program_observation_level.id from program_observation_level join program on program.id = program_observation_level.program_id and program.name = 'Test Program');
 
-insert into trait (trait_name, program_ontology_id, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+insert into trait (observation_variable_name, program_ontology_id, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
 values
 ('trait1', program_ontology_id, ARRAY['1', 't1'], method_id, scale_id, program_observation_level_id, user_id, user_id),
 ('trait2', program_ontology_id, ARRAY['2', 't2'], method_id, scale_id, program_observation_level_id, user_id, user_id),
