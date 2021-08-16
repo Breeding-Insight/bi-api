@@ -15,5 +15,14 @@
  * limitations under the License.
  */
 
-ALTER TABLE trait
-    RENAME COLUMN trait_name TO observation_variable_name;
+-- ALTER TABLE trait
+--     RENAME COLUMN trait_name TO observation_variable_name;
+DO
+$$
+    BEGIN
+        ALTER TABLE trait
+            RENAME COLUMN trait_name TO observation_variable_name;
+    EXCEPTION
+        WHEN undefined_column THEN
+    END;
+$$;
