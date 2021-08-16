@@ -15,8 +15,6 @@
  * limitations under the License.
  */
 
--- ALTER TABLE trait
---     RENAME COLUMN trait_name TO observation_variable_name;
 DO
 $$
     BEGIN
