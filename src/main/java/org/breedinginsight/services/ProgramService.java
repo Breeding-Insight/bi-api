@@ -30,6 +30,7 @@ import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
@@ -103,8 +104,13 @@ public class ProgramService {
         return programs;
     }
 
-    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws UnprocessableEntityException {
+    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws AlreadyExistsException, UnprocessableEntityException {
         /* Create a program from a request object */
+
+        //Check that program name not already in use
+        if (programNameInUse(programRequest.getName())) {
+            throw new AlreadyExistsException("Program name already in use");
+        }
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
@@ -222,5 +228,15 @@ public class ProgramService {
 
         return dao.getProgramBrAPIEndpoints(programId);
     }
+
+    private boolean programNameInUse(String name) {
+        List<ProgramEntity> existingPrograms = dao.fetchByName(name);
+        if (!existingPrograms.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 
 }

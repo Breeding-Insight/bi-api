@@ -130,6 +130,9 @@ public class ProgramController {
             Program program = programService.create(programRequest, actingUser);
             Response<Program> response = new Response(program);
             return HttpResponse.ok(response);
+        } catch (AlreadyExistsException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         } catch (UnprocessableEntityException e){
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
