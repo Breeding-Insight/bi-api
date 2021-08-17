@@ -484,6 +484,30 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    public void postProgramsNameAlreadyExists() {
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name(validProgram.getName())
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
+
+    @Test
     public void postProgramsUnsupportedBrapiUrl() {
 
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
@@ -491,7 +515,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .build();
 
         ProgramRequest validRequest = ProgramRequest.builder()
-                .name(validProgram.getName())
+                .name("invalidBrAPITestProgram")
                 .species(speciesRequest)
                 .brapiUrl("http://www.notabrapiserver.com")
                 .build();
@@ -554,7 +578,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .build();
 
         ProgramRequest validRequest = ProgramRequest.builder()
-                .name(validProgram.getName())
+                .name("MinimalBodySuccess Program")
                 .species(speciesRequest)
                 .build();
 
@@ -763,7 +787,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .build();
 
         ProgramRequest validRequest = ProgramRequest.builder()
-                .name(validProgram.getName())
+                .name("ArchiveProgram Test")
                 .species(speciesRequest)
                 .build();
 
