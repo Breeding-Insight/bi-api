@@ -82,6 +82,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     private FannyPack securityFp;
 
     private ProgramEntity validProgram;
+    private ProgramEntity validProgramB;
     private Program otherProgram;
     private User validUser;
     private Species validSpecies;
@@ -595,8 +596,10 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         String newProgramId = result.getAsJsonPrimitive("id").getAsString();
 
         Program program = getProgramById(gson, client, UUID.fromString(newProgramId));
+        
+        validProgramB = programDao.fetchById(UUID.fromString(result.get("id").getAsString())).get(0);
 
-        checkMinimalValidProgram(validProgram, result);
+        checkMinimalValidProgram(validProgramB, result);
 
         dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString());
     }
