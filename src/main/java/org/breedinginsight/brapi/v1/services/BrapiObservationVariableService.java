@@ -143,12 +143,12 @@ public class BrapiObservationVariableService {
                 .propertyClass(trait.getTraitClass())
                 .entity(trait.getEntity())
                 .mainAbbreviation(trait.getMainAbbreviation())
-                .description(trait.getMethod().getDescription())
+                .description(trait.getTraitDescription())
                 //.ontologyRefernce() // TODO: once we pass this to brapi service in bi trait service
                 //.status(trait.getStatus())
                 .synonyms(trait.getSynonyms())
                 .traitDbId(trait.getId().toString())
-                .traitName(trait.getObservationVariableName())
+                .traitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()))
                 .xref(trait.getId().toString())
                 .build();
 
