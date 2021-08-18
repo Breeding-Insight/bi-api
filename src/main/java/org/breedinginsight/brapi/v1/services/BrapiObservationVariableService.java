@@ -100,7 +100,7 @@ public class BrapiObservationVariableService {
         org.breedinginsight.model.Scale biScale = trait.getScale();
 
         Method brapiMethod = Method.builder()
-                .methodName(String.format("%s %s", trait.getObservationVariableName(), biMethod.getMethodClass()))
+                .methodName(String.format("%s %s", biMethod.getDescription(), biMethod.getMethodClass()))
                 .description(biMethod.getDescription())
                 .methodDbId(biMethod.getId().toString())
                 .propertyClass(biMethod.getMethodClass())
