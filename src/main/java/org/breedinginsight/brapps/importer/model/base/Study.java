@@ -20,7 +20,11 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPIStudyExperimentalDesign;
 import org.breedinginsight.brapps.importer.model.config.*;
+
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -36,6 +40,24 @@ public class Study implements BrAPIObject {
     @ImportMappingRequired
     @ImportFieldMetadata(id="studyName", name="Study Name", description = "The name of the study.")
     private String studyName;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
+    @ImportFieldMetadata(id="studyType", name="Study Type",
+            description = "Type of study, can be one of the predefined breedbase types or custom: " +
+                    "misc_trial, Preliminary Yield Trial, Uniform Yield Trial, heterosis_trial, " +
+                    "storage_trial, genetic_gain_trial, health_status_trial Seedling Nursery, " +
+                    "Variety Release Trial, Clonal Evaluation, Advanced Yield Trial, crossing_trial, " +
+                    "grafting_trial, pollinating_trial, phenotyping_trial, genotyping_trial, " +
+                    "Seed Multiplication, Screen House, crossing_block_trial, Specialty Trial, etc.")
+    private String studyType;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
+    @ImportFieldMetadata(id="experimentalDesignPUI", name="Experimental Design PUI",
+            description = "Type of experimental design, must be one of the following: " +
+                    "CRD, Alpha, MAD, Lattice, Augmented, RCBD, p-rep, splitplot, greenhouse, Westcott, Analysis")
+    private String experimentalDesignPUI;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
     @ImportMappingRequired
@@ -60,6 +82,11 @@ public class Study implements BrAPIObject {
         BrAPIStudy study = new BrAPIStudy();
         study.setStudyName(getStudyName());
         study.setActive(true);
+        study.setStudyType(getStudyType());
+
+        BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
+        design.setPUI(getExperimentalDesignPUI());
+        study.setExperimentalDesign(design);
 
         if (getLocation().getTargetColumn().equals(LOCATION_NAME)) {
             study.setLocationName(getLocation().getReferenceValue());

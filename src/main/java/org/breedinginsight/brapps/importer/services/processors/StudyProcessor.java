@@ -17,6 +17,8 @@
 package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Prototype;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPILocation;
@@ -41,6 +43,8 @@ import java.util.stream.Collectors;
 public class StudyProcessor implements Processor {
 
     private static final String NAME = "Study";
+    private static final Set<String> EXPERIMENTAL_DESIGN_TYPES = Set.of("CRD", "Alpha", "MAD", "Lattice", "Augmented",
+            "RCBD", "p-rep", "splitplot", "greenhouse", "Westcott", "Analysis");
 
     private BrAPIStudyDAO brAPIStudyDAO;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByName = new HashMap<>();
@@ -82,6 +86,11 @@ public class StudyProcessor implements Processor {
             Study study = brapiImport.getStudy();
 
             BrAPIStudy brapiStudy = study.constructBrAPIStudy();
+
+            if (!EXPERIMENTAL_DESIGN_TYPES.contains(brapiStudy.getExperimentalDesign().getPUI())) {
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Experimental design type not allowed");
+            }
+
             if (!studyByName.containsKey(study.getStudyName())) {
                 studyByName.put(brapiStudy.getStudyName(), new PendingImportObject<>(ImportObjectState.NEW, brapiStudy));
                 mappedImportRow.setStudy(new PendingImportObject<>(ImportObjectState.NEW, brapiStudy));

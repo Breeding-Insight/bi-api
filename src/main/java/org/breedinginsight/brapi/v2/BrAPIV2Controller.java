@@ -39,6 +39,7 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
+import javax.ws.rs.NotFoundException;
 import java.io.IOException;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -79,81 +80,119 @@ public class BrAPIV2Controller {
     }
 
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<String> postCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
-        return executeRequest(path, programId, request, "POST");
+    public HttpResponse<String> postCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
+                                             @Header("Content-Type") String contentType) {
+        return executeByteRequest(path, programId, request, contentType, "POST");
     }
 
     @Put("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
-    @Consumes(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.ALL)
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<String> putCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<String> request) {
-        return executeRequest(path, programId, request, "PUT");
+    public HttpResponse<String> putCatchall(@PathVariable("path") String path, @PathVariable("programId") UUID programId, HttpRequest<byte[]> request,
+                                            @Header("Content-Type") String contentType) {
+        return executeByteRequest(path, programId, request, contentType, "PUT");
+    }
+
+    private HttpResponse<String> executeByteRequest(String path, UUID programId, HttpRequest<byte[]> request, String contentType, String method) {
+        AuthenticatedUser actingUser = securityService.getUser();
+
+        logCall(path, request);
+        if (programId != null) {
+            HttpUrl requestUrl = getUrl(programId, path, request);
+
+            var brapiRequest = new Request.Builder().url(requestUrl)
+//                                                    .addHeader("Authorization", "Bearer " + token) //TODO
+                    .method(method, request.getBody().isPresent() ? RequestBody.create(request.getBody().get()) : null)
+                    .addHeader("Content-Type", contentType)
+                    .build();
+
+            return makeCall(brapiRequest);
+        }
+
+        throw new HttpStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized BrAPI Request");
     }
 
     private HttpResponse<String> executeRequest(String path, UUID programId, HttpRequest<String> request, String method) {
         AuthenticatedUser actingUser = securityService.getUser();
 
-        log.debug("Params for brapi proxy call: " + String.join("\n",
-                                           request.getParameters()
-                                                  .asMap()
-                                                  .entrySet()
-                                                  .stream()
-                                                  .map(entry -> entry.getKey() + ": " + entry.getValue())
-                                                  .collect(Collectors.joining("\n"))
-        ));
-
+        logCall(path, request);
         if (programId != null) {
-            ProgramBrAPIEndpoints programBrAPIEndpoints;
-            try {
-                programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
-            } catch (DoesNotExistException e) {
-                return HttpResponse.notFound("Program does not exist");
-            }
+            HttpUrl requestUrl = getUrl(programId, path, request);
 
-            OkHttpClient client = new OkHttpClient();
-
-            if(programBrAPIEndpoints.getCoreUrl().isEmpty()) {
-                log.error("Program: " + programId + " is missing BrAPI URL config");
-                throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "");
-            }
-            var programBrAPIBaseUrl = programBrAPIEndpoints.getCoreUrl().get();
-            programBrAPIBaseUrl = programBrAPIBaseUrl.endsWith("/") ? programBrAPIBaseUrl.substring(0, programBrAPIBaseUrl.length() - 1) : programBrAPIBaseUrl;
-            var requestUrl = HttpUrl.parse(programBrAPIBaseUrl + BrapiVersion.BRAPI_V2 + "/" + path)
-                                    .newBuilder();
-
-            request.getParameters()
-                   .asMap()
-                   .entrySet()
-                   .stream()
-                   .filter(param -> !param.getKey()
-                                          .equals("programId"))
-                   .forEach(param -> param.getValue()
-                                          .forEach(val -> requestUrl.addQueryParameter(param.getKey(), val)));
-
-            var brapiRequest = new Request.Builder().url(requestUrl.build())
+            var brapiRequest = new Request.Builder().url(requestUrl)
 //                                                    .addHeader("Authorization", "Bearer " + token) //TODO
                                                     .method(method, request.getBody().isPresent() ? RequestBody.create(request.getBody().get(), okhttp3.MediaType.get(MediaType.APPLICATION_JSON)) : null)
                                                     .build();
 
-            try (Response brapiResponse = client.newCall(brapiRequest).execute()) {
-                if(brapiResponse.isSuccessful()) {
-                    try(ResponseBody body = brapiResponse.body()) {
-                        String respBody = body == null ? "" : body.string();
-                        return HttpResponse.ok(respBody);
-                    }
-                } else if(brapiResponse.code() == HttpStatus.NOT_FOUND.getCode()) {
-                    return HttpResponse.notFound();
-                }
-            } catch (IOException e) {
-                log.error("Error calling BrAPI Service", e);
-                throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error calling BrAPI Service");
-            }
+            return makeCall(brapiRequest);
         }
 
         throw new HttpStatusException(HttpStatus.UNAUTHORIZED, "Unauthorized BrAPI Request");
+    }
+
+    private HttpResponse<String> makeCall(Request brapiRequest) {
+        OkHttpClient client = new OkHttpClient();
+        try (Response brapiResponse = client.newCall(brapiRequest).execute()) {
+            if(brapiResponse.isSuccessful()) {
+                try(ResponseBody body = brapiResponse.body()) {
+                    String respBody = body == null ? "" : body.string();
+                    return HttpResponse.ok(respBody);
+                } catch (Exception e) {
+                    return HttpResponse.ok("");
+                }
+            } else {
+                return HttpResponse.status(HttpStatus.valueOf(brapiResponse.code()));
+            }
+        } catch (IOException e) {
+            log.error("Error calling BrAPI Service", e);
+            throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error calling BrAPI Service");
+        }
+    }
+
+    private HttpUrl getUrl(UUID programId, String path, HttpRequest<?> request) {
+
+        ProgramBrAPIEndpoints programBrAPIEndpoints;
+        try {
+            programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
+        } catch (DoesNotExistException e) {
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist");
+        }
+
+        if(programBrAPIEndpoints.getCoreUrl().isEmpty()) {
+            log.error("Program: " + programId + " is missing BrAPI URL config");
+            throw new HttpStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "");
+        }
+        var programBrAPIBaseUrl = programBrAPIEndpoints.getCoreUrl().get();
+        programBrAPIBaseUrl = programBrAPIBaseUrl.endsWith("/") ? programBrAPIBaseUrl.substring(0, programBrAPIBaseUrl.length() - 1) : programBrAPIBaseUrl;
+        String urlString = programBrAPIBaseUrl.endsWith(BrapiVersion.BRAPI_V2) ? programBrAPIBaseUrl : programBrAPIBaseUrl + BrapiVersion.BRAPI_V2;
+        var requestUrl = HttpUrl.parse(urlString + "/" + path)
+                .newBuilder();
+
+        request.getParameters()
+                .asMap()
+                .entrySet()
+                .stream()
+                .filter(param -> !param.getKey()
+                        .equals("programId"))
+                .forEach(param -> param.getValue()
+                        .forEach(val -> requestUrl.addQueryParameter(param.getKey(), val)));
+
+        return requestUrl.build();
+    }
+
+    private void logCall(String path, HttpRequest<?> request) {
+        log.debug("Params for brapi proxy call: " + String.join("\n",
+                String.format("\npath = %s\n", path),
+                request.getParameters()
+                        .asMap()
+                        .entrySet()
+                        .stream()
+                        .map(entry -> entry.getKey() + ": " + entry.getValue())
+                        .collect(Collectors.joining("\n"))
+        ));
     }
 }

@@ -16,15 +16,14 @@
  */
 package org.breedinginsight.brapps.importer.services;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.jooq.JSONB;
+import org.brapi.client.v2.JSON;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -70,14 +69,8 @@ public class ImportStatusService {
 
     public void updateMappedData(ImportPreviewResponse response, String message) {
         // Save our results to the db
-        String json = null;
-        try {
-            json = objMapper.writeValueAsString(response);
-        } catch(JsonProcessingException e) {
-            log.error("Problem converting mapping to json", e);
-            // If we didn't catch this error in the validator, this is an unexpected server error.
-            throw new InternalServerException("Problem converting mapping to json", e);
-        }
+        JSON config = new JSON();
+        String json = config.getGson().toJson(response);
         upload.setMappedData(JSONB.valueOf(json));
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
