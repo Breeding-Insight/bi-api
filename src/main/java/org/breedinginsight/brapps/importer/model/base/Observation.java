@@ -27,6 +27,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -73,6 +76,9 @@ public class Observation implements BrAPIObject {
     @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
     private String observationDate;
 
+    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = AdditionalInfo.class)
+    private List<AdditionalInfo> additionalInfos;
+
     public BrAPIObservation constructBrAPIObservation() {
         BrAPIObservation observation = new BrAPIObservation();
         observation.setValue(getValue());
@@ -96,21 +102,11 @@ public class Observation implements BrAPIObject {
         OffsetDateTime timestamp = zoned.toOffsetDateTime();
         observation.setObservationTimeStamp(timestamp);
 
-        return observation;
-    }
-
-    public static Observation observationFromBrapiObservation(BrAPIObservation brapiObservation) {
-        Observation observation = new Observation();
-        // TODO: figure out how to handle study
-        MappedImportRelation germplasmRelation = new MappedImportRelation();
-        germplasmRelation.setReferenceValue(brapiObservation.getGermplasmName());
-        observation.setStudy(germplasmRelation);
-        MappedImportRelation ouRelation = new MappedImportRelation();
-        ouRelation.setReferenceValue(brapiObservation.getObservationUnitName());
-        observation.setObservationUnit(ouRelation);
-        MappedImportRelation traitRelation = new MappedImportRelation();
-        traitRelation.setReferenceValue(brapiObservation.getObservationVariableName());
-        observation.setObservationUnit(traitRelation);
+        if (additionalInfos != null) {
+            additionalInfos.stream()
+                .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
+                .forEach(additionalInfo -> observation.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
+        }
 
         return observation;
     }

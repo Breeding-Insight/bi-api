@@ -24,9 +24,7 @@ import io.reactivex.functions.Function3;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
-import org.brapi.v2.model.BrAPIResponse;
-import org.brapi.v2.model.BrAPIResponseResult;
+import org.brapi.v2.model.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
 import java.util.ArrayList;
@@ -41,13 +39,14 @@ public class BrAPIDAOUtil {
     public static Integer RESULTS_PER_QUERY = 100000;
     public static Integer POST_GROUP_SIZE = 100;
 
-    public static <T, U, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+    public static <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                     Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                     U searchBody
     ) throws ApiException {
 
         try {
             List<V> listResult = new ArrayList<>();
+            searchBody.pageSize(RESULTS_PER_QUERY);
             ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response =
                     searchMethod.apply(searchBody);
             if (response.getBody().getLeft().isPresent()) {
@@ -55,7 +54,7 @@ public class BrAPIDAOUtil {
                 BrAPIResponseResult responseResult = (BrAPIResponseResult) listResponse.getResult();
                 listResult = responseResult != null ? responseResult.getData() :
                         new ArrayList<>();
-                //TODO: Check that all of the pages were returned
+                // TODO: Check that all of the pages were returned
             } else {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;

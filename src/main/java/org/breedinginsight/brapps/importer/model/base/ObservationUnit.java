@@ -23,6 +23,8 @@ import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
+import org.brapi.v2.model.pheno.BrAPIObservationUnitPosition;
 import org.breedinginsight.brapps.importer.model.config.*;
 
 import java.util.ArrayList;
@@ -50,9 +52,15 @@ public class ObservationUnit implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationLevel", name="Observation Level",
-            description = "The type of the observation unit. Example: Plot, Plant.")
+            description = "The type of the observation unit. Allowable options: plot, plant.")
     @ImportMappingRequired
     private String observationLevel;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id="observationLevelCode", name="Observation Level Code",
+            description = "An ID code for this level tag. Example: plot number for a plot observation level. Plot numbers must be unique within a study.")
+    @ImportMappingRequired
+    private String observationLevelCode;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="observationUnitPermanentID", name="Observation Permanent ID",
@@ -93,8 +101,15 @@ public class ObservationUnit implements BrAPIObject {
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
         observationUnit.setObservationUnitName(getObservationUnitName());
 
-        BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel();
+        //BrAPIObservationUnitHierarchyLevel level = new BrAPIObservationUnitHierarchyLevel();
+        //level.setLevelName(getObservationLevel());
+
+        BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
+        BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
         level.setLevelName(getObservationLevel());
+        level.setLevelCode(getObservationLevelCode());
+        position.setObservationLevel(level);
+        observationUnit.setObservationUnitPosition(position);
 
         if (getStudy().getTargetColumn().equals(STUDY_NAME)) {
             observationUnit.setStudyName(getStudy().getReferenceValue());
@@ -117,9 +132,9 @@ public class ObservationUnit implements BrAPIObject {
         observationUnit.setExternalReferences(brAPIexternalReferences);
 
         if (additionalInfos != null) {
-            Map<String, String> brAPIAdditionalInfos = additionalInfos.stream()
-                    .collect(Collectors.toMap(AdditionalInfo::getAdditionalInfoName, AdditionalInfo::getAdditionalInfoValue));
-            observationUnit.setAdditionalInfo(brAPIAdditionalInfos);
+            additionalInfos.stream()
+                .forEach(additionalInfo ->
+                        observationUnit.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
         }
 
         return observationUnit;
