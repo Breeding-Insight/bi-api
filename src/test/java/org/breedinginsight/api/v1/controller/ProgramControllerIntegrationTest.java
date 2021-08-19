@@ -485,6 +485,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    @Order(3)
     public void postProgramsNameAlreadyExists() {
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
                 .id(validSpecies.getId())
