@@ -111,6 +111,31 @@ public class ProgramDAO extends ProgramDao {
         return getPrograms(null);
     }
 
+    public List<Program> getProgramByName(String name, boolean caseInsensitive){
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+        Result<Record> queryResult;
+        List<Program> resultPrograms = new ArrayList<>();
+
+        SelectOnConditionStep<Record> query = dsl.select()
+                .from(PROGRAM)
+                .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
+                .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
+
+        if (caseInsensitive){
+            queryResult = query
+                    .where(PROGRAM.NAME.equalIgnoreCase(name))
+                    .fetch();
+        } else {
+            queryResult = query
+                    .where(PROGRAM.NAME.equal(name))
+                    .fetch();
+        }
+
+        return parseProgramQuery(queryResult, createdByUser, updatedByUser);
+    }
+
     private List<Program> getPrograms(List<UUID> programIds){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
@@ -132,7 +157,11 @@ public class ProgramDAO extends ProgramDao {
             queryResult = query.fetch();
         }
 
-        // Parse the result
+        return parseProgramQuery(queryResult, createdByUser, updatedByUser);
+    }
+
+    private List<Program> parseProgramQuery(Result<Record> queryResult, BiUserTable createdByUser, BiUserTable updatedByUser) {
+        List<Program> resultPrograms = new ArrayList<>();
         for (Record record: queryResult){
             if (record.getValue(PROGRAM.BRAPI_URL) == null) {
                 record.setValue(PROGRAM.BRAPI_URL, SYSTEM_DEFAULT);
