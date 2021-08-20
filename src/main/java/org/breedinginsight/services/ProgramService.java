@@ -230,7 +230,7 @@ public class ProgramService {
     }
 
     private boolean programNameInUse(String name) {
-        List<ProgramEntity> existingPrograms = dao.fetchByName(name);
+        List<Program> existingPrograms = dao.getProgramByName(name, true);
         if (!existingPrograms.isEmpty()) {
             return true;
         } else {
