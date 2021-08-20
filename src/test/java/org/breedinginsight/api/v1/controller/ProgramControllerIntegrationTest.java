@@ -467,7 +467,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .build();
 
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
-                .name("Test program")
+                .name("Invalid Species Test program")
                 .species(speciesRequest)
                 .build();
 
