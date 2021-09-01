@@ -151,7 +151,8 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         return species.get(0);
     }
 
-    Trait buildTestTrait(String name, String traitClass) {
+    Trait buildTestTrait(String name, String traitClass, String description,
+                         String entity, String attribute) {
         Method method = Method.builder()
                 .description(name + " method description")
                 .methodClass("Observation")
@@ -172,6 +173,9 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
                 .scale(scale)
                 .programObservationLevel(level)
                 .traitClass(traitClass)
+                .entity(entity)
+                .attribute(attribute)
+                .traitDescription(description)
                 .active(true)
                 .build();
         return trait;
@@ -217,7 +221,10 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     void userInOneProgramWithTraits() {
 
         // create trait in db and brapi service for program test user is in
-        programTraits = List.of(buildTestTrait("Test trait 1", "a"), buildTestTrait("Test trait 2", "b"));
+        programTraits = List.of(buildTestTrait("Test trait 1", "a",
+                "trait 1 description", "entity1", "attribute1"),
+                buildTestTrait("Test trait 2", "b",
+                        "trait 2 description","entity2","attribute2"));
 
         Flowable<HttpResponse<String>> call = biClient.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits", programTraits)
@@ -256,7 +263,10 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     void userInMultipleProgramsWithTraits() {
 
         // create trait in db and brapi service for second program
-        otherProgramTraits = List.of(buildTestTrait("Test trait 3", "c"), buildTestTrait("Test trait 4", "d"));
+        otherProgramTraits = List.of(buildTestTrait("Test trait 3", "c",
+                "trait 3 description","entity3","attribute3"),
+                buildTestTrait("Test trait 4", "d",
+                        "trait 4 description","entity4","attribute4"));
 
         Flowable<HttpResponse<String>> call = biClient.exchange(
                 POST("/programs/" + otherValidProgram.getId() + "/traits", otherProgramTraits)
