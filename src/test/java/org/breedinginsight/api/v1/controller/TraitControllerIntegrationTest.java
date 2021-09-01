@@ -281,6 +281,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("DeleteTrait"));
 
         Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
@@ -292,6 +294,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setMethod(method1);
 
         Trait trait2 = new Trait();
+        trait2.setTraitDescription("trait 2 description");
+        trait2.setEntity("entity2");
         trait2.setObservationVariableName("Test Trait1");
         trait2.setAbbreviations(List.of("t3", "t4").toArray(String[]::new));
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
@@ -330,7 +334,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Boolean trait2Found = false;
         for (JsonElement traitJson: data) {
             JsonObject trait = (JsonObject) traitJson;
-            String traitName = trait.get("traitName").getAsString();
+            String traitName = trait.get("observationVariableName").getAsString();
             if (traitName.equals(trait1.getObservationVariableName())){
                 trait1Found = true;
                 checkTraitFullResponse(trait, trait1);
@@ -456,6 +460,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Order(4)
     public void createTraitsLevelDoesNotExist() {
         Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait that is unique");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Not Exist").build());
         Scale scale1 = new Scale();
@@ -815,7 +821,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         if (trait.getId() != null){
             assertEquals(trait.getId().toString(), traitJson.get("id").getAsString(), "Ids don't match");
         }
-        assertEquals(trait.getObservationVariableName(), traitJson.get("traitName").getAsString(),"Names don't match");
+        assertEquals(trait.getObservationVariableName(), traitJson.get("observationVariableName").getAsString(),"Names don't match");
 
         if (trait.getActive() != null){
             assertEquals(trait.getActive().toString(), traitJson.get("active").getAsString(), "Actives don't match");
@@ -891,6 +897,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void postTraitNominalMissingCategoryValue() {
 
         Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait14");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
@@ -946,6 +954,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void postTraitOrdinalMissingCategoryVariables() {
 
         Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait14");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
@@ -1014,6 +1024,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         List<Trait> newTraits = new ArrayList<>();
         for (int i = 0; i < 30; i++){
             Trait trait = new Trait();
+            trait.setTraitDescription("trait 1 description");
+            trait.setEntity("entity1");
+            trait.setAttribute("attribute1");
             trait.setObservationVariableName("Test Trait" + i);
             trait.setAbbreviations(List.of(String.valueOf(i), "t" + i).toArray(String[]::new));
             trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
@@ -1050,7 +1063,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.get("data").getAsJsonArray();
 
         assertEquals(allTraits.size(), data.size(), "Wrong page size");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.DESC);
 
         JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
@@ -1078,7 +1091,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Expect t1, user10->user19
         assertEquals(11, data.size(), "Wrong page size");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.ASC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.ASC);
     }
 
     @Test
@@ -1088,6 +1101,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("DeleteTrait"));
 
         Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait5");
         trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
@@ -1136,6 +1151,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         Trait updateTrait = validTraits.get(0);
 
+        updateTrait.setTraitDescription("Updated description");
+        updateTrait.setEntity("Updated entity");
         updateTrait.setObservationVariableName("Updated name");
         updateTrait.setAbbreviations(List.of("update1", "update2").toArray(String[]::new));
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
@@ -1163,7 +1180,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
         JsonObject trait = data.get(0).getAsJsonObject();
 
-        assertEquals(updateTrait.getObservationVariableName(), trait.get("traitName").getAsString(), "wrong trait name");
+        assertEquals(updateTrait.getObservationVariableName(), trait.get("observationVariableName").getAsString(), "wrong trait name");
         assertEquals(updateTrait.getProgramObservationLevel().getName(),
                 trait.get("programObservationLevel").getAsJsonObject().get("name").getAsString(), "wrong observation level");
         assertEquals(updateTrait.getScale().getScaleName(),
@@ -1198,6 +1215,10 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Trait badIdTrait = new Trait();
         badIdTrait.setId(UUID.randomUUID());
         badIdTrait.setObservationVariableName("Bad Trait");
+        badIdTrait.setAttribute("attribute");
+        badIdTrait.setEntity("entity");
+        badIdTrait.setTraitDescription("trait description");
+        badIdTrait.setObservationVariableName("trait name");
         badIdTrait.setScale(updateTrait.getScale());
         badIdTrait.setMethod(updateTrait.getMethod());
         badIdTrait.setProgramObservationLevel(updateTrait.getProgramObservationLevel());
@@ -1223,7 +1244,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error1 = errors.get(0).getAsJsonObject();
-        assertEquals("traitName", error1.get("field").getAsString(), "wrong error returned");
+        assertEquals("observationVariableName", error1.get("field").getAsString(), "wrong error returned");
 
         JsonObject badIdRowError = rowErrors.get(1).getAsJsonObject();
         errors = badIdRowError.getAsJsonArray("errors");
