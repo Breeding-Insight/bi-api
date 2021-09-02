@@ -233,6 +233,7 @@ public class TraitService {
                     trait.setProgramObservationLevel(programObservationLevel);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
+                    trait.getProgramObservationLevel().setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
                 }
             }
