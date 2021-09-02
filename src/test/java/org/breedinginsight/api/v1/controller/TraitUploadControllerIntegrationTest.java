@@ -519,10 +519,10 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("Powdery Mildew", syn1, "wrong synonym");
         assertEquals("Powdery Mildew Severity", syn2, "wrong synonym");
 
-        assertEquals("Powdery Mildew severity field, leaves", trait.get("traitName").getAsString(), "wrong trait name");
+        assertEquals("Powdery Mildew severity field, leaves", trait.get("observationVariableName").getAsString(), "wrong trait name");
 
         JsonObject observationLevel = trait.getAsJsonObject("programObservationLevel");
-        assertEquals("Plant", observationLevel.get("name").getAsString(), "wrong level name");
+        assertEquals("Leaf", observationLevel.get("name").getAsString(), "wrong level name");
 
         assertEquals(true, trait.get("active").getAsBoolean(), "wrong status");
         // TODO: trait lists
@@ -595,7 +595,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(2, data.size(), "Wrong number of results returned");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.DESC);
 
         JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
@@ -624,7 +624,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(1, data.size(), "Wrong number of results returned");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.DESC);
 
         JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
