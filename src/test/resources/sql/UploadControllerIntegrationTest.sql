@@ -58,7 +58,7 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join bi_user on bi_user.name = 'system' limit 1
 
 -- name: InsertTrait
-insert into trait (program_ontology_id, trait_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+insert into trait (program_ontology_id, observation_variable_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
 select program_ontology.id, 'Powdery Mildew severity field, leaves', ARRAY['PMSevLeaf', 'PM_LEAF_P4'], method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
