@@ -346,18 +346,21 @@ public class FileImportService {
             try {
                 importService.process(brAPIImportList, data, program, upload, commit);
             } catch (UnprocessableEntityException e){
+                log.error(e.getMessage());
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (DoesNotExistException e)  {
+                log.error(e.getMessage());
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.NOT_FOUND.getCode());
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (Exception e) {
+                log.error(e.getMessage());
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                 // TODO: Probably don't want to return this message. But do it for now
