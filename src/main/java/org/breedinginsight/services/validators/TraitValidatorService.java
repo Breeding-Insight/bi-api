@@ -53,10 +53,6 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingMethodMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(method.getDescription()) || method.getDescription() == null) {
-                    ValidationError error = traitValidatorErrors.getMissingMethodDescriptionMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
-                }
                 if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodClassMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
@@ -163,6 +159,38 @@ public class TraitValidatorService {
             }
         }
 
+        return errors;
+    }
+
+    public ValidationErrors checkTraitFieldsLength(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+
+        ValidationErrors errors = new ValidationErrors();
+
+        for (int i = 0; i < traits.size(); i++) {
+
+            Trait trait = traits.get(i);
+            Method method = trait.getMethod();
+            int shortCharLimit = 12;
+            int longCharLimit = 30;
+
+            if (trait.getObservationVariableName().length() > shortCharLimit) {
+                ValidationError error = traitValidatorErrors.getCharLimitObsVarNameMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (trait.getEntity().length() > longCharLimit) {
+                ValidationError error = traitValidatorErrors.getCharLimitTraitEntityMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (trait.getAttribute().length() > longCharLimit) {
+                ValidationError error = traitValidatorErrors.getCharLimitTraitAttributeMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (method.getDescription().length() > longCharLimit) {
+                ValidationError error = traitValidatorErrors.getCharLimitMethodDescriptionMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+
+        }
         return errors;
     }
 

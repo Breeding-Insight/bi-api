@@ -41,6 +41,10 @@ public interface TraitValidatorErrorInterface {
     ValidationError getBlankScaleCategoryLabelMsg();
     ValidationError getBlankScaleCategoryValueMsg();
     ValidationError getMaxLessThenMinError();
+    ValidationError getCharLimitObsVarNameMsg();
+    ValidationError getCharLimitTraitEntityMsg();
+    ValidationError getCharLimitTraitAttributeMsg();
+    ValidationError getCharLimitMethodDescriptionMsg();
     ValidationError getDuplicateTraitByNamesMsg();
     ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);

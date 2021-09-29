@@ -130,6 +130,26 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getCharLimitObsVarNameMsg() {
+        return new ValidationError("observationVariableName", "Observation variable name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitTraitEntityMsg() {
+        return new ValidationError("entity", "Trait entity exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitTraitAttributeMsg() {
+        return new ValidationError("attribute", "Trait attribute exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitMethodDescriptionMsg() {
+        return new ValidationError("method.description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
         return new ValidationError("Trait name", "Trait name already exists", HttpStatus.CONFLICT);
     }
