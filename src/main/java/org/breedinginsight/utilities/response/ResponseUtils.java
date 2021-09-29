@@ -184,30 +184,24 @@ public class ResponseUtils {
         Integer originalCount = data.size();
 
         // Show all by default
-        if (paginationRequest.getPageSize() != null || paginationRequest.getPage() != null) {
+        Integer page = paginationRequest.getPage() != null ? paginationRequest.getPage() : paginationRequest.getDefaultPage();
+        Integer pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : paginationRequest.getDefaultPageSize();
 
-            Integer page = paginationRequest.getPage() != null ? paginationRequest.getPage() : paginationRequest.getDefaultPage();
-            Integer pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : paginationRequest.getDefaultPageSize();
-
-            Integer pageAdjustedByIndex = page - paginationRequest.getDefaultPage();
-            Integer startIndex = pageAdjustedByIndex * pageSize;
-            if (startIndex > data.size() || startIndex < 0) {
-                return Pair.of(new ArrayList<>(),
-                        new Pagination(0, 0, 1, page));
-            }
-
-            Integer endIndex = startIndex + pageSize >= data.size() ?
-                    data.size() : startIndex + pageSize;
-
-            data = data.subList(startIndex, endIndex);
-
-            pagination.setCurrentPage(page);
-        } else {
-            pagination.setCurrentPage(paginationRequest.getDefaultPage());
+        Integer pageAdjustedByIndex = page - paginationRequest.getDefaultPage();
+        Integer startIndex = pageAdjustedByIndex * pageSize;
+        if (startIndex > data.size() || startIndex < 0) {
+            return Pair.of(new ArrayList<>(),
+                    new Pagination(0, 0, 1, page));
         }
 
-        pagination.setPageSize(data.size());
-        pagination.setTotalPages((int) Math.ceil(originalCount / (double) data.size()));
+        Integer endIndex = startIndex + pageSize >= data.size() ?
+                data.size() : startIndex + pageSize;
+
+        data = data.subList(startIndex, endIndex);
+
+        pagination.setCurrentPage(page);
+        pagination.setPageSize(pageSize);
+        pagination.setTotalPages((int) Math.ceil(originalCount / (double) pageSize));
         pagination.setTotalCount(originalCount);
 
         return Pair.of(data, pagination);
