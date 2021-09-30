@@ -32,6 +32,7 @@ import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -321,7 +322,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         JsonObject pagination = metadata.getAsJsonObject("pagination");
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong total pages");
         assertEquals(0, pagination.get("currentPage").getAsInt(), "Wrong current page");
-        assertEquals(4, pagination.get("pageSize").getAsInt(), "Wrong page size");
+        assertEquals(new BrapiQuery().getDefaultPageSize(), pagination.get("pageSize").getAsInt(), "Wrong page size");
         assertEquals(4, pagination.get("totalCount").getAsInt(), "Wrong total count");
 
     }
