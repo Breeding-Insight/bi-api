@@ -59,6 +59,7 @@ public class TraitDAO extends TraitDao {
     private Gson gson;
 
     private final static String TAGS_KEY = "tags";
+    private final static String FULLNAME_KEY = "fullname";
 
     @Inject
     public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
@@ -318,6 +319,8 @@ public class TraitDAO extends TraitDao {
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
             brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
+            String test = trait.getFullName();
+            brApiVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
 
             if (trait.getActive() == null || trait.getActive()){
                 brApiVariable.setStatus("active");
@@ -419,6 +422,9 @@ public class TraitDAO extends TraitDao {
                 existingVariable.setStatus("archived");
             }
             existingVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
+            existingVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
+
+            //TODO check this works properly
 
 
             // PUT brapi trait
@@ -554,12 +560,20 @@ public class TraitDAO extends TraitDao {
 
     private void saturateTrait(Trait trait, BrAPIObservationVariable brApiVariable) {
 
-        if (brApiVariable.getAdditionalInfo() != null && brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
-            List<String> tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
-            trait.setBrAPIProperties(brApiVariable, tags);
+        if (brApiVariable.getAdditionalInfo() != null) {
+            List<String> tags = null;
+            String fullName = null;
+            if (brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
+                tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
+            }
+            if (brApiVariable.getAdditionalInfo().has(FULLNAME_KEY)) {
+                fullName = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(FULLNAME_KEY), String.class);
+            }
+            trait.setBrAPIProperties(brApiVariable, tags, fullName);
         } else {
             trait.setBrAPIProperties(brApiVariable);
         }
+        System.out.println("Hi");
 
         Method method = trait.getMethod();
         method.setBrAPIProperties(brApiVariable.getMethod());
