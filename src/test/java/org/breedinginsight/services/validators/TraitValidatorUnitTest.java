@@ -187,7 +187,7 @@ public class TraitValidatorUnitTest {
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
-        assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        assertEquals(3, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("method.formula", 400);
         expectedColumns.put("scale.categories", 400);
