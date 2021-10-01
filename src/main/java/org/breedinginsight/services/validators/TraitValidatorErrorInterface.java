@@ -25,7 +25,6 @@ public interface TraitValidatorErrorInterface {
     Integer getRowNumber(Integer row);
     ValidationError getTraitIdDoesNotExistMsg();
     ValidationError getMissingMethodMsg();
-    ValidationError getMissingMethodDescriptionMsg();
     ValidationError getMissingMethodClassMsg();
     ValidationError getMissingScaleMsg();
     ValidationError getMissingScaleNameMsg();
@@ -41,6 +40,8 @@ public interface TraitValidatorErrorInterface {
     ValidationError getBlankScaleCategoryLabelMsg();
     ValidationError getBlankScaleCategoryValueMsg();
     ValidationError getMaxLessThenMinError();
+    ValidationError getInsufficientNominalValError();
+    ValidationError getInsufficientOrdinalValError();
     ValidationError getCharLimitObsVarNameMsg();
     ValidationError getCharLimitTraitEntityMsg();
     ValidationError getCharLimitTraitAttributeMsg();

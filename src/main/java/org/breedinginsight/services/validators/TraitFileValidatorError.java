@@ -44,11 +44,6 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingMethodDescriptionMsg() {
-        return new ValidationError("Method description", "Missing method description", HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-
-    @Override
     public ValidationError getMissingMethodClassMsg() {
         return new ValidationError("Method class", "Missing method class", HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -127,6 +122,16 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("Scale upper limit/Scale lower limit",
                 "Scale upper limit must be greater than scale lower limit.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getInsufficientNominalValError() {
+        return new ValidationError("scale.categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getInsufficientOrdinalValError() {
+        return new ValidationError("scale.categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
