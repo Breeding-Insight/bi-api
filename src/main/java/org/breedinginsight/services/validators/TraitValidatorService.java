@@ -145,6 +145,15 @@ public class TraitValidatorService {
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
                         errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
                     }
+
+                    //Check if sufficient categories if scale is ordinal (2) or nominal (1)
+                    if ((scale.getDataType() == DataType.NOMINAL) && (scale.getCategories().size() < 1)) {
+                        ValidationError InsufficientNominalValError = traitValidatorErrors.getInsufficientNominalValError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
+                    } else if ((scale.getDataType() == DataType.ORDINAL) && (scale.getCategories().size() < 2)) {
+                        ValidationError InsufficientOrdinalValError = traitValidatorErrors.getInsufficientOrdinalValError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
+                    }
                 }
             }
 
@@ -156,18 +165,6 @@ public class TraitValidatorService {
                         errors.addError(traitValidatorErrors.getRowNumber(i), minMaxError);
                     }
                 }
-
-                //Check if sufficient categories if scale is ordinal (2) or nominal (1)
-                if (scale.getScaleName() != null) {
-                    if ((scale.getScaleName().equals("NOMINAL")) && ((scale.getCategories() == null) || (scale.getCategories().size() < 1))) {
-                        ValidationError InsufficientNominalValError = traitValidatorErrors.getInsufficientNominalValError();
-                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
-                    } else if ((scale.getScaleName().equals("ORDINAL")) && ((scale.getCategories() == null) || (scale.getCategories().size() < 2))) {
-                        ValidationError InsufficientOrdinalValError = traitValidatorErrors.getInsufficientOrdinalValError();
-                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
-                    }
-                }
-
             }
         }
 
