@@ -158,10 +158,10 @@ public class TraitValidatorService {
                 }
 
                 //Check if sufficient categories if scale is ordinal (2) or nominal (1)
-                if ((scale.getScaleName().equals("NOMINAL")) && (scale.getCategories().size() < 1)){
+                if ((scale.getScaleName().equals("NOMINAL")) && ((scale.getCategories()==null) || (scale.getCategories().size() < 1))){
                     ValidationError InsufficientNominalValError = traitValidatorErrors.getInsufficientNominalValError();
                     errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
-                } else if ((scale.getScaleName().equals("ORDINAL")) && (scale.getCategories().size() < 2)){
+                } else if ((scale.getScaleName().equals("ORDINAL")) && ((scale.getCategories()==null) || (scale.getCategories().size() < 2))){
                     ValidationError InsufficientOrdinalValError = traitValidatorErrors.getInsufficientOrdinalValError();
                     errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
                 }
