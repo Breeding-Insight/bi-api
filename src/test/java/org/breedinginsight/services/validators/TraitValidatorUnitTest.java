@@ -187,6 +187,48 @@ public class TraitValidatorUnitTest {
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
+        assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        Map<String, Integer> expectedColumns = new HashMap<>();
+        expectedColumns.put("method.formula", 400);
+        expectedColumns.put("scale.categories", 400);
+        List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
+
+        Boolean unknownColumnReturned = false;
+        for (ValidationError error: rowValidationErrors.getErrors()){
+            String column = error.getField();
+            if (expectedColumns.containsKey(column)){
+                assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
+            } else {
+                unknownColumnReturned = true;
+            }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
+        }
+    }
+
+    @Test
+    @SneakyThrows
+    public void dataInsufficientCategoriesFailure() {
+
+        Trait trait = new Trait();
+        Method method = new Method();
+        method.setMethodClass("Computation");
+        Scale scale = new Scale();
+        scale.setScaleName("Test Scale");
+        scale.setDataType(DataType.ORDINAL);
+        trait.setScale(scale);
+        trait.setMethod(method);
+        trait.getScale().setValidValueMin(1);
+        trait.getScale().setValidValueMax(10);
+        trait.getScale().setDecimalPlaces(3);
+        trait.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories().label("label1").value("value1")));
+
+        ValidationErrors validationErrors = traitValidatorService.checkTraitDataConsistency(List.of(trait), new TraitValidatorError());
+
+        assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(3, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("method.formula", 400);
@@ -208,6 +250,7 @@ public class TraitValidatorUnitTest {
             throw new AssertionFailedError("Unexpected error was returned");
         }
     }
+
 
     @Test
     @SneakyThrows
