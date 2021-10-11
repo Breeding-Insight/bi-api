@@ -318,9 +318,9 @@ public class TraitDAO extends TraitDao {
                     .synonyms(trait.getSynonyms())
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
-            brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
+            if (trait.getTags() != null) brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
             String test = trait.getFullName();
-            brApiVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
+            if (trait.getFullName() != null) brApiVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
 
             if (trait.getActive() == null || trait.getActive()){
                 brApiVariable.setStatus("active");
@@ -567,7 +567,8 @@ public class TraitDAO extends TraitDao {
                 tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
             }
             if (brApiVariable.getAdditionalInfo().has(FULLNAME_KEY)) {
-                fullName = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(FULLNAME_KEY), String.class);
+                fullName = brApiVariable.getAdditionalInfo().get(FULLNAME_KEY).getAsString();
+                //fullName = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonPrimitive(FULLNAME_KEY), String.class);
             }
             trait.setBrAPIProperties(brApiVariable, tags, fullName);
         } else {
