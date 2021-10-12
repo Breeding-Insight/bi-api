@@ -123,10 +123,8 @@ public class Trait extends TraitEntity {
 
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags, String fullName) {
         setBrAPIProperties(brApiVariable);
-        System.out.println("Hi again");
-        //potentially check for null?
-        this.tags = tags;
-        this.fullName = fullName;
+        if (tags != null) this.tags = tags;
+        if (fullName != null) this.fullName = fullName;
     }
 
 }

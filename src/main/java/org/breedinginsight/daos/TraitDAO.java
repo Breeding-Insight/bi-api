@@ -424,9 +424,6 @@ public class TraitDAO extends TraitDao {
             existingVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
             existingVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
 
-            //TODO check this works properly
-
-
             // PUT brapi trait
             BrAPIObservationVariable updatedVariable = putBrAPIVariable(variablesAPI, existingVariable);
 
@@ -568,13 +565,11 @@ public class TraitDAO extends TraitDao {
             }
             if (brApiVariable.getAdditionalInfo().has(FULLNAME_KEY)) {
                 fullName = brApiVariable.getAdditionalInfo().get(FULLNAME_KEY).getAsString();
-                //fullName = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonPrimitive(FULLNAME_KEY), String.class);
             }
             trait.setBrAPIProperties(brApiVariable, tags, fullName);
         } else {
             trait.setBrAPIProperties(brApiVariable);
         }
-        System.out.println("Hi");
 
         Method method = trait.getMethod();
         method.setBrAPIProperties(brApiVariable.getMethod());
