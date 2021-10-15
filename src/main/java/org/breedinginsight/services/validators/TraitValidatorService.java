@@ -349,7 +349,8 @@ public class TraitValidatorService {
         ValidationErrors requiredFieldErrors = checkRequiredTraitFields(traits, traitValidatorError);
         ValidationErrors dataConsistencyErrors = checkTraitDataConsistency(traits, traitValidatorError);
         ValidationErrors duplicateTraitsInFile = checkDuplicateTraitsInFile(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile);
+        ValidationErrors fieldLengthError =  checkTraitFieldsLength(traits, traitValidatorError);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError);
 
         if (validationErrors.hasErrors()){
             return Optional.of(validationErrors);

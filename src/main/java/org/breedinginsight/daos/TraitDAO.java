@@ -319,7 +319,6 @@ public class TraitDAO extends TraitDao {
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
             if (trait.getTags() != null) brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
-            String test = trait.getFullName();
             if (trait.getFullName() != null) brApiVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
 
             if (trait.getActive() == null || trait.getActive()){
@@ -422,7 +421,7 @@ public class TraitDAO extends TraitDao {
                 existingVariable.setStatus("archived");
             }
             existingVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
-            existingVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
+            if (trait.getFullName() != null) existingVariable.putAdditionalInfoItem(FULLNAME_KEY, trait.getFullName());
 
             // PUT brapi trait
             BrAPIObservationVariable updatedVariable = putBrAPIVariable(variablesAPI, existingVariable);
