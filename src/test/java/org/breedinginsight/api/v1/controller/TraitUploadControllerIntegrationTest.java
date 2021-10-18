@@ -519,7 +519,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("Powdery Mildew", syn1, "wrong synonym");
         assertEquals("Powdery Mildew Severity", syn2, "wrong synonym");
 
-        assertEquals("Powdery Mildew severity field, leaves", trait.get("observationVariableName").getAsString(), "wrong trait name");
+        assertEquals("PM_Leaf", trait.get("observationVariableName").getAsString(), "wrong trait name");
 
         JsonObject observationLevel = trait.getAsJsonObject("programObservationLevel");
         assertEquals("Leaf", observationLevel.get("name").getAsString(), "wrong level name");
