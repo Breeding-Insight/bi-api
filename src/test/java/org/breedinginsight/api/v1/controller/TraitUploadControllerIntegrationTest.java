@@ -610,7 +610,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.setFilters(new ArrayList<>());
-        searchRequest.getFilters().add(new FilterRequest("name", "leaves"));
+        searchRequest.getFilters().add(new FilterRequest("name", "leaf"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram.getId()+"/trait-upload/search?page=1&pageSize=2&sortField=name&sortOrder=DESC", searchRequest)
