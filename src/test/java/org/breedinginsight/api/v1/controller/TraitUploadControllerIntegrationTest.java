@@ -528,7 +528,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         // TODO: trait lists
 
         JsonObject method = trait.get("method").getAsJsonObject();
-        assertEquals("Observed severity of Powdery Mildew on leaves", method.get("description").getAsString(), "wrong method description");
+        assertEquals("Powdery Mildew severity, leaf", method.get("description").getAsString(), "wrong method description");
         assertEquals("Estimation", method.get("methodClass").getAsString(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
 
