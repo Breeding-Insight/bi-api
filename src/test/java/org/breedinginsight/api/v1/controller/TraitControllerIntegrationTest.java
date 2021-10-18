@@ -462,7 +462,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Trait trait1 = new Trait();
         trait1.setTraitDescription("trait 1 description");
         trait1.setEntity("entity1");
-        trait1.setObservationVariableName("Test Trait that is unique");
+        trait1.setObservationVariableName("Unique Trait");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Not Exist").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -1296,7 +1296,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Trait updateTrait = validTraits.get(0);
 
         updateTrait.setId(UUID.randomUUID());
-        updateTrait.setObservationVariableName("Updated names");
+        updateTrait.setObservationVariableName("Updated name");
         updateTrait.setAbbreviations(null);
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
