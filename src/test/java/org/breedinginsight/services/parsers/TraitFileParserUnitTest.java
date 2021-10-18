@@ -292,7 +292,7 @@ public class TraitFileParserUnitTest {
         assertEquals(true, trait.getActive(), "wrong status");
         // TODO: trait lists
         Method method = trait.getMethod();
-        assertEquals("Observed severity of Powdery Mildew on leaves", method.getDescription(), "wrong method description");
+        assertEquals("Powdery Mildew severity, leaf", method.getDescription(), "wrong method description");
         assertEquals("Estimation", method.getMethodClass(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.getFormula(), "wrong method formula");
         Scale scale = trait.getScale();
