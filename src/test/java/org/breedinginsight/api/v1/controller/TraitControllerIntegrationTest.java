@@ -1296,7 +1296,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Trait updateTrait = validTraits.get(0);
 
         updateTrait.setId(UUID.randomUUID());
-        updateTrait.setObservationVariableName("Updated name");
+        updateTrait.setObservationVariableName("Update Name");
         updateTrait.setAbbreviations(null);
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");

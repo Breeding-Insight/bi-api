@@ -182,19 +182,19 @@ public class TraitValidatorService {
             int shortCharLimit = 12;
             int longCharLimit = 30;
 
-            if (trait.getObservationVariableName().length() > shortCharLimit) {
+            if ((trait.getObservationVariableName() != null) && (trait.getObservationVariableName().length() > shortCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
-            if (trait.getEntity().length() > longCharLimit) {
+            if ((trait.getEntity() != null) && (trait.getEntity().length() > longCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitTraitEntityMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
-            if (trait.getAttribute().length() > longCharLimit) {
+            if ((trait.getAttribute() != null) && (trait.getAttribute().length() > longCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitTraitAttributeMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
-            if (method.getDescription().length() > longCharLimit) {
+            if ((method.getDescription() != null) && (method.getDescription().length() > longCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitMethodDescriptionMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
