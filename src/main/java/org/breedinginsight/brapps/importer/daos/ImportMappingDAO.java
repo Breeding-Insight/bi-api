@@ -59,24 +59,62 @@ public class ImportMappingDAO extends ImporterMappingDao {
         }
     }
 
-    public List<ImportMapping> getAllMappings(UUID programId, Boolean draft) {
+    public List<ImportMapping> getAllProgramMappings(UUID programId, Boolean draft) {
 
-        List<ImporterMappingEntity> importMappingEntities = fetchByDraft(draft);
-        List<ImportMapping> importMappings = new ArrayList<>();
-        for (ImporterMappingEntity importMappingEntity: importMappingEntities) {
-            if (importMappingEntity.getProgramId().equals(programId)) {
-                ImportMapping importMapping = parseBrAPIImportMapping(importMappingEntity);
-                importMappings.add(importMapping);
-            }
-        }
-        return importMappings;
-    }
-
-    public List<ImportMapping> getMappingsByName(UUID programId, String name) {
         List<Record> records = dsl.select()
                 .from(IMPORTER_MAPPING)
+                .join(IMPORTER_MAPPING_PROGRAM).on(
+                        IMPORTER_MAPPING_PROGRAM.PROGRAM_ID.eq(programId).and(
+                        IMPORTER_MAPPING.ID.eq(IMPORTER_MAPPING_PROGRAM.IMPORTER_MAPPING_ID)))
+                .where(IMPORTER_MAPPING.DRAFT.eq(draft))
+                .fetch();
+
+        List<ImportMapping> mappings = new ArrayList<>();
+        for (Record record: records) {
+            mappings.add(ImportMapping.parseSQLRecord(record));
+        }
+        return mappings;
+    }
+
+    public List<ImportMapping> getProgramMappingsByName(UUID programId, String name) {
+        List<Record> records = dsl.select()
+                .from(IMPORTER_MAPPING)
+                .join(IMPORTER_MAPPING_PROGRAM).on(
+                        IMPORTER_MAPPING_PROGRAM.PROGRAM_ID.eq(programId).and(
+                                IMPORTER_MAPPING.ID.eq(IMPORTER_MAPPING_PROGRAM.IMPORTER_MAPPING_ID)))
                 .where(IMPORTER_MAPPING.NAME.equalIgnoreCase(name))
-                .and(IMPORTER_MAPPING.PROGRAM_ID.eq(programId))
+                .fetch();
+
+        List<ImportMapping> mappings = new ArrayList<>();
+        for (Record record: records) {
+            mappings.add(ImportMapping.parseSQLRecord(record));
+        }
+        return mappings;
+    }
+
+    public List<ImportMapping> getAllSystemMappings() {
+        List<Record> records = dsl.select()
+                .from(IMPORTER_MAPPING)
+                .leftJoin(IMPORTER_MAPPING_PROGRAM).on(
+                        IMPORTER_MAPPING.ID.eq(IMPORTER_MAPPING_PROGRAM.IMPORTER_MAPPING_ID))
+                .where(IMPORTER_MAPPING_PROGRAM.ID.isNull())
+                .fetch();
+
+        List<ImportMapping> mappings = new ArrayList<>();
+        for (Record record: records) {
+            mappings.add(ImportMapping.parseSQLRecord(record));
+        }
+        return mappings;
+    }
+
+    public List<ImportMapping> getSystemMappingByName(String name) {
+        List<Record> records = dsl.select()
+                .from(IMPORTER_MAPPING)
+                .leftJoin(IMPORTER_MAPPING_PROGRAM).on(
+                        IMPORTER_MAPPING.ID.eq(IMPORTER_MAPPING_PROGRAM.IMPORTER_MAPPING_ID))
+                .where(
+                    IMPORTER_MAPPING_PROGRAM.ID.isNull().and(
+                    IMPORTER_MAPPING.NAME.equalIgnoreCase(name)))
                 .fetch();
 
         List<ImportMapping> mappings = new ArrayList<>();

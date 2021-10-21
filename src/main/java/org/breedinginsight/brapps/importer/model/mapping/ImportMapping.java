@@ -59,7 +59,6 @@ public class ImportMapping extends ImporterMappingEntity {
 
         return ImportMapping.builder()
                 .id(record.getValue(IMPORTER_MAPPING.ID))
-                .programId(record.getValue(IMPORTER_MAPPING.PROGRAM_ID))
                 .importTypeId(record.getValue(IMPORTER_MAPPING.IMPORT_TYPE_ID))
                 .draft(record.getValue(IMPORTER_MAPPING.DRAFT))
                 .name(record.getValue(IMPORTER_MAPPING.NAME))
