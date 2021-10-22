@@ -198,11 +198,10 @@ public class ImportController {
 
         List<Status> metadataStatus = new ArrayList<>();
         metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        Pagination pagination = new Pagination(result.size(), 1, 1, 0);
+        Pagination pagination = new Pagination(result.size(), result.size(), 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
         Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
         return HttpResponse.ok(response);
-
     }
 }
