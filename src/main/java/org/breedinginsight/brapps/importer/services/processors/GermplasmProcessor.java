@@ -100,9 +100,9 @@ public class GermplasmProcessor implements Processor {
                     BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram());
                     germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
                 }
-                mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
-                mappedBrAPIImport.put(i, mappedImportRow);
             }
+            mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
+            mappedBrAPIImport.put(i, mappedImportRow);
         }
 
         // Set pedigree connections. Need to do in separate loop so finding relations isn't order dependent
@@ -137,11 +137,7 @@ public class GermplasmProcessor implements Processor {
                         }
                     }
                     newGermplasm.setPedigree(pedigreeString);
-
-                    germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
                 }
-                mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
-                mappedBrAPIImport.put(i, mappedImportRow);
             }
         }
 
