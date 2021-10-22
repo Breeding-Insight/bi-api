@@ -31,7 +31,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.breedinginsight.BrAPITest;
-import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;

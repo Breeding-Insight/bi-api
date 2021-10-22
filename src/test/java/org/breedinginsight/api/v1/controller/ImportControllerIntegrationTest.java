@@ -47,11 +47,8 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.time.OffsetDateTime;
-import java.util.Optional;
-import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @MicronautTest
