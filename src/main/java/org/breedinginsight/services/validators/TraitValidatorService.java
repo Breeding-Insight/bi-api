@@ -53,10 +53,6 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingMethodMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(method.getDescription()) || method.getDescription() == null) {
-                    ValidationError error = traitValidatorErrors.getMissingMethodDescriptionMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
-                }
                 if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodClassMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
@@ -149,6 +145,15 @@ public class TraitValidatorService {
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
                         errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
                     }
+
+                    //Check if sufficient categories if scale is ordinal (2) or nominal (1)
+                    if ((scale.getDataType() == DataType.NOMINAL) && (scale.getCategories().size() < 1)) {
+                        ValidationError InsufficientNominalValError = traitValidatorErrors.getInsufficientNominalValError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
+                    } else if ((scale.getDataType() == DataType.ORDINAL) && (scale.getCategories().size() < 2)) {
+                        ValidationError InsufficientOrdinalValError = traitValidatorErrors.getInsufficientOrdinalValError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
+                    }
                 }
             }
 
@@ -163,6 +168,38 @@ public class TraitValidatorService {
             }
         }
 
+        return errors;
+    }
+
+    public ValidationErrors checkTraitFieldsLength(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+
+        ValidationErrors errors = new ValidationErrors();
+
+        for (int i = 0; i < traits.size(); i++) {
+
+            Trait trait = traits.get(i);
+            Method method = trait.getMethod();
+            int shortCharLimit = 12;
+            int longCharLimit = 30;
+
+            if ((trait.getObservationVariableName() != null) && (trait.getObservationVariableName().length() > shortCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitObsVarNameMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if ((trait.getEntity() != null) && (trait.getEntity().length() > longCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitTraitEntityMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if ((trait.getAttribute() != null) && (trait.getAttribute().length() > longCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitTraitAttributeMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if ((method.getDescription() != null) && (method.getDescription().length() > longCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitMethodDescriptionMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+
+        }
         return errors;
     }
 
@@ -312,7 +349,8 @@ public class TraitValidatorService {
         ValidationErrors requiredFieldErrors = checkRequiredTraitFields(traits, traitValidatorError);
         ValidationErrors dataConsistencyErrors = checkTraitDataConsistency(traits, traitValidatorError);
         ValidationErrors duplicateTraitsInFile = checkDuplicateTraitsInFile(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile);
+        ValidationErrors fieldLengthError =  checkTraitFieldsLength(traits, traitValidatorError);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError);
 
         if (validationErrors.hasErrors()){
             return Optional.of(validationErrors);

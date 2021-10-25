@@ -248,6 +248,7 @@ public class TraitFileParser {
                     .synonyms(traitSynonyms)
                     .programObservationLevel(level)
                     .active(active)
+                    .fullName(parseExcelValueAsString(record, TraitFileColumns.FULL_NAME))
                     // TODO: trait lists
                     .method(method)
                     .scale(scale)

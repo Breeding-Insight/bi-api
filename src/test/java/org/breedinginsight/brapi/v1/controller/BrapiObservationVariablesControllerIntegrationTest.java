@@ -154,7 +154,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     Trait buildTestTrait(String name, String traitClass, String description,
                          String entity, String attribute) {
         Method method = Method.builder()
-                .description(name + " method description")
+                .description(name + " method desc")
                 .methodClass("Observation")
                 .build();
 
