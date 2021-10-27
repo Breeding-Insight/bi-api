@@ -33,6 +33,7 @@ values
 ('Strawberry', 'The garden strawberry is a widely grown hybrid species of the genus Fragaria, collectively known as the strawberries, which are cultivated worldwide.', user_id, user_id),
 ('Honey', 'A honey bee (also spelled honeybee) is a eusocial flying insect within the genus Apis of the bee clade, all native to Eurasia.', user_id, user_id),
 ('Pecan', 'The pecan is a species of hickory native to the southern United States and northern Mexico in the region of the Mississippi River.', user_id, user_id),
-('Lettuce', 'Lettuce is an annual plant of the daisy family, Asteraceae.', user_id, user_id);
+('Lettuce', 'Lettuce is an annual plant of the daisy family, Asteraceae.', user_id, user_id),
+('Cotton', 'Cotton is a soft, fluffy staple fiber that grows in a boll, or protective case, around the seeds of the cotton plants of the genus Gossypium.', user_id, user_id);
 
 END $$;
