@@ -41,7 +41,9 @@ import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.*;
+import org.jooq.tools.StringUtils;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
@@ -178,5 +180,28 @@ public class ImportController {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
         }
+    }
+
+    @Get("/import/mappings{?importName}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<ImportMapping>>> getSystemMappings(@Nullable @QueryValue String importName) {
+
+        AuthenticatedUser actingUser = securityService.getUser();
+        List<ImportMapping> result;
+        if (StringUtils.isBlank(importName)){
+            result = fileImportService.getAllSystemMappings(actingUser);
+        } else {
+            result = fileImportService.getSystemMappingByName(actingUser, importName);
+        }
+
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        Pagination pagination = new Pagination(result.size(), result.size(), 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+
+        Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+        return HttpResponse.ok(response);
     }
 }
