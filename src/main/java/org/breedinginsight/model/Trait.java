@@ -70,6 +70,8 @@ public class Trait extends TraitEntity {
     private List<String> tags;
     private String fullName;
 
+    private Boolean isDup = null;
+
     @Override
     @JsonDeserialize(using = ArrayOfStringDeserializer.class)
     public void setAbbreviations(String... abbreviations) {
