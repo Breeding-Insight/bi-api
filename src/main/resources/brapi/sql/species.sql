@@ -15,9 +15,20 @@
  * limitations under the License.
  */
 
-INSERT INTO crop (id, crop_name) VALUES ('1', 'Blueberry');
-INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon');
-INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape');
-INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa');
-INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato');
-INSERT INTO crop (id, crop_name) VALUES ('6', 'Trout');
+INSERT INTO crop (id, crop_name) VALUES ('1', 'Blueberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('6', 'Trout') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('7', 'Soybean') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('8', 'Cranberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('9', 'Cucumber') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('10', 'Oat') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('11', 'Citrus') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('12', 'Sugar Cane') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('13', 'Strawberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('14', 'Honey') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('15', 'Pecan') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('16', 'Lettuce') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('17', 'Cotton') ON CONFLICT DO NOTHING;
