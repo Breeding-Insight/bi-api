@@ -115,7 +115,7 @@ public class ObservationUnit implements BrAPIObject {
             observationUnit.setStudyName(getStudy().getReferenceValue());
         }
 
-        if (getGermplasm().getTargetColumn().equals(GERMPLASM_NAME)) {
+        if (getGermplasm() != null && getGermplasm().getTargetColumn().equals(GERMPLASM_NAME)) {
             observationUnit.setGermplasmName(getGermplasm().getReferenceValue());
         }
 
