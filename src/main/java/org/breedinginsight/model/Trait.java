@@ -70,6 +70,8 @@ public class Trait extends TraitEntity {
     private List<String> tags;
     private String fullName;
 
+    // isDup is used solely to pass information to the front end.
+    // It is not populated by the database.
     private Boolean isDup = null;
 
     @Override
