@@ -175,15 +175,14 @@ public class TraitUploadService {
         for(Trait trait: traits){
             boolean isDup = false;
 
-            dupTraitsByNameLoop:
             for(Trait dupTrait : dupTraitsByName){
                 if(dupTrait.getObservationVariableName().equals(trait.getObservationVariableName())){
                     isDup = true;
-                    break dupTraitsByNameLoop;
+                    break;
                 }
             }
 
-            isDup = isDup || this.traitValidator.hasAbbreviation(dupAbbrevTraits, trait);
+            isDup = isDup || this.traitValidator.hasAbbreviation(dupAbbrevTraits, trait, true);
             trait.setIsDup(isDup);
         }
 

@@ -235,7 +235,7 @@ public class TraitValidatorService {
         for (int i = 0; i < traits.size(); i++){
             Trait trait = traits.get(i);
 
-            Boolean isDuplicateAbbrev = hasAbbreviation(duplicateAbbreviationTraits, trait);
+            boolean isDuplicateAbbrev = hasAbbreviation(duplicateAbbreviationTraits, trait, false);
 
             if (isDuplicateAbbrev) {
                 if (!duplicates.contains(trait)){
@@ -250,15 +250,16 @@ public class TraitValidatorService {
     /**
      * @param traitsWithAbbreviations - list of traits with the abbreviations to search for
      * @param trait - target trait
+     * @param canIdBeNull - if true then a trait from the traitsWithAbbreviations list can have a null id.
      * @return - TRUE if the target trait contains any of the abbreviations
      */
-    public Boolean hasAbbreviation(List<Trait> traitsWithAbbreviations, Trait trait) {
-        Boolean containsAbbreviation = false;
+    public boolean hasAbbreviation(List<Trait> traitsWithAbbreviations, Trait trait, boolean canIdBeNull) {
+        boolean containsAbbreviation = false;
         if (trait.getAbbreviations() != null){
             for (String abbreviation: trait.getAbbreviations()){
                 containsAbbreviation = traitsWithAbbreviations.stream().filter(traitWithAbbreviation ->
                         List.of(traitWithAbbreviation.getAbbreviations()).contains(abbreviation)
-                                && ( traitWithAbbreviation.getId()==null || !traitWithAbbreviation.getId().equals(trait.getId()) )
+                                && ( (canIdBeNull && traitWithAbbreviation.getId()==null) || !traitWithAbbreviation.getId().equals(trait.getId()) )
                 ).collect(Collectors.toList()).size() > 0;
                 if (containsAbbreviation) {
                     break;
