@@ -58,20 +58,6 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="externalUID", name="External UID", description = "External UID")
     private String externalUID;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
-    @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
-    })
-    @ImportFieldMetadata(id="femaleParent", name="Female Parent", description = "The female parent of the germplasm.")
-    private MappedImportRelation femaleParent;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
-    @ImportFieldRelations(relations = {
-            @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME_TARGET}),
-    })
-    @ImportFieldMetadata(id="maleParent", name="Male Parent", description = "The male parent of the germplasm. Can be left blank for self crosses.")
-    private MappedImportRelation maleParent;
-
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="femaleParentDBID", name="Female Parent DBID", description = "The DBID of the female parent of the germplasm.")
     private String femaleParentDBID;
@@ -121,7 +107,6 @@ public class Germplasm implements BrAPIObject {
     public BrAPIGermplasm constructBrAPIGermplasm() {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setDefaultDisplayName(getGermplasmName());
-        //germplasm.setBreedingMethodDbId(); //tricky
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setAccessionNumber(getAccessionNumber());
         germplasm.setCollection(getCollection());
@@ -169,13 +154,6 @@ public class Germplasm implements BrAPIObject {
         germplasm.putAdditionalInfoItem("programId", brAPIProgram.getProgramDbId());
 
         return germplasm;
-    }
-
-    public BrAPIBreedingMethod constructBrAPIBreedingMethod() {
-        BrAPIBreedingMethod breedingMethod = new BrAPIBreedingMethod();
-        //TODO: handle name vs abbreviation
-        breedingMethod.setBreedingMethodName(getBreedingMethod());
-        return breedingMethod;
     }
 
 }

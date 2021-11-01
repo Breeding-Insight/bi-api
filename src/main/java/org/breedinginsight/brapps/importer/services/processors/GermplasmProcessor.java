@@ -21,6 +21,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.germ.BrAPIBreedingMethod;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -44,7 +45,10 @@ public class GermplasmProcessor implements Processor {
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
+    Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByDBID = new HashMap<>();
+    List<String> germplasmByEntryNo = new ArrayList<>();
     List<BrAPIGermplasm> existingGermplasms;
+    List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
 
     @Inject
@@ -56,19 +60,31 @@ public class GermplasmProcessor implements Processor {
 
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmNames = new HashSet<>();
+        Set<String> germplasmDBIDs = new HashSet<>();
+        Set<String> germplasmEntryNos = new HashSet<>();
         for (BrAPIImport germplasmImport : importRows) {
             if (germplasmImport.getGermplasm() != null) {
+                // Retrieve names to assess if rows already in db
                 if (germplasmImport.getGermplasm().getGermplasmName() != null) {
                     germplasmNames.add(germplasmImport.getGermplasm().getGermplasmName());
                 }
 
-                if (germplasmImport.getGermplasm().getFemaleParent() != null) {
-                    germplasmNames.add(germplasmImport.getGermplasm().getFemaleParent().getReferenceValue());
+                // Retrieve parent dbids to assess if in db
+                if (germplasmImport.getGermplasm().getFemaleParentDBID() != null) {
+                    germplasmDBIDs.add(germplasmImport.getGermplasm().getFemaleParentDBID());
+                }
+                if (germplasmImport.getGermplasm().getMaleParentDBID() != null) {
+                    germplasmDBIDs.add(germplasmImport.getGermplasm().getMaleParentDBID());
                 }
 
-                if (germplasmImport.getGermplasm().getMaleParent() != null) {
-                    germplasmNames.add(germplasmImport.getGermplasm().getMaleParent().getReferenceValue());
+                //Retrieve entry numbers of file for comparison with parent entry nos
+                //Assumes user entered Entry Number tagged with name "Import Entry Number" in Additional Info
+                //Should we just make a field that maps to it instead since we now have logic dependent on it, even if it is stored with other additional info
+                //List of AdditionalInfo objects, is there a way to search on additionalInfoName
+                if (germplasmImport.getGermplasm().getAdditionalInfos() != null) {
+                    //germplasmEntryNos.add(germplasmImport.getGermplasm().getAdditionalInfos().stream());
                 }
+
             }
         }
 
@@ -77,6 +93,19 @@ public class GermplasmProcessor implements Processor {
             existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames), program.getId());
             existingGermplasms.forEach(existingGermplasm -> {
                 germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
+            });
+        } catch (ApiException e) {
+            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Just trying to get something working without breaking existing
+        // If parental DBID, should also be in database
+        try {
+            existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByDBID(new ArrayList<>(germplasmDBIDs), program.getId());
+            existingParentGermplasms.forEach(existingGermplasm -> {
+                // todo possibly just need list rather than the hash, since just checking existence rather than importing
+                germplasmByDBID.put(existingGermplasm.getGermplasmDbId(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
@@ -100,93 +129,94 @@ public class GermplasmProcessor implements Processor {
                     BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram());
 
                     // Check the parents exist
-                    String femaleParent = germplasm.getFemaleParent() != null ? germplasm.getFemaleParent().getReferenceValue() : null;
-                    String maleParent = germplasm.getMaleParent() != null ? germplasm.getMaleParent().getReferenceValue() : null;
-                    boolean femaleParentFound = true;
+                    // DBID takes precedence over Entry No
+                    String femaleParent = germplasm.getFemaleParentDBID() != null ? germplasm.getFemaleParentDBID() : germplasm.getFemaleParentEntryNo();
+                    String maleParent = germplasm.getMaleParentDBID() != null ? germplasm.getMaleParentDBID() : germplasm.getMaleParentEntryNo();
+                    boolean femaleParentFound = false;
                     String pedigreeString = null;
+                    // Attempt to simplify logic, but doesn't currently handle case where both DBID and Entry No filled in
+                    // and DBID not found in db but Entry No is found in import file
                     if (femaleParent != null) {
-                        if (germplasmByName.containsKey(femaleParent)) {
-                            // Good to go
+                        if (germplasmByDBID.containsKey(germplasm.getFemaleParentDBID()) || (germplasmByEntryNo.contains(germplasm.getMaleParentEntryNo()))) {
                             pedigreeString = femaleParent;
-                        } else {
-                            femaleParentFound = false;
+                            femaleParentFound = true;
                         }
-                    }
 
-                    if (maleParent != null && femaleParentFound) {
-                        if (germplasmByName.containsKey(maleParent)) {
-                            // Good to go
-                            pedigreeString += "/" + maleParent;
+                        if (maleParent != null && femaleParentFound) {
+                            if ((germplasmByDBID.containsKey(germplasm.getMaleParentDBID())) || (germplasmByEntryNo.contains(germplasm.getMaleParentEntryNo()))) {
+                                pedigreeString += "/" + maleParent;
+                            }
                         }
-                    }
-                    newGermplasm.setPedigree(pedigreeString);
+                        newGermplasm.setPedigree(pedigreeString);
 
-                    germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+                        germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+                    }
+                    mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
+                    mappedBrAPIImport.put(i, mappedImportRow);
                 }
-                mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
-                mappedBrAPIImport.put(i, mappedImportRow);
             }
         }
 
-        // Get our new objects to create
-        List<BrAPIGermplasm> newGermplasmList = ProcessorData.getNewObjects(germplasmByName);
+            // Get our new objects to create
+            List<BrAPIGermplasm> newGermplasmList = ProcessorData.getNewObjects(germplasmByName);
 
-        // Construct a dependency tree for POSTing order
-        Set<String> created = existingGermplasms.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
+            // Construct a dependency tree for POSTing order
+            Set<String> created = existingGermplasms.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
 
-        int totalRecorded = 0;
+            int totalRecorded = 0;
 
-        while (totalRecorded < newGermplasmList.size()) {
-            List<BrAPIGermplasm> createList = new ArrayList<>();
-            for (BrAPIGermplasm germplasm: newGermplasmList ){
-                if (created.contains(germplasm.getGermplasmName())) continue;
+            while (totalRecorded < newGermplasmList.size()) {
+                List<BrAPIGermplasm> createList = new ArrayList<>();
+                for (BrAPIGermplasm germplasm : newGermplasmList) {
+                    if (created.contains(germplasm.getGermplasmName())) continue;
 
-                // If it has no dependencies, add it
-                if (germplasm.getPedigree() == null) {
-                    createList.add(germplasm);
-                    continue;
-                }
-
-                // If both parents have been created already, add it
-                List<String> pedigreeArray = List.of(germplasm.getPedigree().split("/"));
-                String femaleParent = pedigreeArray.get(0);
-                String maleParent = pedigreeArray.size() > 1 ? pedigreeArray.get(1) : null;
-                if (created.contains(femaleParent)){
-                    if (maleParent == null){
+                    // If it has no dependencies, add it
+                    if (germplasm.getPedigree() == null) {
                         createList.add(germplasm);
-                    } else if (created.contains(maleParent)) {
-                        createList.add(germplasm);
+                        continue;
+                    }
+
+                    // If both parents have been created already, add it
+                    List<String> pedigreeArray = List.of(germplasm.getPedigree().split("/"));
+                    String femaleParent = pedigreeArray.get(0);
+                    String maleParent = pedigreeArray.size() > 1 ? pedigreeArray.get(1) : null;
+                    if (created.contains(femaleParent)) {
+                        if (maleParent == null) {
+                            createList.add(germplasm);
+                        } else if (created.contains(maleParent)) {
+                            createList.add(germplasm);
+                        }
                     }
                 }
+
+                totalRecorded += createList.size();
+                if (createList.size() > 0) {
+                    created.addAll(createList.stream().map(brAPIGermplasm -> brAPIGermplasm.getGermplasmName()).collect(Collectors.toList()));
+                    postOrder.add(createList);
+                } else if (totalRecorded < newGermplasmList.size()) {
+                    // We ran into circular dependencies, throw an error
+                    throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Circular dependency in the pedigree tree");
+                }
             }
 
-            totalRecorded += createList.size();
-            if (createList.size() > 0) {
-                created.addAll(createList.stream().map(brAPIGermplasm -> brAPIGermplasm.getGermplasmName()).collect(Collectors.toList()));
-                postOrder.add(createList);
-            } else if (totalRecorded < newGermplasmList.size()) {
-                // We ran into circular dependencies, throw an error
-                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Circular dependency in the pedigree tree");
-            }
-        }
+            // Construct our response object
+            ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
+                    .newObjectCount(newGermplasmList.size())
+                    .build();
 
-        // Construct our response object
-        ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
-                .newObjectCount(newGermplasmList.size())
-                .build();
+            //Modified logic here to check for female parent dbid or entry no, removed check for male for moment cause assumption that shouldn't have only male parent
+            int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
+            ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
+                    .newObjectCount(newObjectCount)
+                    .ignoredObjectCount(importRows.stream().filter(germplasmImport ->
+                            germplasmImport.getGermplasm() != null &&
+                                    (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
+                    ).collect(Collectors.toList()).size() - newObjectCount).build();
 
-        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
-        ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
-                .newObjectCount(newObjectCount)
-                .ignoredObjectCount(importRows.stream().filter(germplasmImport ->
-                        germplasmImport.getGermplasm() != null &&
-                                (germplasmImport.getGermplasm().getFemaleParent() != null || germplasmImport.getGermplasm().getMaleParent() != null)
-                ).collect(Collectors.toList()).size() - newObjectCount).build();
-
-        return Map.of(
-                "Germplasm", germplasmStats,
-                "Pedigree Connections", pedigreeConnectStats
-        );
+            return Map.of(
+                    "Germplasm", germplasmStats,
+                    "Pedigree Connections", pedigreeConnectStats
+            );
 
     }
 
