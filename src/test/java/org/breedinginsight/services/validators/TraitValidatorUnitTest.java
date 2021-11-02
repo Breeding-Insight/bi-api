@@ -143,14 +143,13 @@ public class TraitValidatorUnitTest {
 
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
-        assertEquals(9, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        assertEquals(8, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("observationVariableName", 400);
         expectedColumns.put("entity", 400);
         expectedColumns.put("attribute", 400);
         expectedColumns.put("traitDescription", 400);
         expectedColumns.put("programObservationLevel.name", 400);
-        expectedColumns.put("method.description", 400);
         expectedColumns.put("method.methodClass", 400);
         expectedColumns.put("scale.scaleName", 400);
         expectedColumns.put("scale.dataType", 400);
@@ -211,6 +210,49 @@ public class TraitValidatorUnitTest {
 
     @Test
     @SneakyThrows
+    public void dataInsufficientCategoriesFailure() {
+
+        Trait trait = new Trait();
+        Method method = new Method();
+        method.setMethodClass("Computation");
+        Scale scale = new Scale();
+        scale.setScaleName("Test Scale");
+        scale.setDataType(DataType.ORDINAL);
+        trait.setScale(scale);
+        trait.setMethod(method);
+        trait.getScale().setValidValueMin(1);
+        trait.getScale().setValidValueMax(10);
+        trait.getScale().setDecimalPlaces(3);
+        trait.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories().label("label1").value("value1")));
+
+        ValidationErrors validationErrors = traitValidatorService.checkTraitDataConsistency(List.of(trait), new TraitValidatorError());
+
+        assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
+        assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        Map<String, Integer> expectedColumns = new HashMap<>();
+        expectedColumns.put("method.formula", 400);
+        expectedColumns.put("scale.categories", 422);
+        List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
+
+        Boolean unknownColumnReturned = false;
+        for (ValidationError error: rowValidationErrors.getErrors()){
+            String column = error.getField();
+            if (expectedColumns.containsKey(column)){
+                assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
+            } else {
+                unknownColumnReturned = true;
+            }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
+        }
+    }
+
+
+    @Test
+    @SneakyThrows
     public void duplicateTraitsInFile() {
 
         Trait trait1 = new Trait();
@@ -256,5 +298,62 @@ public class TraitValidatorUnitTest {
         assertEquals(2, trait3Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait3Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
     }
+
+    @Test
+    @SneakyThrows
+    public void charLimitExceeded() {
+
+        Trait trait = new Trait();
+        trait.setObservationVariableName("OverTwelveChar");
+        trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale = new Scale();
+        scale.setScaleName("Test Scale");
+        Method method = new Method();
+        trait.setScale(scale);
+        trait.setMethod(method);
+
+        // Trait
+        trait.setTraitClass("Pheno trait");
+        trait.setEntity("This is over 30 characters error");
+        trait.setAttribute("This is over 30 characters error");
+        trait.setTraitDescription("testing the test trait");
+        trait.setDefaultValue("2.0");
+        trait.setMainAbbreviation("abbrev1");
+        trait.setSynonyms(List.of("test1", "test2"));
+
+        // Method
+        trait.getMethod().setMethodClass("Estimation");
+        trait.getMethod().setDescription("This is over 30 characters error");
+        trait.getMethod().setFormula("a^2 + b^2 = c^2");
+
+        ValidationErrors validationErrors = traitValidatorService.checkTraitFieldsLength(List.of(trait), new TraitValidatorError());
+
+        assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
+        assertEquals(4, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+
+        Map<String, Integer> expectedColumns = new HashMap<>();
+        expectedColumns.put("observationVariableName", 422);
+        expectedColumns.put("entity", 422);
+        expectedColumns.put("attribute", 422);
+        expectedColumns.put("method.description", 422);
+        List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
+
+        Boolean unknownColumnReturned = false;
+        for (ValidationError error: rowValidationErrors.getErrors()){
+            String column = error.getField();
+            if (expectedColumns.containsKey(column)){
+                assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
+            } else {
+                unknownColumnReturned = true;
+            }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
+        }
+    }
+
 
 }

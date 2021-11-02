@@ -38,7 +38,8 @@ public enum TraitFileColumns {
     SCALE_LOWER_LIMIT("Scale lower limit"),
     SCALE_UPPER_LIMIT("Scale upper limit"),
     SCALE_CATEGORIES("Scale categories"),
-    TAGS("Tags");
+    TAGS("Tags"),
+    FULL_NAME("Full name");
 
     private String value;
 

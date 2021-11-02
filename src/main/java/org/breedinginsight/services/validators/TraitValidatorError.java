@@ -44,11 +44,6 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingMethodDescriptionMsg() {
-        return new ValidationError("method.description", "Missing method description", HttpStatus.BAD_REQUEST);
-    }
-
-    @Override
     public ValidationError getMissingMethodClassMsg() {
         return new ValidationError("method.methodClass", "Missing method class", HttpStatus.BAD_REQUEST);
     }
@@ -127,6 +122,36 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("scale.validValueMax",
                 "Scale valid value max must be greater than valid value min.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getInsufficientNominalValError() {
+        return new ValidationError("scale.categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getInsufficientOrdinalValError() {
+        return new ValidationError("scale.categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitObsVarNameMsg() {
+        return new ValidationError("observationVariableName", "Observation variable name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitTraitEntityMsg() {
+        return new ValidationError("entity", "Trait entity exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitTraitAttributeMsg() {
+        return new ValidationError("attribute", "Trait attribute exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
+    public ValidationError getCharLimitMethodDescriptionMsg() {
+        return new ValidationError("method.description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
