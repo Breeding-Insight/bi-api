@@ -140,7 +140,7 @@ public class ObservationProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program) throws ValidatorException {
+    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program, boolean commit) throws ValidatorException {
 
         if (!importRows.isEmpty() && importRows.get(0).getObservations() != null) {
 

@@ -59,6 +59,10 @@ public class Germplasm implements BrAPIObject {
     private String externalUID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id="entryNo", name="Entry No.", description = "The order of germplasm in the import list ( 1,2,3,….n). If no entry  number is specified in the import germplasm list, the database will assign entry number upon import.")
+    private String entryNo;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="femaleParentDBID", name="Female Parent DBID", description = "The DBID of the female parent of the germplasm.")
     private String femaleParentDBID;
 
@@ -117,6 +121,11 @@ public class Germplasm implements BrAPIObject {
             additionalInfos.stream()
                     .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
                     .forEach(additionalInfo -> germplasm.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
+        }
+
+        //TODO: add logic later for generating entry numbers if not provided by user
+        if (entryNo != null){
+            germplasm.putAdditionalInfoItem("Import Entry Number", entryNo);
         }
 
         //If there is an external uid, source is associated with it as an additional external reference
