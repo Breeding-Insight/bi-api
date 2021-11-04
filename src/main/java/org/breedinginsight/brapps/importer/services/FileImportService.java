@@ -27,9 +27,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MediaType;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.daos.ImportMappingProgramDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
@@ -39,6 +39,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
+import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
@@ -76,11 +77,12 @@ public class FileImportService {
     private ImportConfigManager configManager;
     private ImportDAO importDAO;
     private DSLContext dsl;
+    private ImportMappingProgramDAO importMappingProgramDAO;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
-                      ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl) {
+                      ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl, ImportMappingProgramDAO importMappingProgramDAO) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -90,6 +92,7 @@ public class FileImportService {
         this.configManager = configManager;
         this.importDAO = importDAO;
         this.dsl = dsl;
+        this.importMappingProgramDAO = importMappingProgramDAO;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -108,17 +111,27 @@ public class FileImportService {
         // Convert the table to json to store
         String jsonString = df.write().toString("json");
         JSONB jsonb = JSONB.valueOf(jsonString);
-        ImporterMappingEntity importMappingEntity = ImporterMappingEntity.builder()
-                .programId(programId)
-                .file(jsonb)
-                .draft(true)
-                .createdBy(actingUser.getId())
-                .updatedBy(actingUser.getId())
-                .build();
-        importMappingDAO.insert(importMappingEntity);
 
-        ImportMapping importMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
+        ImportMapping importMapping = dsl.transactionResult(configuration -> {
+            ImporterMappingEntity importMappingEntity = ImporterMappingEntity.builder()
+                    .file(jsonb)
+                    .draft(true)
+                    .createdBy(actingUser.getId())
+                    .updatedBy(actingUser.getId())
+                    .build();
+            importMappingDAO.insert(importMappingEntity);
 
+            // Create program association
+            ImporterMappingProgramEntity importerMappingProgramEntity = ImporterMappingProgramEntity.builder()
+                    .programId(programId)
+                    .importerMappingId(importMappingEntity.getId())
+                    .build();
+            importMappingProgramDAO.insert(importerMappingProgramEntity);
+
+            ImportMapping newImportMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
+
+            return newImportMapping;
+        });
         return importMapping;
     }
 
@@ -205,8 +218,16 @@ public class FileImportService {
         }
         ImportMapping importMapping = optionalImportMapping.get();
 
+        // Check it doesn't use a reserved name
+        List<ImportMapping> importMappings = importMappingDAO.getAllSystemMappings();
+        for(ImportMapping systemMapping: importMappings) {
+            if (systemMapping.getName().equalsIgnoreCase(mappingRequest.getName())) {
+                throw new AlreadyExistsException(String.format("Import name '%s' is a reserved name and cannot be used", mappingRequest.getName()));
+            }
+        }
+
         // Check mappings within the given program with the same name
-        List<ImportMapping> matchingMappings = importMappingDAO.getMappingsByName(programId, mappingRequest.getName());
+        List<ImportMapping> matchingMappings = importMappingDAO.getProgramMappingsByName(programId, mappingRequest.getName());
         List<ImportMapping> nonSelfMappings = matchingMappings.stream()
                 .filter(mapping -> !mapping.getId().equals(mappingId)).collect(Collectors.toList());
         if (nonSelfMappings.size() > 0){
@@ -403,7 +424,7 @@ public class FileImportService {
             throws DoesNotExistException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
-        List<ImportMapping> importMappings = importMappingDAO.getAllMappings(programId, draft);
+        List<ImportMapping> importMappings = importMappingDAO.getAllProgramMappings(programId, draft);
         return importMappings;
     }
 
@@ -419,5 +440,15 @@ public class FileImportService {
             throw new AuthorizationException("User not in program");
         }
         return program;
+    }
+
+    public List<ImportMapping> getAllSystemMappings(AuthenticatedUser actingUser) {
+        List<ImportMapping> importMappings = importMappingDAO.getAllSystemMappings();
+        return importMappings;
+    }
+
+    public List<ImportMapping> getSystemMappingByName(AuthenticatedUser actingUser, String name) {
+        List<ImportMapping> importMappings = importMappingDAO.getSystemMappingByName(name);
+        return importMappings;
     }
 }

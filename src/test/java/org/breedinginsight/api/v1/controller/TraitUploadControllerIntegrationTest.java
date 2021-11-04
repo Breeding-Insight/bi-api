@@ -519,7 +519,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("Powdery Mildew", syn1, "wrong synonym");
         assertEquals("Powdery Mildew Severity", syn2, "wrong synonym");
 
-        assertEquals("Powdery Mildew severity field, leaves", trait.get("observationVariableName").getAsString(), "wrong trait name");
+        assertEquals("PM_Leaf", trait.get("observationVariableName").getAsString(), "wrong trait name");
 
         JsonObject observationLevel = trait.getAsJsonObject("programObservationLevel");
         assertEquals("Leaf", observationLevel.get("name").getAsString(), "wrong level name");
@@ -528,7 +528,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         // TODO: trait lists
 
         JsonObject method = trait.get("method").getAsJsonObject();
-        assertEquals("Observed severity of Powdery Mildew on leaves", method.get("description").getAsString(), "wrong method description");
+        assertEquals("Powdery Mildew severity, leaf", method.get("description").getAsString(), "wrong method description");
         assertEquals("Estimation", method.get("methodClass").getAsString(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
 
@@ -610,7 +610,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.setFilters(new ArrayList<>());
-        searchRequest.getFilters().add(new FilterRequest("name", "leaves"));
+        searchRequest.getFilters().add(new FilterRequest("name", "leaf"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram.getId()+"/trait-upload/search?page=1&pageSize=2&sortField=name&sortOrder=DESC", searchRequest)

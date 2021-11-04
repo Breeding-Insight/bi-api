@@ -2143,6 +2143,7 @@ paths:
                     - label: "test2"
                       value: "value2"
                 tags: ["favorites", "leaf length"]
+                fullName: "Test Trait Full Name"
         required: true
       responses:
         "200":
@@ -2273,6 +2274,7 @@ paths:
                     - label: "test2"
                       value: "value2"
                 tags: ["favorites", "leaf length"]
+                fullName: "Test Trait Full Name"
         required: true
       responses:
         "200":
@@ -4529,6 +4531,9 @@ components:
           type: array
           items:
             type: string
+        fullName:
+          type: string
+          description: Full trait display name
     traitUploadResponse:
       required:
         - metadata
@@ -4613,6 +4618,13 @@ components:
               type: array
               items:
                 type: string
+            tags:
+              type: array
+              items:
+                type: string
+            fullName:
+              type: string
+              description: Full trait display name
         createdAt:
           type: string
           format: datetime
@@ -4714,6 +4726,9 @@ components:
           type: array
           items:
             type: string
+        fullName:
+          type: string
+          description: Full trait display name
     arrayOfEditedTraits:
       type: array
       items:
@@ -4795,6 +4810,9 @@ components:
           type: array
           items:
             type: string
+        fullName:
+          type: string
+          description: Full trait display name
     validatorErrorResponse:
       type: object
       properties:
@@ -5516,7 +5534,8 @@ components:
                     name: "Tester",
                     active: true
                   },
-                tags: ["leaf trait", "favorites"]
+                tags: ["leaf trait", "favorites"],
+                fullName: "Test Trait Full Name"
               }
             ]
     singleTrait:
@@ -5589,7 +5608,8 @@ components:
                 name: "Tester",
                 active: true
               },
-            tags: ["leaf trait", "favorites"]
+            tags: ["leaf trait", "favorites"],
+            fullName: "Test Trait Full Name"
           }
     editable:
       value:
@@ -5653,6 +5673,8 @@ components:
                 mainAbbreviation: "t1",
                 abbreviations: ["t1","t2"],
                 synonyms: ["stalk height"],
+                tags: [ "leaf trait", "favorites" ],
+                fullName: "Test Trait Full Name",
               }
             ]
           program:

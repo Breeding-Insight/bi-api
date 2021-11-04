@@ -68,6 +68,7 @@ public class Trait extends TraitEntity {
     private List<String> synonyms;
     @JsonDeserialize(using = ListOfStringDeserializer.class)
     private List<String> tags;
+    private String fullName;
 
     @Override
     @JsonDeserialize(using = ArrayOfStringDeserializer.class)
@@ -120,9 +121,10 @@ public class Trait extends TraitEntity {
         this.setDefaultValue(brApiVariable.getDefaultValue());
     }
 
-    public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags) {
+    public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags, String fullName) {
         setBrAPIProperties(brApiVariable);
-        this.tags = tags;
+        if (tags != null) this.tags = tags;
+        if (fullName != null) this.fullName = fullName;
     }
 
 }
