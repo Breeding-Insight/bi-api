@@ -110,6 +110,7 @@ public class Germplasm implements BrAPIObject {
 
     public BrAPIGermplasm constructBrAPIGermplasm() {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
+        germplasm.setGermplasmName(getGermplasmName()); //TODO: will be modified in later card
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setAccessionNumber(getAccessionNumber());

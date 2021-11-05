@@ -139,7 +139,7 @@ public class GermplasmProcessor implements Processor {
                             femaleParentFound = true;
                         }
                     } else if (femaleParentFile != null) {
-                        if (germplasmByDBID.containsKey(germplasm.getFemaleParentDBID())) {
+                        if (germplasmEntryNos.containsKey(germplasm.getFemaleParentEntryNo())) {
                             pedigreeString = germplasmEntryNos.get(femaleParentFile);
                             femaleParentFound = true;
                         }
@@ -151,7 +151,7 @@ public class GermplasmProcessor implements Processor {
                                 pedigreeString += "/" + germplasmByDBID.get(maleParentDB).getBrAPIObject().getGermplasmName();
                             }
                         } else if (maleParentFile != null){
-                            if (germplasmByDBID.containsKey(germplasm.getFemaleParentDBID())) {
+                            if (germplasmEntryNos.containsKey(germplasm.getMaleParentEntryNo())) {
                                 pedigreeString += "/" + germplasmEntryNos.get(maleParentFile);
                             }
                         }
