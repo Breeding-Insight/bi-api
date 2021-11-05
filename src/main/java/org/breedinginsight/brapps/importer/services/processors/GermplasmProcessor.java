@@ -37,6 +37,7 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Prototype
 public class GermplasmProcessor implements Processor {
@@ -102,7 +103,11 @@ public class GermplasmProcessor implements Processor {
             existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByDBID(new ArrayList<>(germplasmDBIDs), program.getId());
             existingParentGermplasms.forEach(existingGermplasm -> {
                 germplasmByDBID.put(existingGermplasm.getGermplasmDbId(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
+                germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
+            //Since parent germplasms need to be present for check re circular dependencies
+            existingGermplasms = Stream.concat(existingGermplasms.stream(), existingParentGermplasms.stream())
+                    .collect(Collectors.toList());
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
             throw new InternalServerException(e.toString(), e);
