@@ -79,6 +79,8 @@ micronaut:
             generator:
               secret: ${JWT_SECRET}
               jws-algorithm: HS256
+        generator:
+          access-token-expiration: 43200
     api-token:
       jwt:
         generator:
