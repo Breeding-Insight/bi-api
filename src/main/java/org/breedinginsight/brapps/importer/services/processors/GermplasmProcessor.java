@@ -21,7 +21,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.germ.BrAPIBreedingMethod;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -70,7 +69,6 @@ public class GermplasmProcessor implements Processor {
                 }
 
                 // Retrieve parent dbids to assess if already in db
-                // TODO may still need to retrieve associated names for later, check
                 if (germplasmImport.getGermplasm().getFemaleParentDBID() != null) {
                     germplasmDBIDs.add(germplasmImport.getGermplasm().getFemaleParentDBID());
                 }
@@ -217,7 +215,7 @@ public class GermplasmProcessor implements Processor {
                 .newObjectCount(newGermplasmList.size())
                 .build();
 
-        //Modified logic here to check for female parent dbid or entry no, removed check for male for moment cause assumption that shouldn't have only male parent
+        //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
         int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
         ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
                 .newObjectCount(newObjectCount)
