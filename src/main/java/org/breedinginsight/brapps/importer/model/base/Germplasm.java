@@ -66,7 +66,7 @@ public class Germplasm implements BrAPIObject {
     private String femaleParentDBID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="maleParentDBID", name="Male Parent DBID", description = "The DBID of the male parent of the germplasm. Can be left blank for self crosses.")
+    @ImportFieldMetadata(id="maleParentDBID", name="Male Parent DBID", description = "The DBID of the male parent of the germplasm.")
     private String maleParentDBID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
@@ -74,7 +74,7 @@ public class Germplasm implements BrAPIObject {
     private String femaleParentEntryNo;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="maleParentEntryNo", name="Male Parent Entry Number", description = "The entry number of the male parent of the germplasm. Used to import offspring with progenitors not yet in the database. Can be left blank for self crosses.")
+    @ImportFieldMetadata(id="maleParentEntryNo", name="Male Parent Entry Number", description = "The entry number of the male parent of the germplasm. Used to import offspring with progenitors not yet in the database.")
     private String maleParentEntryNo;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
@@ -125,16 +125,16 @@ public class Germplasm implements BrAPIObject {
 
         //TODO: add logic later for generating entry numbers if not provided by user
         if (entryNo != null){
-            germplasm.putAdditionalInfoItem("Import Entry Number", entryNo);
+            germplasm.putAdditionalInfoItem("ImportEntryNumber", entryNo);
         }
 
         //If there is an external uid, source is associated with it as an additional external reference
-        BrAPIExternalReference UIDExternalReference = null;
+        BrAPIExternalReference uidExternalReference = null;
         if (germplasmSource != null) {
             if (externalUID != null) {
-                UIDExternalReference = new BrAPIExternalReference();
-                UIDExternalReference.setReferenceID(getExternalUID());
-                UIDExternalReference.setReferenceSource(getGermplasmSource());
+                uidExternalReference = new BrAPIExternalReference();
+                uidExternalReference.setReferenceID(getExternalUID());
+                uidExternalReference.setReferenceSource(getGermplasmSource());
             } else {
                 germplasm.setSeedSourceDescription(getGermplasmSource());
             }
@@ -144,12 +144,12 @@ public class Germplasm implements BrAPIObject {
             List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
                     .map(externalReference -> externalReference.constructBrAPIExternalReference())
                     .collect(Collectors.toList());
-            if (UIDExternalReference != null) {
-                brAPIExternalReferences.add(UIDExternalReference);
+            if (uidExternalReference != null) {
+                brAPIExternalReferences.add(uidExternalReference);
             }
             germplasm.setExternalReferences(brAPIExternalReferences);
-        } else if (UIDExternalReference != null) {
-            germplasm.setExternalReferences(Collections.singletonList(UIDExternalReference));
+        } else if (uidExternalReference != null) {
+            germplasm.setExternalReferences(Collections.singletonList(uidExternalReference));
         }
 
         return germplasm;

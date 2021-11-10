@@ -46,7 +46,7 @@ public class GermplasmProcessor implements Processor {
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByDBID = new HashMap<>();
-    Map<String, String> germplasmEntryNos = new HashMap<>();
+    Map<String, String> germplasmNameByEntryNo = new HashMap<>();
     List<BrAPIGermplasm> existingGermplasms;
     List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
@@ -79,7 +79,7 @@ public class GermplasmProcessor implements Processor {
                 //Retrieve entry numbers of file for comparison with parent entry numbers
                 //TODO Currently only applicable for user entered entry numbers, can be extended later
                 if (germplasmImport.getGermplasm().getEntryNo()!= null) {
-                    germplasmEntryNos.put(germplasmImport.getGermplasm().getEntryNo(), germplasmImport.getGermplasm().getGermplasmName());
+                    germplasmNameByEntryNo.put(germplasmImport.getGermplasm().getEntryNo(), germplasmImport.getGermplasm().getGermplasmName());
                 }
 
             }
@@ -142,8 +142,8 @@ public class GermplasmProcessor implements Processor {
                             femaleParentFound = true;
                         }
                     } else if (femaleParentFile != null) {
-                        if (germplasmEntryNos.containsKey(germplasm.getFemaleParentEntryNo())) {
-                            pedigreeString = germplasmEntryNos.get(femaleParentFile);
+                        if (germplasmNameByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
+                            pedigreeString = germplasmNameByEntryNo.get(femaleParentFile);
                             femaleParentFound = true;
                         }
                     }
@@ -154,8 +154,8 @@ public class GermplasmProcessor implements Processor {
                                 pedigreeString += "/" + germplasmByDBID.get(maleParentDB).getBrAPIObject().getGermplasmName();
                             }
                         } else if (maleParentFile != null){
-                            if (germplasmEntryNos.containsKey(germplasm.getMaleParentEntryNo())) {
-                                pedigreeString += "/" + germplasmEntryNos.get(maleParentFile);
+                            if (germplasmNameByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
+                                pedigreeString += "/" + germplasmNameByEntryNo.get(maleParentFile);
                             }
                         }
                         newGermplasm.setPedigree(pedigreeString);
