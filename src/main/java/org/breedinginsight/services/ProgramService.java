@@ -118,6 +118,8 @@ public class ProgramService {
             throw new UnprocessableEntityException("Species does not exist");
         }
 
+        //Check that program key not already in use TODO
+
         String brapiUrl = programRequest.getBrapiUrl();
 
         // if specified, check if brapi url is supported
@@ -140,6 +142,7 @@ public class ProgramService {
                     .objective(programRequest.getObjective())
                     .documentationUrl(programRequest.getDocumentationUrl())
                     .brapiUrl(brapiUrl)
+                    .key(programRequest.getKey())
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();
