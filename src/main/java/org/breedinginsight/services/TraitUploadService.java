@@ -135,6 +135,7 @@ public class TraitUploadService {
         }
 
         traitService.assignTraitsProgramObservationLevel(traits, programId);
+        traits = this.markDups(traits, programId);
 
         String json = null;
         try {
@@ -167,7 +168,27 @@ public class TraitUploadService {
         programUpload.setParsedData(parseUpload(programUpload));
         return programUpload;
     }
+    private List<Trait> markDups(List<Trait> traits, UUID programId){
+        List<Trait> dupTraitsByName = this.traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
+        List<Trait> dupAbbrevTraits = this.traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
 
+        for(Trait trait: traits){
+            boolean isDup = false;
+
+            for(Trait dupTrait : dupTraitsByName){
+                if(dupTrait.getObservationVariableName().equals(trait.getObservationVariableName())){
+                    isDup = true;
+                    break;
+                }
+            }
+
+            isDup = isDup || this.traitValidator.hasAbbreviation(dupAbbrevTraits, trait, true);
+            trait.setIsDup(isDup);
+        }
+
+        return traits;
+    }
+    
     public Optional<ProgramUpload<Trait>> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
 
         List<ProgramUpload> uploads = programUploadDao.getUploads(programId, actingUser.getId(), UploadType.TRAIT);
