@@ -47,7 +47,5 @@ public interface TraitValidatorErrorInterface {
     ValidationError getCharLimitTraitAttributeMsg();
     ValidationError getCharLimitMethodDescriptionMsg();
     ValidationError getDuplicateTraitByNamesMsg();
-    ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);
-    ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows);
 }

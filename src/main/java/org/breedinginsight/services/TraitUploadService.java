@@ -170,7 +170,6 @@ public class TraitUploadService {
     }
     private List<Trait> markDups(List<Trait> traits, UUID programId){
         List<Trait> dupTraitsByName = this.traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
-        List<Trait> dupAbbrevTraits = this.traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
 
         for(Trait trait: traits){
             boolean isDup = false;
@@ -182,7 +181,6 @@ public class TraitUploadService {
                 }
             }
 
-            isDup = isDup || this.traitValidator.hasAbbreviation(dupAbbrevTraits, trait, true);
             trait.setIsDup(isDup);
         }
 

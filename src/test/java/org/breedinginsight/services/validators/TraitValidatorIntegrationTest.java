@@ -89,10 +89,8 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setMethod(method1);
 
         List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(validProgram.getId(), List.of(trait1));
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(validProgram.getId(), List.of(trait1));
 
         assertEquals(1, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
-        assertEquals(1, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
     }
 
     @Test
@@ -110,10 +108,8 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setMethod(method1);
 
         List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(validProgram.getId(), List.of(trait1));
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(validProgram.getId(), List.of(trait1));
 
         assertEquals(0, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
-        assertEquals(0, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
     }
 
 }

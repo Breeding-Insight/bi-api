@@ -225,27 +225,6 @@ public class TraitValidatorService {
         return duplicates;
     }
 
-    public List<Trait> checkDuplicateTraitsExistingByAbbreviation(UUID programId, List<Trait> traits){
-
-        List<Trait> duplicates = new ArrayList<>();
-
-        // Check for existing trait abbreviations
-        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(programId, traits);
-
-        for (int i = 0; i < traits.size(); i++){
-            Trait trait = traits.get(i);
-
-            boolean isDuplicateAbbrev = hasAbbreviation(duplicateAbbreviationTraits, trait, false);
-
-            if (isDuplicateAbbrev) {
-                if (!duplicates.contains(trait)){
-                    duplicates.add(trait);
-                }
-            }
-        }
-
-        return duplicates;
-    }
 
     /**
      * @param traitsWithAbbreviations - list of traits with the abbreviations to search for
@@ -310,22 +289,6 @@ public class TraitValidatorService {
                         List<Integer> indexArray = new ArrayList<>();
                         indexArray.add(i);
                         abbreviationMap.put(abbreviation, indexArray);
-                    }
-                }
-            }
-        }
-
-        // Generate duplicate abbreviation errors
-        for (Integer i = 0; i < traits.size(); i++) {
-            Trait trait = traits.get(i);
-            if (trait.getAbbreviations() != null) {
-                for (String abbreviation : trait.getAbbreviations()) {
-                    if (abbreviationMap.containsKey(abbreviation)) {
-                        if (abbreviationMap.get(abbreviation).size() > 1){
-                            ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByAbbreviationInFileMsg(abbreviationMap.get(abbreviation));
-                            errors.addError(traitValidatorErrors.getRowNumber(i), validationError);
-                            break;
-                        }
                     }
                 }
             }
