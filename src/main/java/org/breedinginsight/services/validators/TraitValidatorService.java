@@ -235,16 +235,7 @@ public class TraitValidatorService {
         for (int i = 0; i < traits.size(); i++){
             Trait trait = traits.get(i);
 
-            Boolean isDuplicateAbbrev = false;
-            if (trait.getAbbreviations() != null){
-                for (String abbreviation: trait.getAbbreviations()){
-                    isDuplicateAbbrev = duplicateAbbreviationTraits.stream().filter(duplicateAbbreviationTrait ->
-                            List.of(duplicateAbbreviationTrait.getAbbreviations()).contains(abbreviation)
-                            && !duplicateAbbreviationTrait.getId().equals(trait.getId())
-                    ).collect(Collectors.toList()).size() > 0;
-                    break;
-                }
-            }
+            boolean isDuplicateAbbrev = hasAbbreviation(duplicateAbbreviationTraits, trait, false);
 
             if (isDuplicateAbbrev) {
                 if (!duplicates.contains(trait)){
@@ -254,6 +245,28 @@ public class TraitValidatorService {
         }
 
         return duplicates;
+    }
+
+    /**
+     * @param traitsWithAbbreviations - list of traits with the abbreviations to search for
+     * @param trait - target trait
+     * @param canIdBeNull - if true then a trait from the traitsWithAbbreviations list can have a null id.
+     * @return - TRUE if the target trait contains any of the abbreviations
+     */
+    public boolean hasAbbreviation(List<Trait> traitsWithAbbreviations, Trait trait, boolean canIdBeNull) {
+        boolean containsAbbreviation = false;
+        if (trait.getAbbreviations() != null){
+            for (String abbreviation: trait.getAbbreviations()){
+                containsAbbreviation = traitsWithAbbreviations.stream().filter(traitWithAbbreviation ->
+                        List.of(traitWithAbbreviation.getAbbreviations()).contains(abbreviation)
+                                && ( (canIdBeNull && traitWithAbbreviation.getId()==null) || !traitWithAbbreviation.getId().equals(trait.getId()) )
+                ).collect(Collectors.toList()).size() > 0;
+                if (containsAbbreviation) {
+                    break;
+                }
+            }
+        }
+        return containsAbbreviation;
     }
 
     public ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
