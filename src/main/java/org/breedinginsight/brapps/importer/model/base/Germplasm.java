@@ -25,10 +25,7 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.*;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Getter
@@ -82,10 +79,6 @@ public class Germplasm implements BrAPIObject {
     private String germplasmPUI;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="accessionNumber", name="Accession Number", description = "This is the unique identifier for accessions within a genebank, and is assigned when a sample is entered into the genebank collection.")
-    private String accessionNumber;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="acquisitionDate", name="Acquisition Date", description = "The date this germplasm was acquired by the genebank.")
     private String acquisitionDate;
 
@@ -112,7 +105,6 @@ public class Germplasm implements BrAPIObject {
         germplasm.setGermplasmName(getGermplasmName()); //TODO: will be modified in later card
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
-        germplasm.setAccessionNumber(getAccessionNumber());
         germplasm.setCollection(getCollection());
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
@@ -149,7 +141,7 @@ public class Germplasm implements BrAPIObject {
             }
             germplasm.setExternalReferences(brAPIExternalReferences);
         } else if (uidExternalReference != null) {
-            germplasm.setExternalReferences(Collections.singletonList(uidExternalReference));
+            germplasm.setExternalReferences(Arrays.asList(uidExternalReference));
         }
 
         return germplasm;

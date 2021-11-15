@@ -77,7 +77,6 @@ public class GermplasmProcessor implements Processor {
                 }
 
                 //Retrieve entry numbers of file for comparison with parent entry numbers
-                //TODO Currently only applicable for user entered entry numbers, can be extended later
                 if (germplasmImport.getGermplasm().getEntryNo()!= null) {
                     germplasmNameByEntryNo.put(germplasmImport.getGermplasm().getEntryNo(), germplasmImport.getGermplasm().getGermplasmName());
                 }
@@ -192,9 +191,7 @@ public class GermplasmProcessor implements Processor {
                 String femaleParent = pedigreeArray.get(0);
                 String maleParent = pedigreeArray.size() > 1 ? pedigreeArray.get(1) : null;
                 if (created.contains(femaleParent)) {
-                    if (maleParent == null) {
-                        createList.add(germplasm);
-                    } else if (created.contains(maleParent)) {
+                    if (maleParent == null || created.contains(maleParent)) {
                         createList.add(germplasm);
                     }
                 }
