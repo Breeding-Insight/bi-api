@@ -136,6 +136,24 @@ public class ProgramDAO extends ProgramDao {
         return parseProgramQuery(queryResult, createdByUser, updatedByUser);
     }
 
+    public List<Program> getProgramByKey(String key){
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+        Result<Record> queryResult;
+
+        SelectOnConditionStep<Record> query = dsl.select()
+                .from(PROGRAM)
+                .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
+                .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
+
+        queryResult = query
+                .where(PROGRAM.KEY.equal(key))
+                .fetch();
+
+        return parseProgramQuery(queryResult, createdByUser, updatedByUser);
+    }
+
     private List<Program> getPrograms(List<UUID> programIds){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
@@ -252,7 +270,7 @@ public class ProgramDAO extends ProgramDao {
                                                                          .referenceSource(referenceSource);
 
         BrAPIProgram brApiProgram = new BrAPIProgram()
-                                                .programName(program.getName())
+                                                .programName(program.getName() + " (" + program.getKey() + ")")
                                                 .abbreviation(program.getAbbreviation())
                                                 .commonCropName(program.getSpecies().getCommonName())
                                                 .externalReferences(List.of(externalReference))

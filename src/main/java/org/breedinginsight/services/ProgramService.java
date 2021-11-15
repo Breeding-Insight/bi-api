@@ -118,7 +118,10 @@ public class ProgramService {
             throw new UnprocessableEntityException("Species does not exist");
         }
 
-        //Check that program key not already in use TODO
+        //Check that program key not already in use
+        if (programKeyInUse(programRequest.getKey())) {
+            throw new AlreadyExistsException("Program key already in use");
+        }
 
         String brapiUrl = programRequest.getBrapiUrl();
 
@@ -234,6 +237,15 @@ public class ProgramService {
 
     private boolean programNameInUse(String name) {
         List<Program> existingPrograms = dao.getProgramByName(name, true);
+        if (!existingPrograms.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean programKeyInUse(String key) {
+        List<Program> existingPrograms = dao.getProgramByKey(key);
         if (!existingPrograms.isEmpty()) {
             return true;
         } else {
