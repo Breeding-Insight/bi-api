@@ -803,11 +803,9 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .build();
 
         validProgram.setName("changed");
-        validProgram.setKey("CHA");
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name(validProgram.getName())
                 .species(speciesRequest)
-                .key(validProgram.getKey())
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -837,7 +835,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         validProgram.setAbbreviation("changed abbreviation");
         validProgram.setObjective("changed objective");
         validProgram.setDocumentationUrl("changed doc url");
-        validProgram.setKey("CHA");
 
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name(validProgram.getName())
@@ -845,7 +842,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .documentationUrl(validProgram.getDocumentationUrl())
                 .objective(validProgram.getObjective())
                 .species(speciesRequest)
-                .key(validProgram.getKey())
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
