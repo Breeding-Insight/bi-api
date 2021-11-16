@@ -141,6 +141,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 .documentationUrl("localhost:8080")
                 .objective("To test things")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
 
         validProgram = insertAndFetchTestProgram(gson, client, program);
@@ -170,6 +171,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 .documentationUrl("localhost:8080")
                 .objective("To test other things")
                 .species(speciesRequest)
+                .key("TESTO")
                 .build();
 
         otherValidProgram = insertAndFetchTestProgram(gson, client, otherProgram);
