@@ -61,7 +61,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait = new Trait();
         trait.setObservationVariableName("Test Trait");
-        trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");
@@ -101,7 +100,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait = new Trait();
         trait.setObservationVariableName("Test Trait");
-        trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Method method = new Method();
         trait.setMethod(method);
@@ -257,7 +255,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait1 = new Trait();
         trait1.setObservationVariableName("Test Trait");
-        trait1.setAbbreviations("t1", "t2");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -267,7 +264,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait2 = new Trait();
         trait2.setObservationVariableName("Test Trait");
-        trait2.setAbbreviations("t1", "t2");
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
         scale2.setScaleName("Test Scale");
@@ -277,7 +273,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait3 = new Trait();
         trait3.setObservationVariableName("Test Trait");
-        trait3.setAbbreviations("t1", "t2");
         trait3.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale3 = new Scale();
         scale3.setScaleName("Test Scale");
@@ -305,7 +300,6 @@ public class TraitValidatorUnitTest {
 
         Trait trait = new Trait();
         trait.setObservationVariableName("OverTwelveChar");
-        trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");

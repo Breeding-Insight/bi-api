@@ -196,7 +196,6 @@ public class TraitService {
                     // Create trait
                     TraitEntity jooqTrait = TraitEntity.builder()
                             .observationVariableName(trait.getObservationVariableName())
-                            .abbreviations(trait.getAbbreviations())
                             .programOntologyId(programOntology.getId())
                             .programObservationLevelId(trait.getProgramObservationLevel().getId())
                             .methodId(jooqMethod.getId())
@@ -394,7 +393,6 @@ public class TraitService {
 
                     // Update trait
                     existingTraitEntity.setObservationVariableName(updatedTrait.getObservationVariableName());
-                    existingTraitEntity.setAbbreviations(updatedTrait.getAbbreviations());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());
                     traitDAO.update(existingTraitEntity);

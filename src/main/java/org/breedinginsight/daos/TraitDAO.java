@@ -297,7 +297,6 @@ public class TraitDAO extends TraitDao {
                     .status("active")
                     .entity(trait.getEntity())
                     .mainAbbreviation(trait.getMainAbbreviation())
-                    .alternativeAbbreviations(trait.getAbbreviations() != null ? List.of(trait.getAbbreviations()) : null)
                     .traitClass(trait.getTraitClass())
                     .externalReferences(List.of(traitReference))
                     .attribute(trait.getAttribute());
@@ -407,7 +406,6 @@ public class TraitDAO extends TraitDao {
             existingVariable.getTrait().setSynonyms(trait.getSynonyms());
             existingVariable.getTrait().setEntity(trait.getProgramObservationLevel().getName());
             existingVariable.getTrait().setMainAbbreviation(trait.getMainAbbreviation());
-            existingVariable.getTrait().setAlternativeAbbreviations(trait.getAbbreviations() != null ? List.of(trait.getAbbreviations()) : null);
             existingVariable.getTrait().setTraitClass(trait.getTraitClass());
             existingVariable.getTrait().setAttribute(trait.getAttribute());
 
@@ -541,7 +539,6 @@ public class TraitDAO extends TraitDao {
                 .from(TRAIT)
                 .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                 .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
-                .where(TRAIT.ABBREVIATIONS.cast(String[].class).contains(abbreviations.toArray(String[]::new)))
                 .and(PROGRAM.ID.eq(programId))
                 .fetch();
 

@@ -286,7 +286,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setTraitDescription("trait 1 description");
         trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -299,7 +298,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait2.setTraitDescription("trait 2 description");
         trait2.setEntity("entity2");
         trait2.setObservationVariableName("Test Trait1");
-        trait2.setAbbreviations(List.of("t3", "t4").toArray(String[]::new));
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
         scale2.setScaleName("Test Scale1");
@@ -846,13 +844,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         assertEquals(trait.getTraitClass(), traitJson.get("traitClass").getAsString(), "Trait classes don't match");
 
-        List<String> jsonAlternativeAbbreviations = new ArrayList<>();
-        traitJson.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
-        List<String> traitAbbreviations = Arrays.asList(trait.getAbbreviations());
-        Collections.sort(jsonAlternativeAbbreviations);
-        Collections.sort(traitAbbreviations);
-        assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");
-
         assertEquals(trait.getMainAbbreviation(), traitJson.get("mainAbbreviation").getAsString(), "Trait main abbreviations don't match");
         if (trait.getAttribute() != null){
             assertEquals(trait.getAttribute(), traitJson.get("attribute").getAsString(), "Trait attributes don't match");
@@ -902,7 +893,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setTraitDescription("trait 1 description");
         trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait14");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -959,7 +949,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setTraitDescription("trait 1 description");
         trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait14");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -1030,7 +1019,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
             trait.setEntity("entity1");
             trait.setAttribute("attribute1");
             trait.setObservationVariableName("Test Trait" + i);
-            trait.setAbbreviations(List.of(String.valueOf(i), "t" + i).toArray(String[]::new));
             trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
             Scale scale = new Scale();
             scale.setScaleName("Test Scale" + i);
@@ -1106,7 +1094,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setTraitDescription("trait 1 description");
         trait1.setEntity("entity1");
         trait1.setObservationVariableName("Test Trait5");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -1156,7 +1143,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         updateTrait.setTraitDescription("Updated description");
         updateTrait.setEntity("Updated entity");
         updateTrait.setObservationVariableName("Updated name");
-        updateTrait.setAbbreviations(List.of("update1", "update2").toArray(String[]::new));
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
@@ -1192,14 +1178,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(updateTrait.getMethod().getDescription(),
                 trait.get("method").getAsJsonObject().get("description").getAsString(), "wrong method description");
         assertEquals(updateTrait.getMethod().getMethodClass(), trait.get("method").getAsJsonObject().get("methodClass").getAsString(), "wrong method class");
-
-        // Check abbreviations
-        List<String> jsonAlternativeAbbreviations = new ArrayList<>();
-        trait.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
-        List<String> traitAbbreviations = Arrays.asList(updateTrait.getAbbreviations());
-        Collections.sort(jsonAlternativeAbbreviations);
-        Collections.sort(traitAbbreviations);
-        assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");
 
     }
 
@@ -1299,7 +1277,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         updateTrait.setId(UUID.randomUUID());
         updateTrait.setObservationVariableName("Update Name");
-        updateTrait.setAbbreviations(null);
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);

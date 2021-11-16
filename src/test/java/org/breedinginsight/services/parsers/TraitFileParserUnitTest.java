@@ -277,14 +277,10 @@ public class TraitFileParserUnitTest {
     }
 
     private void assertTestTraitEquals(Trait trait) {
-        List<String> abbreviations = Arrays.asList(trait.getAbbreviations());
-        assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
         List<String> synonyms = trait.getSynonyms();
         assertEquals(2, synonyms.size(), "number of synonyms different than expected");
 
         assertEquals("PM_Leaf", trait.getObservationVariableName(), "wrong trait name");
-        assertEquals("PMSevLeaf", abbreviations.get(0), "wrong abbreviation");
-        assertEquals("PM_LEAF_P4", abbreviations.get(1), "wrong abbreviation");
         assertEquals("Powdery Mildew", synonyms.get(0), "wrong synonym");
         assertEquals("Powdery Mildew Severity", synonyms.get(1), "wrong synonym");
         assertEquals("leaf", trait.getEntity(), "wrong entity");
