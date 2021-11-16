@@ -38,6 +38,7 @@ import org.jooq.DSLContext;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -121,6 +122,15 @@ public class ProgramService {
         //Check that program key not already in use
         if (programKeyInUse(programRequest.getKey())) {
             throw new AlreadyExistsException("Program key already in use");
+        }
+
+        //Ensure program key uppercase
+        programRequest.setKey(programRequest.getKey().toUpperCase());
+
+        //Check that program key formatting correct
+        ArrayList<String> keyErrors = dao.getKeyValidationErrors(programRequest.getKey());
+        if (!(keyErrors.isEmpty())) {
+            throw new UnprocessableEntityException(String.join(" .", keyErrors));
         }
 
         String brapiUrl = programRequest.getBrapiUrl();

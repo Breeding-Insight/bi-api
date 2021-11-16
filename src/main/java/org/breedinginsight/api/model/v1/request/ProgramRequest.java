@@ -41,6 +41,6 @@ public class ProgramRequest {
     @Valid
     private SpeciesRequest species;
     private String brapiUrl;
-    //@NotBlank
+    @NotBlank
     private String key;
 }

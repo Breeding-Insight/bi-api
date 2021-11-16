@@ -17,8 +17,8 @@
  */
 
 -- name: InsertOtherProgram
-insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
-select species.id, 'Other Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by, key)
+select species.id, 'Other Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id, 'OT' from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
 -- name: InsertOtherProgramObservationLevel
@@ -42,34 +42,34 @@ BEGIN
 species_id := (SELECT id from species limit 1);
 user_id := (SELECT id from bi_user where name = 'system');
 
-insert into public.program (name, species_id, created_by, updated_by) values
-('program1', species_id, user_id, user_id),
-('program2', species_id, user_id, user_id),
-('program3', species_id, user_id, user_id),
-('program4', species_id, user_id, user_id),
-('program5', species_id, user_id, user_id),
-('program6', species_id, user_id, user_id),
-('program7', species_id, user_id, user_id),
-('program8', species_id, user_id, user_id),
-('program9', species_id, user_id, user_id),
-('program10', species_id, user_id, user_id),
-('program11', species_id, user_id, user_id),
-('program12', species_id, user_id, user_id),
-('program13', species_id, user_id, user_id),
-('program14', species_id, user_id, user_id),
-('program15', species_id, user_id, user_id),
-('program16', species_id, user_id, user_id),
-('program17', species_id, user_id, user_id),
-('program18', species_id, user_id, user_id),
-('program19', species_id, user_id, user_id),
-('program20', species_id, user_id, user_id),
-('program21', species_id, user_id, user_id),
-('program22', species_id, user_id, user_id),
-('program23', species_id, user_id, user_id),
-('program24', species_id, user_id, user_id),
-('program25', species_id, user_id, user_id),
-('program26', species_id, user_id, user_id),
-('program27', species_id, user_id, user_id);
+insert into public.program (name, species_id, created_by, updated_by, key) values
+('program1', species_id, user_id, user_id, 'PA'),
+('program2', species_id, user_id, user_id, 'PB'),
+('program3', species_id, user_id, user_id, 'PC'),
+('program4', species_id, user_id, user_id, 'PD'),
+('program5', species_id, user_id, user_id, 'PE'),
+('program6', species_id, user_id, user_id, 'PF'),
+('program7', species_id, user_id, user_id, 'PG'),
+('program8', species_id, user_id, user_id, 'PH'),
+('program9', species_id, user_id, user_id, 'PI'),
+('program10', species_id, user_id, user_id, 'PJ'),
+('program11', species_id, user_id, user_id, 'PK'),
+('program12', species_id, user_id, user_id, 'PL'),
+('program13', species_id, user_id, user_id, 'PM'),
+('program14', species_id, user_id, user_id, 'PN'),
+('program15', species_id, user_id, user_id, 'PO'),
+('program16', species_id, user_id, user_id, 'PP'),
+('program17', species_id, user_id, user_id, 'PQ'),
+('program18', species_id, user_id, user_id, 'PR'),
+('program19', species_id, user_id, user_id, 'PS'),
+('program20', species_id, user_id, user_id, 'PT'),
+('program21', species_id, user_id, user_id, 'PU'),
+('program22', species_id, user_id, user_id, 'PV'),
+('program23', species_id, user_id, user_id, 'PW'),
+('program24', species_id, user_id, user_id, 'PX'),
+('program25', species_id, user_id, user_id, 'PY'),
+('program26', species_id, user_id, user_id, 'PZ'),
+('program27', species_id, user_id, user_id, 'PAA');
 
 END $$;
 

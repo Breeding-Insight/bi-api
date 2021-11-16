@@ -241,6 +241,20 @@ public class ProgramDAO extends ProgramDao {
         return supported;
     }
 
+    public ArrayList getKeyValidationErrors(String key) {
+        ArrayList<String> keyErrors = new ArrayList<>();
+        if (key.length() < 2) {
+            keyErrors.add("Key must be at least 2 characters.");
+        }
+        if (key.length() > 6) {
+            keyErrors.add("Key must be at maximum 6 characters.");
+        }
+        if (!(key.matches("^[A-Z]*$"))) {
+            keyErrors.add("Key must use only alphabetic characters.");
+        }
+        return keyErrors;
+    }
+
     public BrAPIProgram getProgramBrAPI(Program program) {
 
         ProgramQueryParams searchRequest = new ProgramQueryParams()
