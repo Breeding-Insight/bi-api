@@ -18,6 +18,7 @@ package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v1.model.TraitDataType;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
@@ -63,7 +64,8 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(scale.getScaleName()) || scale.getScaleName() == null) {
+                if (    scale.getDataType() == DataType.NUMERICAL &&
+                        ( isBlank(scale.getScaleName()) || scale.getScaleName() == null ) ) {
                     ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }

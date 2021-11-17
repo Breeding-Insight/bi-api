@@ -172,7 +172,7 @@ public class TraitFileParserUnitTest {
 
         Map<String, ParsingExceptionType> expectedErrors1 = new HashMap<>();
         expectedErrors1.put(TraitFileColumns.SCALE_CLASS.toString(), ParsingExceptionType.INVALID_SCALE_CLASS);
-        expectedErrors1.put(TraitFileColumns.TRAIT_STATUS.toString(), ParsingExceptionType.INVALID_TRAIT_STATUS);
+        expectedErrors1.put(TraitFileColumns.STATUS.toString(), ParsingExceptionType.INVALID_TRAIT_STATUS);
 
         Map<String, ParsingExceptionType> expectedErrors2 = new HashMap<>();
         expectedErrors2.putAll(expectedErrors1);
