@@ -554,9 +554,13 @@ public class TraitDAO extends TraitDao {
 
     private void saturateTrait(Trait trait, BrAPIObservationVariable brApiVariable) {
 
-        if (brApiVariable.getAdditionalInfo() != null && brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
-            List<String> tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
-            trait.setBrAPIProperties(brApiVariable, tags);
+        if (brApiVariable.getAdditionalInfo() != null &&
+                brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
+            // Prevents BrAPI server from failing the tags load
+            if (!brApiVariable.getAdditionalInfo().get(TAGS_KEY).isJsonNull()) {
+                List<String> tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
+                trait.setBrAPIProperties(brApiVariable, tags);
+            }
         } else {
             trait.setBrAPIProperties(brApiVariable);
         }
