@@ -133,7 +133,7 @@ public class ProgramService {
         programRequest.setKey(programRequest.getKey().toUpperCase());
 
         //Check that program key formatting correct
-        ArrayList<String> keyErrors = dao.getKeyValidationErrors(programRequest.getKey());
+        List<String> keyErrors = dao.getKeyValidationErrors(programRequest.getKey());
         if (!(keyErrors.isEmpty())) {
             throw new UnprocessableEntityException(String.join(" .", keyErrors));
         }
