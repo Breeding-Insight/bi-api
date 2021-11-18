@@ -765,7 +765,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
 
-        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
