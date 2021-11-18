@@ -333,7 +333,7 @@ public class ProgramDAO extends ProgramDao {
             BrAPIProgram brApiProgram = brApiPrograms.getBody().getResult().getData().get(0);
 
             //TODO: Need to add archived/not archived when available in brapi
-            brApiProgram.setProgramName(program.getName());
+            brApiProgram.setProgramName(program.getName() + " (" + program.getKey() + ")");
             brApiProgram.setAbbreviation(program.getAbbreviation());
             brApiProgram.setCommonCropName(program.getSpecies().getCommonName());
             brApiProgram.setObjective(program.getObjective());
