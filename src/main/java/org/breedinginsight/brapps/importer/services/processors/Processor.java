@@ -47,7 +47,7 @@ public interface Processor {
      */
     Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
                                     Map<Integer, PendingImport> mappedBrAPIImport,
-                                    Program program) throws ValidatorException;
+                                    Program program, boolean commit) throws ValidatorException;
 
     /**
      * Given mapped brapi import with updates from prior dependencies, check if have everything needed
