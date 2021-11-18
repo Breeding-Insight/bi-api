@@ -119,6 +119,11 @@ public class ProgramService {
             throw new UnprocessableEntityException("Species does not exist");
         }
 
+        //Check that key present
+        if (programRequest.getKey().isBlank()){
+            throw new UnprocessableEntityException("Program key required");
+        }
+
         //Check that program key not already in use
         if (programKeyInUse(programRequest.getKey())) {
             throw new AlreadyExistsException("Program key already in use");
