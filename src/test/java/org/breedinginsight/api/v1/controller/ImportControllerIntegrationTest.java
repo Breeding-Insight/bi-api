@@ -165,7 +165,7 @@ public class ImportControllerIntegrationTest extends BrAPITest {
                 break;
             }
         }
-        assertEquals("GermplasmTest", importNameFound, "Desired import name 'GermplasmTest' not found");
+        assertTrue(importNameFound, "Desired import name 'GermplasmTest' not found");
     }
 
     @Test
