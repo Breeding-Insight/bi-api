@@ -157,17 +157,15 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         boolean importNameFound = false;
-        String importNames = "";
         assertEquals(2, data.size(), "Wrong number of results returned.");
         for (JsonElement jsonMapping: data) {
             JsonObject systemMapping = (JsonObject) jsonMapping;
-            importNames += systemMapping.get("name").getAsString();
-            if (systemMapping.get("name").getAsString() == "GermplasmTest"){
+            if (systemMapping.get("name").getAsString().equals("GermplasmTest")){
                 importNameFound = true;
                 break;
             }
         }
-        assertEquals("GermplasmTest", importNameFound, "Desired import name 'GermplasmTest' not found"+importNames);
+        assertEquals("GermplasmTest", importNameFound, "Desired import name 'GermplasmTest' not found");
     }
 
     @Test
