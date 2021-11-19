@@ -160,7 +160,7 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         assertEquals(2, data.size(), "Wrong number of results returned.");
         for (JsonElement jsonMapping: data) {
             JsonObject systemMapping = (JsonObject) jsonMapping;
-            if (systemMapping.get("name").getAsString() === "GermplasmTest"){
+            if (systemMapping.get("name").getAsString() == "GermplasmTest"){
                 importNameFound = true;
                 break;
             }
