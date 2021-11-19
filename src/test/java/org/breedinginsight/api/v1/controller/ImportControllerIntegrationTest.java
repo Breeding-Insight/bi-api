@@ -157,7 +157,7 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(2, data.size(), "Wrong number of results returned.");
-        assertEquals("GermplasmTest", data.get(0).getAsJsonObject().get("name").getAsString(), "Wrong import name returned");
+        assertEquals("GermplasmTest", data.get(1).getAsJsonObject().get("name").getAsString(), "Wrong import name returned");
     }
 
     @Test
