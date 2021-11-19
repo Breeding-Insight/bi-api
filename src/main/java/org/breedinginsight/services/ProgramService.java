@@ -56,6 +56,9 @@ public class ProgramService {
     private SecurityService securityService;
     private BrAPIClientProvider brAPIClientProvider;
 
+    private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
+    private static final String PROGRAM_KEY_IN_USE = "PROGRAM_NAME_IN_USE";
+
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
                           SpeciesService speciesService, DSLContext dsl, SecurityService securityService, BrAPIClientProvider brAPIClientProvider) {
@@ -108,9 +111,14 @@ public class ProgramService {
     public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws AlreadyExistsException, UnprocessableEntityException {
         /* Create a program from a request object */
 
+        //Check that key present
+        if (programRequest.getKey().isBlank()){
+            throw new UnprocessableEntityException("Program key required");
+        }
+
         //Check that program name not already in use
         if (programNameInUse(programRequest.getName())) {
-            throw new AlreadyExistsException("Program name already in use");
+            throw new AlreadyExistsException(PROGRAM_NAME_IN_USE);
         }
 
         // Check that our species exists
@@ -119,21 +127,16 @@ public class ProgramService {
             throw new UnprocessableEntityException("Species does not exist");
         }
 
-        //Check that key present
-        if (programRequest.getKey().isBlank()){
-            throw new UnprocessableEntityException("Program key required");
-        }
-
         //Check that program key not already in use
         if (programKeyInUse(programRequest.getKey())) {
-            throw new AlreadyExistsException("Program key already in use");
+            throw new AlreadyExistsException(PROGRAM_KEY_IN_USE);
         }
 
         //Ensure program key uppercase
         programRequest.setKey(programRequest.getKey().toUpperCase());
 
         //Check that program key formatting correct
-        ArrayList<String> keyErrors = dao.getKeyValidationErrors(programRequest.getKey());
+        ArrayList<String> keyErrors = getKeyValidationErrors(programRequest.getKey());
         if (!(keyErrors.isEmpty())) {
             throw new UnprocessableEntityException(String.join(" .", keyErrors));
         }
@@ -252,20 +255,26 @@ public class ProgramService {
 
     private boolean programNameInUse(String name) {
         List<Program> existingPrograms = dao.getProgramByName(name, true);
-        if (!existingPrograms.isEmpty()) {
-            return true;
-        } else {
-            return false;
-        }
+        return !existingPrograms.isEmpty();
     }
 
     private boolean programKeyInUse(String key) {
         List<Program> existingPrograms = dao.getProgramByKey(key);
-        if (!existingPrograms.isEmpty()) {
-            return true;
-        } else {
-            return false;
+        return !existingPrograms.isEmpty();
+    }
+
+    public ArrayList getKeyValidationErrors(String key) {
+        ArrayList<String> keyErrors = new ArrayList<>();
+        if (key.length() < 2) {
+            keyErrors.add("Key must be at least 2 characters.");
         }
+        if (key.length() > 6) {
+            keyErrors.add("Key must be at maximum 6 characters.");
+        }
+        if (!(key.matches("^[A-Z]*$"))) {
+            keyErrors.add("Key must use only alphabetic characters.");
+        }
+        return keyErrors;
     }
 
 
