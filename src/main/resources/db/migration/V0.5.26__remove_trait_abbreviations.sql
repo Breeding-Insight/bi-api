@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
- ALTER TABLE bidb.public.trait DROP COLUMN abbreviations ;
+ ALTER TABLE trait DROP COLUMN abbreviations ;

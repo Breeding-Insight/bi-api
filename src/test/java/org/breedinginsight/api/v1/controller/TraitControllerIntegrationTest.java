@@ -449,9 +449,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
         JsonObject rowError = rowErrors.get(0).getAsJsonObject();
 
-        // Returns an error for duplicate names in file, duplicate abbreviations in file, duplicate names in db, duplicate abbreviations in db
+        // Returns an error for duplicate names in file, and duplicate names in db
         JsonArray errors = rowError.getAsJsonArray("errors");
-        assertEquals(4, errors.size(), "Wrong number of errors returned");
+        assertEquals(2, errors.size(), "Wrong number of errors returned");
         JsonObject duplicateError = errors.get(0).getAsJsonObject();
         assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
@@ -1067,7 +1067,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.setFilters(new ArrayList<>());
-        searchRequest.getFilters().add(new FilterRequest("abbreviations", "t1"));
+        searchRequest.getFilters().add(new FilterRequest("name", "trait1"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class

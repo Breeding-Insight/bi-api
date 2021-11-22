@@ -284,13 +284,13 @@ public class TraitValidatorUnitTest {
 
         assertEquals(3, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors trait1Error = validationErrors.getRowErrors().get(0);
-        assertEquals(2, trait1Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(1, trait1Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait1Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
         RowValidationErrors trait2Error = validationErrors.getRowErrors().get(0);
-        assertEquals(2, trait2Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(1, trait2Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait2Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
         RowValidationErrors trait3Error = validationErrors.getRowErrors().get(0);
-        assertEquals(2, trait3Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(1, trait3Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait3Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
     }
 
