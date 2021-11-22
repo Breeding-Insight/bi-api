@@ -158,6 +158,12 @@ public class TraitFileParser {
             if (dataTypeString != null) {
                 try {
                     dataType = DataType.valueOf(dataTypeString.toUpperCase());
+
+                    //This if statement can be removed once DURATION is no longer a valid Data Type
+                    if( DataType.DURATION == dataType ){
+                        throw new IllegalArgumentException("DURATION is not a valid datatype for batch uploading");
+                    }
+
                 } catch (IllegalArgumentException e) {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_CLASS.toString(),
