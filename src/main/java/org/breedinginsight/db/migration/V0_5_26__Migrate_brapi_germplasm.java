@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package db.migration;
+package org.breedinginsight.db.migration;
 
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
@@ -24,8 +24,8 @@ import java.sql.PreparedStatement;
 /**
  * Example of a Java-based migration.
  */
-public class V6__Migrate_brapi_germplasm extends BaseJavaMigration {
+public class V0_5_26__Migrate_brapi_germplasm extends BaseJavaMigration {
     public void migrate(Context context) throws Exception {
-        throw new Exception("I don't want to finish!");
+        throw new Exception("NOOO!");
     }
 }

@@ -15,7 +15,10 @@
  * limitations under the License.
  */
 
-create extension "uuid-ossp";
+-- We need the public schema so we can create the uuid object in it
+create schema if not exists public;
+-- We need the uuid extension in the public schema for migration use
+create extension if not exists "uuid-ossp" schema public;
 
 CREATE TABLE base_entity (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4()

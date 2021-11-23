@@ -99,7 +99,9 @@ jackson:
 flyway:
   datasources:
     default:
-      locations: classpath:db.migration
+      locations:
+        - classpath:org.breedinginsight.db.migration
+        - classpath:db.migration
       enabled: true
 jooq:
   datasources:

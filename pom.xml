@@ -234,12 +234,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-            <version>8.0.4</version>
-        </dependency>
-
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>28.1-jre</version>
@@ -466,13 +460,14 @@
                     <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
                     <user>${DB_USER}</user>
                     <password>${DB_PASSWORD}</password>
+                    <schema>${FLYWAY_SCHEMA}</schema>
                 </jdbc>
                 <generator>
                     <name>org.breedinginsight.generation.JooqDaoGenerator</name>
                     <database>
                         <name>org.jooq.meta.postgres.PostgresDatabase</name>
                         <includes>.*</includes>
-                        <inputSchema>public</inputSchema>
+                        <inputSchema>${FLYWAY_SCHEMA}</inputSchema>
                         <includeTables>true</includeTables>
                         <includeUDTs>true</includeUDTs>
                         <includeRoutines>false</includeRoutines>
@@ -531,9 +526,9 @@
                 <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
                 <user>${DB_USER}</user>
                 <password>${DB_PASSWORD}</password>
-                <locations>
-                    <location>classpath:db/migration</location>
-                </locations>
+                <schemas>
+                    <schema>${FLYWAY_SCHEMA}</schema>
+                </schemas>
             </configuration>
             <dependencies>
                 <dependency>
