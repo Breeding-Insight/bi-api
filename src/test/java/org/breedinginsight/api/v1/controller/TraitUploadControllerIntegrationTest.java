@@ -119,6 +119,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         ProgramRequest program = ProgramRequest.builder()
                 .name("Test Program")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
 
         validProgram = insertAndFetchTestProgram(program);
