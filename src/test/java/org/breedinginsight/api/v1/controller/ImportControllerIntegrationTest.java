@@ -165,7 +165,7 @@ public class ImportControllerIntegrationTest extends BrAPITest {
                 testNameFound = true;
             }
             if (systemMapping.get("name").getAsString().equals("GermplasmTemplateMap")){
-                gemplasmDefaultNameFound = true;
+                germplasmDefaultNameFound = true;
             }
         }
         assertTrue(testNameFound, "Desired import name 'GermplasmTest' not found");
