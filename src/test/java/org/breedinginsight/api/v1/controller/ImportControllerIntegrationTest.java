@@ -157,16 +157,19 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
-        boolean importNameFound = false;
-        assertEquals(2, data.size(), "Wrong number of results returned.");
+        boolean testNameFound = false;
+        boolean germplasmDefaultNameFound = false;
         for (JsonElement jsonMapping: data) {
             JsonObject systemMapping = (JsonObject) jsonMapping;
             if (systemMapping.get("name").getAsString().equals("GermplasmTest")){
-                importNameFound = true;
-                break;
+                testNameFound = true;
+            }
+            if (systemMapping.get("name").getAsString().equals("GermplasmTemplateMap")){
+                gemplasmDefaultNameFound = true;
             }
         }
-        assertTrue(importNameFound, "Desired import name 'GermplasmTest' not found");
+        assertTrue(testNameFound, "Desired import name 'GermplasmTest' not found");
+        assertTrue(germplasmDefaultNameFound, "System import name 'GermplasmTemplateMap' not found");
     }
 
     @Test
