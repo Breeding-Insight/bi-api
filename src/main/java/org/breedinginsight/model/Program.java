@@ -56,6 +56,7 @@ public class Program extends ProgramEntity {
         this.setObjective(programEntity.getObjective());
         this.setDocumentationUrl(programEntity.getDocumentationUrl());
         this.setBrapiUrl(programEntity.getBrapiUrl());
+        this.setKey(programEntity.getKey());
         this.setCreatedAt(programEntity.getCreatedAt());
         this.setUpdatedAt(programEntity.getUpdatedAt());
         this.setCreatedBy(programEntity.getCreatedBy());
@@ -73,6 +74,7 @@ public class Program extends ProgramEntity {
                 .objective(record.getValue(PROGRAM.OBJECTIVE))
                 .documentationUrl(record.getValue(PROGRAM.DOCUMENTATION_URL))
                 .brapiUrl(record.getValue(PROGRAM.BRAPI_URL))
+                .key(record.getValue(PROGRAM.KEY))
                 .createdAt(record.getValue(PROGRAM.CREATED_AT))
                 .updatedAt(record.getValue(PROGRAM.UPDATED_AT))
                 .createdBy(record.getValue(PROGRAM.CREATED_BY))

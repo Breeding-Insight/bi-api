@@ -204,6 +204,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .documentationUrl("localhost:8080")
                 .objective("To test things")
                 .species(speciesRequest)
+                .key("OT")
                 .build();
 
         otherProgram = insertAndFetchTestProgram(gson, client, programRequest);
@@ -334,6 +335,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
         assertEquals(program.getUpdatedBy().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+
+        assertEquals(program.getKey(), programJson.get("key").getAsString(), "Wrong key");
     }
 
     public void checkValidProgram(Program program, JsonObject programJson){
@@ -351,6 +354,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
         assertEquals(program.getUpdatedByUser().getId().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+
+        assertEquals(program.getKey(), programJson.get("key").getAsString(), "Wrong key");
     }
 
     public void checkMinimalValidProgram(ProgramEntity program, JsonObject programJson){
@@ -364,6 +369,8 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         JsonObject updatedByUser = programJson.getAsJsonObject("updatedByUser");
         assertEquals(program.getUpdatedBy().toString(), updatedByUser.get("id").getAsString(), "Wrong updated by user");
+
+        assertEquals(program.getKey(), programJson.get("key").getAsString(), "Wrong key");
     }
 
     @Test
@@ -404,6 +411,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .brapiUrl(getProperties().get("brapi.server.core-url"))
                 .species(validSpecies)
                 .speciesId(validSpecies.getId())
+                .key("TESPR")
                 .build();
 
         ProgramRequest validRequest = ProgramRequest.builder()
@@ -412,6 +420,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .documentationUrl("localhost")
                 .objective("Testing things")
                 .species(speciesRequest)
+                .key("TESPR")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -469,6 +478,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
                 .name("Invalid Species Test program")
                 .species(speciesRequest)
+                .key("INVSP")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -494,6 +504,33 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name(validProgram.getName())
                 .species(speciesRequest)
+                .key("EXISP")
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs", gson.toJson(validRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.CONFLICT, e.getStatus());
+    }
+
+    @Test
+    @Order(3)
+    public void postProgramsKeyAlreadyExists() {
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest validRequest = ProgramRequest.builder()
+                .name("KeyExists")
+                .species(speciesRequest)
+                .key(validProgram.getKey())
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -520,6 +557,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
                 .name("invalidBrAPITestProgram")
                 .species(speciesRequest)
                 .brapiUrl("http://www.notabrapiserver.com")
+                .key("INVBR")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -556,6 +594,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
                 .name("Test program")
+                .key("NOSP")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -582,6 +621,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name("MinimalBodySuccess Program")
                 .species(speciesRequest)
+                .key("MIN")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -615,6 +655,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
                 .name("Test program")
                 .species(speciesRequest)
+                .key("BADSP")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -635,6 +676,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
                 .name("Test program")
+                .key("MISSSP")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -660,6 +702,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
                 .name("Test program")
                 .species(speciesRequest)
+                .key("INV")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -684,6 +727,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         ProgramRequest invalidProgramRequest = ProgramRequest.builder()
                 .species(speciesRequest)
+                .key("NONAME")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -697,6 +741,57 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         });
 
         assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsMissingKey() {
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(UUID.fromString(invalidSpecies))
+                .build();
+
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("MissingKeyTest")
+                .species(speciesRequest)
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", validProgram.getId()), gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    public void putProgramsInvalidKey() {
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .id(UUID.fromString(invalidSpecies))
+                .build();
+
+        ProgramRequest invalidProgramRequest = ProgramRequest.builder()
+                .name("InvalidKeyTest")
+                .species(speciesRequest)
+                .key("THISISTOOLONGANDWR0NG-CHAR")
+                .build();
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(String.format("/programs/%s", validProgram.getId()), gson.toJson(invalidProgramRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
@@ -793,6 +888,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name("ArchiveProgram Test")
                 .species(speciesRequest)
+                .key("APT")
                 .build();
 
         Flowable<HttpResponse<String>> createCall = client.exchange(

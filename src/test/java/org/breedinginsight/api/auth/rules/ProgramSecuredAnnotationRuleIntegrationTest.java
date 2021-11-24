@@ -99,6 +99,7 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
         ProgramRequest program = ProgramRequest.builder()
                 .name("Test Program")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
 
         insertTestProgram(program);
@@ -144,6 +145,7 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name("Another test program")
                 .species(speciesRequest)
+                .key("TESTA")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -182,6 +184,7 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
         ProgramRequest validRequest = ProgramRequest.builder()
                 .name("Another test program")
                 .species(speciesRequest)
+                .key("TESTA")
                 .build();
 
         Flowable<HttpResponse<String>> call = client.exchange(
