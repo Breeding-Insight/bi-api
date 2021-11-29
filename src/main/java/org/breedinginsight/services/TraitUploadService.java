@@ -211,7 +211,7 @@ public class TraitUploadService {
             else {
                 DataType datatype = scale.getDataType();
                 if( datatype != null ) {
-                    // is the dataType is not Numerical use the dataType value
+                    // if the dataType is not Numerical, use the dataType value
                     if(datatype!=DataType.NUMERICAL){
                         String defaultValue = datatype.getLiteral();
                         //Make Title Case
