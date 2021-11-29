@@ -49,6 +49,7 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
         String referenceSource = placeholders.get(BRAPI_REFERENCE_SOURCE_KEY);
 
         // Get all the programs
+        // TODO: Get the program key
         Map<String, String> programs = new HashMap<>();
         try (Statement select = context.getConnection().createStatement()) {
             try (ResultSet rows = select.executeQuery("SELECT id, brapi_url FROM program ORDER BY id")) {
@@ -62,6 +63,7 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
         }
 
         // Get all of the germplasm with a program id attached
+        // TODO: If a program has germplasm, and it doesn't have a program key, throw an error
         for (Map.Entry<String,String> entry : programs.entrySet()) {
             System.out.println(String.format("id=%s and brapi_url=%s", entry.getKey(), entry.getValue()));
             BrAPIClient client = new BrAPIClient(entry.getValue());
@@ -80,21 +82,24 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
             }
 
             // Update germplasm
+            // TODO: Check if the germplasm has already been updated. How to do? This might be run twice in the case of an error and brapi doesn't do transactions
             List<BrAPIGermplasm> updatedGermplasm = new ArrayList<>();
+            // TODO: Get the next n sequences from the germplasm sequence.
             for (int i = 0; i < allGermplasm.size(); i++) {
                 BrAPIGermplasm germplasm = allGermplasm.get(i);
                 // Set display name to the old germplasm name
                 germplasm.setDefaultDisplayName(germplasm.getGermplasmName());
+                // TODO: Fill accession number and number in once we have the germplasm sequence
                 germplasm.setAccessionNumber("");
+                // Germplasm name = <Name> [<program key>-<accessionNumber>]
                 germplasm.setGermplasmName("");
                 updatedGermplasm.add(germplasm);
             }
 
-
-            // TODO: Need to wait for germplasm sequence and program key
-            // TODO: Update germplasm sequence in table
             // TODO: Send germplasm back to server
-
+            for (BrAPIGermplasm germplasm: updatedGermplasm) {
+                api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm);
+            }
         }
 
 
