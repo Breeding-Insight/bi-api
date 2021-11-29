@@ -103,6 +103,9 @@ flyway:
         - classpath:org.breedinginsight.db.migration
         - classpath:db.migration
       enabled: true
+      placeholders:
+        default-url: ${brapi.server.default-url}
+        brapi-reference-source: ${brapi.server.reference-source}
 jooq:
   datasources:
     default:
