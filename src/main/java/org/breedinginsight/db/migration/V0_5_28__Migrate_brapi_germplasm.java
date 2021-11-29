@@ -37,7 +37,7 @@ import java.util.Map;
 /**
  * Example of a Java-based migration.
  */
-public class V0_5_26__Migrate_brapi_germplasm extends BaseJavaMigration {
+public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
 
     final private String DEFAULT_URL_KEY = "default-url";
     final private String BRAPI_REFERENCE_SOURCE_KEY = "brapi-reference-source";
