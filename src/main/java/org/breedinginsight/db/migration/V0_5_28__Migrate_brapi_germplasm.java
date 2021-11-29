@@ -24,15 +24,13 @@ import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.breedinginsight.model.Program;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Example of a Java-based migration.
@@ -49,24 +47,26 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
         String referenceSource = placeholders.get(BRAPI_REFERENCE_SOURCE_KEY);
 
         // Get all the programs
-        // TODO: Get the program key
-        Map<String, String> programs = new HashMap<>();
+        List<Program> programs = new ArrayList<>();
         try (Statement select = context.getConnection().createStatement()) {
-            try (ResultSet rows = select.executeQuery("SELECT id, brapi_url FROM program ORDER BY id")) {
+            try (ResultSet rows = select.executeQuery("SELECT id, brapi_url, key FROM program ORDER BY id")) {
                 while (rows.next()) {
-                    String id = rows.getString(1);
+                    Program program = new Program();
+                    program.setId(UUID.fromString(rows.getString(1)));
                     String brapi_url = rows.getString(2);
                     if (brapi_url == null) brapi_url = defaultUrl;
-                    programs.put(id, brapi_url);
+                    program.setBrapiUrl(brapi_url);
+                    program.setKey(rows.getString(3));
+                    programs.add(program);
                 }
             }
         }
 
         // Get all of the germplasm with a program id attached
-        // TODO: If a program has germplasm, and it doesn't have a program key, throw an error
-        for (Map.Entry<String,String> entry : programs.entrySet()) {
-            System.out.println(String.format("id=%s and brapi_url=%s", entry.getKey(), entry.getValue()));
-            BrAPIClient client = new BrAPIClient(entry.getValue());
+        Map<String, List<BrAPIGermplasm>> programGermplasm = new HashMap<>();
+        for (Program program : programs) {
+            System.out.println(String.format("id=%s and brapi_url=%s", program.getId(), program.getBrapiUrl()));
+            BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
             GermplasmApi api = new GermplasmApi(client);
 
             GermplasmQueryParams queryParams = new GermplasmQueryParams();
@@ -74,6 +74,7 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
             queryParams.externalReferenceSource(programReferenceSource);
             ApiResponse<BrAPIGermplasmListResponse> germplasmResponse = api.germplasmGet(queryParams);
 
+            // TODO: Check if the germplasm has already been updated. How to do? This might be run twice in the case of an error and brapi doesn't do transactions
             List<BrAPIGermplasm> allGermplasm = new ArrayList<>();
             if (germplasmResponse.getBody() != null) {
                 if (germplasmResponse.getBody().getResult() != null) {
@@ -81,8 +82,20 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
                 }
             }
 
+            // If a program has germplasm, and it doesn't have a program key, throw an error
+            if (program.getKey() == null && allGermplasm.size() > 0) {
+                throw new Exception("Unable to process germplasm for program with no 'key'");
+            }
+
+            programGermplasm.put(program.getId().toString(), allGermplasm);
+        }
+
+        // Checks complete, update the germplasm
+        for (Program program: programs) {
+
             // Update germplasm
-            // TODO: Check if the germplasm has already been updated. How to do? This might be run twice in the case of an error and brapi doesn't do transactions
+            List<BrAPIGermplasm> allGermplasm = programGermplasm.get(program.getId().toString());
+
             List<BrAPIGermplasm> updatedGermplasm = new ArrayList<>();
             // TODO: Get the next n sequences from the germplasm sequence.
             for (int i = 0; i < allGermplasm.size(); i++) {
@@ -97,11 +110,12 @@ public class V0_5_28__Migrate_brapi_germplasm extends BaseJavaMigration {
             }
 
             // TODO: Send germplasm back to server
+            BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
+            GermplasmApi api = new GermplasmApi(client);
             for (BrAPIGermplasm germplasm: updatedGermplasm) {
                 api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm);
             }
         }
-
 
         throw new Exception("NOOO!");
     }
