@@ -313,8 +313,8 @@ public class TraitFileParser {
 
         String[] labelMeaning = value.split(CATEGORY_DELIMITER);
         if (labelMeaning.length == 2) {
-            category.setLabel(labelMeaning[0].trim());
-            category.setValue(labelMeaning[1].trim());
+            category.setValue(labelMeaning[0].trim());
+            category.setLabel(labelMeaning[1].trim());
         }
         else if (labelMeaning.length == 1) {
             category.setValue(labelMeaning[0].trim());
