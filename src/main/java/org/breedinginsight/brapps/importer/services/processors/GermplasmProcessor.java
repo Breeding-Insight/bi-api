@@ -94,8 +94,7 @@ public class GermplasmProcessor implements Processor {
                 germplasmByDBID.put(existingGermplasm.getGermplasmDbId(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
             //Since parent germplasms need to be present for check re circular dependencies
-            existingGermplasms = Stream.concat(existingGermplasms.stream(), existingParentGermplasms.stream())
-                    .collect(Collectors.toList());
+            existingGermplasms = new ArrayList<>(existingParentGermplasms);
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
             throw new InternalServerException(e.toString(), e);
@@ -166,6 +165,32 @@ public class GermplasmProcessor implements Processor {
             mappedBrAPIImport.put(i, mappedImportRow);
         }
 
+        // Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
+        if (commit) {
+            createPostOrder();
+        }
+
+        // Construct our response object
+        ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
+                .newObjectCount(newGermplasmList.size())
+                .build();
+
+        //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
+        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
+        ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
+                .newObjectCount(importRows.stream().filter(germplasmImport ->
+                        germplasmImport.getGermplasm() != null &&
+                                (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
+                ).collect(Collectors.toList()).size()).build();
+
+        return Map.of(
+                "Germplasm", germplasmStats,
+                "Pedigree Connections", pedigreeConnectStats
+        );
+
+    }
+
+    private void createPostOrder() {
         // Construct a dependency tree for POSTing order
         Set<String> created = existingGermplasms.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
 
@@ -174,7 +199,6 @@ public class GermplasmProcessor implements Processor {
         while (totalRecorded < newGermplasmList.size()) {
             List<BrAPIGermplasm> createList = new ArrayList<>();
             for (BrAPIGermplasm germplasm : newGermplasmList) {
-                if (created.contains(germplasm.getGermplasmName())) continue;
 
                 // If it has no dependencies, add it
                 if (germplasm.getPedigree() == null) {
@@ -202,26 +226,6 @@ public class GermplasmProcessor implements Processor {
                 throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Circular dependency in the pedigree tree");
             }
         }
-
-        // Construct our response object
-        ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
-                .newObjectCount(newGermplasmList.size())
-                .build();
-
-        //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
-        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
-        ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
-                .newObjectCount(newObjectCount)
-                .ignoredObjectCount(importRows.stream().filter(germplasmImport ->
-                        germplasmImport.getGermplasm() != null &&
-                                (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
-                ).collect(Collectors.toList()).size() - newObjectCount).build();
-
-        return Map.of(
-                "Germplasm", germplasmStats,
-                "Pedigree Connections", pedigreeConnectStats
-        );
-
     }
 
     @Override
