@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
@@ -42,11 +43,13 @@ import java.util.stream.Stream;
 public class GermplasmProcessor implements Processor {
 
     private static final String NAME = "Germplasm";
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
-    Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName = new HashMap<>();
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByDBID = new HashMap<>();
     Map<String, String> germplasmNameByEntryNo = new HashMap<>();
+    List<BrAPIGermplasm> newGermplasmList;
     List<BrAPIGermplasm> existingGermplasms;
     List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
@@ -84,23 +87,11 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
-        // Get existing objects
-        try {
-            existingGermplasms = brAPIGermplasmDAO.getGermplasmByName(new ArrayList<>(germplasmNames), program.getId());
-            existingGermplasms.forEach(existingGermplasm -> {
-                germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
-            });
-        } catch (ApiException e) {
-            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
-            throw new InternalServerException(e.toString(), e);
-        }
-
         // If parental DBID, should also be in database
         try {
             existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByDBID(new ArrayList<>(germplasmDBIDs), program.getId());
             existingParentGermplasms.forEach(existingGermplasm -> {
                 germplasmByDBID.put(existingGermplasm.getGermplasmDbId(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
-                germplasmByName.put(existingGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
             //Since parent germplasms need to be present for check re circular dependencies
             existingGermplasms = Stream.concat(existingGermplasms.stream(), existingParentGermplasms.stream())
@@ -114,7 +105,15 @@ public class GermplasmProcessor implements Processor {
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program, boolean commit) {
 
+        // TODO: Add UUID to external reference on commit
+        // TODO: Generate accession number on commit
+        // TODO: Change germplasm name to <Name> [<program key>-<accessionNumber>] on commit
+        // TODO: Set pedigree string to parents germplasm names on commit
+        // TODO: Check other fields are populated in the preview method
+
         // Create new objects
+        // All rows are considered new germplasm, we don't check for duplicates
+        newGermplasmList = new ArrayList<>();
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
@@ -123,52 +122,49 @@ public class GermplasmProcessor implements Processor {
 
             // Germplasm
             if (germplasm != null && germplasm.getGermplasmName() != null) {
-                if (!germplasmByName.containsKey(germplasm.getGermplasmName())) {
-                    BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram());
+                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram(), commit);
 
-                    // Check the parents exist
-                    // DBID takes precedence over Entry No
-                    // For the moment, constructs pedigree string with displayName if only parent Entry No
-                    String femaleParentDB = germplasm.getFemaleParentDBID() != null ? germplasm.getFemaleParentDBID() : null;
-                    String maleParentDB = germplasm.getMaleParentDBID() != null ? germplasm.getMaleParentDBID() : null;
-                    String femaleParentFile = germplasm.getFemaleParentEntryNo() != null ? germplasm.getFemaleParentEntryNo() : null;
-                    String maleParentFile = germplasm.getMaleParentEntryNo() != null ? germplasm.getMaleParentEntryNo() : null;
-                    boolean femaleParentFound = false;
-                    String pedigreeString = null;
-                    if (femaleParentDB != null) {
-                        if (germplasmByDBID.containsKey(germplasm.getFemaleParentDBID())) {
-                            pedigreeString = germplasmByDBID.get(femaleParentDB).getBrAPIObject().getGermplasmName();
-                            femaleParentFound = true;
-                        }
-                    } else if (femaleParentFile != null) {
-                        if (germplasmNameByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
-                            pedigreeString = germplasmNameByEntryNo.get(femaleParentFile);
-                            femaleParentFound = true;
-                        }
+                // Check the parents exist
+                // DBID takes precedence over Entry No
+                // For the moment, constructs pedigree string with displayName if only parent Entry No
+                String femaleParentDB = germplasm.getFemaleParentDBID() != null ? germplasm.getFemaleParentDBID() : null;
+                String maleParentDB = germplasm.getMaleParentDBID() != null ? germplasm.getMaleParentDBID() : null;
+                String femaleParentFile = germplasm.getFemaleParentEntryNo() != null ? germplasm.getFemaleParentEntryNo() : null;
+                String maleParentFile = germplasm.getMaleParentEntryNo() != null ? germplasm.getMaleParentEntryNo() : null;
+                boolean femaleParentFound = false;
+                String pedigreeString = null;
+                if (femaleParentDB != null) {
+                    if (germplasmByDBID.containsKey(germplasm.getFemaleParentDBID())) {
+                        pedigreeString = germplasmByDBID.get(femaleParentDB).getBrAPIObject().getGermplasmName();
+                        femaleParentFound = true;
                     }
-
-                    if(femaleParentFound) {
-                        if (maleParentDB != null) {
-                            if ((germplasmByDBID.containsKey(germplasm.getMaleParentDBID()))) {
-                                pedigreeString += "/" + germplasmByDBID.get(maleParentDB).getBrAPIObject().getGermplasmName();
-                            }
-                        } else if (maleParentFile != null){
-                            if (germplasmNameByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
-                                pedigreeString += "/" + germplasmNameByEntryNo.get(maleParentFile);
-                            }
-                        }
-                        newGermplasm.setPedigree(pedigreeString);
+                } else if (femaleParentFile != null) {
+                    if (germplasmNameByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
+                        pedigreeString = germplasmNameByEntryNo.get(femaleParentFile);
+                        femaleParentFound = true;
                     }
-
-                    germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
                 }
-                mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
-                mappedBrAPIImport.put(i, mappedImportRow);
-            }
-        }
 
-        // Get our new objects to create
-        List<BrAPIGermplasm> newGermplasmList = ProcessorData.getNewObjects(germplasmByName);
+                if(femaleParentFound) {
+                    if (maleParentDB != null) {
+                        if ((germplasmByDBID.containsKey(germplasm.getMaleParentDBID()))) {
+                            pedigreeString += "/" + germplasmByDBID.get(maleParentDB).getBrAPIObject().getGermplasmName();
+                        }
+                    } else if (maleParentFile != null){
+                        if (germplasmNameByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
+                            pedigreeString += "/" + germplasmNameByEntryNo.get(maleParentFile);
+                        }
+                    }
+                    newGermplasm.setPedigree(pedigreeString);
+                }
+
+                newGermplasmList.add(newGermplasm);
+                mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+            } else {
+                mappedImportRow.setGermplasm(null);
+            }
+            mappedBrAPIImport.put(i, mappedImportRow);
+        }
 
         // Construct a dependency tree for POSTing order
         Set<String> created = existingGermplasms.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
@@ -238,8 +234,6 @@ public class GermplasmProcessor implements Processor {
         // check shared data object for dependency data and update
         updateDependencyValues(mappedBrAPIImport);
 
-        List<BrAPIGermplasm> newGermplasmList = ProcessorData.getNewObjects(germplasmByName);
-
         // POST Germplasm
         List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
         if (newGermplasmList.size() > 0) {
@@ -252,11 +246,17 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
-        // Update our records
+        // Update our records with what is returned
+        Map<String, BrAPIGermplasm> createdGermplasmMap = new HashMap<>();
         createdGermplasm.forEach(germplasm -> {
-            PendingImportObject<BrAPIGermplasm> preview = germplasmByName.get(germplasm.getGermplasmName());
-            preview.setBrAPIObject(germplasm);
+            createdGermplasmMap.put(germplasm.getGermplasmName(), germplasm);
         });
+        for (Map.Entry<Integer,PendingImport> entry : mappedBrAPIImport.entrySet()) {
+            String germplasmName = entry.getValue().getGermplasm().getBrAPIObject().getGermplasmName();
+            if (createdGermplasmMap.containsKey(germplasmName)) {
+                entry.getValue().getGermplasm().setBrAPIObject(createdGermplasmMap.get(germplasmName));
+            }
+        }
 
     }
 

@@ -120,6 +120,7 @@ public class Germplasm implements BrAPIObject {
             germplasm.putAdditionalInfoItem("ImportEntryNumber", entryNo);
         }
 
+        // Seed Source
         //If there is an external uid, source is associated with it as an additional external reference
         BrAPIExternalReference uidExternalReference = null;
         if (germplasmSource != null) {
@@ -132,6 +133,7 @@ public class Germplasm implements BrAPIObject {
             }
         }
 
+        // External references
         if (externalReferences != null) {
             List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
                     .map(externalReference -> externalReference.constructBrAPIExternalReference())
@@ -147,8 +149,21 @@ public class Germplasm implements BrAPIObject {
         return germplasm;
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(BrAPIProgram brAPIProgram) {
+    private void setBrAPIGermplasmCommitFields(BrAPIGermplasm germplasm) {
+
+        // Add UUID external reference
+
+        // Get the next accession number
+
+        // Set germplasm name to <Name> [<program key>-<accessionNumber>]
+
+    }
+
+    public BrAPIGermplasm constructBrAPIGermplasm(BrAPIProgram brAPIProgram, Boolean commit) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm();
+        if (commit) {
+            setBrAPIGermplasmCommitFields(germplasm);
+        }
         germplasm.setCommonCropName(brAPIProgram.getCommonCropName());
 
         // Set programId in additionalInfo
