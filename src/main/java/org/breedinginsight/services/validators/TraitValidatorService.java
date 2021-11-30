@@ -77,6 +77,11 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
+            if (isBlank(trait.getFullName())) {
+                ValidationError error = traitValidatorErrors.getMissingFullNameMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+
             if (isBlank(trait.getEntity()) || trait.getEntity() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitEntityMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);

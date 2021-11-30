@@ -69,6 +69,11 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getMissingFullNameMsg() {
+        return new ValidationError("fullName", "Missing full name", HttpStatus.BAD_REQUEST);
+    }
+
+    @Override
     public ValidationError getMissingTraitEntityMsg() {
         return new ValidationError("entity", "Missing trait entity", HttpStatus.BAD_REQUEST);
     }
