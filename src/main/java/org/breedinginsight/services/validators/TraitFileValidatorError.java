@@ -70,7 +70,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getMissingFullNameMsg() {
-        return new ValidationError("fullName", "Missing full name", HttpStatus.BAD_REQUEST);
+        return new ValidationError("Full Name", "Missing full name", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
