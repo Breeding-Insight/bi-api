@@ -380,6 +380,13 @@ public class FileImportService {
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
+            } catch (HttpStatusException e) {
+                log.error(e.getMessage());
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) e.getStatus().getCode());
+                progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
             } catch (Exception e) {
                 log.error(e.getMessage());
                 ImportProgress progress = upload.getProgress();
