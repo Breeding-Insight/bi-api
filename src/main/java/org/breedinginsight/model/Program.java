@@ -80,6 +80,7 @@ public class Program extends ProgramEntity {
                 .createdBy(record.getValue(PROGRAM.CREATED_BY))
                 .updatedBy(record.getValue(PROGRAM.UPDATED_BY))
                 .active(record.getValue(PROGRAM.ACTIVE))
+                .germplasmSequence(record.getValue(PROGRAM.GERMPLASM_SEQUENCE))
                 .build();
 
         return program;

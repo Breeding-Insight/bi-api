@@ -21,6 +21,7 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
@@ -47,6 +48,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Prototype
 public class GermplasmProcessor implements Processor {
 
@@ -124,6 +126,11 @@ public class GermplasmProcessor implements Processor {
         // TODO: Check other fields are populated in the preview method
 
         // Method for generating accession number
+        String germplasmSequenceName = program.getGermplasmSequence();
+        if (germplasmSequenceName == null) {
+            log.error(String.format("Program, %s, is missing a value in the germplasm sequence column.", program.getName()));
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for germplasm import");
+        }
         Supplier<BigInteger> nextVal = () -> dsl.nextval(program.getGermplasmSequence());
 
         // Create new objects
