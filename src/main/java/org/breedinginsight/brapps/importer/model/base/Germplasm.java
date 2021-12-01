@@ -24,8 +24,13 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.model.Program;
+import org.jooq.DSLContext;
 
+import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Getter
@@ -100,9 +105,13 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz=ExternalReference.class)
     private List<ExternalReference> externalReferences;
 
-    public BrAPIGermplasm constructBrAPIGermplasm() {
+    public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod) {
+
+        // TODO: Add createdBy -> userId and createdBy -> userName to additional info
+        // TODO: Add createdDate to additional info
+        // TODO: Add breedingMethodId to additional info
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
-        germplasm.setGermplasmName(getGermplasmName()); //TODO: will be modified in later card
+        germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
@@ -117,7 +126,7 @@ public class Germplasm implements BrAPIObject {
 
         //TODO: add logic later for generating entry numbers if not provided by user
         if (entryNo != null){
-            germplasm.putAdditionalInfoItem("ImportEntryNumber", entryNo);
+            germplasm.putAdditionalInfoItem("importEntryNumber", entryNo);
         }
 
         // Seed Source
@@ -134,6 +143,7 @@ public class Germplasm implements BrAPIObject {
         }
 
         // External references
+        germplasm.externalReferences(new ArrayList<>());
         if (externalReferences != null) {
             List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
                     .map(externalReference -> externalReference.constructBrAPIExternalReference())
@@ -141,33 +151,47 @@ public class Germplasm implements BrAPIObject {
             if (uidExternalReference != null) {
                 brAPIExternalReferences.add(uidExternalReference);
             }
-            germplasm.setExternalReferences(brAPIExternalReferences);
+            germplasm.getExternalReferences().addAll(brAPIExternalReferences);
         } else if (uidExternalReference != null) {
-            germplasm.setExternalReferences(Arrays.asList(uidExternalReference));
+            germplasm.getExternalReferences().add(uidExternalReference);
+        }
+
+        if (breedingMethod != null) {
+            germplasm.putAdditionalInfoItem("breedingMethodId", breedingMethod.getId());
+            germplasm.putAdditionalInfoItem("breedingMethod", breedingMethod.getName());
         }
 
         return germplasm;
     }
 
-    private void setBrAPIGermplasmCommitFields(BrAPIGermplasm germplasm) {
+    private void setBrAPIGermplasmCommitFields(BrAPIGermplasm germplasm, String programKey, String referenceSource, Supplier<BigInteger> nextVal) {
 
         // Add UUID external reference
+        UUID newUUID = UUID.randomUUID();
+        BrAPIExternalReference newReference = new BrAPIExternalReference();
+        newReference.setReferenceSource(referenceSource);
+        newReference.setReferenceID(newUUID.toString());
+        germplasm.getExternalReferences().add(newReference);
 
         // Get the next accession number
+        germplasm.setAccessionNumber(nextVal.get().toString());
 
         // Set germplasm name to <Name> [<program key>-<accessionNumber>]
-
+        germplasm.setGermplasmName(String.format("%s [%s-%s]", germplasm.getDefaultDisplayName(), programKey, germplasm.getAccessionNumber()));
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(BrAPIProgram brAPIProgram, Boolean commit) {
-        BrAPIGermplasm germplasm = constructBrAPIGermplasm();
+    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
+        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod);
         if (commit) {
-            setBrAPIGermplasmCommitFields(germplasm);
+            setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
         }
-        germplasm.setCommonCropName(brAPIProgram.getCommonCropName());
+        germplasm.setCommonCropName(program.getBrapiProgram().getCommonCropName());
 
-        // Set programId in additionalInfo
-        germplasm.putAdditionalInfoItem("programId", brAPIProgram.getProgramDbId());
+        // Set program id in external references
+        BrAPIExternalReference newReference = new BrAPIExternalReference();
+        newReference.setReferenceSource(String.format("%s/programs", referenceSource));
+        newReference.setReferenceID(program.getId().toString());
+        germplasm.getExternalReferences().add(newReference);
 
         return germplasm;
     }
