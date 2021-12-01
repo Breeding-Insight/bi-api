@@ -31,11 +31,19 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.dao.db.tables.daos.BreedingMethodDao;
+import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.jooq.DSLContext;
 
 import javax.inject.Inject;
+import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -47,6 +55,9 @@ public class GermplasmProcessor implements Processor {
     private String BRAPI_REFERENCE_SOURCE;
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private BreedingMethodDAO breedingMethodDAO;
+    private DSLContext dsl;
+
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByDBID = new HashMap<>();
     Map<String, String> germplasmNameByEntryNo = new HashMap<>();
     List<BrAPIGermplasm> newGermplasmList;
@@ -55,8 +66,10 @@ public class GermplasmProcessor implements Processor {
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
 
     @Inject
-    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO) {
+    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO, DSLContext dsl, BreedingMethodDAO breedingMethodDAO) {
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
+        this.dsl = dsl;
+        this.breedingMethodDAO = breedingMethodDAO;
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
@@ -110,9 +123,14 @@ public class GermplasmProcessor implements Processor {
         // TODO: Set pedigree string to parents germplasm names on commit
         // TODO: Check other fields are populated in the preview method
 
+        // Method for generating accession number
+        Supplier<BigInteger> nextVal = () -> dsl.nextval(program.getGermplasmSequence());
+
         // Create new objects
         // All rows are considered new germplasm, we don't check for duplicates
         newGermplasmList = new ArrayList<>();
+        Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
+        Boolean nullEntryNotFound = false;
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
@@ -121,7 +139,34 @@ public class GermplasmProcessor implements Processor {
 
             // Germplasm
             if (germplasm != null && germplasm.getGermplasmName() != null) {
-                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram(), commit);
+
+                // Get the breeding method database object
+                BreedingMethodEntity breedingMethod = null;
+                if (germplasm.getBreedingMethod() != null) {
+                    if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
+                        breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
+                    } else {
+                        List<BreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod());
+                        if (breedingMethodResults.size() > 0) {
+                            breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
+                            breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
+                        } else {
+                            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                                    String.format("Breeding method, %s, not found", germplasm.getBreedingMethod()));
+                        }
+                    }
+                }
+
+                // Assign the entry number
+                if (germplasm.getEntryNo() == null) {
+                    germplasm.setEntryNo(Integer.toString(i + 1));
+                    nullEntryNotFound = true;
+                } else if (germplasm.getEntryNo() != null && nullEntryNotFound) {
+                    throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                            String.format("Either all or none of the germplasm must have entry numbers.", germplasm.getBreedingMethod()));
+                }
+
+                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, commit, BRAPI_REFERENCE_SOURCE, nextVal);
 
                 // Check the parents exist
                 // DBID takes precedence over Entry No
