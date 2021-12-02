@@ -36,6 +36,7 @@ import org.breedinginsight.dao.db.tables.daos.BreedingMethodDao;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.jooq.DSLContext;
@@ -121,10 +122,10 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program, boolean commit) {
+    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
 
         // TODO: Check other fields are populated in the preview method
-        // TODO: Add createdBy -> userId and createdBy -> userName to additional info
         // TODO: Add createdDate to additional info
         // TODO: Throw error if female parent not found
         // TODO: Tests
@@ -177,7 +178,7 @@ public class GermplasmProcessor implements Processor {
                             String.format("Either all or none of the germplasm must have entry numbers.", germplasm.getBreedingMethod()));
                 }
 
-                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, commit, BRAPI_REFERENCE_SOURCE, nextVal);
+                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
 
                 newGermplasmList.add(newGermplasm);
                 mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
