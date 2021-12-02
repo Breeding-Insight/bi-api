@@ -61,7 +61,7 @@ public class GermplasmProcessor implements Processor {
     private DSLContext dsl;
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
-    Map<String, String> germplasmNameByEntryNo = new HashMap<>();
+    Map<String, Integer> germplasmIndexByEntryNo = new HashMap<>();
     List<BrAPIGermplasm> newGermplasmList;
     List<BrAPIGermplasm> existingGermplasms;
     List<BrAPIGermplasm> existingParentGermplasms;
@@ -79,7 +79,8 @@ public class GermplasmProcessor implements Processor {
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmNames = new HashSet<>();
         Set<String> germplasmDBIDs = new HashSet<>();
-        for (BrAPIImport germplasmImport : importRows) {
+        for (int i = 0; i < importRows.size(); i++) {
+            BrAPIImport germplasmImport = importRows.get(i);
             if (germplasmImport.getGermplasm() != null) {
                 // Retrieve names to assess if rows already in db
                 if (germplasmImport.getGermplasm().getGermplasmName() != null) {
@@ -96,7 +97,7 @@ public class GermplasmProcessor implements Processor {
 
                 //Retrieve entry numbers of file for comparison with parent entry numbers
                 if (germplasmImport.getGermplasm().getEntryNo()!= null) {
-                    germplasmNameByEntryNo.put(germplasmImport.getGermplasm().getEntryNo(), germplasmImport.getGermplasm().getGermplasmName());
+                    germplasmIndexByEntryNo.put(germplasmImport.getGermplasm().getEntryNo(), i);
                 }
 
             }
@@ -124,6 +125,8 @@ public class GermplasmProcessor implements Processor {
 
         // TODO: Set pedigree string to parents germplasm names on commit
         // TODO: Check other fields are populated in the preview method
+        // TODO: Update brapi importer parent db id name to parent accession number
+        // TODO: Throw error if female parent not found
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
@@ -175,40 +178,6 @@ public class GermplasmProcessor implements Processor {
 
                 BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, commit, BRAPI_REFERENCE_SOURCE, nextVal);
 
-                // Check the parents exist
-                // DBID takes precedence over Entry No
-                // For the moment, constructs pedigree string with displayName if only parent Entry No
-                String femaleParentDB = germplasm.getFemaleParentDBID() != null ? germplasm.getFemaleParentDBID() : null;
-                String maleParentDB = germplasm.getMaleParentDBID() != null ? germplasm.getMaleParentDBID() : null;
-                String femaleParentFile = germplasm.getFemaleParentEntryNo() != null ? germplasm.getFemaleParentEntryNo() : null;
-                String maleParentFile = germplasm.getMaleParentEntryNo() != null ? germplasm.getMaleParentEntryNo() : null;
-                boolean femaleParentFound = false;
-                String pedigreeString = null;
-                if (femaleParentDB != null) {
-                    if (germplasmByAccessionNumber.containsKey(germplasm.getFemaleParentDBID())) {
-                        pedigreeString = germplasmByAccessionNumber.get(femaleParentDB).getBrAPIObject().getGermplasmName();
-                        femaleParentFound = true;
-                    }
-                } else if (femaleParentFile != null) {
-                    if (germplasmNameByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
-                        pedigreeString = germplasmNameByEntryNo.get(femaleParentFile);
-                        femaleParentFound = true;
-                    }
-                }
-
-                if(femaleParentFound) {
-                    if (maleParentDB != null) {
-                        if ((germplasmByAccessionNumber.containsKey(germplasm.getMaleParentDBID()))) {
-                            pedigreeString += "/" + germplasmByAccessionNumber.get(maleParentDB).getBrAPIObject().getGermplasmName();
-                        }
-                    } else if (maleParentFile != null){
-                        if (germplasmNameByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
-                            pedigreeString += "/" + germplasmNameByEntryNo.get(maleParentFile);
-                        }
-                    }
-                    newGermplasm.setPedigree(pedigreeString);
-                }
-
                 newGermplasmList.add(newGermplasm);
                 mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
             } else {
@@ -216,6 +185,9 @@ public class GermplasmProcessor implements Processor {
             }
             mappedBrAPIImport.put(i, mappedImportRow);
         }
+
+        // Construct pedigree
+        constructPedigreeString(importRows, mappedBrAPIImport, commit);
 
         // Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
         if (commit) {
@@ -325,4 +297,51 @@ public class GermplasmProcessor implements Processor {
         return NAME;
     }
 
+    public void constructPedigreeString(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Boolean commit) {
+
+        // Construct pedigree
+        // DBID (Acession number) takes precedence over Entry No
+        for (int i = 0; i < importRows.size(); i++) {
+            BrAPIImport brapiImport = importRows.get(i);
+            Germplasm germplasm = brapiImport.getGermplasm();
+
+            String femaleParentDB = germplasm.getFemaleParentDBID();
+            String maleParentDB = germplasm.getMaleParentDBID();
+            String femaleParentFile = germplasm.getFemaleParentEntryNo();
+            String maleParentFile = germplasm.getMaleParentEntryNo();
+
+            boolean femaleParentFound = false;
+            String pedigreeString = null;
+            if (femaleParentDB != null) {
+                if (germplasmByAccessionNumber.containsKey(femaleParentDB)) {
+                    BrAPIGermplasm femaleParent = germplasmByAccessionNumber.get(femaleParentDB).getBrAPIObject();
+                    pedigreeString = commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName();
+                    femaleParentFound = true;
+                }
+            } else if (femaleParentFile != null) {
+                if (germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
+                    Integer femaleParentInd = germplasmIndexByEntryNo.get(femaleParentFile);
+                    BrAPIGermplasm femaleParent = mappedBrAPIImport.get(femaleParentInd).getGermplasm().getBrAPIObject();
+                    pedigreeString = commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName();
+                    femaleParentFound = true;
+                }
+            }
+
+            if(femaleParentFound) {
+                if (maleParentDB != null) {
+                    if ((germplasmByAccessionNumber.containsKey(germplasm.getMaleParentDBID()))) {
+                        BrAPIGermplasm maleParent = germplasmByAccessionNumber.get(maleParentDB).getBrAPIObject();
+                        pedigreeString += String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName());
+                    }
+                } else if (maleParentFile != null){
+                    if (germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
+                        Integer maleParentInd = germplasmIndexByEntryNo.get(maleParentFile);
+                        BrAPIGermplasm maleParent = mappedBrAPIImport.get(maleParentInd).getGermplasm().getBrAPIObject();
+                        pedigreeString += String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName());
+                    }
+                }
+            }
+            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString);
+        }
+    }
 }
