@@ -126,7 +126,6 @@ public class GermplasmProcessor implements Processor {
                         Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
 
         // TODO: Check other fields are populated in the preview method
-        // TODO: Add createdDate to additional info
         // TODO: Throw error if female parent not found
         // TODO: Tests
 

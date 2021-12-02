@@ -30,6 +30,8 @@ import org.breedinginsight.model.User;
 import org.jooq.DSLContext;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -175,6 +177,11 @@ public class Germplasm implements BrAPIObject {
 
         // Set germplasm name to <Name> [<program key>-<accessionNumber>]
         germplasm.setGermplasmName(String.format("%s [%s-%s]", germplasm.getDefaultDisplayName(), programKey, germplasm.getAccessionNumber()));
+
+        // Set createdDate field
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        LocalDateTime now = LocalDateTime.now();
+        germplasm.putAdditionalInfoItem("createdDate", formatter.format(now));
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
