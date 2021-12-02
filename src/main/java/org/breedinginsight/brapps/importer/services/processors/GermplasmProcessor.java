@@ -60,7 +60,7 @@ public class GermplasmProcessor implements Processor {
     private BreedingMethodDAO breedingMethodDAO;
     private DSLContext dsl;
 
-    Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByDBID = new HashMap<>();
+    Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
     Map<String, String> germplasmNameByEntryNo = new HashMap<>();
     List<BrAPIGermplasm> newGermplasmList;
     List<BrAPIGermplasm> existingGermplasms;
@@ -103,25 +103,25 @@ public class GermplasmProcessor implements Processor {
         }
 
         // If parental DBID, should also be in database
-        try {
-            existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByDBID(new ArrayList<>(germplasmDBIDs), program.getId());
-            existingParentGermplasms.forEach(existingGermplasm -> {
-                germplasmByDBID.put(existingGermplasm.getGermplasmDbId(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
-            });
-            //Since parent germplasms need to be present for check re circular dependencies
-            existingGermplasms = new ArrayList<>(existingParentGermplasms);
-        } catch (ApiException e) {
-            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
-            throw new InternalServerException(e.toString(), e);
+        existingGermplasms = new ArrayList<>();
+        if (germplasmDBIDs.size() > 0) {
+            try {
+                existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
+                existingParentGermplasms.forEach(existingGermplasm -> {
+                    germplasmByAccessionNumber.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
+                });
+                //Since parent germplasms need to be present for check re circular dependencies
+                existingGermplasms.addAll(existingParentGermplasms);
+            } catch (ApiException e) {
+                // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+                throw new InternalServerException(e.toString(), e);
+            }
         }
     }
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program, boolean commit) {
 
-        // TODO: Add UUID to external reference on commit
-        // TODO: Generate accession number on commit
-        // TODO: Change germplasm name to <Name> [<program key>-<accessionNumber>] on commit
         // TODO: Set pedigree string to parents germplasm names on commit
         // TODO: Check other fields are populated in the preview method
 
@@ -185,8 +185,8 @@ public class GermplasmProcessor implements Processor {
                 boolean femaleParentFound = false;
                 String pedigreeString = null;
                 if (femaleParentDB != null) {
-                    if (germplasmByDBID.containsKey(germplasm.getFemaleParentDBID())) {
-                        pedigreeString = germplasmByDBID.get(femaleParentDB).getBrAPIObject().getGermplasmName();
+                    if (germplasmByAccessionNumber.containsKey(germplasm.getFemaleParentDBID())) {
+                        pedigreeString = germplasmByAccessionNumber.get(femaleParentDB).getBrAPIObject().getGermplasmName();
                         femaleParentFound = true;
                     }
                 } else if (femaleParentFile != null) {
@@ -198,8 +198,8 @@ public class GermplasmProcessor implements Processor {
 
                 if(femaleParentFound) {
                     if (maleParentDB != null) {
-                        if ((germplasmByDBID.containsKey(germplasm.getMaleParentDBID()))) {
-                            pedigreeString += "/" + germplasmByDBID.get(maleParentDB).getBrAPIObject().getGermplasmName();
+                        if ((germplasmByAccessionNumber.containsKey(germplasm.getMaleParentDBID()))) {
+                            pedigreeString += "/" + germplasmByAccessionNumber.get(maleParentDB).getBrAPIObject().getGermplasmName();
                         }
                     } else if (maleParentFile != null){
                         if (germplasmNameByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
