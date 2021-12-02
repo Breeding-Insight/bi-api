@@ -25,6 +25,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
@@ -49,7 +50,7 @@ public class ProcessorManager {
         this.statusService = statusService;
     }
 
-    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Program program, ImportUpload upload, boolean commit) throws ValidatorException {
+    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException {
 
         this.processors = processors;
         statusService.setUpload(upload);
@@ -58,7 +59,7 @@ public class ProcessorManager {
         for (Processor processor : processors) {
             statusService.updateMessage("Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             processor.getExistingBrapiData(importRows, program);
-            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, program, commit);
+            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, program, user, commit);
             statistics.putAll(stats);
         }
 
