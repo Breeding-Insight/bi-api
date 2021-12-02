@@ -18,6 +18,7 @@ package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v1.model.TraitDataType;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
@@ -63,7 +64,7 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(scale.getScaleName()) || scale.getScaleName() == null) {
+                if ( isBlank(scale.getScaleName()) || scale.getScaleName() == null ) {
                     ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
@@ -225,50 +226,6 @@ public class TraitValidatorService {
         return duplicates;
     }
 
-    public List<Trait> checkDuplicateTraitsExistingByAbbreviation(UUID programId, List<Trait> traits){
-
-        List<Trait> duplicates = new ArrayList<>();
-
-        // Check for existing trait abbreviations
-        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(programId, traits);
-
-        for (int i = 0; i < traits.size(); i++){
-            Trait trait = traits.get(i);
-
-            boolean isDuplicateAbbrev = hasAbbreviation(duplicateAbbreviationTraits, trait, false);
-
-            if (isDuplicateAbbrev) {
-                if (!duplicates.contains(trait)){
-                    duplicates.add(trait);
-                }
-            }
-        }
-
-        return duplicates;
-    }
-
-    /**
-     * @param traitsWithAbbreviations - list of traits with the abbreviations to search for
-     * @param trait - target trait
-     * @param canIdBeNull - if true then a trait from the traitsWithAbbreviations list can have a null id.
-     * @return - TRUE if the target trait contains any of the abbreviations
-     */
-    public boolean hasAbbreviation(List<Trait> traitsWithAbbreviations, Trait trait, boolean canIdBeNull) {
-        boolean containsAbbreviation = false;
-        if (trait.getAbbreviations() != null){
-            for (String abbreviation: trait.getAbbreviations()){
-                containsAbbreviation = traitsWithAbbreviations.stream().filter(traitWithAbbreviation ->
-                        List.of(traitWithAbbreviation.getAbbreviations()).contains(abbreviation)
-                                && ( (canIdBeNull && traitWithAbbreviation.getId()==null) || !traitWithAbbreviation.getId().equals(trait.getId()) )
-                ).collect(Collectors.toList()).size() > 0;
-                if (containsAbbreviation) {
-                    break;
-                }
-            }
-        }
-        return containsAbbreviation;
-    }
-
     public ValidationErrors checkDuplicateTraitsInFile(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors){
 
         ValidationErrors errors = new ValidationErrors();
@@ -298,61 +255,11 @@ public class TraitValidatorService {
             }
         }
 
-        // Check duplicate abbreviations
-        Map<String, List<Integer>> abbreviationMap = new HashMap<>();
-        for (Integer i = 0; i < traits.size(); i++){
-            Trait trait = traits.get(i);
-            if (trait.getAbbreviations() != null){
-                for (String abbreviation: trait.getAbbreviations()){
-                    if (abbreviationMap.containsKey(abbreviation)) {
-                        abbreviationMap.get(abbreviation).add(i);
-                    } else {
-                        List<Integer> indexArray = new ArrayList<>();
-                        indexArray.add(i);
-                        abbreviationMap.put(abbreviation, indexArray);
-                    }
-                }
-            }
-        }
-
-        // Generate duplicate abbreviation errors
-        for (Integer i = 0; i < traits.size(); i++) {
-            Trait trait = traits.get(i);
-            if (trait.getAbbreviations() != null) {
-                for (String abbreviation : trait.getAbbreviations()) {
-                    if (abbreviationMap.containsKey(abbreviation)) {
-                        if (abbreviationMap.get(abbreviation).size() > 1){
-                            ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByAbbreviationInFileMsg(abbreviationMap.get(abbreviation));
-                            errors.addError(traitValidatorErrors.getRowNumber(i), validationError);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
         return errors;
     }
 
     private List<Trait> checkForDuplicateTraitsByNames(UUID programId, List<Trait> traits) {
         return traitDAO.getTraitsByTraitName(programId, traits);
-    }
-
-    private List<Trait> checkForDuplicatesTraitsByAbbreviation(UUID programId, List<Trait> traits) {
-
-        Set<String> abbreviationSet = new HashSet<>();
-        for (Trait trait: traits) {
-            if (trait.getAbbreviations() != null) {
-                abbreviationSet.addAll(List.of(trait.getAbbreviations()));
-            }
-        }
-
-        List<Trait> matchingTraits = new ArrayList<>();
-        if (abbreviationSet.size() > 0){
-            matchingTraits = traitDAO.getTraitsByAbbreviation(programId, List.of(abbreviationSet.toArray(String[]::new)));
-        }
-
-        return matchingTraits;
     }
 
     public Optional<ValidationErrors> checkAllTraitValidations(List<Trait> traits, TraitValidatorErrorInterface traitValidatorError) {
