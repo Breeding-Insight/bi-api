@@ -22,17 +22,16 @@ import java.util.stream.Collectors;
 
 public enum TraitFileColumns {
 
-    ONTOLOGY_TERM_NAME("Ontology term name"),
-    TRAIT_ABBREVIATIONS("Trait abbreviations"),
-    TRAIT_SYNONYMS("Trait synonyms"),
+    NAME("Name"),
+    SYNONYMS("Synonyms"),
     TRAIT_ENTITY("Trait entity"),
     TRAIT_ATTRIBUTE("Trait attribute"),
-    TRAIT_DESCRIPTION("Trait description"),
-    TRAIT_STATUS("Trait status"),
+    DESCRIPTION("Description"),
+    STATUS("Status"),
     METHOD_DESCRIPTION("Method description"),
     METHOD_CLASS("Method class"),
     METHOD_FORMULA("Method formula"),
-    SCALE_NAME("Scale name"),
+    SCALE_NAME("Units"),
     SCALE_CLASS("Scale class"),
     SCALE_DECIMAL_PLACES("Scale decimal places"),
     SCALE_LOWER_LIMIT("Scale lower limit"),

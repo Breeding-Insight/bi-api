@@ -159,10 +159,6 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
         return new ValidationError("traitName", "Trait name already exists", HttpStatus.CONFLICT);
     }
 
-    @Override
-    public ValidationError getDuplicateTraitByAbbreviationsMsg() {
-        return new ValidationError("abbreviations", "Trait abbreviation already exists", HttpStatus.CONFLICT);
-    }
 
     @Override
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
@@ -172,11 +168,4 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
                 HttpStatus.CONFLICT);
     }
 
-    @Override
-    public ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows) {
-        matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
-        return new ValidationError("abbreviations",
-                "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
-                HttpStatus.CONFLICT);
-    }
 }
