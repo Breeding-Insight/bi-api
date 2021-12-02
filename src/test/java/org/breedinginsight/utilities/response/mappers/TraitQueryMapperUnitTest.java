@@ -45,7 +45,6 @@ public class TraitQueryMapperUnitTest {
     public void testMappings() {
         Trait trait = Trait.builder()
                 .observationVariableName("Test trait")
-                .abbreviations(List.of("t1", "1").toArray(String[]::new))
                 .mainAbbreviation("test")
                 .synonyms(List.of("t1", "t2"))
                 .programObservationLevel(ProgramObservationLevel.builder().name("Plant").build())
@@ -73,7 +72,6 @@ public class TraitQueryMapperUnitTest {
                 .build();
 
         assertEquals(trait.getObservationVariableName(), traitQueryMapper.getField("name").apply(trait), "Wrong getter");
-        assertEquals(trait.getAbbreviations(), traitQueryMapper.getField("abbreviations").apply(trait), "Wrong getter");
         assertEquals(trait.getMainAbbreviation(), traitQueryMapper.getField("mainAbbreviation").apply(trait), "Wrong getter");
         assertEquals(trait.getSynonyms(), traitQueryMapper.getField("synonyms").apply(trait), "Wrong getter");
         assertEquals(trait.getProgramObservationLevel().getName(), traitQueryMapper.getField("level").apply(trait), "Wrong getter");

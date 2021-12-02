@@ -55,7 +55,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getMissingScaleNameMsg() {
-        return new ValidationError("Scale name", "Missing scale name", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Unit", "Missing unit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -158,12 +158,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     public ValidationError getDuplicateTraitByNamesMsg() {
         return new ValidationError("Trait name", "Trait name already exists", HttpStatus.CONFLICT);
     }
-
-    @Override
-    public ValidationError getDuplicateTraitByAbbreviationsMsg() {
-        return new ValidationError("Trait abbreviations", "Trait abbreviation already exists", HttpStatus.CONFLICT);
-    }
-
+    
     @Override
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
         matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
@@ -172,12 +167,4 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
                 HttpStatus.CONFLICT);
     }
 
-    @Override
-    public ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows) {
-        // Make rows match excel rows
-        matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
-        return new ValidationError("Trait abbreviations",
-                "One or more abbreviations is a duplicate of abbreviations. Set of traits with these matching abbreviations found in rows " + matchingRows.toString(),
-                HttpStatus.CONFLICT);
-    }
 }

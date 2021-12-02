@@ -130,12 +130,12 @@ public class TraitFileParser {
 
 
             Boolean active;
-            String traitStatus = parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS);
+            String traitStatus = parseExcelValueAsString(record, TraitFileColumns.STATUS);
             if (traitStatus == null) {
                 active = true;
             } else {
                 if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
-                    ValidationError error = new ValidationError(TraitFileColumns.TRAIT_STATUS.toString(),
+                    ValidationError error = new ValidationError(TraitFileColumns.STATUS.toString(),
                             ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
                     validationErrors.addError(traitValidatorError.getRowNumber(i), error);
                 }
@@ -158,6 +158,12 @@ public class TraitFileParser {
             if (dataTypeString != null) {
                 try {
                     dataType = DataType.valueOf(dataTypeString.toUpperCase());
+
+                    //This if statement can be removed once DURATION is no longer a valid Data Type
+                    if( DataType.DURATION == dataType ){
+                        throw new IllegalArgumentException("DURATION is not a valid datatype for batch uploading");
+                    }
+
                 } catch (IllegalArgumentException e) {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_CLASS.toString(),
@@ -230,21 +236,17 @@ public class TraitFileParser {
                     .categories(categories)
                     .build();
 
-            String abbreviationsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS);
-            List<String> traitAbbreviations = parseListValue(abbreviationsString);
-
-            String synonymsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS);
+            String synonymsString = parseExcelValueAsString(record, TraitFileColumns.SYNONYMS);
             List<String> traitSynonyms = parseListValue(synonymsString);
 
             String tagsString = parseExcelValueAsString(record, TraitFileColumns.TAGS);
             List<String> traitTags = parseListValue(tagsString);
 
             Trait trait = Trait.builder()
-                    .observationVariableName(parseExcelValueAsString(record, TraitFileColumns.ONTOLOGY_TERM_NAME))
-                    .traitDescription(parseExcelValueAsString(record, TraitFileColumns.TRAIT_DESCRIPTION))
+                    .observationVariableName(parseExcelValueAsString(record, TraitFileColumns.NAME))
+                    .traitDescription(parseExcelValueAsString(record, TraitFileColumns.DESCRIPTION))
                     .entity(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ENTITY))
                     .attribute(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ATTRIBUTE))
-                    .abbreviations(traitAbbreviations.toArray(String[]::new))
                     .synonyms(traitSynonyms)
                     .programObservationLevel(level)
                     .active(active)

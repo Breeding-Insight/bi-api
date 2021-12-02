@@ -80,7 +80,6 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
 
         Trait trait1 = new Trait();
         trait1.setObservationVariableName("Test Trait");
-        trait1.setAbbreviations("t1", "t2");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -89,10 +88,8 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setMethod(method1);
 
         List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(validProgram.getId(), List.of(trait1));
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(validProgram.getId(), List.of(trait1));
 
         assertEquals(1, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
-        assertEquals(1, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
     }
 
     @Test
@@ -101,7 +98,6 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
 
         Trait trait1 = new Trait();
         trait1.setObservationVariableName("Test Trait Unique");
-        trait1.setAbbreviations(List.of("t1Unique", "t2Unique").toArray(String[]::new));
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -110,10 +106,8 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
         trait1.setMethod(method1);
 
         List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(validProgram.getId(), List.of(trait1));
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(validProgram.getId(), List.of(trait1));
 
         assertEquals(0, duplicateTraits.size(), "Wrong number of duplicate traits by name returned");
-        assertEquals(0, duplicateTraitsByAbbrev.size(), "Wrong number of duplicate traits by abbreviation returned");
     }
 
 }

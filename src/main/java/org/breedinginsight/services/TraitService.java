@@ -196,7 +196,6 @@ public class TraitService {
                     // Create trait
                     TraitEntity jooqTrait = TraitEntity.builder()
                             .observationVariableName(trait.getObservationVariableName())
-                            .abbreviations(trait.getAbbreviations())
                             .programOntologyId(programOntology.getId())
                             .programObservationLevelId(trait.getProgramObservationLevel().getId())
                             .methodId(jooqMethod.getId())
@@ -265,7 +264,6 @@ public class TraitService {
         // Ignore duplicate traits
         ValidationErrors duplicateErrors = new ValidationErrors();
         List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
         List<Integer> traitIndexToRemove = new ArrayList<>();
         for (Trait duplicateTrait: duplicateTraits){
 
@@ -278,16 +276,6 @@ public class TraitService {
             }
         }
 
-        for (Trait duplicateTraitAbbrev: duplicateTraitsByAbbrev){
-
-            Integer i = traits.indexOf(duplicateTraitAbbrev);
-            if (i == -1){
-                throw new InternalServerException("Duplicate trait was not referenced correctly");
-            } else {
-                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
-                traitIndexToRemove.add(i);
-            }
-        }
 
         // Check the rest of our validations
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
@@ -298,7 +286,6 @@ public class TraitService {
         // Remove our duplicate traits if we are not going to throw an error on them
         if (!throwDuplicateErrors) {
             Set<Trait> duplicateTraitSet = new HashSet<>(duplicateTraits);
-            duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
             traits.removeAll(duplicateTraitSet);
         }
 
@@ -406,7 +393,6 @@ public class TraitService {
 
                     // Update trait
                     existingTraitEntity.setObservationVariableName(updatedTrait.getObservationVariableName());
-                    existingTraitEntity.setAbbreviations(updatedTrait.getAbbreviations());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());
                     traitDAO.update(existingTraitEntity);
