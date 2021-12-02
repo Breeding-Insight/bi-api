@@ -123,10 +123,11 @@ public class GermplasmProcessor implements Processor {
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program, boolean commit) {
 
-        // TODO: Set pedigree string to parents germplasm names on commit
         // TODO: Check other fields are populated in the preview method
-        // TODO: Update brapi importer parent db id name to parent accession number
+        // TODO: Add createdBy -> userId and createdBy -> userName to additional info
+        // TODO: Add createdDate to additional info
         // TODO: Throw error if female parent not found
+        // TODO: Tests
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();

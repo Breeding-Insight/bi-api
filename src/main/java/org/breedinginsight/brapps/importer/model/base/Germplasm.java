@@ -64,11 +64,11 @@ public class Germplasm implements BrAPIObject {
     private String entryNo;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="femaleParentDBID", name="Female Parent DBID", description = "The DBID of the female parent of the germplasm.")
+    @ImportFieldMetadata(id="femaleParentDBID", name="Female Parent Accession Number", description = "The accession number (GID) of the female parent of the germplasm.")
     private String femaleParentDBID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="maleParentDBID", name="Male Parent DBID", description = "The DBID of the male parent of the germplasm.")
+    @ImportFieldMetadata(id="maleParentDBID", name="Male Parent Accession Number", description = "The accession number (GID) of the male parent of the germplasm.")
     private String maleParentDBID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
@@ -107,14 +107,12 @@ public class Germplasm implements BrAPIObject {
 
     public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod) {
 
-        // TODO: Add createdBy -> userId and createdBy -> userName to additional info
-        // TODO: Add createdDate to additional info
-        // TODO: Add breedingMethodId to additional info
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
+        germplasm.putAdditionalInfoItem("importEntryNumber", entryNo);
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());
@@ -122,11 +120,6 @@ public class Germplasm implements BrAPIObject {
             additionalInfos.stream()
                     .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
                     .forEach(additionalInfo -> germplasm.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
-        }
-
-        //TODO: add logic later for generating entry numbers if not provided by user
-        if (entryNo != null){
-            germplasm.putAdditionalInfoItem("importEntryNumber", entryNo);
         }
 
         // Seed Source
