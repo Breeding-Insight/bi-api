@@ -88,6 +88,7 @@ public class ObservationUnit implements BrAPIObject {
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields = {GERMPLASM_NAME})
     })
     @ImportFieldMetadata(id="germplasm", name="Germplasm", description = "The germplasm that this observation unit represents.")
+    @ImportMappingRequired
     private MappedImportRelation germplasm;
 
     @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = AdditionalInfo.class)
