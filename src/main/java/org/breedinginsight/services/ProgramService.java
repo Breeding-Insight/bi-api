@@ -57,7 +57,7 @@ public class ProgramService {
     private BrAPIClientProvider brAPIClientProvider;
 
     private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
-    private static final String PROGRAM_KEY_IN_USE = "PROGRAM_NAME_IN_USE";
+    private static final String PROGRAM_KEY_IN_USE = "PROGRAM_KEY_IN_USE";
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
