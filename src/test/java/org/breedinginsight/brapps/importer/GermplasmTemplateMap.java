@@ -7,6 +7,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
@@ -20,6 +21,7 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
@@ -126,10 +128,11 @@ public class GermplasmTemplateMap extends BrAPITest {
     // Male parent not exist db id, throw error
     // Female parent not exist entry number, throw error
     // Bad breeding method, throw error
-
-    // TODO
     // No entry numbers, automatic generation
     // Some entry numbers, throw an error
+    // Numerical entry numbers
+
+    // TODO
     // Required fields missing, throw error
     // Missing required headers
     // Full import, success
@@ -235,6 +238,59 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(String.format(GermplasmProcessor.badBreedMethodsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(badBreedingMethods)),
                 result.getAsJsonObject("progress").get("message").getAsString());
 
+    }
+
+    @Test
+    @SneakyThrows
+    public void someEntryNumbersError() {
+        File file = new File("src/test/resources/files/germplasm_import/some_entry_numbers.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(GermplasmProcessor.missingEntryNumbersMsg, result.getAsJsonObject("progress").get("message").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void duplicateEntryNumbersError() {
+        File file = new File("src/test/resources/files/germplasm_import/duplicate_entry_numbers.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        List<String> dups = List.of("1", "3");
+        assertEquals(String.format(GermplasmProcessor.duplicateEntryNoMsg, GermplasmProcessor.arrayOfStringFormatter.apply(dups)),
+                result.getAsJsonObject("progress").get("message").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void nonNumericEntryNumbersError() {
+        File file = new File("src/test/resources/files/germplasm_import/nonnumerical_entry_numbers.csv");
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", validProgram.getId(), germplasmImportId);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(String.format(MappingManager.wrongDataTypeMsg, "Entry No"), e.getMessage());
     }
 
     public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {
