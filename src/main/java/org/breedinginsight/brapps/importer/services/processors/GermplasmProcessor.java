@@ -22,6 +22,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
@@ -68,6 +69,14 @@ public class GermplasmProcessor implements Processor {
     List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
 
+    public static String missingParentalDbIdsMsg = "The following parental db ids were not found in the database: %s.";
+    public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
+    public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
+        List<String> lstCopy = new ArrayList<>(lst);
+        Collections.sort(lstCopy);
+        return StringUtils.join(lstCopy, ", ");
+    };
+
     @Inject
     public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO, DSLContext dsl, BreedingMethodDAO breedingMethodDAO) {
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
@@ -78,15 +87,10 @@ public class GermplasmProcessor implements Processor {
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         // Get all of our objects specified in the data file by their unique attributes
-        Set<String> germplasmNames = new HashSet<>();
         Set<String> germplasmDBIDs = new HashSet<>();
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport germplasmImport = importRows.get(i);
             if (germplasmImport.getGermplasm() != null) {
-                // Retrieve names to assess if rows already in db
-                if (germplasmImport.getGermplasm().getGermplasmName() != null) {
-                    germplasmNames.add(germplasmImport.getGermplasm().getGermplasmName());
-                }
 
                 // Retrieve parent dbids to assess if already in db
                 if (germplasmImport.getGermplasm().getFemaleParentDBID() != null) {
@@ -106,9 +110,12 @@ public class GermplasmProcessor implements Processor {
 
         // If parental DBID, should also be in database
         existingGermplasms = new ArrayList<>();
+        List<String> missingDbIds = new ArrayList<>(germplasmDBIDs);
         if (germplasmDBIDs.size() > 0) {
             try {
                 existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
+                missingDbIds.removeAll(existingGermplasms);
+
                 existingParentGermplasms.forEach(existingGermplasm -> {
                     germplasmByAccessionNumber.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
                 });
@@ -119,6 +126,35 @@ public class GermplasmProcessor implements Processor {
                 throw new InternalServerException(e.toString(), e);
             }
         }
+
+        // Parent reference checks
+        if (missingDbIds.size() > 0) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    String.format(missingParentalDbIdsMsg,
+                            arrayOfStringFormatter.apply(missingDbIds)));
+        }
+
+        List<String> missingEntryNumbers = new ArrayList<>();
+        for (BrAPIImport importRow: importRows) {
+            Germplasm germplasm = importRow.getGermplasm();
+            // Check Female Parent
+            if (germplasm.getFemaleParentEntryNo() != null) {
+                if (!germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
+                    missingEntryNumbers.add(germplasm.getFemaleParentEntryNo());
+                }
+            }
+            // Check Male Parent
+            if (germplasm.getMaleParentEntryNo() != null) {
+                if (!germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
+                    missingEntryNumbers.add(germplasm.getMaleParentEntryNo());
+                }
+            }
+        }
+        if (missingEntryNumbers.size() > 0) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    String.format(missingParentalEntryNoMsg,
+                            arrayOfStringFormatter.apply(missingEntryNumbers)));
+        }
     }
 
     @Override
@@ -126,7 +162,6 @@ public class GermplasmProcessor implements Processor {
                         Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
 
         // TODO: Check other fields are populated in the preview method
-        // TODO: Throw error if female parent not found
         // TODO: Tests
 
         // Method for generating accession number

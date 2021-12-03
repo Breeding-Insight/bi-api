@@ -12,6 +12,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
@@ -19,6 +20,7 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
+import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
@@ -30,6 +32,7 @@ import org.junit.jupiter.api.*;
 import javax.inject.Inject;
 import java.io.File;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -118,20 +121,24 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     // Done
     // Minimum import required fields, success
-
-    // TODO
     // Female parent not exist db id, throw error
     // Female parent not exist entry number, throw error
     // Male parent not exist db id, throw error
     // Female parent not exist entry number, throw error
+
+    // TODO
+    // Bad breeding method, throw error
+    // No entry numbers, automatic generation
+    // Some entry numbers, throw an error
     // Required fields missing, throw error
+    // Missing required headers
     // Full import, success
     // Preview, non-preview fields not shown
-    // Bad breeding method, throw error
-    // Missing required headers
+    // Male db, no female db id, pedigree string is null
 
     @Test
     @SneakyThrows
+    @Order(1)
     public void minimalImportSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/minimal_germplasm_import.csv");
         Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
@@ -147,22 +154,83 @@ public class GermplasmTemplateMap extends BrAPITest {
     @Test
     @SneakyThrows
     public void femaleParentDbIdNotExistError() {
+        File file = new File("src/test/resources/files/germplasm_import/female_dbid_not_exist.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
 
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        List<String> missingDbIds = List.of("1000", "1001", "1002");
+        assertEquals(String.format(GermplasmProcessor.missingParentalDbIdsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+                result.getAsJsonObject("progress").get("message").getAsString());
     }
 
     @Test
+    @SneakyThrows
     public void femaleParentEntryNumberNotExistError() {
+        File file = new File("src/test/resources/files/germplasm_import/female_entry_number_not_exist.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
 
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        List<String> missingDbIds = List.of("1", "2", "3");
+        assertEquals(String.format(GermplasmProcessor.missingParentalEntryNoMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+                result.getAsJsonObject("progress").get("message").getAsString());
     }
 
     @Test
+    @SneakyThrows
     public void maleParentDbIdNotExistError() {
+        File file = new File("src/test/resources/files/germplasm_import/male_dbid_not_exist.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
 
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        List<String> missingDbIds = List.of("100", "101", "102");
+        assertEquals(String.format(GermplasmProcessor.missingParentalDbIdsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+                result.getAsJsonObject("progress").get("message").getAsString());
     }
 
     @Test
+    @SneakyThrows
     public void maleParentEntryNumberNotExistError() {
+        File file = new File("src/test/resources/files/germplasm_import/male_entry_number_not_exist.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
 
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        List<String> missingDbIds = List.of("1", "2", "3");
+        assertEquals(String.format(GermplasmProcessor.missingParentalEntryNoMsg, GermplasmProcessor.arrayOfStringFormatter.apply(missingDbIds)),
+                result.getAsJsonObject("progress").get("message").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void maleDbIdNoFemaleDbIdSuccess() {
+        File file = new File("src/test/resources/files/germplasm_import/male_dbid_no_female_success.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
     }
 
     public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {
