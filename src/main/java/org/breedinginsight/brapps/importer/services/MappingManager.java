@@ -49,6 +49,8 @@ public class MappingManager {
 
     private ImportConfigManager configManager;
 
+    public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
+
     @Inject
     MappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
@@ -225,7 +227,6 @@ public class MappingManager {
             }
         } else {
             // It is a simple type
-            //TODO: Do some type checks here
 
             // Check that request field is properly formatted
             if (required != null && matchedMapping.getValue() == null) {
@@ -256,6 +257,8 @@ public class MappingManager {
                     fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
                 }
 
+                checkFieldType(type.type(), matchedMapping.getValue().getFileFieldName(), fileValue);
+
                 if (StringUtils.isBlank(fileValue)) fileValue = null;
                 try {
                     field.setAccessible(true);
@@ -266,6 +269,7 @@ public class MappingManager {
                 }
             } else if (matchedMapping.getValue().getConstantValue() != null){
                 String value = matchedMapping.getValue().getConstantValue();
+                checkFieldType(type.type(), metadata.name(), value);
                 if (StringUtils.isBlank(value)) value = null;
                 try {
                     field.setAccessible(true);
@@ -280,6 +284,18 @@ public class MappingManager {
 
     }
 
+    private void checkFieldType(ImportFieldTypeEnum expectedType, String column, String value) throws UnprocessableEntityException {
+        //TODO: Do more type checks
+        if (!value.isBlank()) {
+            if (expectedType == ImportFieldTypeEnum.INTEGER) {
+                try {
+                    Integer d = Integer.parseInt(value);
+                } catch (NumberFormatException nfe) {
+                    throw new UnprocessableEntityException(String.format(wrongDataTypeMsg, column));
+                }
+            }
+        }
+    }
     /*
         A mapped object is considered null if no fields in it have been mapped
      */
