@@ -125,9 +125,9 @@ public class GermplasmTemplateMap extends BrAPITest {
     // Female parent not exist entry number, throw error
     // Male parent not exist db id, throw error
     // Female parent not exist entry number, throw error
+    // Bad breeding method, throw error
 
     // TODO
-    // Bad breeding method, throw error
     // No entry numbers, automatic generation
     // Some entry numbers, throw an error
     // Required fields missing, throw error
@@ -221,8 +221,8 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void maleDbIdNoFemaleDbIdSuccess() {
-        File file = new File("src/test/resources/files/germplasm_import/male_dbid_no_female_success.csv");
+    public void badBreedingMethods() {
+        File file = new File("src/test/resources/files/germplasm_import/bad_breeding_methods.csv");
         Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
@@ -231,6 +231,10 @@ public class GermplasmTemplateMap extends BrAPITest {
         HttpResponse<String> upload = getUploadedFile(importId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        List<String> badBreedingMethods = List.of("BAD", "BAD1");
+        assertEquals(String.format(GermplasmProcessor.badBreedMethodsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(badBreedingMethods)),
+                result.getAsJsonObject("progress").get("message").getAsString());
+
     }
 
     public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {
