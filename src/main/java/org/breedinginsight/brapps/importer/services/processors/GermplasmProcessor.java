@@ -72,6 +72,8 @@ public class GermplasmProcessor implements Processor {
     public static String missingParentalDbIdsMsg = "The following parental db ids were not found in the database: %s.";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
     public static String badBreedMethodsMsg = "Breeding methods not found: %s";
+    public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers.";
+    public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
         List<String> lstCopy = new ArrayList<>(lst);
         Collections.sort(lstCopy);
@@ -179,6 +181,8 @@ public class GermplasmProcessor implements Processor {
         Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
+        Map<String, Integer> entryNumberCounts = new HashMap<>();
+        List<String> userProvidedEntryNumbers = new ArrayList<>();
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
@@ -208,11 +212,11 @@ public class GermplasmProcessor implements Processor {
                 // Assign the entry number
                 if (germplasm.getEntryNo() == null) {
                     germplasm.setEntryNo(Integer.toString(i + 1));
-                    nullEntryNotFound = true;
-                } else if (germplasm.getEntryNo() != null && nullEntryNotFound) {
-                    throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                            String.format("Either all or none of the germplasm must have entry numbers.", germplasm.getBreedingMethod()));
+                } else {
+                    userProvidedEntryNumbers.add(germplasm.getEntryNo());
                 }
+                entryNumberCounts.put(germplasm.getEntryNo(),
+                        entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
 
                 BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
 
@@ -228,6 +232,20 @@ public class GermplasmProcessor implements Processor {
         if (badBreedingMethods.size() > 0) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                     String.format(badBreedMethodsMsg, arrayOfStringFormatter.apply(badBreedingMethods)));
+        }
+
+        // Check for missing entry numbers
+        if (userProvidedEntryNumbers.size() > 0 && userProvidedEntryNumbers.size() < importRows.size()) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, missingEntryNumbersMsg);
+        }
+
+        // Check for duplicate entry numbers
+        if (entryNumberCounts.size() < importRows.size()) {
+            List<String> dups = entryNumberCounts.keySet().stream()
+                    .filter(key -> entryNumberCounts.get(key) > 1)
+                    .collect(Collectors.toList());
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
         }
 
         // Construct pedigree
