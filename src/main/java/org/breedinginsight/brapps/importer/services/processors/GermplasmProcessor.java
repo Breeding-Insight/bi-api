@@ -71,6 +71,7 @@ public class GermplasmProcessor implements Processor {
 
     public static String missingParentalDbIdsMsg = "The following parental db ids were not found in the database: %s.";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
+    public static String badBreedMethodsMsg = "Breeding methods not found: %s";
     public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
         List<String> lstCopy = new ArrayList<>(lst);
         Collections.sort(lstCopy);
@@ -177,6 +178,7 @@ public class GermplasmProcessor implements Processor {
         newGermplasmList = new ArrayList<>();
         Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
+        List<String> badBreedingMethods = new ArrayList<>();
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
@@ -197,8 +199,8 @@ public class GermplasmProcessor implements Processor {
                             breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                         } else {
-                            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                                    String.format("Breeding method, %s, not found", germplasm.getBreedingMethod()));
+                            badBreedingMethods.add(germplasm.getBreedingMethod());
+                            breedingMethod = null;
                         }
                     }
                 }
@@ -220,6 +222,12 @@ public class GermplasmProcessor implements Processor {
                 mappedImportRow.setGermplasm(null);
             }
             mappedBrAPIImport.put(i, mappedImportRow);
+        }
+
+        // Check for bad breeding methods
+        if (badBreedingMethods.size() > 0) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    String.format(badBreedMethodsMsg, arrayOfStringFormatter.apply(badBreedingMethods)));
         }
 
         // Construct pedigree
