@@ -194,7 +194,8 @@ public class ObservationUnitProcessor implements Processor {
 
     private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
         observationUnitByName.values().stream()
-                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
+                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName() != null &&
+                        obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
                 .forEach(obsUnit -> obsUnit.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
 

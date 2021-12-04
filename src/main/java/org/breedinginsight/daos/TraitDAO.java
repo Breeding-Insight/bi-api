@@ -556,10 +556,10 @@ public class TraitDAO extends TraitDao {
         if (brApiVariable.getAdditionalInfo() != null) {
             List<String> tags = null;
             String fullName = null;
-            if (brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
+            if (brApiVariable.getAdditionalInfo().has(TAGS_KEY) && !brApiVariable.getAdditionalInfo().get(TAGS_KEY).isJsonNull()) {
                 tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
             }
-            if (brApiVariable.getAdditionalInfo().has(FULLNAME_KEY)) {
+            if (brApiVariable.getAdditionalInfo().has(FULLNAME_KEY) && !brApiVariable.getAdditionalInfo().get(FULLNAME_KEY).isJsonNull()) {
                 fullName = brApiVariable.getAdditionalInfo().get(FULLNAME_KEY).getAsString();
             }
             trait.setBrAPIProperties(brApiVariable, tags, fullName);

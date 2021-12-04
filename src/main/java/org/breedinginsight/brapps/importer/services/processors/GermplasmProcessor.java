@@ -125,7 +125,24 @@ public class GermplasmProcessor implements Processor {
             if (germplasm != null && germplasm.getGermplasmName() != null) {
                 if (!germplasmByName.containsKey(germplasm.getGermplasmName())) {
                     BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program.getBrapiProgram());
+                    germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+                }
+            }
+            mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
+            mappedBrAPIImport.put(i, mappedImportRow);
+        }
 
+        // Set pedigree connections. Need to do in separate loop so finding relations isn't order dependent
+        for (int i = 0; i < importRows.size(); i++) {
+            BrAPIImport brapiImport = importRows.get(i);
+            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+
+            Germplasm germplasm = brapiImport.getGermplasm();
+
+            // Germplasm
+            if (germplasm != null && germplasm.getGermplasmName() != null) {
+                if (germplasmByName.containsKey(germplasm.getGermplasmName())) {
+                    BrAPIGermplasm newGermplasm = germplasmByName.get(germplasm.getGermplasmName()).getBrAPIObject();
                     // Check the parents exist
                     // DBID takes precedence over Entry No
                     // For the moment, constructs pedigree string with displayName if only parent Entry No
@@ -162,8 +179,6 @@ public class GermplasmProcessor implements Processor {
 
                     germplasmByName.put(newGermplasm.getGermplasmName(), new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
                 }
-                mappedImportRow.setGermplasm(germplasmByName.get(germplasm.getGermplasmName()));
-                mappedBrAPIImport.put(i, mappedImportRow);
             }
         }
 
