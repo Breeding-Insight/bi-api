@@ -146,8 +146,6 @@ public class GermplasmTemplateMap extends BrAPITest {
     // No entry numbers, automatic generation
     // Full import, success
     // Preview, non-preview fields not shown
-
-    // TODO
     // Male db, no female db id, pedigree string is null
     // Circular parent dependency
 
@@ -502,6 +500,38 @@ public class GermplasmTemplateMap extends BrAPITest {
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
         assertEquals(String.format(MappingManager.missingColumn, "Entry No"), e.getMessage());
+    }
+
+    @Test
+    @SneakyThrows
+    public void circularParentDependencyError() {
+        File file = new File("src/test/resources/files/germplasm_import/circular_parent_dependencies.csv");
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(GermplasmProcessor.circularDependency, result.getAsJsonObject("progress").get("message").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void selfReferenceParentError() {
+        File file = new File("src/test/resources/files/germplasm_import/self_ref_parent_dependencies.csv");
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(GermplasmProcessor.circularDependency, result.getAsJsonObject("progress").get("message").getAsString());
     }
 
     public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {
