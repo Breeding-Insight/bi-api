@@ -2,6 +2,7 @@ package org.breedinginsight.brapps.importer;
 
 import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -24,12 +25,15 @@ import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
+import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.io.File;
@@ -37,11 +41,12 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
 import static io.micronaut.http.HttpRequest.PUT;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -53,10 +58,15 @@ public class GermplasmTemplateMap extends BrAPITest {
     private String germplasmImportId;
     private BiUserEntity testUser;
 
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
+
     @Inject
     private SpeciesService speciesService;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private BreedingMethodDAO breedingMethodDAO;
     @Inject
     private DSLContext dsl;
 
@@ -128,21 +138,23 @@ public class GermplasmTemplateMap extends BrAPITest {
     // Male parent not exist db id, throw error
     // Female parent not exist entry number, throw error
     // Bad breeding method, throw error
-    // No entry numbers, automatic generation
     // Some entry numbers, throw an error
     // Numerical entry numbers
     // Required fields missing, throw error
-
-    // TODO
     // Missing required headers
+    // Missing optional headers
+    // No entry numbers, automatic generation
     // Full import, success
     // Preview, non-preview fields not shown
+
+    // TODO
     // Male db, no female db id, pedigree string is null
+    // Circular parent dependency
 
     @Test
     @SneakyThrows
     @Order(1)
-    public void minimalImportSuccess() {
+    public void minimalImportUserSpecifiedEntryNumbersSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/minimal_germplasm_import.csv");
         Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
         HttpResponse<String> response = call.blockingFirst();
@@ -152,6 +164,121 @@ public class GermplasmTemplateMap extends BrAPITest {
         HttpResponse<String> upload = getUploadedFile(importId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsString(), "Wrong entry number");
+        }
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(2)
+    public void fullImportPreviewSuccess() {
+        File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
+        Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
+
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, false);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> femaleParents = List.of("Germplasm 1", "Germplasm 2", "Full Germplasm 1");
+        List<String> maleParents = List.of("Germplasm 2", "", "Full Germplasm 2");
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            checkBasicResponse(germplasm, fileData, i);
+
+            // Check preview specific items
+            // Germplasm name (display name)
+            assertEquals(fileData.getString(i, "Name"), germplasm.get("germplasmName").getAsString());
+            JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+            // Created Date (not present)
+            assertTrue(!additionalInfo.has("createdDate"), "createdDate is present, but should not be");
+            // Accession Number (not present)
+            assertTrue(!germplasm.has("accessionNumber"), "accessionNumber is present, but should not be");
+            // Pedigree (display names)
+            String pedigree = germplasm.get("pedigree").getAsString();
+            String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
+            String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
+            assertEquals(femaleParents.get(i), mother, "Wrong mother");
+            if (!maleParents.get(i).isBlank()) {
+                assertEquals(maleParents.get(i), father, "Wrong father");
+            } else {
+                assertNull(father, "Wrong father");
+            }
+
+            // External Reference germplasm (not present)
+            JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
+            for (JsonElement reference: externalReferences) {
+                String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
+                assertTrue(referenceSource != BRAPI_REFERENCE_SOURCE, "Germplasm UUID was present, but should not be");
+            }
+        }
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(3)
+    public void fullImportCommitSuccess() {
+        File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
+        Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
+
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> femaleParents = List.of("Germplasm 1", "Germplasm 2", "Full Germplasm 1");
+        List<String> maleParents = List.of("Germplasm 2", "", "Full Germplasm 2");
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            checkBasicResponse(germplasm, fileData, i);
+
+            // Check commit specific items
+            // Germplasm name (display name)
+            String expectedGermplasmName = String.format("%s [%s-%s]", fileData.getString(i, "Name"), validProgram.getKey(), germplasm.get("accessionNumber").getAsString());
+            assertEquals(expectedGermplasmName, germplasm.get("germplasmName").getAsString());
+            // Created Date
+            JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+            assertTrue(additionalInfo.has("createdDate"), "createdDate is missing");
+            // Accession Number
+            assertTrue(germplasm.has("accessionNumber"), "accessionNumber missing");
+            // Pedigree (germplasm names)
+            String pedigree = germplasm.get("pedigree").getAsString();
+            String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
+            String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
+            String regexMatcher = "^(\\b%s\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+            assertTrue(mother.matches(String.format(regexMatcher, femaleParents.get(i))), "Wrong mother");
+            if (!maleParents.get(i).isBlank()) {
+                assertTrue(father.matches(String.format(regexMatcher, maleParents.get(i))), "Wrong father");
+            } else {
+                assertNull(father, "Wrong father");
+            }
+
+            // External Reference germplasm
+            JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
+            Boolean referenceFound = false;
+            for (JsonElement reference: externalReferences) {
+                String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
+                if (referenceSource.equals(BRAPI_REFERENCE_SOURCE)) {
+                    referenceFound = true;
+                    break;
+                }
+            }
+            assertTrue(referenceFound, "Germplasm UUID reference not found");
+        }
     }
 
     @Test
@@ -314,6 +441,48 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(String.format(MappingManager.blankRequiredField, "Name"), e.getMessage());
     }
 
+    @Test
+    @SneakyThrows
+    public void missingRequiredFieldHeaderError() {
+        File file = new File("src/test/resources/files/germplasm_import/missing_required_header.csv");
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", validProgram.getId(), germplasmImportId);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(String.format(MappingManager.missingColumn, "Source"), e.getMessage());
+    }
+
+    @Test
+    @SneakyThrows
+    public void missingOptionalFieldHeaderError() {
+        File file = new File("src/test/resources/files/germplasm_import/missing_optional_header.csv");
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", validProgram.getId(), germplasmImportId);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(String.format(MappingManager.missingColumn, "Entry No"), e.getMessage());
+    }
+
     public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {
         MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
 
@@ -340,7 +509,7 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     public HttpResponse<String> getUploadedFile(String importId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/import/mappings/%s/data/%s", validProgram.getId(), germplasmImportId, importId))
+                GET(String.format("/programs/%s/import/mappings/%s/data/%s?mapping=true", validProgram.getId(), germplasmImportId, importId))
                         .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -354,5 +523,42 @@ public class GermplasmTemplateMap extends BrAPITest {
         }
 
 
+    }
+
+
+    public void checkBasicResponse(JsonObject germplasm, Table fileData, Integer i) {
+
+        // Germplasm display name
+        assertEquals(fileData.getString(i, "Name"), germplasm.get("defaultDisplayName").getAsString(), "Wrong display name");
+        // Entry Number
+        JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
+        assertEquals(fileData.getString(i, "Entry No"), additionalInfo.get("importEntryNumber").getAsString(), "Wrong entry number");
+        // Created By User ID
+        assertEquals(testUser.getId().toString(), additionalInfo.getAsJsonObject("createdBy").get("userId").getAsString(), "Wrong createdBy userId");
+        // Created by User name
+        assertEquals(testUser.getName(), additionalInfo.getAsJsonObject("createdBy").get("userName").getAsString(), "Wrong createdBy userId");
+        // Breeding Method
+        String breedingMethodName = fileData.getString(i, "Breeding Method");
+        BreedingMethodEntity breedingMethod = breedingMethodDAO.findByNameOrAbbreviation(breedingMethodName).get(0);
+        assertEquals(breedingMethod.getId().toString(), additionalInfo.get("breedingMethodId").getAsString(), "Wrong Breeding Method ID");
+        assertEquals(breedingMethod.getName(), additionalInfo.get("breedingMethod").getAsString(), "Wrong Breeding Method name");
+        // Seed source
+        assertEquals(fileData.getString(i, "Source"), germplasm.get("seedSourceDescription").getAsString(), "Wrong seed source description");
+        // External Reference (user specified)
+        // External Reference program
+        JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
+        Map<String, String> expectedReferences = new HashMap<>();
+        expectedReferences.put(String.format("%s/programs", BRAPI_REFERENCE_SOURCE), validProgram.getId().toString());
+        expectedReferences.put(fileData.getString(i, "Source"), fileData.getString(i, "External UID"));
+        Integer referencesFound = 0;
+        for (JsonElement reference: externalReferences) {
+            String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
+            String referenceID = reference.getAsJsonObject().get("referenceID").getAsString();
+            if (expectedReferences.containsKey(referenceSource)) {
+                assertEquals(expectedReferences.get(referenceSource), referenceID);
+                referencesFound += 1;
+            }
+        }
+        assertEquals(expectedReferences.size(), referencesFound, "Not all expected references were returned");
     }
 }

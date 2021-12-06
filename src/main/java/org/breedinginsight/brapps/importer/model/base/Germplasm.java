@@ -132,12 +132,11 @@ public class Germplasm implements BrAPIObject {
         //If there is an external uid, source is associated with it as an additional external reference
         BrAPIExternalReference uidExternalReference = null;
         if (germplasmSource != null) {
+            germplasm.setSeedSourceDescription(getGermplasmSource());
             if (externalUID != null) {
                 uidExternalReference = new BrAPIExternalReference();
                 uidExternalReference.setReferenceID(getExternalUID());
                 uidExternalReference.setReferenceSource(getGermplasmSource());
-            } else {
-                germplasm.setSeedSourceDescription(getGermplasmSource());
             }
         }
 

@@ -51,6 +51,7 @@ public class MappingManager {
 
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
     public static String blankRequiredField = "Required field \"%s\" cannot contain empty values.";
+    public static String missingColumn = "Column name \"%s\" does not exist in file";
 
     @Inject
     MappingManager(ImportConfigManager configManager) {
@@ -243,7 +244,7 @@ public class MappingManager {
             if (matchedMapping.getValue().getFileFieldName() != null) {
                 // Check that the file has this name
                 if (!focusRow.columnNames().contains(matchedMapping.getValue().getFileFieldName())) {
-                    throw new UnprocessableEntityException(String.format("Column name %s does not exist in file", matchedMapping.getValue().getFileFieldName()));
+                    throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
                 }
 
                 // TODO: should handle all types, not sure if better way to do this with tablesaw?
