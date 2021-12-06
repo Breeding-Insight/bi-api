@@ -131,7 +131,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         return program;
     }
 
-    // Done
+    // Tests
     // Minimum import required fields, success
     // Female parent not exist db id, throw error
     // Female parent not exist entry number, throw error
