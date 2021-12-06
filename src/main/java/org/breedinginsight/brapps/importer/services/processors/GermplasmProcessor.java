@@ -117,7 +117,10 @@ public class GermplasmProcessor implements Processor {
         if (germplasmDBIDs.size() > 0) {
             try {
                 existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
-                missingDbIds.removeAll(existingGermplasms);
+                List<String> existingDbIds = existingParentGermplasms.stream()
+                        .map(germplasm -> germplasm.getAccessionNumber())
+                        .collect(Collectors.toList());
+                missingDbIds.removeAll(existingDbIds);
 
                 existingParentGermplasms.forEach(existingGermplasm -> {
                     germplasmByAccessionNumber.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
@@ -163,9 +166,6 @@ public class GermplasmProcessor implements Processor {
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
                         Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
-
-        // TODO: Check other fields are populated in the preview method
-        // TODO: Tests
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
