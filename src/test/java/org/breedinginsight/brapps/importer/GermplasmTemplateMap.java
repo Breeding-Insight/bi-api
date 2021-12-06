@@ -283,6 +283,27 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Test
     @SneakyThrows
+    public void NoFemaleParentBlankPedigreeStringSuccess() {
+        File file = new File("src/test/resources/files/germplasm_import/no_female_parent_blank_pedigree.csv");
+
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            assertTrue(!germplasm.has("pedigree"), "Pedigree string is populated, but should be empty");
+        }
+    }
+
+    @Test
+    @SneakyThrows
     public void femaleParentDbIdNotExistError() {
         File file = new File("src/test/resources/files/germplasm_import/female_dbid_not_exist.csv");
         Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
