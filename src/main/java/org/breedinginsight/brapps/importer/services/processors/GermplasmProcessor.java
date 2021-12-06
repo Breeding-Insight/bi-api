@@ -74,6 +74,7 @@ public class GermplasmProcessor implements Processor {
     public static String badBreedMethodsMsg = "Breeding methods not found: %s";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers.";
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
+    public static String circularDependency = "Circular dependency in the pedigree tree";
     public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
         List<String> lstCopy = new ArrayList<>(lst);
         Collections.sort(lstCopy);
@@ -309,7 +310,7 @@ public class GermplasmProcessor implements Processor {
                 postOrder.add(createList);
             } else if (totalRecorded < newGermplasmList.size()) {
                 // We ran into circular dependencies, throw an error
-                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Circular dependency in the pedigree tree");
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, circularDependency);
             }
         }
     }
