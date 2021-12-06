@@ -131,9 +131,9 @@ public class GermplasmTemplateMap extends BrAPITest {
     // No entry numbers, automatic generation
     // Some entry numbers, throw an error
     // Numerical entry numbers
+    // Required fields missing, throw error
 
     // TODO
-    // Required fields missing, throw error
     // Missing required headers
     // Full import, success
     // Preview, non-preview fields not shown
@@ -291,6 +291,27 @@ public class GermplasmTemplateMap extends BrAPITest {
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
         assertEquals(String.format(MappingManager.wrongDataTypeMsg, "Entry No"), e.getMessage());
+    }
+
+    @Test
+    @SneakyThrows
+    public void emptyRequiredFieldsError() {
+        File file = new File("src/test/resources/files/germplasm_import/empty_required_fields.csv");
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", validProgram.getId(), germplasmImportId);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(String.format(MappingManager.blankRequiredField, "Name"), e.getMessage());
     }
 
     public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {

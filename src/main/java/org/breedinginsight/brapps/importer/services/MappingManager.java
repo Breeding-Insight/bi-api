@@ -50,6 +50,7 @@ public class MappingManager {
     private ImportConfigManager configManager;
 
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
+    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values.";
 
     @Inject
     MappingManager(ImportConfigManager configManager) {
@@ -259,6 +260,11 @@ public class MappingManager {
 
                 checkFieldType(type.type(), matchedMapping.getValue().getFileFieldName(), fileValue);
 
+                // Check non-null value
+                if (required != null && fileValue.isBlank()) {
+                    throw new UnprocessableEntityException(String.format(blankRequiredField,  matchedMapping.getValue().getFileFieldName()));
+                }
+
                 if (StringUtils.isBlank(fileValue)) fileValue = null;
                 try {
                     field.setAccessible(true);
@@ -270,6 +276,12 @@ public class MappingManager {
             } else if (matchedMapping.getValue().getConstantValue() != null){
                 String value = matchedMapping.getValue().getConstantValue();
                 checkFieldType(type.type(), metadata.name(), value);
+
+                // Check non-null value
+                if (required != null && value.isBlank()) {
+                    throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
+                }
+
                 if (StringUtils.isBlank(value)) value = null;
                 try {
                     field.setAccessible(true);
