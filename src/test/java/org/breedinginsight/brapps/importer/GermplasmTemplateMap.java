@@ -594,7 +594,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(breedingMethod.getId().toString(), additionalInfo.get("breedingMethodId").getAsString(), "Wrong Breeding Method ID");
         assertEquals(breedingMethod.getName(), additionalInfo.get("breedingMethod").getAsString(), "Wrong Breeding Method name");
         // Seed source
-        assertEquals(fileData.getString(i, "Source"), germplasm.get("seedSource").getAsString(), "Wrong seed source description");
+        assertEquals(fileData.getString(i, "Source"), germplasm.get("seedSource").getAsString(), "Wrong seed source");
         // External Reference (user specified)
         // External Reference program
         JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
