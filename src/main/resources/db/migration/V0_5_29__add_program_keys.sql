@@ -22,9 +22,9 @@ UPDATE program SET key = 'FTPCIT' WHERE name = 'FortPierce-Citrus';
 UPDATE program SET key = 'UAUSWP' WHERE name = 'USDA-ARS-USVL-Sweetpotato';
 UPDATE program SET key = 'CPTSGR' WHERE name = 'CanalPoint-Sugarcane';
 UPDATE program SET key = 'HOUSGR' WHERE name = 'Houma-Sugarcane';
-UPDATE program SET key = 'GRAPE' WHERE name = 'Grape';
-UPDATE program SET key = 'SALMO' WHERE name = 'Salmon';
-UPDATE program SET key = 'SUGAR' WHERE name = 'Sugarcane';
+UPDATE program SET key = 'GRP' WHERE name = 'Grape';
+UPDATE program SET key = 'SLM' WHERE name = 'Salmon';
+UPDATE program SET key = 'SGR' WHERE name = 'Sugarcane';
 UPDATE program SET key = 'SMOKE' WHERE name = 'Smoke Test';
 
 
