@@ -26,6 +26,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
+import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -124,7 +125,10 @@ public class V0_5_30__Migrate_brapi_germplasm extends BaseJavaMigration {
                 additionalInfo.put("userId", systemUser.getId().toString());
                 additionalInfo.put("userName", systemUser.getName());
                 germplasm.putAdditionalInfoItem("createdBy", additionalInfo);
-                // TODO: Map breeding method
+                // Map breeding method
+                BreedingMethodEntity breedingMethod = getMappedBreedingMethod(context, germplasm.getBreedingMethodDbId());
+                germplasm.putAdditionalInfoItem("breedingMethodId", breedingMethod.getId().toString());
+                germplasm.putAdditionalInfoItem("breedingMethod", breedingMethod.getName().strip());
                 // Add germplasm UUID
                 BrAPIExternalReference uuidReference = new BrAPIExternalReference();
                 uuidReference.setReferenceSource(referenceSource);
@@ -137,7 +141,11 @@ public class V0_5_30__Migrate_brapi_germplasm extends BaseJavaMigration {
                 // Germplasm name = <Name> [<program key>-<accessionNumber>]
                 germplasm.setGermplasmName(String.format("%s [%s-%s]", germplasm.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
                 // Send germplasm back to server
-                api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm);
+                BrAPIGermplasm updatedGermplasm = api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm).getBody().getResult();
+                // Check that the germplasm was in fact updated
+                if (!isUpdated(updatedGermplasm, program, referenceSource)) {
+                    throw new Exception("Germplasm returned from brapi server was not updated. Check your brapi server.");
+                }
             }
         }
 
@@ -199,5 +207,41 @@ public class V0_5_30__Migrate_brapi_germplasm extends BaseJavaMigration {
                 .filter(reference -> reference.getReferenceSource().equals(referenceSource))
                 .count() >= 1;
         return hasAccessionNumber && hasNameFormatting && hasUUID;
+    }
+
+    private BreedingMethodEntity getMappedBreedingMethod(Context context, String breedingMethod) throws Exception {
+        String mappedBreedingMethod = "UNK";
+
+        Map<String, String> breedingMap = new HashMap<>();
+        breedingMap.put("biparental", "BPC");
+        breedingMap.put("self", "SLF");
+        breedingMap.put("open", "OFT");
+        breedingMap.put("backcross", "BCR");
+        breedingMap.put("sib", "BPC");
+        breedingMap.put("polycross", "POC");
+        breedingMap.put("reselected", "SBK");
+        breedingMap.put("bulk", "RBK");
+        breedingMap.put("bulk selfed", "SLF");
+        breedingMap.put("bulk and open pollinated", "OFT");
+        breedingMap.put("double haploid", "DHL");
+        breedingMap.put("reciprocal", "BPC");
+        breedingMap.put("multicross", "CCX");
+
+        if (breedingMethod != null && breedingMap.containsKey(breedingMethod.toLowerCase())) {
+            mappedBreedingMethod = breedingMap.get(breedingMethod.toLowerCase());
+        }
+
+        // Get the breeding method
+        try (Statement select = context.getConnection().createStatement()) {
+            try (ResultSet rows = select.executeQuery(String.format("SELECT id, name FROM breeding_method where abbreviation = '%s'", mappedBreedingMethod))) {
+                while (rows.next()) {
+                    BreedingMethodEntity foundBreedingMethod = new BreedingMethodEntity();
+                    foundBreedingMethod.setId(UUID.fromString(rows.getString(1)));
+                    foundBreedingMethod.setName(rows.getString(2));
+                    return foundBreedingMethod;
+                }
+            }
+        }
+        throw new Exception("Unable to find breeding method");
     }
 }
