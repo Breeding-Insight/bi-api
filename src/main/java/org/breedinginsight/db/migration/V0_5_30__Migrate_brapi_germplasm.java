@@ -117,7 +117,7 @@ public class V0_5_30__Migrate_brapi_germplasm extends BaseJavaMigration {
 
                 // Seed Source Description
                 if (germplasm.getSeedSourceDescription() == null || germplasm.getSeedSourceDescription().isBlank()) {
-                    germplasm.setSeedSourceDescription("Unknown");
+                    germplasm.setSeedSource("Unknown");
                 }
                 // Set createdBy user
                 Map<String, String> additionalInfo = new HashMap<>();
