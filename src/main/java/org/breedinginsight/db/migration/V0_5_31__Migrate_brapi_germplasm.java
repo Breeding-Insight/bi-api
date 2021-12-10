@@ -44,7 +44,7 @@ import java.util.*;
 /**
  * Example of a Java-based migration.
  */
-public class V0_5_30__Migrate_brapi_germplasm extends BaseJavaMigration {
+public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
 
     @Inject
     private DSLContext dsl;
