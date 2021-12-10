@@ -154,6 +154,9 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @MockBean(bean = EmailUtil.class)
     EmailUtil emailUtil() { return mock(EmailUtil.class); }
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     void setup() throws Exception {
 

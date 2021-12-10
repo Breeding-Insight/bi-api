@@ -74,6 +74,11 @@ public class GermplasmTemplateMap extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
+    @AfterAll
+    public void finish() {
+        super.stopContainers();
+    }
+
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();

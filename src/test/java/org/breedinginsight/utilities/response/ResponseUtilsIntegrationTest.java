@@ -75,6 +75,9 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     @Inject
     private UserDAO userDAO;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     // Set up program locations
     @BeforeAll
     @SneakyThrows
