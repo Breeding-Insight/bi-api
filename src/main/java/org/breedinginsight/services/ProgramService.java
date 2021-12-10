@@ -255,7 +255,11 @@ public class ProgramService {
 
     private boolean programNameInUse(String name) {
         List<Program> existingPrograms = dao.getProgramByName(name, true);
-        return !existingPrograms.isEmpty();
+        if (!existingPrograms.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private boolean programKeyInUse(String key) {

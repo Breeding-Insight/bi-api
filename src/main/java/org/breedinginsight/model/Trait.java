@@ -119,8 +119,8 @@ public class Trait extends TraitEntity {
 
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags, String fullName) {
         setBrAPIProperties(brApiVariable);
-        if (tags != null) this.tags = tags;
-        if (fullName != null) this.fullName = fullName;
+        this.tags = tags;
+        this.fullName = fullName;
     }
 
 }
