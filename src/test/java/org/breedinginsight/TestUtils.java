@@ -17,12 +17,26 @@
 
 package org.breedinginsight;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.client.RxHttpClient;
+import io.micronaut.http.netty.cookies.NettyCookie;
+import io.reactivex.Flowable;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.model.Program;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
+import static io.micronaut.http.HttpRequest.GET;
+import static io.micronaut.http.HttpRequest.POST;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestUtils {
@@ -115,5 +129,41 @@ public class TestUtils {
 
 
         }
+    }
+
+    public static Program insertAndFetchTestProgram(Gson gson, RxHttpClient client, ProgramRequest programRequest) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/", gson.toJson(programRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String programId = result.get("id").getAsString();
+
+        Program program = getProgramById(gson, client, UUID.fromString(programId));
+
+        return program;
+    }
+
+    public static Program getProgramById(Gson gson, RxHttpClient client, UUID programId) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        Program program = gson.fromJson(result, Program.class);
+
+        return program;
     }
 }

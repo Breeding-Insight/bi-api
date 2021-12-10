@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -29,6 +30,7 @@ import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
@@ -84,7 +86,11 @@ public class ProgramService {
             return Optional.empty();
         }
 
-        return Optional.of(programs.get(0));
+        Program program = programs.get(0);
+        BrAPIProgram brapiProgram = dao.getProgramBrAPI(program);
+        program.setBrAPIProperties(brapiProgram);
+
+        return Optional.of(program);
     }
 
     public List<Program> getAll(AuthenticatedUser actingUser){
@@ -98,8 +104,13 @@ public class ProgramService {
         return programs;
     }
 
-    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws UnprocessableEntityException {
+    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws AlreadyExistsException, UnprocessableEntityException {
         /* Create a program from a request object */
+
+        //Check that program name not already in use
+        if (programNameInUse(programRequest.getName())) {
+            throw new AlreadyExistsException("Program name already in use");
+        }
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
@@ -217,5 +228,15 @@ public class ProgramService {
 
         return dao.getProgramBrAPIEndpoints(programId);
     }
+
+    private boolean programNameInUse(String name) {
+        List<Program> existingPrograms = dao.getProgramByName(name, true);
+        if (!existingPrograms.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
 
 }

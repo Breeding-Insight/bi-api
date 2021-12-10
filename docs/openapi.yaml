@@ -133,10 +133,10 @@ paths:
                   email: bob@bob.com
                   active: true
                   systemRoles: [
-                  {
-                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                    domain: "admin"
-                  }
+                    {
+                      id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                      domain: "admin"
+                    }
                   ]
                   programRoles: []
         "400":
@@ -260,27 +260,27 @@ paths:
                   email: bob@bob.com
                   active: true
                   systemRoles: [
-                  {
-                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                    domain: "admin"
-                  }
+                    {
+                      id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                      domain: "admin"
+                    }
                   ]
                   programRoles: [
-                  {
-                    active: false,
-                    roles: [
                     {
-                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
-                      domain: member
+                      active: false,
+                      roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                      ],
+                      program: {
+                        id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                        name: Test Program1,
+                        abbreviation: test1,
+                        objective: To test all the things
+                      }
                     }
-                    ],
-                    program: {
-                      id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
-                      name: Test Program1,
-                      abbreviation: test1,
-                      objective: To test all the things
-                    }
-                  }
                   ]
         "400":
           description: Bad Request
@@ -362,27 +362,27 @@ paths:
                   email: bob@bob.com
                   active: true
                   systemRoles: [
-                  {
-                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                    domain: "admin"
-                  }
+                    {
+                      id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                      domain: "admin"
+                    }
                   ]
                   programRoles: [
-                  {
-                    active: true,
-                    roles: [
                     {
-                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
-                      domain: member
+                      active: true,
+                      roles: [
+                        {
+                          id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                          domain: member
+                        }
+                      ],
+                      program: {
+                        id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                        name: Test Program,
+                        abbreviation: test,
+                        objective: To test things
+                      }
                     }
-                    ],
-                    program: {
-                      id: 37935efa-4c0f-4269-8669-f78d21b26f04,
-                      name: Test Program,
-                      abbreviation: test,
-                      objective: To test things
-                    }
-                  }
                   ]
         "400":
           description: Bad Request
@@ -508,10 +508,10 @@ paths:
               $ref: '#/components/schemas/updateSystemRolesRequest'
             example:
               systemRoles: [
-              {
-                id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                domain: "admin"
-              }
+                {
+                  id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                  domain: "admin"
+                }
               ]
         required: true
       responses:
@@ -535,10 +535,10 @@ paths:
                   email: bob@bob.com
                   active: true
                   systemRoles: [
-                  {
-                    id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                    domain: "admin"
-                  }
+                    {
+                      id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                      domain: "admin"
+                    }
                   ]
                   programRoles: []
         "400":
@@ -1495,9 +1495,9 @@ paths:
                   coordinates: {
                     "geometry": {
                       "coordinates": [
-                        -76.506042,
-                        42.417373,
-                        123
+                          -76.506042,
+                          42.417373,
+                          123
                       ],
                       "type": "Point"
                     },
@@ -2142,6 +2142,7 @@ paths:
                       value: "value1"
                     - label: "test2"
                       value: "value2"
+                tags: ["favorites", "leaf length"]
         required: true
       responses:
         "200":
@@ -2271,6 +2272,7 @@ paths:
                       value: "value1"
                     - label: "test2"
                       value: "value2"
+                tags: ["favorites", "leaf length"]
         required: true
       responses:
         "200":
@@ -2316,6 +2318,13 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
+        "405":
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Trait has associated observations and cannot be updated
         "422":
           description: Multi-error UnprocessableEntity
           content:
@@ -2555,7 +2564,104 @@ paths:
                 type: string
               example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
                 not found
-
+  /programs/{programId}/traits/{traitId}/editable:
+    get:
+      tags:
+        - traits
+      summary: Check if a trait is editable
+      description: If observations are associated with trait, it is not editable
+      operationId: getTraitEditable
+      parameters:
+        - name: programId
+          in: path
+          description: Id of program to get trait in
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+        - name: traitId
+          in: path
+          description: Id of trait to get trait for
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/traitEditableResponse'
+              examples:
+                traitEditableResponse:
+                  $ref: '#/components/examples/editable'
+        "400":
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: string
+              example: |-
+                ERROR - 2018-10-08T20:15:11Z - Malformed JSON Request Object
+                ERROR - 2018-10-08T20:15:11Z - Invalid query parameter
+                ERROR - 2018-10-08T20:15:11Z - Required parameter is missing
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - Missing or expired authorization
+                token
+        "403":
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - User does not have permission
+                to perform this action
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                type: string
+              example: ERROR - 2018-10-08T20:15:11Z - The requested object DbId is
+                not found
+  /programs/{programId}/traits/tags:
+    get:
+      tags:
+        - traits
+      parameters:
+        - name: programId
+          in: path
+          description: The id of the program
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      summary: Get all tags used for traits in a program
+      description: Get all tags used for traits in a program
+      operationId: getTraitTags
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/tagsResponse'
+              examples:
+                tagsResponse:
+                  $ref: '#/components/examples/tagsResponse'
+        '401':
+          $ref: '#/components/responses/401Unauthorized'
+        "404":
+          $ref: '#/components/responses/404NotFound'
   /programs/{programId}/observation-levels:
     get:
       tags:
@@ -4307,6 +4413,22 @@ components:
           $ref: '#/components/schemas/metadata'
         result:
           $ref: '#/components/schemas/trait'
+    traitEditableResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          $ref: '#/components/schemas/editable'
+    editable:
+      type: object
+      properties:
+        editable:
+          type: boolean
+          description: Indicate if trait is editable
     trait:
       type: object
       properties:
@@ -4403,6 +4525,10 @@ components:
               type: integer
             validValueMin:
               type: integer
+        tags:
+          type: array
+          items:
+            type: string
     traitUploadResponse:
       required:
         - metadata
@@ -4584,6 +4710,10 @@ components:
               type: integer
             validValueMin:
               type: integer
+        tags:
+          type: array
+          items:
+            type: string
     arrayOfEditedTraits:
       type: array
       items:
@@ -4661,6 +4791,10 @@ components:
               type: integer
             validValueMin:
               type: integer
+        tags:
+          type: array
+          items:
+            type: string
     validatorErrorResponse:
       type: object
       properties:
@@ -4738,6 +4872,21 @@ components:
                   updatedAt:
                     type: string
                     format: datetime
+    tagsResponse:
+      required:
+        - metadata
+        - result
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/metadata'
+        result:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                type: string
   responses:
     "400BadRequest":
       description: Bad Request
@@ -5187,9 +5336,9 @@ components:
               coordinates: {
                 "geometry": {
                   "coordinates": [
-                    -76.506042,
-                    42.417373,
-                    123
+                      -76.506042,
+                      42.417373,
+                      123
                   ],
                   "type": "Point"
                 },
@@ -5229,9 +5378,9 @@ components:
               coordinates: {
                 "geometry": {
                   "coordinates": [
-                    -76.506042,
-                    42.417374,
-                    123
+                      -76.506042,
+                      42.417374,
+                      123
                   ],
                   "type": "Point"
                 },
@@ -5282,9 +5431,9 @@ components:
           coordinates: {
             "geometry": {
               "coordinates": [
-                -76.506042,
-                42.417374,
-                123
+                  -76.506042,
+                  42.417374,
+                  123
               ],
               "type": "Point"
             },
@@ -5308,66 +5457,67 @@ components:
         result:
           data:
             [
-            {
-              id: "00385063-01c8-4afc-a684-3c84b90b2de9",
-              traitName: "Test Trait",
-              active: true,
-              createdAt: "2020-06-04T11:05:48-04:00",
-              updatedAt: "2020-06-04T11:05:48-04:00",
-              traitClass: "morphological",
-              attribute: "height",
-              defaultValue: "defaultValue",
-              entity: "stalk",
-              mainAbbreviation: "t1",
-              abbreviations: ["t1","t2"],
-              synonyms: ["stalk height"],
-              programObservationLevel:
-                {
-                  id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
-                  name: "Plant",
-                  active: true,
-                  createdAt: "2020-06-04T11:05:48-04:00",
-                  updatedAt: "2020-06-04T11:05:48-04:00",
-                },
-              method:
-                {
-                  methodClass: "Counting"
-                },
-              scale:
-                {
-                  scaleName: "Test Scale",
-                  dataType: "TEXT",
-                  decimalPlaces: 3,
-                  categories:
-                    [
-                    {
-                      label: "test1",
-                      value: "value1"
-                    },
-                    {
-                      label: "test2",
-                      value: "value2"
-                    }
-                    ]
-                },
-              programOntology:
-                {
-                  id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
-                  programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
-                  createdAt: "2020-06-04T11:05:48-04:00",
-                  updatedAt: "2020-06-04T11:05:48-04:00"
-                },
-              createdByUser:
-                {
-                  name: "Tester",
-                  active: true
-                },
-              updatedByUser:
-                {
-                  name: "Tester",
-                  active: true
-                }
-            }
+              {
+                id: "00385063-01c8-4afc-a684-3c84b90b2de9",
+                traitName: "Test Trait",
+                active: true,
+                createdAt: "2020-06-04T11:05:48-04:00",
+                updatedAt: "2020-06-04T11:05:48-04:00",
+                traitClass: "morphological",
+                attribute: "height",
+                defaultValue: "defaultValue",
+                entity: "stalk",
+                mainAbbreviation: "t1",
+                abbreviations: ["t1","t2"],
+                synonyms: ["stalk height"],
+                programObservationLevel:
+                  {
+                    id: "71421c6a-19d4-4d82-858b-e3f70a9c7a02",
+                    name: "Plant",
+                    active: true,
+                    createdAt: "2020-06-04T11:05:48-04:00",
+                    updatedAt: "2020-06-04T11:05:48-04:00",
+                  },
+                method:
+                  {
+                    methodClass: "Counting"
+                  },
+                scale:
+                  {
+                    scaleName: "Test Scale",
+                    dataType: "TEXT",
+                    decimalPlaces: 3,
+                    categories:
+                      [
+                        {
+                          label: "test1",
+                          value: "value1"
+                        },
+                        {
+                          label: "test2",
+                          value: "value2"
+                        }
+                      ]
+                  },
+                programOntology:
+                  {
+                    id: "a9712526-85ca-4a47-afe6-974ce4abf6a9",
+                    programId: "c9caac57-3dcb-442b-b3e9-e01281fbf8bd",
+                    createdAt: "2020-06-04T11:05:48-04:00",
+                    updatedAt: "2020-06-04T11:05:48-04:00"
+                  },
+                createdByUser:
+                  {
+                    name: "Tester",
+                    active: true
+                  },
+                updatedByUser:
+                  {
+                    name: "Tester",
+                    active: true
+                  },
+                tags: ["leaf trait", "favorites"]
+              }
             ]
     singleTrait:
       value:
@@ -5412,14 +5562,14 @@ components:
                 decimalPlaces: 3,
                 categories:
                   [
-                  {
-                    label: "test1",
-                    value: "value1"
-                  },
-                  {
-                    label: "test2",
-                    value: "value2"
-                  }
+                    {
+                      label: "test1",
+                      value: "value1"
+                    },
+                    {
+                      label: "test2",
+                      value: "value2"
+                    }
                   ]
               },
             programOntology:
@@ -5438,7 +5588,22 @@ components:
               {
                 name: "Tester",
                 active: true
-              }
+              },
+            tags: ["leaf trait", "favorites"]
+          }
+    editable:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 1
+            pageSize: 1
+            totalCount: 1
+            totalPages: 1
+          status: []
+        result:
+          {
+            editable: true
           }
     traitUploadData:
       value:
@@ -5454,41 +5619,41 @@ components:
           type: "TRAIT"
           data:
             [
-            {
-              traitName: "Test Trait",
-              active: true,
-              programObservationLevel:
-                {
-                  name: "Plant",
-                },
-              method:
-                {
-                  methodClass: "Estimation",
-                  description: "Observed severity of Powdery Mildew on leaves",
-                  formula: "a^2 + b^2 = c^2"
-                },
-              scale:
-                {
-                  scaleName: "1-4 Parlier field response score",
-                  dataType: "ORDINAL",
-                  decimalPlaces: 2,
-                  categories:
-                    [
-                    {
-                      label: "test1",
-                      value: "value1"
-                    },
-                    {
-                      label: "test2",
-                      value: "value2"
-                    }
-                    ]
-                },
-              description: "A trait",
-              mainAbbreviation: "t1",
-              abbreviations: ["t1","t2"],
-              synonyms: ["stalk height"],
-            }
+              {
+                traitName: "Test Trait",
+                active: true,
+                programObservationLevel:
+                  {
+                    name: "Plant",
+                  },
+                method:
+                  {
+                    methodClass: "Estimation",
+                    description: "Observed severity of Powdery Mildew on leaves",
+                    formula: "a^2 + b^2 = c^2"
+                  },
+                scale:
+                  {
+                    scaleName: "1-4 Parlier field response score",
+                    dataType: "ORDINAL",
+                    decimalPlaces: 2,
+                    categories:
+                      [
+                        {
+                          label: "test1",
+                          value: "value1"
+                        },
+                        {
+                          label: "test2",
+                          value: "value2"
+                        }
+                      ]
+                  },
+                description: "A trait",
+                mainAbbreviation: "t1",
+                abbreviations: ["t1","t2"],
+                synonyms: ["stalk height"],
+              }
             ]
           program:
             {
@@ -5535,42 +5700,42 @@ components:
               email: bob.smith@mail.com
               active: true
               systemRoles: [
-              {
-                id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
-                domain: "admin"
-              }
+                {
+                  id: "d4f23375-0033-4d16-a62f-072e3a9198fa",
+                  domain: "admin"
+                }
               ]
               programRoles: [
-              {
-                active: false,
-                roles: [
                 {
-                  id: 20be0724-9451-46d5-a628-10fcb4a380e7,
-                  domain: member
-                }
-                ],
-                program: {
-                  id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
-                  name: Test Program1,
-                  abbreviation: test1,
-                  objective: To test all the things
-                }
-              },
-              {
-                active: true,
-                roles: [
+                  active: false,
+                  roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                  ],
+                  program: {
+                    id: c57225a8-6649-44e3-b2ec-7c0f84a31a11,
+                    name: Test Program1,
+                    abbreviation: test1,
+                    objective: To test all the things
+                  }
+                },
                 {
-                  id: 20be0724-9451-46d5-a628-10fcb4a380e7,
-                  domain: member
+                  active: true,
+                  roles: [
+                    {
+                      id: 20be0724-9451-46d5-a628-10fcb4a380e7,
+                      domain: member
+                    }
+                  ],
+                  program: {
+                    id: 37935efa-4c0f-4269-8669-f78d21b26f04,
+                    name: Test Program,
+                    abbreviation: test,
+                    objective: To test things
+                  }
                 }
-                ],
-                program: {
-                  id: 37935efa-4c0f-4269-8669-f78d21b26f04,
-                  name: Test Program,
-                  abbreviation: test,
-                  objective: To test things
-                }
-              }
               ]
             - id: a2263532-1fa3-29a6-3a66-557f313c8ed6
               orcid: 1234-4312-4352-6314
@@ -5599,7 +5764,21 @@ components:
               name: Plot
               createdAt: "2020-06-04T11:05:48-04:00"
               updatedAt: "2020-06-04T11:05:48-04:00"
-
+    tagsResponse:
+      value:
+        metadata:
+          datafiles: []
+          pagination:
+            currentPage: 1
+            pageSize: 1
+            totalCount: 3
+            totalPages: 1
+          status: []
+        result:
+          data:
+            - "favorites"
+            - "leaf trait"
+            - "stem trait"
   parameters:
     page:
       description: 'Used to request a specific page of data to be returned.

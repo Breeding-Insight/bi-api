@@ -17,10 +17,7 @@
 
 package org.breedinginsight.api.auth.rules;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -39,15 +36,20 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
+import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -71,8 +73,14 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
     private ProgramDAO programDAO;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private SpeciesService speciesService;
 
-    private Gson gson = new Gson();
+    private Species validSpecies;
+
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
 
     @BeforeAll
     void setup() {
@@ -80,6 +88,20 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
         brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
+
+        validSpecies = getTestSpecies();
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest program = ProgramRequest.builder()
+                .name("Test Program")
+                .species(speciesRequest)
+                .build();
+
+        insertTestProgram(program);
 
         dsl.execute(fp.get("InsertPrograms"));
         programs = programDAO.getAll();
@@ -93,6 +115,22 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
         dsl.execute(fp.get("InsertProgramRolesBreeder"), otherTestUser.getId().toString(), programs.get(0).getId());
         dsl.execute(fp.get("InsertProgramRolesBreeder"), otherTestUser.getId().toString(), programs.get(1).getId());
 
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
+    }
+
+    public void insertTestProgram(ProgramRequest programRequest) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/", gson.toJson(programRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
     }
 
     @Test
@@ -189,7 +227,7 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
         assertTrue(result.size() >= 1, "Wrong number of programs");
 
         JsonArray data = result.getAsJsonArray("data");
-        assertEquals(4, data.size(), "Wrong number of programs returned");
+        assertEquals(5, data.size(), "Wrong number of programs returned");
     }
 
     @Test

@@ -18,9 +18,12 @@
 package org.breedinginsight.services;
 
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -47,6 +50,7 @@ public class TraitService {
     private TraitDAO traitDAO;
     private MethodDAO methodDAO;
     private ScaleDAO scaleDAO;
+    private ObservationDAO observationDAO;
     private ProgramService programService;
     private ProgramOntologyService programOntologyService;
     private ProgramObservationLevelService programObservationLevelService;
@@ -55,13 +59,16 @@ public class TraitService {
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
 
+    private final static String FAVORITES_TAG = "favorites";
+
     @Inject
-    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramService programService,
+    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
                         UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
+        this.observationDAO = observationDao;
         this.programService = programService;
         this.programOntologyService = programOntologyService;
         this.programObservationLevelService = programObservationLevelService;
@@ -106,6 +113,18 @@ public class TraitService {
         }
 
        return traitDAO.getTraitFull(programId, traitId);
+    }
+
+    public Editable getEditable(UUID programId, UUID traitId) {
+        // BrAPIService filter now checks program exists so don't need to do explicitly
+
+        // check if trait exists
+        if (!exists(traitId)) {
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "traitId does not exist");
+        }
+
+        List<BrAPIObservation> observations = traitDAO.getObservationsForTrait(traitId);
+        return Editable.builder().editable(observations.isEmpty()).build();
     }
 
     public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
@@ -310,7 +329,7 @@ public class TraitService {
     }
 
     public List<Trait> updateTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
-            throws DoesNotExistException, ValidatorException {
+            throws DoesNotExistException, HttpStatusException, ValidatorException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
         if (!optionalProgram.isPresent()) {
@@ -345,6 +364,15 @@ public class TraitService {
 
         if (missingTraitValidationErrors.hasErrors()) {
             throw new ValidatorException(missingTraitValidationErrors);
+        }
+
+        // check if any of the traits have associated observations
+        List<UUID> ids = traits.stream()
+                .map(trait -> trait.getId())
+                .collect(Collectors.toList());
+
+        if (!traitDAO.getObservationsForTraits(ids).isEmpty()) {
+            throw new HttpStatusException(HttpStatus.METHOD_NOT_ALLOWED, "Observations exist for trait, cannot edit");
         }
 
         // Create the traits
@@ -415,5 +443,26 @@ public class TraitService {
         Trait fullTrait = traitDAO.getTraitFull(programId, traitId).get();
         fullTrait.setActive(active);
         return traitDAO.updateTraitBrAPI(fullTrait, program);
+    }
+
+    public boolean exists(UUID traitId) {
+        return traitDAO.existsById(traitId);
+    }
+
+    public List<String> getAllTraitTags(UUID programId) {
+
+        // Get all traits
+        List<Trait> traits = traitDAO.getTraitsFullByProgramId(programId);
+
+        // Parse out tags into unique list
+        Set<String> tags = new HashSet<>();
+        for (Trait trait: traits) {
+            if (trait.getTags() != null) {
+                tags.addAll(trait.getTags());
+            }
+        }
+
+        tags.add(FAVORITES_TAG);
+        return new ArrayList<>(tags);
     }
 }

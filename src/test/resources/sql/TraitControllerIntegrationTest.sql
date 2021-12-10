@@ -21,6 +21,11 @@ insert into program (species_id, name, abbreviation, documentation_url, objectiv
 select species.id, 'Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
 join bi_user on bi_user.name = 'system' limit 1
 
+-- name: InsertProgramNotBrapi
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
+select species.id, 'Test Program Not Brapi', 'testnotbrapi', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+join bi_user on bi_user.name = 'system' limit 1
+
 -- name: InsertProgramObservationLevel
 insert into program_observation_level(program_id, name, created_by, updated_by)
 select program.id, 'Plant', bi_user.id, bi_user.id from program

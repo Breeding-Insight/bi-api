@@ -17,6 +17,7 @@
 
 package org.breedinginsight.daos;
 
+import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.ApiResponse;
@@ -25,22 +26,25 @@ import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
+import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
-import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
+import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
 import static org.jooq.impl.DSL.row;
 import static org.jooq.impl.DSL.values;
 
@@ -51,12 +55,18 @@ public class TraitDAO extends TraitDao {
     private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+    private ObservationDAO observationDao;
+    private Gson gson;
+
+    private final static String TAGS_KEY = "tags";
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
+        this.observationDao = observationDao;
+        this.gson = new Gson();
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -81,7 +91,7 @@ public class TraitDAO extends TraitDao {
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
+            brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
             throw new InternalServerException("Error making BrAPI call", e);
         }
@@ -101,14 +111,7 @@ public class TraitDAO extends TraitDao {
             // assumes external reference id is unique to each brapi variable
             if (brApiVariableMap.containsKey(trait.getId().toString())){
                 BrAPIObservationVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
-                trait.setBrAPIProperties(brApiVariable);
-
-                Method method = trait.getMethod();
-                method.setBrAPIProperties(brApiVariable.getMethod());
-
-                Scale scale = trait.getScale();
-                scale.setBrAPIProperties(brApiVariable.getScale());
-
+                saturateTrait(trait, brApiVariable);
                 saturatedTraits.add(trait);
             } else {
                 throw new InternalServerException("Could not find trait in returned brapi server results");
@@ -172,7 +175,7 @@ public class TraitDAO extends TraitDao {
                 .externalReferenceID(traitId.toString())
                 .externalReferenceSource(referenceSource);
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(BrAPIClientType.PHENO).variablesGet(variablesRequest);
+            brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
             // If variable is not found, is still a server exception
             throw new InternalServerException("Error making BrAPI call", e);
@@ -185,16 +188,49 @@ public class TraitDAO extends TraitDao {
             throw new InternalServerException("No variable found in brapi server");
         }
 
-        dbTrait.setBrAPIProperties(brApiVariable);
-        Method method = dbTrait.getMethod();
-        method.setBrAPIProperties(brApiVariable.getMethod());
-        dbTrait.setMethod(method);
-
-        Scale scale = dbTrait.getScale();
-        scale.setBrAPIProperties(brApiVariable.getScale());
-        dbTrait.setScale(scale);
-
+        saturateTrait(dbTrait, brApiVariable);
         return Optional.of(dbTrait);
+    }
+
+    // could be more efficient to do a single get instead of search in saved search case but less code this way
+    // and search stuff is working in breedbase
+    public List<BrAPIObservation> getObservationsForTrait(UUID traitId) {
+        return getObservationsForTraits(Stream.of(traitId).collect(Collectors.toList()));
+    }
+
+    public List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds) {
+
+        List<String> ids = traitIds.stream()
+                .map(trait -> trait.toString())
+                .collect(Collectors.toList());
+
+        List<BrAPIObservationVariable> variables = searchVariables(ids);
+
+        // TODO: make sure have all expected external references
+        if (variables.size() != ids.size()) {
+            throw new InternalServerException("Observation variables search results mismatch");
+        }
+
+        List<String> brapiVariableIds = variables.stream()
+                .map(variable -> variable.getObservationVariableDbId()).collect(Collectors.toList());
+
+        return observationDao.getObservationsByVariableDbIds(brapiVariableIds);
+    }
+
+    public List<BrAPIObservationVariable> searchVariables(List<String> variableIds) {
+        try {
+            BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
+                    .externalReferenceIDs(variableIds);
+
+            ObservationVariablesApi api = brAPIProvider.getVariablesAPI(PHENO);
+            return BrAPIDAOUtil.search(
+                    api::searchVariablesPost,
+                    api::searchVariablesSearchResultsDbIdGet,
+                    request
+            );
+        } catch (ApiException e) {
+            throw new InternalServerException("Observation variables brapi search error", e);
+        }
     }
 
     public Optional<Trait> getTrait(UUID programId, UUID traitId) {
@@ -281,6 +317,7 @@ public class TraitDAO extends TraitDao {
                     .synonyms(trait.getSynonyms())
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
+            brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
 
             if (trait.getActive() == null || trait.getActive()){
                 brApiVariable.setStatus("active");
@@ -326,11 +363,7 @@ public class TraitDAO extends TraitDao {
                         if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
                                 brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
 
-                            trait.setBrAPIProperties(variable);
-                            Method method = trait.getMethod();
-                            method.setBrAPIProperties(variable.getMethod());
-                            Scale scale = trait.getScale();
-                            scale.setBrAPIProperties(variable.getScale());
+                            saturateTrait(trait, variable);
                         }
                     }
                 }
@@ -385,6 +418,7 @@ public class TraitDAO extends TraitDao {
             } else {
                 existingVariable.setStatus("archived");
             }
+            existingVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
 
 
             // PUT brapi trait
@@ -392,11 +426,7 @@ public class TraitDAO extends TraitDao {
 
             // Retrieve our update trait from the db
             updatedTrait = getTrait(program.getId(), trait.getId()).get();
-            updatedTrait.setBrAPIProperties(updatedVariable);
-            Method method = updatedTrait.getMethod();
-            method.setBrAPIProperties(updatedVariable.getMethod());
-            Scale scale = updatedTrait.getScale();
-            scale.setBrAPIProperties(updatedVariable.getScale());
+            saturateTrait(updatedTrait, updatedVariable);
         }
 
         return updatedTrait;
@@ -520,6 +550,26 @@ public class TraitDAO extends TraitDao {
         }
 
         return traitResults;
+    }
+
+    private void saturateTrait(Trait trait, BrAPIObservationVariable brApiVariable) {
+
+        if (brApiVariable.getAdditionalInfo() != null &&
+                brApiVariable.getAdditionalInfo().has(TAGS_KEY)) {
+            // Prevents BrAPI server from failing the tags load
+            if (!brApiVariable.getAdditionalInfo().get(TAGS_KEY).isJsonNull()) {
+                List<String> tags = gson.fromJson(brApiVariable.getAdditionalInfo().getAsJsonArray(TAGS_KEY), List.class);
+                trait.setBrAPIProperties(brApiVariable, tags);
+            }
+        } else {
+            trait.setBrAPIProperties(brApiVariable);
+        }
+
+        Method method = trait.getMethod();
+        method.setBrAPIProperties(brApiVariable.getMethod());
+
+        Scale scale = trait.getScale();
+        scale.setBrAPIProperties(brApiVariable.getScale());
     }
 
 }
