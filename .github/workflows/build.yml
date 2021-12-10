@@ -45,7 +45,7 @@ jobs:
           java-version: 13
 
       - name: Build with Maven
-        run: mvn validate -B flyway:migrate clean install --file pom.xml --settings settings.xml -Djvm.options=-Xmx5000
+        run: mvn validate -B flyway:migrate clean install --file pom.xml --settings settings.xml -Djvm.options=-Xmx5000m
         env:
           DB_USER: postgres
           DB_PASSWORD: postgres
