@@ -91,6 +91,9 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     private Program validProgram;
     private Program otherValidProgram;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {

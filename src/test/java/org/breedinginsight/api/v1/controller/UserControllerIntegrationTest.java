@@ -100,6 +100,9 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     private SystemRoleEntity validSystemRole;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     void setup() {
 

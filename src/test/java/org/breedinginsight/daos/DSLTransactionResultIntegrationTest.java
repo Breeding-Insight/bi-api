@@ -28,6 +28,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DSLContext;
 import org.jooq.exception.DataAccessException;
 import org.jooq.impl.DSL;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -56,6 +57,9 @@ public class DSLTransactionResultIntegrationTest extends DatabaseTest {
     private UserService userService;
 
     private User actingUser;
+
+    @AfterAll
+    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     void setup() throws Exception {

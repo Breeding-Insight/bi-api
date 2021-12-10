@@ -83,6 +83,9 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
 
     private ProgramEntity validProgram;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {
