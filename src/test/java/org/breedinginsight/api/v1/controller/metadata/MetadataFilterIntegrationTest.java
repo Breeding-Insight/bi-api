@@ -66,6 +66,11 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         return mock(UserController.class);
     }
 
+    @AfterAll
+    public void finish() {
+        super.stopContainers();
+    }
+
     @Test
     public void getSingleResponseNoMetadataSuccess() {
 
