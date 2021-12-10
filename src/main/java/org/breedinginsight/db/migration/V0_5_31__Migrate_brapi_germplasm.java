@@ -67,7 +67,6 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
         // Get all of the germplasm with a program id attached
         Map<String, List<BrAPIGermplasm>> programGermplasm = new HashMap<>();
         for (Program program : programs) {
-            System.out.println(String.format("id=%s and brapi_url=%s", program.getId(), program.getBrapiUrl()));
             BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
             GermplasmApi api = new GermplasmApi(client);
 
@@ -115,6 +114,7 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
             GermplasmApi api = new GermplasmApi(client);
             for (int i = 0; i < allGermplasm.size(); i++) {
                 BrAPIGermplasm germplasm = allGermplasm.get(i);
+                System.out.println(String.format("Program Key: %s. Germplasm %s out of %s", program.getKey(), i+1, allGermplasm.size()));
 
                 // Seed Source Description
                 if (germplasm.getSeedSourceDescription() == null || germplasm.getSeedSourceDescription().isBlank()) {
@@ -148,8 +148,6 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
                 }
             }
         }
-
-        throw new Exception("NOOO!");
     }
 
     private Integer getNextSequenceVal(Context context, Program program) throws Exception {

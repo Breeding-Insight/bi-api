@@ -106,6 +106,7 @@ flyway:
       placeholders:
         default-url: ${brapi.server.default-url}
         brapi-reference-source: ${brapi.server.reference-source}
+      out-of-order: true
 jooq:
   datasources:
     default:
