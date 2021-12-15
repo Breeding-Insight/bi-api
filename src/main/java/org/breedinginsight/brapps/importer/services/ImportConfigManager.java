@@ -136,6 +136,7 @@ public class ImportConfigManager {
         fieldConfig.setDescription(metadata.description());
         fieldConfig.setType(type.type());
         fieldConfig.setRequired(required != null);
+        fieldConfig.setCollectTime(type.collectTime());
         return fieldConfig;
     }
 

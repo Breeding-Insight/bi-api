@@ -26,6 +26,7 @@ import java.lang.annotation.Target;
 @Target(ElementType.FIELD)
 public @interface ImportFieldType {
     ImportFieldTypeEnum type();
+    ImportCollectTimeEnum collectTime() default ImportCollectTimeEnum.MAPPING;
     // Indicates class type of list objects
     Class clazz() default Object.class;
 }
