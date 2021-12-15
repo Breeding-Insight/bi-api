@@ -31,6 +31,7 @@ import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
@@ -39,6 +40,7 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.UnsupportedTypeException;
 
 import javax.inject.Inject;
+import java.util.Map;
 import java.util.UUID;
 
 @Slf4j
@@ -108,10 +110,10 @@ public class UploadController {
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                             @PathVariable UUID uploadId) {
+                                                             @PathVariable UUID uploadId, @Body Map<String, Object> userInput) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, true);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, true);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
@@ -134,10 +136,10 @@ public class UploadController {
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                              @PathVariable UUID uploadId) {
+                                                              @PathVariable UUID uploadId, @Body Map<String, Object> userInput) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, false);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, false);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {

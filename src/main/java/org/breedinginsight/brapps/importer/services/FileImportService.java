@@ -60,10 +60,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -322,7 +319,7 @@ public class FileImportService {
         return response;
     }
 
-    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Boolean commit) throws
+    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
             DoesNotExistException, UnprocessableEntityException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
@@ -369,7 +366,7 @@ public class FileImportService {
         importDAO.update(upload);
         // Redo the mapping
         //TODO: Get better errors for these
-        List<BrAPIImport> brAPIImportList = mappingManager.map(mappingConfig, data);
+        List<BrAPIImport> brAPIImportList = mappingManager.map(mappingConfig, data, userInput);
 
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
