@@ -136,10 +136,10 @@ public class UploadController {
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                              @PathVariable UUID uploadId, @Body Map<String, Object> userInput) {
+                                                              @PathVariable UUID uploadId) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, false);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, null, false);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {

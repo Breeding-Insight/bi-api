@@ -366,7 +366,23 @@ public class FileImportService {
         importDAO.update(upload);
         // Redo the mapping
         //TODO: Get better errors for these
-        List<BrAPIImport> brAPIImportList = mappingManager.map(mappingConfig, data, userInput);
+        List<BrAPIImport> brAPIImportList;
+        try {
+            if (commit) {
+                brAPIImportList = mappingManager.map(mappingConfig, data, userInput);
+            } else {
+                brAPIImportList = mappingManager.map(mappingConfig, data);
+            }
+        } catch (UnprocessableEntityException e) {
+            log.error(e.getMessage());
+            ImportProgress progress = upload.getProgress();
+            progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+            progress.setMessage(e.getMessage());
+            progress.setUpdatedBy(actingUser.getId());
+            importDAO.update(upload);
+            throw e;
+        }
+
 
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
