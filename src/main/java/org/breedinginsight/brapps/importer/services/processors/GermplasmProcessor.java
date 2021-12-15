@@ -24,12 +24,16 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -60,6 +64,7 @@ public class GermplasmProcessor implements Processor {
 
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
     private BreedingMethodDAO breedingMethodDAO;
+    private BrAPIListDAO brAPIListDAO;
     private DSLContext dsl;
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
@@ -75,6 +80,7 @@ public class GermplasmProcessor implements Processor {
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers.";
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static String circularDependency = "Circular dependency in the pedigree tree";
+    public static String listNameAlreadyExists = "Import group name already exists";
     public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
         List<String> lstCopy = new ArrayList<>(lst);
         Collections.sort(lstCopy);
@@ -82,10 +88,11 @@ public class GermplasmProcessor implements Processor {
     };
 
     @Inject
-    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO, DSLContext dsl, BreedingMethodDAO breedingMethodDAO) {
+    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO) {
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
+        this.brAPIListDAO = brAPIListDAO;
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
@@ -134,6 +141,23 @@ public class GermplasmProcessor implements Processor {
             }
         }
 
+        // Check for existing germplasm lists
+        Boolean listNameDup = false;
+        if (importRows.size() > 0) {
+            try {
+                GermplasmImport row = (GermplasmImport) importRows.get(0);
+                String listName = row.getListName();
+                List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
+                for (BrAPIListSummary existingList: existingLists) {
+                    if (existingList.getListName().equals(listName)) {
+                        listNameDup = true;
+                    }
+                }
+            } catch (ApiException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
         // Parent reference checks
         if (missingDbIds.size() > 0) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
@@ -162,11 +186,25 @@ public class GermplasmProcessor implements Processor {
                     String.format(missingParentalEntryNoMsg,
                             arrayOfStringFormatter.apply(missingEntryNumbers)));
         }
+
+        if (listNameDup) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, listNameAlreadyExists);
+        }
     }
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
                         Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
+
+        // TODO: Validate uniqueness of germplasm list
+        // TODO: Update name of list to <Name> [<program key>-germplasm]
+        // TODO: Update brapi mapper to reflect user inputs
+        // TODO: Save germplaasm list
+
+        // TODO: Dup name test
+        // TODO: Missing required fields tests
+        // TODO: Name and description success
+        // TODO: Name only success
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
