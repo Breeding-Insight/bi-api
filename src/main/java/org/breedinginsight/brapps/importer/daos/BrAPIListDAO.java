@@ -1,12 +1,19 @@
 package org.breedinginsight.brapps.importer.daos;
 
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.ListsApi;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
+import org.brapi.v2.model.BrAPIResponse;
+import org.brapi.v2.model.BrAPIResponseResult;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
@@ -34,5 +41,17 @@ public class BrAPIListDAO {
                 api::searchListsSearchResultsDbIdGet,
                 listSearch
         );
+    }
+
+    public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
+        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
+        // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
+        ApiResponse response =  api.listsPost(brapiLists);
+        if (response.getBody() == null) throw new ApiException("Response is missing body");
+        BrAPIResponse body = (BrAPIResponse) response.getBody();
+        if (body.getResult() == null) throw new ApiException("Response body is missing result");
+        BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
+        if (result.getData() == null) throw new ApiException("Response result is missing data");
+        return result.getData();
     }
 }

@@ -25,11 +25,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.BrAPIList;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -73,6 +76,7 @@ public class GermplasmProcessor implements Processor {
     List<BrAPIGermplasm> existingGermplasms;
     List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
+    BrAPIListNewRequest importList = new BrAPIListNewRequest();
 
     public static String missingParentalDbIdsMsg = "The following parental db ids were not found in the database: %s.";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
@@ -146,7 +150,7 @@ public class GermplasmProcessor implements Processor {
         if (importRows.size() > 0) {
             try {
                 GermplasmImport row = (GermplasmImport) importRows.get(0);
-                String listName = row.getListName();
+                String listName = BrAPIList.constructGermplasmListName(row.getListName(), program);
                 List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
@@ -196,16 +200,6 @@ public class GermplasmProcessor implements Processor {
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
                         Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
 
-        // TODO: Validate uniqueness of germplasm list
-        // TODO: Update name of list to <Name> [<program key>-germplasm]
-        // TODO: Update brapi mapper to reflect user inputs
-        // TODO: Save germplaasm list
-
-        // TODO: Dup name test
-        // TODO: Missing required fields tests
-        // TODO: Name and description success
-        // TODO: Name only success
-
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
         if (germplasmSequenceName == null) {
@@ -215,6 +209,15 @@ public class GermplasmProcessor implements Processor {
         Supplier<BigInteger> nextVal = () -> dsl.nextval(program.getGermplasmSequence());
 
         // Create new objects
+
+        // Assign list name and description
+        GermplasmImport firstRow = (GermplasmImport) importRows.get(0);
+        BrAPIList brAPIList = new BrAPIList();
+        brAPIList.setListName(firstRow.getListName());
+        brAPIList.setListDescription(firstRow.getListDescription());
+        brAPIList.setListType(BrAPIListTypes.GERMPLASM);
+        importList = brAPIList.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
+
         // All rows are considered new germplasm, we don't check for duplicates
         newGermplasmList = new ArrayList<>();
         Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
@@ -261,6 +264,7 @@ public class GermplasmProcessor implements Processor {
 
                 newGermplasmList.add(newGermplasm);
                 mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+                importList.addDataItem(newGermplasm.getGermplasmName());
             } else {
                 mappedImportRow.setGermplasm(null);
             }
@@ -375,6 +379,9 @@ public class GermplasmProcessor implements Processor {
                 for (List<BrAPIGermplasm> postGroup: postOrder){
                     createdGermplasm.addAll(brAPIGermplasmDAO.createBrAPIGermplasm(postGroup, program.getId(), upload));
                 }
+
+                // Create germplasm list
+                brAPIListDAO.createBrAPILists(List.of(importList), program.getId(), upload);
             } catch (ApiException e) {
                 throw new InternalServerException(e.toString(), e);
             }
@@ -391,6 +398,9 @@ public class GermplasmProcessor implements Processor {
                 entry.getValue().getGermplasm().setBrAPIObject(createdGermplasmMap.get(germplasmName));
             }
         }
+
+
+
 
     }
 
