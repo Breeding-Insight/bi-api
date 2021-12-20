@@ -15,11 +15,13 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapps.importer.model.base.BrAPIList;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.MappingManager;
@@ -60,6 +62,8 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
+    @Property(name = "brapi.server.core-url")
+    private String BRAPI_URL;
 
     @Inject
     private SpeciesService speciesService;
@@ -153,13 +157,19 @@ public class GermplasmTemplateMap extends BrAPITest {
     // Preview, non-preview fields not shown
     // Male db, no female db id, pedigree string is null
     // Circular parent dependency
+    // Name and description success
+    // Name only success
+    // Dup list name test
+    // Missing required fields tests
 
     @Test
     @SneakyThrows
     @Order(1)
     public void minimalImportUserSpecifiedEntryNumbersSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/minimal_germplasm_import.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        String listName = "MinimalList";
+        String listDescription = null;
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -169,10 +179,15 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> germplasmNames = new ArrayList<>();
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
             assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsString(), "Wrong entry number");
         }
+
+        // Check the germplasm list
+        checkGermplasmList(BrAPIList.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
     }
 
     @Test
@@ -181,8 +196,10 @@ public class GermplasmTemplateMap extends BrAPITest {
     public void fullImportPreviewSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
         Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
+        String listName = "FullList";
+        String listDescription = "A full import";
 
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, false);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, false);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -233,7 +250,9 @@ public class GermplasmTemplateMap extends BrAPITest {
         File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
         Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
 
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        String listName = "FullList";
+        String listDescription = "A full import";
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -245,8 +264,10 @@ public class GermplasmTemplateMap extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         List<String> femaleParents = List.of("Germplasm 1", "Germplasm 2", "Full Germplasm 1");
         List<String> maleParents = List.of("Germplasm 2", "", "Full Germplasm 2");
+        List<String> germplasmNames = new ArrayList<>();
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
             checkBasicResponse(germplasm, fileData, i);
 
             // Check commit specific items
@@ -282,6 +303,9 @@ public class GermplasmTemplateMap extends BrAPITest {
             }
             assertTrue(referenceFound, "Germplasm UUID reference not found");
         }
+
+        // TODO: Reintroduce with 1251 fix
+        //checkGermplasmList(GermplasmProcessor.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
     }
 
     @Test
@@ -289,7 +313,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     public void NoFemaleParentBlankPedigreeStringSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/no_female_parent_blank_pedigree.csv");
 
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "NoFemaleParentList", null, true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -307,9 +331,39 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Test
     @SneakyThrows
+    public void missingRequiredUserInput() {
+        File file = new File("src/test/resources/files/germplasm_import/female_dbid_not_exist.csv");
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, null, null,true);
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+        assertEquals(String.format(MappingManager.missingUserInput, "Import Group Name"), e.getMessage());
+    }
+
+    @Test
+    @SneakyThrows
+    public void germplasmListNameDuplicateError() {
+        File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
+        Table fileData = Table.read().file("src/test/resources/files/germplasm_import/full_import.csv");
+
+        String listName = "FullList";
+        String listDescription = "A full import";
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+        assertEquals(GermplasmProcessor.listNameAlreadyExists, result.getAsJsonObject("progress").get("message").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
     public void femaleParentDbIdNotExistError() {
         File file = new File("src/test/resources/files/germplasm_import/female_dbid_not_exist.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -326,7 +380,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     @SneakyThrows
     public void femaleParentEntryNumberNotExistError() {
         File file = new File("src/test/resources/files/germplasm_import/female_entry_number_not_exist.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -343,7 +397,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     @SneakyThrows
     public void maleParentDbIdNotExistError() {
         File file = new File("src/test/resources/files/germplasm_import/male_dbid_not_exist.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -360,7 +414,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     @SneakyThrows
     public void maleParentEntryNumberNotExistError() {
         File file = new File("src/test/resources/files/germplasm_import/male_entry_number_not_exist.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -377,7 +431,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     @SneakyThrows
     public void badBreedingMethods() {
         File file = new File("src/test/resources/files/germplasm_import/bad_breeding_methods.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -395,7 +449,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     @SneakyThrows
     public void someEntryNumbersError() {
         File file = new File("src/test/resources/files/germplasm_import/some_entry_numbers.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -410,7 +464,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     @SneakyThrows
     public void duplicateEntryNumbersError() {
         File file = new File("src/test/resources/files/germplasm_import/duplicate_entry_numbers.csv");
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -512,7 +566,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     public void circularParentDependencyError() {
         File file = new File("src/test/resources/files/germplasm_import/circular_parent_dependencies.csv");
         MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -528,7 +582,7 @@ public class GermplasmTemplateMap extends BrAPITest {
     public void selfReferenceParentError() {
         File file = new File("src/test/resources/files/germplasm_import/self_ref_parent_dependencies.csv");
         MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
-        Flowable<HttpResponse<String>> call = uploadDataFile(file, true);
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, "Bad List", null,true);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -539,7 +593,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(GermplasmProcessor.circularDependency, result.getAsJsonObject("progress").get("message").getAsString());
     }
 
-    public Flowable<HttpResponse<String>> uploadDataFile(File file, Boolean commit) {
+    public Flowable<HttpResponse<String>> uploadDataFile(File file, String listName, String listDescription, Boolean commit) {
         MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
 
         // Upload file
@@ -556,8 +610,11 @@ public class GermplasmTemplateMap extends BrAPITest {
 
         // Process data
         String url = String.format("/programs/%s/import/mappings/%s/data/%s/%s", validProgram.getId(), germplasmImportId, importId, commit ? "commit" : "preview");
+        Map<String, String> listBody = new HashMap<>();
+        listBody.put("germplasmListName", listName);
+        listBody.put("germplasmListDescription", listDescription);
         Flowable<HttpResponse<String>> processCall = client.exchange(
-                PUT(url, new HashMap<>())
+                PUT(url, listBody)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
         return processCall;
@@ -617,4 +674,63 @@ public class GermplasmTemplateMap extends BrAPITest {
         }
         assertEquals(expectedReferences.size(), referencesFound, "Not all expected references were returned");
     }
+
+    public void checkGermplasmList(String listName, String listDescription, List<String> germplasmNames) {
+        String url = String.format("%sbrapi/v2/lists", BRAPI_URL);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(url)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        Boolean nameFound = false;
+        Boolean descriptionFound = false;
+        String listId = null;
+        for (JsonElement listElement: data) {
+            JsonObject listObject = listElement.getAsJsonObject();
+            if (listObject.get("listName").getAsString().equals(listName)) {
+                nameFound = true;
+                listId = listObject.get("listDbId").getAsString();
+                assertEquals(BrAPIListTypes.GERMPLASM.toString(), listObject.get("listType").getAsString(), "Wrong list type");
+            }
+            if (listObject.has("listDescription") && !listObject.get("listDescription").isJsonNull()
+                    && listObject.get("listDescription").getAsString().equals(listDescription)) {
+                descriptionFound = true;
+            }
+        }
+
+        // Check
+        assertTrue(nameFound, "List was not found in the brapi service");
+        if (listDescription != null) {
+            assertTrue(descriptionFound, "List description was not found in the brapi service.");
+        }
+
+        // Check that the germplasm names were saved
+        if (listId != null) {
+            String detailsUrl = String.format("%sbrapi/v2/lists/%s", BRAPI_URL, listId);
+            Flowable<HttpResponse<String>> detailCall = client.exchange(
+                    GET(detailsUrl)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+            );
+            HttpResponse<String> detailResponse = detailCall.blockingFirst();
+            JsonObject detailResult = JsonParser.parseString(detailResponse.body()).getAsJsonObject().getAsJsonObject("result");
+            JsonArray germplasmList = detailResult.getAsJsonArray("data");
+            List<Boolean> found = new ArrayList<>();
+            for (String germplasmName: germplasmNames) {
+                for (JsonElement listElement: germplasmList) {
+                    if (listElement.getAsString().equals(germplasmName)) {
+                        found.add(true);
+                        break;
+                    }
+                }
+            }
+            assertEquals(germplasmNames.size(), germplasmList.size(), "Wrong number of germplasm found in the list");
+            assertTrue(!found.contains(false), "Some germplasm names were not found in saved list");
+        }
+
+    }
+
 }
