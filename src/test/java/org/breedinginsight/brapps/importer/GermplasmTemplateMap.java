@@ -22,6 +22,7 @@ import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapps.importer.model.base.BrAPIList;
+import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.MappingManager;
@@ -187,7 +188,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         }
 
         // Check the germplasm list
-        checkGermplasmList(BrAPIList.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+        checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
     }
 
     @Test

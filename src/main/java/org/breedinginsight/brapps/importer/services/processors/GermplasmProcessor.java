@@ -147,10 +147,10 @@ public class GermplasmProcessor implements Processor {
 
         // Check for existing germplasm lists
         Boolean listNameDup = false;
-        if (importRows.size() > 0) {
+        if (importRows.size() > 0 && importRows.get(0).getGermplasm().getListName() != null) {
             try {
-                GermplasmImport row = (GermplasmImport) importRows.get(0);
-                String listName = BrAPIList.constructGermplasmListName(row.getListName(), program);
+                Germplasm row = importRows.get(0).getGermplasm();
+                String listName = row.constructGermplasmListName(row.getListName(), program);
                 List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
@@ -211,12 +211,10 @@ public class GermplasmProcessor implements Processor {
         // Create new objects
 
         // Assign list name and description
-        GermplasmImport firstRow = (GermplasmImport) importRows.get(0);
-        BrAPIList brAPIList = new BrAPIList();
-        brAPIList.setListName(firstRow.getListName());
-        brAPIList.setListDescription(firstRow.getListDescription());
-        brAPIList.setListType(BrAPIListTypes.GERMPLASM);
-        importList = brAPIList.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
+        if (commit) {
+            Germplasm germplasm = importRows.get(0).getGermplasm();
+            importList = germplasm.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
+        }
 
         // All rows are considered new germplasm, we don't check for duplicates
         newGermplasmList = new ArrayList<>();

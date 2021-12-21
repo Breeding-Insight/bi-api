@@ -33,13 +33,4 @@ public class GermplasmImport implements BrAPIImport {
     @ImportFieldType(type = ImportFieldTypeEnum.OBJECT)
     @ImportMappingRequired
     private Germplasm germplasm;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime=ImportCollectTimeEnum.UPLOAD)
-    @ImportMappingRequired
-    @ImportFieldMetadata(id="germplasmListName", name="Import Group Name", description = "Name of the group of germplasm being imported.")
-    private String listName;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime=ImportCollectTimeEnum.UPLOAD)
-    @ImportFieldMetadata(id="germplasmListDescription", name="Import Group Description", description = "Name of the group of germplasm being imported.")
-    private String listDescription;
 }
