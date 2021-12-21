@@ -63,4 +63,8 @@ public class DatabaseTest implements TestPropertyProvider {
     public GenericContainer getDbContainer() {
         return dbContainer;
     }
+
+    protected void stopContainers() {
+        dbContainer.stop();
+    }
 }

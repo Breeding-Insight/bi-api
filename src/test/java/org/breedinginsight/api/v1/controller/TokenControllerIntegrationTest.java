@@ -41,6 +41,9 @@ public class TokenControllerIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @Test
     void getApiTokenMissingRequiredParameter() {
         Flowable<HttpResponse<String>> call = client.exchange(

@@ -107,6 +107,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {

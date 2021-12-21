@@ -82,6 +82,11 @@ public class ProgramSecuredAnnotationRuleIntegrationTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
+    @AfterAll
+    public void finish() {
+        super.stopContainers();
+    }
+
     @BeforeAll
     void setup() {
         fp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
