@@ -41,7 +41,6 @@ import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;

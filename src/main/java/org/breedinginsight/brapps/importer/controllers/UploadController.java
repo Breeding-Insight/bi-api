@@ -31,7 +31,6 @@ import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.AuthorizationException;
