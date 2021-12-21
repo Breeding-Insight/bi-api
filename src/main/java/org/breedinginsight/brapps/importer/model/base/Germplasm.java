@@ -22,14 +22,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListTypes;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
-import org.jooq.DSLContext;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;

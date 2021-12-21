@@ -14,17 +14,12 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
-import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
-import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
-import org.breedinginsight.brapps.importer.model.base.BrAPIList;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
-import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
-import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
@@ -339,7 +334,7 @@ public class GermplasmTemplateMap extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.missingUserInput, "Import Group Name"), e.getMessage());
+        assertEquals(String.format(MappingManager.missingUserInput, "Germplasm Import Group Name"), e.getMessage());
     }
 
     @Test
