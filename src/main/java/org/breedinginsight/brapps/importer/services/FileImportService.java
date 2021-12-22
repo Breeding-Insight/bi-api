@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MediaType;
+import org.brapi.client.v2.JSON;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingProgramDAO;
@@ -349,7 +350,6 @@ public class FileImportService {
         Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(mappingConfig.getImportTypeId());
         if (optionalImportService.isEmpty()) throw new DoesNotExistException("Config with that id does not exist");
         BrAPIImportService importService = optionalImportService.get();
-
         // TODO: maybe return brapiimport from configmanager
 
         // Get our data
@@ -406,6 +406,15 @@ public class FileImportService {
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) e.getStatus().getCode());
                 progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
+            } catch (ValidatorException e) {
+                log.error("ValidatorException");
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+                progress.setMessage("Multiple Errors");
+                String json = (new JSON()).getGson().toJson(e.getErrors());
+                progress.setBody(JSONB.valueOf(json));
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (Exception e) {
