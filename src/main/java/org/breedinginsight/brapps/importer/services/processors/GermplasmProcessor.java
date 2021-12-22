@@ -29,6 +29,7 @@ import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
@@ -201,7 +202,7 @@ public class GermplasmProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
+                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
@@ -226,6 +227,7 @@ public class GermplasmProcessor implements Processor {
         List<String> badBreedingMethods = new ArrayList<>();
         Map<String, Integer> entryNumberCounts = new HashMap<>();
         List<String> userProvidedEntryNumbers = new ArrayList<>();
+        ValidationErrors validationErrors = new ValidationErrors();
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
@@ -246,6 +248,8 @@ public class GermplasmProcessor implements Processor {
                             breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                         } else {
+                            ValidationError ve = new ValidationError("breeding_method",String.format(badBreedMethodsMsg, germplasm.getBreedingMethod()),HttpStatus.UNPROCESSABLE_ENTITY);
+                            validationErrors.addError(i+1, ve );
                             badBreedingMethods.add(germplasm.getBreedingMethod());
                             breedingMethod = null;
                         }
@@ -276,6 +280,9 @@ public class GermplasmProcessor implements Processor {
                 mappedImportRow.setGermplasm(null);
             }
             mappedBrAPIImport.put(i, mappedImportRow);
+        }
+        if (validationErrors.hasErrors() ){
+            throw new ValidatorException(validationErrors);
         }
 
         // Check for bad breeding methods
