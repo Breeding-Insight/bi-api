@@ -131,7 +131,7 @@ public class Germplasm implements BrAPIObject {
     }
 
     public static String constructGermplasmListName(String listName, Program program) {
-        return String.format("%s [%s-germplasm]", listName, program.getName());
+        return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod, User user) {
