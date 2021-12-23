@@ -41,9 +41,6 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.*;
 
-/**
- * Example of a Java-based migration.
- */
 public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
 
     @Inject
