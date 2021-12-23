@@ -21,10 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
-import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
-import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
-import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
+import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 
 @Getter

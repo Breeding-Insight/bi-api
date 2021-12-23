@@ -41,7 +41,6 @@ import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramUser;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
@@ -60,10 +59,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -322,7 +318,7 @@ public class FileImportService {
         return response;
     }
 
-    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Boolean commit) throws
+    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
             DoesNotExistException, UnprocessableEntityException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
@@ -369,7 +365,23 @@ public class FileImportService {
         importDAO.update(upload);
         // Redo the mapping
         //TODO: Get better errors for these
-        List<BrAPIImport> brAPIImportList = mappingManager.map(mappingConfig, data);
+        List<BrAPIImport> brAPIImportList;
+        try {
+            if (commit) {
+                brAPIImportList = mappingManager.map(mappingConfig, data, userInput);
+            } else {
+                brAPIImportList = mappingManager.map(mappingConfig, data);
+            }
+        } catch (UnprocessableEntityException e) {
+            log.error(e.getMessage());
+            ImportProgress progress = upload.getProgress();
+            progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+            progress.setMessage(e.getMessage());
+            progress.setUpdatedBy(actingUser.getId());
+            importDAO.update(upload);
+            throw e;
+        }
+
 
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {

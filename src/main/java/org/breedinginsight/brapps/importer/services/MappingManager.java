@@ -36,10 +36,7 @@ import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.model.config.ImportRelationType.DB_LOOKUP_CONSTANT_VALUE;
@@ -52,13 +49,23 @@ public class MappingManager {
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
     public static String blankRequiredField = "Required field \"%s\" cannot contain empty values.";
     public static String missingColumn = "Column name \"%s\" does not exist in file";
+    public static String missingUserInput = "User input, \"%s\" is required";
+    public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
 
     @Inject
     MappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
     }
 
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws UnprocessableEntityException {
+        return map(importMapping, data, userInput, true);
+    }
+
     public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException {
+        return map(importMapping, data, null, false);
+    }
+
+    private List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException {
 
         // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
         if (importMapping.getMappingConfig() == null) {
@@ -80,7 +87,7 @@ public class MappingManager {
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex);
+                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process);
             }
 
             brAPIImports.add(brAPIImport);
@@ -89,8 +96,8 @@ public class MappingManager {
         return brAPIImports;
     }
 
-    private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex)
-            throws UnprocessableEntityException {
+    private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex,
+                          Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException {
 
         Row focusRow = importFile.row(rowIndex);
         // Process this field
@@ -107,6 +114,15 @@ public class MappingManager {
         }
 
         ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
+
+        // Check if it is a user input field
+        if (type.collectTime().equals(ImportCollectTimeEnum.UPLOAD)) {
+            // User input, check that it was passed
+            if (process) {
+                mapUserInputField(parent, field, userInput, type, metadata, required);
+            }
+            return;
+        }
 
         List<MappingField> foundMappings = new ArrayList<>();
         if (mappings != null) {
@@ -141,7 +157,7 @@ public class MappingManager {
                 brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
                 List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex);
+                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process);
                 }
                 if (brapiObjectIsEmpty(brAPIObject)) brAPIObject = null;
 
@@ -174,7 +190,7 @@ public class MappingManager {
                 // Populate new object
                 List<Field> fields = Arrays.asList(newObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex);
+                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process);
                 }
 
                 field.setAccessible(true);
@@ -297,18 +313,52 @@ public class MappingManager {
 
     }
 
+    private void mapUserInputField(Object parent, Field field, Map<String, Object> userInput, ImportFieldType type,
+                                   ImportFieldMetadata metadata, ImportMappingRequired required) throws UnprocessableEntityException {
+
+        // Only supports user input at the top level of an object at the moment. No nested objects. Map<String, String>
+        String fieldId = metadata.id();
+        if (!userInput.containsKey(fieldId) && required != null) {
+            throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
+        }
+        else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
+            throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
+        }
+        else if (userInput.containsKey(fieldId)) {
+            String value = userInput.get(fieldId).toString();
+            if (!isCorrectType(type.type(), value)) {
+                throw new UnprocessableEntityException(String.format(wrongUserInputDataType, metadata.name(), type.type().toString().toLowerCase()));
+            }
+            try {
+                field.setAccessible(true);
+                field.set(parent, value);
+                field.setAccessible(false);
+            } catch (IllegalAccessException e) {
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+    }
+
     private void checkFieldType(ImportFieldTypeEnum expectedType, String column, String value) throws UnprocessableEntityException {
         //TODO: Do more type checks
+        if (!isCorrectType(expectedType, value)) {
+            throw new UnprocessableEntityException(String.format(wrongDataTypeMsg, column));
+        }
+    }
+
+    private Boolean isCorrectType(ImportFieldTypeEnum expectedType, String value) {
         if (!value.isBlank()) {
             if (expectedType == ImportFieldTypeEnum.INTEGER) {
                 try {
                     Integer d = Integer.parseInt(value);
                 } catch (NumberFormatException nfe) {
-                    throw new UnprocessableEntityException(String.format(wrongDataTypeMsg, column));
+                    return false;
                 }
             }
         }
+        return true;
     }
+
     /*
         A mapped object is considered null if no fields in it have been mapped
      */

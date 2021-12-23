@@ -21,13 +21,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
-import org.jooq.DSLContext;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
@@ -107,6 +107,32 @@ public class Germplasm implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz=ExternalReference.class)
     private List<ExternalReference> externalReferences;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
+    @ImportMappingRequired
+    @ImportFieldMetadata(id="germplasmListName", name="List Name", description = "Name of the group of germplasm being imported.")
+    private String listName;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
+    @ImportFieldMetadata(id="germplasmListDescription", name="List Description", description = "Description of the group of germplasm being imported.")
+    private String listDescription;
+
+    public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
+        BrAPIListNewRequest brapiList = new BrAPIListNewRequest();
+        brapiList.setListName(constructGermplasmListName(listName, program));
+        brapiList.setListDescription(this.listDescription);
+        brapiList.listType(BrAPIListTypes.GERMPLASM);
+        // Set external reference
+        BrAPIExternalReference reference = new BrAPIExternalReference();
+        reference.setReferenceSource(String.format("%s/programs", referenceSource));
+        reference.setReferenceID(program.getId().toString());
+        brapiList.setExternalReferences(List.of(reference));
+        return brapiList;
+    }
+
+    public static String constructGermplasmListName(String listName, Program program) {
+        return String.format("%s [%s-germplasm]", listName, program.getKey());
+    }
 
     public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod, User user) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();

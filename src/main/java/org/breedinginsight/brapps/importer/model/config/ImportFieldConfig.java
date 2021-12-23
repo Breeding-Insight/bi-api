@@ -29,6 +29,7 @@ public class ImportFieldConfig {
     private String id;
     private String description;
     private ImportFieldTypeEnum type;
+    private ImportCollectTimeEnum collectTime;
     private Boolean required;
     private List<ImportRelationOptionConfig> relationOptions;
     private List<ImportFieldConfig> fields;
