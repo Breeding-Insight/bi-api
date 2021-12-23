@@ -99,8 +99,14 @@ jackson:
 flyway:
   datasources:
     default:
-      locations: classpath:db.migration
+      locations:
+        - classpath:org.breedinginsight.db.migration
+        - classpath:db.migration
       enabled: true
+      placeholders:
+        default-url: ${brapi.server.default-url}
+        brapi-reference-source: ${brapi.server.reference-source}
+      out-of-order: true
 jooq:
   datasources:
     default:
