@@ -287,6 +287,11 @@ public class GermplasmProcessor implements Processor {
             List<BrAPIGermplasm> createList = new ArrayList<>();
             for (BrAPIGermplasm germplasm : newGermplasmList) {
 
+                // If we've already planned this germplasm, skip
+                if (created.contains(germplasm.getGermplasmName())) {
+                    continue;
+                }
+
                 // If it has no dependencies, add it
                 if (germplasm.getPedigree() == null) {
                     createList.add(germplasm);
