@@ -334,7 +334,7 @@ public class GermplasmTemplateMap extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.missingUserInput, "Germplasm Import Group Name"), e.getMessage());
+        assertEquals(String.format(MappingManager.missingUserInput, "List Name"), e.getMessage());
     }
 
     @Test
