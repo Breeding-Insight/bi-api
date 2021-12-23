@@ -110,11 +110,11 @@ public class Germplasm implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
     @ImportMappingRequired
-    @ImportFieldMetadata(id="germplasmListName", name="Germplasm Import Group Name", description = "Name of the group of germplasm being imported.")
+    @ImportFieldMetadata(id="germplasmListName", name="List Name", description = "Name of the group of germplasm being imported.")
     private String listName;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
-    @ImportFieldMetadata(id="germplasmListDescription", name="Germplasm Import Group Description", description = "Description of the group of germplasm being imported.")
+    @ImportFieldMetadata(id="germplasmListDescription", name="List Description", description = "Description of the group of germplasm being imported.")
     private String listDescription;
 
     public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
