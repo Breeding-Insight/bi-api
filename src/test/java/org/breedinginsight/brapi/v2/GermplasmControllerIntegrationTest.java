@@ -1,0 +1,167 @@
+package org.breedinginsight.brapi.v2;
+
+import com.google.gson.*;
+import io.kowalski.fannypack.FannyPack;
+import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
+import io.micronaut.http.client.RxHttpClient;
+import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.netty.cookies.NettyCookie;
+import io.micronaut.test.annotation.MicronautTest;
+import io.reactivex.Flowable;
+import lombok.SneakyThrows;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.breedinginsight.BrAPITest;
+import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.SpeciesRequest;
+import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
+import org.breedinginsight.daos.BreedingMethodDAO;
+import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
+import org.breedinginsight.services.SpeciesService;
+import org.jooq.DSLContext;
+import org.junit.jupiter.api.*;
+
+import javax.inject.Inject;
+
+import java.io.File;
+import java.time.OffsetDateTime;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+
+import static io.micronaut.http.HttpRequest.GET;
+import static io.micronaut.http.HttpRequest.POST;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+@MicronautTest
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
+public class GermplasmControllerIntegrationTest extends BrAPITest {
+
+    private FannyPack fp;
+    private Program validProgram;
+    private Program otherValidProgram;
+    private String germplasmImportId;
+    private BiUserEntity testUser;
+
+    @Inject
+    private SpeciesService speciesService;
+    @Inject
+    @Client("/${micronaut.bi.api.version}")
+    RxHttpClient client;
+    @Inject
+    private UserDAO userDAO;
+    @Inject
+    private DSLContext dsl;
+
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
+
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
+    @BeforeAll
+    @SneakyThrows
+    public void setup() {
+        fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
+        var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+
+        testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
+
+        // Set up BrAPI
+        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
+
+        // Species
+        Species validSpecies = speciesService.getAll().get(0);
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        // Insert program
+        ProgramRequest program = ProgramRequest.builder()
+                .name("Test Program")
+                .species(speciesRequest)
+                .key("TEST")
+                .build();
+        validProgram = TestUtils.insertAndFetchTestProgram(gson, client, program);
+
+        // Insert other program
+        ProgramRequest otherProgram = ProgramRequest.builder()
+                .name("Other Test Program")
+                .species(speciesRequest)
+                .key("OTEST")
+                .build();
+        otherValidProgram = TestUtils.insertAndFetchTestProgram(gson, client, otherProgram);
+
+        // Get germplasm system import
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/import/mappings?importName=germplasmtemplatemap").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        germplasmImportId = JsonParser.parseString(response.body()).getAsJsonObject()
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(0).getAsJsonObject().get("id").getAsString();
+
+        // Roles for program
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId());
+        // Roles for other program
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherValidProgram.getId());
+
+        // Insert other program germplasm
+        File otherFile = new File("src/test/resources/files/germplasm_import/minimal_germplasm_import.csv");
+        Map<String, String> otherListInfo = Map.ofEntries(
+                Map.entry("germplasmListName", "Program List"),
+                Map.entry("germplasmListDescription", "Program List")
+        );
+        TestUtils.uploadDataFile(client, otherValidProgram.getId(), germplasmImportId, otherListInfo, otherFile);
+
+        // Insert program germplasm
+        File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
+        Map<String, String> germplasmListInfo = Map.ofEntries(
+                Map.entry("germplasmListName", "Program List"),
+                Map.entry("germplasmListDescription", "Program List")
+        );
+        TestUtils.uploadDataFile(client, validProgram.getId(), germplasmImportId, germplasmListInfo, file);
+    }
+
+    @Test
+    @SneakyThrows
+    public void getAllSuccess() {
+        // Only program germplasm are returned
+        // Names are updated
+        // TODO: Parents are updated
+        // Breeding method is assigned
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/germplasm",validProgram.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(3, data.size(), "Wrong number of germplasm were returned");
+        JsonObject exampleGermplasm = data.get(0).getAsJsonObject();
+        assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
+        assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodDbId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
+    }
+
+    @Test
+    @SneakyThrows
+    public void getPaginatedSuccess() {
+        // Pagination
+    }
+}
