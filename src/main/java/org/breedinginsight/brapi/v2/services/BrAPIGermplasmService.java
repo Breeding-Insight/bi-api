@@ -7,10 +7,12 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,22 +36,21 @@ public class BrAPIGermplasmService {
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
 
         // Set query params and make call
-        GermplasmQueryParams query = new GermplasmQueryParams();
-        query.externalReferenceSource(String.format("%s/programs", referenceSource));
-        query.externalReferenceID(programId.toString());
-        BrAPIGermplasmListResponse germplasmResponse;
+        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
+        germplasmSearch.externalReferenceIDs(Arrays.asList(programId.toString()));
+        germplasmSearch.externalReferenceSources(Arrays.asList(String.format("%s/programs", referenceSource)));
+        List<BrAPIGermplasm> germplasmList;
         try {
-            germplasmResponse = api.germplasmGet(query).getBody();
+            germplasmList = BrAPIDAOUtil.search(
+                    api::searchGermplasmPost,
+                    api::searchGermplasmSearchResultsDbIdGet,
+                    germplasmSearch
+            );
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage());
         }
 
         // Process the germplasm
-        List<BrAPIGermplasm> germplasmList = new ArrayList<>();
-        if (germplasmResponse.getResult() != null && germplasmResponse.getResult().getData() != null) {
-            germplasmList = germplasmResponse.getResult().getData();
-        }
-
         Map<String, BrAPIGermplasm> germplasmByFullName = new HashMap<>();
         for (BrAPIGermplasm germplasm: germplasmList) {
             germplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
