@@ -217,7 +217,7 @@ public class ResponseUtils {
             pagination.setCurrentPage(paginationRequest.getDefaultPage());
         }
 
-        pagination.setPageSize(data.size());
+        pagination.setPageSize(paginationRequest.getPageSize());
         pagination.setTotalPages((int) Math.ceil(originalCount / (double) data.size()));
         pagination.setTotalCount(originalCount);
 
