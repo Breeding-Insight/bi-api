@@ -279,7 +279,7 @@ public class GermplasmTemplateMap extends BrAPITest {
             String pedigree = germplasm.get("pedigree").getAsString();
             String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
             String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
-            String regexMatcher = "^(\\b%s\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+            String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
             assertTrue(mother.matches(String.format(regexMatcher, femaleParents.get(i))), "Wrong mother");
             if (!maleParents.get(i).isBlank()) {
                 assertTrue(father.matches(String.format(regexMatcher, maleParents.get(i))), "Wrong father");

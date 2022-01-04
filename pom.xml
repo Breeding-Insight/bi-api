@@ -365,6 +365,11 @@
             <artifactId>tablesaw-json</artifactId>
             <version>0.38.2</version>
         </dependency>
+        <dependency>
+            <groupId>se.sawano.java</groupId>
+            <artifactId>alphanumeric-comparator</artifactId>
+            <version>1.4.1</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
