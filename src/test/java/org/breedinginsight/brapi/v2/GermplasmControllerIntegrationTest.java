@@ -4,21 +4,18 @@ import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
@@ -30,12 +27,9 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.time.OffsetDateTime;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 import static io.micronaut.http.HttpRequest.GET;
-import static io.micronaut.http.HttpRequest.POST;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
