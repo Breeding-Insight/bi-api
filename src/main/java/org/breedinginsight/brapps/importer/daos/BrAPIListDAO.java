@@ -2,12 +2,15 @@ package org.breedinginsight.brapps.importer.daos;
 
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.core.ListQueryParams;
 import org.brapi.client.v2.modules.core.ListsApi;
 import org.brapi.v2.model.BrAPIResponse;
 import org.brapi.v2.model.BrAPIResponseResult;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -37,6 +40,21 @@ public class BrAPIListDAO {
                 api::searchListsSearchResultsDbIdGet,
                 listSearch
         );
+    }
+
+    public BrAPIListsListResponse getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+        ListQueryParams getParams = new ListQueryParams()
+                .externalReferenceID(externalReferenceId.toString())
+                .externalReferenceSource(externalReferenceSource)
+                .listType(listType);
+
+        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
+        ApiResponse<BrAPIListsListResponse> apiGetResponse = api.listsGet(getParams); //use api directly
+        System.out.println(apiGetResponse.getBody().toString());
+        System.out.println(apiGetResponse.getBody().getResult().toString());
+        System.out.println(apiGetResponse.getBody().getResult().getData().toString());
+        return apiGetResponse.getBody(); //todo check retrieving proper data
+        //return brApiPrograms.getBody().getResult().getData().get(0);
     }
 
     public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
