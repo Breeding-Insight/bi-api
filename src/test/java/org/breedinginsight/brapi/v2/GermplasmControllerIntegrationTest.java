@@ -36,8 +36,7 @@ import java.util.Map;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static io.micronaut.http.HttpRequest.POST;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -154,14 +153,30 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(3, data.size(), "Wrong number of germplasm were returned");
-        JsonObject exampleGermplasm = data.get(0).getAsJsonObject();
+        JsonObject exampleGermplasm = data.get(2).getAsJsonObject();
         assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
-        assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodDbId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
+        assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
+        String pedigree = exampleGermplasm.get("pedigree").getAsString();
+        // Check that the pedigree is the accession numbers of the parents now
+        assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[0]));
+        assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[1]));
     }
 
     @Test
     @SneakyThrows
     public void getPaginatedSuccess() {
         // Pagination
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/germplasm?page=0&pageSize=1",validProgram.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(1, data.size(), "Wrong number of germplasm were returned");
     }
 }

@@ -28,6 +28,7 @@ import io.reactivex.Flowable;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.model.Program;
+import se.sawano.java.text.AlphanumericComparator;
 
 import java.io.File;
 import java.time.OffsetDateTime;
@@ -44,17 +45,21 @@ public class TestUtils {
     public static void checkStringSorting(JsonArray data, String field, SortOrder sortOrder) {
 
         for (int i = 0; i < data.size() - 1; i++){
+            if (!data.get(i).getAsJsonObject().has(field) || !data.get(i + 1).getAsJsonObject().has(field)) {
+                continue;
+            }
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
 
-            if (firstValue.compareTo(secondValue) == 0){
+            AlphanumericComparator comparator = new AlphanumericComparator();
+            if (comparator.compare(firstValue, secondValue) == 0) {
                 continue;
             }
             
             if (sortOrder == SortOrder.ASC) {
-                assertEquals(true, firstValue.compareTo(secondValue) < 0, "Incorrect sorting");
+                assertEquals(true, comparator.compare(firstValue, secondValue) < 0, "Incorrect sorting");
             } else {
-                assertEquals(true, firstValue.compareTo(secondValue) > 0, "Incorrect sorting");
+                assertEquals(true, comparator.compare(firstValue, secondValue) > 0, "Incorrect sorting");
             }
 
         }
