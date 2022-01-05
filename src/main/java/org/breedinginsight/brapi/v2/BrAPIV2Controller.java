@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2;
 
+import com.google.gson.Gson;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -27,7 +28,11 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
+import org.brapi.client.v2.JSON;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIServerInfo;
+import org.brapi.v2.model.core.response.BrAPIListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecured;
@@ -35,6 +40,7 @@ import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
+import org.breedinginsight.services.GermplasmService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
@@ -51,11 +57,13 @@ public class BrAPIV2Controller {
 
     private final SecurityService securityService;
     private final ProgramService programService;
+    private final GermplasmService germplasmService;
 
     @Inject
-    public BrAPIV2Controller(SecurityService securityService, ProgramService programService) {
+    public BrAPIV2Controller(SecurityService securityService, ProgramService programService, GermplasmService germplasmService) {
         this.securityService = securityService;
         this.programService = programService;
+        this.germplasmService = germplasmService;
     }
 
 
@@ -71,6 +79,21 @@ public class BrAPIV2Controller {
 
         return new BrAPIServerInfoResponse().result(serverInfo);
     }
+
+    //@Get(BrapiVersion.BRAPI_V2 + "/lists")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse getLists(@PathVariable("programId") UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
+        System.out.println("hi hi hi");
+        BrAPIListsListResponse response = germplasmService.getGermplasmListsByProgramId(programId, request);
+
+        String respBody = new JSON().getGson().toJson(response);
+        return HttpResponse.ok(respBody);
+        //return germplasmService.getGermplasmListsByProgramId(programId, request);
+    }
+
+    //TODO make getList singular
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
