@@ -359,7 +359,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        TestUtils.checkDateSorting(data, "createdAt", SortOrder.ASC);
+        TestUtils.checkStringSorting(data, "createdAt", SortOrder.ASC);
     }
 
     // POST Sort success
