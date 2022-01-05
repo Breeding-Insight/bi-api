@@ -141,7 +141,12 @@ public class ResponseUtils {
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
             // Convert everything to string. Might not be perfect, such as for BigDecimal, but it gets the job done.
-            Function typeSafeField = (Object object) -> field.apply(object) != null ? field.apply(object).toString() : null;
+            Function typeSafeField;
+            if (data.size() >= 1 && field.apply(data.get(0)) instanceof List) {
+                typeSafeField = field;
+            } else {
+                typeSafeField = (Object object) -> field.apply(object) != null ? field.apply(object).toString() : null;
+            }
 
             GenericComparator comparator = new GenericComparator(
                     Comparator.nullsFirst(new AlphanumericComparator()));
@@ -217,11 +222,12 @@ public class ResponseUtils {
             data = data.subList(startIndex, endIndex);
 
             pagination.setCurrentPage(page);
+            pagination.setPageSize(pageSize);
         } else {
             pagination.setCurrentPage(paginationRequest.getDefaultPage());
+            pagination.setPageSize(originalCount);
         }
 
-        pagination.setPageSize(paginationRequest.getPageSize());
         pagination.setTotalPages((int) Math.ceil(originalCount / (double) data.size()));
         pagination.setTotalCount(originalCount);
 

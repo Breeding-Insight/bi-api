@@ -116,7 +116,8 @@ public class TestUtils {
 
             if (data.get(i).size() == data.get(i + 1).size()){
 
-                int result = String.join("", data.get(i)).compareToIgnoreCase(String.join("", data.get(i + 1)));
+                AlphanumericComparator comparator = new AlphanumericComparator();
+                int result = comparator.compare(String.join("", data.get(i)).toLowerCase(), String.join("", data.get(i + 1)).toLowerCase());
                 if (result == 0){
                     continue;
                 }
