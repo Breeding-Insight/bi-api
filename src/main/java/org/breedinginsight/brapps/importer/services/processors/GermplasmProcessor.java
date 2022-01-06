@@ -71,7 +71,7 @@ public class GermplasmProcessor implements Processor {
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
     BrAPIListNewRequest importList = new BrAPIListNewRequest();
 
-    public static String missingParentalDbIdsMsg = "The following parental db ids were not found in the database: %s.";
+    public static String missingParentalDbIdsMsg = "The following parental GIDs were not found in the database: %s.";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
     public static String badBreedMethodsMsg = "Breeding methods not found: %s";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers.";
