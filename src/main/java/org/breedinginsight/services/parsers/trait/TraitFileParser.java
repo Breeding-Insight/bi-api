@@ -28,10 +28,7 @@ import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
-import org.breedinginsight.model.Method;
-import org.breedinginsight.model.ProgramObservationLevel;
-import org.breedinginsight.model.Scale;
-import org.breedinginsight.model.Trait;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -143,12 +140,23 @@ public class TraitFileParser {
             }
 
             // Normalize and capitalize method class
-            String methodClass = parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS);
-            if (methodClass != null) { methodClass = StringUtils.capitalize(methodClass.toLowerCase()); }
+            String methodClassStr = parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS);
+            MethodClass methodClass = null;
+
+            if (methodClassStr != null) {
+                try {
+                    methodClass = MethodClass.valueOf(methodClassStr.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.METHOD_CLASS.toString(),
+                            ParsingExceptionType.INVALID_METHOD_CLASS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
 
             Method method = Method.builder()
                     .description(parseExcelValueAsString(record, TraitFileColumns.METHOD_DESCRIPTION))
-                    .methodClass(methodClass)
+                    .methodClass(methodClass != null ? methodClass.getLiteral() : null)
                     .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
                     .build();
 
