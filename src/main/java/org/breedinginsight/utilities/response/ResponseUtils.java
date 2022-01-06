@@ -37,6 +37,7 @@ import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
 import se.sawano.java.text.AlphanumericComparator;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -139,16 +140,22 @@ public class ResponseUtils {
 
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
+            GenericComparator comparator = new GenericComparator(
+                    Comparator.nullsFirst(new AlphanumericComparator()));
+
             // Convert everything to string. Might not be perfect, such as for BigDecimal, but it gets the job done.
             Function typeSafeField;
-            if (data.size() >= 1 && field.apply(data.get(0)) instanceof List) {
+            if (data.size() >= 1 && (field.apply(data.get(0)) instanceof List || field.apply(data.get(0)) instanceof OffsetDateTime)) {
                 typeSafeField = field;
             } else {
                 typeSafeField = (Object object) -> field.apply(object) != null ? field.apply(object).toString() : null;
             }
 
-            GenericComparator comparator = new GenericComparator(
-                    Comparator.nullsFirst(new AlphanumericComparator()));
+            // Special comparators
+            if (data.size() >= 1 && field.apply(data.get(0)) instanceof OffsetDateTime) {
+                comparator = new GenericComparator(
+                        Comparator.nullsFirst(Comparator.naturalOrder()));
+            }
 
             Collections.sort(data,
                     Comparator.comparing(typeSafeField,
