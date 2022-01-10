@@ -1,6 +1,5 @@
 package org.breedinginsight.brapi.v2;
 
-import com.google.gson.Gson;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
@@ -30,14 +29,12 @@ import java.util.UUID;
 public class GermplasmController {
 
     private BrAPIGermplasmService germplasmService;
-    private Gson gson;
     private GermplasmQueryMapper germplasmQueryMapper;
 
     @Inject
     public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
-        this.gson = new Gson();
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
