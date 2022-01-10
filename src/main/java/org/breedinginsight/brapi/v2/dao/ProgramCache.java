@@ -44,7 +44,6 @@ public class ProgramCache<R> {
             .build(new CacheLoader<>() {
                 @Override
                 public R load(UUID programId) throws Exception {
-                    System.out.println ("reload by" + Thread.currentThread().getName());
                     return fetchMethod.apply(programId);
                 }
             });
@@ -78,7 +77,7 @@ public class ProgramCache<R> {
         cache state, but there is a refresh already waiting, that waiting refresh will grab the most recent
         state of the cache, so queuing another one will be a waste of threads.
     */
-    public void updateCache(UUID programId) {
+    private void updateCache(UUID programId) {
 
         if (!programSemaphore.containsKey(programId)) {
             programSemaphore.put(programId, new Semaphore(1));
