@@ -22,6 +22,7 @@ import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListenableFutureTask;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 
@@ -44,25 +45,8 @@ public class BICache<R> {
             .build(new CacheLoader<>() {
                 @Override
                 public R load(UUID programId) throws Exception {
-                    return fetchMethod.apply(programId);
-                }
-
-                @Override
-                public ListenableFuture<R> reload(UUID programId, R oldValue) throws Exception {
                     System.out.println ("reload by" + Thread.currentThread().getName());
-                    ListenableFutureTask<R> task = ListenableFutureTask.create(() -> {
-                        try {
-                            System.out.println ("finished by" + Thread.currentThread().getName());
-                            return fetchMethod.apply(programId);
-                        } catch (Exception e) {
-                            // If something went wrong with the refresh, invalidate the cache so we aren't left with stale data
-                            cache.invalidate(programId);
-                            throw e;
-                        }
-                    });
-                    // TODO: Make this synchronous
-                    executor.execute(task); // async refresh
-                    return task;
+                    return fetchMethod.apply(programId);
                 }
             });
 
@@ -79,8 +63,9 @@ public class BICache<R> {
     }
 
     public R get(UUID programId) throws ApiException {
-        // If cache is loading, it will wait for that to finish
         try {
+            // This will get current cache data, or wait for the refresh to finish if there is no cache data.
+            // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
             return cache.get(programId);
         } catch (ExecutionException e) {
             log.error(e.getMessage());
@@ -88,35 +73,41 @@ public class BICache<R> {
         }
     }
 
+    /*
+        Checks to see whether atleast 1 refresh process is queued up and doesn't make another
+        refresh request if there is one queued. The idea here is that if you request to refresh the
+        cache state, but there is a refresh already waiting, that waiting refresh will grab the most recent
+        state of the cache, so queuing another one will be a waste of threads.
+    */
     public void updateCache(UUID programId) {
-        if (!programSemaphore.containsKey(programId)) {
 
-        } else if (!programSemaphore.get(programId).hasQueuedThreads())
+        if (!programSemaphore.containsKey(programId)) {
+            programSemaphore.put(programId, new Semaphore(1));
+        }
+
+        if (!programSemaphore.get(programId).hasQueuedThreads()) {
+            // Start a refresh process asynchronously
             executor.execute(() -> {
                 // Synchronous
                 try {
                     programSemaphore.get(programId).acquire();
+                    System.out.println("Acquired semaphore");
                     cache.refresh(programId);
                 } catch (InterruptedException e) {
-
+                    throw new InternalServerException(e.getMessage(), e);
                 } finally {
                     programSemaphore.get(programId).release();
+                    System.out.println("Released semaphore");
                 }
             });
+        } else {
+            // An update is already queued, skip this one
+            System.out.println("Skipping refresh");
+            return;
         }
     }
 
-    private
-
     public R post(UUID programId, Callable<R> postMethod) throws Exception {
-        // TODO: Potential issue.
-        //  If a germplasm import has two post groups, parents and children, this will try to start two
-        //  refreshes, refresh1 and refresh2. If refresh1 comes back after refresh2, which is possible
-        //  because refreshes are async, we will be missing refresh2 from our germplasm list.
-        //  I'm not sure that guava accounts for this. If a refresh is already going on with guava the next refresh
-        //
-        //  If this turns out to be an issue we can generate a hash per refresh and in the reload function
-        //
         R response = postMethod.call();
         updateCache(programId);
         return response;
