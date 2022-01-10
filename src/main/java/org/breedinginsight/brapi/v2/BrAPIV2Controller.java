@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapi.v2;
 
-import com.google.gson.Gson;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -31,7 +30,6 @@ import okhttp3.*;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIServerInfo;
-import org.brapi.v2.model.core.response.BrAPIListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.api.auth.AuthenticatedUser;
