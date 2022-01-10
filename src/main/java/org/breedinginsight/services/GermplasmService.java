@@ -18,22 +18,12 @@
 package org.breedinginsight.services;
 
 import io.micronaut.context.annotation.Property;
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
-import io.micronaut.http.server.exceptions.HttpServerException;
-import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
-import org.breedinginsight.dao.db.enums.DataType;
-import org.breedinginsight.daos.*;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.jooq.DSLContext;
@@ -67,12 +57,28 @@ public class GermplasmService {
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program does not exist");
         }
-        System.out.println("hello");
-        System.out.println(programId.toString());
 
-        //brAPIListDAO is not being defined, s
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if(optionalProgram.isPresent()) {
+            Program program = optionalProgram.get();
+            String appendedKey = String.format(" [%s-germplasm]", program.getKey());
 
-        return brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, referenceSource + "/programs", programId);
+            BrAPIListsListResponse germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, referenceSource + "/programs", programId);
 
+            //Remove key appended to listName for brapi
+            String listName;
+            String newListName;
+            int listLength = germplasmLists.getResult().getData().size();
+            for (int i=0; i<listLength; i++) {
+                listName = germplasmLists.getResult().getData().get(i).getListName();
+                newListName = listName.replace(appendedKey, "");
+                germplasmLists.getResult().getData().get(i).setListName(newListName);
+            }
+
+            return germplasmLists;
+        }
+        else {
+            throw new DoesNotExistException("Program does not exist");
+        }
     }
 }
