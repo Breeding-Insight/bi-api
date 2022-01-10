@@ -121,7 +121,18 @@ public class BrAPIGermplasmService {
         return germplasmDAO.importBrAPIGermplasm(brAPIGermplasmList, programId, upload);
     }
 
-    public List<BrAPIGermplasm> getGermplasmByAccessionNumber(ArrayList<String> strings, UUID id) throws ApiException {
-        return germplasmDAO.getGermplasmByAccessionNumber(strings, id);
+    public List<BrAPIGermplasm> getGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID id) throws ApiException {
+        List<BrAPIGermplasm> germplasmList = germplasmDAO.getGermplasm(id);
+        List<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
+        // Search for accession number matches
+        for (BrAPIGermplasm germplasm: germplasmList) {
+            for (String accessionNumber: germplasmAccessionNumbers) {
+                if (germplasm.getAccessionNumber().equals(accessionNumber)) {
+                    resultGermplasm.add(germplasm);
+                    break;
+                }
+            }
+        }
+        return resultGermplasm;
     }
 }

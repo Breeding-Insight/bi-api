@@ -17,41 +17,27 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableFutureTask;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
-import org.brapi.client.v2.modules.germplasm.GermplasmAttributesApi;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.BrAPIGermplasmAttribute;
-import org.brapi.v2.model.germ.request.BrAPIGermplasmAttributeSearchRequest;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
-import org.checkerframework.checker.units.qual.A;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -62,18 +48,22 @@ public class BrAPIGermplasmDAO {
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
 
+    @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
-    BICache<List<BrAPIGermplasm>> programGermplasmCache;
+    ProgramCache<List<BrAPIGermplasm>> programGermplasmCache;
 
     @Inject
-    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO, @Property(name = "brapi.server.reference-source") String referenceSource) {
+    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
-        this.referenceSource = referenceSource;
+    }
+
+    @PostConstruct
+    private void setup() {
         // Populate germplasm cache for all programs on startup
         List<UUID> programs = programDAO.getAll().stream().map(Program::getId).collect(Collectors.toList());
-        programGermplasmCache = new BICache<>((programId) -> fetchProgramGermplasm((UUID) programId), programs);
+        programGermplasmCache = new ProgramCache<>((programId) -> fetchProgramGermplasm((UUID) programId), programs);
     }
 
     public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
@@ -92,21 +82,6 @@ public class BrAPIGermplasmDAO {
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
         );
-    }
-
-    public List<BrAPIGermplasm> getGermplasmByAccessionNumber(List<String> germplasmAccessionNumbers, UUID programId) throws ApiException {
-        List<BrAPIGermplasm> germplasmList = getGermplasm(programId);
-        List<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
-        // Search for accession number matches
-        for (BrAPIGermplasm germplasm: germplasmList) {
-            for (String accessionNumber: germplasmAccessionNumbers) {
-                if (germplasm.getAccessionNumber().equals(accessionNumber)) {
-                    resultGermplasm.add(germplasm);
-                    break;
-                }
-            }
-        }
-        return resultGermplasm;
     }
 
     public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {

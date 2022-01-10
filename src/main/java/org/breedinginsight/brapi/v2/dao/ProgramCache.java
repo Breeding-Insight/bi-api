@@ -34,11 +34,10 @@ import java.util.concurrent.*;
 import java.util.function.Supplier;
 
 @Slf4j
-public class BICache<R> {
+public class ProgramCache<R> {
 
     private FetchFunction<UUID, R> fetchMethod;
     Map<UUID, Semaphore> programSemaphore = new HashMap<>();
-    Semaphore reloadSemaphore = new Semaphore(1);
 
     final Executor executor = Executors.newCachedThreadPool();
     private LoadingCache<UUID, R> cache = CacheBuilder.newBuilder()
@@ -50,15 +49,15 @@ public class BICache<R> {
                 }
             });
 
-    public BICache(FetchFunction fetchMethod, List<UUID> keys) {
+    public ProgramCache(FetchFunction fetchMethod, List<UUID> keys) {
         this.fetchMethod = fetchMethod;
         // Populate cache on start up
         for (UUID key: keys) {
-            cache.refresh(key);
+            updateCache(key);
         }
     }
 
-    public BICache(FetchFunction fetchMethod) {
+    public ProgramCache(FetchFunction fetchMethod) {
         this.fetchMethod = fetchMethod;
     }
 
