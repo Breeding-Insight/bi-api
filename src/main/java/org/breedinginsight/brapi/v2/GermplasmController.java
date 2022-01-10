@@ -43,16 +43,13 @@ public class GermplasmController {
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<String> getGermplasm(
+    public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams) {
         List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
         queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
         queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
-        Response<DataResponse<Object>> response = ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams).body();
-        // Jackson can't serialize the additional info
-        String respBody = gson.toJson(response);
-        return HttpResponse.ok(respBody);
+        return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);
 
     }
 }

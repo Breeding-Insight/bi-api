@@ -44,7 +44,7 @@ public class BrAPIGermplasmService {
                     germplasmSearch
             );
         } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage());
+            throw new InternalServerException(e.getMessage(), e);
         }
 
         // Process the germplasm

@@ -32,7 +32,11 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
 
     @Override
     public Function<BrAPIGermplasm, ?> getField(String fieldName) throws NullPointerException {
-        if (fields.containsKey(fieldName)) return fields.get(fieldName);
-        else throw new NullPointerException();
+        if (fields.containsKey(fieldName)) {
+            return fields.get(fieldName);
+        }
+        else {
+            throw new NullPointerException();
+        }
     }
 }
