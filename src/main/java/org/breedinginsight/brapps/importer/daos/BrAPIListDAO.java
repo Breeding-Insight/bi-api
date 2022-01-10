@@ -49,12 +49,8 @@ public class BrAPIListDAO {
                 .listType(listType);
 
         ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
-        ApiResponse<BrAPIListsListResponse> apiGetResponse = api.listsGet(getParams); //use api directly
-        System.out.println(apiGetResponse.getBody().toString());
-        System.out.println(apiGetResponse.getBody().getResult().toString());
-        System.out.println(apiGetResponse.getBody().getResult().getData().toString());
-        return apiGetResponse.getBody(); //todo check retrieving proper data
-        //return brApiPrograms.getBody().getResult().getData().get(0);
+        ApiResponse<BrAPIListsListResponse> apiGetResponse = api.listsGet(getParams);
+        return apiGetResponse.getBody();
     }
 
     public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
