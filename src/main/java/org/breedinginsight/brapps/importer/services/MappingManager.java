@@ -17,8 +17,11 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
+import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
 import org.breedinginsight.brapps.importer.model.mapping.MappingValue;
@@ -27,6 +30,7 @@ import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -57,15 +61,17 @@ public class MappingManager {
         this.configManager = configManager;
     }
 
-    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws UnprocessableEntityException, ValidatorException {
         return map(importMapping, data, userInput, true);
     }
 
-    public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException, ValidatorException {
         return map(importMapping, data, null, false);
     }
 
-    private List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException {
+    private List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException, ValidatorException {
+
+        ValidationErrors validationErrors = new ValidationErrors();
 
         // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
         if (importMapping.getMappingConfig() == null) {
@@ -87,17 +93,23 @@ public class MappingManager {
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process);
+                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process, validationErrors);
             }
 
             brAPIImports.add(brAPIImport);
+        }
+
+        if (validationErrors.hasErrors() ){
+            throw new ValidatorException(validationErrors);
         }
 
         return brAPIImports;
     }
 
     private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex,
-                          Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException {
+                          Map<String, Object> userInput, Boolean process, ValidationErrors validationErrors) throws UnprocessableEntityException {
+
+
 
         Row focusRow = importFile.row(rowIndex);
         // Process this field
@@ -157,7 +169,7 @@ public class MappingManager {
                 brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
                 List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process);
+                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
                 }
                 if (brapiObjectIsEmpty(brAPIObject)) brAPIObject = null;
 
@@ -190,7 +202,7 @@ public class MappingManager {
                 // Populate new object
                 List<Field> fields = Arrays.asList(newObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process);
+                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
                 }
 
                 field.setAccessible(true);
@@ -279,7 +291,9 @@ public class MappingManager {
 
                 // Check non-null value
                 if (required != null && fileValue.isBlank()) {
-                    throw new UnprocessableEntityException(String.format(blankRequiredField,  matchedMapping.getValue().getFileFieldName()));
+                    //throw new UnprocessableEntityException(String.format(blankRequiredField,  matchedMapping.getValue().getFileFieldName()));
+                    ValidationError ve = new ValidationError("breeding_method",String.format(blankRequiredField, matchedMapping.getValue().getFileFieldName()), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(rowIndex+1, ve);
                 }
 
                 if (StringUtils.isBlank(fileValue)) fileValue = null;
@@ -296,7 +310,9 @@ public class MappingManager {
 
                 // Check non-null value
                 if (required != null && value.isBlank()) {
-                    throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
+                    //throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
+                    ValidationError ve = new ValidationError("breeding_method",String.format(blankRequiredField, matchedMapping.getValue().getFileFieldName()), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(rowIndex+1, ve);
                 }
 
                 if (StringUtils.isBlank(value)) value = null;
