@@ -188,8 +188,9 @@ public class ProgramCacheUnitTest {
         reset(mockTest);
         mockTest.fetchCount = 0;
         cachedGermplasm = cache.get(programId);
-        Thread.sleep(waitTime);
+        Thread.sleep(waitTime*2);
         assertEquals(1, mockTest.fetchCount, "Fetch method not called as many times as expected");
+        assertEquals(1, cachedGermplasm.size(), "Newly retrieved germplasm not as expected");
     }
 
 }
