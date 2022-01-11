@@ -158,6 +158,7 @@ public class ProgramCacheUnitTest {
 
     @Test
     @SneakyThrows
+    @Order(1)
     public void refreshErrorInvalidatesCache() {
         // Tests that data is invalidated when a refresh method fails
         // Tests that data is no longer retrievable when invalidated and needs to be refreshed
@@ -181,15 +182,15 @@ public class ProgramCacheUnitTest {
         // Change our fetch method to throw an error now
         when(mockTest.mockFetch(any(UUID.class), any(Integer.class))).thenAnswer(invocation -> {throw new ApiException("Uhoh");});
         cache.post(programId, () -> mockPost(programId, new ArrayList<>(newList)));
-        // Give it a second so we can wait for the cache to be invalidated
-        Thread.sleep(waitTime);
+        // Give it a second so we can wait for the cache to be invalidated and refresh to finish
+        Thread.sleep(waitTime*2);
 
         // Check that the fetch function needs to be called again since the cache was invalidated
         reset(mockTest);
-        mockTest.fetchCount = 0;
+        verify(mockTest, times(0)).mockFetch(any(UUID.class), any(Integer.class));
         cachedGermplasm = cache.get(programId);
         Thread.sleep(waitTime*2);
-        assertEquals(1, mockTest.fetchCount, "Fetch method not called as many times as expected");
+        verify(mockTest, times(1)).mockFetch(any(UUID.class), any(Integer.class));
         assertEquals(2, cachedGermplasm.size(), "Newly retrieved germplasm not as expected");
     }
 
