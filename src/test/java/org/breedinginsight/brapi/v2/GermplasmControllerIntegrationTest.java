@@ -128,6 +128,11 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 Map.entry("germplasmListName", germplasmListName),
                 Map.entry("germplasmListDescription", germplasmListDesc)
         );
+        Map<String, String> germplasmListInfo1 = Map.ofEntries(
+                Map.entry("germplasmListName", "Program List1"),
+                Map.entry("germplasmListDescription", "Program List1")
+        );
+        TestUtils.uploadDataFile(client, validProgram.getId(), germplasmImportId, germplasmListInfo1, otherFile);
         TestUtils.uploadDataFile(client, validProgram.getId(), germplasmImportId, germplasmListInfo, file);
     }
 
@@ -149,14 +154,22 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(3, data.size(), "Wrong number of germplasm were returned");
-        JsonObject exampleGermplasm = data.get(2).getAsJsonObject();
-        assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
-        assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
-        String pedigree = exampleGermplasm.get("pedigree").getAsString();
-        // Check that the pedigree is the accession numbers of the parents now
-        assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[0]));
-        assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[1]));
+        assertEquals(6, data.size(), "Wrong number of germplasm were returned");
+        for (JsonElement jsonGermplasm: data) {
+            JsonObject exampleGermplasm = jsonGermplasm.getAsJsonObject();
+            assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
+            if (exampleGermplasm.get("additionalInfo").getAsJsonObject().has("breedingMethodId")){
+                assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
+            }
+            if (exampleGermplasm.has("pedigree")) {
+                String pedigree = exampleGermplasm.get("pedigree").getAsString();
+                assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[0]));
+                if (pedigree.split("/").length > 1) {
+                    assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[1]));
+                }
+            }
+
+        }
     }
 
     @Test
