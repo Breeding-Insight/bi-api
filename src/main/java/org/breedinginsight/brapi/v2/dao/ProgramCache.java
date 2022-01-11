@@ -44,7 +44,13 @@ public class ProgramCache<R> {
             .build(new CacheLoader<>() {
                 @Override
                 public R load(UUID programId) throws Exception {
-                    return fetchMethod.apply(programId);
+                    try {
+                        return fetchMethod.apply(programId);
+                    } catch (Exception e) {
+                        log.error(e.getMessage());
+                        cache.invalidate(programId);
+                        throw e;
+                    }
                 }
             });
 
@@ -64,7 +70,19 @@ public class ProgramCache<R> {
         try {
             // This will get current cache data, or wait for the refresh to finish if there is no cache data.
             // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
-            return cache.get(programId);
+            if (!programSemaphore.containsKey(programId)) {
+                // For the case where the program cache isn't initialize yet. Could happen when a program is created
+                // and the germplasm is queried for the first time.
+                updateCache(programId);
+                return cache.get(programId);
+            } else if (cache.getIfPresent(programId) == null && programSemaphore.get(programId).availablePermits() == 1) {
+                // For the case where the cache is invalidated but hasn't been refreshed
+                updateCache(programId);
+                return cache.get(programId);
+            } else {
+                // Most cases where the cache is populated
+                return cache.get(programId);
+            }
         } catch (ExecutionException e) {
             log.error(e.getMessage());
             return fetchMethod.apply(programId);
@@ -89,18 +107,15 @@ public class ProgramCache<R> {
                 // Synchronous
                 try {
                     programSemaphore.get(programId).acquire();
-                    System.out.println("Acquired semaphore");
                     cache.refresh(programId);
                 } catch (InterruptedException e) {
                     throw new InternalServerException(e.getMessage(), e);
                 } finally {
                     programSemaphore.get(programId).release();
-                    System.out.println("Released semaphore");
                 }
             });
         } else {
             // An update is already queued, skip this one
-            System.out.println("Skipping refresh");
             return;
         }
     }
