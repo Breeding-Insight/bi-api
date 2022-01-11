@@ -1,20 +1,33 @@
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.test.annotation.MockBean;
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.breedinginsight.TestUtils;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.FetchFunction;
 import org.breedinginsight.brapi.v2.dao.ProgramCache;
+import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.utilities.email.EmailUtil;
 import org.junit.jupiter.api.*;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.Callable;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ProgramCacheUnitTest {
 
     // TODO: Tests
@@ -25,6 +38,11 @@ public class ProgramCacheUnitTest {
     Integer fetchCount = 0;
     Integer waitTime = 1000;
     Map<UUID, List<BrAPIGermplasm>> mockBrAPI = new HashMap<>();
+
+    @MockBean(BrAPIGermplasmDAO.class)
+    BrAPIGermplasmDAO germplasmDAO() { return mock(BrAPIGermplasmDAO.class);}
+    @Inject
+    BrAPIGermplasmDAO germplasmDAO;
 
     @BeforeAll
     void setup() {}
@@ -128,7 +146,6 @@ public class ProgramCacheUnitTest {
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Now post another object and call get immediately to see that it returns the old data
-        // TODO: This seems to be waiting
         cache.post(programId, postFunction);
         cachedGermplasm = cache.get(programId);
         assertEquals(1, cachedGermplasm.size(), "Get method seemed to have waited for refresh method");
@@ -139,10 +156,40 @@ public class ProgramCacheUnitTest {
         assertEquals(2, cachedGermplasm.size(), "Get method did not get updated germplasm");
     }
 
+    @Test
+    @SneakyThrows
     public void refreshErrorInvalidatesCache() {
-        // Tests that data is invalidated when a refresh method fails and that the data is no longer retrievable
-        // TODO: Our get method needs to call update cache in the case of missing data
-    }
+        // Tests that data is invalidated when a refresh method fails
+        // Tests that data is no longer retrievable when invalidated and needs to be refreshed
 
+        // Set starter data
+        UUID programId = UUID.randomUUID();
+        List<BrAPIGermplasm> newList = new ArrayList<>();
+        newList.add(new BrAPIGermplasm());
+        mockBrAPI.put(programId, new ArrayList<>(newList));
+
+        // Mock our method
+        ProgramCacheUnitTest mockTest = spy(this);
+
+        // Start cache
+        ProgramCache<List<BrAPIGermplasm>> cache = new ProgramCache<>((Object id) -> mockTest.mockFetch(programId, waitTime), List.of(programId));
+
+        // Get waits for initial fetch
+        List<BrAPIGermplasm> cachedGermplasm = cache.get(programId);
+        assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
+
+        // Change our fetch method to throw an error now
+        when(mockTest.mockFetch(any(UUID.class), any(Integer.class))).thenAnswer(invocation -> {throw new ApiException("Uhoh");});
+        cache.post(programId, () -> mockPost(programId, new ArrayList<>(newList)));
+        // Give it a second so we can wait for the cache to be invalidated
+        Thread.sleep(waitTime);
+
+        // Check that the fetch function needs to be called again since the cache was invalidated
+        reset(mockTest);
+        mockTest.fetchCount = 0;
+        cachedGermplasm = cache.get(programId);
+        Thread.sleep(waitTime);
+        assertEquals(1, mockTest.fetchCount, "Fetch method not called as many times as expected");
+    }
 
 }
