@@ -28,6 +28,7 @@ public enum ParsingExceptionType {
     INVALID_TRAIT_STATUS("Invalid trait status value"),
     INVALID_SCALE_CLASS("Invalid scale class value"),
     MISSING_SCALE_CLASS("Missing scale class value"),
+    INVALID_METHOD_CLASS("Invalid method class value"),
     INVALID_SCALE_DECIMAL_PLACES("Invalid scale decimal places value"),
     INVALID_SCALE_LOWER_LIMIT("Invalid scale lower limit value. Value must be numeric and be a whole number."),
     INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value. Value must be numeric and be a whole number."),
