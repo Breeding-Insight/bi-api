@@ -324,7 +324,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         JsonObject pagination = metadata.getAsJsonObject("pagination");
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong total pages");
         assertEquals(0, pagination.get("currentPage").getAsInt(), "Wrong current page");
-        assertEquals(4, pagination.get("pageSize").getAsInt(), "Wrong page size");
+        assertEquals(50, pagination.get("pageSize").getAsInt(), "Wrong page size");
         assertEquals(4, pagination.get("totalCount").getAsInt(), "Wrong total count");
 
     }

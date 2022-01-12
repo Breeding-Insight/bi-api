@@ -21,6 +21,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
@@ -38,6 +39,9 @@ public class BrapiQuery implements PaginationParams {
     private Integer pageSize;
     @PositiveOrZero
     private Integer page;
+
+    private String sortField;
+    private SortOrder sortOrder;
 
     public Integer getDefaultPage() {
         return DEFAULT_PAGE;

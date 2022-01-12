@@ -319,7 +319,7 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
         JsonObject result = JsonParser.parseString(response.getBody().get()).getAsJsonObject().getAsJsonObject("result");
 
         JsonArray data = result.getAsJsonArray("data");
-        TestUtils.checkNumericSorting(data, "slope", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "slope", SortOrder.DESC);
     }
 
     // Get pagination column with nulls success
