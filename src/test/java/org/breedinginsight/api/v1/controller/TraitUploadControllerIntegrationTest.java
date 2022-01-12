@@ -373,7 +373,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals(409, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
     }
 
-
     @Test
     public void putTraitUploadBadTypes() {
         // Should only return parsing exceptions, not validation exceptions
@@ -388,9 +387,10 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
         assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
         JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
-        assertEquals(6, rowValidationErrors.size(), "Wrong number of errors for row");
+        assertEquals(7, rowValidationErrors.size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("Status", 422);
+        expectedColumns.put("Method class", 422);
         expectedColumns.put("Scale categories", 422);
         expectedColumns.put("Scale class", 422);
         expectedColumns.put("Scale decimal places", 422);
