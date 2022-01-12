@@ -38,6 +38,7 @@ import org.jooq.DSLContext;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,6 +55,10 @@ public class ProgramService {
     private DSLContext dsl;
     private SecurityService securityService;
     private BrAPIClientProvider brAPIClientProvider;
+
+    private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
+    private static final String PROGRAM_KEY_IN_USE = "PROGRAM_KEY_IN_USE";
+    private static final String GERMPLASM_SEQUENCE_TEMPLATE = "%s_germplasm_sequence";
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
@@ -107,15 +112,34 @@ public class ProgramService {
     public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws AlreadyExistsException, UnprocessableEntityException {
         /* Create a program from a request object */
 
+        //Check that key present
+        if (programRequest.getKey().isBlank()){
+            throw new UnprocessableEntityException("Program key required");
+        }
+
         //Check that program name not already in use
         if (programNameInUse(programRequest.getName())) {
-            throw new AlreadyExistsException("Program name already in use");
+            throw new AlreadyExistsException(PROGRAM_NAME_IN_USE);
         }
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
         if (!speciesService.exists(speciesRequest.getId())){
             throw new UnprocessableEntityException("Species does not exist");
+        }
+
+        //Check that program key not already in use
+        if (programKeyInUse(programRequest.getKey())) {
+            throw new AlreadyExistsException(PROGRAM_KEY_IN_USE);
+        }
+
+        //Ensure program key uppercase
+        programRequest.setKey(programRequest.getKey().toUpperCase());
+
+        //Check that program key formatting correct
+        ArrayList<String> keyErrors = getKeyValidationErrors(programRequest.getKey());
+        if (!(keyErrors.isEmpty())) {
+            throw new UnprocessableEntityException(String.join(" .", keyErrors));
         }
 
         String brapiUrl = programRequest.getBrapiUrl();
@@ -132,6 +156,11 @@ public class ProgramService {
         }
 
         Program program = dsl.transactionResult(configuration -> {
+
+            // Create germplasm sequence
+            String germplasm_sequence_name = String.format(GERMPLASM_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(germplasm_sequence_name).execute();
+
             // Parse and create the program object
             ProgramEntity programEntity = ProgramEntity.builder()
                     .name(programRequest.getName())
@@ -140,6 +169,8 @@ public class ProgramService {
                     .objective(programRequest.getObjective())
                     .documentationUrl(programRequest.getDocumentationUrl())
                     .brapiUrl(brapiUrl)
+                    .key(programRequest.getKey())
+                    .germplasmSequence(germplasm_sequence_name)
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();
@@ -236,6 +267,25 @@ public class ProgramService {
         } else {
             return false;
         }
+    }
+
+    private boolean programKeyInUse(String key) {
+        List<Program> existingPrograms = dao.getProgramByKey(key);
+        return !existingPrograms.isEmpty();
+    }
+
+    public ArrayList getKeyValidationErrors(String key) {
+        ArrayList<String> keyErrors = new ArrayList<>();
+        if (key.length() < 2) {
+            keyErrors.add("Key must be at least 2 characters.");
+        }
+        if (key.length() > 6) {
+            keyErrors.add("Key must be at maximum 6 characters.");
+        }
+        if (!(key.matches("^[A-Z]*$"))) {
+            keyErrors.add("Key must use only alphabetic characters.");
+        }
+        return keyErrors;
     }
 
 

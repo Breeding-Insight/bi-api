@@ -77,6 +77,9 @@ public class UploadControllerIntegrationTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {
@@ -102,6 +105,7 @@ public class UploadControllerIntegrationTest extends BrAPITest {
         ProgramRequest program = ProgramRequest.builder()
                 .name("Test Program")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
         validProgram = insertAndFetchTestProgram(program);
 

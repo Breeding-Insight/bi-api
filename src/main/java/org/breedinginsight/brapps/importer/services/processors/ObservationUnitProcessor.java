@@ -33,6 +33,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
@@ -86,7 +87,8 @@ public class ObservationUnitProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Program program, boolean commit) {
+    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+            Map<Integer,PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
@@ -194,7 +196,8 @@ public class ObservationUnitProcessor implements Processor {
 
     private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
         observationUnitByName.values().stream()
-                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
+                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName() != null &&
+                        obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
                 .forEach(obsUnit -> obsUnit.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
 

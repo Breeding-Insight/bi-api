@@ -50,6 +50,7 @@ import java.time.OffsetDateTime;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -78,6 +79,9 @@ public class ImportControllerIntegrationTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {
@@ -103,6 +107,7 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         ProgramRequest program = ProgramRequest.builder()
                 .name("Test Program")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
         validProgram = insertAndFetchTestProgram(program);
 
@@ -156,8 +161,19 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(1, data.size(), "Wrong number of results returned.");
-        assertEquals("GermplasmTest", data.get(0).getAsJsonObject().get("name").getAsString(), "Wrong import name returned");
+        boolean testNameFound = false;
+        boolean germplasmDefaultNameFound = false;
+        for (JsonElement jsonMapping: data) {
+            JsonObject systemMapping = (JsonObject) jsonMapping;
+            if (systemMapping.get("name").getAsString().equals("GermplasmTest")){
+                testNameFound = true;
+            }
+            if (systemMapping.get("name").getAsString().equals("GermplasmTemplateMap")){
+                germplasmDefaultNameFound = true;
+            }
+        }
+        assertTrue(testNameFound, "Desired import name 'GermplasmTest' not found");
+        assertTrue(germplasmDefaultNameFound, "System import name 'GermplasmTemplateMap' not found");
     }
 
     @Test

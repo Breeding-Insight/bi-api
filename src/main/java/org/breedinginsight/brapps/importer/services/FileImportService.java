@@ -41,8 +41,10 @@ import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
+import org.breedinginsight.services.UserService;
 import org.breedinginsight.services.constants.SupportedMediaType;
 import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.services.parsers.MimeTypeParser;
@@ -57,10 +59,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.BadRequestException;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -70,6 +69,7 @@ public class FileImportService {
 
     private ProgramUserService programUserService;
     private ProgramService programService;
+    private UserService userService;
     private MimeTypeParser mimeTypeParser;
     private ImportMappingDAO importMappingDAO;
     private ObjectMapper objectMapper;
@@ -82,7 +82,8 @@ public class FileImportService {
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
-                      ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl, ImportMappingProgramDAO importMappingProgramDAO) {
+                      ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl, ImportMappingProgramDAO importMappingProgramDAO,
+                      UserService userService) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -93,6 +94,7 @@ public class FileImportService {
         this.importDAO = importDAO;
         this.dsl = dsl;
         this.importMappingProgramDAO = importMappingProgramDAO;
+        this.userService = userService;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -316,10 +318,13 @@ public class FileImportService {
         return response;
     }
 
-    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Boolean commit) throws
+    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
             DoesNotExistException, UnprocessableEntityException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
+
+        // Get user
+        User user = userService.getById(actingUser.getId()).get();
 
         // Find the import
         Optional<ImportUpload> uploadOptional = importDAO.getUploadById(uploadId);
@@ -360,12 +365,28 @@ public class FileImportService {
         importDAO.update(upload);
         // Redo the mapping
         //TODO: Get better errors for these
-        List<BrAPIImport> brAPIImportList = mappingManager.map(mappingConfig, data);
+        List<BrAPIImport> brAPIImportList;
+        try {
+            if (commit) {
+                brAPIImportList = mappingManager.map(mappingConfig, data, userInput);
+            } else {
+                brAPIImportList = mappingManager.map(mappingConfig, data);
+            }
+        } catch (UnprocessableEntityException e) {
+            log.error(e.getMessage());
+            ImportProgress progress = upload.getProgress();
+            progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+            progress.setMessage(e.getMessage());
+            progress.setUpdatedBy(actingUser.getId());
+            importDAO.update(upload);
+            throw e;
+        }
+
 
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
-                importService.process(brAPIImportList, data, program, upload, commit);
+                importService.process(brAPIImportList, data, program, upload, user, commit);
             } catch (UnprocessableEntityException e){
                 log.error(e.getMessage());
                 ImportProgress progress = upload.getProgress();
@@ -377,6 +398,13 @@ public class FileImportService {
                 log.error(e.getMessage());
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.NOT_FOUND.getCode());
+                progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
+            } catch (HttpStatusException e) {
+                log.error(e.getMessage());
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) e.getStatus().getCode());
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);

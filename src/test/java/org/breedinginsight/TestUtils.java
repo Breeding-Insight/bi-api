@@ -17,26 +17,26 @@
 
 package org.breedinginsight;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
+import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.reactivex.Flowable;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.model.Program;
+import se.sawano.java.text.AlphanumericComparator;
 
+import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import static io.micronaut.http.HttpRequest.GET;
-import static io.micronaut.http.HttpRequest.POST;
+import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class TestUtils {
@@ -44,17 +44,21 @@ public class TestUtils {
     public static void checkStringSorting(JsonArray data, String field, SortOrder sortOrder) {
 
         for (int i = 0; i < data.size() - 1; i++){
+            if (!data.get(i).getAsJsonObject().has(field) || !data.get(i + 1).getAsJsonObject().has(field)) {
+                continue;
+            }
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
 
-            if (firstValue.compareTo(secondValue) == 0){
+            AlphanumericComparator comparator = new AlphanumericComparator();
+            if (comparator.compare(firstValue, secondValue) == 0) {
                 continue;
             }
             
             if (sortOrder == SortOrder.ASC) {
-                assertEquals(true, firstValue.compareTo(secondValue) < 0, "Incorrect sorting");
+                assertEquals(true, comparator.compare(firstValue, secondValue) < 0, "Incorrect sorting");
             } else {
-                assertEquals(true, firstValue.compareTo(secondValue) > 0, "Incorrect sorting");
+                assertEquals(true, comparator.compare(firstValue, secondValue) > 0, "Incorrect sorting");
             }
 
         }
@@ -111,7 +115,8 @@ public class TestUtils {
 
             if (data.get(i).size() == data.get(i + 1).size()){
 
-                int result = String.join("", data.get(i)).compareToIgnoreCase(String.join("", data.get(i + 1)));
+                AlphanumericComparator comparator = new AlphanumericComparator();
+                int result = comparator.compare(String.join("", data.get(i)).toLowerCase(), String.join("", data.get(i + 1)).toLowerCase());
                 if (result == 0){
                     continue;
                 }
@@ -134,7 +139,7 @@ public class TestUtils {
     public static Program insertAndFetchTestProgram(Gson gson, RxHttpClient client, ProgramRequest programRequest) {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/", gson.toJson(programRequest))
+                POST("/programs", gson.toJson(programRequest))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -165,5 +170,48 @@ public class TestUtils {
         Program program = gson.fromJson(result, Program.class);
 
         return program;
+    }
+
+    public static HttpResponse<String> uploadDataFile(RxHttpClient client, UUID programID, String mappingID,
+                                                         Map<String, String> body, File file) throws InterruptedException {
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", programID, mappingID);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String importId = result.get("importId").getAsString();
+
+        // Process data
+        String url = String.format("/programs/%s/import/mappings/%s/data/%s/commit", programID, mappingID, importId);
+        Flowable<HttpResponse<String>> processCall = client.exchange(
+                PUT(url, body)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        processCall.blockingFirst();
+
+       return getUploadedFile(client, programID, mappingID, importId);
+    }
+
+    public static HttpResponse<String> getUploadedFile(RxHttpClient client, UUID programID, String mappingID, String importId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/import/mappings/%s/data/%s?mapping=true", programID, mappingID, importId))
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        if (response.getStatus().equals(HttpStatus.ACCEPTED)) {
+            Thread.sleep(1000);
+            return getUploadedFile(client, programID, mappingID, importId);
+        } else {
+            return response;
+        }
     }
 }

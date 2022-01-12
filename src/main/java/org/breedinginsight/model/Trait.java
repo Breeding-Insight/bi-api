@@ -74,18 +74,11 @@ public class Trait extends TraitEntity {
     // It is not populated by the database.
     private Boolean isDup = null;
 
-    @Override
-    @JsonDeserialize(using = ArrayOfStringDeserializer.class)
-    public void setAbbreviations(String... abbreviations) {
-        super.setAbbreviations(abbreviations);
-    }
-
     public Trait(TraitEntity traitEntity) {
         this.setId(traitEntity.getId());
         this.setMethodId(traitEntity.getMethodId());
         this.setScaleId(traitEntity.getScaleId());
         this.setObservationVariableName(traitEntity.getObservationVariableName());
-        this.setAbbreviations(traitEntity.getAbbreviations());
         this.setProgramOntologyId(traitEntity.getProgramOntologyId());
         this.setProgramObservationLevelId(traitEntity.getProgramObservationLevelId());
         this.setCreatedAt(traitEntity.getCreatedAt());
@@ -101,7 +94,6 @@ public class Trait extends TraitEntity {
             .methodId(record.getValue(TRAIT.METHOD_ID))
             .scaleId(record.getValue(TRAIT.SCALE_ID))
             .observationVariableName(record.getValue(TRAIT.OBSERVATION_VARIABLE_NAME))
-            .abbreviations(record.getValue(TRAIT.ABBREVIATIONS))
             .programOntologyId(record.getValue(TRAIT.PROGRAM_ONTOLOGY_ID))
             .programObservationLevelId(record.getValue(TRAIT.PROGRAM_OBSERVATION_LEVEL_ID))
             .createdAt(record.getValue(TRAIT.CREATED_AT))
@@ -127,8 +119,8 @@ public class Trait extends TraitEntity {
 
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags, String fullName) {
         setBrAPIProperties(brApiVariable);
-        if (tags != null) this.tags = tags;
-        if (fullName != null) this.fullName = fullName;
+        this.tags = tags;
+        this.fullName = fullName;
     }
 
 }

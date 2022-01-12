@@ -94,6 +94,11 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    @AfterAll
+    public void finish() {
+        super.stopContainers();
+    }
+
     @BeforeAll
     public void setup() {
 

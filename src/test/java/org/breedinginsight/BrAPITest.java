@@ -83,6 +83,9 @@ public class BrAPITest extends DatabaseTest {
         return properties;
     }
 
-
+    public void stopContainers() {
+        brapiContainer.stop();
+        super.stopContainers();
+    }
 }
 

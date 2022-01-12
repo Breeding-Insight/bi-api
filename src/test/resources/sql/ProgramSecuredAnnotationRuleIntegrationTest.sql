@@ -18,20 +18,20 @@
 
 
 -- name: InsertPrograms
-insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
-select species.id, 'Program1', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by, key)
+select species.id, 'Program1', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id, 'PA' from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
-insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
-select species.id, 'Program2', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by, key)
+select species.id, 'Program2', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id, 'PB' from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
-insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
-select species.id, 'Program3', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by, key)
+select species.id, 'Program3', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id, 'PC' from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
-insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
-select species.id, 'Program4', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by, key)
+select species.id, 'Program4', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id, 'PD' from species
 join bi_user on bi_user.name = 'Test User' limit 1;
 
 -- name: InsertProgramRolesMember

@@ -96,6 +96,9 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     String invalidProgram = invalidUUID;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     public void setup() {
 
@@ -119,6 +122,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         ProgramRequest program = ProgramRequest.builder()
                 .name("Test Program")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
 
         validProgram = insertAndFetchTestProgram(program);
@@ -358,17 +362,16 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
         JsonArray errors = rowError1.getAsJsonArray("errors");
-        assertTrue(errors.size() == 2, "Not enough errors were returned");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals(409, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
 
         JsonObject rowError2 = rowErrors.get(0).getAsJsonObject();
         JsonArray errors2 = rowError2.getAsJsonArray("errors");
-        assertTrue(errors2.size() == 2, "Not enough errors were returned");
+        assertTrue(errors2.size() == 1, "Not enough errors were returned");
         JsonObject error2 = errors2.get(0).getAsJsonObject();
         assertEquals(409, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
     }
-
 
     @Test
     public void putTraitUploadBadTypes() {
@@ -384,9 +387,10 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
         assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
         JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
-        assertEquals(6, rowValidationErrors.size(), "Wrong number of errors for row");
+        assertEquals(7, rowValidationErrors.size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("Trait status", 422);
+        expectedColumns.put("Status", 422);
+        expectedColumns.put("Method class", 422);
         expectedColumns.put("Scale categories", 422);
         expectedColumns.put("Scale class", 422);
         expectedColumns.put("Scale decimal places", 422);
@@ -502,14 +506,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = traitUpload.getAsJsonArray("data");
         JsonObject trait = data.get(0).getAsJsonObject();
-
-        JsonArray abbreviations = trait.getAsJsonArray("abbreviations");
-        String abb1 = abbreviations.get(0).getAsString();
-        String abb2 = abbreviations.get(1).getAsString();
-
-        assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
-        assertEquals("PMSevLeaf", abb1, "wrong abbreviation");
-        assertEquals("PM_LEAF_P4", abb2, "wrong abbreviation");
 
         JsonArray synonyms = trait.getAsJsonArray("synonyms");
         String syn1 = synonyms.get(0).getAsString();

@@ -92,6 +92,9 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
     private Program validProgram;
     private Program otherValidProgram;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {
@@ -120,6 +123,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         ProgramRequest program = ProgramRequest.builder()
                 .name("Test Program")
                 .species(speciesRequest)
+                .key("TEST")
                 .build();
 
         validProgram = insertAndFetchTestProgram(gson, biClient, program);
@@ -135,6 +139,7 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         ProgramRequest otherProgram = ProgramRequest.builder()
                 .name("Other Test Program")
                 .species(speciesRequest)
+                .key("TESTO")
                 .build();
 
         otherValidProgram = insertAndFetchTestProgram(gson, biClient, otherProgram);

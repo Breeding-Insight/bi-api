@@ -24,6 +24,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.services.processors.*;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -62,13 +63,13 @@ public class GermplasmImportService extends BrAPIImportService {
     }
 
     @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, Boolean commit)
+    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
             throws UnprocessableEntityException, DoesNotExistException {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get());
         try {
-            response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, commit);
+            response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
         } catch (ValidatorException e) {
             log.error(e.getMessage());
         }

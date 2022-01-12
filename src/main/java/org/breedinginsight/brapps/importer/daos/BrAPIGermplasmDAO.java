@@ -70,6 +70,17 @@ public class BrAPIGermplasmDAO {
         );
     }
 
+    public List<BrAPIGermplasm> getGermplasmByAccessionNumber(List<String> germplasmAccessionNumbers, UUID programId) throws ApiException {
+        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
+        germplasmSearch.accessionNumbers(germplasmAccessionNumbers);
+        GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+        return BrAPIDAOUtil.search(
+                api::searchGermplasmPost,
+                api::searchGermplasmSearchResultsDbIdGet,
+                germplasmSearch
+        );
+    }
+
     public List<BrAPIGermplasmAttribute> getGermplasmAttributesByName(List<String> germplasmAttributeNames, UUID programId) throws ApiException {
         BrAPIGermplasmAttributeSearchRequest germplasmAttributeSearch = new BrAPIGermplasmAttributeSearchRequest();
         germplasmAttributeSearch.setAttributeNames(new ArrayList<>(germplasmAttributeNames));

@@ -31,10 +31,13 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
+import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 import org.breedinginsight.utilities.response.mappers.FilterField;
+import se.sawano.java.text.AlphanumericComparator;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -57,8 +60,13 @@ public class ResponseUtils {
 
     // Brapi pagination and filter only
     public static <T> HttpResponse<Response<DataResponse<T>>> getBrapiQueryResponse(
-            List data, AbstractQueryMapper mapper, PaginationParams queryParams, SearchRequest searchRequest) {
+            List data, AbstractQueryMapper mapper, BrapiQuery queryParams, SearchRequest searchRequest) {
         return processBrapiResponse(data, searchRequest, queryParams, mapper, new Metadata());
+    }
+
+    public static <T> HttpResponse<Response<DataResponse<T>>> getBrapiQueryResponse(
+            List data, AbstractQueryMapper mapper, BrapiQuery queryParams) {
+        return processBrapiResponse(data, null, queryParams, mapper, new Metadata());
     }
 
     // All
@@ -91,11 +99,15 @@ public class ResponseUtils {
     }
 
     private static <T> HttpResponse<Response<DataResponse<T>>> processBrapiResponse(
-            List data, SearchRequest searchRequest, PaginationParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
+            List data, SearchRequest searchRequest, BrapiQuery queryParams, AbstractQueryMapper mapper, Metadata metadata) {
 
         if (searchRequest != null){
             data = search(data, searchRequest, mapper);
         }
+        QueryParams sortParams = new QueryParams();
+        sortParams.setSortField(queryParams.getSortField());
+        sortParams.setSortOrder(queryParams.getSortOrder());
+        data = sort(data, sortParams, mapper);
         Pair<List, Pagination> paginationResult = paginateData(data, queryParams);
         metadata = constructMetadata(metadata, paginationResult.getRight());
         return HttpResponse.ok(new Response(metadata, new DataResponse(paginationResult.getLeft())));
@@ -129,10 +141,24 @@ public class ResponseUtils {
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
             GenericComparator comparator = new GenericComparator(
-                    Comparator.nullsFirst(Comparator.naturalOrder()));
+                    Comparator.nullsFirst(new AlphanumericComparator()));
+
+            // Convert everything to string. Might not be perfect, such as for BigDecimal, but it gets the job done.
+            Function typeSafeField;
+            if (data.size() >= 1 && (field.apply(data.get(0)) instanceof List || field.apply(data.get(0)) instanceof OffsetDateTime)) {
+                typeSafeField = field;
+            } else {
+                typeSafeField = (Object object) -> field.apply(object) != null ? field.apply(object).toString() : null;
+            }
+
+            // Special comparators
+            if (data.size() >= 1 && field.apply(data.get(0)) instanceof OffsetDateTime) {
+                comparator = new GenericComparator(
+                        Comparator.nullsFirst(Comparator.naturalOrder()));
+            }
 
             Collections.sort(data,
-                    Comparator.comparing(field,
+                    Comparator.comparing(typeSafeField,
                             comparator));
 
             if (sortOrder == SortOrder.DESC) {
@@ -198,7 +224,6 @@ public class ResponseUtils {
                 data.size() : startIndex + pageSize;
 
         data = data.subList(startIndex, endIndex);
-
         pagination.setCurrentPage(page);
         pagination.setPageSize(pageSize);
         pagination.setTotalPages((int) Math.ceil(originalCount / (double) pageSize));
