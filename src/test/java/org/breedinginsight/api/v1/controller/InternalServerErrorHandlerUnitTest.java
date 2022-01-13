@@ -68,19 +68,9 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         return mock(ProgramService.class);
     }
 
-    @MockBean(CountryController.class)
-    CountryController countryController() {
-        return mock(CountryController.class);
-    }
-
     @MockBean(CountryService.class)
     CountryService countryService() {
         return mock(CountryService.class);
-    }
-
-    @MockBean(TopographyController.class)
-    TopographyController topographyController() {
-        return mock(TopographyController.class);
     }
 
     @MockBean(TopographyService.class)
@@ -88,19 +78,9 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
         return mock(TopographyService.class);
     }
 
-    @MockBean(AccessibilityController.class)
-    AccessibilityController accessibilityController() {
-        return mock(AccessibilityController.class);
-    }
-
     @MockBean(AccessibilityService.class)
     AccessibilityService accessibilityService() {
         return mock(AccessibilityService.class);
-    }
-
-    @MockBean(EnvironmentTypeController.class)
-    EnvironmentTypeController environmentTypeController() {
-        return mock(EnvironmentTypeController.class);
     }
 
     @MockBean(EnvironmentTypeService.class)
@@ -113,19 +93,11 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     @Inject
     private CountryService countryService;
     @Inject
-    private CountryController countryController;
-    @Inject
     private AccessibilityService accessibilityService;
-    @Inject
-    private AccessibilityController accessibilityController;
     @Inject
     private TopographyService topographyService;
     @Inject
-    private TopographyController topographyController;
-    @Inject
     private EnvironmentTypeService environmentTypeService;
-    @Inject
-    private EnvironmentTypeController environmentTypeController;
     @Inject
     private UserDAO userDAO;
     @Inject
@@ -179,7 +151,8 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     @Test
     public void getCountriesInternalServerError() {
 
-        when(countryController.getCountries()).thenThrow(new DataAccessException("Query 123 failed"));
+        //when(countryController.getCountries()).thenThrow(new DataAccessException("Query 123 failed"));
+        when(countryService.getAll()).thenThrow(new DataAccessException("Query 123 failed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/countries").cookie(new NettyCookie("phylo-token", "test-country")), String.class
@@ -220,7 +193,8 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     @Test
     public void getTopographiesInternalServerError() {
 
-        when(topographyController.getTopographies()).thenThrow(new DataAccessException("Query 123 failed"));
+        //when(topographyController.getTopographies()).thenThrow(new DataAccessException("Query 123 failed"));
+        when(topographyService.getAll()).thenThrow(new DataAccessException("Query 123 failed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/topography-options").cookie(new NettyCookie("phylo-token", "test-topography")), String.class
@@ -263,6 +237,7 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     public void getAccessibilitiesInternalServerError() {
 
         //when(accessibilityController.getAccessibilities()).thenThrow(new DataAccessException("Query 123 failed"));
+        when(accessibilityService.getAll()).thenThrow(new DataAccessException("Query 123 failed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/accessibility-options").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -303,7 +278,8 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     @Test
     public void getEnvironmentTypesInternalServerError() {
 
-        when(environmentTypeController.getEnvironmentTypes()).thenThrow(new DataAccessException("Query 123 failed"));
+        //when(environmentTypeController.getEnvironmentTypes()).thenThrow(new DataAccessException("Query 123 failed"));
+        when(environmentTypeService.getAll()).thenThrow(new DataAccessException("Query 123 failed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/environment-data-types").cookie(new NettyCookie("phylo-token", "test-environment-type")), String.class
