@@ -74,6 +74,9 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                 .switchMap(aBoolean -> {
 
                     RouteMatch routeMatch = request.getAttribute(HttpAttributes.ROUTE_MATCH, RouteMatch.class).orElse(null);
+                    if (routeMatch == null) {
+                        return chain.proceed(request);
+                    }
                     Map<String, Object> params = routeMatch.getVariableValues();
                     if (params.get("programId") != null) {
                         if (routeMatch instanceof MethodBasedRouteMatch) {

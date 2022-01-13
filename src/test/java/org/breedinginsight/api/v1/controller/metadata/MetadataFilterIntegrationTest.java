@@ -19,6 +19,7 @@ package org.breedinginsight.api.v1.controller.metadata;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
@@ -34,8 +35,12 @@ import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.response.metadata.Metadata;
 import org.breedinginsight.api.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.api.v1.controller.UserController;
+import org.breedinginsight.dao.db.tables.daos.BiUserDao;
+import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.model.User;
+import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -55,16 +60,35 @@ import static org.mockito.Mockito.when;
 public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Inject
-    private UserController userController;
-
-    @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
-    // TODO: Remove this
-    @MockBean(UserController.class)
-    UserController userController() {
-        return mock(UserController.class);
+    @Inject
+    @Client("/")
+    private RxHttpClient plainClient;
+
+    @Inject
+    private DSLContext dsl;
+    @Inject
+    private BiUserDao biUserDao;
+
+    BiUserEntity testUser;
+    BiUserEntity otherTestUser;
+
+    private FannyPack fp = FannyPack.fill("src/test/resources/sql/UserControllerIntegrationTest.sql");
+
+    @BeforeAll
+    public void setup() {
+        // Insert our traits into the db
+        dsl.execute(fp.get("InsertProgram"));
+        dsl.execute(fp.get("InsertUserProgramAssociations"));
+        dsl.execute(fp.get("InsertManyUsers"));
+
+        testUser = biUserDao.fetchByOrcid(TestTokenValidator.TEST_USER_ORCID).get(0);
+        otherTestUser = biUserDao.fetchByOrcid(TestTokenValidator.OTHER_TEST_USER_ORCID).get(0);
+
+        dsl.execute(fp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
+        dsl.execute(fp.get("InsertSystemRoleAdmin"), otherTestUser.getId().toString());
     }
 
     @AfterAll
@@ -74,15 +98,11 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Test
     public void getSingleResponseNoMetadataSuccess() {
-        // TODO: Find an endpoint for this
 
         // Check metadata is successfully populated when none is returned from controller
-        Response mockedResponse = getResponseMock();
-
-        when(userController.users(any(UUID.class))).thenReturn(HttpResponse.ok(mockedResponse));
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/users/74a6ebfe-d114-419b-8bdc-2f7b52d26172").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                GET("/users/" + testUser.getId()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
@@ -101,74 +121,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void getSingleResponseMetadataSuccess() {
-        // TODO: Find an endpoint for this
-
-        // Check that if a single result response has metadata, an error is not thrown
-        Response mockedResponse = getResponseMock();
-
-        Pagination mockedPagination = new Pagination(6,6,6,1);
-        Metadata mockedMetadata = new Metadata();
-        mockedMetadata.setPagination(mockedPagination);
-        mockedResponse.setMetadata(mockedMetadata);
-
-        when(userController.users(any(UUID.class))).thenReturn(HttpResponse.ok(mockedResponse));
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/users/74a6ebfe-d114-419b-8bdc-2f7b52d26172").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        // Test that our metadata object has been returned
-        JsonObject data = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
-
-        assertTrue(data != null, "Wrong number users");
-
-        // Check our page numbers weren't altered by the filtered
-        assertEquals(6, data.getAsJsonPrimitive("totalPages").getAsInt(), "Default total pages is incorrect");
-        assertEquals(6, data.getAsJsonPrimitive("totalCount").getAsInt(), "Default total count is incorrect");
-        assertEquals(6, data.getAsJsonPrimitive("pageSize").getAsInt(), "Default page size is incorrect");
-        assertEquals(1, data.getAsJsonPrimitive("currentPage").getAsInt(), "Default current page is incorrect");
-    }
-
-    @Test
-    public void dataResponseMetadataFilterFailure() {
-        // TODO: Not sure how to test this one
-
-        // Check we get an exception when a data response is returned without a metadata field and filter annotation on
-        Response mockedResponse = getDataResponseMock();
-
-        when(userController.users(any(UUID.class))).thenReturn(HttpResponse.ok(mockedResponse));
-
-        // This endpoint will never return a data response, but for testing purposes, we will have it return one to test
-        // if an endpoint with the @FilterMetadata annotation ever did return a data response.
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/users/74a6ebfe-d114-419b-8bdc-2f7b52d26172").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
-
-    }
-
-    @Test
     public void getDataResponseMetadataFilterSuccess() {
-        // TODO: Just test on real users endpoint
-
-        // Check we don't get an exception when a data response with proper metadata is returned
-        Response mockedResponse = getDataResponseMock();
-
-        Pagination mockedPagination = new Pagination(6,6,6,1);
-        Metadata mockedMetadata = new Metadata();
-        mockedMetadata.setPagination(mockedPagination);
-        mockedResponse.setMetadata(mockedMetadata);
-
-        when(userController.users(any(QueryParams.class))).thenReturn(HttpResponse.ok(mockedResponse));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -183,22 +136,16 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         assertTrue(data != null, "Metadata was not populated");
 
         // Check our page numbers weren't altered by the filtered
-        assertEquals(6, data.getAsJsonPrimitive("totalPages").getAsInt(), "Default total pages is incorrect");
-        assertEquals(6, data.getAsJsonPrimitive("totalCount").getAsInt(), "Default total count is incorrect");
-        assertEquals(6, data.getAsJsonPrimitive("pageSize").getAsInt(), "Default page size is incorrect");
+        assertEquals(1, data.getAsJsonPrimitive("totalPages").getAsInt(), "Default total pages is incorrect");
+        assertEquals(38, data.getAsJsonPrimitive("totalCount").getAsInt(), "Default total count is incorrect");
+        assertEquals(38, data.getAsJsonPrimitive("pageSize").getAsInt(), "Default page size is incorrect");
         assertEquals(1, data.getAsJsonPrimitive("currentPage").getAsInt(), "Default current page is incorrect");
     }
 
     @Test
     public void filterNotCalledNoAnnotation(){
-        //TODO: Looks like mocking the bean is messing with ROUTE_MATCH. Figure out something else for these endpoints. Maybe try out health endpoint?
 
-        // Check that the metadata filter does not add metadata when annotation is missing
-        Response mockedResponse = getResponseMock();
-
-        when(userController.users(any(QueryParams.class))).thenReturn(HttpResponse.ok(mockedResponse));
-
-        Flowable<HttpResponse<String>> call = client.exchange(
+        Flowable<HttpResponse<String>> call = plainClient.exchange(
                 GET("/health").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
@@ -209,34 +156,5 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
         assertTrue(metadata == null, "Metadata was populated, but shouldn't have been");
 
-    }
-
-    public Response<User> getResponseMock() {
-
-        User mockedUser = User.builder()
-            .name("Test User")
-            .email("test@user.com")
-            .id(UUID.randomUUID())
-            .orcid("testorcid")
-            .build();
-
-        return new Response<>(mockedUser);
-    }
-
-    public Response<DataResponse<User>> getDataResponseMock() {
-
-        User mockedUser = User.builder()
-                .name("Test User")
-                .email("test@user.com")
-                .id(UUID.randomUUID())
-                .orcid("testorcid")
-                .build();
-        List<User> users = new ArrayList<>();
-        users.add(mockedUser);
-        users.add(mockedUser);
-        DataResponse<User> dataResponse = new DataResponse<User>().setData(users);
-        Response mockedResponse = new Response().setResult(dataResponse);
-
-        return mockedResponse;
     }
 }
