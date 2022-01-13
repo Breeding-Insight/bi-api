@@ -37,8 +37,8 @@ import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
-import org.breedinginsight.services.GermplasmService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
@@ -55,10 +55,10 @@ public class BrAPIV2Controller {
 
     private final SecurityService securityService;
     private final ProgramService programService;
-    private final GermplasmService germplasmService;
+    private final BrAPIGermplasmService germplasmService;
 
     @Inject
-    public BrAPIV2Controller(SecurityService securityService, ProgramService programService, GermplasmService germplasmService) {
+    public BrAPIV2Controller(SecurityService securityService, ProgramService programService, BrAPIGermplasmService germplasmService) {
         this.securityService = securityService;
         this.programService = programService;
         this.germplasmService = germplasmService;

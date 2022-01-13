@@ -2,13 +2,20 @@ package org.breedinginsight.brapi.v2.services;
 
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.HttpRequest;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -23,10 +30,14 @@ public class BrAPIGermplasmService {
     private String referenceSource;
     private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
     private final String GERMPLASM_NAME_REGEX = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+    private ProgramService programService;
+    private BrAPIListDAO brAPIListDAO;
 
     @Inject
-    public BrAPIGermplasmService(BrAPIProvider brAPIProvider) {
+    public BrAPIGermplasmService(BrAPIProvider brAPIProvider, BrAPIListDAO brAPIListDAO, ProgramService programService) {
         this.brAPIProvider = brAPIProvider;
+        this.brAPIListDAO = brAPIListDAO;
+        this.programService = programService;
     }
 
     public List<BrAPIGermplasm> getGermplasm(UUID programId) {
@@ -79,4 +90,35 @@ public class BrAPIGermplasmService {
 
         return germplasmList;
     }
+
+    public BrAPIListsListResponse getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
+
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if(optionalProgram.isPresent()) {
+            Program program = optionalProgram.get();
+            String appendedKey = String.format(" [%s-germplasm]", program.getKey());
+
+            BrAPIListsListResponse germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, referenceSource + "/programs", programId);
+
+            //Remove key appended to listName for brapi
+            String listName;
+            String newListName;
+            int listLength = germplasmLists.getResult().getData().size();
+            for (int i=0; i<listLength; i++) {
+                listName = germplasmLists.getResult().getData().get(i).getListName();
+                newListName = listName.replace(appendedKey, "");
+                germplasmLists.getResult().getData().get(i).setListName(newListName);
+            }
+
+            return germplasmLists;
+        }
+        else {
+            throw new DoesNotExistException("Program does not exist");
+        }
+    }
+
 }
