@@ -18,28 +18,30 @@
 package org.breedinginsight.api.v1.controller.brapi;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.core.async.publisher.Publishers;
 import io.micronaut.core.order.Ordered;
-import io.micronaut.http.HttpAttributes;
-import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.MutableHttpResponse;
+import io.micronaut.http.*;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
+import io.micronaut.web.router.RouteMatchUtils;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
 import io.micronaut.http.exceptions.HttpStatusException;
+import org.apache.http.HttpException;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.intellij.lang.annotations.Flow;
 import org.reactivestreams.Publisher;
 
 import javax.inject.Inject;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Filter("/**")
@@ -80,14 +82,16 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                             try {
                                 programId = UUID.fromString(params.get("programId").toString());
                             } catch (IllegalArgumentException e) {
-                                return Flowable.error(new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist"));
+                                MutableHttpResponse<?> response = HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+                                return Flowable.just(response);
                             }
 
                             ProgramBrAPIEndpoints programBrAPIEndpoints;
                             try {
                                 programBrAPIEndpoints = programService.getBrapiEndpoints(programId);
                             } catch (DoesNotExistException e) {
-                                return Flowable.error(new HttpStatusException(HttpStatus.NOT_FOUND, "Program does not exist"));
+                                MutableHttpResponse<?> response = HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+                                return Flowable.just(response);
                             }
                             String coreUrl = getCoreUrl(programBrAPIEndpoints);
                             brAPIClientProvider.setCoreClient(coreUrl);
