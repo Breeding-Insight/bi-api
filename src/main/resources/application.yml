@@ -24,6 +24,7 @@ micronaut:
     port: ${API_INTERNAL_PORT:8081}
     cors:
       enabled: true
+    thread-selection: AUTO
     multipart:
       enabled: true
       max-file-size: '100MB'
@@ -92,6 +93,7 @@ micronaut:
         enabled: true
         get-allowed: true
         path: /logout
+    authentication: cookie
 jackson:
   date-format: yyyy-MM-dd'T'HH:mm:ssZ
   mapper:

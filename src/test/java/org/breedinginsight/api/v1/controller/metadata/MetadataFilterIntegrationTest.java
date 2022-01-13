@@ -61,6 +61,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    // TODO: Remove this
     @MockBean(UserController.class)
     UserController userController() {
         return mock(UserController.class);
@@ -73,6 +74,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Test
     public void getSingleResponseNoMetadataSuccess() {
+        // TODO: Find an endpoint for this
 
         // Check metadata is successfully populated when none is returned from controller
         Response mockedResponse = getResponseMock();
@@ -100,6 +102,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Test
     public void getSingleResponseMetadataSuccess() {
+        // TODO: Find an endpoint for this
 
         // Check that if a single result response has metadata, an error is not thrown
         Response mockedResponse = getResponseMock();
@@ -132,6 +135,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Test
     public void dataResponseMetadataFilterFailure() {
+        // TODO: Not sure how to test this one
 
         // Check we get an exception when a data response is returned without a metadata field and filter annotation on
         Response mockedResponse = getDataResponseMock();
@@ -154,6 +158,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Test
     public void getDataResponseMetadataFilterSuccess() {
+        // TODO: Just test on real users endpoint
 
         // Check we don't get an exception when a data response with proper metadata is returned
         Response mockedResponse = getDataResponseMock();
@@ -186,6 +191,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
 
     @Test
     public void filterNotCalledNoAnnotation(){
+        //TODO: Looks like mocking the bean is messing with ROUTE_MATCH. Figure out something else for these endpoints. Maybe try out health endpoint?
 
         // Check that the metadata filter does not add metadata when annotation is missing
         Response mockedResponse = getResponseMock();
@@ -193,7 +199,7 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         when(userController.users(any(QueryParams.class))).thenReturn(HttpResponse.ok(mockedResponse));
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/users").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                GET("/health").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();
