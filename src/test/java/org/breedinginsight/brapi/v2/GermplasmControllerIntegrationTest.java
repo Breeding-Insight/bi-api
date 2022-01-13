@@ -57,6 +57,9 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
+    private final String germplasmListName = "Program List";
+    private final String germplasmListDesc = "Program List";
+
     @AfterAll
     public void finish() { super.stopContainers(); }
 
@@ -114,16 +117,16 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         // Insert other program germplasm
         File otherFile = new File("src/test/resources/files/germplasm_import/minimal_germplasm_import.csv");
         Map<String, String> otherListInfo = Map.ofEntries(
-                Map.entry("germplasmListName", "Program List"),
-                Map.entry("germplasmListDescription", "Program List")
+                Map.entry("germplasmListName", germplasmListName),
+                Map.entry("germplasmListDescription", germplasmListDesc)
         );
         TestUtils.uploadDataFile(client, otherValidProgram.getId(), germplasmImportId, otherListInfo, otherFile);
 
         // Insert program germplasm
         File file = new File("src/test/resources/files/germplasm_import/full_import.csv");
         Map<String, String> germplasmListInfo = Map.ofEntries(
-                Map.entry("germplasmListName", "Program List"),
-                Map.entry("germplasmListDescription", "Program List")
+                Map.entry("germplasmListName", germplasmListName),
+                Map.entry("germplasmListDescription", germplasmListDesc)
         );
         TestUtils.uploadDataFile(client, validProgram.getId(), germplasmImportId, germplasmListInfo, file);
     }
@@ -173,4 +176,26 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         assertEquals(1, data.size(), "Wrong number of germplasm were returned");
     }
+
+    @Test
+    @SneakyThrows
+    public void getAllGermplasmListsSuccess() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists",validProgram.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        //("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists")
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(1, data.size(), "Wrong number of germplasm lists were returned");
+        JsonObject exampleGermplasmList = data.get(0).getAsJsonObject();
+        assertEquals(exampleGermplasmList.get("listName").getAsString(), germplasmListName, "Germplasm list name incorrect");
+        assertEquals(exampleGermplasmList.get("listDescription").getAsString(), germplasmListDesc, "Germplasm list description incorrect");
+    }
+
 }
