@@ -58,6 +58,7 @@ import static org.mockito.Mockito.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
 
     private ListAppender<ILoggingEvent> loggingEventListAppender;
@@ -258,12 +259,13 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     }
 
     @Test
+    @Order(1)
     public void getAccessibilitiesInternalServerError() {
 
-        when(accessibilityController.getAccessibilities()).thenThrow(new DataAccessException("Query 123 failed"));
+        //when(accessibilityController.getAccessibilities()).thenThrow(new DataAccessException("Query 123 failed"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/accessibility-options").cookie(new NettyCookie("phylo-token", "test-accessibility")), String.class
+                GET("/accessibility-options").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {

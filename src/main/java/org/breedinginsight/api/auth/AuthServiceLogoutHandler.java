@@ -19,7 +19,7 @@ package org.breedinginsight.api.auth;
 
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.security.token.jwt.cookie.JwtCookieClearerLogoutHandler;
 import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 
@@ -34,7 +34,7 @@ public class AuthServiceLogoutHandler extends JwtCookieClearerLogoutHandler {
     }
 
     @Override
-    public HttpResponse logout(HttpRequest<?> request) {
+    public MutableHttpResponse<?> logout(HttpRequest<?> request) {
         // If we want to hook code into the logout process in the future we can put it here, for now just
         // passes through to JwtCookieClearerLogoutHandler
         return super.logout(request);
