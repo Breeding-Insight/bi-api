@@ -1,5 +1,4 @@
 Fixes:
-1. Add Bearer token back in
 2. Fix tests
     - TokenControllerIntegrationTest
     - InternalServerErrorHandlerTest
