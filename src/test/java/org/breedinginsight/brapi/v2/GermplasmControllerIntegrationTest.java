@@ -196,6 +196,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         JsonObject exampleGermplasmList = data.get(0).getAsJsonObject();
         assertEquals(exampleGermplasmList.get("listName").getAsString(), germplasmListName, "Germplasm list name incorrect");
         assertEquals(exampleGermplasmList.get("listDescription").getAsString(), germplasmListDesc, "Germplasm list description incorrect");
+        assertEquals(exampleGermplasmList.get("listSize").getAsInt(), 3, "Germplasm list displays incorrect total entries ");
     }
 
 }
