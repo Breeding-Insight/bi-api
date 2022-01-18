@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 public class ProgramCache<R> {
 
     private FetchFunction<UUID, R> fetchMethod;
-    Map<UUID, Semaphore> programSemaphore = new HashMap<>();
+    private Map<UUID, Semaphore> programSemaphore = new HashMap<>();
 
     final Executor executor = Executors.newCachedThreadPool();
     private LoadingCache<UUID, R> cache = CacheBuilder.newBuilder()
@@ -70,13 +70,8 @@ public class ProgramCache<R> {
         try {
             // This will get current cache data, or wait for the refresh to finish if there is no cache data.
             // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
-            if (!programSemaphore.containsKey(programId)) {
-                // For the case where the program cache isn't initialize yet. Could happen when a program is created
-                // and the germplasm is queried for the first time.
-                updateCache(programId);
-                return cache.get(programId);
-            } else if (cache.getIfPresent(programId) == null && programSemaphore.get(programId).availablePermits() == 1) {
-                // For the case where the cache is invalidated but hasn't been refreshed
+            if (!programSemaphore.containsKey(programId) || cache.getIfPresent(programId) == null) {
+                // If the cache is missing, refresh and get
                 updateCache(programId);
                 return cache.get(programId);
             } else {

@@ -70,7 +70,7 @@ public class BrAPIGermplasmDAO {
         return programGermplasmCache.get(programId);
     }
 
-    public List<BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
+    private List<BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
 
         // Set query params and make call
