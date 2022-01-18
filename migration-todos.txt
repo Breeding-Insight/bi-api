@@ -1,8 +1,5 @@
 Fixes:
-2. Fix tests
-    - TokenControllerIntegrationTest
-    - InternalServerErrorHandlerTest
-    - MetadataFilterIntegrationTest
+1. Migration up to 2.1.0 breaks flyway
 
 Testing:
 1. Test new account creation
@@ -10,3 +7,4 @@ Testing:
 3. Sign in errors
 4. Pages and tables
 5. End point not found
+6. Launching an app from scratch
