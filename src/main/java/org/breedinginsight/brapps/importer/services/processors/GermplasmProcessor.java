@@ -65,6 +65,8 @@ public class GermplasmProcessor implements Processor {
     private DSLContext dsl;
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
+    Map<String, Integer> fileGermplasmByName = new HashMap<>();
+    Map<String, BrAPIGermplasm> dbGermplasmByName = new HashMap<>();
     Map<String, Integer> germplasmIndexByEntryNo = new HashMap<>();
     List<BrAPIGermplasm> newGermplasmList;
     List<BrAPIGermplasm> existingGermplasms;
@@ -91,6 +93,7 @@ public class GermplasmProcessor implements Processor {
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
         this.brAPIListDAO = brAPIListDAO;
+        this.brAPIGermplasmService = brAPIGermplasmService;
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
@@ -114,6 +117,8 @@ public class GermplasmProcessor implements Processor {
                     germplasmIndexByEntryNo.put(germplasmImport.getGermplasm().getEntryNo(), i);
                 }
 
+                Integer count = fileGermplasmByName.getOrDefault(germplasmImport.getGermplasm().getGermplasmName(), 0);
+                fileGermplasmByName.put(germplasmImport.getGermplasm().getGermplasmName(), count+1);
             }
         }
 
@@ -138,6 +143,10 @@ public class GermplasmProcessor implements Processor {
                 throw new InternalServerException(e.toString(), e);
             }
         }
+
+        // Get existing germplasm names
+        List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
+        dbGermplasm.stream().forEach(germplasm -> dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm));
 
         // Check for existing germplasm lists
         Boolean listNameDup = false;
@@ -255,7 +264,13 @@ public class GermplasmProcessor implements Processor {
                 BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
 
                 newGermplasmList.add(newGermplasm);
-                mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+                // Assign status of the germplasm
+                if (fileGermplasmByName.get(newGermplasm.getDefaultDisplayName()) > 1 || dbGermplasmByName.containsKey(newGermplasm.getDefaultDisplayName())) {
+                    mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, newGermplasm));
+                } else {
+                    mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+                }
+
                 importList.addDataItem(newGermplasm.getGermplasmName());
             } else {
                 mappedImportRow.setGermplasm(null);

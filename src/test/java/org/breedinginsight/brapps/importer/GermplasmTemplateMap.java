@@ -20,6 +20,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
@@ -301,7 +302,38 @@ public class GermplasmTemplateMap extends BrAPITest {
         }
 
         // TODO: Reintroduce with 1251 fix
-        //checkGermplasmList(GermplasmProcessor.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+        // Check the germplasm list
+        checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void duplicateNameMarksDuplicates() {
+        File file = new File("src/test/resources/files/germplasm_import/duplicate_db_names.csv");
+
+        String listName = "DupNamesList";
+        String listDescription = "A full import";
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, false);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        // All should be marked duplicates
+        List<Integer> duplicateIndex = List.of(0,1,2,4,5);
+        for (int i = 0; i < previewRows.size(); i++) {
+            String state = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").get("state").getAsString();
+            if (duplicateIndex.contains(i)) {
+                assertEquals(ImportObjectState.EXISTING.name(), state, "Wrong state returned");
+            } else {
+                assertEquals(ImportObjectState.NEW.name(), state, "Wrong state returned");
+            }
+        }
     }
 
     @Test
