@@ -179,6 +179,10 @@ public class ImportController {
         } catch (AlreadyExistsException e) {
             log.info(e.getMessage());
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (ValidatorException e) {
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
         }
     }
 

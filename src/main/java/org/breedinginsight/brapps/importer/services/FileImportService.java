@@ -392,54 +392,6 @@ public class FileImportService {
             importDAO.update(upload);
         }
 
-<<<<<<< Updated upstream
-
-        // Spin off new process for processing the file
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                importService.process(brAPIImportList, data, program, upload, user, commit);
-            } catch (UnprocessableEntityException e){
-                log.error(e.getMessage());
-                ImportProgress progress = upload.getProgress();
-                progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (DoesNotExistException e)  {
-                log.error(e.getMessage());
-                ImportProgress progress = upload.getProgress();
-                progress.setStatuscode((short) HttpStatus.NOT_FOUND.getCode());
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (HttpStatusException e) {
-                log.error(e.getMessage());
-                ImportProgress progress = upload.getProgress();
-                progress.setStatuscode((short) e.getStatus().getCode());
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (ValidatorException e) {
-                log.error("ValidatorException");
-                ImportProgress progress = upload.getProgress();
-                progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
-                progress.setMessage("Multiple Errors");
-                String json = (new JSON()).getGson().toJson(e.getErrors());
-                progress.setBody(JSONB.valueOf(json));
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (Exception e) {
-                log.error(e.getMessage());
-                ImportProgress progress = upload.getProgress();
-                progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
-                // TODO: Probably don't want to return this message. But do it for now
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            }
-            return null;
-        });
-=======
         if (brAPIImportList != null) {
             // Spin off new process for processing the file
             List<BrAPIImport> finalBrAPIImportList = brAPIImportList;
@@ -488,7 +440,6 @@ public class FileImportService {
                 return null;
             });
         }
->>>>>>> Stashed changes
 
         ImportResponse importResponse = new ImportResponse();
         importResponse.setImportId(upload.getId());
