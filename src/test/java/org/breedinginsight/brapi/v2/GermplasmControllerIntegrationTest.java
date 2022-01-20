@@ -184,7 +184,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 GET(String.format("/programs/%s/brapi/v2/lists",validProgram.getId().toString()))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
-        //("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists")
+        
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
 
