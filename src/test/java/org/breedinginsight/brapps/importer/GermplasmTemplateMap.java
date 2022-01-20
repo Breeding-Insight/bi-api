@@ -301,7 +301,6 @@ public class GermplasmTemplateMap extends BrAPITest {
             assertTrue(referenceFound, "Germplasm UUID reference not found");
         }
 
-        // TODO: Reintroduce with 1251 fix
         // Check the germplasm list
         checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
     }
