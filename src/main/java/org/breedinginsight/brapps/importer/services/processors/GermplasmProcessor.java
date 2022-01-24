@@ -249,7 +249,7 @@ public class GermplasmProcessor implements Processor {
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                         } else {
                             ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
-                            validationErrors.addError(i+1, ve );
+                            validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
                             badBreedingMethods.add(germplasm.getBreedingMethod());
                             breedingMethod = null;
                         }
