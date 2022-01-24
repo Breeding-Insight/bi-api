@@ -51,7 +51,7 @@ public class MappingManager {
     private ImportConfigManager configManager;
 
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
-    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values.";
+    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
     public static String missingColumn = "Column name \"%s\" does not exist in file";
     public static String missingUserInput = "User input, \"%s\" is required";
     public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
@@ -292,8 +292,8 @@ public class MappingManager {
                 // Check non-null value
                 if (required != null && fileValue.isBlank()) {
                     //throw new UnprocessableEntityException(String.format(blankRequiredField,  matchedMapping.getValue().getFileFieldName()));
-                    ValidationError ve = new ValidationError("breeding_method",String.format(blankRequiredField, matchedMapping.getValue().getFileFieldName()), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(rowIndex+1, ve);
+                    ValidationError ve = getMissingRequiredErr(matchedMapping.getValue().getFileFieldName());
+                    validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
 
                 if (StringUtils.isBlank(fileValue)) fileValue = null;
@@ -311,8 +311,8 @@ public class MappingManager {
                 // Check non-null value
                 if (required != null && value.isBlank()) {
                     //throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
-                    ValidationError ve = new ValidationError("breeding_method",String.format(blankRequiredField, matchedMapping.getValue().getFileFieldName()), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(rowIndex+1, ve);
+                    ValidationError ve = getMissingRequiredErr(metadata.name());
+                    validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
 
                 if (StringUtils.isBlank(value)) value = null;
@@ -327,6 +327,15 @@ public class MappingManager {
 
         }
 
+    }
+
+    private static int getRowNumber(int row) {
+        // 0 index and header offset
+        return row+2;
+    }
+
+    private static ValidationError getMissingRequiredErr(String fieldName) {
+        return new ValidationError(fieldName, String.format(blankRequiredField, fieldName), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     private void mapUserInputField(Object parent, Field field, Map<String, Object> userInput, ImportFieldType type,
