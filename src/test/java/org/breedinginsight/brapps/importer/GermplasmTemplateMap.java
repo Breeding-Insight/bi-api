@@ -279,7 +279,7 @@ public class GermplasmTemplateMap extends BrAPITest {
             String pedigree = germplasm.get("pedigree").getAsString();
             String mother = !pedigree.isBlank() ? pedigree.split("/")[0] : null;
             String father = !pedigree.isBlank() && pedigree.split("/").length > 1 ? pedigree.split("/")[1] : null;
-            String regexMatcher = "^(\\b%s\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
+            String regexMatcher = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
             assertTrue(mother.matches(String.format(regexMatcher, femaleParents.get(i))), "Wrong mother");
             if (!maleParents.get(i).isBlank()) {
                 assertTrue(father.matches(String.format(regexMatcher, maleParents.get(i))), "Wrong father");
@@ -435,10 +435,18 @@ public class GermplasmTemplateMap extends BrAPITest {
         HttpResponse<String> upload = getUploadedFile(importId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
-        List<String> badBreedingMethods = List.of("BAD", "BAD1");
-        assertEquals(String.format(GermplasmProcessor.badBreedMethodsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(badBreedingMethods)),
-                result.getAsJsonObject("progress").get("message").getAsString());
 
+        JsonArray errorList = result
+                .getAsJsonObject("progress")
+                .getAsJsonObject("errors")
+                .getAsJsonArray("rowErrors");
+        assertEquals(2, errorList.size());
+
+        JsonObject firstError = errorList
+                .get(0).getAsJsonObject()
+                .getAsJsonArray("errors").get(0).getAsJsonObject();
+        assertEquals("Invalid breeding method", firstError.get("errorMessage").getAsString());
+        assertEquals("Breeding Method",         firstError.get("field").getAsString());
     }
 
     @Test
