@@ -529,7 +529,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertTrue(errors.size() == 1, "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
-        assertEquals("Name", error.get("field").getAsInt(), "Incorrect field name");
+        assertEquals("Name", error.get("field").getAsString(), "Incorrect field name");
         assertEquals(String.format(MappingManager.blankRequiredField, "Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
     }
 
