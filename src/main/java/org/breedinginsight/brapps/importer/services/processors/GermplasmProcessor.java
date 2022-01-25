@@ -75,7 +75,7 @@ public class GermplasmProcessor implements Processor {
 
     public static String missingParentalDbIdsMsg = "The following parental db ids were not found in the database: %s.";
     public static String missingParentalEntryNoMsg = "The following parental entry numbers were not found in the database: %s.";
-    public static String badBreedMethodsMsg = "Breeding methods not found: %s";
+    public static String badBreedMethodsMsg = "Invalid breeding method";
     public static String missingEntryNumbersMsg = "Either all or none of the germplasm must have entry numbers.";
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static String circularDependency = "Circular dependency in the pedigree tree";
@@ -239,7 +239,7 @@ public class GermplasmProcessor implements Processor {
                             breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                         } else {
-                            ValidationError ve = new ValidationError("breeding_method",String.format(badBreedMethodsMsg, germplasm.getBreedingMethod()),HttpStatus.UNPROCESSABLE_ENTITY);
+                            ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
                             validationErrors.addError(i+1, ve );
                             badBreedingMethods.add(germplasm.getBreedingMethod());
                             breedingMethod = null;
