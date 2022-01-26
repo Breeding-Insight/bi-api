@@ -6,22 +6,15 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.Germplasm;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -31,15 +24,16 @@ import java.util.*;
 @Singleton
 public class BrAPIGermplasmService {
 
+    @Property(name = "brapi.server.reference-source")
+    private String referenceSource;
+
     private BrAPIGermplasmDAO germplasmDAO;
     private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
-    private final String GERMPLASM_NAME_REGEX = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
     private ProgramService programService;
     private BrAPIListDAO brAPIListDAO;
 
     @Inject
-    public BrAPIGermplasmService(BrAPIProvider brAPIProvider, BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
         this.brAPIListDAO = brAPIListDAO;
         this.programService = programService;
         this.germplasmDAO = germplasmDAO;
