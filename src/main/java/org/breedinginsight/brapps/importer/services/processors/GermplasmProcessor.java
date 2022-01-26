@@ -199,7 +199,7 @@ public class GermplasmProcessor implements Processor {
             log.error(String.format("Program, %s, is missing a value in the germplasm sequence column.", program.getName()));
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for germplasm import");
         }
-        Supplier<BigInteger> nextVal = () -> dsl.nextval(program.getGermplasmSequence());
+        Supplier<BigInteger> nextVal = () -> dsl.nextval(germplasmSequenceName.toLowerCase());
 
         // Create new objects
 
