@@ -20,30 +20,24 @@ package org.breedinginsight.brapi.v2.dao;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableFutureTask;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.*;
-import java.util.function.Supplier;
 
 @Slf4j
 public class ProgramCache<R> {
 
-    private FetchFunction<UUID, R> fetchMethod;
+    private FetchFunction<UUID, List<R>> fetchMethod;
     private Map<UUID, Semaphore> programSemaphore = new HashMap<>();
 
     final Executor executor = Executors.newCachedThreadPool();
-    private LoadingCache<UUID, R> cache = CacheBuilder.newBuilder()
+    private LoadingCache<UUID, List<R>> cache = CacheBuilder.newBuilder()
             .build(new CacheLoader<>() {
                 @Override
-                public R load(UUID programId) throws Exception {
+                public List<R> load(UUID programId) throws Exception {
                     try {
                         return fetchMethod.apply(programId);
                     } catch (Exception e) {
@@ -66,17 +60,17 @@ public class ProgramCache<R> {
         this.fetchMethod = fetchMethod;
     }
 
-    public R get(UUID programId) throws ApiException {
+    public List<R> get(UUID programId) throws ApiException {
         try {
             // This will get current cache data, or wait for the refresh to finish if there is no cache data.
             // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
             if (!programSemaphore.containsKey(programId) || cache.getIfPresent(programId) == null) {
                 // If the cache is missing, refresh and get
                 updateCache(programId);
-                return cache.get(programId);
+                return new ArrayList<>(cache.get(programId));
             } else {
                 // Most cases where the cache is populated
-                return cache.get(programId);
+                return new ArrayList<>(cache.get(programId));
             }
         } catch (ExecutionException e) {
             log.error(e.getMessage());
@@ -115,8 +109,8 @@ public class ProgramCache<R> {
         }
     }
 
-    public R post(UUID programId, Callable<R> postMethod) throws Exception {
-        R response = postMethod.call();
+    public List<R> post(UUID programId, Callable<List<R>> postMethod) throws Exception {
+        List<R> response = postMethod.call();
         updateCache(programId);
         return response;
     }

@@ -78,7 +78,7 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public void populatedRefreshQueueSkipsRefresh() {
         // Make a lot of post calls and just how many times the fetch method is called
-        ProgramCache<List<BrAPIGermplasm>> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime));
         UUID programId = UUID.randomUUID();
         Integer numPost = 10;
         Integer currPost = 0;
@@ -99,7 +99,7 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public void programRefreshesSeparated() {
         // Make a lot of post calls on different programs to check that they don't wait for each other
-        ProgramCache<List<BrAPIGermplasm>> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime));
         Integer numPost = 10;
         Integer currPost = 0;
         while (currPost < numPost) {
@@ -124,7 +124,7 @@ public class ProgramCacheUnitTest {
     public void initialGetMethodWaitsForLoad() {
         // Test that the get method waits for an ongoing refresh to finish when there isn't any day
         UUID programId = UUID.randomUUID();
-        ProgramCache<List<BrAPIGermplasm>> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime), List.of(programId));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime), List.of(programId));
         cache.get(programId);
         // Our fetch method should have only been called once for the initial loading
         assertEquals(1, fetchCount, "Fetch method was called on get");
@@ -138,7 +138,7 @@ public class ProgramCacheUnitTest {
         List<BrAPIGermplasm> newList = new ArrayList<>();
         newList.add(new BrAPIGermplasm());
         mockBrAPI.put(programId, new ArrayList<>(newList));
-        ProgramCache<List<BrAPIGermplasm>> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime), List.of(programId));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((Object id) -> mockFetch((UUID) id, waitTime), List.of(programId));
         Callable<List<BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
         // Get waits for initial fetch
@@ -173,7 +173,7 @@ public class ProgramCacheUnitTest {
         ProgramCacheUnitTest mockTest = spy(this);
 
         // Start cache
-        ProgramCache<List<BrAPIGermplasm>> cache = new ProgramCache<>((Object id) -> mockTest.mockFetch(programId, waitTime), List.of(programId));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((Object id) -> mockTest.mockFetch(programId, waitTime), List.of(programId));
 
         // Get waits for initial fetch
         List<BrAPIGermplasm> cachedGermplasm = cache.get(programId);

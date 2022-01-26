@@ -51,7 +51,7 @@ public class BrAPIGermplasmDAO {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
-    ProgramCache<List<BrAPIGermplasm>> programGermplasmCache;
+    ProgramCache<BrAPIGermplasm> programGermplasmCache;
 
     @Inject
     public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO) {
