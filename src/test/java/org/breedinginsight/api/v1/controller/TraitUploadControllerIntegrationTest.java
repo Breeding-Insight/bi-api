@@ -450,7 +450,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(1)
     void putTraitUploadSingleMissingScaleUnitError() {
         File file = new File("src/test/resources/files/missing_scale_unit.xlsx");
 
