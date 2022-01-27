@@ -4,56 +4,46 @@ import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 
+@Slf4j
 @Singleton
 public class BrAPIGermplasmService {
 
-    private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+
+    private BrAPIGermplasmDAO germplasmDAO;
     private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
-    private final String GERMPLASM_NAME_REGEX = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
     private ProgramService programService;
     private BrAPIListDAO brAPIListDAO;
 
     @Inject
-    public BrAPIGermplasmService(BrAPIProvider brAPIProvider, BrAPIListDAO brAPIListDAO, ProgramService programService) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
         this.brAPIListDAO = brAPIListDAO;
         this.programService = programService;
+        this.germplasmDAO = germplasmDAO;
     }
 
     public List<BrAPIGermplasm> getGermplasm(UUID programId) {
-        GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
-
-        // Set query params and make call
-        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
-        germplasmSearch.externalReferenceIDs(Arrays.asList(programId.toString()));
-        germplasmSearch.externalReferenceSources(Arrays.asList(String.format("%s/programs", referenceSource)));
+        // Get germplasm
         List<BrAPIGermplasm> germplasmList;
         try {
-            germplasmList = BrAPIDAOUtil.search(
-                    api::searchGermplasmPost,
-                    api::searchGermplasmSearchResultsDbIdGet,
-                    germplasmSearch
-            );
+            germplasmList = germplasmDAO.getGermplasm(programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
@@ -121,4 +111,22 @@ public class BrAPIGermplasmService {
         }
     }
 
+    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
+        return germplasmDAO.importBrAPIGermplasm(brAPIGermplasmList, programId, upload);
+    }
+
+    public List<BrAPIGermplasm> getGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID programId) throws ApiException {
+        List<BrAPIGermplasm> germplasmList = germplasmDAO.getGermplasm(programId);
+        List<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
+        // Search for accession number matches
+        for (BrAPIGermplasm germplasm: germplasmList) {
+            for (String accessionNumber: germplasmAccessionNumbers) {
+                if (germplasm.getAccessionNumber().equals(accessionNumber)) {
+                    resultGermplasm.add(germplasm);
+                    break;
+                }
+            }
+        }
+        return resultGermplasm;
+    }
 }

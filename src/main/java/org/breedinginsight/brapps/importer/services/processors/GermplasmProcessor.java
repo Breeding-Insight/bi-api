@@ -27,7 +27,8 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.breedinginsight.brapps.importer.daos.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
@@ -58,7 +59,7 @@ public class GermplasmProcessor implements Processor {
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
-    private BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private BrAPIGermplasmService brAPIGermplasmService;
     private BreedingMethodDAO breedingMethodDAO;
     private BrAPIListDAO brAPIListDAO;
     private DSLContext dsl;
@@ -85,8 +86,8 @@ public class GermplasmProcessor implements Processor {
     };
 
     @Inject
-    public GermplasmProcessor(BrAPIGermplasmDAO brAPIGermplasmDAO, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO) {
-        this.brAPIGermplasmDAO = brAPIGermplasmDAO;
+    public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO) {
+        this.brAPIGermplasmService = brAPIGermplasmService;
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
         this.brAPIListDAO = brAPIListDAO;
@@ -121,7 +122,7 @@ public class GermplasmProcessor implements Processor {
         List<String> missingDbIds = new ArrayList<>(germplasmDBIDs);
         if (germplasmDBIDs.size() > 0) {
             try {
-                existingParentGermplasms = brAPIGermplasmDAO.getGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
+                existingParentGermplasms = brAPIGermplasmService.getGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
                 List<String> existingDbIds = existingParentGermplasms.stream()
                         .map(germplasm -> germplasm.getAccessionNumber())
                         .collect(Collectors.toList());
@@ -368,7 +369,7 @@ public class GermplasmProcessor implements Processor {
         if (newGermplasmList.size() > 0) {
             try {
                 for (List<BrAPIGermplasm> postGroup: postOrder){
-                    createdGermplasm.addAll(brAPIGermplasmDAO.createBrAPIGermplasm(postGroup, program.getId(), upload));
+                    createdGermplasm.addAll(brAPIGermplasmService.importBrAPIGermplasm(postGroup, program.getId(), upload));
                 }
 
                 // Create germplasm list

@@ -9,6 +9,7 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
@@ -27,6 +28,7 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 
 import static io.micronaut.http.HttpRequest.GET;
@@ -128,6 +130,11 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 Map.entry("germplasmListName", germplasmListName),
                 Map.entry("germplasmListDescription", germplasmListDesc)
         );
+        Map<String, String> germplasmListInfo1 = Map.ofEntries(
+                Map.entry("germplasmListName", "Program List1"),
+                Map.entry("germplasmListDescription", "Program List1")
+        );
+        TestUtils.uploadDataFile(client, validProgram.getId(), germplasmImportId, germplasmListInfo1, otherFile);
         TestUtils.uploadDataFile(client, validProgram.getId(), germplasmImportId, germplasmListInfo, file);
     }
 
@@ -149,14 +156,22 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(3, data.size(), "Wrong number of germplasm were returned");
-        JsonObject exampleGermplasm = data.get(2).getAsJsonObject();
-        assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
-        assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
-        String pedigree = exampleGermplasm.get("pedigree").getAsString();
-        // Check that the pedigree is the accession numbers of the parents now
-        assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[0]));
-        assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[1]));
+        assertEquals(6, data.size(), "Wrong number of germplasm were returned");
+        for (JsonElement jsonGermplasm: data) {
+            JsonObject exampleGermplasm = jsonGermplasm.getAsJsonObject();
+            assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
+            if (exampleGermplasm.get("additionalInfo").getAsJsonObject().has("breedingMethodId")){
+                assertEquals(exampleGermplasm.getAsJsonObject("additionalInfo").get("breedingMethodId").getAsString(), exampleGermplasm.get("breedingMethodDbId").getAsString(), "Breeding method id was not set from additional info");
+            }
+            if (exampleGermplasm.has("pedigree")) {
+                String pedigree = exampleGermplasm.get("pedigree").getAsString();
+                assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[0]));
+                if (pedigree.split("/").length > 1) {
+                    assertDoesNotThrow(() -> Integer.parseInt(pedigree.split("/")[1]));
+                }
+            }
+
+        }
     }
 
     @Test
@@ -184,7 +199,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 GET(String.format("/programs/%s/brapi/v2/lists",validProgram.getId().toString()))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
-        
+
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
 
@@ -192,11 +207,22 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(1, data.size(), "Wrong number of germplasm lists were returned");
-        JsonObject exampleGermplasmList = data.get(0).getAsJsonObject();
-        assertEquals(exampleGermplasmList.get("listName").getAsString(), germplasmListName, "Germplasm list name incorrect");
-        assertEquals(exampleGermplasmList.get("listDescription").getAsString(), germplasmListDesc, "Germplasm list description incorrect");
-        assertEquals(exampleGermplasmList.get("listSize").getAsInt(), 3, "Germplasm list displays incorrect total entries ");
+        assertEquals(2, data.size(), "Wrong number of germplasm lists were returned");
+        List<String> listNames = List.of(germplasmListName, "Program List1");
+        List<String> listDescription = List.of(germplasmListDesc, "Program List1");
+        for (JsonElement element: data) {
+            JsonObject exampleGermplasmList = element.getAsJsonObject();
+            if (listNames.contains(exampleGermplasmList.get("listName").getAsString())) {
+                Integer ind = listNames.indexOf(exampleGermplasmList.get("listName").getAsString());
+                assertEquals(exampleGermplasmList.get("listName").getAsString(), listNames.get(ind), "Germplasm list name incorrect");
+                assertEquals(exampleGermplasmList.get("listDescription").getAsString(), listDescription.get(ind), "Germplasm list description incorrect");
+                if (ind == 0) {
+                    assertEquals(exampleGermplasmList.get("listSize").getAsInt(), 3, "Germplasm list displays incorrect total entries ");
+                }
+            } else {
+                throw new AssertionFailedError("List name not found");
+            }
+        }
     }
 
 }
