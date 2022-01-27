@@ -90,10 +90,6 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
-            if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
-                ValidationError error = traitValidatorErrors.getMissingProgramObservationLevelMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
-            }
         }
 
         return errors;
