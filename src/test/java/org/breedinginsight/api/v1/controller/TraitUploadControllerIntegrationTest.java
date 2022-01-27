@@ -432,6 +432,24 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    void putTraitUploadSingleMissingScaleClassError() {
+      File file = new File("src/test/resources/files/missing_scale_class.xlsx");
+
+      HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+          HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+      });
+      assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+      JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+      assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+      JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+      assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
+      JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
+      assertTrue(error.get("field").getAsString().contains("Scale class"), "Wrong field returned");
+      assertFalse(error.get("field").getAsString().contains("Unit"), "Wrong field returned");
+    }
+
+    @Test
     @Order(1)
     void getTraitUploadDoesNotExist() {
         Flowable<HttpResponse<String>> call = client.exchange(
