@@ -413,10 +413,8 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         }
     }
 
-    @Order(1)
     @Test
     void putTraitUploadSingleTraitLevelError() {
-        // No traits should be inserted by the end of this
         File file = new File("src/test/resources/files/missing_trait_entity.xlsx");
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
