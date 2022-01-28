@@ -20,18 +20,21 @@ package org.breedinginsight.brapi.v2.dao;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import com.rits.cloning.Cloner;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class ProgramCache<R> {
 
     private FetchFunction<UUID, List<R>> fetchMethod;
     private Map<UUID, Semaphore> programSemaphore = new HashMap<>();
+    private Cloner cloner;
 
     final Executor executor = Executors.newCachedThreadPool();
     private LoadingCache<UUID, List<R>> cache = CacheBuilder.newBuilder()
@@ -50,6 +53,7 @@ public class ProgramCache<R> {
 
     public ProgramCache(FetchFunction fetchMethod, List<UUID> keys) {
         this.fetchMethod = fetchMethod;
+        this.cloner = new Cloner();
         // Populate cache on start up
         for (UUID key: keys) {
             updateCache(key);
@@ -67,10 +71,14 @@ public class ProgramCache<R> {
             if (!programSemaphore.containsKey(programId) || cache.getIfPresent(programId) == null) {
                 // If the cache is missing, refresh and get
                 updateCache(programId);
-                return new ArrayList<>(cache.get(programId));
+                List<R> result = new ArrayList<>(cache.get(programId));
+                result = result.stream().map(obj -> cloner.deepClone(obj)).collect(Collectors.toList());
+                return result;
             } else {
                 // Most cases where the cache is populated
-                return new ArrayList<>(cache.get(programId));
+                List<R> result = new ArrayList<>(cache.get(programId));
+                result = result.stream().map(obj -> cloner.deepClone(obj)).collect(Collectors.toList());
+                return result;
             }
         } catch (ExecutionException e) {
             log.error(e.getMessage());

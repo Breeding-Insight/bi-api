@@ -127,7 +127,7 @@ public class GermplasmProcessor implements Processor {
         List<String> missingDbIds = new ArrayList<>(germplasmDBIDs);
         if (germplasmDBIDs.size() > 0) {
             try {
-                existingParentGermplasms = brAPIGermplasmService.getGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
+                existingParentGermplasms = brAPIGermplasmService.getRawGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
                 List<String> existingDbIds = existingParentGermplasms.stream()
                         .map(germplasm -> germplasm.getAccessionNumber())
                         .collect(Collectors.toList());
