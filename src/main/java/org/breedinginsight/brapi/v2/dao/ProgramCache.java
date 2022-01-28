@@ -62,6 +62,7 @@ public class ProgramCache<R> {
 
     public ProgramCache(FetchFunction fetchMethod) {
         this.fetchMethod = fetchMethod;
+        this.cloner = new Cloner();
     }
 
     public List<R> get(UUID programId) throws ApiException {
