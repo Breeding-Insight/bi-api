@@ -15,6 +15,7 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -38,9 +39,13 @@ public class BrAPIGermplasmService {
         this.programService = programService;
         this.germplasmDAO = germplasmDAO;
     }
-
+    
     public List<BrAPIGermplasm> getGermplasm(UUID programId) {
-        // Get germplasm
+
+        // Set query params and make call
+        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
+        germplasmSearch.externalReferenceIDs(Arrays.asList(programId.toString()));
+        germplasmSearch.externalReferenceSources(Arrays.asList(String.format("%s/programs", referenceSource)));
         List<BrAPIGermplasm> germplasmList;
         try {
             germplasmList = germplasmDAO.getGermplasm(programId);
@@ -115,7 +120,7 @@ public class BrAPIGermplasmService {
         return germplasmDAO.importBrAPIGermplasm(brAPIGermplasmList, programId, upload);
     }
 
-    public List<BrAPIGermplasm> getGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID programId) throws ApiException {
+    public List<BrAPIGermplasm> getRawGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID programId) throws ApiException {
         List<BrAPIGermplasm> germplasmList = germplasmDAO.getGermplasm(programId);
         List<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
         // Search for accession number matches
@@ -128,5 +133,17 @@ public class BrAPIGermplasmService {
             }
         }
         return resultGermplasm;
+      }
+    
+    public List<BrAPIGermplasm> getGermplasmByDisplayName(List<String> germplasmDisplayNames, UUID programId) {
+        List<BrAPIGermplasm> allGermplasm = getGermplasm(programId);
+        HashSet<String> requestedNames = new HashSet<>(germplasmDisplayNames);
+        List<BrAPIGermplasm> matchingGermplasm = new ArrayList<>();
+        for (BrAPIGermplasm germplasm: allGermplasm) {
+            if (requestedNames.contains(germplasm.getDefaultDisplayName())) {
+                matchingGermplasm.add(germplasm);
+            }
+        }
+        return matchingGermplasm;
     }
 }
