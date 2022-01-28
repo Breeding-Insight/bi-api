@@ -49,4 +49,13 @@ public class GermplasmController {
         return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);
 
     }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<String> germplasmListExport(
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") UUID listDbId) {
+        System.out.println("HERE!");
+        return germplasmService.exportGermplasmList(programId, listDbId);
+    }
 }
