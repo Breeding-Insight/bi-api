@@ -30,6 +30,7 @@ import tech.tablesaw.io.json.JsonReadOptions;
 import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class FileUtil {
@@ -90,14 +91,14 @@ public class FileUtil {
             table.addColumns(column);
         }
 
-        return table;
+        return removeNullRows(table);
     }
 
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
         //TODO: See if this has the windows BOM issue
         try {
             Table df = Table.read().csv(inputStream);
-            return df;
+            return removeNullRows(df);
         } catch (IOException e) {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
@@ -118,5 +119,24 @@ public class FileUtil {
 
     }
 
+    public static Table removeNullRows(Table table) {
+        List<Integer> allNullRows = new ArrayList<>();
+        // Find all null rows
+        table.stream().forEach(row -> {
+            Boolean allNull = true;
+            for (String columnName: row.columnNames()) {
+                if (row.getObject(columnName) != null && !row.getObject(columnName).toString().isEmpty()) {
+                    allNull = false;
+                }
+            }
+            if (allNull) {
+                allNullRows.add(row.getRowNumber());
+            }
+        });
 
+        if (allNullRows.size() > 0) {
+            table = table.dropRows(allNullRows.stream().mapToInt(i->i).toArray());
+        }
+        return table;
+    }
 }
