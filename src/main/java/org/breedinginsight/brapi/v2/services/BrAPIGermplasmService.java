@@ -16,10 +16,6 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
-import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -29,7 +25,6 @@ import java.util.*;
 @Singleton
 public class BrAPIGermplasmService {
 
-    private ProgramDAO programDAO;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
@@ -39,16 +34,13 @@ public class BrAPIGermplasmService {
     private BrAPIListDAO brAPIListDAO;
 
     @Inject
-    public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO, ProgramDAO programDAO) {
+    public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
         this.brAPIListDAO = brAPIListDAO;
         this.programService = programService;
         this.germplasmDAO = germplasmDAO;
-        this.programDAO = programDAO;
     }
     
     public List<BrAPIGermplasm> getGermplasm(UUID programId) {
-
-        GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
 
         // Set query params and make call
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
