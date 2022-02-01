@@ -469,7 +469,6 @@ public class GermplasmTemplateMap extends BrAPITest {
 
         JsonArray errorList = result
                 .getAsJsonObject("progress")
-                .getAsJsonObject("errors")
                 .getAsJsonArray("rowErrors");
         assertEquals(2, errorList.size());
 
