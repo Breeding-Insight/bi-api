@@ -45,8 +45,7 @@ import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
 import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
-import static org.jooq.impl.DSL.row;
-import static org.jooq.impl.DSL.values;
+import static org.jooq.impl.DSL.*;
 
 @Singleton
 public class TraitDAO extends TraitDao {
@@ -521,24 +520,22 @@ public class TraitDAO extends TraitDao {
 
     public List<Trait> getTraitsByTraitName(UUID programId, List<Trait> traits){
 
-        RowN[] valueRows = traits.stream()
+        String[] names = traits.stream()
                 .filter(trait -> trait.getObservationVariableName() != null)
-                .map(trait -> (RowN) row(trait.getObservationVariableName()))
-                .collect(Collectors.toList()).toArray(RowN[]::new);
+                .map(trait -> trait.getObservationVariableName().toLowerCase())
+                .collect(Collectors.toList()).toArray(String[]::new);
 
         List<Trait> traitResults = new ArrayList<>();
-        if (valueRows.length > 0){
-            Table newTraits = dsl.select()
-                    .from(values(valueRows).as("newTraits", "new_trait_name")).asTable("newTraits");
+        if (names.length > 0){
 
             Result<Record> records = dsl.select()
-                    .from(newTraits)
-                    .join(TRAIT).on(TRAIT.OBSERVATION_VARIABLE_NAME.upper().equalIgnoreCase(newTraits.field("new_trait_name")))
+                    .from(TRAIT)
                     .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                     .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
                     .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID))
                     .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID))
                     .where(PROGRAM.ID.eq(programId))
+                    .and(lower(TRAIT.OBSERVATION_VARIABLE_NAME).in(names))
                     .fetch();
 
             for (Record record: records) {
