@@ -6,6 +6,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
@@ -54,8 +55,7 @@ public class GermplasmController {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<String> germplasmListExport(
-            @PathVariable("programId") UUID programId, @PathVariable("listDbId") UUID listDbId) {
-        System.out.println("HERE!");
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") UUID listDbId) throws ApiException {
         return germplasmService.exportGermplasmList(programId, listDbId);
     }
 }

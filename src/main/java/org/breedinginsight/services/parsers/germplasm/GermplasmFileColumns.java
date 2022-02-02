@@ -26,13 +26,16 @@ import java.util.stream.Collectors;
 
 public enum GermplasmFileColumns {
 
-    ENTRY_NO("Entry No", Column.ColumnDataType.NUMERICAL),
+
     NAME("Name", Column.ColumnDataType.STRING),
-    GID("GID", Column.ColumnDataType.STRING),
     BREEDING_METHOD("Breeding Method", Column.ColumnDataType.STRING),
     SOURCE("Source", Column.ColumnDataType.STRING),
-    FEMALE_PARENT_GID("Female Parent GID", Column.ColumnDataType.STRING),
-    MALE_PARENT_GID("Male Parent GID", Column.ColumnDataType.STRING);
+    FEMALE_PARENT_GID("Female Parent GID", Column.ColumnDataType.NUMERICAL),
+    MALE_PARENT_GID("Male Parent GID", Column.ColumnDataType.NUMERICAL),
+    ENTRY_NO("Entry No", Column.ColumnDataType.NUMERICAL),
+    FEMALE_PARENT_ENTRY_NO("Female Parent Entry No", Column.ColumnDataType.NUMERICAL),
+    MALE_PARENT_ENTRY_NO("Male Parent Entry No", Column.ColumnDataType.NUMERICAL),
+    EXTERNAL_UID("External UID", Column.ColumnDataType.STRING);
 
     private final Column column;
 

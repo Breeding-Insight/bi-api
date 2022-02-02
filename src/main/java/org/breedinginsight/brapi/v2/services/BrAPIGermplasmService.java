@@ -7,12 +7,17 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapps.importer.model.base.ExternalReference;
 import org.breedinginsight.model.Column;
+import org.breedinginsight.model.Pedigree;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientType;
@@ -21,6 +26,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.checkerframework.checker.units.qual.A;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -76,10 +82,14 @@ public class BrAPIGermplasmService {
         GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
 
         // Set query params and make call
+        //BrAPIListSearchRequest germplasmListSearch = new BrAPIListSearchRequest();
+        ///germplasmListSearch.
+
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.externalReferenceIDs(Arrays.asList(programId.toString()));
         germplasmSearch.externalReferenceSources(Arrays.asList(String.format("%s/programs", referenceSource)));
         List<BrAPIGermplasm> germplasmList;
+        //TODO actually modify search
         try {
             germplasmList = BrAPIDAOUtil.search(
                     api::searchGermplasmPost,
@@ -157,33 +167,53 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public HttpResponse<String> exportGermplasmList(UUID programId, UUID listId){
-        System.out.println("in here!");
-
+    public HttpResponse<String> exportGermplasmList(UUID programId, UUID listId) throws ApiException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
         List<BrAPIGermplasm> germplasm = getGermplasmByListId(programId, listId);
 
-        //Convert list data to List<Map<String, Object>> data
-        //problem: column names don't necessarily match property names -> need to map
-        //Just do it all manually here to start
-        //Then once working can try to figure out a cleaner enum
-
-        //right, need to find reverse
-        //where is entry no retrieved?
-        //accession number
-
-        //Retrieve germplasm list info
+        List<String> testList = new ArrayList<>();
+        testList.add("A New List");
+        List<BrAPIListSummary> testing = brAPIListDAO.getListByName(testList, programId);
 
         //TODO change timestamp to edit date when editing functionality is added
-        String fileName = "";
+        String fileName = "test11";
                 //= germplasmListName + "_" + timestampDateCreated;
 
-        List<Map<String, Object>> emptyData =  new ArrayList<>();
+        //Convert list data to List<Map<String, Object>> data to pass into file writer
+        List<Map<String, Object>> processedData =  new ArrayList<>();
 
-        ExcelWriter.write(fileName, "Germplasm Import", columns, emptyData);
+        for (BrAPIGermplasm germplasmEntry: germplasm) {
+            HashMap row = new HashMap<>();
+            row.put("Name", germplasmEntry.getGermplasmName());
+            row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsDouble()); //todo extract properly
+            row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get("breedingMethod").getAsString()); //check if null
+            String source = germplasmEntry.getSeedSource();
+            row.put("Source", source);
 
+            //If germplasm was imported with an external UID, it will be stored in external reference with same source as seed source
+            List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
+            for (BrAPIExternalReference reference: externalReferences){
+                String tester = reference.getReferenceSource();
+                if (reference.getReferenceSource().equals(source)) {
+                    row.put("External UID", reference.getReferenceID());
+                    break;
+                }
+            }
+
+            if (germplasmEntry.getPedigree() != null) {
+                Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
+                row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
+                row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
+            }
+
+            processedData.add(row);
+        }
+
+        ExcelWriter.write(fileName, "Germplasm Import", columns, processedData);
+
+        //TODO
         return HttpResponse.ok("");
     }
 

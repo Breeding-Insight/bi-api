@@ -10,6 +10,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.services.parsers.excel.ExcelRecord;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.util.*;
 
@@ -41,21 +42,25 @@ public class ExcelWriter {
                     row.createCell(cellCount).setCellValue(column.getValue());
                 } else {
                     //Data values
-                    //TODO can likely clean
-                    if (column.getDataType()==Column.ColumnDataType.STRING) {
-                        row.createCell(cellCount).setCellValue((String) data.get(i-1).get(column));
-                    } else if (column.getDataType()==Column.ColumnDataType.NUMERICAL) {
-                        row.createCell(cellCount).setCellValue((Float) data.get(i-1).get(column));
+                    if (data.get(i-1).get(column.getValue()) != null) {
+                        if (column.getDataType() == Column.ColumnDataType.STRING) {
+                            row.createCell(cellCount).setCellValue((String) data.get(i - 1).get(column.getValue()));
+                        } else if (column.getDataType() == Column.ColumnDataType.NUMERICAL) {
+                            row.createCell(cellCount).setCellValue((Double) data.get(i - 1).get(column.getValue()));
+                        }
+                    } else {
+                        //Empty cell if no data
+                        row.createCell(cellCount).setCellValue("");
                     }
                 }
+                cellCount++;
             }
         }
-
-        //Column Type, Name and Data Type
 
         //Write to file
         try (FileOutputStream fileOutput = new FileOutputStream(fileName +".xlsx")) {
             workbook.write(fileOutput);
+            workbook.close();
         } catch (Exception e) {
             e.printStackTrace();
             //TODO error handling

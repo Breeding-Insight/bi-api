@@ -42,6 +42,18 @@ public class BrAPIListDAO {
         );
     }
 
+    public List<BrAPIListSummary> getListById(UUID listId, UUID programId) throws ApiException {
+        BrAPIListSearchRequest listSearch = new BrAPIListSearchRequest();
+        listSearch.addListDbIdsItem(listId.toString());
+        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
+        return BrAPIDAOUtil.search(
+                api::searchListsPost,
+                api::searchListsSearchResultsDbIdGet,
+                listSearch
+        );
+        //how do i ping lists/listDbId
+    }
+
     public BrAPIListsListResponse getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
         ListQueryParams getParams = new ListQueryParams()
                 .externalReferenceID(externalReferenceId.toString())
