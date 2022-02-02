@@ -1,5 +1,4 @@
 Fixes:
-3. Change all ProgramDao to ProgramDAO in tests
 
 Testing:
 1. Test new account creation
