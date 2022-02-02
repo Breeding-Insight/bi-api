@@ -18,12 +18,14 @@
 package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.breedinginsight.dao.db.tables.pojos.ProgramOntologyEntity;
 import org.jooq.Record;
 
@@ -35,6 +37,8 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_ONTOLOGY;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = { "updatedBy", "createdBy" })
 public class ProgramOntology extends ProgramOntologyEntity {
 

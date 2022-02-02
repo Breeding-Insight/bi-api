@@ -52,7 +52,7 @@
     </developers>
 
     <properties>
-        <micronaut.version>2.1.0</micronaut.version>
+        <micronaut.version>2.2.0</micronaut.version>
         <jdk.version>13</jdk.version>
         <maven.compiler.target>${jdk.version}</maven.compiler.target>
         <maven.compiler.source>${jdk.version}</maven.compiler.source>
@@ -63,7 +63,7 @@
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
         <jvm.options>--enable-preview</jvm.options>
 
-        <jooq.version>3.12.3</jooq.version>
+        <jooq.version>3.16.3</jooq.version>
         <postgres.version>42.2.6</postgres.version>
         <logback.version>1.2.3</logback.version>
         <lombok.version>1.18.16</lombok.version>
@@ -75,7 +75,7 @@
         <apache-poi-ooxml.version>4.1.2</apache-poi-ooxml.version>
         <apache-commons-lang.version>3.10</apache-commons-lang.version>
         <testcontainers.version>1.16.2</testcontainers.version>
-        <flyway.version>6.5.4</flyway.version>
+        <flyway.version>7.0.4</flyway.version>
     </properties>
 
     <profiles>
@@ -526,7 +526,7 @@
                 <dependency>
                     <groupId>org.breedinginsight</groupId>
                     <artifactId>bi-jooq-codegen</artifactId>
-                    <version>1.0-SNAPSHOT</version>
+                    <version>${jooq.version}</version>
                 </dependency>
             </dependencies>
         </plugin>
@@ -563,7 +563,7 @@
                         <dependency>
                             <groupId>org.junit.jupiter</groupId>
                             <artifactId>junit-jupiter-engine</artifactId>
-                            <version>5.1.0</version>
+                            <version>5.7.0</version>
                         </dependency>
                     </dependencies>
                     <configuration>
