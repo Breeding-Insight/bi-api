@@ -18,12 +18,14 @@
 package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.brapi.v2.model.pheno.BrAPIMethod;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.jooq.Record;
@@ -36,6 +38,8 @@ import static org.breedinginsight.dao.db.Tables.METHOD;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
 public class Method extends MethodEntity {
 
