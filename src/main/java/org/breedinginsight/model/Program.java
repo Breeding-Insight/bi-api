@@ -19,9 +19,11 @@ package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.dao.db.tables.ProgramTable;
@@ -37,6 +39,8 @@ import static org.breedinginsight.dao.db.Tables.*;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = { "createdBy", "updatedBy", "speciesId" })
 public class Program extends ProgramEntity {
 

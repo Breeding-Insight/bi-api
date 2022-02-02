@@ -1,5 +1,5 @@
 Fixes:
-1. Migration up to 2.1.0 breaks flyway
+3. Change all ProgramDao to ProgramDAO in tests
 
 Testing:
 1. Test new account creation
