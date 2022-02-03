@@ -31,7 +31,6 @@ import io.micronaut.web.router.RouteMatchUtils;
 import io.reactivex.Flowable;
 import io.reactivex.schedulers.Schedulers;
 import io.micronaut.http.exceptions.HttpStatusException;
-import org.apache.http.HttpException;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
