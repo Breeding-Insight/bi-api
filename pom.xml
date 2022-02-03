@@ -84,8 +84,7 @@
         <tika-app.version>2.2.1</tika-app.version>
         <javaxmail.version>1.6.2</javaxmail.version>
         <st4.version>4.3.1</st4.version>
-        <!-- HERE -->
-        <tablesaw.version>0.38.2</tablesaw.version>
+        <tablesaw.version>0.42.0</tablesaw.version>
         <alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
         <cloning.version>1.10.3</cloning.version>
     </properties>
