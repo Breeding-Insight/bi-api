@@ -287,13 +287,20 @@ public class TraitDAO extends TraitDao {
                     .validValues(brApiScaleValidValues);
 
             // Construct trait
+            List<String> brApiSynonyms = trait.getSynonyms() == null ? new ArrayList<>() : trait.getSynonyms();
+            if (!brApiSynonyms.contains(trait.getObservationVariableName())) {
+                brApiSynonyms.add(trait.getObservationVariableName());
+            }
+            if (!brApiSynonyms.contains(trait.getFullName())) {
+                brApiSynonyms.add(trait.getFullName());
+            }
             BrAPIExternalReference traitReference = new BrAPIExternalReference()
                     .referenceID(trait.getId().toString())
                     .referenceSource(referenceSource);
             BrAPITrait brApiTrait = new BrAPITrait()
                     .traitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()))
                     .traitDescription(trait.getTraitDescription())
-                    .synonyms(trait.getSynonyms())
+                    .synonyms(brApiSynonyms)
                     .status("active")
                     .entity(trait.getEntity())
                     .mainAbbreviation(trait.getMainAbbreviation())
@@ -314,7 +321,7 @@ public class TraitDAO extends TraitDao {
                     .language("english")
                     .scientist(actingUser.getName())
                     .defaultValue(trait.getDefaultValue())
-                    .synonyms(trait.getSynonyms())
+                    .synonyms(brApiSynonyms)
                     .institution(program.getName())
                     .commonCropName(program.getSpecies().getCommonName());
             if (trait.getTags() != null) brApiVariable.putAdditionalInfoItem(TAGS_KEY, trait.getTags());
