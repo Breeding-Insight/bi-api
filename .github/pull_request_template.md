@@ -19,4 +19,4 @@ _Please include any details needed for reviewers to test this code_
 - [ ] I have create/modified unit tests to cover this change
 - [ ] I have commented my code, particularly in hard-to-understand areas
 - [ ] I have made corresponding changes to documentation
-- [ ] I have run TAF.
+- [ ] I have run TAF: _\<link to TAF run>_

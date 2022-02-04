@@ -10,6 +10,7 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
@@ -21,12 +22,13 @@ import org.breedinginsight.model.Column;
 import org.breedinginsight.model.Pedigree;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.services.brapi.BrAPIClientType;
-import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,33 +36,27 @@ import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+@Slf4j
 @Singleton
 public class BrAPIGermplasmService {
 
-    private BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+
+    private BrAPIGermplasmDAO germplasmDAO;
     private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
-    private final String GERMPLASM_NAME_REGEX = "^(.*\\b) \\[([A-Z]{2,6})-(\\d+)\\]$";
     private ProgramService programService;
     private BrAPIListDAO brAPIListDAO;
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     @Inject
-    public BrAPIGermplasmService(BrAPIProvider brAPIProvider, BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO brAPIGermplasmDAO) {
-        this.brAPIProvider = brAPIProvider;
+    public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
         this.brAPIListDAO = brAPIListDAO;
         this.programService = programService;
-        this.brAPIGermplasmDAO =  brAPIGermplasmDAO;
+        this.germplasmDAO = germplasmDAO;
     }
 
-    //one option second method for getting list of germplasm ids list of germplasm, getbyprogramid, getbylistid
-    // call to private method with processing code
-    //one option optional list id to limit to list
-    //try chunking first, more maintainable, clearer what public facing methods do
-    // germplasmDBiD param to pipe into search DBID field
     public List<BrAPIGermplasm> getGermplasm(UUID programId) {
-        GermplasmApi api = brAPIProvider.getGermplasmApi(BrAPIClientType.CORE);
 
         // Set query params and make call
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
@@ -68,11 +64,7 @@ public class BrAPIGermplasmService {
         germplasmSearch.externalReferenceSources(Arrays.asList(String.format("%s/programs", referenceSource)));
         List<BrAPIGermplasm> germplasmList;
         try {
-            germplasmList = BrAPIDAOUtil.search(
-                    api::searchGermplasmPost,
-                    api::searchGermplasmSearchResultsDbIdGet,
-                    germplasmSearch
-            );
+            germplasmList = germplasmDAO.getGermplasm(programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
@@ -151,7 +143,7 @@ public class BrAPIGermplasmService {
 
         //Retrieve germplasm data
         List germplasmNames = listData.getData();
-        List<BrAPIGermplasm> germplasm = processGermplasmForDisplay(brAPIGermplasmDAO.getGermplasmByName(germplasmNames, programId));
+        List<BrAPIGermplasm> germplasm = processGermplasmForDisplay(germplasmDAO.getGermplasmByName(germplasmNames, programId));
         germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
 
         //TODO change timestamp to edit date when editing functionality is added
@@ -205,5 +197,34 @@ public class BrAPIGermplasmService {
         return listName.replace(appendedKey, "");
     }
 
+    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
+        return germplasmDAO.importBrAPIGermplasm(brAPIGermplasmList, programId, upload);
+    }
 
+    public List<BrAPIGermplasm> getRawGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID programId) throws ApiException {
+        List<BrAPIGermplasm> germplasmList = germplasmDAO.getGermplasm(programId);
+        List<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
+        // Search for accession number matches
+        for (BrAPIGermplasm germplasm: germplasmList) {
+            for (String accessionNumber: germplasmAccessionNumbers) {
+                if (germplasm.getAccessionNumber().equals(accessionNumber)) {
+                    resultGermplasm.add(germplasm);
+                    break;
+                }
+            }
+        }
+        return resultGermplasm;
+      }
+    
+    public List<BrAPIGermplasm> getGermplasmByDisplayName(List<String> germplasmDisplayNames, UUID programId) {
+        List<BrAPIGermplasm> allGermplasm = getGermplasm(programId);
+        HashSet<String> requestedNames = new HashSet<>(germplasmDisplayNames);
+        List<BrAPIGermplasm> matchingGermplasm = new ArrayList<>();
+        for (BrAPIGermplasm germplasm: allGermplasm) {
+            if (requestedNames.contains(germplasm.getDefaultDisplayName())) {
+                matchingGermplasm.add(germplasm);
+            }
+        }
+        return matchingGermplasm;
+    }
 }
