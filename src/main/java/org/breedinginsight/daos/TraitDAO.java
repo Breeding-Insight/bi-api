@@ -294,7 +294,6 @@ public class TraitDAO extends TraitDao {
             if (!brApiSynonyms.contains(trait.getFullName())) {
                 brApiSynonyms.add(trait.getFullName());
             }
-            //
             BrAPIExternalReference traitReference = new BrAPIExternalReference()
                     .referenceID(trait.getId().toString())
                     .referenceSource(referenceSource);
