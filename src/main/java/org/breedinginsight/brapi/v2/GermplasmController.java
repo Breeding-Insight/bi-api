@@ -1,8 +1,10 @@
 package org.breedinginsight.brapi.v2;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
@@ -21,6 +23,7 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -52,10 +55,20 @@ public class GermplasmController {
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export")
-    @Produces(MediaType.APPLICATION_JSON)
+    @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<String> germplasmListExport(
-            @PathVariable("programId") UUID programId, @PathVariable("listDbId") UUID listDbId) throws ApiException {
-        return germplasmService.exportGermplasmList(programId, listDbId);
+    public HttpResponse<StreamedFile> germplasmListExport(
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId) {
+        try {
+            HttpResponse<StreamedFile> germplasmListExportResponse = germplasmService.exportGermplasmList(programId, listDbId);
+            return germplasmListExportResponse;
+        }
+        catch (ApiException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        } catch (IOException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
     }
 }

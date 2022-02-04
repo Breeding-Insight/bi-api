@@ -1,17 +1,14 @@
 package org.breedinginsight.services.writers;
 
+import io.micronaut.http.MediaType;
+import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.breedinginsight.model.Column;
-import org.breedinginsight.services.parsers.excel.ExcelRecord;
 
-import java.io.File;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.util.*;
 
 /*
@@ -23,8 +20,8 @@ public class ExcelWriter {
 
     private static final int EXCEL_COLUMN_NAMES_ROW = 0;
 
-    //Writes a xlsx file with one sheet with desired columns and data
-    public static void write(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data) {
+    //Writes a xlsx workbook with one sheet with desired columns and data
+    public static XSSFWorkbook writeToWorkbook(String sheetName, List<Column> columns, List<Map<String, Object>> data) {
         //Create workbook
         XSSFWorkbook workbook = new XSSFWorkbook();
 
@@ -57,13 +54,34 @@ public class ExcelWriter {
             }
         }
 
-        //Write to file
+        return workbook;
+    }
+
+    public static StreamedFile writeToDownload(String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
+        XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            workbook.write(out);
+            InputStream inputStream = new ByteArrayInputStream(out.toByteArray());
+            MediaType fileVal = new MediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx");
+            StreamedFile downloadFile = new StreamedFile(inputStream, fileVal);
+            return downloadFile;
+        } catch (IOException e) {
+            //use logger
+            throw e;
+        }
+    }
+
+    //Writes doc to file in project, for optional testing
+    public static void writeToFile(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
+        XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
+
         try (FileOutputStream fileOutput = new FileOutputStream(fileName +".xlsx")) {
             workbook.write(fileOutput);
             workbook.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            //TODO error handling
+        } catch (IOException e) {
+            //use logger
+            throw e;
         }
     }
 }
