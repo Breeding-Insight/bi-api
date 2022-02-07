@@ -72,6 +72,19 @@ public class ExcelWriter {
         }
     }
 
+    //For unit testing
+    public static InputStream writeToInputStream(String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
+        XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        } catch (IOException e) {
+            log.info(e.getMessage());
+            throw e;
+        }
+    }
+
     //Writes doc to file in project, for optional testing
     public static void writeToFile(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
         XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
