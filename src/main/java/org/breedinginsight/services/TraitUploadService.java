@@ -254,7 +254,7 @@ public class TraitUploadService {
         programUploadDao.deleteUploads(programId, actingUser.getId(), UploadType.TRAIT);
 
     }
-// comment
+
     private List<Trait> parseUpload(ProgramUpload<Trait> programUpload) {
 
         try {
