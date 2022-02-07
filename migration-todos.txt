@@ -1,9 +1,0 @@
-Fixes:
-
-Testing:
-1. Test new account creation
-2. Logged out redirect
-3. Sign in errors
-4. Pages and tables
-5. End point not found
-6. Launching an app from scratch
