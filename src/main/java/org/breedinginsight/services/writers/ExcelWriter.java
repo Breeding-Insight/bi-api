@@ -67,7 +67,7 @@ public class ExcelWriter {
             StreamedFile downloadFile = new StreamedFile(inputStream, fileVal);
             return downloadFile;
         } catch (IOException e) {
-            //use logger
+            log.info(e.getMessage());
             throw e;
         }
     }
@@ -80,7 +80,7 @@ public class ExcelWriter {
             workbook.write(fileOutput);
             workbook.close();
         } catch (IOException e) {
-            //use logger
+            log.info(e.getMessage());
             throw e;
         }
     }

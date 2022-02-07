@@ -27,6 +27,9 @@ import lombok.experimental.SuperBuilder;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+/**
+ * Represents a column for use in exporting data as file
+ */
 public class Column {
 
     private String value;
