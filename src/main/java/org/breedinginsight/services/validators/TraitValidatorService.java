@@ -64,7 +64,8 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if ( isBlank(scale.getScaleName()) || scale.getScaleName() == null ) {
+                if (scale.getDataType() != null & scale.getDataType() == DataType.NUMERICAL &&
+                        (isBlank(scale.getScaleName()) || scale.getScaleName() == null )) {
                     ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
