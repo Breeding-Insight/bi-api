@@ -761,6 +761,48 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
+    @Test
+    void putNominalMissingCategories() {
+
+        File file = new File("src/test/resources/files/ontology/data_nominal_missing_categories.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 4, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertTrue(error.get("errorMessage").getAsString().contains("Nominal"), "Incorrect http status code");
+    }
+
+    @Test
+    void putOrdinalMissingCategories() {
+
+        File file = new File("src/test/resources/files/ontology/data_ordinal_missing_categories.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 4, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertTrue(error.get("errorMessage").getAsString().contains("Ordinal"), "Incorrect http status code");
+    }
+
     void checkMultiErrorResponse(JsonArray rowErrors) {
 
         assertTrue(rowErrors.size() > 0, "Wrong number of row errors returned");

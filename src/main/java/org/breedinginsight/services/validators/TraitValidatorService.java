@@ -116,7 +116,7 @@ public class TraitValidatorService {
 
             if (scale != null && scale.getDataType() != null && (scale.getDataType() == DataType.ORDINAL || scale.getDataType() == DataType.NOMINAL)) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
-                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg();
+                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg(scale.getDataType());
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 } else {
 

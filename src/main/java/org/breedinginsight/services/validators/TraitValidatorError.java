@@ -18,7 +18,9 @@
 package org.breedinginsight.services.validators;
 
 import io.micronaut.http.HttpStatus;
+import org.apache.commons.text.WordUtils;
 import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.dao.db.enums.DataType;
 
 import javax.inject.Singleton;
 import java.util.List;
@@ -94,8 +96,10 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingScaleCategoriesMsg() {
-        return new ValidationError("scale.categories", "Missing scale categories for Ordinal scale", HttpStatus.BAD_REQUEST);
+    public ValidationError getMissingScaleCategoriesMsg(DataType dataType) {
+        return new ValidationError("scale.categories",
+                String.format("Missing scale categories for %s scale", WordUtils.capitalize(dataType.getLiteral().toLowerCase())),
+                HttpStatus.BAD_REQUEST);
     }
 
     @Override
