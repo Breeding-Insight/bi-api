@@ -26,7 +26,7 @@ import java.util.stream.Collectors;
 
 public enum GermplasmFileColumns {
 
-
+    GID("GID", Column.ColumnDataType.NUMERICAL),
     NAME("Name", Column.ColumnDataType.STRING),
     BREEDING_METHOD("Breeding Method", Column.ColumnDataType.STRING),
     SOURCE("Source", Column.ColumnDataType.STRING),

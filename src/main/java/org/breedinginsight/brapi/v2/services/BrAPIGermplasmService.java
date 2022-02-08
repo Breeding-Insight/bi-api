@@ -143,7 +143,7 @@ public class BrAPIGermplasmService {
         germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
 
         //TODO change timestamp to edit date when editing functionality is added
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-mm-dd:hh:mm:ss+hh:mm");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
         String timestamp = formatter.format(listData.getDateCreated());
 
         String listName = listData.getListName();
@@ -159,6 +159,7 @@ public class BrAPIGermplasmService {
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
             HashMap row = new HashMap<>();
+            row.put("GID", Double.valueOf(germplasmEntry.getAccessionNumber()));
             row.put("Name", germplasmEntry.getGermplasmName());
             row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsDouble());
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get("breedingMethod").getAsString());
