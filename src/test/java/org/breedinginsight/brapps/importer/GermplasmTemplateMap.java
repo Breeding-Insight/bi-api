@@ -466,10 +466,17 @@ public class GermplasmTemplateMap extends BrAPITest {
         HttpResponse<String> upload = getUploadedFile(importId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt());
-        List<String> badBreedingMethods = List.of("BAD", "BAD1");
-        assertEquals(String.format(GermplasmProcessor.badBreedMethodsMsg, GermplasmProcessor.arrayOfStringFormatter.apply(badBreedingMethods)),
-                result.getAsJsonObject("progress").get("message").getAsString());
 
+        JsonArray errorList = result
+                .getAsJsonObject("progress")
+                .getAsJsonArray("rowErrors");
+        assertEquals(2, errorList.size());
+
+        JsonObject firstError = errorList
+                .get(0).getAsJsonObject()
+                .getAsJsonArray("errors").get(0).getAsJsonObject();
+        assertEquals("Invalid breeding method", firstError.get("errorMessage").getAsString());
+        assertEquals("Breeding Method",         firstError.get("field").getAsString());
     }
 
     @Test

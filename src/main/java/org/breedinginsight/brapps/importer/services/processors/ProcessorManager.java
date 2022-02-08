@@ -51,7 +51,6 @@ public class ProcessorManager {
     }
 
     public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException {
-
         this.processors = processors;
         statusService.setUpload(upload);
 
