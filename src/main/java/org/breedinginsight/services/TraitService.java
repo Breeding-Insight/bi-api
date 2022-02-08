@@ -241,8 +241,15 @@ public class TraitService {
 
     public void preprocessTraits(List<Trait> traits) {
 
-        // Set data type to numerical when method class is computation
+        // Set data type to numerical when method class is computation and include name and full name as synonyms
         for (Trait trait: traits) {
+            List<String> brApiSynonyms = trait.getSynonyms() == null ? new ArrayList<>() : trait.getSynonyms();
+            if (!brApiSynonyms.contains(trait.getObservationVariableName())) {
+                brApiSynonyms.add(trait.getObservationVariableName());
+            }
+            if (!brApiSynonyms.contains(trait.getFullName())) {
+                brApiSynonyms.add(trait.getFullName());
+            }
             if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
                 trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
                 if (trait.getScale() != null) {
