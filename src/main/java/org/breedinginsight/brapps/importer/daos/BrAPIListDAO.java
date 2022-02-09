@@ -46,8 +46,6 @@ public class BrAPIListDAO {
     }
 
     public BrAPIListsSingleResponse getListById(String listId, UUID programId) throws ApiException {
-        BrAPIListSearchRequest listSearch = new BrAPIListSearchRequest();
-        listSearch.addListDbIdsItem(listId);
         ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
         ApiResponse<BrAPIListsSingleResponse> response = api.listsListDbIdGet(listId);
         return response.getBody();
