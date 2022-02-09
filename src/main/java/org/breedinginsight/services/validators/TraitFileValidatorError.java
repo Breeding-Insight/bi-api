@@ -67,7 +67,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getMissingObsVarNameMsg() {
-        return new ValidationError("Observation variable name", "Missing observation variable name", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Name", "Missing name", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -140,7 +140,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getCharLimitObsVarNameMsg() {
-        return new ValidationError("observationVariableName", "Observation variable name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Name", "Name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
