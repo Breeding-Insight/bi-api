@@ -33,6 +33,7 @@ import se.sawano.java.text.AlphanumericComparator;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -50,7 +51,7 @@ public class TestUtils {
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
 
-            AlphanumericComparator comparator = new AlphanumericComparator();
+            AlphanumericComparator comparator = new AlphanumericComparator(Locale.ENGLISH);
             if (comparator.compare(firstValue, secondValue) == 0) {
                 continue;
             }
