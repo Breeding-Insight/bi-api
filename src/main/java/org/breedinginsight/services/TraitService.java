@@ -244,10 +244,10 @@ public class TraitService {
         // Set data type to numerical when method class is computation and include name and full name as synonyms
         for (Trait trait: traits) {
             List<String> brApiSynonyms = trait.getSynonyms() == null ? new ArrayList<>() : trait.getSynonyms();
-            if (!brApiSynonyms.contains(trait.getObservationVariableName())) {
+            if (trait.getObservationVariableName() != null && !brApiSynonyms.contains(trait.getObservationVariableName())) {
                 brApiSynonyms.add(trait.getObservationVariableName());
             }
-            if (!brApiSynonyms.contains(trait.getFullName())) {
+            if (trait.getFullName() != null && !brApiSynonyms.contains(trait.getFullName())) {
                 brApiSynonyms.add(trait.getFullName());
             }
             if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
