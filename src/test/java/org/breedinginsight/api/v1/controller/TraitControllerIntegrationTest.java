@@ -1227,7 +1227,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error1 = errors.get(0).getAsJsonObject();
-        assertEquals("observationVariableName", error1.get("field").getAsString(), "wrong error returned");
+        assertEquals("name", error1.get("field").getAsString(), "wrong error returned");
 
         JsonObject badIdRowError = rowErrors.get(1).getAsJsonObject();
         errors = badIdRowError.getAsJsonArray("errors");
