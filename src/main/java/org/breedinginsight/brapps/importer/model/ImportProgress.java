@@ -26,9 +26,12 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
 import org.jooq.Record;
 import java.util.Map;
+
+import java.util.ArrayList;
 
 import static org.breedinginsight.dao.db.tables.ImporterProgressTable.IMPORTER_PROGRESS;
 
@@ -39,6 +42,7 @@ import static org.breedinginsight.dao.db.tables.ImporterProgressTable.IMPORTER_P
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Slf4j
 public class ImportProgress extends ImporterProgressEntity {
 
     public static ImportProgress parseSQLRecord(Record record) {
@@ -54,13 +58,17 @@ public class ImportProgress extends ImporterProgressEntity {
                 .build();
     }
 
-    @JsonProperty("errors")
-    public Map<String, Object> getErrors() throws JsonProcessingException {
+    @JsonProperty("rowErrors")
+    public ArrayList<Object> getRowErrors() throws JsonProcessingException {
         ObjectMapper objectMapper = new ObjectMapper();
-        if(super.getBody() == null){
+        if (super.getBody() == null) {
             return null;
         }
-        return objectMapper.readValue(super.getBody().data(), Map.class);
+        return (ArrayList<Object>) (objectMapper.readValue(super.getBody().data(), Map.class)).get("rowErrors");
     }
 
 }
+
+
+
+
