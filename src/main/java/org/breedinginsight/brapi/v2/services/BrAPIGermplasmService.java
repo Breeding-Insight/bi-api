@@ -2,9 +2,7 @@ package org.breedinginsight.brapi.v2.services;
 
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
-import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpRequest;
-import io.micronaut.http.HttpResponse;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -17,6 +15,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.model.Column;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Pedigree;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -43,7 +42,6 @@ public class BrAPIGermplasmService {
     private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
     private ProgramService programService;
     private BrAPIListDAO brAPIListDAO;
-    private BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     @Inject
     public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
@@ -131,7 +129,7 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public HttpResponse<StreamedFile> exportGermplasmList(UUID programId, String listId) throws ApiException, IOException {
+    public DownloadFile exportGermplasmList(UUID programId, String listId) throws ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
@@ -178,14 +176,14 @@ public class BrAPIGermplasmService {
             if (germplasmEntry.getPedigree() != null) {
                 Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
                 row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
-                row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
+                if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
             }
             processedData.add(row);
         }
 
         StreamedFile downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData);
 
-        return HttpResponse.ok(downloadFile).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+fileName+".xlsx");
+        return new DownloadFile(fileName, downloadFile);
     }
 
     //Helper method to remove appended key from germplasm lists

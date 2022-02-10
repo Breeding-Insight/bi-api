@@ -11,23 +11,34 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.brapi.v2.model.core.BrAPIListSummary;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
+import org.breedinginsight.services.writers.ExcelWriter;
+import org.breedinginsight.utilities.FileUtil;
+import org.checkerframework.checker.units.qual.A;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 
 import java.io.File;
+import java.io.InputStream;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -61,6 +72,11 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     private final String germplasmListName = "Program List";
     private final String germplasmListDesc = "Program List";
+
+    @Inject
+    private BrAPIGermplasmService germplasmService;
+    @Inject
+    private BrAPIListDAO listDAO;
 
     @AfterAll
     public void finish() { super.stopContainers(); }
@@ -223,6 +239,25 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 throw new AssertionFailedError("List name not found");
             }
         }
+    }
+
+    @Test
+    @SneakyThrows
+    public void getGermplasmListExport() {
+        //Retrieve list id
+        List<String> nameList = new ArrayList<>();
+        nameList.add(germplasmListName);
+        List<BrAPIListSummary> listInfo = listDAO.getListByName(nameList, validProgram.getId());
+
+        //Retrieve file
+        DownloadFile downloadFile = germplasmService.exportGermplasmList(validProgram.getId(), listInfo.get(0).getListDbId());
+        InputStream inputStream = downloadFile.getStreamedFile().getInputStream();
+        Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
+
+        assertEquals(3, resultTable.rowCount(), "Wrong number of rows were exported");
+        assertEquals(GermplasmFileColumns.values(), resultTable.columnNames(), "Incorrect columns were exported");
+        assertEquals("Full Germplasm 1", resultTable.get(0, 1), "Incorrect data exported");
+        assertEquals("2", resultTable.get(0, 6), "Incorrect data exported");
     }
 
 }

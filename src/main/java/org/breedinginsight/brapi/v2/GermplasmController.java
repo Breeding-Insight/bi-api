@@ -1,5 +1,6 @@
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -19,6 +20,7 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
@@ -59,16 +61,24 @@ public class GermplasmController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<StreamedFile> germplasmListExport(
             @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId) {
+        String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
-            HttpResponse<StreamedFile> germplasmListExportResponse = germplasmService.exportGermplasmList(programId, listDbId);
-            return germplasmListExportResponse;
+            DownloadFile germplasmListFile = germplasmService.exportGermplasmList(programId, listDbId);
+            HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+".xlsx");
+            return germplasmListExport;
         }
         catch (ApiException e){
             log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
         } catch (IOException e){
             log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
         }
     }
 }
