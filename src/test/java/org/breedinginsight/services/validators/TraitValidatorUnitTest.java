@@ -143,7 +143,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(6, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("observationVariableName", 400);
+        expectedColumns.put("name", 400);
         expectedColumns.put("entity", 400);
         expectedColumns.put("attribute", 400);
         expectedColumns.put("traitDescription", 400);
@@ -328,7 +328,7 @@ public class TraitValidatorUnitTest {
         assertEquals(4, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
 
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("observationVariableName", 422);
+        expectedColumns.put("name", 422);
         expectedColumns.put("entity", 422);
         expectedColumns.put("attribute", 422);
         expectedColumns.put("method.description", 422);
