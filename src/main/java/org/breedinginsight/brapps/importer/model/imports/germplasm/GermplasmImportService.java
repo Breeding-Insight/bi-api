@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.model.imports.germplasm;
 
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
@@ -70,7 +71,7 @@ public class GermplasmImportService extends BrAPIImportService {
         List<Processor> processors = List.of(germplasmProcessorProvider.get());
         try {
             response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
-        } catch (ValidatorException e) {
+        } catch (ValidatorException | ApiException e) {
             log.error(e.getMessage());
         }
         return response;

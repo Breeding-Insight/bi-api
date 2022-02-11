@@ -27,6 +27,7 @@ import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.services.writers.ExcelWriter;
+import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.utilities.FileUtil;
 import org.checkerframework.checker.units.qual.A;
 import org.jooq.DSLContext;
@@ -240,24 +241,4 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
             }
         }
     }
-
-    @Test
-    @SneakyThrows
-    public void getGermplasmListExport() {
-        //Retrieve list id
-        List<String> nameList = new ArrayList<>();
-        nameList.add(germplasmListName);
-        List<BrAPIListSummary> listInfo = listDAO.getListByName(nameList, validProgram.getId());
-
-        //Retrieve file
-        DownloadFile downloadFile = germplasmService.exportGermplasmList(validProgram.getId(), listInfo.get(0).getListDbId());
-        InputStream inputStream = downloadFile.getStreamedFile().getInputStream();
-        Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
-
-        assertEquals(3, resultTable.rowCount(), "Wrong number of rows were exported");
-        assertEquals(GermplasmFileColumns.values(), resultTable.columnNames(), "Incorrect columns were exported");
-        assertEquals("Full Germplasm 1", resultTable.get(0, 1), "Incorrect data exported");
-        assertEquals("2", resultTable.get(0, 6), "Incorrect data exported");
-    }
-
 }

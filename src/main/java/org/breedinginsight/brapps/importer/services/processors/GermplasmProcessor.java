@@ -96,7 +96,7 @@ public class GermplasmProcessor implements Processor {
         this.brAPIGermplasmService = brAPIGermplasmService;
     }
 
-    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
 
         // Get all of our objects specified in the data file by their unique attributes
         Set<String> germplasmDBIDs = new HashSet<>();
