@@ -553,7 +553,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
 
         JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
-        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+        assertTrue(rowErrors.size() == 2, "Wrong number of row errors returned");
 
         JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
         JsonArray errors = rowError1.getAsJsonArray("errors");
@@ -562,6 +562,14 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
         assertEquals("Name", error.get("field").getAsString(), "Incorrect field name");
         assertEquals(String.format(MappingManager.blankRequiredField, "Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
+
+        JsonObject rowError2 = rowErrors.get(1).getAsJsonObject();
+        JsonArray errors2 = rowError2.getAsJsonArray("errors");
+        assertTrue(errors2.size() == 1, "Not enough errors were returned");
+        JsonObject error2 = errors2.get(0).getAsJsonObject();
+        assertEquals(422, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Source", error2.get("field").getAsString(), "Incorrect field name");
+        assertEquals(String.format(MappingManager.blankRequiredField, "Source"), error2.get("errorMessage").getAsString(), "Incorrect error message");
     }
 
     @Test
