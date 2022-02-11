@@ -51,10 +51,12 @@ public class Germplasm implements BrAPIObject {
     private String germplasmName;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="breedingMethod", name="Breeding Method", description = "The breeding method name or code")
     private String breedingMethod;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="germplasmSource", name="Source", description = "The germplasm origin. If External UID present, assumed to be the source associated with the External UID.")
     private String germplasmSource;
 
