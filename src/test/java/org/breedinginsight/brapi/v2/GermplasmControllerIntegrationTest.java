@@ -11,7 +11,6 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
-import org.brapi.v2.model.core.BrAPIListSummary;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -21,25 +20,16 @@ import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
-import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
-import org.breedinginsight.services.writers.ExcelWriter;
-import org.breedinginsight.services.brapi.BrAPIClientProvider;
-import org.breedinginsight.utilities.FileUtil;
-import org.checkerframework.checker.units.qual.A;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
-import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 
 import java.io.File;
-import java.io.InputStream;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

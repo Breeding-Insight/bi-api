@@ -24,7 +24,6 @@ import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.services.brapi.BrAPIClientProvider;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
