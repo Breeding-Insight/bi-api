@@ -1,11 +1,15 @@
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
@@ -16,10 +20,12 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,10 +49,41 @@ public class GermplasmController {
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams) {
-        List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
-        queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
-        queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
-        return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);
+        try {
+            List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
+            queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
+            queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
+            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);}
+        catch (ApiException e) {
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+            return response;
+        }
+    }
 
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export")
+    @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<StreamedFile> germplasmListExport(
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId) {
+        String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
+        try {
+            DownloadFile germplasmListFile = germplasmService.exportGermplasmList(programId, listDbId);
+            HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+".xlsx");
+            return germplasmListExport;
+        }
+        catch (ApiException e){
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
+        } catch (IOException e){
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
+        } catch (Exception e) {
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
+        }
     }
 }

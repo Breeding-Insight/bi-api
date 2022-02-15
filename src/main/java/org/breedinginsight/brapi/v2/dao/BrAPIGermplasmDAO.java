@@ -96,4 +96,15 @@ public class BrAPIGermplasmDAO {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage());
         }
     }
+
+    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId) throws ApiException {
+        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
+        germplasmSearch.germplasmNames(germplasmNames);
+        GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+        return BrAPIDAOUtil.search(
+                api::searchGermplasmPost,
+                api::searchGermplasmSearchResultsDbIdGet,
+                germplasmSearch
+        );
+    }
 }
