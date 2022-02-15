@@ -292,7 +292,6 @@ public class MappingManager {
 
                 // Check non-null value
                 if (required != null && fileValue.isBlank()) {
-                    //throw new UnprocessableEntityException(String.format(blankRequiredField,  matchedMapping.getValue().getFileFieldName()));
                     ValidationError ve = getMissingRequiredErr(matchedMapping.getValue().getFileFieldName());
                     validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
