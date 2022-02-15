@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.model.imports;
 
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.model.Program;
@@ -32,5 +33,5 @@ public abstract class BrAPIImportService {
     public String getImportTypeId() {return null;}
     public BrAPIImport getImportClass() {return null;}
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException, ValidatorException {return null;}
+            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException {return null;}
 }
