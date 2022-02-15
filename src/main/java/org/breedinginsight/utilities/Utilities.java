@@ -31,4 +31,15 @@ public class Utilities {
                 .findFirst();
         return existingObject;
     }
+
+    /**
+     * Case insensitive search for string in string list
+     *
+     * @param target - string to search for
+     * @param list - list of strings to search in
+     * @return true if case insensitive match, false otherwise
+     */
+    public static boolean containsCaseInsensitive(String target, List<String> list){
+        return list.stream().anyMatch(x -> x.equalsIgnoreCase(target));
+    }
 }

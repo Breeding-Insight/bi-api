@@ -31,6 +31,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -271,7 +272,7 @@ public class MappingManager {
             // Check if the mapping passed a constant value or a mapped value
             if (matchedMapping.getValue().getFileFieldName() != null) {
                 // Check that the file has this name
-                if (!focusRow.columnNames().contains(matchedMapping.getValue().getFileFieldName())) {
+                if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
                     throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
                 }
 
