@@ -17,14 +17,21 @@
 
 package org.breedinginsight.brapps.importer.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
 import org.jooq.Record;
+
+import java.util.ArrayList;
+import java.util.Map;
 
 import static org.breedinginsight.dao.db.tables.ImporterProgressTable.IMPORTER_PROGRESS;
 
@@ -35,6 +42,7 @@ import static org.breedinginsight.dao.db.tables.ImporterProgressTable.IMPORTER_P
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Slf4j
 public class ImportProgress extends ImporterProgressEntity {
 
     public static ImportProgress parseSQLRecord(Record record) {
@@ -46,6 +54,21 @@ public class ImportProgress extends ImporterProgressEntity {
                 .total(record.getValue(IMPORTER_PROGRESS.TOTAL))
                 .finished(record.getValue(IMPORTER_PROGRESS.FINISHED))
                 .inProgress(record.getValue(IMPORTER_PROGRESS.IN_PROGRESS))
+                .body(record.getValue(IMPORTER_PROGRESS.BODY))
                 .build();
     }
+
+    @JsonProperty("rowErrors")
+    public ArrayList<Object> getRowErrors() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        if (super.getBody() == null) {
+            return null;
+        }
+        return (ArrayList<Object>) (objectMapper.readValue(super.getBody().data(), Map.class)).get("rowErrors");
+    }
+
 }
+
+
+
+

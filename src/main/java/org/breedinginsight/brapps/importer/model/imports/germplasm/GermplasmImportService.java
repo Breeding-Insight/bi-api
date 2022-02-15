@@ -65,15 +65,11 @@ public class GermplasmImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException {
+            throws UnprocessableEntityException, DoesNotExistException, ValidatorException {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get());
-        try {
-            response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
-        } catch (ValidatorException | ApiException e) {
-            log.error(e.getMessage());
-        }
+        response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
         return response;
     }
 }
