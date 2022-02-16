@@ -574,6 +574,33 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Test
     @SneakyThrows
+    public void headerCaseInsensitive() {
+        File file = new File("src/test/resources/files/germplasm_import/germplasm_column_casing.csv");
+        String listName = "CaseInsensitiveList";
+        String listDescription = null;
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> germplasmNames = new ArrayList<>();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
+            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsString(), "Wrong entry number");
+        }
+
+        // Check the germplasm list
+        checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
+    }
+
+    @Test
+    @SneakyThrows
     public void missingRequiredFieldHeaderError() {
         File file = new File("src/test/resources/files/germplasm_import/missing_required_header.csv");
         MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
