@@ -64,19 +64,19 @@ public class UploadController {
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (UnsupportedTypeException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
         } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (ValidatorException e) {
-            log.info(e.getMessage());
+            log.error("Validation errors", e);
             HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
             return response;
         }

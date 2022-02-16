@@ -374,7 +374,7 @@ public class FileImportService {
             }
             processFile(brAPIImportList, data, program, upload, user, commit, importService, actingUser);
         } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             ImportProgress progress = upload.getProgress();
             progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
             progress.setMessage(e.getMessage());
@@ -383,7 +383,7 @@ public class FileImportService {
             throw e;
         }
         catch (ValidatorException e) {
-            log.error("ValidatorException");
+            log.error("Validation errors", e);
             ImportProgress progress = upload.getProgress();
             progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
             progress.setMessage("Multiple Errors");
@@ -406,29 +406,29 @@ public class FileImportService {
         CompletableFuture.supplyAsync(() -> {
             try {
                 importService.process(finalBrAPIImportList, data, program, upload, user, commit);
-            } catch (UnprocessableEntityException e){
-                log.error(e.getMessage());
+            } catch (UnprocessableEntityException e) {
+                log.error(e.getMessage(), e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
-            } catch (DoesNotExistException e)  {
-                log.error(e.getMessage());
+            } catch (DoesNotExistException e) {
+                log.error(e.getMessage(), e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.NOT_FOUND.getCode());
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (HttpStatusException e) {
-                log.error(e.getMessage());
+                log.error(e.getMessage(), e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) e.getStatus().getCode());
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (ValidatorException e) {
-                log.error("ValidatorException");
+                log.error("Validation errors", e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
                 progress.setMessage("Multiple Errors");
@@ -437,7 +437,7 @@ public class FileImportService {
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (Exception e) {
-                log.error(e.getMessage());
+                log.error(e.getMessage(), e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                 // TODO: Probably don't want to return this message. But do it for now
