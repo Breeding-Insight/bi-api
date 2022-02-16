@@ -16,6 +16,8 @@ import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
@@ -61,6 +63,11 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     private final String germplasmListName = "Program List";
     private final String germplasmListDesc = "Program List";
+
+    @Inject
+    private BrAPIGermplasmService germplasmService;
+    @Inject
+    private BrAPIListDAO listDAO;
 
     @AfterAll
     public void finish() { super.stopContainers(); }
@@ -224,5 +231,4 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
             }
         }
     }
-
 }

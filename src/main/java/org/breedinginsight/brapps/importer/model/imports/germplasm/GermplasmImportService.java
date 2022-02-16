@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.model.imports.germplasm;
 
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
@@ -64,7 +65,7 @@ public class GermplasmImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException, ValidatorException {
+            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get());

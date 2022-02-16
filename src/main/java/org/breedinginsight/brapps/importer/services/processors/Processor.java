@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -35,7 +36,7 @@ public interface Processor {
      * @param program
      * @throws ValidatorException
      */
-    void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ValidatorException;
+    void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException;
 
     /**
      * Update mappedBrAPIImport mapping with PendingImport data for brapi object based on new and existing objects.

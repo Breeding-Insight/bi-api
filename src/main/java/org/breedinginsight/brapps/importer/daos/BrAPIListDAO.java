@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.daos;
 
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.ListQueryParams;
@@ -11,6 +12,7 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -20,6 +22,7 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 public class BrAPIListDAO {
 
     private ProgramDAO programDAO;
@@ -40,6 +43,12 @@ public class BrAPIListDAO {
                 api::searchListsSearchResultsDbIdGet,
                 listSearch
         );
+    }
+
+    public BrAPIListsSingleResponse getListById(String listId, UUID programId) throws ApiException {
+        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
+        ApiResponse<BrAPIListsSingleResponse> response = api.listsListDbIdGet(listId);
+        return response.getBody();
     }
 
     public BrAPIListsListResponse getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
