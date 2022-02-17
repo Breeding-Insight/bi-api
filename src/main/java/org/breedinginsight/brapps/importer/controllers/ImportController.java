@@ -168,17 +168,21 @@ public class ImportController {
             Response<ImportMapping> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (AlreadyExistsException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.CONFLICT, e.getMessage());
+        } catch (ValidatorException e) {
+            log.error("Validation errors", e);
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
         }
     }
 

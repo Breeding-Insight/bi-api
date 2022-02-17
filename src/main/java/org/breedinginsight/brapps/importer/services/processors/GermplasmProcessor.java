@@ -29,9 +29,7 @@ import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
-import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
-
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;

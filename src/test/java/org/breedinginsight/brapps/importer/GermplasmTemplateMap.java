@@ -470,6 +470,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         JsonArray errorList = result
                 .getAsJsonObject("progress")
                 .getAsJsonArray("rowErrors");
+
         assertEquals(2, errorList.size());
 
         JsonObject firstError = errorList
@@ -550,7 +551,52 @@ public class GermplasmTemplateMap extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.blankRequiredField, "Name"), e.getMessage());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 2, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Name", error.get("field").getAsString(), "Incorrect field name");
+        assertEquals(String.format(MappingManager.blankRequiredField, "Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
+
+        JsonObject rowError2 = rowErrors.get(1).getAsJsonObject();
+        JsonArray errors2 = rowError2.getAsJsonArray("errors");
+        assertTrue(errors2.size() == 1, "Not enough errors were returned");
+        JsonObject error2 = errors2.get(0).getAsJsonObject();
+        assertEquals(422, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Source", error2.get("field").getAsString(), "Incorrect field name");
+        assertEquals(String.format(MappingManager.blankRequiredField, "Source"), error2.get("errorMessage").getAsString(), "Incorrect error message");
+    }
+
+    @Test
+    @SneakyThrows
+    public void headerCaseInsensitive() {
+        File file = new File("src/test/resources/files/germplasm_import/germplasm_column_casing.csv");
+        String listName = "CaseInsensitiveList";
+        String listDescription = null;
+        Flowable<HttpResponse<String>> call = uploadDataFile(file, listName, listDescription, true);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt());
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        List<String> germplasmNames = new ArrayList<>();
+        for (int i = 0; i < previewRows.size(); i++) {
+            JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
+            germplasmNames.add(germplasm.get("germplasmName").getAsString());
+            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsString(), "Wrong entry number");
+        }
+
+        // Check the germplasm list
+        checkGermplasmList(Germplasm.constructGermplasmListName(listName, validProgram), listDescription, germplasmNames);
     }
 
     @Test

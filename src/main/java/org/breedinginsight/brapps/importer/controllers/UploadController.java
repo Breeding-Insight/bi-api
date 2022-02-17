@@ -33,10 +33,7 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
-import org.breedinginsight.services.exceptions.AuthorizationException;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.UnsupportedTypeException;
+import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import java.util.Map;
@@ -67,17 +64,21 @@ public class UploadController {
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (UnsupportedTypeException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
         } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (ValidatorException e) {
+            log.error("Validation errors", e);
+            HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
+            return response;
         }
     }
 

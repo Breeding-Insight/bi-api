@@ -29,9 +29,9 @@ import lombok.experimental.SuperBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
 import org.jooq.Record;
+import java.util.Map;
 
 import java.util.ArrayList;
-import java.util.Map;
 
 import static org.breedinginsight.dao.db.tables.ImporterProgressTable.IMPORTER_PROGRESS;
 

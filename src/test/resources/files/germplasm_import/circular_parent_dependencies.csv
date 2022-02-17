@@ -1,4 +1,4 @@
 ﻿Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID
-Germplasm 1,,Wild,,,1,2,3,1234
-Germplasm 2,,Wild,,,2,1,2,5678
-Germplasm 3,,Wild,,,3,2,3,9123
+Germplasm 1,BCR,Wild,,,1,2,3,1234
+Germplasm 2,BCR,Wild,,,2,1,2,5678
+Germplasm 3,BCR,Wild,,,3,2,3,9123

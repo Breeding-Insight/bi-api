@@ -17,8 +17,11 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
+import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
 import org.breedinginsight.brapps.importer.model.mapping.MappingValue;
@@ -27,6 +30,8 @@ import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -47,7 +52,7 @@ public class MappingManager {
     private ImportConfigManager configManager;
 
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
-    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values.";
+    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
     public static String missingColumn = "Column name \"%s\" does not exist in file";
     public static String missingUserInput = "User input, \"%s\" is required";
     public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
@@ -57,15 +62,17 @@ public class MappingManager {
         this.configManager = configManager;
     }
 
-    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws UnprocessableEntityException, ValidatorException {
         return map(importMapping, data, userInput, true);
     }
 
-    public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException {
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException, ValidatorException {
         return map(importMapping, data, null, false);
     }
 
-    private List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException {
+    private List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException, ValidatorException {
+
+        ValidationErrors validationErrors = new ValidationErrors();
 
         // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
         if (importMapping.getMappingConfig() == null) {
@@ -87,17 +94,23 @@ public class MappingManager {
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process);
+                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process, validationErrors);
             }
 
             brAPIImports.add(brAPIImport);
+        }
+
+        if (validationErrors.hasErrors() ){
+            throw new ValidatorException(validationErrors);
         }
 
         return brAPIImports;
     }
 
     private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex,
-                          Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException {
+                          Map<String, Object> userInput, Boolean process, ValidationErrors validationErrors) throws UnprocessableEntityException {
+
+
 
         Row focusRow = importFile.row(rowIndex);
         // Process this field
@@ -157,7 +170,7 @@ public class MappingManager {
                 brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
                 List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process);
+                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
                 }
                 if (brapiObjectIsEmpty(brAPIObject)) brAPIObject = null;
 
@@ -190,7 +203,7 @@ public class MappingManager {
                 // Populate new object
                 List<Field> fields = Arrays.asList(newObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process);
+                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
                 }
 
                 field.setAccessible(true);
@@ -259,7 +272,7 @@ public class MappingManager {
             // Check if the mapping passed a constant value or a mapped value
             if (matchedMapping.getValue().getFileFieldName() != null) {
                 // Check that the file has this name
-                if (!focusRow.columnNames().contains(matchedMapping.getValue().getFileFieldName())) {
+                if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
                     throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
                 }
 
@@ -279,7 +292,8 @@ public class MappingManager {
 
                 // Check non-null value
                 if (required != null && fileValue.isBlank()) {
-                    throw new UnprocessableEntityException(String.format(blankRequiredField,  matchedMapping.getValue().getFileFieldName()));
+                    ValidationError ve = getMissingRequiredErr(matchedMapping.getValue().getFileFieldName());
+                    validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
 
                 if (StringUtils.isBlank(fileValue)) fileValue = null;
@@ -296,7 +310,9 @@ public class MappingManager {
 
                 // Check non-null value
                 if (required != null && value.isBlank()) {
-                    throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
+                    //throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
+                    ValidationError ve = getMissingRequiredErr(metadata.name());
+                    validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
 
                 if (StringUtils.isBlank(value)) value = null;
@@ -311,6 +327,15 @@ public class MappingManager {
 
         }
 
+    }
+
+    private static int getRowNumber(int row) {
+        // 0 index and header offset
+        return row+2;
+    }
+
+    private static ValidationError getMissingRequiredErr(String fieldName) {
+        return new ValidationError(fieldName, String.format(blankRequiredField, fieldName), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     private void mapUserInputField(Object parent, Field field, Map<String, Object> userInput, ImportFieldType type,
