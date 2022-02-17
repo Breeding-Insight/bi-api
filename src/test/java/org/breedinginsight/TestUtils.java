@@ -38,13 +38,16 @@ import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUtils {
 
     public static void checkStringSorting(JsonArray data, String field, SortOrder sortOrder) {
 
+        Integer missedFields = 0;
         for (int i = 0; i < data.size() - 1; i++){
             if (!data.get(i).getAsJsonObject().has(field) || !data.get(i + 1).getAsJsonObject().has(field)) {
+                missedFields += 1;
                 continue;
             }
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
@@ -63,6 +66,7 @@ public class TestUtils {
 
         }
 
+        assertTrue(missedFields < data.size() -1, "No fields by the name " + field + "were found.");
     }
 
     public static void checkNumericSorting(JsonArray data, String field, SortOrder sortOrder) {
