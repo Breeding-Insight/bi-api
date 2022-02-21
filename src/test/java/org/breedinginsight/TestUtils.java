@@ -66,7 +66,7 @@ public class TestUtils {
 
         }
 
-        assertTrue(missedFields < data.size() -1, "No fields by the name " + field + "were found.");
+        assertTrue(missedFields < data.size() -1 || data.size() == 1, "No fields by the name " + field + "were found.");
     }
 
     public static void checkNumericSorting(JsonArray data, String field, SortOrder sortOrder) {
