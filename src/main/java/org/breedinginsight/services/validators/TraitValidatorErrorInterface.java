@@ -18,6 +18,7 @@
 package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.dao.db.enums.DataType;
 
 import java.util.List;
 
@@ -35,7 +36,7 @@ public interface TraitValidatorErrorInterface {
     ValidationError getMissingTraitDescriptionMsg();
     ValidationError getMissingProgramObservationLevelMsg();
     ValidationError getMissingMethodFormulaMsg();
-    ValidationError getMissingScaleCategoriesMsg();
+    ValidationError getMissingScaleCategoriesMsg(DataType dataType);
     ValidationError getBadScaleCategory();
     ValidationError getBlankScaleCategoryLabelMsg();
     ValidationError getBlankScaleCategoryValueMsg();
