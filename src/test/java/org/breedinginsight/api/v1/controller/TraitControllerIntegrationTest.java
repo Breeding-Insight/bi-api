@@ -1088,6 +1088,28 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    @Order(12)
+    public void searchTraitsByDescription() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "trait1"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=traitDescription&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(11, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "traitDescription", SortOrder.ASC);
+    }
+
+    @Test
     @Order(13)
     public void postTraitComputation() {
 
