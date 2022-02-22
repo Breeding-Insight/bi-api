@@ -331,7 +331,7 @@ public class TraitValidatorUnitTest {
         expectedColumns.put("name", 422);
         expectedColumns.put("entity", 422);
         expectedColumns.put("attribute", 422);
-        expectedColumns.put("method.description", 422);
+        expectedColumns.put("Method Description", 422);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
