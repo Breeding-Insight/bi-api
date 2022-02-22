@@ -1004,12 +1004,12 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject categoryError = categoryErrors.get(0).getAsJsonObject();
         assertEquals(0, categoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
         JsonObject valueError = categoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
-        assertEquals("scale.categories.value", valueError.get("field").getAsString(), "wrong error returned");
+        assertEquals("Scale Categories Value", valueError.get("field").getAsString(), "wrong error returned");
 
         JsonObject secondCategoryError = categoryErrors.get(1).getAsJsonObject();
         assertEquals(2, secondCategoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
         JsonObject labelError = secondCategoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
-        assertEquals("scale.categories.label", labelError.get("field").getAsString(), "wrong error returned");
+        assertEquals("Scale Categories Label", labelError.get("field").getAsString(), "wrong error returned");
     }
 
     @Test

@@ -97,26 +97,26 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getMissingScaleCategoriesMsg(DataType dataType) {
-        return new ValidationError("scale.categories",
+        return new ValidationError("Scale Categories",
                 String.format("Missing scale categories for %s scale", WordUtils.capitalize(dataType.getLiteral().toLowerCase())),
                 HttpStatus.BAD_REQUEST);
     }
 
     @Override
     public ValidationError getBadScaleCategory() {
-        return new ValidationError("scale.categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getBlankScaleCategoryLabelMsg() {
-        return new ValidationError("scale.categories.label",
+        return new ValidationError("Scale Categories Label",
                 "Label missing.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getBlankScaleCategoryValueMsg() {
-        return new ValidationError("scale.categories.value",
+        return new ValidationError("Scale Categories Value",
                 "Value missing.",
                 HttpStatus.UNPROCESSABLE_ENTITY);
     }
@@ -130,12 +130,12 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getInsufficientNominalValError() {
-        return new ValidationError("scale.categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getInsufficientOrdinalValError() {
-        return new ValidationError("scale.categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getCharLimitMethodDescriptionMsg() {
-        return new ValidationError("method.description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Method Description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override

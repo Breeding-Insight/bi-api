@@ -188,7 +188,7 @@ public class TraitValidatorUnitTest {
         assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("method.formula", 400);
-        expectedColumns.put("scale.categories", 400);
+        expectedColumns.put("Scale Categories", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -230,7 +230,7 @@ public class TraitValidatorUnitTest {
         assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
         expectedColumns.put("method.formula", 400);
-        expectedColumns.put("scale.categories", 422);
+        expectedColumns.put("Scale Categories", 422);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;

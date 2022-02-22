@@ -130,12 +130,12 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getInsufficientNominalValError() {
-        return new ValidationError("scale.categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getInsufficientOrdinalValError() {
-        return new ValidationError("scale.categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -155,7 +155,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getCharLimitMethodDescriptionMsg() {
-        return new ValidationError("method.description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Method Description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
