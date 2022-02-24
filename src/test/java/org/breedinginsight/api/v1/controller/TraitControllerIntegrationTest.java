@@ -313,6 +313,10 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait1);
         setBrAPIProperties(trait2);
 
+        // set the synonyms
+        trait1.setSynonyms(List.of("Test Trait", "test1", "test2"));
+        trait2.setSynonyms(List.of("Test Trait1", "test1", "test2"));
+
         // Set the tags
         trait1.setTags(List.of("leaf trait"));
         trait2.setTags(List.of("stem trait"));
@@ -538,7 +542,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait.setAttribute("leaf length");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
-        trait.setSynonyms(List.of("test1", "test2"));
+        trait.setSynonyms(List.of("Test Trait", "test1", "test2"));
 
         // Method
         trait.getMethod().setMethodClass("Estimation");

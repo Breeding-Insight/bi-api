@@ -563,7 +563,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         String syn1 = synonyms.get(0).getAsString();
         String syn2 = synonyms.get(1).getAsString();
 
-        assertEquals(2, synonyms.size(), "number of synonyms different than expected");
+        assertEquals(3, synonyms.size(), "number of synonyms different than expected");
         assertEquals("Powdery Mildew", syn1, "wrong synonym");
         assertEquals("Powdery Mildew Severity", syn2, "wrong synonym");
 
