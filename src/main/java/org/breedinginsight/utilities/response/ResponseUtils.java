@@ -141,7 +141,7 @@ public class ResponseUtils {
             SortOrder sortOrder = queryParams.getSortOrder() != null ? queryParams.getSortOrder() : ResponseUtils.DEFAULT_SORT_ORDER; ;
 
             GenericComparator comparator = new GenericComparator(
-                    Comparator.nullsFirst(new AlphanumericComparator()));
+                    Comparator.nullsFirst(new AlphanumericComparator(Locale.ENGLISH)));
 
             // Convert everything to string. Might not be perfect, such as for BigDecimal, but it gets the job done.
             Function typeSafeField;

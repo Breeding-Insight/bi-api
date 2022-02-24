@@ -313,6 +313,10 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait1);
         setBrAPIProperties(trait2);
 
+        // set the synonyms
+        trait1.setSynonyms(List.of("Test Trait", "test1", "test2"));
+        trait2.setSynonyms(List.of("Test Trait1", "test1", "test2"));
+
         // Set the tags
         trait1.setTags(List.of("leaf trait"));
         trait2.setTags(List.of("stem trait"));
@@ -538,7 +542,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait.setAttribute("leaf length");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
-        trait.setSynonyms(List.of("test1", "test2"));
+        trait.setSynonyms(List.of("Test Trait", "test1", "test2"));
 
         // Method
         trait.getMethod().setMethodClass("Estimation");
@@ -1085,6 +1089,28 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Expect t1, user10->user19
         assertEquals(11, data.size(), "Wrong page size");
         TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.ASC);
+    }
+
+    @Test
+    @Order(12)
+    public void searchTraitsByDescription() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "trait1"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=traitDescription&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(11, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "traitDescription", SortOrder.ASC);
     }
 
     @Test
