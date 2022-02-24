@@ -1,6 +1,5 @@
 package org.breedinginsight.brapi.v2.services;
 
-import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -13,7 +12,6 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
@@ -39,10 +37,9 @@ public class BrAPIGermplasmService {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
-    private BrAPIGermplasmDAO germplasmDAO;
-    private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
-    private ProgramService programService;
-    private BrAPIListDAO brAPIListDAO;
+    private final BrAPIGermplasmDAO germplasmDAO;
+    private final ProgramService programService;
+    private final BrAPIListDAO brAPIListDAO;
 
     @Inject
     public BrAPIGermplasmService(BrAPIListDAO brAPIListDAO, ProgramService programService, BrAPIGermplasmDAO germplasmDAO) {
@@ -52,75 +49,12 @@ public class BrAPIGermplasmService {
     }
 
     public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
-
-        // Set query params and make call
-        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
-        germplasmSearch.externalReferenceIDs(Arrays.asList(programId.toString()));
-        germplasmSearch.externalReferenceSources(Arrays.asList(String.format("%s/programs", referenceSource)));
         List<BrAPIGermplasm> germplasmList;
         try {
-            germplasmList = germplasmDAO.getGermplasm(programId);
+            return germplasmDAO.getGermplasm(programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
-
-        return processGermplasmForDisplay(germplasmList, programId);
-    }
-
-    private List<BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> germplasmList, UUID programId) throws ApiException {
-        // Process the germplasm
-        Map<String, BrAPIGermplasm> germplasmByFullName = new HashMap<>();
-        for (BrAPIGermplasm germplasm: germplasmList) {
-            germplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
-
-            JsonObject additionalInfo = germplasm.getAdditionalInfo();
-            if (additionalInfo != null && additionalInfo.has(BREEDING_METHOD_ID_KEY)) {
-                germplasm.setBreedingMethodDbId(additionalInfo.get(BREEDING_METHOD_ID_KEY).getAsString());
-            }
-
-            if (germplasm.getDefaultDisplayName() != null) {
-                germplasm.setGermplasmName(germplasm.getDefaultDisplayName());
-            }
-        }
-
-        // Update pedigree string
-        for (BrAPIGermplasm germplasm: germplasmList) {
-            if (germplasm.getPedigree() != null) {
-                String newPedigreeString = germplasm.getPedigree();
-                List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
-                if (parents.size() >= 1) {
-                    if (germplasmByFullName.containsKey(parents.get(0))) {
-                    //problem, if parent not in germplasmbyfullname, not replaced by accession number, assumption that parents are also in file
-                    newPedigreeString = germplasmByFullName.get(parents.get(0)).getAccessionNumber();}
-                    else {
-                        //Try to find parent in program germplasm
-                        List<String> parentName = Arrays.asList(parents.get(0));
-                        List<BrAPIGermplasm> parentList = germplasmDAO.getGermplasmByName(parentName, programId);
-                        if (parentList.size() > 0) {
-                            BrAPIGermplasm parentGermplasm = parentList.get(0);
-                            newPedigreeString = parentGermplasm.getAccessionNumber();
-                        }
-                    }
-                }
-                if (parents.size() == 2) {
-                    if (germplasmByFullName.containsKey(parents.get(1))) {
-                        newPedigreeString += "/" + germplasmByFullName.get(parents.get(1)).getAccessionNumber();
-                    }
-                    else {
-                        //Try to find parent in program germplasm
-                        List<String> parentName = Arrays.asList(parents.get(1));
-                        List<BrAPIGermplasm> parentList = germplasmDAO.getGermplasmByName(parentName, programId);
-                        if (parentList.size() > 0) {
-                            BrAPIGermplasm parentGermplasm = parentList.get(0);
-                            newPedigreeString += "/" +  parentGermplasm.getAccessionNumber();
-                        }
-                    }
-                }
-                germplasm.setPedigree(newPedigreeString);
-            }
-        }
-
-        return germplasmList;
     }
 
     public List<BrAPIListSummary> getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
@@ -155,8 +89,8 @@ public class BrAPIGermplasmService {
         BrAPIListDetails listData = brAPIListDAO.getListById(listId, programId).getResult();
 
         //Retrieve germplasm data
-        List germplasmNames = listData.getData();
-        List<BrAPIGermplasm> germplasm = processGermplasmForDisplay(germplasmDAO.getGermplasmByName(germplasmNames, programId), programId);
+        List<String> germplasmNames = listData.getData();
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByName(germplasmNames, programId);
         //processGermplasmForDisplay, numbers
         germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
 
@@ -176,7 +110,7 @@ public class BrAPIGermplasmService {
         List<Map<String, Object>> processedData =  new ArrayList<>();
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
-            HashMap row = new HashMap<>();
+            HashMap<String, Object> row = new HashMap<>();
             row.put("GID", Double.valueOf(germplasmEntry.getAccessionNumber()));
             row.put("Name", germplasmEntry.getGermplasmName());
             row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsDouble());

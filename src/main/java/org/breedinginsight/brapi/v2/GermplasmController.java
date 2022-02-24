@@ -34,8 +34,8 @@ import java.util.UUID;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class GermplasmController {
 
-    private BrAPIGermplasmService germplasmService;
-    private GermplasmQueryMapper germplasmQueryMapper;
+    private final BrAPIGermplasmService germplasmService;
+    private final GermplasmQueryMapper germplasmQueryMapper;
 
     @Inject
     public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper) {
@@ -53,11 +53,10 @@ public class GermplasmController {
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
             queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
             queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
-            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);}
-        catch (ApiException e) {
-            log.info(e.getMessage());
-            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
-            return response;
+            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);
+        } catch (ApiException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
         }
     }
 
