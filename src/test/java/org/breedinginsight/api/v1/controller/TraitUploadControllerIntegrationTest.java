@@ -783,6 +783,35 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    void putNominalCategoryLabelPresentError() {
+
+        File file = new File("src/test/resources/files/ontology/data_category_label_nominal_trait.xls");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Scale categories contain errors", error.get("errorMessage").getAsString(), "Incorrect http status code");
+
+        // Check specific error
+        JsonArray categoryErrors = error.get("rowErrors").getAsJsonArray();
+        assertEquals(3, categoryErrors.size(), "Wrong number of category row errors");
+        JsonArray categoryRowErrors = categoryErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+        assertEquals(1, categoryRowErrors.size(), "Wrong number of category errors");
+        JsonObject labelError = categoryRowErrors.get(0).getAsJsonObject();
+        assertEquals("Scale label cannot be populated for Nominal scale type", labelError.get("errorMessage").getAsString());
+    }
+
+    @Test
     void putOrdinalMissingCategories() {
 
         File file = new File("src/test/resources/files/ontology/data_ordinal_missing_categories.xlsx");
