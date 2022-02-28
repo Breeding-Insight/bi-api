@@ -51,8 +51,6 @@ public class GermplasmController {
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams) {
         try {
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
-            queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
-            queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
             return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);}
         catch (ApiException e) {
             log.info(e.getMessage());
