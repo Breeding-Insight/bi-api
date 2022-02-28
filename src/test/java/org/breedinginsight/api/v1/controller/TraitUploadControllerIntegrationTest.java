@@ -427,8 +427,8 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
         assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
         JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
-        assertTrue(error.get("field").getAsString().contains("Trait entity"), "Wrong field returned");
-        assertFalse(error.get("field").getAsString().contains("Trait level"), "Wrong field returned");
+        assertTrue(error.get("field").getAsString().contains("Trait Entity"), "Wrong field returned");
+        assertFalse(error.get("field").getAsString().contains("Trait Level"), "Wrong field returned");
     }
 
     @Test
@@ -445,7 +445,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
       JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
       assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
       JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
-      assertTrue(error.get("field").getAsString().contains("Scale class"), "Wrong field returned");
+      assertTrue(error.get("field").getAsString().contains("Scale Class"), "Wrong field returned");
       assertFalse(error.get("field").getAsString().contains("Unit"), "Wrong field returned");
     }
 
