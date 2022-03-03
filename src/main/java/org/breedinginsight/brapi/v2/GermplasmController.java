@@ -54,12 +54,11 @@ public class GermplasmController {
         try {
             log.debug("fetching germ for program: " + programId);
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
-            queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
-            queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
-            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);
-        } catch (ApiException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);}
+        catch (ApiException e) {
+            log.info(e.getMessage());
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+            return response;
         }
     }
 
