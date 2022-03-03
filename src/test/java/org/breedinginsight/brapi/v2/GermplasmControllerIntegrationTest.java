@@ -160,7 +160,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         // TODO: Parents are updated
         // Breeding method is assigned
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/germplasm",validProgram.getId().toString()))
+                GET(String.format("/programs/%s/brapi/v2/germplasm?sortField=defaultDisplayName&sortOrder=ASC",validProgram.getId().toString()))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
         HttpResponse<String> response = call.blockingFirst();
@@ -171,7 +171,9 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(6, data.size(), "Wrong number of germplasm were returned");
-        for (JsonElement jsonGermplasm: data) {
+        List<String> correctOrder = List.of("Full Germplasm 1", "Full Germplasm 2", "Full Germplasm 3", "Germplasm 1", "Germplasm 2", "Germplasm 3");
+        for (int i = 0; i < data.size(); i++) {
+            JsonElement jsonGermplasm = data.get(i);
             JsonObject exampleGermplasm = jsonGermplasm.getAsJsonObject();
             assertEquals(exampleGermplasm.get("defaultDisplayName").getAsString(), exampleGermplasm.get("germplasmName").getAsString(), "Germplasm name was not set to display name");
             if (exampleGermplasm.get("additionalInfo").getAsJsonObject().has("breedingMethodId")){
@@ -185,6 +187,8 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 }
             }
 
+            // Check the correct sort order
+            assertEquals(correctOrder.get(i), exampleGermplasm.get("defaultDisplayName").getAsString(), "Wrong sort order");
         }
     }
 
