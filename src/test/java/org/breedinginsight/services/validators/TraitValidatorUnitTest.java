@@ -91,7 +91,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("method", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
+        assertEquals("Method", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
     }
 
     @Test
@@ -124,7 +124,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("scale", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
+        assertEquals("Scale", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
     }
 
     @Test
@@ -143,14 +143,14 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(6, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("observationVariableName", 400);
-        expectedColumns.put("entity", 400);
-        expectedColumns.put("attribute", 400);
-        expectedColumns.put("traitDescription", 400);
-        expectedColumns.put("programObservationLevel.name", 400);
-        expectedColumns.put("method.methodClass", 400);
-        expectedColumns.put("scale.scaleName", 400);
-        expectedColumns.put("scale.dataType", 400);
+        expectedColumns.put("Name", 400);
+        expectedColumns.put("Entity", 400);
+        expectedColumns.put("Attribute", 400);
+        expectedColumns.put("Trait Description", 400);
+        expectedColumns.put("Program Observation Level Name", 400);
+        expectedColumns.put("Method Class", 400);
+        expectedColumns.put("Scale Name", 400);
+        expectedColumns.put("Scale Data Type", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -187,8 +187,8 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("method.formula", 400);
-        expectedColumns.put("scale.categories", 400);
+        expectedColumns.put("Method Formula", 400);
+        expectedColumns.put("Scale Categories", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -229,8 +229,8 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("method.formula", 400);
-        expectedColumns.put("scale.categories", 422);
+        expectedColumns.put("Method Formula", 400);
+        expectedColumns.put("Scale Categories", 422);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -328,10 +328,10 @@ public class TraitValidatorUnitTest {
         assertEquals(4, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
 
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("observationVariableName", 422);
-        expectedColumns.put("entity", 422);
-        expectedColumns.put("attribute", 422);
-        expectedColumns.put("method.description", 422);
+        expectedColumns.put("Name", 422);
+        expectedColumns.put("Entity", 422);
+        expectedColumns.put("Attribute", 422);
+        expectedColumns.put("Method Description", 422);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;

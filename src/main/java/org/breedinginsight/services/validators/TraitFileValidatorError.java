@@ -37,22 +37,22 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getTraitIdDoesNotExistMsg() {
-        return new ValidationError("traitId", "Missing trait id", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Trait Id", "Missing trait id", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingMethodMsg() {
-        return new ValidationError("method", "Missing method", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Method", "Missing method", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingMethodClassMsg() {
-        return new ValidationError("Method class", "Missing method class", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Method Class", "Missing method class", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingScaleMsg() {
-        return new ValidationError("scale", "Missing scale class", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale", "Missing scale class", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -62,49 +62,49 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getMissingScaleDataTypeMsg() {
-        return new ValidationError("Scale class", "Missing scale class", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Class", "Missing scale class", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingObsVarNameMsg() {
-        return new ValidationError("Observation variable name", "Missing observation variable name", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Name", "Missing name", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingTraitEntityMsg() {
-        return new ValidationError("Trait entity", "Missing trait entity", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Trait Entity", "Missing trait entity", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingTraitAttributeMsg() {
-        return new ValidationError("Trait attribute", "Missing trait attribute", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Trait Attribute", "Missing trait attribute", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingTraitDescriptionMsg() {
-        return new ValidationError("Trait description", "Missing trait description", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Trait Description", "Missing trait description", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingProgramObservationLevelMsg() {
-        return new ValidationError("Trait level", "Missing trait level", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Trait Level", "Missing trait level", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingMethodFormulaMsg() {
-        return new ValidationError("Method formula", "Missing method formula for Computation method", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Method Formula", "Missing method formula for Computation method", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getMissingScaleCategoriesMsg(DataType dataType) {
-        return new ValidationError("Scale categories",
+        return new ValidationError("Scale Categories",
                 String.format("Missing scale categories for %s scale", WordUtils.capitalize(dataType.getLiteral().toLowerCase())),
                 HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getBadScaleCategory() {
-        return new ValidationError("Scale categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Scale categories contain errors", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
@@ -130,43 +130,43 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getInsufficientNominalValError() {
-        return new ValidationError("scale.categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Nominal scales must have at least one category.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getInsufficientOrdinalValError() {
-        return new ValidationError("scale.categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Scale Categories", "Ordinal scales must have at least two categories.", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getCharLimitObsVarNameMsg() {
-        return new ValidationError("observationVariableName", "Observation variable name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Name", "Name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getCharLimitTraitEntityMsg() {
-        return new ValidationError("entity", "Trait entity exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Entity", "Trait entity exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getCharLimitTraitAttributeMsg() {
-        return new ValidationError("attribute", "Trait attribute exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Attribute", "Trait attribute exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getCharLimitMethodDescriptionMsg() {
-        return new ValidationError("method.description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Method Description", "Method description exceeds 30 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override
     public ValidationError getDuplicateTraitByNamesMsg() {
-        return new ValidationError("Trait name", "Trait name already exists", HttpStatus.CONFLICT);
+        return new ValidationError("Trait Name", "Trait name already exists", HttpStatus.CONFLICT);
     }
     
     @Override
     public ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows) {
         matchingRows = matchingRows.stream().map(rowIndex -> getRowNumber(rowIndex)).collect(Collectors.toList());
-        return new ValidationError("Trait name",
+        return new ValidationError("Trait Name",
                 "Trait name duplicated in file. Duplicate set of traits are rows " + matchingRows.toString(),
                 HttpStatus.CONFLICT);
     }
