@@ -1,7 +1,7 @@
 package org.breedinginsight.brapi.v2.model.response.mappers;
 
 import lombok.Getter;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.core.BrAPIListSummary;
 import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
 import javax.inject.Singleton;
@@ -12,7 +12,7 @@ import java.util.function.Function;
 @Singleton
 public class ListQueryMapper extends AbstractQueryMapper {
 
-    private Map<String, Function<BrAPIGermplasm, ?>> fields;
+    private Map<String, Function<BrAPIListSummary, ?>> fields;
 
     public ListQueryMapper() {
         fields = Map.ofEntries();
@@ -24,7 +24,7 @@ public class ListQueryMapper extends AbstractQueryMapper {
     }
 
     @Override
-    public Function<BrAPIGermplasm, ?> getField(String fieldName) throws NullPointerException {
+    public Function<BrAPIListSummary, ?> getField(String fieldName) throws NullPointerException {
         if (fields.containsKey(fieldName)) {
             return fields.get(fieldName);
         }
