@@ -8,6 +8,7 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
@@ -122,7 +123,7 @@ public class BrAPIGermplasmService {
         return germplasmList;
     }
 
-    public BrAPIListsListResponse getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
+    public List<BrAPIListSummary> getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
 
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program does not exist");
@@ -132,16 +133,12 @@ public class BrAPIGermplasmService {
         if(optionalProgram.isPresent()) {
             Program program = optionalProgram.get();
 
-            BrAPIListsListResponse germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, referenceSource + "/programs", programId);
+            List<BrAPIListSummary> germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, referenceSource + "/programs", programId);
 
-            //Remove key appended to listName for brapi
-            String listName;
-            String newListName;
-            int listLength = germplasmLists.getResult().getData().size();
-            for (int i=0; i<listLength; i++) {
-                listName = germplasmLists.getResult().getData().get(i).getListName();
-                newListName = removeAppendedKey(listName, program.getKey());
-                germplasmLists.getResult().getData().get(i).setListName(newListName);
+            for (BrAPIListSummary germplasmList: germplasmLists) {
+                String listName = germplasmList.getListName();
+                String newListName = removeAppendedKey(listName, program.getKey());
+                germplasmList.setListName(newListName);
             }
 
             return germplasmLists;
