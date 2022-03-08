@@ -28,6 +28,7 @@ import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.utilities.Utilities;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
@@ -203,7 +204,7 @@ public class Germplasm implements BrAPIObject {
         germplasm.setAccessionNumber(nextVal.get().toString());
 
         // Set germplasm name to <Name> [<program key>-<accessionNumber>]
-        germplasm.setGermplasmName(String.format("%s [%s-%s]", germplasm.getDefaultDisplayName(), programKey, germplasm.getAccessionNumber()));
+        germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), programKey, germplasm.getAccessionNumber()));
 
         // Set createdDate field
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");

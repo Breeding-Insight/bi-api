@@ -26,11 +26,13 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -67,8 +69,33 @@ public class BrAPIGermplasmDAO {
         programGermplasmCache = new ProgramCache<>(this::fetchProgramGermplasm, programs);
     }
 
+    /**
+     * Fetch the germplasm for this program, and process it to remove storage specific values
+     * @param programId
+     * @return this program's germplasm
+     * @throws ApiException
+     */
     public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
         return programGermplasmCache.get(programId);
+    }
+
+    /**
+     * Fetch the germplasm for this program as it was stored in the program's BrAPI server
+     * @param programId
+     * @return this program's germplasm as it is stored on its BrAPI server
+     * @throws ApiException
+     */
+    public List<BrAPIGermplasm> getRawGermplasm(UUID programId) throws ApiException {
+        Program program = new Program(programDAO.fetchOneById(programId));
+        return programGermplasmCache.get(programId).stream().map(germplasm -> {
+            germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), program.getKey(), germplasm.getAccessionNumber()));
+            if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo()
+                                                                 .has(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE)) {
+                germplasm.setPedigree(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE).getAsString());
+            }
+
+            return germplasm;
+        }).collect(Collectors.toList());
     }
 
     private List<BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
@@ -87,6 +114,7 @@ public class BrAPIGermplasmDAO {
 
     private List<BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm) {
         // Process the germplasm
+        log.debug("processing germ for display: " + programGermplasm);
         Map<String, BrAPIGermplasm> programGermplasmByFullName = new HashMap<>();
         for (BrAPIGermplasm germplasm: programGermplasm) {
             programGermplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
@@ -104,6 +132,12 @@ public class BrAPIGermplasmDAO {
         // Update pedigree string
         for (BrAPIGermplasm germplasm: programGermplasm) {
             if (germplasm.getPedigree() != null) {
+                JsonObject additionalInfo = germplasm.getAdditionalInfo();
+                if(additionalInfo == null) {
+                    additionalInfo = new JsonObject();
+                }
+                additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, germplasm.getPedigree());
+
                 String newPedigreeString = germplasm.getPedigree();
                 List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 if (parents.size() >= 1) {

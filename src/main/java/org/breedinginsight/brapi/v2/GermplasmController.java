@@ -50,6 +50,7 @@ public class GermplasmController {
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams) {
         try {
+            log.debug("fetching germ for program: " + programId);
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
             queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
             queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
