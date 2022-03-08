@@ -122,6 +122,13 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
+    public ValidationError getPopulatedNominalCategoryLabelMsg() {
+        return new ValidationError("scale.categories.label",
+                "Scale label cannot be populated for Nominal scale type",
+                HttpStatus.UNPROCESSABLE_ENTITY);
+    }
+
+    @Override
     public ValidationError getMaxLessThenMinError() {
         return new ValidationError("Scale Valid Value Max",
                 "Scale valid value max must be greater than valid value min.",
