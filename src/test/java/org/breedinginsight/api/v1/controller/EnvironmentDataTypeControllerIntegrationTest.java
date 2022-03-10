@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class EnvironmentTypeControllerIntegrationTest extends DatabaseTest {
+public class EnvironmentDataTypeControllerIntegrationTest extends DatabaseTest {
 
     private String validEnvironmentTypeId;
     private String validEnvironmentTypeName;

@@ -22,7 +22,6 @@ import org.breedinginsight.brapps.importer.model.base.*;
 import java.util.List;
 
 public interface BrAPIImport {
-
     default Germplasm getGermplasm() { return null; }
     default Trial getTrial() { return null; }
     default Location getLocation() { return null; }
@@ -30,5 +29,4 @@ public interface BrAPIImport {
     default ObservationUnit getObservationUnit() { return null; }
     default List<Observation> getObservations() { return null; }
     default ObservationVariable getObservationVariable() { return null; }
-
 }
