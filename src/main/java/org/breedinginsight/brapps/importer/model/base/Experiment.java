@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.config.*;
@@ -118,8 +119,11 @@ public class Experiment implements BrAPIObject {
     @ImportFieldType(type= ImportFieldTypeEnum.DATE)
     @ImportFieldMetadata(id="pheno_1_date", name="Phenotype Observation Date/Time", description = "observation timestamp")
     private String pheno_1_date;
-//////////////////////////////////////
 
+    public BrAPITrial constructBrAPITrial(){
+
+    }
+//////////////////////////////////////
 //    public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
 //        BrAPIListNewRequest brapiList = new BrAPIListNewRequest();
 //        brapiList.setListName(constructExperimentListName(listName, program));
