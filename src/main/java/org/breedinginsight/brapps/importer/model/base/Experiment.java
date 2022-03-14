@@ -34,7 +34,6 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 @Getter
 @Setter
@@ -45,7 +44,8 @@ public class Experiment implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
-    private String germplasmName;
+    private String experimentName;
+    private String listName;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="gid", name="Germplasm GID", description = "Unique germplasm identifier")
@@ -117,24 +117,24 @@ public class Experiment implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.DATE)
     @ImportFieldMetadata(id="pheno_1_date", name="Phenotype Observation Date/Time", description = "observation timestamp")
-    private String ObsUnitID;
+    private String pheno_1_date;
 //////////////////////////////////////
 
-    public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
-        BrAPIListNewRequest brapiList = new BrAPIListNewRequest();
-        brapiList.setListName(constructGermplasmListName(listName, program));
-        brapiList.setListDescription(this.listDescription);
-        brapiList.listType(BrAPIListTypes.GERMPLASM);
-        // Set external reference
-        BrAPIExternalReference reference = new BrAPIExternalReference();
-        reference.setReferenceSource(String.format("%s/programs", referenceSource));
-        reference.setReferenceID(program.getId().toString());
-        brapiList.setExternalReferences(List.of(reference));
-        return brapiList;
-    }
+//    public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
+//        BrAPIListNewRequest brapiList = new BrAPIListNewRequest();
+//        brapiList.setListName(constructExperimentListName(listName, program));
+//        brapiList.setListDescription(this.listDescription);
+//        brapiList.listType(BrAPIListTypes.GERMPLASM);  //TODO get correct listType
+//        // Set external reference
+//        BrAPIExternalReference reference = new BrAPIExternalReference();
+//        reference.setReferenceSource(String.format("%s/programs", referenceSource));
+//        reference.setReferenceID(program.getId().toString());
+//        brapiList.setExternalReferences(List.of(reference));
+//        return brapiList;
+//    }
 
-    public static String constructGermplasmListName(String listName, Program program) {
-        return String.format("%s [%s-germplasm]", listName, program.getKey());
+    public static String constructExperimentListName(String listName, Program program) {
+        return String.format("%s [%s-experiment]", listName, program.getKey());
     }
 
     private void setBrAPIGermplasmCommitFields(BrAPIGermplasm germplasm, String programKey, String referenceSource, Supplier<BigInteger> nextVal) {
@@ -158,20 +158,20 @@ public class Experiment implements BrAPIObject {
         germplasm.putAdditionalInfoItem("createdDate", formatter.format(now));
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
-        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user);
-        if (commit) {
-            setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
-        }
-        germplasm.setCommonCropName(program.getBrapiProgram().getCommonCropName());
-
-        // Set program id in external references
-        BrAPIExternalReference newReference = new BrAPIExternalReference();
-        newReference.setReferenceSource(String.format("%s/programs", referenceSource));
-        newReference.setReferenceID(program.getId().toString());
-        germplasm.getExternalReferences().add(newReference);
-
-        return germplasm;
-    }
+//    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
+//        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user);
+//        if (commit) {
+//            setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
+//        }
+//        germplasm.setCommonCropName(program.getBrapiProgram().getCommonCropName());
+//
+//        // Set program id in external references
+//        BrAPIExternalReference newReference = new BrAPIExternalReference();
+//        newReference.setReferenceSource(String.format("%s/programs", referenceSource));
+//        newReference.setReferenceID(program.getId().toString());
+//        germplasm.getExternalReferences().add(newReference);
+//
+//        return germplasm;
+//    }
 
 }
