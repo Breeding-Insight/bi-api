@@ -144,6 +144,10 @@ public class Germplasm implements BrAPIObject {
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
         germplasm.putAdditionalInfoItem("importEntryNumber", entryNo);
+        germplasm.putAdditionalInfoItem("femaleParentGid", getFemaleParentDBID());
+        germplasm.putAdditionalInfoItem("maleParentGid", getMaleParentDBID());
+        germplasm.putAdditionalInfoItem("femaleParentEntryNo", getFemaleParentEntryNo());
+        germplasm.putAdditionalInfoItem("maleParentEntryNo", getMaleParentEntryNo());
         Map<String, String> createdBy = new HashMap<>();
         createdBy.put("userId", user.getId().toString());
         createdBy.put("userName", user.getName());
