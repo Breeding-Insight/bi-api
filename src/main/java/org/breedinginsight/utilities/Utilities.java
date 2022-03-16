@@ -17,6 +17,8 @@
 
 package org.breedinginsight.utilities;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,5 +43,23 @@ public class Utilities {
      */
     public static boolean containsCaseInsensitive(String target, List<String> list){
         return list.stream().anyMatch(x -> x.equalsIgnoreCase(target));
+    }
+
+    /**
+     * Formats a string to: <code>&lt;original&gt; [&lt;programKey&gt;]</code>.<br><br>
+     *
+     * If <code>additionalKeyData</code> is populated, then returns: <code>&lt;original&gt; [&lt;programKey&gt;-&lt;additionalKeyData&gt;]</code>
+     *
+     * @param original
+     * @param programKey
+     * @param additionalKeyData
+     * @return the formatted string
+     */
+    public static String appendProgramKey(String original, String programKey, String additionalKeyData) {
+        if(StringUtils.isNotEmpty(additionalKeyData)) {
+            return String.format("%s [%s-%s]", original, programKey, additionalKeyData);
+        } else {
+            return String.format("%s [%s]", original, programKey);
+        }
     }
 }

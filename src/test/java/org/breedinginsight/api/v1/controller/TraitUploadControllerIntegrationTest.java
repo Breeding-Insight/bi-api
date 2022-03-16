@@ -427,8 +427,8 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
         assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
         JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
-        assertTrue(error.get("field").getAsString().contains("Trait entity"), "Wrong field returned");
-        assertFalse(error.get("field").getAsString().contains("Trait level"), "Wrong field returned");
+        assertTrue(error.get("field").getAsString().contains("Trait Entity"), "Wrong field returned");
+        assertFalse(error.get("field").getAsString().contains("Trait Level"), "Wrong field returned");
     }
 
     @Test
@@ -445,7 +445,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
       JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
       assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
       JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
-      assertTrue(error.get("field").getAsString().contains("Scale class"), "Wrong field returned");
+      assertTrue(error.get("field").getAsString().contains("Scale Class"), "Wrong field returned");
       assertFalse(error.get("field").getAsString().contains("Unit"), "Wrong field returned");
     }
 
@@ -780,6 +780,35 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
         assertTrue(error.get("errorMessage").getAsString().contains("Nominal"), "Incorrect http status code");
+    }
+
+    @Test
+    void putNominalCategoryLabelPresentError() {
+
+        File file = new File("src/test/resources/files/ontology/data_category_label_nominal_trait.xls");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Scale categories contain errors", error.get("errorMessage").getAsString(), "Incorrect http status code");
+
+        // Check specific error
+        JsonArray categoryErrors = error.get("rowErrors").getAsJsonArray();
+        assertEquals(3, categoryErrors.size(), "Wrong number of category row errors");
+        JsonArray categoryRowErrors = categoryErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+        assertEquals(1, categoryRowErrors.size(), "Wrong number of category errors");
+        JsonObject labelError = categoryRowErrors.get(0).getAsJsonObject();
+        assertEquals("Scale label cannot be populated for Nominal scale type", labelError.get("errorMessage").getAsString());
     }
 
     @Test

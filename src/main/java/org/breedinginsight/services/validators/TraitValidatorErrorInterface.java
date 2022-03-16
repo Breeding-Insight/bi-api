@@ -40,6 +40,7 @@ public interface TraitValidatorErrorInterface {
     ValidationError getBadScaleCategory();
     ValidationError getBlankScaleCategoryLabelMsg();
     ValidationError getBlankScaleCategoryValueMsg();
+    ValidationError getPopulatedNominalCategoryLabelMsg();
     ValidationError getMaxLessThenMinError();
     ValidationError getInsufficientNominalValError();
     ValidationError getInsufficientOrdinalValError();

@@ -1,22 +1,32 @@
 package org.breedinginsight.services;
 
 import com.google.gson.JsonObject;
+import io.reactivex.functions.Function;
+import io.reactivex.functions.Function3;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
+import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.FileUtil;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
+import org.mockito.MockedStatic;
 import tech.tablesaw.api.Table;
 
 import java.io.InputStream;
+import java.lang.reflect.Method;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -30,13 +40,15 @@ public class BrAPIGermplasmServiceUnitTest {
     private BrAPIListDAO listDAO;
     private BrAPIGermplasmDAO germplasmDAO;
     private ProgramService programService;
+    private ProgramDAO programDAO;
     private BrAPIGermplasmService germplasmService;
 
     @BeforeEach
     void setup() {
         //Set up mocks in here
         listDAO = mock(BrAPIListDAO.class);
-        germplasmDAO = mock(BrAPIGermplasmDAO.class);
+        programDAO = mock(ProgramDAO.class);
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class));
         programService = mock(ProgramService.class);
     }
 
@@ -97,14 +109,22 @@ public class BrAPIGermplasmServiceUnitTest {
 
         //Create stubs
         BrAPIListDAO brAPIListSpy = spy(listDAO);
-        BrAPIGermplasmDAO brAPIGermplasmSpy = spy(germplasmDAO);
         ProgramService programSpy = spy(programService);
 
+        when(programDAO.getAll()).thenReturn(Arrays.asList(Program.builder().id(UUID.randomUUID()).name("Test Program").build()));
+
         doReturn(listResponse).when(brAPIListSpy).getListById(listId, testProgramId);
-        doReturn(germplasm).when(brAPIGermplasmSpy).getGermplasmByName(germplasmNames, testProgramId);
+        MockedStatic<BrAPIDAOUtil> brapiDaoUtilMock = mockStatic(BrAPIDAOUtil.class);
+        brapiDaoUtilMock.when(() -> BrAPIDAOUtil.search(any(Function.class),
+                                                  any(Function3.class),
+                                                  any(BrAPIGermplasmSearchRequest.class))).thenReturn(germplasm);
         doReturn(Optional.of(testProgram)).when(programSpy).getById(testProgramId);
 
-        germplasmService = new BrAPIGermplasmService(brAPIListSpy, programSpy, brAPIGermplasmSpy);
+        Method setupMethod = BrAPIGermplasmDAO.class.getDeclaredMethod("setup");
+        setupMethod.setAccessible(true);
+        setupMethod.invoke(germplasmDAO);
+
+        germplasmService = new BrAPIGermplasmService(brAPIListSpy, programSpy, germplasmDAO);
 
         //Retrieve file
         DownloadFile downloadFile = germplasmService.exportGermplasmList(testProgramId, listId);
