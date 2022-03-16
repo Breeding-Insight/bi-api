@@ -170,10 +170,11 @@ public class BrAPIGermplasmDAO {
         }
     }
 
-    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId) throws ApiException {
-        return programGermplasmCache.get(programId)
-                                    .stream()
-                                    .filter(brAPIGermplasm -> germplasmNames.contains(brAPIGermplasm.getGermplasmName()))
-                                    .collect(Collectors.toList());
+    public List<BrAPIGermplasm> getGermplasmByRawName(List<String> germplasmNames, UUID programId) throws ApiException {
+        Program program = new Program(programDAO.fetchOneById(programId));
+        return getGermplasm(programId)
+                .stream()
+                .filter(brAPIGermplasm -> germplasmNames.contains(Utilities.appendProgramKey(brAPIGermplasm.getGermplasmName(),program.getKey(),brAPIGermplasm.getAccessionNumber())))
+                .collect(Collectors.toList());
     }
 }
