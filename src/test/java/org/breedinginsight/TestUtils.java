@@ -33,24 +33,28 @@ import se.sawano.java.text.AlphanumericComparator;
 import java.io.File;
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestUtils {
 
     public static void checkStringSorting(JsonArray data, String field, SortOrder sortOrder) {
 
+        Integer missedFields = 0;
         for (int i = 0; i < data.size() - 1; i++){
             if (!data.get(i).getAsJsonObject().has(field) || !data.get(i + 1).getAsJsonObject().has(field)) {
+                missedFields += 1;
                 continue;
             }
             String firstValue = data.get(i).getAsJsonObject().get(field).getAsString();
             String secondValue = data.get(i + 1).getAsJsonObject().get(field).getAsString();
 
-            AlphanumericComparator comparator = new AlphanumericComparator();
+            AlphanumericComparator comparator = new AlphanumericComparator(Locale.ENGLISH);
             if (comparator.compare(firstValue, secondValue) == 0) {
                 continue;
             }
@@ -63,6 +67,7 @@ public class TestUtils {
 
         }
 
+        assertTrue(missedFields < data.size() -1 || data.size() == 1, "No fields by the name " + field + "were found.");
     }
 
     public static void checkNumericSorting(JsonArray data, String field, SortOrder sortOrder) {

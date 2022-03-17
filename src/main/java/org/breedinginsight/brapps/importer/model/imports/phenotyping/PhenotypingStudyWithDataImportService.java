@@ -78,7 +78,7 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException {
+            throws UnprocessableEntityException, ValidatorException, ApiException {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get(),
@@ -87,13 +87,10 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
                                              studyProcessorProvider.get(),
                                              observationUnitProcessorProvider.get(),
                                              observationProcessorProvider.get());
-        try {
-            response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
-        } catch (ValidatorException | ApiException e) {
-            log.error(e.getMessage());
-        }
-        return response;
 
+        response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
+
+        return response;
     }
 }
 
