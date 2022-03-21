@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.brapps.importer.model.imports.phenotyping;
+package org.breedinginsight.brapps.importer.model.imports.experiment;
 
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -36,7 +36,7 @@ import java.util.List;
 
 @Singleton
 @Slf4j
-public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
+public class ExperimetImportService extends BrAPIImportService {
 
     private final String IMPORT_TYPE_ID = "PhenotypingStudyWithDataImport";
 
@@ -49,13 +49,13 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
     private Provider<ProcessorManager> processorManagerProvider;
 
     @Inject
-    public PhenotypingStudyWithDataImportService(Provider<GermplasmProcessor> germplasmProcessorProvider,
-                                                 Provider<TrialProcessor> trialProcessorProvider,
-                                                 Provider<LocationProcessor> locationProcessorProvider,
-                                                 Provider<StudyProcessor> studyProcessorProvider,
-                                                 Provider<ObservationUnitProcessor> observationUnitProcessorProvider,
-                                                 Provider<ObservationProcessor> observationProcessorProvider,
-                                                 Provider<ProcessorManager> processorManagerProvider)
+    public ExperimetImportService(Provider<GermplasmProcessor> germplasmProcessorProvider,
+                                  Provider<TrialProcessor> trialProcessorProvider,
+                                  Provider<LocationProcessor> locationProcessorProvider,
+                                  Provider<StudyProcessor> studyProcessorProvider,
+                                  Provider<ObservationUnitProcessor> observationUnitProcessorProvider,
+                                  Provider<ObservationProcessor> observationProcessorProvider,
+                                  Provider<ProcessorManager> processorManagerProvider)
     {
         this.germplasmProcessorProvider = germplasmProcessorProvider;
         this.trialProcessorProvider = trialProcessorProvider;
@@ -67,8 +67,8 @@ public class PhenotypingStudyWithDataImportService extends BrAPIImportService {
     }
 
     @Override
-    public PhenotypingStudyWithDataImport getImportClass() {
-        return new PhenotypingStudyWithDataImport();
+    public ExperimemtImport getImportClass() {
+        return new ExperimemtImport();
     }
 
     @Override

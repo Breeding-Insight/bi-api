@@ -14,20 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapps.importer.model.imports.experiment;
 
-package org.breedinginsight.brapps.importer.model.imports;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import org.breedinginsight.brapps.importer.model.config.ImportConfigMetadata;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 
-import org.breedinginsight.brapps.importer.model.base.*;
+@Getter
+@Setter
+@NoArgsConstructor
+@ImportConfigMetadata(id="PhenotypingStudyWithDataImport", name="Phenotyping Study With Data",
+        description = "This import is used to create a phenotyping study including germplasm & observations.")
+public class ExperimemtImport implements BrAPIImport {
 
-import java.util.List;
+    private Experiment experiment;
 
-public interface BrAPIImport {
-
-    default Germplasm getGermplasm() { return null; }
-    default Trial getTrial() { return null; }
-    default Location getLocation() { return null; }
-    default Study getStudy() { return null; }
-    default ObservationUnit getObservationUnit() { return null; }
-    default List<Observation> getObservations() { return null; }
-    default ObservationVariable getObservationVariable() { return null; }
 }
