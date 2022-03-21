@@ -10,8 +10,9 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SharedProgram {
-    private UUID program_id;
-    private String program_name;
+    private UUID programId;
+    private String programName;
     private Boolean shared;
+    private Boolean accepted;
     private Boolean editable;
 }

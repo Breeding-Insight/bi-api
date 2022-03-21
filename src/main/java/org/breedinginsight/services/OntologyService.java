@@ -9,11 +9,13 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
+import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.SharedProgram;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
 import java.util.*;
@@ -24,10 +26,13 @@ public class OntologyService {
 
     private ProgramDAO programDAO;
     private ProgramOntologyDAO programOntologyDAO;
+    private TraitDAO traitDAO;
 
-    public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO) {
+    @Inject
+    public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO) {
         this.programDAO = programDAO;
         this.programOntologyDAO = programOntologyDAO;
+        this.traitDAO = traitDAO;
     }
 
     /**
@@ -41,30 +46,37 @@ public class OntologyService {
         // Get program with that id
         Program program = getProgram(programId);
 
-        // Get programs of same species and brapi server from db
-        // TODO: Test if localhost vs localhost/brapi/v2 makes a difference
-        List<Program> matchingPrograms = getMatchingPrograms(program);
+        List<SharedProgram> formattedPrograms = getSharedProgramsFormatted(program);
+        Set<UUID> sharedProgramIds = formattedPrograms.stream().map(SharedProgram::getProgramId).collect(Collectors.toSet());
 
-        // Get shared ontology programs for db
-        List<Program> sharedPrograms = programOntologyDAO.getSharedPrograms(program.getId());
+        // Add other programs
+        if (!sharedOnly) {
+            // TODO: Test if localhost vs localhost/brapi/v2 makes a difference
+            List<Program> matchingPrograms = getMatchingPrograms(program);
+            formattedPrograms.addAll(matchingPrograms.stream()
+                    .filter(matchingProgram -> !sharedProgramIds.contains(matchingProgram.getId()))
+                    .map(matchingProgram -> formatResponse(matchingProgram))
+                    .collect(Collectors.toList()));
+        }
 
-        // Format response
-        // Store shared programs in map for lookup
+        return formattedPrograms;
+    }
+
+    private List<SharedProgram> getSharedProgramsFormatted(Program program) {
+        // Get shared ontology records
+        List<ProgramSharedOntologyEntity> sharedOntologies = programOntologyDAO.getSharedOntologies(program.getId());
+        // Get the programs ontology is shared with
+        List<Program> sharedPrograms = programDAO.get(
+                sharedOntologies.stream().map(ProgramSharedOntologyEntity::getSharedProgramId).collect(Collectors.toList()));
+        // Get the programs in a lookup map
         Map<UUID, Program> sharedProgramsMap = new HashMap<>();
         sharedPrograms.stream().forEach(sharedProgram -> sharedProgramsMap.put(sharedProgram.getId(), sharedProgram));
 
-        // Loop through or matching programs, formatting and labeling shared ones.
-        // TODO: Need to check if these programs have observations
-        List<SharedProgram> formattedPrograms = new ArrayList<>();
-        for (Program matchingProgram: matchingPrograms) {
-            SharedProgram formattedProgram = formatResponse(matchingProgram,
-                    sharedProgramsMap.containsKey(matchingProgram.getId()), false);
-
-            formattedPrograms.add(formattedProgram);
-        }
-
-
-        return formattedPrograms;
+        // Format shared programs response
+        return sharedOntologies.stream().map(sharedOntology ->
+                formatResponse(sharedProgramsMap.get(sharedOntology.getSharedProgramId()), sharedOntology,
+                        ontologyIsEditable(sharedOntology)))
+                .collect(Collectors.toList());
     }
 
     private List<Program> getMatchingPrograms(Program program) {
@@ -89,12 +101,37 @@ public class OntologyService {
         return programs.get(0);
     }
 
-    private SharedProgram formatResponse(Program program, Boolean shared, Boolean editable) {
+    private SharedProgram formatResponse(Program program, ProgramSharedOntologyEntity programSharedOntologyEntity, Boolean editable) {
         return SharedProgram.builder()
-                .program_id(program.getId())
-                .program_name(program.getName())
-                .shared(shared)
+                .programId(program.getId())
+                .programName(program.getName())
+                .shared(true)
+                .editable(editable)
+                .accepted(programSharedOntologyEntity.getActive())
                 .build();
+    }
+
+    private SharedProgram formatResponse(Program program) {
+        return SharedProgram.builder()
+                .programId(program.getId())
+                .programName(program.getName())
+                .shared(false)
+                .build();
+    }
+
+    private Boolean ontologyIsEditable(ProgramSharedOntologyEntity sharedOntologyEntity) {
+
+        if (sharedOntologyEntity.getActive()) {
+            // Get all trait ids for the program
+            List<UUID> traitIds = traitDAO.getTraitsByProgramId(sharedOntologyEntity.getSharedProgramId()).stream()
+                    .map(trait -> trait.getId())
+                    .collect(Collectors.toList());
+
+            // Get all observations for the ontology
+            return traitDAO.getObservationsForTraits(traitIds).isEmpty();
+        } else {
+            return true;
+        }
     }
 
 
@@ -106,9 +143,17 @@ public class OntologyService {
      * @param programRequests -- List of programs to share ontology with
      * @return Lst<SharedOntologyProgram>
      */
-    public List shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException {
+    public List shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException, UnprocessableEntityException {
+
         // Get program with that id
         Program program = getProgram(programId);
+
+        // Don't allow to share with self
+        for (SharedOntologyProgramRequest request: programRequests) {
+            if (request.getId().equals(program.getId())) {
+                throw new UnprocessableEntityException("Program cannot share ontology with itself");
+            }
+        }
 
         // Check shareability, same brapi server, same species
         List<Program> matchingPrograms = getMatchingPrograms(program);
@@ -147,15 +192,9 @@ public class OntologyService {
         programOntologyDAO.createSharedOntologies(shareRecords);
 
         // Query return data
-        List<Program> allSharedPrograms = programOntologyDAO.getSharedPrograms(programId);
-        List<Program> newSharedPrograms = allSharedPrograms.stream()
-                .filter(sharedProgram -> shareProgramIdsSet.contains(sharedProgram.getId()))
+        return getSharedProgramsFormatted(program).stream()
+                .filter(sharedProgram -> shareProgramIdsSet.contains(sharedProgram.getProgramId()))
                 .collect(Collectors.toList());
-        List<SharedProgram> sharedPrograms = newSharedPrograms.stream().map(
-                newSharedProgram -> formatResponse(newSharedProgram, false, true)
-        ).collect(Collectors.toList());
-
-        return sharedPrograms;
     }
 
     /**

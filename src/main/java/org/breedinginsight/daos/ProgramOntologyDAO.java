@@ -31,12 +31,14 @@ import org.jooq.Record;
 import org.jooq.Result;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
 
+@Singleton
 public class ProgramOntologyDAO extends ProgramOntologyDao {
 
     private DSLContext dsl;
@@ -79,5 +81,9 @@ public class ProgramOntologyDAO extends ProgramOntologyDao {
 
     public void createSharedOntologies(List<ProgramSharedOntologyEntity> shareRecords) {
         programSharedOntologyDao.insert(shareRecords);
+    }
+
+    public List<ProgramSharedOntologyEntity> getSharedOntologies(UUID programId) {
+        return programSharedOntologyDao.fetchByProgramId(programId);
     }
 }
