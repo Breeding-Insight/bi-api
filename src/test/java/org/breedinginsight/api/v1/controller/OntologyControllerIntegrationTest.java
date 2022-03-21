@@ -34,9 +34,9 @@ import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
-import static io.micronaut.http.HttpRequest.GET;
-import static io.micronaut.http.HttpRequest.POST;
+import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -50,6 +50,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     private FannyPack brapiObservationFp;
     private Program mainProgram;
     private Program otherProgram;
+    private Program thirdProgram;
 
     @Inject
     private DSLContext dsl;
@@ -121,6 +122,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
         List<Program> programs = programDAO.getAll();
         mainProgram = programs.get(0);
         otherProgram = programs.get(1);
+        thirdProgram = programs.get(2);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), mainProgram.getId().toString());
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
@@ -222,6 +224,13 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    @Order(2)
+    void shareOntologySubscribedToOtherProgram() {
+        // TODO: When subscribe ontology card is done
+        // Cannot share ontology if you are using a shared ontology
+    }
+
+    @Test
     @Order(3)
     void getAllProgramsSharedPrograms() {
         String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
@@ -282,6 +291,20 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     @Order(4)
     void revokeProgram() {
 
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), otherProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(4)
+    void revokeOntologyUneditable() {
+        // TODO: When subscribe ontology card is done
+        // Ontology cannot be revoke if shared program has accepted and has observations
     }
 
     @Test
@@ -303,5 +326,84 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    void revokeOntologyProgramNotExist() {
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", UUID.randomUUID(), otherProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void revokeOntologySharedProgramNotExist() {
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), UUID.randomUUID());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void revokeOntologySharedProgramNotShared() {
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), thirdProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    void shareOntologyProgramNotExist() {
+
+        String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
+        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
+        requests.add(new SharedOntologyProgramRequest(UUID.randomUUID(), "I don't exist"));
+        String json = gson.toJson(requests);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(url, json)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    void shareOntologySharedProgramNotExist() {
+
+        String url = String.format("/programs/%s/ontology/shared/programs", UUID.randomUUID());
+        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
+        requests.add(new SharedOntologyProgramRequest(otherProgram.getId(), otherProgram.getName()));
+        String json = gson.toJson(requests);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(url, json)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 }

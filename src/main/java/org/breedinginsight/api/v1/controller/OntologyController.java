@@ -21,6 +21,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.SharedProgram;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
@@ -54,8 +55,9 @@ public class OntologyController {
      *      {
      *          name: string, -- Program name
      *          id: UUID, -- Program ID
-     *          shared: true,
-     *          status: ACCEPTED | PENDING
+     *          shared: boolean,
+     *          accepted: boolean || null, -- null if shared = false
+     *          editable: boolean || null   -- null if shared = false
      *      }
      *     ]
      * }
@@ -84,8 +86,9 @@ public class OntologyController {
      *      {
      *          name: string, -- Program name
      *          id: UUID, -- Program ID
-     *          shared: true,
-     *          status: ACCEPTED | PENDING
+     *          shared: boolean,
+     *          accepted: boolean,
+     *          editable: boolean
      *      }
      *     ]
      * }
@@ -125,6 +128,13 @@ public class OntologyController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<Trait>>> revokeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharedProgramId) {
-        return HttpResponse.ok();
+        try {
+            ontologyService.revokeOntology(programId, sharedProgramId);
+            return HttpResponse.ok();
+        } catch (UnprocessableEntityException e) {
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (DoesNotExistException e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 }

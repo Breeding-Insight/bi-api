@@ -12,12 +12,14 @@ import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.SharedProgram;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
+import javax.ws.rs.NotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -143,7 +145,7 @@ public class OntologyService {
      * @param programRequests -- List of programs to share ontology with
      * @return Lst<SharedOntologyProgram>
      */
-    public List shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException, UnprocessableEntityException {
+    public List<SharedProgram> shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException, UnprocessableEntityException {
 
         // Get program with that id
         Program program = getProgram(programId);
@@ -154,6 +156,9 @@ public class OntologyService {
                 throw new UnprocessableEntityException("Program cannot share ontology with itself");
             }
         }
+
+        // Don't allow shared if program is already subscribe to shared ontology
+
 
         // Check shareability, same brapi server, same species
         List<Program> matchingPrograms = getMatchingPrograms(program);
@@ -202,10 +207,22 @@ public class OntologyService {
      * @param programId -- Program that owns the ontology.
      * @param sharedProgramId -- Program to revoke shared ontology access from
      */
-    public void revokeOntology(@NotNull UUID programId, @NotNull UUID sharedProgramId) {
-        // TODO: Check that shared program is still unshareable. No observations yet.
+    public void revokeOntology(@NotNull UUID programId, @NotNull UUID sharedProgramId) throws UnprocessableEntityException, DoesNotExistException {
+        // Check that program exists
 
-        // TODO: Remove record from db
+        // Check that shared program exists
+        Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(programId, sharedProgramId);
+        if (optionalSharedOntology.isEmpty()) {
+            throw new DoesNotExistException("Shared program id was not found");
+        }
+        ProgramSharedOntologyEntity sharedOntology = optionalSharedOntology.get();
 
+        // Check that shared program is still editable. No observations yet.
+        if (!ontologyIsEditable(sharedOntology)) {
+            throw new UnprocessableEntityException("Shared ontology can not be removed from this program.");
+        }
+
+        // Remove record from db
+        programOntologyDAO.revokeSharedOntology(sharedOntology);
     }
 }
