@@ -24,7 +24,7 @@ import com.rits.cloning.Cloner;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.jetbrains.annotations.NotNull;
+import javax.validation.constraints.NotNull;
 
 import java.util.*;
 import java.util.concurrent.*;
