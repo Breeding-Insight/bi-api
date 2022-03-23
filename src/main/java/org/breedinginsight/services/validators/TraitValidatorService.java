@@ -116,7 +116,7 @@ public class TraitValidatorService {
 
             if (scale != null && scale.getDataType() != null && (scale.getDataType() == DataType.ORDINAL || scale.getDataType() == DataType.NOMINAL)) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
-                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg();
+                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg(scale.getDataType());
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 } else {
 
@@ -128,6 +128,13 @@ public class TraitValidatorService {
                         if (scale.getDataType() == DataType.ORDINAL) {
                             if (isBlank(scale.getCategories().get(k).getLabel())) {
                                 ValidationError error = traitValidatorErrors.getBlankScaleCategoryLabelMsg();
+                                categoryErrors.addError(k, error);
+                            }
+                        }
+
+                        if (scale.getDataType() == DataType.NOMINAL) {
+                            if (!isBlank(scale.getCategories().get(k).getLabel())) {
+                                ValidationError error = traitValidatorErrors.getPopulatedNominalCategoryLabelMsg();
                                 categoryErrors.addError(k, error);
                             }
                         }

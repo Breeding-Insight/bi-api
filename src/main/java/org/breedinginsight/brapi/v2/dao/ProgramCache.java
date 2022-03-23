@@ -24,6 +24,7 @@ import com.rits.cloning.Cloner;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import javax.validation.constraints.NotNull;
 
 import java.util.*;
 import java.util.concurrent.*;
@@ -32,26 +33,28 @@ import java.util.stream.Collectors;
 @Slf4j
 public class ProgramCache<R> {
 
-    private FetchFunction<UUID, List<R>> fetchMethod;
-    private Map<UUID, Semaphore> programSemaphore = new HashMap<>();
-    private Cloner cloner;
+    private final FetchFunction<UUID, List<R>> fetchMethod;
+    private final Map<UUID, Semaphore> programSemaphore = new HashMap<>();
+    private final Cloner cloner;
 
-    final Executor executor = Executors.newCachedThreadPool();
-    private LoadingCache<UUID, List<R>> cache = CacheBuilder.newBuilder()
+    private final Executor executor = Executors.newCachedThreadPool();
+    private final LoadingCache<UUID, List<R>> cache = CacheBuilder.newBuilder()
             .build(new CacheLoader<>() {
                 @Override
-                public List<R> load(UUID programId) throws Exception {
+                public List<R> load(@NotNull UUID programId) throws Exception {
                     try {
-                        return fetchMethod.apply(programId);
+                        List<R> values = fetchMethod.apply(programId);
+                        log.debug("cache loading complete.\nprogramId: " + programId);
+                        return values;
                     } catch (Exception e) {
-                        log.error(e.getMessage());
+                        log.error(e.getMessage(), e);
                         cache.invalidate(programId);
                         throw e;
                     }
                 }
             });
 
-    public ProgramCache(FetchFunction fetchMethod, List<UUID> keys) {
+    public ProgramCache(FetchFunction<UUID, List<R>> fetchMethod, List<UUID> keys) {
         this.fetchMethod = fetchMethod;
         this.cloner = new Cloner();
         // Populate cache on start up
@@ -60,7 +63,7 @@ public class ProgramCache<R> {
         }
     }
 
-    public ProgramCache(FetchFunction fetchMethod) {
+    public ProgramCache(FetchFunction<UUID, List<R>> fetchMethod) {
         this.fetchMethod = fetchMethod;
         this.cloner = new Cloner();
     }
@@ -71,18 +74,20 @@ public class ProgramCache<R> {
             // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
             if (!programSemaphore.containsKey(programId) || cache.getIfPresent(programId) == null) {
                 // If the cache is missing, refresh and get
+                log.trace("cache miss, fetching from source.\nprogramId: " + programId);
                 updateCache(programId);
                 List<R> result = new ArrayList<>(cache.get(programId));
-                result = result.stream().map(obj -> cloner.deepClone(obj)).collect(Collectors.toList());
+                result = result.stream().map(cloner::deepClone).collect(Collectors.toList());
                 return result;
             } else {
+                log.trace("cache contains records for the program.\nprogramId: " + programId);
                 // Most cases where the cache is populated
                 List<R> result = new ArrayList<>(cache.get(programId));
-                result = result.stream().map(obj -> cloner.deepClone(obj)).collect(Collectors.toList());
+                result = result.stream().map(cloner::deepClone).collect(Collectors.toList());
                 return result;
             }
         } catch (ExecutionException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return fetchMethod.apply(programId);
         }
     }
@@ -99,7 +104,7 @@ public class ProgramCache<R> {
             programSemaphore.put(programId, new Semaphore(1));
         }
 
-        if (!programSemaphore.get(programId).hasQueuedThreads()) {
+        if (!programSemaphore.get(programId).hasQueuedThreads()) { // if false, an update is already queued, skip this one
             // Start a refresh process asynchronously
             executor.execute(() -> {
                 // Synchronous
@@ -112,9 +117,6 @@ public class ProgramCache<R> {
                     programSemaphore.get(programId).release();
                 }
             });
-        } else {
-            // An update is already queued, skip this one
-            return;
         }
     }
 

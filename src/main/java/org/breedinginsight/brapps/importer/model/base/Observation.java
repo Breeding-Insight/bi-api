@@ -44,6 +44,7 @@ public class Observation implements BrAPIObject {
     private static final String STUDY_NAME = "studyName";
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportMappingRequired
     @ImportFieldRelations(relations={
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={STUDY_NAME})
     })
@@ -52,6 +53,7 @@ public class Observation implements BrAPIObject {
     private MappedImportRelation study;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportMappingRequired
     @ImportFieldRelations(relations={
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={OBSERVATION_UNIT_NAME})
     })
@@ -60,6 +62,7 @@ public class Observation implements BrAPIObject {
     private MappedImportRelation observationUnit;
 
     @ImportFieldType(type= ImportFieldTypeEnum.RELATIONSHIP)
+    @ImportMappingRequired
     @ImportFieldRelations(relations={
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP, importFields={TRAIT_NAME}),
             @ImportFieldRelation(type = ImportRelationType.DB_LOOKUP_CONSTANT_VALUE, importFields={TRAIT_NAME})
@@ -69,10 +72,12 @@ public class Observation implements BrAPIObject {
     private MappedImportRelation trait;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="value", name="Observation Value", description = "Value of the observation.")
     private String value;
 
     @ImportFieldType(type= ImportFieldTypeEnum.DATE)
+    @ImportMappingRequired
     @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
     private String observationDate;
 
