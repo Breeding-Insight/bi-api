@@ -145,7 +145,7 @@ public class BrAPIGermplasmDAO {
                         newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
                     } else if (parents.get(0).equals("NA")){
                         //Handle NA values from breedbase, may be modified later to distinguish between unknown vs null
-                        newPedigreeString = "";
+                        newPedigreeString = null;
                         parents = new ArrayList<>();
                     }
                 }
