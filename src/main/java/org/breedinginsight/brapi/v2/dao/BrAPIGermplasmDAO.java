@@ -142,8 +142,11 @@ public class BrAPIGermplasmDAO {
                 List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 if (parents.size() >= 1) {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
-                        //problem, if parent not in germplasmbyfullname, not replaced by accession number, assumption that parents are also in file
                         newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
+                    } else if (parents.get(0).equals("NA")){
+                        //Handle NA values from breedbase, may be modified later to distinguish between unknown vs null
+                        newPedigreeString = "";
+                        parents = new ArrayList<>();
                     }
                 }
                 if (parents.size() == 2) {
