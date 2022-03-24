@@ -41,7 +41,7 @@ import java.util.function.Supplier;
 @NoArgsConstructor
 @ImportFieldMetadata(id="Experiment", name="Experiment",
         description = "An Experiment object corresponds to a non-physical entity and is used to track a unique experiment composition. This is commonly used for populations.")
-public class Experiment implements BrAPIObject {
+public class ExperimentDep implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
@@ -120,9 +120,10 @@ public class Experiment implements BrAPIObject {
     @ImportFieldMetadata(id="pheno_1_date", name="Phenotype Observation Date/Time", description = "observation timestamp")
     private String pheno_1_date;
 
-    public BrAPITrial constructBrAPITrial(){
+//    public BrAPITrial constructBrAPITrial(){
+//
+//    }
 
-    }
 //////////////////////////////////////
 //    public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
 //        BrAPIListNewRequest brapiList = new BrAPIListNewRequest();

@@ -15,15 +15,13 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports.experiment;
+package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.model.Program;
@@ -37,14 +35,13 @@ import java.util.function.Supplier;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportConfigMetadata(id="Experiment", name="Experiment Data",
-        description = "This import is used to create a experiment.")
-public class Experiment implements BrAPIImport {
+@ImportConfigMetadata(id="ObsUnit", name="Observation Unit Data",
+        description = "This import is used to create Observation Unit and Experiment data")
+public class ObsUnitImportRow implements BrAPIImport {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
-    private String experimentName;
-    private String listName;
+    private String germplasmName;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="gid", name="Germplasm GID", description = "Unique germplasm identifier")
@@ -118,9 +115,10 @@ public class Experiment implements BrAPIImport {
     @ImportFieldMetadata(id="pheno_1_date", name="Phenotype Observation Date/Time", description = "observation timestamp")
     private String pheno_1_date;
 
-    public BrAPITrial constructBrAPITrial(){
+//    public BrAPITrial constructBrAPITrial(){
+//
+//    }
 
-    }
 //////////////////////////////////////
 //    public BrAPIListNewRequest constructBrAPIList(Program program, String referenceSource) {
 //        BrAPIListNewRequest brapiList = new BrAPIListNewRequest();

@@ -25,20 +25,21 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIEntryTypeEnum;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.brapi.v2.model.pheno.BrAPITrait;
-import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.imports.experiment.Experiment;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.Environment;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.Experiment;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ObsUnitImportRow;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -71,7 +72,7 @@ public class ExperimentProcessor implements Processor {
     Map<String, Integer> fileGermplasmByName = new HashMap<>();
     Map<String, BrAPIGermplasm> dbGermplasmByName = new HashMap<>();
     Map<String, Integer> germplasmIndexByEntryNo = new HashMap<>();
-    List<BrAPIGermplasm> newGermplasmList;
+    List<BrAPIGermplasm> newExperimentList;
     List<BrAPIGermplasm> existingGermplasms;
     List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
@@ -225,8 +226,7 @@ public class ExperimentProcessor implements Processor {
             importList = germplasm.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
         }
 
-        // All rows are considered new germplasm, we don't check for duplicates
-        newGermplasmList = new ArrayList<>();
+        newExperimentList = new ArrayList<>();
         Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
@@ -234,137 +234,182 @@ public class ExperimentProcessor implements Processor {
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
 
+        Experiment experiment = null;
+        BrAPITrait brApiTrait = new BrAPITrait();
         for (int i = 0; i < importRows.size(); i++) {
-            Experiment experiment = (Experiment) importRows.get(i);
-            BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
-            // ?? Dose Trait need to be associated with Program or anything??
-            BrAPITrait brApiTrait = new BrAPITrait();
+            ObsUnitImportRow obsUnit = (ObsUnitImportRow) importRows.get(i);
 
-            //Test (T) or Check (C) → ObservationUnit.observationUnitPosition.entryType
-            String test_or_check = experiment.getTest_or_check();
-            BrAPIEntryTypeEnum etype = BrAPIEntryTypeEnum.TEST; //default is TEST
-            if (test_or_check.equal("C")){
-                etype = BrAPIEntryTypeEnum.CHECK;
+//            BrAPIObservationUnitLevelRelationship BrAPIobsUnitLevel = new BrAPIObservationUnitLevelRelationship();
+//            BrAPIObservationUnitPosition BrAPIobsUnitPos = new BrAPIObservationUnitPosition();
+//            BrAPIObservationUnit BrAPIobservationUnit = new BrAPIObservationUnit();
+//            BrAPIobsUnitPos.setObservationLevel(BrAPIobsUnitLevel);
+//            BrAPIobservationUnit.setObservationUnitPosition(BrAPIobsUnitPos);
+
+            if( i==0 ){
+                experiment = new Experiment(obsUnit.getExp_title(), obsUnit.getExp_description(), obsUnit.getExperimentName());
             }
-            observationUnit.getObservationUnitPosition().setEntryType(etype);
+            Environment environment = experiment.addEnviroment( obsUnit.getEnv(), obsUnit.getEnv_location(), obsUnit.getEnv_year() );
+            ObservationUnit ou = ObservationUnit.builder()
+                    .exp_unit_id( obsUnit.getObsUnitID() )
+                    .exp_replicate_no( obsUnit.getExp_replicate_no() )
+                    .exp_block_no( obsUnit.getExp_block_no())
+                    .row( obsUnit.getRow() )
+                    .column( obsUnit.getColumn() )
+                    .build()
+                    .test_or_check_str( obsUnit.getTest_or_check() );
+            environment.addObservationUnit( ou );
 
-            //Exp Title → Trial.trialName
-            String exp_title = experiment.getExp_title();
-            observationUnit.setTrialName(exp_title);
 
-            // Exp Description → Trial.trialDescription
-            String exp_description = experiment.getExp_description();
-            brApiTrait.setTraitDescription(exp_description);
+//            //Test (T) or Check (C) → ObservationUnit.observationUnitPosition.entryType
+//            String test_or_check = obsUnit.getTest_or_check();
+//            BrAPIEntryTypeEnum etype = BrAPIEntryTypeEnum.TEST; //default is TEST
+//            if (test_or_check != null && test_or_check.equals("C")) {
+//                etype = BrAPIEntryTypeEnum.CHECK;
+//            }
+//            BrAPIobsUnitPos.setEntryType(etype);
 
             //Exp Unit → ObservationUnit.observationUnitPosition.observationLevel.levelName
-            String exp_unit = experiment.getExp_unit()
-            observationUnit.getObservationUnitPosition().getObservationLevel().setLevelName(exp_unit);
+            String exp_unit = obsUnit.getExp_unit();
+            BrAPIobsUnitLevel.setLevelName(exp_unit);
             //Exp Unit → Trial.additionalInfo.defaultObservationLevel
-            brApiTrait.getAdditionalInfo().addProperty("defaultObservationLevel", exp_unit);
+            brApiTrait.putAdditionalInfoItem("defaultObservationLevel", exp_unit);
 
-            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+            experiment.addEnviroment( obsUnit.getEnv(), obsUnit.getEnv_location(), obsUnit.getEnv_year() );
 
-            Germplasm germplasm = brapiImport.getGermplasm();
-
-            // Germplasm
-            if (germplasm != null && germplasm.getGermplasmName() != null) {
-
-                // Get the breeding method database object
-                BreedingMethodEntity breedingMethod = null;
-                if (germplasm.getBreedingMethod() != null) {
-                    if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
-                        breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
-                    } else {
-                        List<BreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod());
-                        if (breedingMethodResults.size() > 0) {
-                            breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
-                            breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
-                        } else {
-                            ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
-                            validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
-                            badBreedingMethods.add(germplasm.getBreedingMethod());
-                            breedingMethod = null;
-                        }
-                    }
-                }
-
-                // Assign the entry number
-                if (germplasm.getEntryNo() == null) {
-                    germplasm.setEntryNo(Integer.toString(i + 1));
-                } else {
-                    userProvidedEntryNumbers.add(germplasm.getEntryNo());
-                }
-                entryNumberCounts.put(germplasm.getEntryNo(),
-                        entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
-
-                // Create
-                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
-
-                newGermplasmList.add(newGermplasm);
-                // Assign status of the germplasm
-                if (fileGermplasmByName.get(newGermplasm.getDefaultDisplayName()) > 1 || dbGermplasmByName.containsKey(newGermplasm.getDefaultDisplayName())) {
-                    mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, newGermplasm));
-                } else {
-                    mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
-                }
-
-                importList.addDataItem(newGermplasm.getGermplasmName());
-            } else {
-                mappedImportRow.setGermplasm(null);
-            }
-            mappedBrAPIImport.put(i, mappedImportRow);
         }
-        if (validationErrors.hasErrors() ){
-            throw new ValidatorException(validationErrors);
+        //Exp Title → Trial.trialName
+        String exp_title = experiment.getTitle();
+        brApiTrait.setTraitName(exp_title);
+
+        // Exp Description → Trial.trialDescription
+        String exp_description = experiment.getExp_description();
+        brApiTrait.setTraitDescription(exp_description);
+
+        // for each environment Exp Type → Study.studyType
+            // Exp Type → Study.studyType
+            // Env → Study.studyName
+            // Env Year → Study.seasons  (This field must be numeric, and be a four digit year)
+        for (Environment env: experiment.getEnvironments().values()) {
+            BrAPIStudy study = null;
         }
 
-        // Check for bad breeding methods
-        if (badBreedingMethods.size() > 0) {
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    String.format(badBreedMethodsMsg, arrayOfStringFormatter.apply(badBreedingMethods)));
-        }
+        Integer newObjectCount;
+        Integer ignoredObjectCount;
 
-        // Check for missing entry numbers
-        if (userProvidedEntryNumbers.size() > 0 && userProvidedEntryNumbers.size() < importRows.size()) {
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, missingEntryNumbersMsg);
-        }
 
-        // Check for duplicate entry numbers
-        if (entryNumberCounts.size() < importRows.size()) {
-            List<String> dups = entryNumberCounts.keySet().stream()
-                    .filter(key -> entryNumberCounts.get(key) > 1)
-                    .collect(Collectors.toList());
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
-        }
-
-        // Construct pedigree
-        constructPedigreeString(importRows, mappedBrAPIImport, commit);
-
-        // Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
-        if (commit) {
-            createPostOrder();
-        }
-
+        // TODO need to add things to newExperimentList
         // Construct our response object
-        ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
-                .newObjectCount(newGermplasmList.size())
+        ImportPreviewStatistics experimentStats = ImportPreviewStatistics.builder()
+                .newObjectCount(newExperimentList.size())
                 .build();
 
-        //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
-        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
-        ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
-                .newObjectCount(importRows.stream().filter(germplasmImport ->
-                        germplasmImport.getGermplasm() != null &&
-                                (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
-                ).collect(Collectors.toList()).size()).build();
-
+        //TODO What do we what mapped
         return Map.of(
-                "Germplasm", germplasmStats,
-                "Pedigree Connections", pedigreeConnectStats
+                "Experiment", experimentStats
         );
-
     }
+
+//            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+//
+//            Germplasm germplasm = brapiImport.getGermplasm();
+//
+//            // Germplasm
+//            if (germplasm != null && germplasm.getGermplasmName() != null) {
+//
+//                // Get the breeding method database object
+//                BreedingMethodEntity breedingMethod = null;
+//                if (germplasm.getBreedingMethod() != null) {
+//                    if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
+//                        breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
+//                    } else {
+//                        List<BreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod());
+//                        if (breedingMethodResults.size() > 0) {
+//                            breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
+//                            breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
+//                        } else {
+//                            ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
+//                            validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
+//                            badBreedingMethods.add(germplasm.getBreedingMethod());
+//                            breedingMethod = null;
+//                        }
+//                    }
+//                }
+//
+//                // Assign the entry number
+//                if (germplasm.getEntryNo() == null) {
+//                    germplasm.setEntryNo(Integer.toString(i + 1));
+//                } else {
+//                    userProvidedEntryNumbers.add(germplasm.getEntryNo());
+//                }
+//                entryNumberCounts.put(germplasm.getEntryNo(),
+//                        entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
+//
+//                // Create
+//                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
+//
+//                newGermplasmList.add(newGermplasm);
+//                // Assign status of the germplasm
+//                if (fileGermplasmByName.get(newGermplasm.getDefaultDisplayName()) > 1 || dbGermplasmByName.containsKey(newGermplasm.getDefaultDisplayName())) {
+//                    mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, newGermplasm));
+//                } else {
+//                    mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.NEW, newGermplasm));
+//                }
+//
+//                importList.addDataItem(newGermplasm.getGermplasmName());
+//            } else {
+//                mappedImportRow.setGermplasm(null);
+//            }
+//            mappedBrAPIImport.put(i, mappedImportRow);
+//        }
+//        if (validationErrors.hasErrors() ){
+//            throw new ValidatorException(validationErrors);
+//        }
+//
+//        // Check for bad breeding methods
+//        if (badBreedingMethods.size() > 0) {
+//            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+//                    String.format(badBreedMethodsMsg, arrayOfStringFormatter.apply(badBreedingMethods)));
+//        }
+//
+//        // Check for missing entry numbers
+//        if (userProvidedEntryNumbers.size() > 0 && userProvidedEntryNumbers.size() < importRows.size()) {
+//            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, missingEntryNumbersMsg);
+//        }
+//
+//        // Check for duplicate entry numbers
+//        if (entryNumberCounts.size() < importRows.size()) {
+//            List<String> dups = entryNumberCounts.keySet().stream()
+//                    .filter(key -> entryNumberCounts.get(key) > 1)
+//                    .collect(Collectors.toList());
+//            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+//                    String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
+//        }
+//
+//        // Construct pedigree
+//        constructPedigreeString(importRows, mappedBrAPIImport, commit);
+//
+//        // Construct a dependency tree for POSTing order. Dependents on unique germplasm name, (<Name> [<Program Key> - <Accession Number>])
+//        if (commit) {
+//            createPostOrder();
+//        }
+//
+//        // Construct our response object
+//        ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
+//                .newObjectCount(newGermplasmList.size())
+//                .build();
+//
+//        //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
+//        int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
+//        ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
+//                .newObjectCount(importRows.stream().filter(germplasmImport ->
+//                        germplasmImport.getGermplasm() != null &&
+//                                (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
+//                ).collect(Collectors.toList()).size()).build();
+//
+//        return Map.of(
+//                "Germplasm", germplasmStats,
+//                "Pedigree Connections", pedigreeConnectStats
+//        );
 
     private void createPostOrder() {
         // Construct a dependency tree for POSTing order
@@ -372,9 +417,9 @@ public class ExperimentProcessor implements Processor {
 
         int totalRecorded = 0;
 
-        while (totalRecorded < newGermplasmList.size()) {
+        while (totalRecorded < newExperimentList.size()) {
             List<BrAPIGermplasm> createList = new ArrayList<>();
-            for (BrAPIGermplasm germplasm : newGermplasmList) {
+            for (BrAPIGermplasm germplasm : newExperimentList) {
 
                 // If we've already planned this germplasm, skip
                 if (created.contains(germplasm.getGermplasmName())) {
@@ -402,7 +447,7 @@ public class ExperimentProcessor implements Processor {
             if (createList.size() > 0) {
                 created.addAll(createList.stream().map(brAPIGermplasm -> brAPIGermplasm.getGermplasmName()).collect(Collectors.toList()));
                 postOrder.add(createList);
-            } else if (totalRecorded < newGermplasmList.size()) {
+            } else if (totalRecorded < newExperimentList.size()) {
                 // We ran into circular dependencies, throw an error
                 throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, circularDependency);
             }
@@ -421,7 +466,7 @@ public class ExperimentProcessor implements Processor {
 
         // POST Germplasm
         List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
-        if (newGermplasmList.size() > 0) {
+        if (newExperimentList.size() > 0) {
             try {
                 for (List<BrAPIGermplasm> postGroup: postOrder){
                     createdGermplasm.addAll(brAPIGermplasmService.importBrAPIGermplasm(postGroup, program.getId(), upload));
