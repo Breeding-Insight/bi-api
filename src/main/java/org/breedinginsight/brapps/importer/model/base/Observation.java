@@ -77,7 +77,6 @@ public class Observation implements BrAPIObject {
     private String value;
 
     @ImportFieldType(type= ImportFieldTypeEnum.DATE)
-    @ImportMappingRequired
     @ImportFieldMetadata(id="observationDate", name="Observation Date", description = "Date that the observation was taken.")
     private String observationDate;
 
@@ -102,10 +101,12 @@ public class Observation implements BrAPIObject {
         }
 
         // TODO: use common time format, using discrete analyzer format for now 16/12/2020 16:16:49
-        LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
-        ZonedDateTime zoned = datetime.atZone(ZoneId.of("UTC"));
-        OffsetDateTime timestamp = zoned.toOffsetDateTime();
-        observation.setObservationTimeStamp(timestamp);
+        if (getObservationDate() != null) {
+            LocalDateTime datetime = LocalDateTime.parse(getObservationDate(), formatter);
+            ZonedDateTime zoned = datetime.atZone(ZoneId.of("UTC"));
+            OffsetDateTime timestamp = zoned.toOffsetDateTime();
+            observation.setObservationTimeStamp(timestamp);
+        }
 
         if (additionalInfos != null) {
             additionalInfos.stream()
