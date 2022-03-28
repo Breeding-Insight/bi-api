@@ -70,7 +70,7 @@ public class OntologyController {
             @PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean shared) {
         List<SharedProgram> sharedPrograms = ontologyService.getSharedOntology(programId, shared);
         List<org.breedinginsight.api.model.v1.response.metadata.Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
         Pagination pagination = new Pagination(sharedPrograms.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
         Response<DataResponse<SharedProgram>> response = new Response(metadata, new DataResponse<>(sharedPrograms));
@@ -85,10 +85,7 @@ public class OntologyController {
      *     data: [
      *      {
      *          programName: string, -- Program name
-     *          programId: UUID, -- Program ID
-     *          shared: boolean,
-     *          accepted: boolean,
-     *          editable: boolean
+     *          programId: UUID, -- Required. Program ID
      *      }
      *     ]
      * }
@@ -117,7 +114,7 @@ public class OntologyController {
 
     /**
      * Revokes access to shared ontology from a program. If program is not currently shared with
-     * will still return a 200.
+     * will return 404.
      *
      * @param programId
      * @param sharedProgramId

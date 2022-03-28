@@ -19,7 +19,6 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.NotFoundException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -150,7 +149,7 @@ public class OntologyService {
      *
      * @param programId -- Program that owns the ontology
      * @param programRequests -- List of programs to share ontology with
-     * @return Lst<SharedOntologyProgram>
+     * @return List<SharedOntologyProgram>
      */
     public List<SharedProgram> shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException, UnprocessableEntityException {
 
@@ -218,6 +217,7 @@ public class OntologyService {
      */
     public void revokeOntology(@NotNull UUID programId, @NotNull UUID sharedProgramId) throws UnprocessableEntityException, DoesNotExistException {
         // Check that program exists
+        Program program = getProgram(programId);
 
         // Check that shared program exists
         Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(programId, sharedProgramId);

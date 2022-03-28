@@ -44,7 +44,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class OntologyControllerIntegrationTest extends BrAPITest {
 
-    private FannyPack fp;
     private FannyPack securityFp;
     private FannyPack brapiFp;
     private FannyPack brapiObservationFp;
@@ -75,7 +74,6 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     @BeforeAll
     void setup() throws Exception {
         // Create two programs with fanny pack
-        fp = FannyPack.fill("src/test/resources/sql/OntologyControllerIntegrationTest.sql");
         securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
         brapiObservationFp = FannyPack.fill("src/test/resources/sql/brapi/BrAPIOntologyControllerIntegrationTest.sql");
