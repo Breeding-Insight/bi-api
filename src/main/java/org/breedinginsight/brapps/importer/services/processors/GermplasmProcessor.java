@@ -285,12 +285,6 @@ public class GermplasmProcessor implements Processor {
             throw new ValidatorException(validationErrors);
         }
 
-        // Check for bad breeding methods
-        if (badBreedingMethods.size() > 0) {
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    String.format(badBreedMethodsMsg, arrayOfStringFormatter.apply(badBreedingMethods)));
-        }
-
         // Check for missing entry numbers
         if (userProvidedEntryNumbers.size() > 0 && userProvidedEntryNumbers.size() < importRows.size()) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, missingEntryNumbersMsg);

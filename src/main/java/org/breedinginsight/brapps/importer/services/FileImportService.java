@@ -381,8 +381,7 @@ public class FileImportService {
             progress.setUpdatedBy(actingUser.getId());
             importDAO.update(upload);
             throw e;
-        }
-        catch (ValidatorException e) {
+        } catch (ValidatorException e) {
             log.error("Validation errors", e);
             ImportProgress progress = upload.getProgress();
             progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());

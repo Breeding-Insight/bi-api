@@ -51,15 +51,19 @@ public class BrAPIListDAO {
         return response.getBody();
     }
 
-    public BrAPIListsListResponse getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
-        ListQueryParams getParams = new ListQueryParams()
-                .externalReferenceID(externalReferenceId.toString())
-                .externalReferenceSource(externalReferenceSource)
+    public List<BrAPIListSummary> getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+        BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest()
+                .externalReferenceIDs(List.of(externalReferenceId.toString()))
+                .externalReferenceSources(List.of(externalReferenceSource))
                 .listType(listType);
 
         ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
-        ApiResponse<BrAPIListsListResponse> apiGetResponse = api.listsGet(getParams);
-        return apiGetResponse.getBody();
+        return BrAPIDAOUtil.search(
+                api::searchListsPost,
+                api::searchListsSearchResultsDbIdGet,
+                searchRequest
+        );
+
     }
 
     public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {

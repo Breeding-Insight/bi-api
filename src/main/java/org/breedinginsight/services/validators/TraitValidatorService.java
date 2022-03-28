@@ -132,6 +132,13 @@ public class TraitValidatorService {
                             }
                         }
 
+                        if (scale.getDataType() == DataType.NOMINAL) {
+                            if (!isBlank(scale.getCategories().get(k).getLabel())) {
+                                ValidationError error = traitValidatorErrors.getPopulatedNominalCategoryLabelMsg();
+                                categoryErrors.addError(k, error);
+                            }
+                        }
+
                         if (isBlank(scale.getCategories().get(k).getValue())) {
                             ValidationError error = traitValidatorErrors.getBlankScaleCategoryValueMsg();
                             categoryErrors.addError(k, error);
