@@ -15,6 +15,6 @@ import java.util.UUID;
 @Introspected
 public class SharedOntologyProgramRequest {
     @NotBlank
-    private UUID id;
+    private UUID programId;
     private String programName;
 }

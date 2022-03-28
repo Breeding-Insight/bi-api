@@ -53,8 +53,8 @@ public class OntologyController {
      * {
      *     data: [
      *      {
-     *          name: string, -- Program name
-     *          id: UUID, -- Program ID
+     *          programName: string, -- Program name
+     *          programId: UUID, -- Program ID
      *          shared: boolean,
      *          accepted: boolean || null, -- null if shared = false
      *          editable: boolean || null   -- null if shared = false
@@ -84,8 +84,8 @@ public class OntologyController {
      * {
      *     data: [
      *      {
-     *          name: string, -- Program name
-     *          id: UUID, -- Program ID
+     *          programName: string, -- Program name
+     *          programId: UUID, -- Program ID
      *          shared: boolean,
      *          accepted: boolean,
      *          editable: boolean

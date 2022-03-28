@@ -87,7 +87,9 @@ public class OntologyService {
         for (Program candidate: allPrograms) {
 
             if (candidate.getSpecies().getId().equals(program.getSpecies().getId()) &&
-                candidate.getBrapiUrl().equals(program.getBrapiUrl())) {
+                candidate.getBrapiUrl().equals(program.getBrapiUrl()) &&
+                !candidate.getId().equals(program.getId())
+            ) {
 
                 matchingPrograms.add(candidate);
             }
@@ -152,7 +154,7 @@ public class OntologyService {
 
         // Don't allow to share with self
         for (SharedOntologyProgramRequest request: programRequests) {
-            if (request.getId().equals(program.getId())) {
+            if (request.getProgramId().equals(program.getId())) {
                 throw new UnprocessableEntityException("Program cannot share ontology with itself");
             }
         }
@@ -169,13 +171,13 @@ public class OntologyService {
         ValidationErrors validationErrors = new ValidationErrors();
         for (int i = 0; i < programRequests.size(); i++) {
             SharedOntologyProgramRequest programRequest = programRequests.get(i);
-            if (!matchingProgramsSet.contains(programRequest.getId())) {
+            if (!matchingProgramsSet.contains(programRequest.getProgramId())) {
                 ValidationError error = new ValidationError("program",
                         "Program does not have same species or brapi server.",
                         HttpStatus.UNPROCESSABLE_ENTITY);
                 validationErrors.addError(i, error);
             } else {
-                shareProgramIdsSet.add(programRequest.getId());
+                shareProgramIdsSet.add(programRequest.getProgramId());
             }
         }
 
