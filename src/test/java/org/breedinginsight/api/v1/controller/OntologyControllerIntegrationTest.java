@@ -179,7 +179,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
-        assertEquals(3, data.size(), "Wrong number of programs returned");
+        assertEquals(2, data.size(), "Wrong number of programs returned");
 
         // Check all are not shared and are inactive
         for (JsonElement element: data) {
@@ -243,7 +243,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
-        assertEquals(3, data.size(), "Wrong number of programs returned");
+        assertEquals(2, data.size(), "Wrong number of programs returned");
 
         // Check all are not shared and are inactive
         for (JsonElement element: data) {
@@ -289,6 +289,13 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(4)
+    void revokeOntologyUneditable() {
+        // TODO: When subscribe ontology card is done
+        // Ontology cannot be revoke if shared program has accepted and has observations
+    }
+
+    @Test
+    @Order(5)
     void revokeProgram() {
 
         String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), otherProgram.getId());
@@ -298,13 +305,6 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
-    }
-
-    @Test
-    @Order(4)
-    void revokeOntologyUneditable() {
-        // TODO: When subscribe ontology card is done
-        // Ontology cannot be revoke if shared program has accepted and has observations
     }
 
     @Test

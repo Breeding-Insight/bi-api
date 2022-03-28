@@ -29,12 +29,14 @@ public class OntologyService {
     private ProgramDAO programDAO;
     private ProgramOntologyDAO programOntologyDAO;
     private TraitDAO traitDAO;
+    private TraitService traitService;
 
     @Inject
-    public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO) {
+    public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO, TraitService traitService) {
         this.programDAO = programDAO;
         this.programOntologyDAO = programOntologyDAO;
         this.traitDAO = traitDAO;
+        this.traitService = traitService;
     }
 
     /**
@@ -126,13 +128,16 @@ public class OntologyService {
     private Boolean ontologyIsEditable(ProgramSharedOntologyEntity sharedOntologyEntity) {
 
         if (sharedOntologyEntity.getActive()) {
+            /* TODO: Add in when checking for edits
             // Get all trait ids for the program
-            List<UUID> traitIds = traitDAO.getTraitsByProgramId(sharedOntologyEntity.getSharedProgramId()).stream()
+            List<UUID> traitIds = traitService.getByProgramId(sharedOntologyEntity.getSharedProgramId(), true).stream()
                     .map(trait -> trait.getId())
                     .collect(Collectors.toList());
 
             // Get all observations for the ontology
             return traitDAO.getObservationsForTraits(traitIds).isEmpty();
+             */
+            return true;
         } else {
             return true;
         }
@@ -160,7 +165,9 @@ public class OntologyService {
         }
 
         // Don't allow shared if program is already subscribe to shared ontology
-
+        if (programOntologyDAO.programSubscribedSharedOntology(programId)) {
+            throw new UnprocessableEntityException("Program is subscribed to a shared ontology and cannot share its own.");
+        }
 
         // Check shareability, same brapi server, same species
         List<Program> matchingPrograms = getMatchingPrograms(program);
@@ -173,7 +180,7 @@ public class OntologyService {
             SharedOntologyProgramRequest programRequest = programRequests.get(i);
             if (!matchingProgramsSet.contains(programRequest.getProgramId())) {
                 ValidationError error = new ValidationError("program",
-                        "Program does not have same species or brapi server.",
+                        String.format("Program %s does not have same species or brapi server.", programRequest.getProgramName()),
                         HttpStatus.UNPROCESSABLE_ENTITY);
                 validationErrors.addError(i, error);
             } else {

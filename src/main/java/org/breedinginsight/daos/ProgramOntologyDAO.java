@@ -99,4 +99,12 @@ public class ProgramOntologyDAO extends ProgramOntologyDao {
     public void revokeSharedOntology(ProgramSharedOntologyEntity sharedOntology) {
         programSharedOntologyDao.delete(sharedOntology);
     }
+
+    public boolean programSubscribedSharedOntology(UUID programId) {
+        List<ProgramSharedOntologyEntity> shareRecords = programSharedOntologyDao.fetchBySharedProgramId(programId);
+        return !shareRecords.stream()
+                .filter(shareRecord -> shareRecord.getActive())
+                .collect(Collectors.toList())
+                .isEmpty();
+    }
 }
