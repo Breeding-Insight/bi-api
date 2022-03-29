@@ -264,7 +264,7 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getMethod().getId().toString())
                     .referenceSource(referenceSource);
             BrAPIMethod brApiMethod = new BrAPIMethod()
-                                                 .methodName(String.format("%s %s", trait.getMethod().getDescription(), trait.getMethod().getMethodClass()))
+                                                 .methodName(String.format("%s %s [%s]", trait.getMethod().getDescription(), trait.getMethod().getMethodClass(), program.getKey()))
                                                  .externalReferences(List.of(methodReference))
                                                  .methodClass(trait.getMethod().getMethodClass())
                                                  .description(trait.getMethod().getDescription())
@@ -280,7 +280,7 @@ public class TraitDAO extends TraitDao {
                                                                                .max(trait.getScale().getValidValueMax())
                                                                                .min(trait.getScale().getValidValueMin());
             BrAPIScale brApiScale = new BrAPIScale()
-                    .scaleName(trait.getScale().getScaleName())
+                    .scaleName(String.format("%s [%s]", trait.getScale().getScaleName(), program.getKey()))
                     .externalReferences(List.of(scaleReference))
                     .dataType(brApiTraitDataType)
                     .decimalPlaces(trait.getScale().getDecimalPlaces())
@@ -291,7 +291,7 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getId().toString())
                     .referenceSource(referenceSource);
             BrAPITrait brApiTrait = new BrAPITrait()
-                    .traitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()))
+                    .traitName(String.format("%s %s [%s]", trait.getEntity(), trait.getAttribute(), program.getKey()))
                     .traitDescription(trait.getTraitDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
@@ -309,7 +309,7 @@ public class TraitDAO extends TraitDao {
                     .scale(brApiScale)
                     .trait(brApiTrait)
                     .externalReferences(List.of(variableReference))
-                    .observationVariableName(trait.getObservationVariableName())
+                    .observationVariableName(String.format("%s [%s]", trait.getObservationVariableName(), program.getKey()))
                     .status("active")
                     .language("english")
                     .scientist(actingUser.getName())
