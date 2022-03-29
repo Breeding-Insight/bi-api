@@ -405,14 +405,14 @@ public class TraitDAO extends TraitDao {
             BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId());
 
             // Change method
-            existingVariable.getMethod().setMethodName(String.format("%s %s", trait.getMethod().getDescription(), trait.getMethod().getMethodClass()));
+            existingVariable.getMethod().setMethodName(String.format("%s %s [%s]", trait.getMethod().getDescription(), trait.getMethod().getMethodClass(), program.getKey()));
             existingVariable.getMethod().setMethodClass(trait.getMethod().getMethodClass());
             existingVariable.getMethod().setDescription(trait.getMethod().getDescription());
             existingVariable.getMethod().setFormula(trait.getMethod().getFormula());
 
             // Change scale
             BrAPITraitDataType brApiTraitDataType = BrAPITraitDataType.valueOf(trait.getScale().getDataType().toString());
-            existingVariable.getScale().setScaleName(trait.getScale().getScaleName());
+            existingVariable.getScale().setScaleName(String.format("%s [%s]", trait.getScale().getScaleName(), program.getKey()));
             existingVariable.getScale().setDataType(brApiTraitDataType);
             existingVariable.getScale().setDecimalPlaces(trait.getScale().getDecimalPlaces());
             BrAPIScaleValidValues brApiScaleValidValues = new BrAPIScaleValidValues()
@@ -422,7 +422,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.getScale().setValidValues(brApiScaleValidValues);
 
             // Change trait
-            existingVariable.getTrait().setTraitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()));
+            existingVariable.getTrait().setTraitName(String.format("%s %s [%s]", trait.getEntity(), trait.getAttribute(), program.getKey()));
             existingVariable.getTrait().setTraitDescription(trait.getTraitDescription());
             existingVariable.getTrait().setSynonyms(trait.getSynonyms());
             existingVariable.getTrait().setEntity(trait.getProgramObservationLevel().getName());
@@ -431,7 +431,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.getTrait().setAttribute(trait.getAttribute());
 
             // Change variable
-            existingVariable.setObservationVariableName(trait.getObservationVariableName());
+            existingVariable.setObservationVariableName(String.format("%s [%s]", trait.getObservationVariableName(), program.getKey()));
             existingVariable.setDefaultValue(trait.getDefaultValue());
             existingVariable.setSynonyms(trait.getSynonyms());
             if (trait.getActive() == null || trait.getActive()){
