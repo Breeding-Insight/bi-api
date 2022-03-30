@@ -66,10 +66,10 @@ public class ExperimetImportService extends BrAPIImportService {
         this.processorManagerProvider = processorManagerProvider;
     }
 
-    @Override
-    public ExperimemtImport getImportClass() {
-        return new ExperimemtImport();
-    }
+//    @Override
+//    public ExperimemtImport getImportClass() {
+//        return new ExperimemtImport();
+//    }
 
     @Override
     public String getImportTypeId() {

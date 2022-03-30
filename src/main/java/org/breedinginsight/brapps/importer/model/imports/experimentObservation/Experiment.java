@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,7 +14,8 @@ import java.util.Map;
 public class Experiment {
     private String title;
     private String description;
-//    private List<String> defaultObsevationLevels;
+
+    //TODO we don't want a getEnvironments() method
     private Map<String, Environment> environments = new HashMap<>();
 
     public Experiment(String title, String description) {
@@ -21,7 +23,7 @@ public class Experiment {
         this.description = description;
     }
 
-    public Environment addEnviroment(String envName, String envLoc, String envYear){
+    public Environment retrieve_or_add_environment(String envName, String envLoc, String envYear){
         String key = envLoc + envYear;
         Environment environment;
         if( ! environments.containsKey(key) ){
@@ -32,6 +34,10 @@ public class Experiment {
             environment = this.environments.get(key);
         }
         return environment;
+    }
+
+    public Collection<Environment> environment_values(){
+        return environments.values();
     }
 }
 
