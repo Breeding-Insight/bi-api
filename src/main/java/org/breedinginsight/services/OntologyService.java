@@ -2,6 +2,8 @@ package org.breedinginsight.services;
 
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
 import org.breedinginsight.api.model.v1.response.ValidationError;
@@ -12,6 +14,7 @@ import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.SharedProgram;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -125,18 +128,21 @@ public class OntologyService {
     }
 
     private Boolean ontologyIsEditable(ProgramSharedOntologyEntity sharedOntologyEntity) {
-
         if (sharedOntologyEntity.getActive()) {
-            /* TODO: Add in when checking for edits
             // Get all trait ids for the program
-            List<UUID> traitIds = traitService.getByProgramId(sharedOntologyEntity.getSharedProgramId(), true).stream()
+            List<UUID> traitIds = traitService.getSubscribedOntologyTraits(sharedOntologyEntity.getSharedProgramId()).stream()
                     .map(trait -> trait.getId())
                     .collect(Collectors.toList());
 
+            // Get the brapi program id
+            List<Program> program = programDAO.get(sharedOntologyEntity.getSharedProgramId());
+            if (program.size() == 0) {
+                throw new InternalServerException("Missing program should have been caught by now");
+            }
+            BrAPIProgram brAPIProgram = programDAO.getProgramBrAPI(program.get(0));
+
             // Get all observations for the ontology
-            return traitDAO.getObservationsForTraits(traitIds).isEmpty();
-             */
-            return true;
+            return traitDAO.getObservationsForTraitsByBrAPIProgram(brAPIProgram.getProgramDbId(), traitIds).isEmpty();
         } else {
             return true;
         }
@@ -164,7 +170,7 @@ public class OntologyService {
         }
 
         // Don't allow shared if program is already subscribe to shared ontology
-        if (programOntologyDAO.programSubscribedSharedOntology(programId)) {
+        if (programOntologyDAO.getSubscribedSharedOntology(programId).isPresent()) {
             throw new UnprocessableEntityException("Program is subscribed to a shared ontology and cannot share its own.");
         }
 
@@ -233,5 +239,45 @@ public class OntologyService {
 
         // Remove record from db
         programOntologyDAO.revokeSharedOntology(sharedOntology);
+    }
+
+    public void subscribeOntology(UUID programId, UUID sharingProgramId) throws DoesNotExistException, UnprocessableEntityException {
+        // Check that program exists
+        Program program = getProgram(programId);
+
+        // Check that shared program exists
+        Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(sharingProgramId, programId);
+        if (optionalSharedOntology.isEmpty()) {
+            throw new DoesNotExistException("Shared ontology between specified programs was not found.");
+        }
+        ProgramSharedOntologyEntity sharedOntology = optionalSharedOntology.get();
+
+        // Check that program does not have any traits of its own
+        List<Trait> traits = traitDAO.getTraitsByProgramId(programId);
+        if (traits.size() > 0) {
+            throw new UnprocessableEntityException("Program already has traits, cannot subscribe to a shared ontology");
+        }
+
+        // Subscribe
+        programOntologyDAO.acceptSharedOntology(sharedOntology);
+    }
+
+    public void unsubscribeOntology(UUID programId, UUID sharingProgramId) throws DoesNotExistException, UnprocessableEntityException {
+        // Check that program exists
+        Program program = getProgram(programId);
+
+        // Check that shared program exists
+        Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(sharingProgramId, programId);
+        if (optionalSharedOntology.isEmpty()) {
+            throw new DoesNotExistException("Shared ontology between specified programs was not found.");
+        }
+        ProgramSharedOntologyEntity sharedOntology = optionalSharedOntology.get();
+
+        if (!ontologyIsEditable(sharedOntology)) {
+            throw new UnprocessableEntityException("Shared program has recorded observations on shared traits and cannot unsubscribe.");
+        }
+
+        // Subscribe
+        programOntologyDAO.denySharedOntology(sharedOntology);
     }
 }

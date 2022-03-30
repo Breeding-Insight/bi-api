@@ -135,4 +135,48 @@ public class OntologyController {
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
+
+    /**
+     * Scoped under the program that is subscribing. Accept a shared ontology.
+     *
+     * @param programId -- Program that is subscribing to an ontology
+     * @param sharingProgramId -- Program that has shared its ontology.
+     * @return
+     */
+    @Put("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<DataResponse<Trait>>> subscribeOntology(
+            @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
+        try {
+            ontologyService.subscribeOntology(programId, sharingProgramId);
+            return HttpResponse.ok();
+        } catch (UnprocessableEntityException e) {
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (DoesNotExistException e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Scoped under the program that is subscribing. Unsubscribe from a shared ontology.
+     *
+     * @param programId -- Program that is unsubscribing from an ontology
+     * @param sharingProgramId -- Program that has shared its ontology.
+     * @return
+     */
+    @Put("/programs/{programId}/ontology/unsubscribe/{sharingProgramId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<DataResponse<Trait>>> unsubscribeOntology(
+            @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
+        try {
+            ontologyService.unsubscribeOntology(programId, sharingProgramId);
+            return HttpResponse.ok();
+        } catch (UnprocessableEntityException e) {
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (DoesNotExistException e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
 }
