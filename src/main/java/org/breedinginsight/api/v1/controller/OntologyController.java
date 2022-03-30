@@ -8,6 +8,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRole;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
@@ -65,7 +66,7 @@ public class OntologyController {
     @Get("/programs/{programId}/ontology/shared/programs{?shared}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @Secured(SecurityRule.IS_AUTHENTICATED)
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<SharedProgram>>> getAvailablePrograms(
             @PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean shared) {
         List<SharedProgram> sharedPrograms = ontologyService.getSharedOntology(programId, shared);
@@ -92,7 +93,7 @@ public class OntologyController {
      */
     @Post("/programs/{programId}/ontology/shared/programs")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<SharedProgram>>> shareOntology(
             @PathVariable UUID programId, @Body List<SharedOntologyProgramRequest> request) {
         try {
@@ -122,7 +123,7 @@ public class OntologyController {
      */
     @Delete("/programs/{programId}/ontology/shared/programs/{sharedProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<Trait>>> revokeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharedProgramId) {
         try {
