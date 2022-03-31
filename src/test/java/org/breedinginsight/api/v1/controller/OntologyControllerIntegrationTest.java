@@ -364,9 +364,9 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     void unsubscribeOntologyUneditableError() {
         super.getBrapiDsl().execute(brapiObservationFp.get("AddObservations"), otherProgram.getId().toString());
 
-        String url = String.format("/programs/%s/ontology/unsubscribe/%s", otherProgram.getId(), mainProgram.getId());
+        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
         Flowable<HttpResponse<String>> call = client.exchange(
-                PUT(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
@@ -381,9 +381,9 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     @Order(5)
     void unsubscribeOntologySuccess() {
 
-        String url = String.format("/programs/%s/ontology/unsubscribe/%s", otherProgram.getId(), mainProgram.getId());
+        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
         Flowable<HttpResponse<String>> call = client.exchange(
-                PUT(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+                DELETE(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 
         HttpResponse<String> response = call.blockingFirst();

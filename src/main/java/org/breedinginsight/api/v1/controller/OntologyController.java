@@ -165,7 +165,7 @@ public class OntologyController {
      * @param sharingProgramId -- Program that has shared its ontology.
      * @return
      */
-    @Put("/programs/{programId}/ontology/unsubscribe/{sharingProgramId}")
+    @Delete("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<Trait>>> unsubscribeOntology(
