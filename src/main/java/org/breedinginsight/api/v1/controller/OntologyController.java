@@ -145,7 +145,7 @@ public class OntologyController {
      */
     @Put("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<Trait>>> subscribeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
         try {
@@ -167,7 +167,7 @@ public class OntologyController {
      */
     @Delete("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<Trait>>> unsubscribeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
         try {
