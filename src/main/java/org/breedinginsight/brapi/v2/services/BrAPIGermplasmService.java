@@ -91,7 +91,7 @@ public class BrAPIGermplasmService {
 
         //Retrieve germplasm data
         List<String> germplasmNames = listData.getData();
-        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByName(germplasmNames, programId);
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
         //processGermplasmForDisplay, numbers
         germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
 
