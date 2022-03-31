@@ -10,24 +10,24 @@ import java.util.List;
 
 @Getter
 @Setter
-public class Environment {
+public class EnvironmentData {
     private String env;
     private String location;
     private String year;
     // TODO we don't want a getObservationUnitList() method
-    private List<ObservationUnit> observationUnitList = new ArrayList<>();
+    private List<ObservationUnitData> observationUnitDataList = new ArrayList<>();
 
-    public Environment(String env, String location, String year) {
+    public EnvironmentData(String env, String location, String year) {
         this.env = env;
         this.location = location;
         this.year = year;
     }
 
-    public void addObservationUnit(ObservationUnit ou){
-        this.observationUnitList.add(ou);
+    public void addObservationUnitData(ObservationUnitData ou){
+        this.observationUnitDataList.add(ou);
     }
 
-    public Collection<ObservationUnit> observationUnitValues(){
-        return this.observationUnitList;
+    public Collection<ObservationUnitData> observationUnitValues(){
+        return this.observationUnitDataList;
     }
 }

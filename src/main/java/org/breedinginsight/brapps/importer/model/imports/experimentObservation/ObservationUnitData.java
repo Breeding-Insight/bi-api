@@ -9,7 +9,7 @@ import org.brapi.v2.model.pheno.BrAPIEntryTypeEnum;
 @Builder
 @Getter
 @Setter
-public class ObservationUnit {
+public class ObservationUnitData {
     private BrAPIEntryTypeEnum test_or_check = BrAPIEntryTypeEnum.TEST;
 
     private String germplasm_name = null;

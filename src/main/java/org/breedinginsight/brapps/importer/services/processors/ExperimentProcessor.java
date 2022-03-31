@@ -59,7 +59,7 @@ public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
 
-    private ExperimentList experimentList = new ExperimentList();
+    private FileData fileData = new FileData();
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -246,36 +246,36 @@ public class ExperimentProcessor implements Processor {
 //      Read throgh each row of the imput file and populate this.ExperimentList
         for (int i = 0; i < importRows.size(); i++) {
             ObsUnitImportRow obsUnit = (ObsUnitImportRow) importRows.get(i);
-            populateExperimentList(obsUnit);
+            populateFileData(obsUnit);
         }
 
 
-        for(Experiment experiment : this.experimentList.values()){
+        for(ExperimentData experimentData : this.fileData.values()){
             BrAPITrial brAPITrial = new BrAPITrial();
             //Exp Title → Trial.trialName
-            brAPITrial.setTrialName( experiment.getTitle() );
+            brAPITrial.setTrialName( experimentData.getTitle() );
             // Exp Description → Trial.trialDescription
-            brAPITrial.setTrialDescription( experiment.getDescription() );
+            brAPITrial.setTrialDescription( experimentData.getDescription() );
 
             //observationUnit →
-            for(Environment environment: experiment.environment_values()){
+            for(EnvironmentData environmentData : experimentData.environmentData_values()){
                 BrAPIStudy brAPIStudy = new BrAPIStudy();
                 // TODO How dose this map?
                 // Exp Type → Study.studyType
                 // brAPIStudy.setStudyType( environment.);
 
                 // Env → Study.studyName
-                brAPIStudy.setStudyName( environment.getEnv() );
+                brAPIStudy.setStudyName( environmentData.getEnv() );
 
                 // TODO How does this map? brAPIStudy.setSeasons(seasons) wants a List<String> for seasons
                 // Env Year → Study.seasons  (This field must be numeric, and be a four digit year)
                 //brAPIStudy.setSeasons();
 
                 // Env Location → Study.locationDbId
-                brAPIStudy.setLocationDbId( environment.getLocation() );
+                brAPIStudy.setLocationDbId( environmentData.getLocation() );
                 // TODO lookup by name (getDbid) or else create a new Location
 
-                for(ObservationUnit observationUnit: environment.getObservationUnitList() ){
+                for(ObservationUnitData observationUnitData : environmentData.getObservationUnitDataList() ){
                     BrAPIObservationUnitLevelRelationship brAPIobsUnitLevel = new BrAPIObservationUnitLevelRelationship();
                     BrAPIObservationUnitPosition brAPIobsUnitPos = new BrAPIObservationUnitPosition();
                     BrAPIObservationUnit brAPIobservationUnit = new BrAPIObservationUnit();
@@ -283,18 +283,18 @@ public class ExperimentProcessor implements Processor {
                     brAPIobservationUnit.setObservationUnitPosition(brAPIobsUnitPos);
 
                     //Test (T) or Check (C) → ObservationUnit.observationUnitPosition.entryType
-                    brAPIobsUnitPos.setEntryType( observationUnit.getTest_or_check() );
+                    brAPIobsUnitPos.setEntryType( observationUnitData.getTest_or_check() );
                     //Germplasm GID → ObservationUnit.germplasmDbId
                     //TODO This will require looking up the germplasm by external reference to get the correct DBID
-                    brAPIobservationUnit.setGermplasmDbId( observationUnit.getGid() );
+                    brAPIobservationUnit.setGermplasmDbId( observationUnitData.getGid() );
 
                     // Exp Unit → ObservationUnit.observationUnitPosition.observationLevel.levelName
-                    brAPIobsUnitLevel.setLevelName( observationUnit.getExp_unit() );
+                    brAPIobsUnitLevel.setLevelName( observationUnitData.getExp_unit() );
                     // Exp Unit → Trial.additionalInfo.defaultObservationLevel
-                    brAPITrial.putAdditionalInfoItem("defaultObservationLevel", observationUnit.getExp_unit() );
+                    brAPITrial.putAdditionalInfoItem("defaultObservationLevel", observationUnitData.getExp_unit() );
 
                     // Exp Unit Id → ObservationUnit.observationUnitName
-                    brAPIobservationUnit.setObservationUnitName( observationUnit.getExp_unit_id() );
+                    brAPIobservationUnit.setObservationUnitName( observationUnitData.getExp_unit_id() );
 
 
 
@@ -357,11 +357,11 @@ public class ExperimentProcessor implements Processor {
         );
     }
 
-    private void populateExperimentList(ObsUnitImportRow obsUnit) {
-        Experiment experiment = this.experimentList.retrieve_or_add(obsUnit.getExp_title(), obsUnit.getExp_description() );
-        Environment environment = experiment.retrieve_or_add_environment( obsUnit.getEnv(), obsUnit.getEnv_location(), obsUnit.getEnv_year() );
+    private void populateFileData(ObsUnitImportRow obsUnit) {
+        ExperimentData experimentData = this.fileData.retrieve_or_add_ExperimentData(obsUnit.getExp_title(), obsUnit.getExp_description() );
+        EnvironmentData environmentData = experimentData.retrieve_or_add_environmentData( obsUnit.getEnv(), obsUnit.getEnv_location(), obsUnit.getEnv_year() );
 
-        ObservationUnit ou = ObservationUnit.builder()
+        ObservationUnitData ou = ObservationUnitData.builder()
                 .id(                obsUnit.getObsUnitID() )
                 .germplasm_name(    obsUnit.getGermplasmName() )
                 .gid(               obsUnit.getGid() )
@@ -372,7 +372,7 @@ public class ExperimentProcessor implements Processor {
                 .column(            obsUnit.getColumn() )
                 .test_or_check(     this.str_to_test_or_check( obsUnit.getTest_or_check() ) )
                 .build();
-        environment.addObservationUnit( ou );
+        environmentData.addObservationUnitData( ou );
     }
 
 //            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
