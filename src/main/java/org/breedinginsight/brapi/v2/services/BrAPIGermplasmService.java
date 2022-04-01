@@ -124,7 +124,7 @@ public class BrAPIGermplasmService {
                 }
             }
 
-            if (germplasmEntry.getPedigree() != null) {
+            if (!germplasmEntry.getPedigree().isEmpty()) {
                 Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
                 row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
                 if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
