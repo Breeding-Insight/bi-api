@@ -72,16 +72,9 @@ public class GermplasmController {
             HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+".xlsx");
             return germplasmListExport;
         }
-        catch (ApiException e){
-            log.info(e.getMessage());
-            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
-            return response;
-        } catch (IOException e){
-            log.info(e.getMessage());
-            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
-            return response;
-        } catch (Exception e) {
-            log.info(e.getMessage());
+        catch (Exception e) {
+            log.info(e.toString());
+            e.printStackTrace();
             HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
             return response;
         }
