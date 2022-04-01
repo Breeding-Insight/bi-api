@@ -138,11 +138,10 @@ public class BrAPIGermplasmDAO {
                 }
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, germplasm.getPedigree());
 
-                String newPedigreeString = germplasm.getPedigree();
+                String newPedigreeString = "";
                 List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 if (parents.size() >= 1) {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
-                        //problem, if parent not in germplasmbyfullname, not replaced by accession number, assumption that parents are also in file
                         newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
                     }
                 }
