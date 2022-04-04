@@ -172,7 +172,7 @@ public class TraitFileParserUnitTest {
 
         Map<String, ParsingExceptionType> expectedErrors1 = new HashMap<>();
         expectedErrors1.put(TraitFileColumns.SCALE_CLASS.toString(), ParsingExceptionType.INVALID_SCALE_CLASS);
-        expectedErrors1.put(TraitFileColumns.TRAIT_STATUS.toString(), ParsingExceptionType.INVALID_TRAIT_STATUS);
+        expectedErrors1.put(TraitFileColumns.STATUS.toString(), ParsingExceptionType.INVALID_TRAIT_STATUS);
 
         Map<String, ParsingExceptionType> expectedErrors2 = new HashMap<>();
         expectedErrors2.putAll(expectedErrors1);
@@ -277,21 +277,18 @@ public class TraitFileParserUnitTest {
     }
 
     private void assertTestTraitEquals(Trait trait) {
-        List<String> abbreviations = Arrays.asList(trait.getAbbreviations());
-        assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
         List<String> synonyms = trait.getSynonyms();
         assertEquals(2, synonyms.size(), "number of synonyms different than expected");
 
-        assertEquals("Powdery Mildew severity field, leaves", trait.getTraitName(), "wrong trait name");
-        assertEquals("PMSevLeaf", abbreviations.get(0), "wrong abbreviation");
-        assertEquals("PM_LEAF_P4", abbreviations.get(1), "wrong abbreviation");
+        assertEquals("PM_Leaf", trait.getObservationVariableName(), "wrong trait name");
         assertEquals("Powdery Mildew", synonyms.get(0), "wrong synonym");
         assertEquals("Powdery Mildew Severity", synonyms.get(1), "wrong synonym");
-        assertEquals("Plant", trait.getProgramObservationLevel().getName(), "wrong level name");
+        assertEquals("leaf", trait.getEntity(), "wrong entity");
+        assertEquals("powdery mildew severity", trait.getAttribute(), "wrong attribute");
         assertEquals(true, trait.getActive(), "wrong status");
         // TODO: trait lists
         Method method = trait.getMethod();
-        assertEquals("Observed severity of Powdery Mildew on leaves", method.getDescription(), "wrong method description");
+        assertEquals("Powdery Mildew severity, leaf", method.getDescription(), "wrong method description");
         assertEquals("Estimation", method.getMethodClass(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.getFormula(), "wrong method formula");
         Scale scale = trait.getScale();

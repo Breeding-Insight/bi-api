@@ -18,6 +18,7 @@ package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v1.model.TraitDataType;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
@@ -53,10 +54,6 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingMethodMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(method.getDescription()) || method.getDescription() == null) {
-                    ValidationError error = traitValidatorErrors.getMissingMethodDescriptionMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
-                }
                 if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodClassMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
@@ -67,7 +64,8 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (isBlank(scale.getScaleName()) || scale.getScaleName() == null) {
+                if (scale.getDataType() != null & scale.getDataType() == DataType.NUMERICAL &&
+                        (isBlank(scale.getScaleName()) || scale.getScaleName() == null )) {
                     ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
@@ -77,12 +75,20 @@ public class TraitValidatorService {
                 }
             }
 
-            if (isBlank(trait.getTraitName()) || trait.getTraitName() == null) {
-                ValidationError error = traitValidatorErrors.getMissingTraitNameMsg();
+            if (isBlank(trait.getObservationVariableName()) || trait.getObservationVariableName() == null) {
+                ValidationError error = traitValidatorErrors.getMissingObsVarNameMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
-            if (trait.getProgramObservationLevel() == null || isBlank(trait.getProgramObservationLevel().getName())) {
-                ValidationError error = traitValidatorErrors.getMissingProgramObservationLevelMsg();
+            if (isBlank(trait.getEntity()) || trait.getEntity() == null) {
+                ValidationError error = traitValidatorErrors.getMissingTraitEntityMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (isBlank(trait.getAttribute()) || trait.getAttribute() == null) {
+                ValidationError error = traitValidatorErrors.getMissingTraitAttributeMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if (isBlank(trait.getTraitDescription()) || trait.getTraitDescription() == null) {
+                ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             }
         }
@@ -110,7 +116,7 @@ public class TraitValidatorService {
 
             if (scale != null && scale.getDataType() != null && (scale.getDataType() == DataType.ORDINAL || scale.getDataType() == DataType.NOMINAL)) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
-                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg();
+                    ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg(scale.getDataType());
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 } else {
 
@@ -126,6 +132,13 @@ public class TraitValidatorService {
                             }
                         }
 
+                        if (scale.getDataType() == DataType.NOMINAL) {
+                            if (!isBlank(scale.getCategories().get(k).getLabel())) {
+                                ValidationError error = traitValidatorErrors.getPopulatedNominalCategoryLabelMsg();
+                                categoryErrors.addError(k, error);
+                            }
+                        }
+
                         if (isBlank(scale.getCategories().get(k).getValue())) {
                             ValidationError error = traitValidatorErrors.getBlankScaleCategoryValueMsg();
                             categoryErrors.addError(k, error);
@@ -136,6 +149,15 @@ public class TraitValidatorService {
                         ValidationError categoryError = traitValidatorErrors.getBadScaleCategory();
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
                         errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
+                    }
+
+                    //Check if sufficient categories if scale is ordinal (2) or nominal (1)
+                    if ((scale.getDataType() == DataType.NOMINAL) && (scale.getCategories().size() < 1)) {
+                        ValidationError InsufficientNominalValError = traitValidatorErrors.getInsufficientNominalValError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
+                    } else if ((scale.getDataType() == DataType.ORDINAL) && (scale.getCategories().size() < 2)) {
+                        ValidationError InsufficientOrdinalValError = traitValidatorErrors.getInsufficientOrdinalValError();
+                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
                     }
                 }
             }
@@ -154,6 +176,38 @@ public class TraitValidatorService {
         return errors;
     }
 
+    public ValidationErrors checkTraitFieldsLength(List<Trait> traits, TraitValidatorErrorInterface traitValidatorErrors) {
+
+        ValidationErrors errors = new ValidationErrors();
+
+        for (int i = 0; i < traits.size(); i++) {
+
+            Trait trait = traits.get(i);
+            Method method = trait.getMethod();
+            int shortCharLimit = 12;
+            int longCharLimit = 30;
+
+            if ((trait.getObservationVariableName() != null) && (trait.getObservationVariableName().length() > shortCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitObsVarNameMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if ((trait.getEntity() != null) && (trait.getEntity().length() > longCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitTraitEntityMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if ((trait.getAttribute() != null) && (trait.getAttribute().length() > longCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitTraitAttributeMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+            if ((method.getDescription() != null) && (method.getDescription().length() > longCharLimit)) {
+                ValidationError error = traitValidatorErrors.getCharLimitMethodDescriptionMsg();
+                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+            }
+
+        }
+        return errors;
+    }
+
     public List<Trait> checkDuplicateTraitsExistingByName(UUID programId, List<Trait> traits){
 
         List<Trait> duplicates = new ArrayList<>();
@@ -164,43 +218,12 @@ public class TraitValidatorService {
         for (int i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
             Boolean isDuplicate = duplicateNameTraits.stream().filter(duplicateTrait ->
-                    duplicateTrait.getTraitName().toLowerCase().strip().equals(trait.getTraitName().toLowerCase().strip())
+                    duplicateTrait.getObservationVariableName().toLowerCase().strip().equals(trait.getObservationVariableName().toLowerCase().strip())
                     && !duplicateTrait.getId().equals(trait.getId())
             ).collect(Collectors.toList()).size() > 0;
 
             if (isDuplicate) {
                 duplicates.add(trait);
-            }
-        }
-
-        return duplicates;
-    }
-
-    public List<Trait> checkDuplicateTraitsExistingByAbbreviation(UUID programId, List<Trait> traits){
-
-        List<Trait> duplicates = new ArrayList<>();
-
-        // Check for existing trait abbreviations
-        List<Trait> duplicateAbbreviationTraits = checkForDuplicatesTraitsByAbbreviation(programId, traits);
-
-        for (int i = 0; i < traits.size(); i++){
-            Trait trait = traits.get(i);
-
-            Boolean isDuplicateAbbrev = false;
-            if (trait.getAbbreviations() != null){
-                for (String abbreviation: trait.getAbbreviations()){
-                    isDuplicateAbbrev = duplicateAbbreviationTraits.stream().filter(duplicateAbbreviationTrait ->
-                            List.of(duplicateAbbreviationTrait.getAbbreviations()).contains(abbreviation)
-                            && !duplicateAbbreviationTrait.getId().equals(trait.getId())
-                    ).collect(Collectors.toList()).size() > 0;
-                    break;
-                }
-            }
-
-            if (isDuplicateAbbrev) {
-                if (!duplicates.contains(trait)){
-                    duplicates.add(trait);
-                }
             }
         }
 
@@ -214,8 +237,8 @@ public class TraitValidatorService {
         Map<String, List<Integer>> namesMap = new HashMap<>();
         for (Integer i = 0; i < traits.size(); i++) {
             Trait trait = traits.get(i);
-            if (trait.getTraitName() != null){
-                String key = trait.getTraitName().toLowerCase();
+            if (trait.getObservationVariableName() != null){
+                String key = trait.getObservationVariableName().toLowerCase();
                 if (namesMap.containsKey(key)) {
                     namesMap.get(key).add(i);
                 } else {
@@ -236,61 +259,11 @@ public class TraitValidatorService {
             }
         }
 
-        // Check duplicate abbreviations
-        Map<String, List<Integer>> abbreviationMap = new HashMap<>();
-        for (Integer i = 0; i < traits.size(); i++){
-            Trait trait = traits.get(i);
-            if (trait.getAbbreviations() != null){
-                for (String abbreviation: trait.getAbbreviations()){
-                    if (abbreviationMap.containsKey(abbreviation)) {
-                        abbreviationMap.get(abbreviation).add(i);
-                    } else {
-                        List<Integer> indexArray = new ArrayList<>();
-                        indexArray.add(i);
-                        abbreviationMap.put(abbreviation, indexArray);
-                    }
-                }
-            }
-        }
-
-        // Generate duplicate abbreviation errors
-        for (Integer i = 0; i < traits.size(); i++) {
-            Trait trait = traits.get(i);
-            if (trait.getAbbreviations() != null) {
-                for (String abbreviation : trait.getAbbreviations()) {
-                    if (abbreviationMap.containsKey(abbreviation)) {
-                        if (abbreviationMap.get(abbreviation).size() > 1){
-                            ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByAbbreviationInFileMsg(abbreviationMap.get(abbreviation));
-                            errors.addError(traitValidatorErrors.getRowNumber(i), validationError);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
         return errors;
     }
 
     private List<Trait> checkForDuplicateTraitsByNames(UUID programId, List<Trait> traits) {
         return traitDAO.getTraitsByTraitName(programId, traits);
-    }
-
-    private List<Trait> checkForDuplicatesTraitsByAbbreviation(UUID programId, List<Trait> traits) {
-
-        Set<String> abbreviationSet = new HashSet<>();
-        for (Trait trait: traits) {
-            if (trait.getAbbreviations() != null) {
-                abbreviationSet.addAll(List.of(trait.getAbbreviations()));
-            }
-        }
-
-        List<Trait> matchingTraits = new ArrayList<>();
-        if (abbreviationSet.size() > 0){
-            matchingTraits = traitDAO.getTraitsByAbbreviation(programId, List.of(abbreviationSet.toArray(String[]::new)));
-        }
-
-        return matchingTraits;
     }
 
     public Optional<ValidationErrors> checkAllTraitValidations(List<Trait> traits, TraitValidatorErrorInterface traitValidatorError) {
@@ -300,7 +273,8 @@ public class TraitValidatorService {
         ValidationErrors requiredFieldErrors = checkRequiredTraitFields(traits, traitValidatorError);
         ValidationErrors dataConsistencyErrors = checkTraitDataConsistency(traits, traitValidatorError);
         ValidationErrors duplicateTraitsInFile = checkDuplicateTraitsInFile(traits, traitValidatorError);
-        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile);
+        ValidationErrors fieldLengthError =  checkTraitFieldsLength(traits, traitValidatorError);
+        validationErrors.mergeAll(requiredFieldErrors, dataConsistencyErrors, duplicateTraitsInFile, fieldLengthError);
 
         if (validationErrors.hasErrors()){
             return Optional.of(validationErrors);

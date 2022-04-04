@@ -48,9 +48,11 @@ public class ProgramUpload<T> extends BatchUploadEntity {
     private User user;
     private User createdByUser;
     private User updatedByUser;
+
     @JsonProperty("data")
     @JsonInclude(JsonInclude.Include.ALWAYS)
     private List<T> parsedData;
+
 
     @JsonIgnore
     public Trait[] getDataJson() throws JsonProcessingException {
@@ -84,5 +86,4 @@ public class ProgramUpload<T> extends BatchUploadEntity {
                     .updatedBy(record.getValue(BATCH_UPLOAD.UPDATED_BY))
                     .build();
     }
-
 }

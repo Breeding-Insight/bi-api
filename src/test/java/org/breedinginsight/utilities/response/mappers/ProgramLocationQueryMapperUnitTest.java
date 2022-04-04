@@ -56,7 +56,6 @@ public class ProgramLocationQueryMapperUnitTest {
 
         assertEquals(programLocation.getName(), programLocationQueryMapper.getField("name").apply(programLocation), "Wrong getter");
         assertEquals(programLocation.getSlope(), programLocationQueryMapper.getField("slope").apply(programLocation), "Wrong getter");
-        assertEquals(programLocation.getAbbreviation(), programLocationQueryMapper.getField("abbreviation").apply(programLocation), "Wrong getter");
         assertEquals(programLocation.getCreatedAt(), programLocationQueryMapper.getField("createdAt").apply(programLocation), "Wrong getter");
         assertEquals(programLocation.getUpdatedAt(), programLocationQueryMapper.getField("updatedAt").apply(programLocation), "Wrong getter");
         assertEquals(programLocation.getCreatedByUser().getName(), programLocationQueryMapper.getField("createdByUserName").apply(programLocation), "Wrong getter");

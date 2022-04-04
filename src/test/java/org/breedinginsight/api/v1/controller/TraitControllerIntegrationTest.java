@@ -17,10 +17,7 @@
 
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -33,9 +30,21 @@ import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
+import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
+import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
+import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -46,15 +55,18 @@ import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
+import org.breedinginsight.services.SpeciesService;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
+import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
 
 
@@ -65,6 +77,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
     private TraitEntity validTrait;
     private FannyPack fp;
+    private FannyPack brapiFp;
 
     @Inject
     private DSLContext dsl;
@@ -76,19 +89,33 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     private TraitService traitService;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private SpeciesService speciesService;
 
+    private Species validSpecies;
     private List<Trait> validTraits;
-    private ProgramEntity validProgram;
-    private ProgramEntity otherValidProgram;
+    private Program validProgram;
+    private Program otherValidProgram;
+    private ProgramEntity missingBrapiProgram;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
+
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
+    @AfterAll
+    public void finish() { super.stopContainers(); }
+
     @BeforeAll
     @SneakyThrows
     public void setup() {
+
+        brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/TraitControllerIntegrationTest.sql");
@@ -99,21 +126,39 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Insert program
-        dsl.execute(fp.get("InsertProgram"));
+        dsl.execute(fp.get("InsertProgramNotBrapi"));
+        missingBrapiProgram = programDao.findAll().get(0);
+
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), missingBrapiProgram.getId().toString());
+
+        validSpecies = getTestSpecies();
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest program = ProgramRequest.builder()
+                .name("Test Program")
+                .abbreviation("test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .key("TEST")
+                .build();
+
+        validProgram = insertAndFetchTestProgram(gson, client, program);
 
         // Insert program observation level
         dsl.execute(fp.get("InsertProgramObservationLevel"));
 
         // Insert program ontology sql
-        dsl.execute(fp.get("InsertProgramOntology"));
+        //dsl.execute(fp.get("InsertProgramOntology"));
 
         // Insert Trait
         dsl.execute(fp.get("InsertMethod"));
         dsl.execute(fp.get("InsertScale"));
         dsl.execute(fp.get("InsertTrait"));
-
-        // Retrieve our new data
-        validProgram = programDao.findAll().get(0);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId().toString());
 
@@ -121,13 +166,32 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         validTrait = traitDao.findAll().get(0);
 
         // Insert other program
-        dsl.execute(fp.get("InsertOtherProgram"));
-        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
-        dsl.execute(fp.get("InsertOtherProgramOntology"));
+        //dsl.execute(fp.get("InsertOtherProgram"));
 
-        otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
+        ProgramRequest otherProgram = ProgramRequest.builder()
+                .name("Other Test Program")
+                .abbreviation("othertest")
+                .documentationUrl("localhost:8080")
+                .objective("To test other things")
+                .species(speciesRequest)
+                .key("TESTO")
+                .build();
+
+        otherValidProgram = insertAndFetchTestProgram(gson, client, otherProgram);
+
+        dsl.execute(fp.get("InsertOtherProgramObservationLevel"));
+        //dsl.execute(fp.get("InsertOtherProgramOntology"));
+
+
+
+        //otherValidProgram = programDao.fetchByName("Other Test Program").get(0);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherValidProgram.getId().toString());
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
     }
 
     @Test
@@ -143,6 +207,25 @@ public class TraitControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(1)
+    public void getTraitTagsDefaultFavorites() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + otherValidProgram.getId() + "/traits/tags").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(1, data.size(), "Wrong number of results returned.");
+        assertEquals("favorites", data.get(0).getAsString(), "Wrong default tag returned");
     }
 
     @Test
@@ -168,7 +251,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Turn off brapi container to fake error
         Trait trait = new Trait();
-        trait.setTraitName("Test Trait3");
+        trait.setObservationVariableName("Test Trait3");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");
@@ -180,7 +263,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         setBrAPIProperties(trait);
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + validProgram.getId() + "/traits", List.of(trait))
+                POST("/programs/" + missingBrapiProgram.getId() + "/traits", List.of(trait))
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -197,14 +280,15 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void postTraitsMultiple() {
 
         // Add species to BrAPI server
-        var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
-        super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
+        //var brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
+        //super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         dsl.execute(fp.get("DeleteTrait"));
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test Trait");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -214,8 +298,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait1.setMethod(method1);
 
         Trait trait2 = new Trait();
-        trait2.setTraitName("Test Trait1");
-        trait2.setAbbreviations(List.of("t3", "t4").toArray(String[]::new));
+        trait2.setTraitDescription("trait 2 description");
+        trait2.setEntity("entity2");
+        trait2.setObservationVariableName("Test Trait1");
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
         scale2.setScaleName("Test Scale1");
@@ -227,6 +312,14 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         // Set the brapi properties
         setBrAPIProperties(trait1);
         setBrAPIProperties(trait2);
+
+        // set the synonyms
+        trait1.setSynonyms(List.of("Test Trait", "test1", "test2"));
+        trait2.setSynonyms(List.of("Test Trait1", "test1", "test2"));
+
+        // Set the tags
+        trait1.setTags(List.of("leaf trait"));
+        trait2.setTags(List.of("stem trait"));
 
         List<Trait> traits = List.of(trait1, trait2);
 
@@ -248,12 +341,12 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         Boolean trait2Found = false;
         for (JsonElement traitJson: data) {
             JsonObject trait = (JsonObject) traitJson;
-            String traitName = trait.get("traitName").getAsString();
-            if (traitName.equals(trait1.getTraitName())){
+            String traitName = trait.get("observationVariableName").getAsString();
+            if (traitName.equals(trait1.getObservationVariableName())){
                 trait1Found = true;
                 checkTraitFullResponse(trait, trait1);
                 trait1.setId(UUID.fromString(trait.get("id").getAsString()));
-            } else if (traitName.equals(trait2.getTraitName())) {
+            } else if (traitName.equals(trait2.getObservationVariableName())) {
                 trait2Found = true;
                 checkTraitFullResponse(trait, trait2);
                 trait2.setId(UUID.fromString(trait.get("id").getAsString()));
@@ -265,6 +358,31 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         }
 
         validTraits = traits;
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void getTraitTags() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/tags").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(3, data.size(), "Wrong number of results returned.");
+        Set<String> tagsList = new HashSet<>(List.of("favorites", "leaf trait", "stem trait"));
+        Set<String> foundTags = new HashSet<>();
+        for (JsonElement tagElement: data) {
+            foundTags.add(tagElement.getAsString());
+        }
+
+        assertTrue(tagsList.equals(foundTags), "Returned tags do not equal expected tags");
     }
 
     @Test
@@ -338,9 +456,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(2, rowErrors.size(), "Wrong number of row errors returned");
         JsonObject rowError = rowErrors.get(0).getAsJsonObject();
 
-        // Returns an error for duplicate names in file, duplicate abbreviations in file, duplicate names in db, duplicate abbreviations in db
+        // Returns an error for duplicate names in file, and duplicate names in db
         JsonArray errors = rowError.getAsJsonArray("errors");
-        assertEquals(4, errors.size(), "Wrong number of errors returned");
+        assertEquals(2, errors.size(), "Wrong number of errors returned");
         JsonObject duplicateError = errors.get(0).getAsJsonObject();
         assertEquals(409, duplicateError.get("httpStatusCode").getAsInt(), "Wrong error code returned");
     }
@@ -349,7 +467,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Order(4)
     public void createTraitsLevelDoesNotExist() {
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait that is unique");
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Unique Trait");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Not Exist").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -379,7 +499,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     public void createTraitsValidationError() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait3");
+        trait1.setObservationVariableName("Test Trait3");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -422,7 +542,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         trait.setAttribute("leaf length");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
-        trait.setSynonyms(List.of("test1", "test2"));
+        trait.setSynonyms(List.of("Test Trait", "test1", "test2"));
 
         // Method
         trait.getMethod().setMethodClass("Estimation");
@@ -580,8 +700,112 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @SneakyThrows
+    @Order(5)
+    public void editableTraitNotExist() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + invalidUUID + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
+    @Order(5)
+    public void editableProgramNotExist() {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + invalidUUID + "/traits/" + validTraits.get(0).getId() + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+    }
+
+    @Test
     @Order(6)
+    public void editableNoObservations() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId() + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(true, result.getAsJsonPrimitive("editable").getAsBoolean(), "expected to be editable");
+    }
+
+    @Test
+    @Order(7)
+    @SneakyThrows
+    public void editableHasObservations() {
+
+        // add observation and make sure not editable
+        BrAPIClient brapiClient = new BrAPIClient(getProperties().get("brapi.server.pheno-url"));
+        ObservationsApi obsApi = new ObservationsApi(brapiClient);
+        ObservationVariablesApi varApi = new ObservationVariablesApi(brapiClient);
+
+        VariableQueryParams params = VariableQueryParams.builder()
+                .externalReferenceID(validTraits.get(0).getId().toString()).build();
+
+        ApiResponse<BrAPIObservationVariableListResponse> res = varApi.variablesGet(params);
+        BrAPIObservationVariableListResponse list = res.getBody();
+        List<BrAPIObservationVariable> vars = list.getResult().getData();
+
+        BrAPIObservation observation = new BrAPIObservation().observationVariableDbId(vars.get(0).getObservationVariableDbId());
+        ApiResponse<BrAPIObservationListResponse> obsRes = obsApi.observationsPost(List.of(observation));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId() + "/editable")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(false, result.getAsJsonPrimitive("editable").getAsBoolean(), "expected not to be editable");
+
+    }
+
+    @Test
+    @Order(8)
+    public void editableNotAllowed() {
+
+        // try updating a trait that has observations
+
+        Flowable<HttpResponse<String>> call1 = client.exchange(
+                GET("/programs/" + validProgram.getId() + "/traits/" + validTraits.get(0).getId())
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response1 = call1.blockingFirst();
+        assertEquals(HttpStatus.OK, response1.getStatus());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", List.of(validTraits.get(0)))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.METHOD_NOT_ALLOWED, e.getStatus());
+
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(9)
     public void getTraitsExistsInBrAPINotInSystem() {
 
         dsl.execute(fp.get("DeleteTrait"));
@@ -604,7 +828,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         if (trait.getId() != null){
             assertEquals(trait.getId().toString(), traitJson.get("id").getAsString(), "Ids don't match");
         }
-        assertEquals(trait.getTraitName(), traitJson.get("traitName").getAsString(),"Names don't match");
+        assertEquals(trait.getObservationVariableName(), traitJson.get("observationVariableName").getAsString(),"Names don't match");
 
         if (trait.getActive() != null){
             assertEquals(trait.getActive().toString(), traitJson.get("active").getAsString(), "Actives don't match");
@@ -626,13 +850,6 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         checkTraitResponse(traitJson, trait);
 
         assertEquals(trait.getTraitClass(), traitJson.get("traitClass").getAsString(), "Trait classes don't match");
-
-        List<String> jsonAlternativeAbbreviations = new ArrayList<>();
-        traitJson.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
-        List<String> traitAbbreviations = Arrays.asList(trait.getAbbreviations());
-        Collections.sort(jsonAlternativeAbbreviations);
-        Collections.sort(traitAbbreviations);
-        assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");
 
         assertEquals(trait.getMainAbbreviation(), traitJson.get("mainAbbreviation").getAsString(), "Trait main abbreviations don't match");
         if (trait.getAttribute() != null){
@@ -676,12 +893,13 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     //endregion
 
     @Test
-    @Order(7)
+    @Order(10)
     public void postTraitNominalMissingCategoryValue() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait14");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test Trait14");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -731,12 +949,13 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(7)
+    @Order(10)
     public void postTraitOrdinalMissingCategoryVariables() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait14");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test Trait14");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -789,22 +1008,24 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject categoryError = categoryErrors.get(0).getAsJsonObject();
         assertEquals(0, categoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
         JsonObject valueError = categoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
-        assertEquals("scale.categories.value", valueError.get("field").getAsString(), "wrong error returned");
+        assertEquals("Scale Categories Value", valueError.get("field").getAsString(), "wrong error returned");
 
         JsonObject secondCategoryError = categoryErrors.get(1).getAsJsonObject();
         assertEquals(2, secondCategoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
         JsonObject labelError = secondCategoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
-        assertEquals("scale.categories.label", labelError.get("field").getAsString(), "wrong error returned");
+        assertEquals("Scale Categories Label", labelError.get("field").getAsString(), "wrong error returned");
     }
 
     @Test
-    @Order(8)
+    @Order(11)
     public void getTraitsQuery() {
         List<Trait> newTraits = new ArrayList<>();
         for (int i = 0; i < 30; i++){
             Trait trait = new Trait();
-            trait.setTraitName("Test Trait" + i);
-            trait.setAbbreviations(List.of(String.valueOf(i), "t" + i).toArray(String[]::new));
+            trait.setTraitDescription("trait 1 description");
+            trait.setEntity("entity1");
+            trait.setAttribute("attribute1");
+            trait.setObservationVariableName("Test Trait" + i);
             trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
             Scale scale = new Scale();
             scale.setScaleName("Test Scale" + i);
@@ -839,7 +1060,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.get("data").getAsJsonArray();
 
         assertEquals(allTraits.size(), data.size(), "Wrong page size");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.DESC);
 
         JsonObject pagination = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata").getAsJsonObject("pagination");
         assertEquals(1, pagination.get("totalPages").getAsInt(), "Wrong number of pages");
@@ -848,12 +1069,12 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(9)
+    @Order(12)
     public void searchTraits() {
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.setFilters(new ArrayList<>());
-        searchRequest.getFilters().add(new FilterRequest("abbreviations", "t1"));
+        searchRequest.getFilters().add(new FilterRequest("name", "trait1"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=name&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
@@ -867,18 +1088,41 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Expect t1, user10->user19
         assertEquals(11, data.size(), "Wrong page size");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.ASC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.ASC);
     }
 
     @Test
-    @Order(10)
+    @Order(12)
+    public void searchTraitsByDescription() {
+
+        SearchRequest searchRequest = new SearchRequest();
+        searchRequest.setFilters(new ArrayList<>());
+        searchRequest.getFilters().add(new FilterRequest("name", "trait1"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits/search?page=1&pageSize=20&sortField=traitDescription&sortOrder=ASC", searchRequest).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.get("data").getAsJsonArray();
+
+        assertEquals(11, data.size(), "Wrong page size");
+        TestUtils.checkStringSorting(data, "traitDescription", SortOrder.ASC);
+    }
+
+    @Test
+    @Order(13)
     public void postTraitComputation() {
 
         dsl.execute(fp.get("DeleteTrait"));
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait5");
-        trait1.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test Trait5");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -920,13 +1164,14 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(11)
+    @Order(14)
     public void putTraitComputation() {
 
         Trait updateTrait = validTraits.get(0);
 
-        updateTrait.setTraitName("Updated name");
-        updateTrait.setAbbreviations(List.of("update1", "update2").toArray(String[]::new));
+        updateTrait.setTraitDescription("Updated description");
+        updateTrait.setEntity("Updated entity");
+        updateTrait.setObservationVariableName("Updated name");
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
@@ -952,7 +1197,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray data = result.getAsJsonArray("data");
         JsonObject trait = data.get(0).getAsJsonObject();
 
-        assertEquals(updateTrait.getTraitName(), trait.get("traitName").getAsString(), "wrong trait name");
+        assertEquals(updateTrait.getObservationVariableName(), trait.get("observationVariableName").getAsString(), "wrong trait name");
         assertEquals(updateTrait.getProgramObservationLevel().getName(),
                 trait.get("programObservationLevel").getAsJsonObject().get("name").getAsString(), "wrong observation level");
         assertEquals(updateTrait.getScale().getScaleName(),
@@ -963,30 +1208,26 @@ public class TraitControllerIntegrationTest extends BrAPITest {
                 trait.get("method").getAsJsonObject().get("description").getAsString(), "wrong method description");
         assertEquals(updateTrait.getMethod().getMethodClass(), trait.get("method").getAsJsonObject().get("methodClass").getAsString(), "wrong method class");
 
-        // Check abbreviations
-        List<String> jsonAlternativeAbbreviations = new ArrayList<>();
-        trait.get("abbreviations").getAsJsonArray().iterator().forEachRemaining(element -> jsonAlternativeAbbreviations.add(element.getAsString()));
-        List<String> traitAbbreviations = Arrays.asList(updateTrait.getAbbreviations());
-        Collections.sort(jsonAlternativeAbbreviations);
-        Collections.sort(traitAbbreviations);
-        assertLinesMatch(traitAbbreviations, jsonAlternativeAbbreviations, "Alternative abbreviations don't match");
-
     }
 
     @Test
-    @Order(11)
+    @Order(14)
     public void putTraitMultipleValidationErrors() {
 
         Trait updateTrait = validTraits.get(0);
 
-        updateTrait.setTraitName(null);
+        updateTrait.setObservationVariableName(null);
 
         // Set scale class to computation
         updateTrait.getMethod().setMethodClass("Observation");
 
         Trait badIdTrait = new Trait();
         badIdTrait.setId(UUID.randomUUID());
-        badIdTrait.setTraitName("Bad Trait");
+        badIdTrait.setObservationVariableName("Bad Trait");
+        badIdTrait.setAttribute("attribute");
+        badIdTrait.setEntity("entity");
+        badIdTrait.setTraitDescription("trait description");
+        badIdTrait.setObservationVariableName("trait name");
         badIdTrait.setScale(updateTrait.getScale());
         badIdTrait.setMethod(updateTrait.getMethod());
         badIdTrait.setProgramObservationLevel(updateTrait.getProgramObservationLevel());
@@ -1012,17 +1253,17 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error1 = errors.get(0).getAsJsonObject();
-        assertEquals("traitName", error1.get("field").getAsString(), "wrong error returned");
+        assertEquals("Name", error1.get("field").getAsString(), "wrong error returned");
 
         JsonObject badIdRowError = rowErrors.get(1).getAsJsonObject();
         errors = badIdRowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
-        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+        assertEquals("Trait Id", error.get("field").getAsString(), "wrong error returned");
     }
 
     @Test
-    @Order(12)
+    @Order(15)
     public void archiveTrait() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1040,7 +1281,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(12)
+    @Order(15)
     public void restoreTrait() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1058,14 +1299,13 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(13)
+    @Order(16)
     public void putTraitIdDoesNotExist() {
 
         Trait updateTrait = validTraits.get(0);
 
         updateTrait.setId(UUID.randomUUID());
-        updateTrait.setTraitName("Updated names");
-        updateTrait.setAbbreviations(null);
+        updateTrait.setObservationVariableName("Update Name");
         updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
@@ -1095,11 +1335,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
-        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
+        assertEquals("Trait Id", error.get("field").getAsString(), "wrong error returned");
     }
 
     @Test
-    @Order(14)
+    @Order(17)
     public void archiveTraitIdNotExist() {
 
         Trait updateTrait = validTraits.get(0);
@@ -1116,4 +1356,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
     }
+
+
+
+
+
 }

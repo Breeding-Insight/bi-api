@@ -59,26 +59,26 @@ public class Trait extends TraitEntity {
 
     // Properties from brapi
     private String traitClass;
+    private String traitDescription;
     private String attribute;
     private String defaultValue;
-    @JsonIgnore
     private String entity;
     private String mainAbbreviation;
     @JsonDeserialize(using = ListOfStringDeserializer.class)
     private List<String> synonyms;
+    @JsonDeserialize(using = ListOfStringDeserializer.class)
+    private List<String> tags;
+    private String fullName;
 
-    @Override
-    @JsonDeserialize(using = ArrayOfStringDeserializer.class)
-    public void setAbbreviations(String... abbreviations) {
-        super.setAbbreviations(abbreviations);
-    }
+    // isDup is used solely to pass information to the front end.
+    // It is not populated by the database.
+    private Boolean isDup = null;
 
     public Trait(TraitEntity traitEntity) {
         this.setId(traitEntity.getId());
         this.setMethodId(traitEntity.getMethodId());
         this.setScaleId(traitEntity.getScaleId());
-        this.setTraitName(traitEntity.getTraitName());
-        this.setAbbreviations(traitEntity.getAbbreviations());
+        this.setObservationVariableName(traitEntity.getObservationVariableName());
         this.setProgramOntologyId(traitEntity.getProgramOntologyId());
         this.setProgramObservationLevelId(traitEntity.getProgramObservationLevelId());
         this.setCreatedAt(traitEntity.getCreatedAt());
@@ -93,8 +93,7 @@ public class Trait extends TraitEntity {
             .id(record.getValue(TRAIT.ID))
             .methodId(record.getValue(TRAIT.METHOD_ID))
             .scaleId(record.getValue(TRAIT.SCALE_ID))
-            .traitName(record.getValue(TRAIT.TRAIT_NAME))
-            .abbreviations(record.getValue(TRAIT.ABBREVIATIONS))
+            .observationVariableName(record.getValue(TRAIT.OBSERVATION_VARIABLE_NAME))
             .programOntologyId(record.getValue(TRAIT.PROGRAM_ONTOLOGY_ID))
             .programObservationLevelId(record.getValue(TRAIT.PROGRAM_OBSERVATION_LEVEL_ID))
             .createdAt(record.getValue(TRAIT.CREATED_AT))
@@ -108,6 +107,7 @@ public class Trait extends TraitEntity {
     public void setBrAPIProperties(BrAPIObservationVariable brApiVariable) {
         if (brApiVariable.getTrait() != null){
             this.setTraitClass(brApiVariable.getTrait().getTraitClass());
+            this.setTraitDescription(brApiVariable.getTrait().getTraitDescription());
             this.setAttribute(brApiVariable.getTrait().getAttribute());
             this.setEntity(brApiVariable.getTrait().getEntity());
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
@@ -115,6 +115,12 @@ public class Trait extends TraitEntity {
         }
 
         this.setDefaultValue(brApiVariable.getDefaultValue());
+    }
+
+    public void setBrAPIProperties(BrAPIObservationVariable brApiVariable, List<String> tags, String fullName) {
+        setBrAPIProperties(brApiVariable);
+        this.tags = tags;
+        this.fullName = fullName;
     }
 
 }

@@ -26,7 +26,6 @@ import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.annotation.Filter;
 import io.micronaut.http.filter.OncePerRequestHttpServerFilter;
 import io.micronaut.http.filter.ServerFilterChain;
-import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.web.router.MethodBasedRouteMatch;
 import io.micronaut.web.router.RouteMatch;
@@ -96,6 +95,7 @@ public class BrAPIServiceFilter extends OncePerRequestHttpServerFilter {
                             brAPIClientProvider.setPhenoClient(phenoUrl);
                             String genoUrl = getGenoUrl(programBrAPIEndpoints);
                             brAPIClientProvider.setGenoClient(genoUrl);
+
                             return chain.proceed(request);
                         } else {
                             // We shouldn't get here

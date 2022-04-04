@@ -47,16 +47,15 @@ import org.jooq.*;
 import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.jooq.impl.DSL.asterisk;
-import static org.jooq.impl.DSL.selectCount;
 
 @Slf4j
 @Singleton
@@ -69,20 +68,24 @@ public class ProgramDAO extends ProgramDao {
     @Property(name = "brapi.server.geno-url")
     private String defaultBrAPIGenoUrl;
 
+
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
     private BrAPIClientProvider brAPIClientProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
+    private Duration requestTimeout;
 
     private final static String SYSTEM_DEFAULT = "System Default";
 
     @Inject
-    public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider) {
+    public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider,
+                      @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.brAPIClientProvider = brAPIClientProvider;
+        this.requestTimeout = requestTimeout;
     }
 
     public List<Program> get(List<UUID> programIds){
@@ -108,6 +111,49 @@ public class ProgramDAO extends ProgramDao {
         return getPrograms(null);
     }
 
+    public List<Program> getProgramByName(String name, boolean caseInsensitive){
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+        Result<Record> queryResult;
+        List<Program> resultPrograms = new ArrayList<>();
+
+        SelectOnConditionStep<Record> query = dsl.select()
+                .from(PROGRAM)
+                .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
+                .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
+
+        if (caseInsensitive){
+            queryResult = query
+                    .where(PROGRAM.NAME.equalIgnoreCase(name))
+                    .fetch();
+        } else {
+            queryResult = query
+                    .where(PROGRAM.NAME.equal(name))
+                    .fetch();
+        }
+
+        return parseProgramQuery(queryResult, createdByUser, updatedByUser);
+    }
+
+    public List<Program> getProgramByKey(String key){
+        BiUserTable createdByUser = BI_USER.as("createdByUser");
+        BiUserTable updatedByUser = BI_USER.as("updatedByUser");
+        Result<Record> queryResult;
+
+        SelectOnConditionStep<Record> query = dsl.select()
+                .from(PROGRAM)
+                .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
+                .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
+
+        queryResult = query
+                .where(PROGRAM.KEY.equal(key))
+                .fetch();
+
+        return parseProgramQuery(queryResult, createdByUser, updatedByUser);
+    }
+
     private List<Program> getPrograms(List<UUID> programIds){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
@@ -129,7 +175,11 @@ public class ProgramDAO extends ProgramDao {
             queryResult = query.fetch();
         }
 
-        // Parse the result
+        return parseProgramQuery(queryResult, createdByUser, updatedByUser);
+    }
+
+    private List<Program> parseProgramQuery(Result<Record> queryResult, BiUserTable createdByUser, BiUserTable updatedByUser) {
+        List<Program> resultPrograms = new ArrayList<>();
         for (Record record: queryResult){
             if (record.getValue(PROGRAM.BRAPI_URL) == null) {
                 record.setValue(PROGRAM.BRAPI_URL, SYSTEM_DEFAULT);
@@ -191,6 +241,28 @@ public class ProgramDAO extends ProgramDao {
         return supported;
     }
 
+    public BrAPIProgram getProgramBrAPI(Program program) {
+
+        ProgramQueryParams searchRequest = new ProgramQueryParams()
+                .externalReferenceID(program.getId().toString())
+                .externalReferenceSource(referenceSource);
+
+        ProgramsApi programsApi = brAPIProvider.getProgramsAPI(BrAPIClientType.CORE);
+        // Get existing brapi program
+        ApiResponse<BrAPIProgramListResponse> brApiPrograms;
+        try {
+            brApiPrograms = programsApi.programsGet(searchRequest);
+        } catch (ApiException e) {
+            throw new HttpServerException("Could not find program in BrAPI service.");
+        }
+
+        if (brApiPrograms.getBody().getResult().getData().isEmpty()) {
+            throw new HttpServerException("Could not find program in BrAPI service.");
+        }
+
+        return brApiPrograms.getBody().getResult().getData().get(0);
+    }
+
     public void createProgramBrAPI(Program program) {
 
         BrAPIExternalReference externalReference = new BrAPIExternalReference()
@@ -198,7 +270,7 @@ public class ProgramDAO extends ProgramDao {
                                                                          .referenceSource(referenceSource);
 
         BrAPIProgram brApiProgram = new BrAPIProgram()
-                                                .programName(program.getName())
+                                                .programName(program.getName() + " (" + program.getKey() + ")")
                                                 .abbreviation(program.getAbbreviation())
                                                 .commonCropName(program.getSpecies().getCommonName())
                                                 .externalReferences(List.of(externalReference))
@@ -213,6 +285,9 @@ public class ProgramDAO extends ProgramDao {
                 programsAPI.programsPost(List.of(brApiProgram));
             }
         } catch (ApiException e) {
+            log.debug(e.getMessage());
+            log.debug(e.getResponseBody());
+            log.debug(String.valueOf(e.getCode()));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -244,7 +319,7 @@ public class ProgramDAO extends ProgramDao {
             BrAPIProgram brApiProgram = brApiPrograms.getBody().getResult().getData().get(0);
 
             //TODO: Need to add archived/not archived when available in brapi
-            brApiProgram.setProgramName(program.getName());
+            brApiProgram.setProgramName(program.getName() + " (" + program.getKey() + ")");
             brApiProgram.setAbbreviation(program.getAbbreviation());
             brApiProgram.setCommonCropName(program.getSpecies().getCommonName());
             brApiProgram.setObjective(program.getObjective());
@@ -256,6 +331,38 @@ public class ProgramDAO extends ProgramDao {
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
         }
+    }
+
+    public BrAPIClient getCoreClient(UUID programId) {
+        Program program = get(programId).get(0);
+        String brapiUrl = !program.getBrapiUrl().equals(SYSTEM_DEFAULT) ? program.getBrapiUrl() : defaultBrAPICoreUrl;
+        BrAPIClient client = new BrAPIClient(brapiUrl);
+        initializeHttpClient(client);
+        return client;
+    }
+
+    public BrAPIClient getPhenoClient(UUID programId) {
+        Program program = get(programId).get(0);
+        String brapiUrl = !program.getBrapiUrl().equals(SYSTEM_DEFAULT) ? program.getBrapiUrl() : defaultBrAPIPhenoUrl;
+        BrAPIClient client = new BrAPIClient(brapiUrl);
+        initializeHttpClient(client);
+        return client;
+    }
+
+    private void initializeHttpClient(BrAPIClient brapiClient) {
+        brapiClient.setHttpClient(brapiClient.getHttpClient()
+                .newBuilder()
+                .readTimeout(getRequestTimeout())
+                .build());
+    }
+
+    //TODO figure out why BrAPIServiceFilterIntegrationTest fails when requestTimeout is set in the constructor
+    private Duration getRequestTimeout() {
+        if(requestTimeout != null) {
+            return requestTimeout;
+        }
+
+        return Duration.of(5, ChronoUnit.MINUTES);
     }
 
 }

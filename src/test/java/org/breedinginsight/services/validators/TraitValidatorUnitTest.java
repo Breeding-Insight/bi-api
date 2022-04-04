@@ -60,8 +60,7 @@ public class TraitValidatorUnitTest {
     public void missingMethod() {
 
         Trait trait = new Trait();
-        trait.setTraitName("Test Trait");
-        trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait.setObservationVariableName("Test Trait");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");
@@ -70,7 +69,9 @@ public class TraitValidatorUnitTest {
 
         // Trait
         trait.setTraitClass("Pheno trait");
-        trait.setAttribute("leaf length");
+        trait.setEntity("leaf");
+        trait.setAttribute("length");
+        trait.setTraitDescription("testing the test trait");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
         trait.setSynonyms(List.of("test1", "test2"));
@@ -90,7 +91,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("method", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
+        assertEquals("Method", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
     }
 
     @Test
@@ -98,15 +99,16 @@ public class TraitValidatorUnitTest {
     public void missingScale() {
 
         Trait trait = new Trait();
-        trait.setTraitName("Test Trait");
-        trait.setAbbreviations(List.of("t1", "t2").toArray(String[]::new));
+        trait.setObservationVariableName("Test Trait");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Method method = new Method();
         trait.setMethod(method);
 
         // Trait
         trait.setTraitClass("Pheno trait");
-        trait.setAttribute("leaf length");
+        trait.setEntity("leaf");
+        trait.setAttribute("length");
+        trait.setTraitDescription("testing the test trait");
         trait.setDefaultValue("2.0");
         trait.setMainAbbreviation("abbrev1");
         trait.setSynonyms(List.of("test1", "test2"));
@@ -122,7 +124,7 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         assertEquals(400, rowValidationErrors.getErrors().get(0).getHttpStatusCode(), "Wrong error code");
-        assertEquals("scale", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
+        assertEquals("Scale", rowValidationErrors.getErrors().get(0).getField(), "Wrong error column");
     }
 
     @Test
@@ -141,12 +143,14 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(6, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("traitName", 400);
-        expectedColumns.put("programObservationLevel.name", 400);
-        expectedColumns.put("method.description", 400);
-        expectedColumns.put("method.methodClass", 400);
-        expectedColumns.put("scale.scaleName", 400);
-        expectedColumns.put("scale.dataType", 400);
+        expectedColumns.put("Name", 400);
+        expectedColumns.put("Entity", 400);
+        expectedColumns.put("Attribute", 400);
+        expectedColumns.put("Trait Description", 400);
+        expectedColumns.put("Program Observation Level Name", 400);
+        expectedColumns.put("Method Class", 400);
+        expectedColumns.put("Scale Name", 400);
+        expectedColumns.put("Scale Data Type", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -183,8 +187,8 @@ public class TraitValidatorUnitTest {
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("method.formula", 400);
-        expectedColumns.put("scale.categories", 400);
+        expectedColumns.put("Method Formula", 400);
+        expectedColumns.put("Scale Categories", 400);
         List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
 
         Boolean unknownColumnReturned = false;
@@ -204,11 +208,53 @@ public class TraitValidatorUnitTest {
 
     @Test
     @SneakyThrows
+    public void dataInsufficientCategoriesFailure() {
+
+        Trait trait = new Trait();
+        Method method = new Method();
+        method.setMethodClass("Computation");
+        Scale scale = new Scale();
+        scale.setScaleName("Test Scale");
+        scale.setDataType(DataType.ORDINAL);
+        trait.setScale(scale);
+        trait.setMethod(method);
+        trait.getScale().setValidValueMin(1);
+        trait.getScale().setValidValueMax(10);
+        trait.getScale().setDecimalPlaces(3);
+        trait.getScale().setCategories(List.of(new BrAPIScaleValidValuesCategories().label("label1").value("value1")));
+
+        ValidationErrors validationErrors = traitValidatorService.checkTraitDataConsistency(List.of(trait), new TraitValidatorError());
+
+        assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
+        assertEquals(2, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+        Map<String, Integer> expectedColumns = new HashMap<>();
+        expectedColumns.put("Method Formula", 400);
+        expectedColumns.put("Scale Categories", 422);
+        List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
+
+        Boolean unknownColumnReturned = false;
+        for (ValidationError error: rowValidationErrors.getErrors()){
+            String column = error.getField();
+            if (expectedColumns.containsKey(column)){
+                assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
+            } else {
+                unknownColumnReturned = true;
+            }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
+        }
+    }
+
+
+    @Test
+    @SneakyThrows
     public void duplicateTraitsInFile() {
 
         Trait trait1 = new Trait();
-        trait1.setTraitName("Test Trait");
-        trait1.setAbbreviations("t1", "t2");
+        trait1.setObservationVariableName("Test Trait");
         trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale1 = new Scale();
         scale1.setScaleName("Test Scale");
@@ -217,8 +263,7 @@ public class TraitValidatorUnitTest {
         trait1.setMethod(method1);
 
         Trait trait2 = new Trait();
-        trait2.setTraitName("Test Trait");
-        trait2.setAbbreviations("t1", "t2");
+        trait2.setObservationVariableName("Test Trait");
         trait2.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale2 = new Scale();
         scale2.setScaleName("Test Scale");
@@ -227,8 +272,7 @@ public class TraitValidatorUnitTest {
         trait2.setMethod(method2);
 
         Trait trait3 = new Trait();
-        trait3.setTraitName("Test Trait");
-        trait3.setAbbreviations("t1", "t2");
+        trait3.setObservationVariableName("Test Trait");
         trait3.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale3 = new Scale();
         scale3.setScaleName("Test Scale");
@@ -240,14 +284,70 @@ public class TraitValidatorUnitTest {
 
         assertEquals(3, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors trait1Error = validationErrors.getRowErrors().get(0);
-        assertEquals(2, trait1Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(1, trait1Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait1Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
         RowValidationErrors trait2Error = validationErrors.getRowErrors().get(0);
-        assertEquals(2, trait2Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(1, trait2Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait2Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
         RowValidationErrors trait3Error = validationErrors.getRowErrors().get(0);
-        assertEquals(2, trait3Error.getErrors().size(), "Wrong number of errors");
+        assertEquals(1, trait3Error.getErrors().size(), "Wrong number of errors");
         assertEquals(409, trait3Error.getErrors().get(0).getHttpStatusCode(), "Wrong status code");
     }
+
+    @Test
+    @SneakyThrows
+    public void charLimitExceeded() {
+
+        Trait trait = new Trait();
+        trait.setObservationVariableName("OverTwelveChar");
+        trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale = new Scale();
+        scale.setScaleName("Test Scale");
+        Method method = new Method();
+        trait.setScale(scale);
+        trait.setMethod(method);
+
+        // Trait
+        trait.setTraitClass("Pheno trait");
+        trait.setEntity("This is over 30 characters error");
+        trait.setAttribute("This is over 30 characters error");
+        trait.setTraitDescription("testing the test trait");
+        trait.setDefaultValue("2.0");
+        trait.setMainAbbreviation("abbrev1");
+        trait.setSynonyms(List.of("test1", "test2"));
+
+        // Method
+        trait.getMethod().setMethodClass("Estimation");
+        trait.getMethod().setDescription("This is over 30 characters error");
+        trait.getMethod().setFormula("a^2 + b^2 = c^2");
+
+        ValidationErrors validationErrors = traitValidatorService.checkTraitFieldsLength(List.of(trait), new TraitValidatorError());
+
+        assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
+        RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
+        assertEquals(4, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
+
+        Map<String, Integer> expectedColumns = new HashMap<>();
+        expectedColumns.put("Name", 422);
+        expectedColumns.put("Entity", 422);
+        expectedColumns.put("Attribute", 422);
+        expectedColumns.put("Method Description", 422);
+        List<Boolean> seenTrackList = expectedColumns.keySet().stream().map(column -> false).collect(Collectors.toList());
+
+        Boolean unknownColumnReturned = false;
+        for (ValidationError error: rowValidationErrors.getErrors()){
+            String column = error.getField();
+            if (expectedColumns.containsKey(column)){
+                assertEquals(expectedColumns.get(column), error.getHttpStatusCode(), "Wrong code was returned");
+            } else {
+                unknownColumnReturned = true;
+            }
+        }
+
+        if (unknownColumnReturned){
+            throw new AssertionFailedError("Unexpected error was returned");
+        }
+    }
+
 
 }

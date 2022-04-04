@@ -18,9 +18,12 @@
 package org.breedinginsight.services;
 
 import io.micronaut.core.util.StringUtils;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -47,6 +50,7 @@ public class TraitService {
     private TraitDAO traitDAO;
     private MethodDAO methodDAO;
     private ScaleDAO scaleDAO;
+    private ObservationDAO observationDAO;
     private ProgramService programService;
     private ProgramOntologyService programOntologyService;
     private ProgramObservationLevelService programObservationLevelService;
@@ -55,13 +59,16 @@ public class TraitService {
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
 
+    private final static String FAVORITES_TAG = "favorites";
+
     @Inject
-    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ProgramService programService,
+    public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
                         UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
+        this.observationDAO = observationDao;
         this.programService = programService;
         this.programOntologyService = programOntologyService;
         this.programObservationLevelService = programObservationLevelService;
@@ -106,6 +113,18 @@ public class TraitService {
         }
 
        return traitDAO.getTraitFull(programId, traitId);
+    }
+
+    public Editable getEditable(UUID programId, UUID traitId) {
+        // BrAPIService filter now checks program exists so don't need to do explicitly
+
+        // check if trait exists
+        if (!exists(traitId)) {
+            throw new HttpStatusException(HttpStatus.NOT_FOUND, "traitId does not exist");
+        }
+
+        List<BrAPIObservation> observations = traitDAO.getObservationsForTrait(traitId);
+        return Editable.builder().editable(observations.isEmpty()).build();
     }
 
     public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
@@ -176,8 +195,7 @@ public class TraitService {
 
                     // Create trait
                     TraitEntity jooqTrait = TraitEntity.builder()
-                            .traitName(trait.getTraitName())
-                            .abbreviations(trait.getAbbreviations())
+                            .observationVariableName(trait.getObservationVariableName())
                             .programOntologyId(programOntology.getId())
                             .programObservationLevelId(trait.getProgramObservationLevel().getId())
                             .methodId(jooqMethod.getId())
@@ -214,6 +232,7 @@ public class TraitService {
                     trait.setProgramObservationLevel(programObservationLevel);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
+                    trait.getProgramObservationLevel().setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
                 }
             }
@@ -222,8 +241,15 @@ public class TraitService {
 
     public void preprocessTraits(List<Trait> traits) {
 
-        // Set data type to numerical when method class is computation
+        // Set data type to numerical when method class is computation and include name and full name as synonyms
         for (Trait trait: traits) {
+            List<String> brApiSynonyms = trait.getSynonyms() == null ? new ArrayList<>() : trait.getSynonyms();
+            if (trait.getObservationVariableName() != null && !brApiSynonyms.contains(trait.getObservationVariableName())) {
+                brApiSynonyms.add(trait.getObservationVariableName());
+            }
+            if (trait.getFullName() != null && !brApiSynonyms.contains(trait.getFullName())) {
+                brApiSynonyms.add(trait.getFullName());
+            }
             if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
                 trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
                 if (trait.getScale() != null) {
@@ -245,7 +271,6 @@ public class TraitService {
         // Ignore duplicate traits
         ValidationErrors duplicateErrors = new ValidationErrors();
         List<Trait> duplicateTraits = traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
-        List<Trait> duplicateTraitsByAbbrev = traitValidator.checkDuplicateTraitsExistingByAbbreviation(programId, traits);
         List<Integer> traitIndexToRemove = new ArrayList<>();
         for (Trait duplicateTrait: duplicateTraits){
 
@@ -258,16 +283,6 @@ public class TraitService {
             }
         }
 
-        for (Trait duplicateTraitAbbrev: duplicateTraitsByAbbrev){
-
-            Integer i = traits.indexOf(duplicateTraitAbbrev);
-            if (i == -1){
-                throw new InternalServerException("Duplicate trait was not referenced correctly");
-            } else {
-                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByAbbreviationsMsg());
-                traitIndexToRemove.add(i);
-            }
-        }
 
         // Check the rest of our validations
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
@@ -278,7 +293,6 @@ public class TraitService {
         // Remove our duplicate traits if we are not going to throw an error on them
         if (!throwDuplicateErrors) {
             Set<Trait> duplicateTraitSet = new HashSet<>(duplicateTraits);
-            duplicateTraitSet.addAll(duplicateTraitsByAbbrev);
             traits.removeAll(duplicateTraitSet);
         }
 
@@ -310,7 +324,7 @@ public class TraitService {
     }
 
     public List<Trait> updateTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
-            throws DoesNotExistException, ValidatorException {
+            throws DoesNotExistException, HttpStatusException, ValidatorException {
 
         Optional<Program> optionalProgram = programService.getById(programId);
         if (!optionalProgram.isPresent()) {
@@ -347,6 +361,15 @@ public class TraitService {
             throw new ValidatorException(missingTraitValidationErrors);
         }
 
+        // check if any of the traits have associated observations
+        List<UUID> ids = traits.stream()
+                .map(trait -> trait.getId())
+                .collect(Collectors.toList());
+
+        if (!traitDAO.getObservationsForTraits(ids).isEmpty()) {
+            throw new HttpStatusException(HttpStatus.METHOD_NOT_ALLOWED, "Observations exist for trait, cannot edit");
+        }
+
         // Create the traits
         List<Trait> updatedTraits = new ArrayList<>();
 
@@ -376,8 +399,7 @@ public class TraitService {
                     scaleDAO.update(existingScaleEntity);
 
                     // Update trait
-                    existingTraitEntity.setTraitName(updatedTrait.getTraitName());
-                    existingTraitEntity.setAbbreviations(updatedTrait.getAbbreviations());
+                    existingTraitEntity.setObservationVariableName(updatedTrait.getObservationVariableName());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());
                     traitDAO.update(existingTraitEntity);
@@ -415,5 +437,26 @@ public class TraitService {
         Trait fullTrait = traitDAO.getTraitFull(programId, traitId).get();
         fullTrait.setActive(active);
         return traitDAO.updateTraitBrAPI(fullTrait, program);
+    }
+
+    public boolean exists(UUID traitId) {
+        return traitDAO.existsById(traitId);
+    }
+
+    public List<String> getAllTraitTags(UUID programId) {
+
+        // Get all traits
+        List<Trait> traits = traitDAO.getTraitsFullByProgramId(programId);
+
+        // Parse out tags into unique list
+        Set<String> tags = new HashSet<>();
+        for (Trait trait: traits) {
+            if (trait.getTags() != null) {
+                tags.addAll(trait.getTags());
+            }
+        }
+
+        tags.add(FAVORITES_TAG);
+        return new ArrayList<>(tags);
     }
 }

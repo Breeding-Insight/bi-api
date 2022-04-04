@@ -20,7 +20,7 @@ version: "3.7"
 services:
   biapi-dev:
     container_name: biapi
-    image: biapi
+    image: breedinginsight/biapi:latest
     build:
       context: .
       dockerfile: ./Dockerfile-dev
@@ -70,7 +70,7 @@ services:
         aliases:
           - dbserver
   brapi-server:
-    image: breedinginsight/brapi-java-server:v2.0-3
+    image: breedinginsight/brapi-java-server:latest
     container_name: brapi-server
     depends_on:
       - bidb

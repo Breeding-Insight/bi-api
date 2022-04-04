@@ -20,6 +20,7 @@ package org.breedinginsight.api.model.v1.request;
 import io.micronaut.test.annotation.MicronautTest;
 import io.micronaut.validation.validator.Validator;
 import org.breedinginsight.DatabaseTest;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -34,6 +35,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 public class UserRequestTest extends DatabaseTest {
     @Inject
     private Validator validator;
+
+    @AfterAll
+    public void finish() {
+        super.stopContainers();
+    }
 
     @Test
     void validRequest() {

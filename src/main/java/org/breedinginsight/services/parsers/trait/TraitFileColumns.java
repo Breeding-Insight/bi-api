@@ -22,21 +22,23 @@ import java.util.stream.Collectors;
 
 public enum TraitFileColumns {
 
-    TRAIT_NAME("Trait name"),
-    TRAIT_ABBREVIATIONS("Trait abbreviations"),
-    TRAIT_SYNONYMS("Trait synonyms"),
-    TRAIT_LEVEL("Trait level"),
-    TRAIT_STATUS("Trait status"),
-    TRAIT_LISTS("Trait lists"),
+    NAME("Name"),
+    SYNONYMS("Synonyms"),
+    TRAIT_ENTITY("Trait entity"),
+    TRAIT_ATTRIBUTE("Trait attribute"),
+    DESCRIPTION("Description"),
+    STATUS("Status"),
     METHOD_DESCRIPTION("Method description"),
     METHOD_CLASS("Method class"),
     METHOD_FORMULA("Method formula"),
-    SCALE_NAME("Scale name"),
+    SCALE_NAME("Units"),
     SCALE_CLASS("Scale class"),
     SCALE_DECIMAL_PLACES("Scale decimal places"),
     SCALE_LOWER_LIMIT("Scale lower limit"),
     SCALE_UPPER_LIMIT("Scale upper limit"),
-    SCALE_CATEGORIES("Scale categories");
+    SCALE_CATEGORIES("Scale categories"),
+    TAGS("Tags"),
+    FULL_NAME("Full name");
 
     private String value;
 

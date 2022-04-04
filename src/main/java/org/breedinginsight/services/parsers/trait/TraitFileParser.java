@@ -28,10 +28,7 @@ import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
-import org.breedinginsight.model.Method;
-import org.breedinginsight.model.ProgramObservationLevel;
-import org.breedinginsight.model.Scale;
-import org.breedinginsight.model.Trait;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -125,17 +122,17 @@ public class TraitFileParser {
             ExcelRecord record = records.get(i);
 
             ProgramObservationLevel level = ProgramObservationLevel.builder()
-                    .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_LEVEL))
+                    .name(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ENTITY))
                     .build();
 
 
             Boolean active;
-            String traitStatus = parseExcelValueAsString(record, TraitFileColumns.TRAIT_STATUS);
+            String traitStatus = parseExcelValueAsString(record, TraitFileColumns.STATUS);
             if (traitStatus == null) {
                 active = true;
             } else {
                 if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
-                    ValidationError error = new ValidationError(TraitFileColumns.TRAIT_STATUS.toString(),
+                    ValidationError error = new ValidationError(TraitFileColumns.STATUS.toString(),
                             ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
                     validationErrors.addError(traitValidatorError.getRowNumber(i), error);
                 }
@@ -143,12 +140,23 @@ public class TraitFileParser {
             }
 
             // Normalize and capitalize method class
-            String methodClass = parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS);
-            if (methodClass != null) { methodClass = StringUtils.capitalize(methodClass.toLowerCase()); }
+            String methodClassStr = parseExcelValueAsString(record, TraitFileColumns.METHOD_CLASS);
+            MethodClass methodClass = null;
+
+            if (methodClassStr != null) {
+                try {
+                    methodClass = MethodClass.valueOf(methodClassStr.toUpperCase());
+                } catch (IllegalArgumentException e) {
+                    log.error(e.getMessage());
+                    ValidationError error = new ValidationError(TraitFileColumns.METHOD_CLASS.toString(),
+                            ParsingExceptionType.INVALID_METHOD_CLASS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
 
             Method method = Method.builder()
                     .description(parseExcelValueAsString(record, TraitFileColumns.METHOD_DESCRIPTION))
-                    .methodClass(methodClass)
+                    .methodClass(methodClass != null ? methodClass.getLiteral() : null)
                     .formula(parseExcelValueAsString(record, TraitFileColumns.METHOD_FORMULA))
                     .build();
 
@@ -158,6 +166,12 @@ public class TraitFileParser {
             if (dataTypeString != null) {
                 try {
                     dataType = DataType.valueOf(dataTypeString.toUpperCase());
+
+                    //This if statement can be removed once DURATION is no longer a valid Data Type
+                    if( DataType.DURATION == dataType ){
+                        throw new IllegalArgumentException("DURATION is not a valid datatype for batch uploading");
+                    }
+
                 } catch (IllegalArgumentException e) {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_CLASS.toString(),
@@ -230,21 +244,25 @@ public class TraitFileParser {
                     .categories(categories)
                     .build();
 
-            String abbreviationsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_ABBREVIATIONS);
-            List<String> traitAbbreviations = parseListValue(abbreviationsString);
-
-            String synonymsString = parseExcelValueAsString(record, TraitFileColumns.TRAIT_SYNONYMS);
+            String synonymsString = parseExcelValueAsString(record, TraitFileColumns.SYNONYMS);
             List<String> traitSynonyms = parseListValue(synonymsString);
 
+            String tagsString = parseExcelValueAsString(record, TraitFileColumns.TAGS);
+            List<String> traitTags = parseListValue(tagsString);
+
             Trait trait = Trait.builder()
-                    .traitName(parseExcelValueAsString(record, TraitFileColumns.TRAIT_NAME))
-                    .abbreviations(traitAbbreviations.toArray(String[]::new))
+                    .observationVariableName(parseExcelValueAsString(record, TraitFileColumns.NAME))
+                    .traitDescription(parseExcelValueAsString(record, TraitFileColumns.DESCRIPTION))
+                    .entity(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ENTITY))
+                    .attribute(parseExcelValueAsString(record, TraitFileColumns.TRAIT_ATTRIBUTE))
                     .synonyms(traitSynonyms)
                     .programObservationLevel(level)
                     .active(active)
+                    .fullName(parseExcelValueAsString(record, TraitFileColumns.FULL_NAME))
                     // TODO: trait lists
                     .method(method)
                     .scale(scale)
+                    .tags(traitTags)
                     .build();
 
             traits.add(trait);
@@ -305,8 +323,8 @@ public class TraitFileParser {
 
         String[] labelMeaning = value.split(CATEGORY_DELIMITER);
         if (labelMeaning.length == 2) {
-            category.setLabel(labelMeaning[0].trim());
-            category.setValue(labelMeaning[1].trim());
+            category.setValue(labelMeaning[0].trim());
+            category.setLabel(labelMeaning[1].trim());
         }
         else if (labelMeaning.length == 1) {
             category.setValue(labelMeaning[0].trim());

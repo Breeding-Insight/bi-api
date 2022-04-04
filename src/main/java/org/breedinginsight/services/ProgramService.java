@@ -19,6 +19,7 @@ package org.breedinginsight.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -29,6 +30,7 @@ import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
+import org.breedinginsight.services.exceptions.AlreadyExistsException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
@@ -36,6 +38,7 @@ import org.jooq.DSLContext;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -52,6 +55,10 @@ public class ProgramService {
     private DSLContext dsl;
     private SecurityService securityService;
     private BrAPIClientProvider brAPIClientProvider;
+
+    private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
+    private static final String PROGRAM_KEY_IN_USE = "PROGRAM_KEY_IN_USE";
+    private static final String GERMPLASM_SEQUENCE_TEMPLATE = "%s_germplasm_sequence";
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
@@ -84,7 +91,11 @@ public class ProgramService {
             return Optional.empty();
         }
 
-        return Optional.of(programs.get(0));
+        Program program = programs.get(0);
+        BrAPIProgram brapiProgram = dao.getProgramBrAPI(program);
+        program.setBrAPIProperties(brapiProgram);
+
+        return Optional.of(program);
     }
 
     public List<Program> getAll(AuthenticatedUser actingUser){
@@ -98,13 +109,37 @@ public class ProgramService {
         return programs;
     }
 
-    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws UnprocessableEntityException {
+    public Program create(ProgramRequest programRequest, AuthenticatedUser actingUser) throws AlreadyExistsException, UnprocessableEntityException {
         /* Create a program from a request object */
+
+        //Check that key present
+        if (programRequest.getKey().isBlank()){
+            throw new UnprocessableEntityException("Program key required");
+        }
+
+        //Check that program name not already in use
+        if (programNameInUse(programRequest.getName())) {
+            throw new AlreadyExistsException(PROGRAM_NAME_IN_USE);
+        }
 
         // Check that our species exists
         SpeciesRequest speciesRequest = programRequest.getSpecies();
         if (!speciesService.exists(speciesRequest.getId())){
             throw new UnprocessableEntityException("Species does not exist");
+        }
+
+        //Check that program key not already in use
+        if (programKeyInUse(programRequest.getKey())) {
+            throw new AlreadyExistsException(PROGRAM_KEY_IN_USE);
+        }
+
+        //Ensure program key uppercase
+        programRequest.setKey(programRequest.getKey().toUpperCase());
+
+        //Check that program key formatting correct
+        ArrayList<String> keyErrors = getKeyValidationErrors(programRequest.getKey());
+        if (!(keyErrors.isEmpty())) {
+            throw new UnprocessableEntityException(String.join(" .", keyErrors));
         }
 
         String brapiUrl = programRequest.getBrapiUrl();
@@ -121,6 +156,11 @@ public class ProgramService {
         }
 
         Program program = dsl.transactionResult(configuration -> {
+
+            // Create germplasm sequence
+            String germplasm_sequence_name = String.format(GERMPLASM_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(germplasm_sequence_name).execute();
+
             // Parse and create the program object
             ProgramEntity programEntity = ProgramEntity.builder()
                     .name(programRequest.getName())
@@ -129,6 +169,8 @@ public class ProgramService {
                     .objective(programRequest.getObjective())
                     .documentationUrl(programRequest.getDocumentationUrl())
                     .brapiUrl(brapiUrl)
+                    .key(programRequest.getKey())
+                    .germplasmSequence(germplasm_sequence_name)
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();
@@ -217,5 +259,34 @@ public class ProgramService {
 
         return dao.getProgramBrAPIEndpoints(programId);
     }
+
+    private boolean programNameInUse(String name) {
+        List<Program> existingPrograms = dao.getProgramByName(name, true);
+        if (!existingPrograms.isEmpty()) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    private boolean programKeyInUse(String key) {
+        List<Program> existingPrograms = dao.getProgramByKey(key);
+        return !existingPrograms.isEmpty();
+    }
+
+    public ArrayList getKeyValidationErrors(String key) {
+        ArrayList<String> keyErrors = new ArrayList<>();
+        if (key.length() < 2) {
+            keyErrors.add("Key must be at least 2 characters.");
+        }
+        if (key.length() > 6) {
+            keyErrors.add("Key must be at maximum 6 characters.");
+        }
+        if (!(key.matches("^[A-Z]*$"))) {
+            keyErrors.add("Key must use only alphabetic characters.");
+        }
+        return keyErrors;
+    }
+
 
 }

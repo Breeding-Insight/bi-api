@@ -28,9 +28,11 @@ import org.apache.commons.io.input.BOMInputStream;
 import org.apache.tika.mime.MediaType;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.enums.UploadType;
 import org.breedinginsight.daos.ProgramUploadDAO;
 import org.breedinginsight.model.ProgramUpload;
+import org.breedinginsight.model.Scale;
 import org.breedinginsight.services.constants.SupportedMediaType;
 import org.breedinginsight.services.exceptions.*;
 
@@ -124,7 +126,7 @@ public class TraitUploadService {
         traitService.preprocessTraits(traits);
 
         ValidationErrors validationErrors = new ValidationErrors();
-
+        traits = this.markScaleNames(traits);
         Optional<ValidationErrors> optionalValidationErrors = traitValidator.checkAllTraitValidations(traits, traitValidatorError);
         if (optionalValidationErrors.isPresent()){
             validationErrors.merge(optionalValidationErrors.get());
@@ -135,6 +137,8 @@ public class TraitUploadService {
         }
 
         traitService.assignTraitsProgramObservationLevel(traits, programId);
+
+        traits = this.markDups(traits, programId);
 
         String json = null;
         try {
@@ -167,7 +171,61 @@ public class TraitUploadService {
         programUpload.setParsedData(parseUpload(programUpload));
         return programUpload;
     }
+    private List<Trait> markDups(List<Trait> traits, UUID programId){
+        List<Trait> dupTraitsByName = this.traitValidator.checkDuplicateTraitsExistingByName(programId, traits);
 
+        for(Trait trait: traits){
+            boolean isDup = false;
+
+            for(Trait dupTrait : dupTraitsByName){
+                if(dupTrait.getObservationVariableName().equals(trait.getObservationVariableName())){
+                    isDup = true;
+                    break;
+                }
+            }
+
+            trait.setIsDup(isDup);
+        }
+
+        return traits;
+    }
+
+    private List<Trait> markScaleNames(List<Trait> traits){
+        for(Trait trait: traits){
+            Scale scale = trait.getScale();
+            if(scale != null){
+                scale.setScaleName( calcDefaultScaleName(trait) );
+            }
+        }
+        return traits;
+    }
+
+    private String calcDefaultScaleName(Trait trait){
+        Scale scale = trait.getScale();
+        if(scale != null){
+            String scaleName = scale.getScaleName();
+            // if scaleName already exist, use it
+            if(scaleName != null) {
+                return scaleName;
+            }
+            else {
+                DataType datatype = scale.getDataType();
+                if( datatype != null ) {
+                    // if the dataType is not Numerical, use the dataType value
+                    if(datatype!=DataType.NUMERICAL){
+                        String defaultValue = datatype.getLiteral();
+                        //Make Title Case
+                        String titleCase =
+                                defaultValue.substring(0, 1).toUpperCase() +
+                                        defaultValue.substring(1).toLowerCase();
+                        return titleCase;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+    
     public Optional<ProgramUpload<Trait>> getTraitUpload(UUID programId, AuthenticatedUser actingUser) {
 
         List<ProgramUpload> uploads = programUploadDao.getUploads(programId, actingUser.getId(), UploadType.TRAIT);
@@ -178,7 +236,7 @@ public class TraitUploadService {
             throw new IllegalStateException("More than one trait upload found, only 1 allowed");
         }
 
-        ProgramUpload programUpload = (ProgramUpload<Trait>) uploads.get(0);
+        ProgramUpload programUpload = uploads.get(0);
         programUpload.setParsedData(parseUpload(programUpload));
         return Optional.of(programUpload);
     }

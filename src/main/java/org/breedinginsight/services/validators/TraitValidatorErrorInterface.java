@@ -18,6 +18,7 @@
 package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.dao.db.enums.DataType;
 
 import java.util.List;
 
@@ -25,21 +26,28 @@ public interface TraitValidatorErrorInterface {
     Integer getRowNumber(Integer row);
     ValidationError getTraitIdDoesNotExistMsg();
     ValidationError getMissingMethodMsg();
-    ValidationError getMissingMethodDescriptionMsg();
     ValidationError getMissingMethodClassMsg();
     ValidationError getMissingScaleMsg();
     ValidationError getMissingScaleNameMsg();
     ValidationError getMissingScaleDataTypeMsg();
-    ValidationError getMissingTraitNameMsg();
+    ValidationError getMissingObsVarNameMsg();
+    ValidationError getMissingTraitEntityMsg();
+    ValidationError getMissingTraitAttributeMsg();
+    ValidationError getMissingTraitDescriptionMsg();
     ValidationError getMissingProgramObservationLevelMsg();
     ValidationError getMissingMethodFormulaMsg();
-    ValidationError getMissingScaleCategoriesMsg();
+    ValidationError getMissingScaleCategoriesMsg(DataType dataType);
     ValidationError getBadScaleCategory();
     ValidationError getBlankScaleCategoryLabelMsg();
     ValidationError getBlankScaleCategoryValueMsg();
+    ValidationError getPopulatedNominalCategoryLabelMsg();
     ValidationError getMaxLessThenMinError();
+    ValidationError getInsufficientNominalValError();
+    ValidationError getInsufficientOrdinalValError();
+    ValidationError getCharLimitObsVarNameMsg();
+    ValidationError getCharLimitTraitEntityMsg();
+    ValidationError getCharLimitTraitAttributeMsg();
+    ValidationError getCharLimitMethodDescriptionMsg();
     ValidationError getDuplicateTraitByNamesMsg();
-    ValidationError getDuplicateTraitByAbbreviationsMsg();
     ValidationError getDuplicateTraitsByNameInFileMsg(List<Integer> matchingRows);
-    ValidationError getDuplicateTraitsByAbbreviationInFileMsg(List<Integer> matchingRows);
 }

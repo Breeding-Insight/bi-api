@@ -16,10 +16,7 @@
  */
 package org.breedinginsight.api.v1.controller;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.google.gson.*;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -35,6 +32,8 @@ import junit.framework.AssertionFailedError;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.model.v1.request.ProgramRequest;
+import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -44,22 +43,23 @@ import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Species;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.SpeciesService;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.OffsetDateTime;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
+import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -76,16 +76,27 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     private UserDAO userDAO;
     @Inject
     private TraitDAO traitDAO;
+    @Inject
+    private SpeciesService speciesService;
+
+    private Species validSpecies;
+
+    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+            (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .create();
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
-    private ProgramEntity validProgram;
+    private Program validProgram;
     private File validFile = new File("src/test/resources/files/data_one_row.csv");
     private String validUploadId;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     String invalidProgram = invalidUUID;
+
+    @AfterAll
+    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     public void setup() {
@@ -98,23 +109,79 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         super.getBrapiDsl().execute(brapiFp.get("InsertSpecies"));
 
         // Insert program
-        dsl.execute(fp.get("InsertProgram"));
+        //dsl.execute(fp.get("InsertProgram"));
+
+        validSpecies = getTestSpecies();
+
+        SpeciesRequest speciesRequest = SpeciesRequest.builder()
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
+
+        ProgramRequest program = ProgramRequest.builder()
+                .name("Test Program")
+                .species(speciesRequest)
+                .key("TEST")
+                .build();
+
+        validProgram = insertAndFetchTestProgram(program);
 
         // Insert user into program
-        dsl.execute(fp.get("InsertProgramUser"));
+        //dsl.execute(fp.get("InsertProgramUser"));
 
         // Insert user into program as not active
         dsl.execute(fp.get("InsertInactiveProgramUser"));
 
         // Insert Trait
         dsl.execute(fp.get("InsertProgramObservationLevel"));
-        dsl.execute(fp.get("InsertProgramOntology"));
+        //dsl.execute(fp.get("InsertProgramOntology"));
         dsl.execute(fp.get("InsertMethod"));
         dsl.execute(fp.get("InsertScale"));
         dsl.execute(fp.get("InsertTrait"));
 
-        // Retrieve our new data
-        validProgram = programDao.findAll().get(0);
+    }
+
+    public Species getTestSpecies() {
+        List<Species> species = speciesService.getAll();
+        return species.get(0);
+    }
+
+    public Program insertAndFetchTestProgram(ProgramRequest programRequest) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/", gson.toJson(programRequest))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String programId = result.get("id").getAsString();
+
+        Program program = getProgramById(UUID.fromString(programId));
+
+        return program;
+    }
+
+    public Program getProgramById(UUID programId) {
+
+        dsl.execute(fp.get("InsertProgramUser"));
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/programs/"+programId.toString()).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body())
+                .getAsJsonObject()
+                .getAsJsonObject("result");
+
+        Program program = gson.fromJson(result, Program.class);
+
+        return program;
     }
 
     @Test
@@ -294,17 +361,16 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
         JsonArray errors = rowError1.getAsJsonArray("errors");
-        assertTrue(errors.size() == 2, "Not enough errors were returned");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals(409, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
 
         JsonObject rowError2 = rowErrors.get(0).getAsJsonObject();
         JsonArray errors2 = rowError2.getAsJsonArray("errors");
-        assertTrue(errors2.size() == 2, "Not enough errors were returned");
+        assertTrue(errors2.size() == 1, "Not enough errors were returned");
         JsonObject error2 = errors2.get(0).getAsJsonObject();
         assertEquals(409, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
     }
-
 
     @Test
     public void putTraitUploadBadTypes() {
@@ -320,9 +386,10 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
         assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
         JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
-        assertEquals(6, rowValidationErrors.size(), "Wrong number of errors for row");
+        assertEquals(7, rowValidationErrors.size(), "Wrong number of errors for row");
         Map<String, Integer> expectedColumns = new HashMap<>();
-        expectedColumns.put("Trait status", 422);
+        expectedColumns.put("Status", 422);
+        expectedColumns.put("Method class", 422);
         expectedColumns.put("Scale categories", 422);
         expectedColumns.put("Scale class", 422);
         expectedColumns.put("Scale decimal places", 422);
@@ -344,6 +411,59 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         if (unknownColumnReturned){
             throw new AssertionFailedError("Unexpected error was returned");
         }
+    }
+
+    @Test
+    void putTraitUploadSingleTraitLevelError() {
+        File file = new File("src/test/resources/files/missing_trait_entity.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+        assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
+        JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
+        assertTrue(error.get("field").getAsString().contains("Trait Entity"), "Wrong field returned");
+        assertFalse(error.get("field").getAsString().contains("Trait Level"), "Wrong field returned");
+    }
+
+    @Test
+    void putTraitUploadSingleMissingScaleClassError() {
+      File file = new File("src/test/resources/files/missing_scale_class.xlsx");
+
+      HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+          HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+      });
+      assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+      JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+      assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+      JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+      assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
+      JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
+      assertTrue(error.get("field").getAsString().contains("Scale Class"), "Wrong field returned");
+      assertFalse(error.get("field").getAsString().contains("Unit"), "Wrong field returned");
+    }
+
+    @Test
+    void putTraitUploadSingleMissingScaleUnitError() {
+        File file = new File("src/test/resources/files/missing_scale_unit.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size(), "Wrong number of row errors returned");
+        JsonArray rowValidationErrors = rowErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+        assertEquals(1, rowValidationErrors.size(), "Wrong number of errors for row");
+        JsonObject error = rowValidationErrors.get(0).getAsJsonObject();
+        assertTrue(error.get("field").getAsString().contains("Unit"), "Wrong field returned");
     }
 
     @Test
@@ -439,32 +559,24 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonArray data = traitUpload.getAsJsonArray("data");
         JsonObject trait = data.get(0).getAsJsonObject();
 
-        JsonArray abbreviations = trait.getAsJsonArray("abbreviations");
-        String abb1 = abbreviations.get(0).getAsString();
-        String abb2 = abbreviations.get(1).getAsString();
-
-        assertEquals(2, abbreviations.size(), "number of abbreviations different than expected");
-        assertEquals("PMSevLeaf", abb1, "wrong abbreviation");
-        assertEquals("PM_LEAF_P4", abb2, "wrong abbreviation");
-
         JsonArray synonyms = trait.getAsJsonArray("synonyms");
         String syn1 = synonyms.get(0).getAsString();
         String syn2 = synonyms.get(1).getAsString();
 
-        assertEquals(2, synonyms.size(), "number of synonyms different than expected");
+        assertEquals(3, synonyms.size(), "number of synonyms different than expected");
         assertEquals("Powdery Mildew", syn1, "wrong synonym");
         assertEquals("Powdery Mildew Severity", syn2, "wrong synonym");
 
-        assertEquals("Powdery Mildew severity field, leaves", trait.get("traitName").getAsString(), "wrong trait name");
+        assertEquals("PM_Leaf", trait.get("observationVariableName").getAsString(), "wrong trait name");
 
         JsonObject observationLevel = trait.getAsJsonObject("programObservationLevel");
-        assertEquals("Plant", observationLevel.get("name").getAsString(), "wrong level name");
+        assertEquals("Leaf", observationLevel.get("name").getAsString(), "wrong level name");
 
         assertEquals(true, trait.get("active").getAsBoolean(), "wrong status");
         // TODO: trait lists
 
         JsonObject method = trait.get("method").getAsJsonObject();
-        assertEquals("Observed severity of Powdery Mildew on leaves", method.get("description").getAsString(), "wrong method description");
+        assertEquals("Powdery Mildew severity, leaf", method.get("description").getAsString(), "wrong method description");
         assertEquals("Estimation", method.get("methodClass").getAsString(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
 
@@ -531,7 +643,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(2, data.size(), "Wrong number of results returned");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.DESC);
 
         JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
@@ -546,7 +658,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
 
         SearchRequest searchRequest = new SearchRequest();
         searchRequest.setFilters(new ArrayList<>());
-        searchRequest.getFilters().add(new FilterRequest("name", "leaves"));
+        searchRequest.getFilters().add(new FilterRequest("name", "leaf"));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST("/programs/"+validProgram.getId()+"/trait-upload/search?page=1&pageSize=2&sortField=name&sortOrder=DESC", searchRequest)
@@ -560,7 +672,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
         assertEquals(1, data.size(), "Wrong number of results returned");
-        TestUtils.checkStringSorting(data, "traitName", SortOrder.DESC);
+        TestUtils.checkStringSorting(data, "observationVariableName", SortOrder.DESC);
 
         JsonObject metadata = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("metadata");
         JsonObject pagination = metadata.getAsJsonObject("pagination");
@@ -647,6 +759,77 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
             HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    void putNominalMissingCategories() {
+
+        File file = new File("src/test/resources/files/ontology/data_nominal_missing_categories.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 4, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertTrue(error.get("errorMessage").getAsString().contains("Nominal"), "Incorrect http status code");
+    }
+
+    @Test
+    void putNominalCategoryLabelPresentError() {
+
+        File file = new File("src/test/resources/files/ontology/data_category_label_nominal_trait.xls");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Scale categories contain errors", error.get("errorMessage").getAsString(), "Incorrect http status code");
+
+        // Check specific error
+        JsonArray categoryErrors = error.get("rowErrors").getAsJsonArray();
+        assertEquals(3, categoryErrors.size(), "Wrong number of category row errors");
+        JsonArray categoryRowErrors = categoryErrors.get(0).getAsJsonObject().get("errors").getAsJsonArray();
+        assertEquals(1, categoryRowErrors.size(), "Wrong number of category errors");
+        JsonObject labelError = categoryRowErrors.get(0).getAsJsonObject();
+        assertEquals("Scale label cannot be populated for Nominal scale type", labelError.get("errorMessage").getAsString());
+    }
+
+    @Test
+    void putOrdinalMissingCategories() {
+
+        File file = new File("src/test/resources/files/ontology/data_ordinal_missing_categories.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 4, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertTrue(error.get("errorMessage").getAsString().contains("Ordinal"), "Incorrect http status code");
     }
 
     void checkMultiErrorResponse(JsonArray rowErrors) {

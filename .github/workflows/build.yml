@@ -45,7 +45,7 @@ jobs:
           java-version: 13
 
       - name: Build with Maven
-        run: mvn validate -B flyway:migrate clean install --file pom.xml --settings settings.xml 
+        run: mvn validate -B flyway:migrate clean install --file pom.xml --settings settings.xml
         env:
           DB_USER: postgres
           DB_PASSWORD: postgres
@@ -57,3 +57,5 @@ jobs:
           BRAPI_DEFAULT_URL: https://test-server.brapi.org
           API_INTERNAL_TEST_PORT: 8081
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          OAUTH_CLIENT_ID: 123abc
+          OAUTH_CLIENT_SECRET: asdfljkhalkbaldsfjasdfi238497098asdf

@@ -25,6 +25,7 @@ import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
 import io.micronaut.test.annotation.MicronautTest;
 import org.breedinginsight.DatabaseTest;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
@@ -49,6 +50,11 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
     private String defaultUrl;
     @Property(name = "web.cookies.login-redirect")
     private String loginRedirectCookieName;
+
+    @AfterAll
+    public void finish() {
+        super.stopContainers();
+    }
 
     @Test
     public void returnsDefaultBadUrl() {

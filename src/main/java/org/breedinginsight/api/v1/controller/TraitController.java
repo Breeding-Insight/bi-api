@@ -35,6 +35,7 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.model.Editable;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.TraitService;
@@ -118,6 +119,18 @@ public class TraitController {
 
     }
 
+    @Get("/programs/{programId}/traits/{traitId}/editable")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<Editable>> getTraitEditable(@PathVariable UUID programId, @PathVariable UUID traitId) {
+
+        Editable editable = traitService.getEditable(programId, traitId);
+        Response<Editable> response = new Response<>(editable);
+        return HttpResponse.ok(response);
+
+    }
+
     @Post("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
@@ -158,7 +171,7 @@ public class TraitController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(updatedTraits));
             return HttpResponse.ok(response);
-        } catch (DoesNotExistException e){
+        } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         } catch (ValidatorException e){
@@ -183,5 +196,20 @@ public class TraitController {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         }
+    }
+
+    @Get("/programs/{programId}/traits/tags")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<DataResponse<String>>> getAllTraitTags(
+            @PathVariable UUID programId) {
+
+        List<String> tags = traitService.getAllTraitTags(programId);
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
+        Pagination pagination = new Pagination(tags.size(), 1, 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+        Response<DataResponse<String>> response = new Response<>(metadata, new DataResponse<>(tags));
+        return HttpResponse.ok(response);
     }
 }

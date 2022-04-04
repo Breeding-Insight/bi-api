@@ -30,6 +30,8 @@ import org.testcontainers.images.PullPolicy;
 import javax.annotation.Nonnull;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -44,7 +46,7 @@ public class BrAPITest extends DatabaseTest {
     public BrAPITest() {
         brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server")
                 .withNetwork(super.getDbContainer().getNetwork())
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withImagePullPolicy(PullPolicy.alwaysPull())
                 .withExposedPorts(8080)
                 .withEnv("BRAPI_DB_SERVER",
                         String.format("%s:%s",
@@ -54,7 +56,7 @@ public class BrAPITest extends DatabaseTest {
                 .withEnv("BRAPI_DB_USER", "postgres")
                 .withEnv("BRAPI_DB_PASSWORD", "postgres")
                 .withClasspathResourceMapping("brapi/properties/application.properties", "/home/brapi/properties/application.properties", BindMode.READ_ONLY)
-                .waitingFor(Wait.forListeningPort());
+                .waitingFor(Wait.forHttp("/brapi/v2/serverinfo").forStatusCode(200).withHeader("Accept", "application/json").withStartupTimeout(Duration.of(3, ChronoUnit.MINUTES)));
         brapiContainer.start();
 
         // Get a dsl connection for the brapi db
@@ -72,6 +74,7 @@ public class BrAPITest extends DatabaseTest {
 
         Integer containerPort = brapiContainer.getMappedPort(8080);
         String containerIp = brapiContainer.getContainerIpAddress();
+        properties.put("brapi.server.default-url", String.format("http://%s:%s/", containerIp, containerPort));
         properties.put("brapi.server.core-url", String.format("http://%s:%s/", containerIp, containerPort));
         properties.put("brapi.server.geno-url", String.format("http://%s:%s/", containerIp, containerPort));
         properties.put("brapi.server.pheno-url", String.format("http://%s:%s/", containerIp, containerPort));
@@ -80,6 +83,9 @@ public class BrAPITest extends DatabaseTest {
         return properties;
     }
 
-
+    public void stopContainers() {
+        brapiContainer.stop();
+        super.stopContainers();
+    }
 }
 

@@ -21,6 +21,11 @@ insert into program (species_id, name, abbreviation, documentation_url, objectiv
 select species.id, 'Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
 join bi_user on bi_user.name = 'system' limit 1
 
+-- name: InsertProgramNotBrapi
+insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
+select species.id, 'Test Program Not Brapi', 'testnotbrapi', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
+join bi_user on bi_user.name = 'system' limit 1
+
 -- name: InsertProgramObservationLevel
 insert into program_observation_level(program_id, name, created_by, updated_by)
 select program.id, 'Plant', bi_user.id, bi_user.id from program
@@ -45,8 +50,8 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join bi_user on bi_user.name = 'system' limit 1
 
 -- name: InsertTrait
-insert into trait (program_ontology_id, trait_name, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
-select program_ontology.id, 'Test Trait', ARRAY['t1', 't2'], method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
+insert into trait (program_ontology_id, observation_variable_name, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+select program_ontology.id, 'Test Trait', method.id, scale.id, program_observation_level.id, bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
 join method on method.program_ontology_id = program_ontology.id
@@ -90,37 +95,37 @@ method_id := (SELECT method.id from method limit 1);
 scale_id := (SELECT scale.id from scale where scale.scale_name = 'Test Scale');
 program_observation_level_id := (SELECT program_observation_level.id from program_observation_level join program on program.id = program_observation_level.program_id and program.name = 'Test Program');
 
-insert into trait (trait_name, program_ontology_id, abbreviations, method_id, scale_id, program_observation_level_id, created_by, updated_by)
+insert into trait (observation_variable_name, program_ontology_id, method_id, scale_id, program_observation_level_id, created_by, updated_by)
 values
-('trait1', program_ontology_id, ARRAY['1', 't1'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait2', program_ontology_id, ARRAY['2', 't2'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait3', program_ontology_id, ARRAY['3', 't3'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait4', program_ontology_id, ARRAY['4', 't4'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait5', program_ontology_id, ARRAY['5', 't5'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait6', program_ontology_id, ARRAY['6', 't6'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait7', program_ontology_id, ARRAY['7', 't7'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait8', program_ontology_id, ARRAY['8', 't8'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait9', program_ontology_id, ARRAY['9', 't9'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait10', program_ontology_id, ARRAY['10', 't10'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait11', program_ontology_id, ARRAY['11', 't11'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait12', program_ontology_id, ARRAY['12', 't12'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait13', program_ontology_id, ARRAY['13', 't13'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait14', program_ontology_id, ARRAY['14', 't14'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait15', program_ontology_id, ARRAY['15', 't15'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait16', program_ontology_id, ARRAY['16', 't16'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait17', program_ontology_id, ARRAY['17', 't17'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait18', program_ontology_id, ARRAY['18', 't18'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait19', program_ontology_id, ARRAY['19', 't19'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait20', program_ontology_id, ARRAY['20', 't20'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait21', program_ontology_id, ARRAY['21', 't21'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait22', program_ontology_id, ARRAY['22', 't22'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait23', program_ontology_id, ARRAY['23', 't23'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait24', program_ontology_id, ARRAY['24', 't24'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait25', program_ontology_id, ARRAY['25', 't25'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait26', program_ontology_id, ARRAY['26', 't26'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait27', program_ontology_id, ARRAY['27', 't27'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait28', program_ontology_id, ARRAY['28', 't28'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait29', program_ontology_id, ARRAY['29', 't29'], method_id, scale_id, program_observation_level_id, user_id, user_id),
-('trait30', program_ontology_id, ARRAY['30', 't30'], method_id, scale_id, program_observation_level_id, user_id, user_id);
+('trait1', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait2', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait3', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait4', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait5', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait6', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait7', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait8', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait9', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait10', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait11', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait12', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait13', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait14', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait15', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait16', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait17', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait18', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait19', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait20', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait21', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait22', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait23', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait24', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait25', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait26', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait27', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait28', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait29', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id),
+('trait30', program_ontology_id,  method_id, scale_id, program_observation_level_id, user_id, user_id);
 
 END $$;
