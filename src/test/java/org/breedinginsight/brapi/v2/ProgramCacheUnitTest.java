@@ -20,6 +20,7 @@ import org.mockito.stubbing.Answer;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,10 +58,11 @@ public class ProgramCacheUnitTest {
     }
 
     @SneakyThrows
-    public List<BrAPIGermplasm> mockFetch(UUID programId, Integer sleepTime) {
+    public Map<String, BrAPIGermplasm> mockFetch(UUID programId, Integer sleepTime) {
         fetchCount += 1;
         Thread.sleep(sleepTime);
-        return mockBrAPI.containsKey(programId) ? new ArrayList<>(mockBrAPI.get(programId)) : new ArrayList<>();
+        //Complex to retrieve UID so using DbId as dummy
+        return mockBrAPI.containsKey(programId) ? new HashMap<>(mockBrAPI.get(programId).stream().collect(Collectors.toMap(BrAPIGermplasm::getGermplasmDbId, germplasm -> germplasm))) : new HashMap<>(); //fxn to return map
     }
 
     @SneakyThrows
@@ -78,7 +80,7 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public void populatedRefreshQueueSkipsRefresh() {
         // Make a lot of post calls and just how many times the fetch method is called
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime));
+        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime));
         UUID programId = UUID.randomUUID();
         int numPost = 10;
         int currPost = 0;
@@ -91,7 +93,7 @@ public class ProgramCacheUnitTest {
         assertTrue(fetchCount < numPost, "A fetch call was made for every post. It shouldn't.");
         assertEquals(1, mockBrAPI.size(), "More than one program existed in mocked brapi db.");
         assertEquals(numPost, mockBrAPI.get(programId).size(), "Wrong number of germplasm in db");
-        List<BrAPIGermplasm> cachedGermplasm = cache.get(programId);
+        Map<String, BrAPIGermplasm> cachedGermplasm = cache.get(programId);
         assertEquals(numPost, cachedGermplasm.size(), "Wrong number of germplasm in cache");
     }
 
@@ -99,7 +101,7 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public void programRefreshesSeparated() {
         // Make a lot of post calls on different programs to check that they don't wait for each other
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime));
+        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime));
         int numPost = 10;
         int currPost = 0;
         while (currPost < numPost) {
@@ -124,7 +126,7 @@ public class ProgramCacheUnitTest {
     public void initialGetMethodWaitsForLoad() {
         // Test that the get method waits for an ongoing refresh to finish when there isn't any day
         UUID programId = UUID.randomUUID();
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime), List.of(programId));
+        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime), List.of(programId));
         cache.get(programId);
         // Our fetch method should have only been called once for the initial loading
         assertEquals(1, fetchCount, "Fetch method was called on get");
@@ -138,11 +140,11 @@ public class ProgramCacheUnitTest {
         List<BrAPIGermplasm> newList = new ArrayList<>();
         newList.add(new BrAPIGermplasm());
         mockBrAPI.put(programId, new ArrayList<>(newList));
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime), List.of(programId));
+        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime), List.of(programId));
         Callable<List<BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
         // Get waits for initial fetch
-        List<BrAPIGermplasm> cachedGermplasm = cache.get(programId);
+        Map<String, BrAPIGermplasm> cachedGermplasm = cache.get(programId);
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Now post another object and call get immediately to see that it returns the old data
@@ -173,10 +175,10 @@ public class ProgramCacheUnitTest {
         ProgramCacheUnitTest mockTest = spy(this);
 
         // Start cache
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockTest.mockFetch(programId, waitTime), List.of(programId));
+        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockTest.mockFetch(programId, waitTime), List.of(programId));
 
         // Get waits for initial fetch
-        List<BrAPIGermplasm> cachedGermplasm = cache.get(programId);
+        Map<String, BrAPIGermplasm> cachedGermplasm = cache.get(programId);
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Change our fetch method to throw an error now

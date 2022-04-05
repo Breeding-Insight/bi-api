@@ -21,9 +21,11 @@ import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import it.unimi.dsi.fastutil.Hash;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -54,7 +56,7 @@ public class BrAPIGermplasmDAO {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
-    ProgramCache<BrAPIGermplasm> programGermplasmCache;
+    ProgramCache<String, BrAPIGermplasm> programGermplasmCache;
 
     @Inject
     public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO) {
@@ -76,7 +78,7 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
-        return programGermplasmCache.get(programId);
+        return new ArrayList<>(programGermplasmCache.get(programId).values());
     }
 
     /**
@@ -87,7 +89,8 @@ public class BrAPIGermplasmDAO {
      */
     public List<BrAPIGermplasm> getRawGermplasm(UUID programId) throws ApiException {
         Program program = new Program(programDAO.fetchOneById(programId));
-        return programGermplasmCache.get(programId).stream().map(germplasm -> {
+        List<BrAPIGermplasm> cacheList = new ArrayList<>(programGermplasmCache.get(programId).values());
+        return cacheList.stream().map(germplasm -> {
             germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), program.getKey(), germplasm.getAccessionNumber()));
             if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo()
                                                                  .has(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE)) {
@@ -98,7 +101,7 @@ public class BrAPIGermplasmDAO {
         }).collect(Collectors.toList());
     }
 
-    private List<BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
+    private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
 
         // Set query params and make call
@@ -112,8 +115,10 @@ public class BrAPIGermplasmDAO {
         ));
     }
 
-    private List<BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm) {
+    //todo change
+    private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm) {
         // Process the germplasm
+        Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
         log.debug("processing germ for display: " + programGermplasm);
         Map<String, BrAPIGermplasm> programGermplasmByFullName = new HashMap<>();
         for (BrAPIGermplasm germplasm: programGermplasm) {
@@ -153,9 +158,13 @@ public class BrAPIGermplasmDAO {
                 }
                 germplasm.setPedigree(newPedigreeString);
             }
+
+            BrAPIExternalReference extRef = germplasm.getExternalReferences().stream().filter(reference -> referenceSource.equals(reference.getReferenceSource())).findFirst().orElseThrow();
+            String germplasmId = extRef.getReferenceID();
+            programGermplasmMap.put(germplasmId, germplasm);
         }
 
-        return programGermplasm;
+        return programGermplasmMap;
     }
 
     public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
@@ -171,9 +180,13 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId) throws ApiException {
-        return programGermplasmCache.get(programId)
-                                    .stream()
+        return new ArrayList<>(programGermplasmCache.get(programId).values()).stream()
                                     .filter(brAPIGermplasm -> germplasmNames.contains(brAPIGermplasm.getGermplasmName()))
                                     .collect(Collectors.toList());
     }
+
+    public BrAPIGermplasm getGermplasmByUUID(String germplasmId, UUID programId) throws ApiException {
+        return programGermplasmCache.get(programId).get(germplasmId);
+    }
+
 }

@@ -79,4 +79,20 @@ public class GermplasmController {
             return response;
         }
     }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<BrAPIGermplasm> getSingleGermplasm(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("germplasmId") String germplasmId) {
+        try {
+            log.debug("fetching germ id:" +  germplasmId +" for program: " + programId);
+            return HttpResponse.ok(germplasmService.getGermplasmByUUID(programId, germplasmId));
+        } catch (ApiException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+        }
+    }
+
 }
