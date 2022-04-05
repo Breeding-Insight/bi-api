@@ -20,6 +20,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.SharedProgram;
+import org.breedinginsight.model.SubscribedProgram;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -29,6 +30,7 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -69,13 +71,17 @@ public class OntologyController {
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse<Response<DataResponse<SharedProgram>>> getAvailablePrograms(
             @PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean shared) {
-        List<SharedProgram> sharedPrograms = ontologyService.getSharedOntology(programId, shared);
-        List<org.breedinginsight.api.model.v1.response.metadata.Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        Pagination pagination = new Pagination(sharedPrograms.size(), 1, 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-        Response<DataResponse<SharedProgram>> response = new Response(metadata, new DataResponse<>(sharedPrograms));
-        return HttpResponse.ok(response);
+        try {
+            List<SharedProgram> sharedPrograms = ontologyService.getSharedOntology(programId, shared);
+            List<org.breedinginsight.api.model.v1.response.metadata.Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            Pagination pagination = new Pagination(sharedPrograms.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<DataResponse<SharedProgram>> response = new Response(metadata, new DataResponse<>(sharedPrograms));
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        }
     }
 
     /**
@@ -110,6 +116,8 @@ public class OntologyController {
             return response;
         } catch (UnprocessableEntityException e) {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        } catch (DoesNotExistException e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
@@ -124,7 +132,7 @@ public class OntologyController {
     @Delete("/programs/{programId}/ontology/shared/programs/{sharedProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<DataResponse<Trait>>> revokeOntology(
+    public HttpResponse revokeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharedProgramId) {
         try {
             ontologyService.revokeOntology(programId, sharedProgramId);
@@ -145,12 +153,14 @@ public class OntologyController {
      */
     @Put("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<DataResponse<Trait>>> subscribeOntology(
+    public HttpResponse<Response<SubscribedProgram>> subscribeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
         try {
-            ontologyService.subscribeOntology(programId, sharingProgramId);
-            return HttpResponse.ok();
+            SubscribedProgram shareRequest = ontologyService.subscribeOntology(programId, sharingProgramId);
+            Response<SubscribedProgram> response = new Response(shareRequest);
+            return HttpResponse.ok(response);
         } catch (UnprocessableEntityException e) {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
@@ -168,7 +178,7 @@ public class OntologyController {
     @Delete("/programs/{programId}/ontology/subscribe/{sharingProgramId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<DataResponse<Trait>>> unsubscribeOntology(
+    public HttpResponse unsubscribeOntology(
             @PathVariable UUID programId, @PathVariable UUID sharingProgramId) {
         try {
             ontologyService.unsubscribeOntology(programId, sharingProgramId);
@@ -176,6 +186,37 @@ public class OntologyController {
         } catch (UnprocessableEntityException e) {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    /**
+     * Retrieves subscription options for programs that have shared their ontology with the requesting program.
+     * Will indicate whether the program has subscribed to a given ontology or not.
+     *
+     * @param programId -- Program request information
+     * @return
+     * {
+     *     programId,   -- Program that owns the ontology the request program is subscribed to.
+     *     programName,
+     *     subscribed   -- boolean. Whether the requesting program is subscribed to this ontology or not.
+     * }
+     */
+    @Get("/programs/{programId}/ontology/subscribe")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    public HttpResponse<Response<DataResponse<SubscribedProgram>>> getSubscribedOntology(
+            @PathVariable UUID programId) {
+        try {
+            List<SubscribedProgram> shareRequests = ontologyService.getSubscribeOntologyOptions(programId);
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
+            Pagination pagination = new Pagination(shareRequests.size(), 1, 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<DataResponse<SubscribedProgram>> response = new Response(metadata, new DataResponse<>(shareRequests));
+            return HttpResponse.ok(response);
+        }  catch (DoesNotExistException e) {
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }

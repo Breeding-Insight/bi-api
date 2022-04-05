@@ -66,7 +66,10 @@ public class ProgramOntologyDAO extends ProgramOntologyDao {
     }
 
     public Optional<ProgramSharedOntologyEntity> getSubscribedSharedOntology(UUID programId) {
-        List<ProgramSharedOntologyEntity> shareRecords = programSharedOntologyDao.fetchBySharedProgramId(programId);
+        List<ProgramSharedOntologyEntity> shareRecords = programSharedOntologyDao.fetchBySharedProgramId(programId).stream()
+                .filter(shareRecord -> shareRecord.getActive())
+                .collect(Collectors.toList());
+
         return shareRecords.size() > 0 ? Optional.of(shareRecords.get(0)) : Optional.empty();
     }
 
@@ -78,5 +81,9 @@ public class ProgramOntologyDAO extends ProgramOntologyDao {
     public void denySharedOntology(ProgramSharedOntologyEntity sharedOntology) {
         sharedOntology.setActive(false);
         programSharedOntologyDao.update(sharedOntology);
+    }
+
+    public List<ProgramSharedOntologyEntity> getSubscriptionOptions(UUID programId) {
+        return programSharedOntologyDao.fetchBySharedProgramId(programId);
     }
 }

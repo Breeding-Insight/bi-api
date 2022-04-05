@@ -238,6 +238,8 @@ public class TraitDAO extends TraitDao {
     }
 
     public List<BrAPIObservationVariable> searchVariables(List<String> variableIds) {
+
+        if (variableIds == null || variableIds.size() == 0) return new ArrayList<>();
         try {
             BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
                     .externalReferenceIDs(variableIds);

@@ -265,6 +265,30 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
     @Test
     @Order(4)
+    void getSubscribedOntologyOptions() {
+
+        String url = String.format("/programs/%s/ontology/subscribe", otherProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of programs returned");
+
+        // Check all are not shared and are inactive
+        for (JsonElement element: data) {
+            JsonObject program = element.getAsJsonObject();
+
+            assertTrue(program.get("subscribed").getAsBoolean());
+        }
+    }
+
+    @Test
+    @Order(4)
     void getAllProgramsSharedPrograms() {
         String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
         Flowable<HttpResponse<String>> call = client.exchange(
