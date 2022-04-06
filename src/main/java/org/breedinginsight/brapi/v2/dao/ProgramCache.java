@@ -122,10 +122,9 @@ public class ProgramCache<K, R> {
         }
     }
 
-    //data posted still needs to be list
     public List<R> post(UUID programId, Callable<List<R>> postMethod) throws Exception {
         List<R> response = postMethod.call();
-        updateCache(programId); //will make get
+        updateCache(programId);
         return response;
     }
 }
