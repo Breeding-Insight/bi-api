@@ -199,7 +199,8 @@ public class OntologyController {
      * {
      *     programId,   -- Program that owns the ontology the request program is subscribed to.
      *     programName,
-     *     subscribed   -- boolean. Whether the requesting program is subscribed to this ontology or not.
+     *     subscribed,  -- boolean. Whether the requesting program is subscribed to this ontology or not.
+     *     editable     -- boolean || null. Indicates whether this program can unsubscribe from this ontology or not. Null if not subscribed to this ontology.
      * }
      */
     @Get("/programs/{programId}/ontology/subscribe")

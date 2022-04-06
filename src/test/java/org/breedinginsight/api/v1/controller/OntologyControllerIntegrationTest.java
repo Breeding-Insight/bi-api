@@ -284,6 +284,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
             JsonObject program = element.getAsJsonObject();
 
             assertTrue(program.get("subscribed").getAsBoolean());
+            assertTrue(program.get("editable").getAsBoolean());
         }
     }
 

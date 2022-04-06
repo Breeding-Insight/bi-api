@@ -13,4 +13,5 @@ public class SubscribedProgram {
     private UUID programId;
     private String programName;
     private Boolean subscribed;
+    private Boolean editable;
 }

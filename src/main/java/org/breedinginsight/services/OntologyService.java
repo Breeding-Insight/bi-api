@@ -317,6 +317,7 @@ public class OntologyService {
                         .programId(sharedOntology.getProgramId())
                         .programName(programMap.get(sharedOntology.getProgramId()).getName())
                         .subscribed(sharedOntology.getActive())
+                        .editable(sharedOntology.getActive() ? ontologyIsEditable(sharedOntology) : null)
                         .build()
                 ).collect(Collectors.toList());
         return subscriptionOptions;
