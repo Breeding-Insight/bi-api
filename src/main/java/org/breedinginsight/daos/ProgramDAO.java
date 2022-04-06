@@ -36,9 +36,7 @@ import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramBrAPIEndpoints;
-import org.breedinginsight.model.Species;
+import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
@@ -76,7 +74,7 @@ public class ProgramDAO extends ProgramDao {
     private String referenceSource;
     private Duration requestTimeout;
 
-    private final static String SYSTEM_DEFAULT = "System Default";
+    private final static String SYSTEM_DEFAULT = BrAPIConstants.SYSTEM_DEFAULT.getValue();
 
     @Inject
     public ProgramDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider,
@@ -364,6 +362,5 @@ public class ProgramDAO extends ProgramDao {
 
         return Duration.of(5, ChronoUnit.MINUTES);
     }
-
 }
 

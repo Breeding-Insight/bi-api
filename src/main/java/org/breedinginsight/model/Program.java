@@ -24,6 +24,7 @@ import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
+import org.breedinginsight.dao.db.tables.ProgramTable;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.jooq.Record;
@@ -65,22 +66,26 @@ public class Program extends ProgramEntity {
     }
 
     public static Program parseSQLRecord(Record record){
+        return parseSQLRecord(record, PROGRAM);
+    }
+
+    public static Program parseSQLRecord(Record record, ProgramTable programTable) {
 
         // Generate our program record
         Program program = Program.builder()
-                .id(record.getValue(PROGRAM.ID))
-                .name(record.getValue(PROGRAM.NAME))
-                .abbreviation(record.getValue(PROGRAM.ABBREVIATION))
-                .objective(record.getValue(PROGRAM.OBJECTIVE))
-                .documentationUrl(record.getValue(PROGRAM.DOCUMENTATION_URL))
-                .brapiUrl(record.getValue(PROGRAM.BRAPI_URL))
-                .key(record.getValue(PROGRAM.KEY))
-                .createdAt(record.getValue(PROGRAM.CREATED_AT))
-                .updatedAt(record.getValue(PROGRAM.UPDATED_AT))
-                .createdBy(record.getValue(PROGRAM.CREATED_BY))
-                .updatedBy(record.getValue(PROGRAM.UPDATED_BY))
-                .active(record.getValue(PROGRAM.ACTIVE))
-                .germplasmSequence(record.getValue(PROGRAM.GERMPLASM_SEQUENCE))
+                .id(record.getValue(programTable.ID))
+                .name(record.getValue(programTable.NAME))
+                .abbreviation(record.getValue(programTable.ABBREVIATION))
+                .objective(record.getValue(programTable.OBJECTIVE))
+                .documentationUrl(record.getValue(programTable.DOCUMENTATION_URL))
+                .brapiUrl(record.getValue(programTable.BRAPI_URL))
+                .key(record.getValue(programTable.KEY))
+                .createdAt(record.getValue(programTable.CREATED_AT))
+                .updatedAt(record.getValue(programTable.UPDATED_AT))
+                .createdBy(record.getValue(programTable.CREATED_BY))
+                .updatedBy(record.getValue(programTable.UPDATED_BY))
+                .active(record.getValue(programTable.ACTIVE))
+                .germplasmSequence(record.getValue(programTable.GERMPLASM_SEQUENCE))
                 .build();
 
         return program;
