@@ -80,7 +80,7 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}/" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<BrAPIGermplasm> getSingleGermplasm(
@@ -94,5 +94,4 @@ public class GermplasmController {
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
         }
     }
-
 }

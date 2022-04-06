@@ -115,7 +115,6 @@ public class BrAPIGermplasmDAO {
         ));
     }
 
-    //todo change
     private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm) {
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
@@ -144,18 +143,24 @@ public class BrAPIGermplasmDAO {
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, germplasm.getPedigree());
 
                 String newPedigreeString = germplasm.getPedigree();
+                String namePedigreeString = germplasm.getPedigree();
                 List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 if (parents.size() >= 1) {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
                         //problem, if parent not in germplasmbyfullname, not replaced by accession number, assumption that parents are also in file
                         newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
+                        namePedigreeString = programGermplasmByFullName.get(parents.get(0)).getDefaultDisplayName();
                     }
                 }
                 if (parents.size() == 2) {
                     if (programGermplasmByFullName.containsKey(parents.get(1))) {
                         newPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getAccessionNumber();
+                        namePedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getDefaultDisplayName();
                     }
                 }
+                //For use in individual germplasm display
+                additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
+
                 germplasm.setPedigree(newPedigreeString);
             }
 
