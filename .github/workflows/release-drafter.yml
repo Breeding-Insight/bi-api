@@ -4,22 +4,29 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
+      - main
 
 jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
+      - name: Get version
+        id: version
+        run: echo ::set-output name=version::$(echo $(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
+        
       # Drafts your next Release notes as Pull Requests are merged into "master"
       - name: Update Draft
         id: update_draft
         uses: release-drafter/release-drafter@v5
         with:
           # (Optional) specify config name to use, relative to .github/. Default: release-drafter.yml
-          config-name: release-drafter.yml
+          #config-name: release-drafter.yml
+          name: ${{ steps.version.outputs.version }}
+          tag: ${{ steps.version.outputs.version }}
+          version: ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Checkout code
@@ -28,12 +35,12 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
-      - name: Update version
-        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
-        run: sed -i -E "s/version=.*/version=${{ steps.update_draft.outputs.name }}/" src/main/resources/version.properties
+#       - name: Update version
+#         if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
+#         run: sed -i -E "s/version=.*/version=${{ steps.update_draft.outputs.name }}/" src/main/resources/version.properties
       - name: Update version info
         if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
-        run: sed -i -E "s~versionInfo=.*~versionInfo=https://github.com/Breeding-Insight/test-project/releases/tag/${{ steps.update_draft.outputs.tag_name }}~" src/main/resources/version.properties
+        run: sed -i -E "s~versionInfo=.*~versionInfo=${{ steps.update_draft.outputs.html_url }}~" src/main/resources/version.properties
       - name: Commit files
         if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         run: |
