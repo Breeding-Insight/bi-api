@@ -61,8 +61,7 @@ public class ProgramCacheUnitTest {
     public Map<String, BrAPIGermplasm> mockFetch(UUID programId, Integer sleepTime) {
         fetchCount += 1;
         Thread.sleep(sleepTime);
-        //Complex to retrieve UID so using DbId as dummy
-        return mockBrAPI.containsKey(programId) ? new HashMap<>(mockBrAPI.get(programId).stream().collect(Collectors.toMap(BrAPIGermplasm::getGermplasmDbId, germplasm -> germplasm))) : new HashMap<>(); //fxn to return map
+        return mockBrAPI.containsKey(programId) ? new HashMap<>(mockBrAPI.get(programId).stream().collect(Collectors.toMap(germplasm -> UUID.randomUUID().toString(), germplasm -> germplasm))) : new HashMap<>();
     }
 
     @SneakyThrows
