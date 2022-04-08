@@ -243,14 +243,14 @@ public class ExperimentProcessor implements Processor {
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
 
-//      Read throgh each row of the imput file and populate this.ExperimentList
+//      Read through each row of the input file and populate this.ExperimentList
         for (int i = 0; i < importRows.size(); i++) {
-            ObsUnitImportRow obsUnit = (ObsUnitImportRow) importRows.get(i);
-            populateFileData(obsUnit);
+            ImportFileRow fileRow = (ImportFileRow) importRows.get(i);
+            populateFileData(fileRow);
         }
 
 
-        for(ExperimentData experimentData : this.fileData.values()){
+        for(ExperimentData experimentData : this.fileData.experimentData()){
             BrAPITrial brAPITrial = new BrAPITrial();
             //Exp Title → Trial.trialName
             brAPITrial.setTrialName( experimentData.getTitle() );
@@ -357,20 +357,22 @@ public class ExperimentProcessor implements Processor {
         );
     }
 
-    private void populateFileData(ObsUnitImportRow obsUnit) {
-        ExperimentData experimentData = this.fileData.retrieve_or_add_ExperimentData(obsUnit.getExp_title(), obsUnit.getExp_description() );
-        EnvironmentData environmentData = experimentData.retrieve_or_add_environmentData( obsUnit.getEnv(), obsUnit.getEnv_location(), obsUnit.getEnv_year() );
+    private void populateFileData(ImportFileRow fileRow) {
+        ExperimentData experimentData = this.fileData.retrieve_or_add_ExperimentData(fileRow.getExp_title(), fileRow.getExp_description() );
+        this.fileData.add_gid( fileRow.getGid() );
+
+        EnvironmentData environmentData = experimentData.retrieve_or_add_environmentData( fileRow.getEnv(), fileRow.getEnv_location(), fileRow.getEnv_year() );
 
         ObservationUnitData ou = ObservationUnitData.builder()
-                .id(                obsUnit.getObsUnitID() )
-                .germplasm_name(    obsUnit.getGermplasmName() )
-                .gid(               obsUnit.getGid() )
-                .exp_unit_id(       obsUnit.getExp_unit_id() )
-                .exp_replicate_no(  obsUnit.getExp_replicate_no() )
-                .exp_block_no(      obsUnit.getExp_block_no())
-                .row(               obsUnit.getRow() )
-                .column(            obsUnit.getColumn() )
-                .test_or_check(     this.str_to_test_or_check( obsUnit.getTest_or_check() ) )
+                .id(                fileRow.getObsUnitID() )
+                .germplasm_name(    fileRow.getGermplasmName() )
+                .gid(               fileRow.getGid() )
+                .exp_unit_id(       fileRow.getExp_unit_id() )
+                .exp_replicate_no(  fileRow.getExp_replicate_no() )
+                .exp_block_no(      fileRow.getExp_block_no())
+                .row(               fileRow.getRow() )
+                .column(            fileRow.getColumn() )
+                .test_or_check(     this.str_to_test_or_check( fileRow.getTest_or_check() ) )
                 .build();
         environmentData.addObservationUnitData( ou );
     }

@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 @NoArgsConstructor
 @ImportConfigMetadata(id="ObsUnit", name="Observation Unit Data",
         description = "This import is used to create Observation Unit and Experiment data")
-public class ObsUnitImportRow implements BrAPIImport {
+public class ImportFileRow implements BrAPIImport {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")

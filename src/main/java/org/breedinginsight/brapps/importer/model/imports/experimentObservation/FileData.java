@@ -4,11 +4,13 @@ import lombok.NoArgsConstructor;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 @NoArgsConstructor
 public class FileData {
-    private HashMap<String, ExperimentData> expMap = new HashMap<>();
+    private Map<String, ExperimentData> expMap = new HashMap<>();
+    private Map<String, String> gids = new HashMap<>();
 
     public ExperimentData retrieve_or_add_ExperimentData(String title, String description){
         String key = title + description;
@@ -23,7 +25,7 @@ public class FileData {
         return experimentData;
     }
 
-    public int size(){
+    public int experiments_size(){
         return expMap.size();
     }
 
@@ -31,9 +33,17 @@ public class FileData {
         return expMap.get(key);
     }
 
-    public Collection<ExperimentData> values(){
+    public Collection<ExperimentData> experimentData(){
         return expMap.values();
     }
+
+    public void add_gid(String gid){
+        if(!gids.containsKey(gid)){
+            gids.put(gid,gid);
+        }
+    }
+
+    public int gids_size(){ return gids.size(); }
 
 
 }

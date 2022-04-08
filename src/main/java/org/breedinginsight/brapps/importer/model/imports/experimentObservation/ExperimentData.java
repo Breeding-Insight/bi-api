@@ -7,13 +7,16 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-@Getter
-@Setter
+
 public class ExperimentData {
+    @Getter
+    @Setter
     private String title;
+    @Getter
+    @Setter
     private String description;
 
-    //TODO we don't want a getEnvironments() method
+
     private Map<String, EnvironmentData> environments = new HashMap<>();
 
     public ExperimentData(String title, String description) {
