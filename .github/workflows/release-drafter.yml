@@ -40,7 +40,7 @@ jobs:
 #         run: sed -i -E "s/version=.*/version=${{ steps.update_draft.outputs.name }}/" src/main/resources/version.properties
       - name: Update version info
         if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
-        run: sed -i -E "s~versionInfo=.*~versionInfo=${{ steps.update_draft.outputs.html_url }}~" src/main/resources/version.properties
+        run: sed -i -E "s~versionInfo=.*~versionInfo=https://github.com/Breeding-Insight/bi-api/releases/tag/${{ steps.update_draft.outputs.tag_name }}~" src/main/resources/version.properties
       - name: Commit files
         if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         run: |
