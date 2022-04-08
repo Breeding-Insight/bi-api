@@ -13,12 +13,20 @@ jobs:
   update_release_draft:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+          fetch-depth: 0
       - name: Get version
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         id: version
         run: echo ::set-output name=version::$(echo $(sed -nE "s/version=(.*)/\1/p" src/main/resources/version.properties))
         
       # Drafts your next Release notes as Pull Requests are merged into "master"
       - name: Update Draft
+        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
         id: update_draft
         uses: release-drafter/release-drafter@v5
         with:
@@ -29,12 +37,6 @@ jobs:
           version: ${{ steps.version.outputs.version }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Checkout code
-        if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
-        uses: actions/checkout@v2
-        with:
-          persist-credentials: false
-          fetch-depth: 0
 #       - name: Update version
 #         if: github.event_name == 'push' && github.actor != 'rob-ouser-bi'
 #         run: sed -i -E "s/version=.*/version=${{ steps.update_draft.outputs.name }}/" src/main/resources/version.properties
