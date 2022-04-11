@@ -11,11 +11,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import org.brapi.v2.model.core.BrAPIProgram;
-import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.BrAPITest;
-import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
@@ -26,7 +22,6 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -35,7 +30,6 @@ import javax.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;

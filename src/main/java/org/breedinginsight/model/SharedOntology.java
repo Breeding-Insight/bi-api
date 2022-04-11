@@ -9,7 +9,7 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class SharedProgram {
+public class SharedOntology {
     private UUID programId;
     private String programName;
     private Boolean shared;

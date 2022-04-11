@@ -9,7 +9,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class SubscribedProgram {
+public class SubscribedOntology {
     private UUID programId;
     private String programName;
     private Boolean subscribed;

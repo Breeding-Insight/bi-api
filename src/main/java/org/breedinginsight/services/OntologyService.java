@@ -1,7 +1,6 @@
 package org.breedinginsight.services;
 
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -13,8 +12,8 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.SharedProgram;
-import org.breedinginsight.model.SubscribedProgram;
+import org.breedinginsight.model.SharedOntology;
+import org.breedinginsight.model.SubscribedOntology;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
@@ -53,8 +52,8 @@ public class OntologyService {
         // Get program with that id
         Program program = getProgram(programId);
 
-        List<SharedProgram> formattedPrograms = getSharedProgramsFormatted(program);
-        Set<UUID> sharedProgramIds = formattedPrograms.stream().map(SharedProgram::getProgramId).collect(Collectors.toSet());
+        List<SharedOntology> formattedPrograms = getSharedProgramsFormatted(program);
+        Set<UUID> sharedProgramIds = formattedPrograms.stream().map(SharedOntology::getProgramId).collect(Collectors.toSet());
 
         // Add other programs
         if (!sharedOnly) {
@@ -69,7 +68,7 @@ public class OntologyService {
         return formattedPrograms;
     }
 
-    private List<SharedProgram> getSharedProgramsFormatted(Program program) {
+    private List<SharedOntology> getSharedProgramsFormatted(Program program) {
         // Get shared ontology records
         List<ProgramSharedOntologyEntity> sharedOntologies = programOntologyDAO.getSharedOntologies(program.getId());
         // Get the programs ontology is shared with
@@ -110,8 +109,8 @@ public class OntologyService {
         return programs.get(0);
     }
 
-    private SharedProgram formatResponse(Program program, ProgramSharedOntologyEntity programSharedOntologyEntity, Boolean editable) {
-        return SharedProgram.builder()
+    private SharedOntology formatResponse(Program program, ProgramSharedOntologyEntity programSharedOntologyEntity, Boolean editable) {
+        return SharedOntology.builder()
                 .programId(program.getId())
                 .programName(program.getName())
                 .shared(true)
@@ -120,8 +119,8 @@ public class OntologyService {
                 .build();
     }
 
-    private SharedProgram formatResponse(Program program) {
-        return SharedProgram.builder()
+    private SharedOntology formatResponse(Program program) {
+        return SharedOntology.builder()
                 .programId(program.getId())
                 .programName(program.getName())
                 .shared(false)
@@ -158,7 +157,7 @@ public class OntologyService {
      * @param programRequests -- List of programs to share ontology with
      * @return List<SharedOntologyProgram>
      */
-    public List<SharedProgram> shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException, UnprocessableEntityException, DoesNotExistException {
+    public List<SharedOntology> shareOntology(@NotNull UUID programId, AuthenticatedUser actingUser, List<SharedOntologyProgramRequest> programRequests) throws ValidatorException, UnprocessableEntityException, DoesNotExistException {
 
         // Get program with that id
         Program program = getProgram(programId);
@@ -213,7 +212,7 @@ public class OntologyService {
 
         // Query return data
         return getSharedProgramsFormatted(program).stream()
-                .filter(sharedProgram -> shareProgramIdsSet.contains(sharedProgram.getProgramId()))
+                .filter(sharedOntology -> shareProgramIdsSet.contains(sharedOntology.getProgramId()))
                 .collect(Collectors.toList());
     }
 
@@ -242,7 +241,7 @@ public class OntologyService {
         programOntologyDAO.revokeSharedOntology(sharedOntology);
     }
 
-    public SubscribedProgram subscribeOntology(UUID programId, UUID sharingProgramId) throws DoesNotExistException, UnprocessableEntityException {
+    public SubscribedOntology subscribeOntology(UUID programId, UUID sharingProgramId) throws DoesNotExistException, UnprocessableEntityException {
         // Check that program exists
         Program program = getProgram(programId);
 
@@ -271,8 +270,8 @@ public class OntologyService {
 
         // Get the subscription record
         try {
-            List<SubscribedProgram> subscribedProgramOptions = getSubscribeOntologyOptions(programId);
-            for (SubscribedProgram option: subscribedProgramOptions) {
+            List<SubscribedOntology> subscribedOntologyOptions = getSubscribeOntologyOptions(programId);
+            for (SubscribedOntology option: subscribedOntologyOptions) {
                 if (option.getProgramId().equals(sharingProgramId)) {
                     return option;
                 }
@@ -303,7 +302,7 @@ public class OntologyService {
         programOntologyDAO.denySharedOntology(sharedOntology);
     }
 
-    public List<SubscribedProgram> getSubscribeOntologyOptions(UUID programId) throws DoesNotExistException {
+    public List<SubscribedOntology> getSubscribeOntologyOptions(UUID programId) throws DoesNotExistException {
 
         Program program = getProgram(programId);
 
@@ -312,8 +311,8 @@ public class OntologyService {
         Map<UUID, Program> programMap = new HashMap<>();
         programs.forEach(sharedProgram -> programMap.put(sharedProgram.getId(), sharedProgram));
 
-        List<SubscribedProgram> subscriptionOptions = sharedOntologies.stream()
-                .map(sharedOntology -> SubscribedProgram.builder()
+        List<SubscribedOntology> subscriptionOptions = sharedOntologies.stream()
+                .map(sharedOntology -> SubscribedOntology.builder()
                         .programId(sharedOntology.getProgramId())
                         .programName(programMap.get(sharedOntology.getProgramId()).getName())
                         .subscribed(sharedOntology.getActive())

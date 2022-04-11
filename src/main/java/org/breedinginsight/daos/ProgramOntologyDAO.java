@@ -20,14 +20,11 @@ package org.breedinginsight.daos;
 import org.breedinginsight.dao.db.tables.daos.ProgramOntologyDao;
 import org.breedinginsight.dao.db.tables.daos.ProgramSharedOntologyDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
-import org.breedinginsight.model.ProgramOntology;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.swing.text.html.Option;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
