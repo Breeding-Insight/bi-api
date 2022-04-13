@@ -144,21 +144,25 @@ public class BrAPIGermplasmDAO {
 
                 String newPedigreeString = "";
                 String namePedigreeString = "";
+                String uuidPedigreeString = "";
                 List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 if (parents.size() >= 1) {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
                         newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
                         namePedigreeString = programGermplasmByFullName.get(parents.get(0)).getDefaultDisplayName();
+                        uuidPedigreeString = programGermplasmByFullName.get(parents.get(0)).getExternalReferences().stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).map(ref -> ref.getReferenceID()).findFirst().get();
                     }
                 }
                 if (parents.size() == 2) {
                     if (programGermplasmByFullName.containsKey(parents.get(1))) {
                         newPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getAccessionNumber();
                         namePedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getDefaultDisplayName();
+                        uuidPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getExternalReferences().stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).map(ref -> ref.getReferenceID()).findFirst().get();
                     }
                 }
                 //For use in individual germplasm display
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
+                additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_UUID, uuidPedigreeString);
 
                 germplasm.setPedigree(newPedigreeString);
             }
