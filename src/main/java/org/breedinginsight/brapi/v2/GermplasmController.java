@@ -91,9 +91,12 @@ public class GermplasmController {
             log.debug("fetching germ id:" +  germplasmId +" for program: " + programId);
             Response<BrAPIGermplasm> response = new Response(germplasmService.getGermplasmByUUID(programId, germplasmId));
             return HttpResponse.ok(response);
-        } catch (ApiException | DoesNotExistException e) {
+        } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
         }
     }
 }
