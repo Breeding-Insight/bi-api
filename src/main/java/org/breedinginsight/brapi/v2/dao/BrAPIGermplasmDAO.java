@@ -33,6 +33,7 @@ import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
@@ -101,6 +102,13 @@ public class BrAPIGermplasmDAO {
         }).collect(Collectors.toList());
     }
 
+
+    /**
+     * Fetch formatted germplasm for this program
+     * @param programId
+     * @return Map<Key = string representing germplasm UUID, value = formatted BrAPIGermplasm>
+     * @throws ApiException
+     */
     private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
 
@@ -115,6 +123,12 @@ public class BrAPIGermplasmDAO {
         ));
     }
 
+    /**
+     * Process germplasm into a format for display
+     * @param programGermplasm
+     * @return Map<Key = string representing germplasm UUID, value = formatted BrAPIGermplasm>
+     * @throws ApiException
+     */
     private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm) {
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
@@ -189,8 +203,12 @@ public class BrAPIGermplasmDAO {
                                     .collect(Collectors.toList());
     }
 
-    public BrAPIGermplasm getGermplasmByUUID(String germplasmId, UUID programId) throws ApiException {
-        return programGermplasmCache.get(programId).get(germplasmId);
+    public BrAPIGermplasm getGermplasmByUUID(String germplasmId, UUID programId) throws ApiException, DoesNotExistException {
+        BrAPIGermplasm germplasm = programGermplasmCache.get(programId).get(germplasmId);
+        if (germplasm == null) {
+            throw new DoesNotExistException("UUID for this germplasm does not exist");
+        }
+        return germplasm;
     }
 
 }

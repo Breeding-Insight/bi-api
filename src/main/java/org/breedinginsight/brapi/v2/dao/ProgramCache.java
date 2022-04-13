@@ -30,6 +30,11 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+/**
+ *
+ * @param <K> key/id of object
+ * @param <R> object
+ */
 @Slf4j
 public class ProgramCache<K, R> {
 
