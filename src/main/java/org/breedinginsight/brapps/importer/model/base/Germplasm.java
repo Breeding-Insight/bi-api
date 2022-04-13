@@ -65,6 +65,10 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="externalUID", name="External UID", description = "External UID")
     private String externalUID;
 
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id="synonyms", name="Synonyms", description = "Optional list of germplasm synonyms separated by semicolons (;).")
+    private String synonyms;
+
     @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
     @ImportFieldMetadata(id="entryNo", name="Entry No.", description = "The order of germplasm in the import list ( 1,2,3,….n). If no entry  number is specified in the import germplasm list, the database will assign entry number upon import.")
     private String entryNo;
