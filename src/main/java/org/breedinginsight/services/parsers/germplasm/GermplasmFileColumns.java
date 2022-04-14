@@ -35,7 +35,8 @@ public enum GermplasmFileColumns {
     ENTRY_NO("Entry No", Column.ColumnDataType.NUMERICAL),
     FEMALE_PARENT_ENTRY_NO("Female Parent Entry No", Column.ColumnDataType.NUMERICAL),
     MALE_PARENT_ENTRY_NO("Male Parent Entry No", Column.ColumnDataType.NUMERICAL),
-    EXTERNAL_UID("External UID", Column.ColumnDataType.STRING);
+    EXTERNAL_UID("External UID", Column.ColumnDataType.STRING),
+    SYNONYMS("Synonyms", Column.ColumnDataType.STRING);
 
     private final Column column;
 

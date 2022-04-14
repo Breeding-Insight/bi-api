@@ -24,6 +24,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.model.Program;
@@ -196,6 +197,20 @@ public class Germplasm implements BrAPIObject {
             germplasm.putAdditionalInfoItem("breedingMethod", breedingMethod.getName());
         }
 
+        // Synonyms
+        String blobSynonyms = getSynonyms();
+        List<BrAPIGermplasmSynonyms> brapiSynonyms = new ArrayList<>();
+        if (synonyms != null) {
+            Set<String> synonyms = Set.of(blobSynonyms.split(";"));
+            // Create synonym
+            for (String synonym: synonyms) {
+                BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
+                brapiSynonym.setSynonym(synonym);
+                brapiSynonyms.add(brapiSynonym);
+            }
+            germplasm.setSynonyms(brapiSynonyms);
+        }
+
         return germplasm;
     }
 
@@ -218,6 +233,13 @@ public class Germplasm implements BrAPIObject {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         germplasm.putAdditionalInfoItem("createdDate", formatter.format(now));
+
+        // Update our synonyms to <Synonym> [<program key>-<accessionNumber>]
+        if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
+            for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
+                synonym.setSynonym(Utilities.appendProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber()));
+            }
+        }
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
@@ -235,5 +257,4 @@ public class Germplasm implements BrAPIObject {
 
         return germplasm;
     }
-
 }
