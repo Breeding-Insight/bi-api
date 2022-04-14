@@ -21,7 +21,6 @@ import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import it.unimi.dsi.fastutil.Hash;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
@@ -177,7 +176,7 @@ public class BrAPIGermplasmDAO {
                 germplasm.setPedigree(newPedigreeString);
             }
 
-            BrAPIExternalReference extRef = germplasm.getExternalReferences().stream().filter(reference -> referenceSource.equals(reference.getReferenceSource())).findFirst().orElseThrow();
+            BrAPIExternalReference extRef = germplasm.getExternalReferences().stream().filter(reference -> referenceSource.equals(reference.getReferenceSource())).findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
             String germplasmId = extRef.getReferenceID();
             programGermplasmMap.put(germplasmId, germplasm);
         }
@@ -206,7 +205,11 @@ public class BrAPIGermplasmDAO {
     }
 
     public BrAPIGermplasm getGermplasmByUUID(String germplasmId, UUID programId) throws ApiException, DoesNotExistException {
-        BrAPIGermplasm germplasm = programGermplasmCache.get(programId).get(germplasmId);
+        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
+        BrAPIGermplasm germplasm = null;
+        if (cache != null) {
+            germplasm = cache.get(germplasmId);
+        }
         if (germplasm == null) {
             throw new DoesNotExistException("UUID for this germplasm does not exist");
         }
