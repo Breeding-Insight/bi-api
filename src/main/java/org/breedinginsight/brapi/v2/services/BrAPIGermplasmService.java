@@ -99,7 +99,7 @@ public class BrAPIGermplasmService {
 
         //Retrieve germplasm data
         List<String> germplasmNames = listData.getData();
-        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByName(germplasmNames, programId);
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
         //processGermplasmForDisplay, numbers
         germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
 
@@ -132,7 +132,7 @@ public class BrAPIGermplasmService {
                 }
             }
 
-            if (germplasmEntry.getPedigree() != null) {
+            if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
                 Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
                 row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
                 if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));

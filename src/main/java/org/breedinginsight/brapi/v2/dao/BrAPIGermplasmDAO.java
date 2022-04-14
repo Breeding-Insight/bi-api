@@ -67,7 +67,7 @@ public class BrAPIGermplasmDAO {
     @PostConstruct
     private void setup() {
         // Populate germplasm cache for all programs on startup
-        List<UUID> programs = programDAO.getAll().stream().map(Program::getId).collect(Collectors.toList());
+        List<UUID> programs = programDAO.getAll().stream().filter(Program::getActive).map(Program::getId).collect(Collectors.toList());
         programGermplasmCache = new ProgramCache<>(this::fetchProgramGermplasm, programs);
     }
 
@@ -187,10 +187,13 @@ public class BrAPIGermplasmDAO {
         }
     }
 
-    public List<BrAPIGermplasm> getGermplasmByName(List<String> germplasmNames, UUID programId) throws ApiException {
-        return new ArrayList<>(programGermplasmCache.get(programId).values()).stream()
-                                    .filter(brAPIGermplasm -> germplasmNames.contains(brAPIGermplasm.getGermplasmName()))
-                                    .collect(Collectors.toList());
+    public List<BrAPIGermplasm> getGermplasmByRawName(List<String> germplasmNames, UUID programId) throws ApiException {
+        Program program = new Program(programDAO.fetchOneById(programId));
+        return getGermplasm(programId)
+                .stream()
+                .filter(brAPIGermplasm -> germplasmNames.contains(Utilities.appendProgramKey(brAPIGermplasm.getGermplasmName(),program.getKey(),brAPIGermplasm.getAccessionNumber())))
+                .collect(Collectors.toList());
+
     }
 
     public BrAPIGermplasm getGermplasmByUUID(String germplasmId, UUID programId) throws ApiException {
