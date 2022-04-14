@@ -65,7 +65,7 @@ public class BrAPIGermplasmDAO {
     @PostConstruct
     private void setup() {
         // Populate germplasm cache for all programs on startup
-        List<UUID> programs = programDAO.getAll().stream().map(Program::getId).collect(Collectors.toList());
+        List<UUID> programs = programDAO.getAll().stream().filter(Program::getActive).map(Program::getId).collect(Collectors.toList());
         programGermplasmCache = new ProgramCache<>(this::fetchProgramGermplasm, programs);
     }
 
