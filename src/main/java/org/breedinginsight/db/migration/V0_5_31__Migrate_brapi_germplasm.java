@@ -18,6 +18,7 @@
 package org.breedinginsight.db.migration;
 
 import io.micronaut.context.annotation.Property;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
@@ -41,6 +42,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.*;
 
+@Slf4j
 public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
 
     @Inject
@@ -64,6 +66,7 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
         // Get all of the germplasm with a program id attached
         Map<String, List<BrAPIGermplasm>> programGermplasm = new HashMap<>();
         for (Program program : programs) {
+            log.debug("Fetching germplasm for programId: " + program.getId());
             BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
             GermplasmApi api = new GermplasmApi(client);
 
@@ -106,12 +109,13 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
 
             // Update germplasm
             List<BrAPIGermplasm> allGermplasm = programGermplasm.get(program.getId().toString());
+            log.debug(String.format("Updating %d germplasm for programId: %s", allGermplasm.size(), program.getId()));
 
             BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
             GermplasmApi api = new GermplasmApi(client);
             for (int i = 0; i < allGermplasm.size(); i++) {
                 BrAPIGermplasm germplasm = allGermplasm.get(i);
-                System.out.println(String.format("Program Key: %s. Germplasm %s out of %s", program.getKey(), i+1, allGermplasm.size()));
+                log.debug(String.format("Program Key: %s. Germplasm %s out of %s", program.getKey(), i+1, allGermplasm.size()));
 
                 // Seed Source Description
                 if (germplasm.getSeedSourceDescription() == null || germplasm.getSeedSourceDescription().isBlank()) {
@@ -176,7 +180,7 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
     private List<Program> getAllPrograms(Context context, String defaultUrl) throws Exception {
         List<Program> programs = new ArrayList<>();
         try (Statement select = context.getConnection().createStatement()) {
-            try (ResultSet rows = select.executeQuery("SELECT id, brapi_url, key FROM program ORDER BY id")) {
+            try (ResultSet rows = select.executeQuery("SELECT id, brapi_url, key FROM program where active = true ORDER BY id")) {
                 while (rows.next()) {
                     Program program = new Program();
                     program.setId(UUID.fromString(rows.getString(1)));

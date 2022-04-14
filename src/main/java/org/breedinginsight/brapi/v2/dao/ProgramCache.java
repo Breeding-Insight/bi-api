@@ -47,7 +47,7 @@ public class ProgramCache<R> {
                         log.debug("cache loading complete.\nprogramId: " + programId);
                         return values;
                     } catch (Exception e) {
-                        log.error(e.getMessage(), e);
+                        log.error("cache loading error:\nprogramId: " + programId, e);
                         cache.invalidate(programId);
                         throw e;
                     }
@@ -87,7 +87,7 @@ public class ProgramCache<R> {
                 return result;
             }
         } catch (ExecutionException e) {
-            log.error(e.getMessage(), e);
+            log.error("cache error:\nprogramId: " + programId, e);
             return fetchMethod.apply(programId);
         }
     }
@@ -112,6 +112,7 @@ public class ProgramCache<R> {
                     programSemaphore.get(programId).acquire();
                     cache.refresh(programId);
                 } catch (InterruptedException e) {
+                    log.error("cache loading error:\nprogramId: " + programId, e);
                     throw new InternalServerException(e.getMessage(), e);
                 } finally {
                     programSemaphore.get(programId).release();
