@@ -35,6 +35,7 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.*;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -246,7 +247,7 @@ public class ExperimentProcessor implements Processor {
 
 //      Read through each row of the input file and populate this.ExperimentList
         for (int i = 0; i < importRows.size(); i++) {
-            ImportFileRow fileRow = (ImportFileRow) importRows.get(i);
+            ExperimentObservation fileRow = (ExperimentObservation) importRows.get(i);
             populateFileData(fileRow);
         }
 
@@ -360,7 +361,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private void populateFileData(ImportFileRow fileRow) {
+    private void populateFileData(ExperimentObservation fileRow) {
         ExperimentData experimentData = this.fileData.retrieve_or_add_ExperimentData(fileRow.getExp_title(), fileRow.getExp_description() );
         this.fileData.add_gid( fileRow.getGid() );
 

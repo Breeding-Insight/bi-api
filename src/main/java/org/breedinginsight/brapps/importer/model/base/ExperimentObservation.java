@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
+package org.breedinginsight.brapps.importer.model.base;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 @NoArgsConstructor
 @ImportConfigMetadata(id="ObsUnit", name="Observation Unit Data",
         description = "This import is used to create Observation Unit and Experiment data")
-public class ImportFileRow implements BrAPIImport {
+public class ExperimentObservation implements BrAPIImport {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
