@@ -37,8 +37,11 @@ import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Editable;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.SubscribedProgram;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.TraitService;
+import org.breedinginsight.services.exceptions.BadRequestException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -50,6 +53,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -58,13 +62,15 @@ public class TraitController {
     private TraitService traitService;
     private SecurityService securityService;
     private TraitQueryMapper traitQueryMapper;
+    private OntologyService ontologyService;
 
     @Inject
     public TraitController(TraitService traitService, SecurityService securityService,
-                           TraitQueryMapper traitQueryMapper){
+                           TraitQueryMapper traitQueryMapper, OntologyService ontologyService){
         this.traitService = traitService;
         this.securityService = securityService;
         this.traitQueryMapper = traitQueryMapper;
+        this.ontologyService = ontologyService;
     }
 
     @Get("/programs/{programId}/traits{?traitsQuery*}")
@@ -75,7 +81,7 @@ public class TraitController {
             @QueryValue @QueryValid(using = TraitQueryMapper.class) @Valid TraitsQuery traitsQuery) {
 
         try {
-            List<Trait> traits = traitService.getByProgramId(programId, traitsQuery.getFull());
+            List<Trait> traits = ontologyService.getTraitsByProgramId(programId, traitsQuery.getFull());
             return ResponseUtils.getQueryResponse(traits, traitQueryMapper, traitsQuery);
         } catch (DoesNotExistException e) {
             return HttpResponse.notFound();
@@ -91,7 +97,7 @@ public class TraitController {
             @Body @SearchValid(using = TraitQueryMapper.class) SearchRequest searchRequest) {
 
         try {
-            List<Trait> traits = traitService.getByProgramId(programId, true);
+            List<Trait> traits = ontologyService.getTraitsByProgramId(programId, true);
             return ResponseUtils.getQueryResponse(traits, traitQueryMapper, searchRequest, queryParams);
         } catch (DoesNotExistException e) {
             return HttpResponse.notFound();
@@ -137,7 +143,7 @@ public class TraitController {
     public HttpResponse<Response<DataResponse<Trait>>> createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
-            List<Trait> createdTraits = traitService.createTraits(programId, traits, actingUser, true);
+            List<Trait> createdTraits = ontologyService.createTraits(programId, traits, actingUser, true);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
@@ -146,6 +152,9 @@ public class TraitController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(createdTraits));
             return HttpResponse.ok(response);
+        } catch (BadRequestException e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -162,7 +171,7 @@ public class TraitController {
     public HttpResponse<Response<DataResponse<Trait>>> updateTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
-            List<Trait> updatedTraits = traitService.updateTraits(programId, traits, actingUser);
+            List<Trait> updatedTraits = ontologyService.updateTraits(programId, traits, actingUser);
             List<Status> metadataStatus = new ArrayList<>();
             // Users query successfully
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
@@ -171,6 +180,9 @@ public class TraitController {
             Metadata metadata = new Metadata(pagination, metadataStatus);
             Response<DataResponse<Trait>> response = new Response<>(metadata, new DataResponse<>(updatedTraits));
             return HttpResponse.ok(response);
+        } catch (BadRequestException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
