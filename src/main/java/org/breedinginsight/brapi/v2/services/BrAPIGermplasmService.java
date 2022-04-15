@@ -57,13 +57,11 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public BrAPIGermplasm getGermplasmByUUID(UUID programId, String germplasmId) throws ApiException, DoesNotExistException {
+    public BrAPIGermplasm getGermplasmByUUID(UUID programId, String germplasmId) throws DoesNotExistException {
         try {
             return germplasmDAO.getGermplasmByUUID(germplasmId, programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
-        } catch (DoesNotExistException e) {
-            throw e;
         }
     }
 
