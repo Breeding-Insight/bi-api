@@ -21,6 +21,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImport;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.services.processors.*;
 import org.breedinginsight.model.Program;
@@ -44,11 +45,16 @@ public class ExperimentImportService extends BrAPIImportService {
     private Provider<ProcessorManager> processorManagerProvider;
 
     @Inject
-    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider)
+    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider, Provider<ProcessorManager> processorManagerProvider)
     {
         this.experimentProcessorProvider = experimentProcessorProvider;
+        this.processorManagerProvider = processorManagerProvider;
     }
 
+    @Override
+    public ExperimentObservation getImportClass() {
+        return new ExperimentObservation();
+    }
 
     @Override
     public String getImportTypeId() {

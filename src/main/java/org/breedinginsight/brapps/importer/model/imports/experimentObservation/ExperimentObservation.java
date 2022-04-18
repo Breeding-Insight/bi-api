@@ -37,7 +37,7 @@ import java.util.function.Supplier;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportConfigMetadata(id="ObsUnit", name="Observation Unit Data",
+@ImportConfigMetadata(id="ExperimentImport", name="Experiment Import",
         description = "This import is used to create Observation Unit and Experiment data")
 public class ExperimentObservation implements BrAPIImport {
 
@@ -109,9 +109,15 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id="ObsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
     private String ObsUnitID;
 
-    public BrAPITrial constructBrAPITrial(BrAPIProgram brapiProgram) {
+    public BrAPITrial constructBrAPITrial(Program program, boolean commit) {
+        BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
-        trial.setTrialName(getExpTitle());
+        if( commit ){
+            trial.setTrialName( getTrialNameWithProgramKey( program ));
+        }
+        else{
+            trial.setTrialName( getExpTitle() );
+        }
         trial.setTrialDescription(getExpDescription());
         trial.setActive(true);
         trial.setProgramDbId(brapiProgram.getProgramDbId());
@@ -121,6 +127,10 @@ public class ExperimentObservation implements BrAPIImport {
         trial.putAdditionalInfoItem("defaultObservationLevel", getExpUnit());
         trial.putAdditionalInfoItem("experimentType", getExpType());
         return trial;
+    }
+
+    public String getTrialNameWithProgramKey(Program program){
+        return String.format("%s [%s]", getExpTitle(), program.getKey());
     }
 
     public BrAPILocation constructBrAPILocation() {
@@ -150,7 +160,7 @@ public class ExperimentObservation implements BrAPIImport {
     public BrAPIObservationUnit constructBrAPIObservationUnit() {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
-        observationUnit.setObservationUnitName(getObsUnitID());
+        observationUnit.setObservationUnitName(getExpUnitId());
         observationUnit.setStudyName(getEnv());
 
         // TODO: Set the germplasm
@@ -167,6 +177,7 @@ public class ExperimentObservation implements BrAPIImport {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
             repLvl.setLevelName("replicate");
             repLvl.setLevelCode(getExpReplicateNo());
+            levelRelationships.add(repLvl);
         }
 
         // Block number
@@ -174,7 +185,9 @@ public class ExperimentObservation implements BrAPIImport {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
             repLvl.setLevelName("block");
             repLvl.setLevelCode(getExpBlockNo());
+            levelRelationships.add(repLvl);
         }
+        position.setObservationLevelRelationships(levelRelationships);
 
         // Test or Check
         if("C".equals(getTestOrCheck())){

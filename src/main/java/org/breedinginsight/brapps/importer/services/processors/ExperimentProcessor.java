@@ -18,8 +18,6 @@ package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
-import io.micronaut.http.HttpStatus;
-import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -28,17 +26,16 @@ import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.*;
-import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -61,17 +58,39 @@ public class ExperimentProcessor implements Processor {
 
     private DSLContext dsl;
 
-    private List<BrAPITrial> trialsList = new ArrayList<>();
+    private List<BrAPITrial> newTrialsList = new ArrayList<>();
     private List<BrAPILocation> locationList = new ArrayList<>();
     private List<BrAPIStudy> studyList = new ArrayList<>();
     private List<BrAPIObservationUnit> observationUnitList = new ArrayList<>();
 
+    private Map<String, PendingImportObject<BrAPITrial>> trialByName = new HashMap<>();
+    private BrAPITrialDAO brapiTrialDAO;
+
+
+
     @Inject
-    public ExperimentProcessor(DSLContext dsl) {
+    public ExperimentProcessor(DSLContext dsl, BrAPITrialDAO brapiTrialDAO) {
         this.dsl = dsl;
+        this.brapiTrialDAO = brapiTrialDAO;
     }
 
-    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
+    public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
+
+        List<String> uniqueTrialNames = importRows.stream()
+                .map(trialImport -> trialImport.getTrial().getTrialName())
+                .distinct()
+                .collect(Collectors.toList());
+        List<BrAPITrial> existingTrials;
+
+        try {
+            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
+            existingTrials.forEach(existingTrial -> {
+                trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
+            });
+        } catch (ApiException e) {
+            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+            throw new InternalServerException(e.toString(), e);
+        }
 
     }
 
@@ -85,16 +104,19 @@ public class ExperimentProcessor implements Processor {
 
         // Get BrAPI Program
         // TODO: Check if null
-        BrAPIProgram brAPIProgram = program.getBrapiProgram();
-
         // For each import row
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
             // Construct Trial
             // Unique by trialName
-            BrAPITrial newTrial = importRow.constructBrAPITrial(brAPIProgram);
+
+            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit);
+            if( !trialByName.containsKey( importRow.getTrialNameWithProgramKey(program) ) ) {
+                trialByName.put(newTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.NEW, newTrial));
+                newTrialsList.add(newTrial);
+            }
             // TODO: Need to check existing
-            trialsList.add(newTrial);
+
             // Construct Location
             // Unique by name
             BrAPILocation newLocation = importRow.constructBrAPILocation();
@@ -198,5 +220,9 @@ public class ExperimentProcessor implements Processor {
     public String getName() {
         return NAME;
     }
+
+
+
+
 
 }
