@@ -75,7 +75,7 @@ public class OntologyController {
             Response<DataResponse<SharedOntology>> response = new Response(metadata, new DataResponse<>(sharedOntologies));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -111,10 +111,10 @@ public class OntologyController {
             HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
             return response;
         } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -136,10 +136,10 @@ public class OntologyController {
             ontologyService.revokeOntology(programId, sharedProgramId);
             return HttpResponse.ok();
         } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -162,10 +162,10 @@ public class OntologyController {
             Response<SubscribedOntology> response = new Response(shareRequest);
             return HttpResponse.ok(response);
         } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -186,10 +186,10 @@ public class OntologyController {
             ontologyService.unsubscribeOntology(programId, sharingProgramId);
             return HttpResponse.ok();
         } catch (UnprocessableEntityException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
@@ -222,7 +222,7 @@ public class OntologyController {
             Response<DataResponse<SubscribedOntology>> response = new Response(metadata, new DataResponse<>(shareRequests));
             return HttpResponse.ok(response);
         }  catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
