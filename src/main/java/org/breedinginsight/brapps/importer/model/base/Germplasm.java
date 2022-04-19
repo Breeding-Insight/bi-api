@@ -201,7 +201,10 @@ public class Germplasm implements BrAPIObject {
         String blobSynonyms = getSynonyms();
         List<BrAPIGermplasmSynonyms> brapiSynonyms = new ArrayList<>();
         if (synonyms != null) {
-            Set<String> synonyms = Set.of(blobSynonyms.split(";"));
+            List<String> synonyms = Arrays.asList(blobSynonyms.split(";")).stream()
+                    .map(synonym -> synonym.strip())
+                    .distinct()
+                    .collect(Collectors.toList());
             // Create synonym
             for (String synonym: synonyms) {
                 BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
