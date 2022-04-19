@@ -21,8 +21,10 @@ import com.fasterxml.jackson.annotation.JsonRawValue;
 import lombok.Getter;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
+import org.breedinginsight.model.User;
 import org.jooq.JSONB;
 
+import java.time.OffsetDateTime;
 import java.util.UUID;
 
 @Getter
@@ -32,6 +34,14 @@ public class ImportResponse {
     private ImportProgress progress;
     // Since we are only ever returning the preview, don't worry about trying to deserialize it from the db
     private JSONB preview;
+    private UUID importMappingId;
+    private String importMappingName;
+    private String importType;
+    private String uploadFileName;
+    private User createdByUser;
+    private User updatedByUser;
+    private OffsetDateTime createdAt;
+    private OffsetDateTime updatedAt;
 
     @JsonRawValue
     public String getPreview() {

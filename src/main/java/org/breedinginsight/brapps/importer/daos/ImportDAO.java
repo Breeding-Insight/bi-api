@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.daos;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ImporterImportDao;
 import org.breedinginsight.dao.db.tables.daos.ImporterProgressDao;
@@ -68,6 +69,12 @@ public class ImportDAO extends ImporterImportDao {
         }
     }
 
+    public List<ImportUpload> getProgramUploads(UUID programId) {
+        List<Record> records = getUploadsQuery().where(IMPORTER_IMPORT.PROGRAM_ID.eq(programId)).fetch();
+
+        return parseRecords(records);
+    }
+
     public void update(ImportUpload upload) {
         super.update(upload);
         progressDao.update(upload.getProgress());
@@ -87,6 +94,7 @@ public class ImportDAO extends ImporterImportDao {
             upload.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
             upload.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
             upload.setProgress(ImportProgress.parseSQLRecord(record));
+            upload.setMapping(ImportMapping.parseSQLRecord(record));
             // Parse our file data and modified data into a data table
             try {
                 if (upload.getFileData() != null) {
@@ -113,6 +121,7 @@ public class ImportDAO extends ImporterImportDao {
                 .leftJoin(IMPORTER_PROGRESS).on(IMPORTER_IMPORT.IMPORTER_PROGRESS_ID.eq(IMPORTER_PROGRESS.ID))
                 .innerJoin(PROGRAM).on(IMPORTER_IMPORT.PROGRAM_ID.eq(PROGRAM.ID))
                 .innerJoin(BI_USER).on(IMPORTER_IMPORT.USER_ID.eq(BI_USER.ID))
+                .innerJoin(IMPORTER_MAPPING).on(IMPORTER_IMPORT.IMPORTER_MAPPING_ID.eq(IMPORTER_MAPPING.ID))
                 .innerJoin(createdByUser).on(IMPORTER_IMPORT.CREATED_BY.eq(createdByUser.ID))
                 .innerJoin(updatedByUser).on(IMPORTER_IMPORT.UPDATED_BY.eq(updatedByUser.ID));
     }
