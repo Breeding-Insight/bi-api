@@ -28,6 +28,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
@@ -53,6 +54,7 @@ public class TraitService {
     private ObservationDAO observationDAO;
     private ProgramService programService;
     private ProgramOntologyService programOntologyService;
+    private ProgramOntologyDAO programOntologyDAO;
     private ProgramObservationLevelService programObservationLevelService;
     private UserService userService;
     private TraitValidatorService traitValidator;
@@ -64,7 +66,8 @@ public class TraitService {
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
-                        UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
+                        UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError,
+                        ProgramOntologyDAO programOntologyDAO) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
@@ -76,6 +79,7 @@ public class TraitService {
         this.traitValidator = traitValidator;
         this.dsl = dsl;
         this.traitValidatorError = traitValidatorError;
+        this.programOntologyDAO = programOntologyDAO;
     }
 
     public List<Trait> getByProgramId(UUID programId, boolean getFullTrait) throws DoesNotExistException {
@@ -90,6 +94,16 @@ public class TraitService {
             return traitDAO.getTraitsByProgramId(programId);
         }
 
+    }
+
+    public List<Trait> getSubscribedOntologyTraits(UUID programId) {
+        Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSubscribedSharedOntology(programId);
+        if (optionalSharedOntology.isEmpty()) {
+            return new ArrayList<>();
+        }
+        ProgramSharedOntologyEntity sharedOntology = optionalSharedOntology.get();
+
+        return traitDAO.getTraitsFullByProgramId(sharedOntology.getProgramId());
     }
 
     public List<Trait> getByProgramIds(List<UUID> programIds, boolean getFullTrait) throws DoesNotExistException {

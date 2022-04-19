@@ -218,7 +218,28 @@ public class TraitDAO extends TraitDao {
         return observationDao.getObservationsByVariableDbIds(brapiVariableIds);
     }
 
+    public List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, List<UUID> traitIds) {
+
+        List<String> ids = traitIds.stream()
+                .map(trait -> trait.toString())
+                .collect(Collectors.toList());
+
+        List<BrAPIObservationVariable> variables = searchVariables(ids);
+
+        // TODO: make sure have all expected external references
+        if (variables.size() != ids.size()) {
+            throw new InternalServerException("Observation variables search results mismatch");
+        }
+
+        List<String> brapiVariableIds = variables.stream()
+                .map(variable -> variable.getObservationVariableDbId()).collect(Collectors.toList());
+
+        return observationDao.getObservationsByVariableAndBrAPIProgram(brapiProgramId, brapiVariableIds);
+    }
+
     public List<BrAPIObservationVariable> searchVariables(List<String> variableIds) {
+
+        if (variableIds == null || variableIds.size() == 0) return new ArrayList<>();
         try {
             BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
                     .externalReferenceIDs(variableIds);
@@ -573,5 +594,4 @@ public class TraitDAO extends TraitDao {
         Scale scale = trait.getScale();
         scale.setBrAPIProperties(brApiVariable.getScale());
     }
-
 }
