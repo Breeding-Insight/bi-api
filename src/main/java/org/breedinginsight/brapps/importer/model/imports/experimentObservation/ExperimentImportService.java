@@ -74,9 +74,6 @@ public class ExperimentImportService extends BrAPIImportService {
         }
         return response;
 
-        response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
-
-        return response;
     }
 }
 

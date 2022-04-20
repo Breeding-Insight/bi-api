@@ -163,7 +163,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
         if( commit){
-            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString());
+            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString()));
         }
         else {
             observationUnit.setObservationUnitName(getExpUnitId());
