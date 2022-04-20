@@ -37,6 +37,7 @@ import org.jooq.SelectOnConditionStep;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -77,6 +78,8 @@ public class ImportDAO extends ImporterImportDao {
 
     public void update(ImportUpload upload) {
         super.update(upload);
+        upload.setUpdatedAt(OffsetDateTime.now());
+        upload.getProgress().setUpdatedAt(upload.getUpdatedAt());
         progressDao.update(upload.getProgress());
     }
 

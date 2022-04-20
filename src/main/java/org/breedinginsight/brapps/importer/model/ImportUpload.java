@@ -31,6 +31,7 @@ import org.breedinginsight.brapps.importer.model.mapping.MappingField;
 import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.model.job.JobDetail;
 import org.jooq.Record;
 import tech.tablesaw.api.Table;
 

@@ -21,15 +21,12 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.auth.AuthenticatedUser;
-import org.breedinginsight.api.auth.ProgramSecured;
-import org.breedinginsight.api.auth.ProgramSecuredRole;
-import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.brapps.importer.model.response.ImportResponse;
-import org.breedinginsight.brapps.importer.services.FileImportService;
+import org.breedinginsight.model.job.Job;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.job.JobService;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -39,25 +36,23 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class JobController {
     private SecurityService securityService;
-    private FileImportService fileImportService;
+    private JobService jobService;
 
     @Inject
-    public JobController(SecurityService securityService, FileImportService fileImportService) {
+    public JobController(SecurityService securityService, JobService jobService) {
         this.securityService = securityService;
-        this.fileImportService = fileImportService;
+        this.jobService = jobService;
     }
 
     @Get("programs/{programId}/jobs")
-    @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> getProgramUploads(@PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean mapping) {
-        log.debug(String.format("fetching processes for program: %s", programId));
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<List<Job>>> getProgramUploads(@PathVariable UUID programId) {
+        log.debug(String.format("fetching jobs for program: %s", programId));
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            List<ImportResponse> result = fileImportService.getProgramUploads(programId, mapping);
-            Response<ImportResponse> response = new Response(result);
+            Response<List<Job>> response = new Response(jobService.getProgramJobs(programId));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage(), e);
