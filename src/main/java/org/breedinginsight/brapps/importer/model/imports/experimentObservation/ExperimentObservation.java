@@ -20,17 +20,14 @@ package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.utilities.Utilities;
 
 import java.math.BigInteger;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -139,9 +136,14 @@ public class ExperimentObservation implements BrAPIImport {
         return location;
     }
 
-    public BrAPIStudy constructBrAPIStudy() {
+    public BrAPIStudy constructBrAPIStudy(Program program, Supplier<BigInteger> nextVal, boolean commit) {
         BrAPIStudy study = new BrAPIStudy();
-        study.setStudyName(getEnv());
+        if ( commit ){
+            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), nextVal.get().toString()));
+        }
+        else {
+            study.setStudyName(getEnv());
+        }
         study.setActive(true);
         study.setStudyType(getExpType());
         study.setLocationName(getEnvLocation());
@@ -157,10 +159,15 @@ public class ExperimentObservation implements BrAPIImport {
         return study;
     }
 
-    public BrAPIObservationUnit constructBrAPIObservationUnit() {
+    public BrAPIObservationUnit constructBrAPIObservationUnit(Program program, Supplier<BigInteger> nextVal, boolean commit) {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
-        observationUnit.setObservationUnitName(getExpUnitId());
+        if( commit){
+            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString());
+        }
+        else {
+            observationUnit.setObservationUnitName(getExpUnitId());
+        }
         observationUnit.setStudyName(getEnv());
 
         // TODO: Set the germplasm

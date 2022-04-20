@@ -23,10 +23,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 //import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPILocation;
-import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.*;
+import org.breedinginsight.brapps.importer.daos.BrAPILocationDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
+import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -39,10 +41,13 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
+import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -57,27 +62,36 @@ public class ExperimentProcessor implements Processor {
     private String BRAPI_REFERENCE_SOURCE;
 
     private DSLContext dsl;
+    private BrAPITrialDAO brapiTrialDAO;
+    private BrAPILocationDAO brAPILocationDAO;
+    private BrAPIStudyDAO brAPIStudyDAO;
+    private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
 
     private List<BrAPITrial> newTrialsList = new ArrayList<>();
     private List<BrAPILocation> locationList = new ArrayList<>();
     private List<BrAPIStudy> studyList = new ArrayList<>();
     private List<BrAPIObservationUnit> observationUnitList = new ArrayList<>();
 
-    private Map<String, PendingImportObject<BrAPITrial>> trialByName = new HashMap<>();
-    private BrAPITrialDAO brapiTrialDAO;
-
-
+    private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPILocation>> locationByName = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = new HashMap<>();
 
     @Inject
-    public ExperimentProcessor(DSLContext dsl, BrAPITrialDAO brapiTrialDAO) {
+    public ExperimentProcessor(DSLContext dsl, BrAPITrialDAO brapiTrialDAO, BrAPILocationDAO brAPILocationDAO, BrAPIStudyDAO brAPIStudyDAO) {
         this.dsl = dsl;
         this.brapiTrialDAO = brapiTrialDAO;
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
-        List<String> uniqueTrialNames = importRows.stream()
-                .map(trialImport -> trialImport.getTrial().getTrialName())
+        List<ExperimentObservation> experimentImportRows = importRows.stream()
+                .map(trialImport -> (ExperimentObservation) trialImport)
+                .collect(Collectors.toList());
+
+        // Trials
+        List<String> uniqueTrialNames = experimentImportRows.stream()
+                .map(experimentImport -> experimentImport.getExpTitle())
                 .distinct()
                 .collect(Collectors.toList());
         List<BrAPITrial> existingTrials;
@@ -85,13 +99,75 @@ public class ExperimentProcessor implements Processor {
         try {
             existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
-                trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
+                trialByNameNoScope.put(
+                        Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()),
+                        new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
             });
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
             throw new InternalServerException(e.toString(), e);
         }
 
+        // Locations
+        List<String> uniqueLocationNames = experimentImportRows.stream()
+                .map(experimentImport -> experimentImport.getEnvLocation())
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<BrAPILocation> existingLocations;
+        try {
+            existingLocations = brAPILocationDAO.getLocationsByName(uniqueLocationNames, program.getId());
+            existingLocations.forEach(existingLocation -> {
+                locationByName.put(existingLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation));
+            });
+        } catch (ApiException e) {
+            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Studies
+        List<String> uniqueStudyNames = experimentImportRows.stream()
+                .map(experimentImport -> experimentImport.getEnv())
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<BrAPIStudy> existingStudies;
+        try {
+            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
+            existingStudies.forEach(existingStudy -> {
+                String studySequence = existingStudy.getAdditionalInfo().get("studySequence").getAsString();
+                studyByNameNoScope.put(
+                        Utilities.removeProgramKey(existingStudy.getStudyName(), program.getKey(), studySequence),
+                        new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
+            });
+        } catch (ApiException e) {
+            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Observation Unit
+        List<String> uniqueObservationUnitNames = experimentImportRows.stream()
+                .map(experimentImport -> experimentImport.getExpUnitId())
+                .distinct()
+                .collect(Collectors.toList());
+
+        // check for existing observation units. Don't want to update existing, just create new.
+        // TODO: do we allow adding observations to existing studies? yes, but not updating
+        // ignore all data for observation units existing in system
+
+        List<BrAPIObservationUnit> existingObservationUnits;
+
+        try {
+            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program);
+            existingObservationUnits.forEach(existingObservationUnit -> {
+
+                // update mapped brapi import, does in process
+                observationUnitByNameNoScope.put(existingObservationUnit.getObservationUnitName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingObservationUnit));
+            });
+        } catch (ApiException e) {
+            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+            throw new InternalServerException(e.toString(), e);
+        }
     }
 
     @Override
@@ -102,35 +178,43 @@ public class ExperimentProcessor implements Processor {
         // GID for existing germplasm. Throw error if GID not found.
         // Test or Check, bad letter throw an error.
 
-        // Get BrAPI Program
-        // TODO: Check if null
+        //TODO
+        String studySequenceName = "";
+        Supplier<BigInteger> nextVal = () -> dsl.nextval(studySequenceName.toLowerCase());
         // For each import row
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
             // Construct Trial
             // Unique by trialName
-
-            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit);
-            if( !trialByName.containsKey( importRow.getTrialNameWithProgramKey(program) ) ) {
-                trialByName.put(newTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.NEW, newTrial));
+            // TODO: Test existing
+            if( !trialByNameNoScope.containsKey( importRow.getExpTitle()) ) {
+                BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit);
+                trialByNameNoScope.put(importRow.getExpTitle(), new PendingImportObject<>(ImportObjectState.NEW, newTrial));
                 newTrialsList.add(newTrial);
             }
+            if( !locationByName.containsKey(( importRow.getEnvLocation() ))){
+                BrAPILocation newLocation = importRow.constructBrAPILocation();
+                locationByName.put(importRow.getEnvLocation(), new PendingImportObject<>(ImportObjectState.NEW, newLocation));
+            }
             // TODO: Need to check existing
-
             // Construct Location
             // Unique by name
-            BrAPILocation newLocation = importRow.constructBrAPILocation();
-            locationList.add(newLocation);
             // Construct Study
             // Unique by studyName per program
             // Need to get existing
             // study seasons this field must be numeric, and be a four digit year
-            BrAPIStudy newStudy = importRow.constructBrAPIStudy();
-            studyList.add(newStudy);
+            if( !studyByNameNoScope.containsKey( importRow.getEnv()) ) {
+                BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, nextVal, commit );
+                studyByNameNoScope.put(importRow.getEnv(), new PendingImportObject<>(ImportObjectState.NEW, newStudy));
+            }
+            if( !observationUnitByNameNoScope.containsKey( importRow.getExpUnitId() ) ) {
+                BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, nextVal, commit );
+                observationUnitByNameNoScope.put(importRow.getExpUnitId(), new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit));
+            }
             // Construct Observation Unit
             // Manual test in breedbase to see observation level of any type supported
             // Are we limiting to just plot and plant?
-            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit();
+            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, nextVal, commit);
             observationUnitList.add(newObservationUnit);
             // Construct Observations -- Done in another card
 
