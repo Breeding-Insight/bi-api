@@ -1,4 +1,4 @@
-﻿Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID
-Germplasm 1,ANE,Wild,,,,,,
-Germplasm 2,BAD,Wild,,,,,,
-Germplasm 3,BAD1,Wild,,,,,,
+﻿Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
+Germplasm 1,ANE,Wild,,,,,,,
+Germplasm 2,BAD,Wild,,,,,,,
+Germplasm 3,BAD1,Wild,,,,,,,
