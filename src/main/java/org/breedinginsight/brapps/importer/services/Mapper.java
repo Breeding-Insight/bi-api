@@ -74,7 +74,6 @@ public class MappingManager {
 
         ValidationErrors validationErrors = new ValidationErrors();
 
-        // TODO: Need to make required checking better. Is it a required mapping, or a non-blank value in the field?
         if (importMapping.getMappingConfig() == null) {
             throw new NullPointerException("Mapping must be supplied");
         }
@@ -84,6 +83,7 @@ public class MappingManager {
         List<BrAPIImport> brAPIImports = new ArrayList<>();
         for (int rowIndex = 0; rowIndex < data.rowCount(); rowIndex++) {
 
+            // TODO: Change this to just calling the processor
             Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTemplateId());
             if (optionalImportService.isEmpty()){
                 throw new UnprocessableEntityException("Import type with that id does not exist.");

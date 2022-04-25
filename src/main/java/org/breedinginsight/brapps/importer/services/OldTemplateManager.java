@@ -34,13 +34,13 @@ import java.util.stream.Collectors;
 
 @Context
 @Singleton
-public class ImportConfigManager {
+public class TemplateManager {
 
     private Map<String, BrAPIImportService> brAPIImportsMap;
 
     // brapiimport instead of brapiimportservice
     @Inject
-    ImportConfigManager(BrAPIImportService[] importServices) {
+    TemplateManager(BrAPIImportService[] importServices) {
         // Get all imports
         brAPIImportsMap = new HashMap<>();
         for (BrAPIImportService importService: importServices) {
