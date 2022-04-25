@@ -48,7 +48,7 @@ public class Germplasm implements BrAPIObject {
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportMappingRequired
-    @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
+    @ImportFieldMetadata(id="germplasmName", name="Name", description = "Name of germplasm")
     private String germplasmName;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
@@ -62,54 +62,28 @@ public class Germplasm implements BrAPIObject {
     private String germplasmSource;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="externalUID", name="External UID", description = "External UID")
-    private String externalUID;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id="entryNo", name="Entry No.", description = "The order of germplasm in the import list ( 1,2,3,….n). If no entry  number is specified in the import germplasm list, the database will assign entry number upon import.")
-    private String entryNo;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="femaleParentDBID", name="Female Parent Accession Number", description = "The accession number (GID) of the female parent of the germplasm.")
+    @ImportFieldMetadata(id="femaleParentGID", name="Female Parent GID", description = "The accession number (GID) of the female parent of the germplasm.")
     private String femaleParentDBID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="maleParentDBID", name="Male Parent Accession Number", description = "The accession number (GID) of the male parent of the germplasm.")
+    @ImportFieldMetadata(id="maleParentGID", name="Male Parent GID", description = "The accession number (GID) of the male parent of the germplasm.")
     private String maleParentDBID;
 
+    @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
+    @ImportFieldMetadata(id="entryNo", name="Entry No", description = "The order of germplasm in the import list ( 1,2,3,….n). If no entry  number is specified in the import germplasm list, the database will assign entry number upon import.")
+    private String entryNo;
+
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="femaleParentEntryNo", name="Female Parent Entry Number", description = "The entry number of the female parent of the germplasm. Used to import offspring with progenitors not yet in the database.")
+    @ImportFieldMetadata(id="femaleParentEntryNo", name="Female Parent Entry No", description = "The entry number of the female parent of the germplasm. Used to import offspring with progenitors not yet in the database.")
     private String femaleParentEntryNo;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="maleParentEntryNo", name="Male Parent Entry Number", description = "The entry number of the male parent of the germplasm. Used to import offspring with progenitors not yet in the database.")
+    @ImportFieldMetadata(id="maleParentEntryNo", name="Male Parent Entry No", description = "The entry number of the male parent of the germplasm. Used to import offspring with progenitors not yet in the database.")
     private String maleParentEntryNo;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="germplasmPUI", name="Germplasm Permanent Unique Identifier", description = "The Permanent Unique Identifier which represents a germplasm from the source or donor.")
-    private String germplasmPUI;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="acquisitionDate", name="Acquisition Date", description = "The date this germplasm was acquired by the genebank.")
-    private String acquisitionDate;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="countryOfOrigin", name="Country of Origin", description = "Two letter code for the country of origin.")
-    private String countryOfOrigin;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="collection", name="Family Name", description = "The name of the family this germplasm is a part of.")
-    private String collection;
-
-    // Removed for now, need to add to breedbase
-    /*@ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
-    private List<GermplasmAttribute> germplasmAttributes;*/
-
-    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz = AdditionalInfo.class)
-    private List<AdditionalInfo> additionalInfos;
-
-    @ImportFieldType(type= ImportFieldTypeEnum.LIST, clazz=ExternalReference.class)
-    private List<ExternalReference> externalReferences;
+    @ImportFieldMetadata(id="externalUID", name="External UID", description = "External UID")
+    private String externalUID;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
     @ImportMappingRequired
@@ -141,8 +115,6 @@ public class Germplasm implements BrAPIObject {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
-        germplasm.setGermplasmPUI(getGermplasmPUI());
-        germplasm.setCollection(getCollection());
         germplasm.putAdditionalInfoItem("importEntryNumber", entryNo);
         germplasm.putAdditionalInfoItem("femaleParentGid", getFemaleParentDBID());
         germplasm.putAdditionalInfoItem("maleParentGid", getMaleParentDBID());
@@ -152,14 +124,6 @@ public class Germplasm implements BrAPIObject {
         createdBy.put("userId", user.getId().toString());
         createdBy.put("userName", user.getName());
         germplasm.putAdditionalInfoItem("createdBy", createdBy);
-        //TODO: Need to check that the acquisition date it in date format
-        //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
-        germplasm.setCountryOfOriginCode(getCountryOfOrigin());
-        if (additionalInfos != null) {
-            additionalInfos.stream()
-                    .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
-                    .forEach(additionalInfo -> germplasm.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
-        }
 
         // Seed Source
         //If there is an external uid, source is associated with it as an additional external reference
@@ -175,17 +139,7 @@ public class Germplasm implements BrAPIObject {
 
         // External references
         germplasm.externalReferences(new ArrayList<>());
-        if (externalReferences != null) {
-            List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
-                    .map(externalReference -> externalReference.constructBrAPIExternalReference())
-                    .collect(Collectors.toList());
-            if (uidExternalReference != null) {
-                brAPIExternalReferences.add(uidExternalReference);
-            }
-            germplasm.getExternalReferences().addAll(brAPIExternalReferences);
-        } else if (uidExternalReference != null) {
-            germplasm.getExternalReferences().add(uidExternalReference);
-        }
+        germplasm.getExternalReferences().add(uidExternalReference);
 
         if (breedingMethod != null) {
             germplasm.putAdditionalInfoItem("breedingMethodId", breedingMethod.getId());

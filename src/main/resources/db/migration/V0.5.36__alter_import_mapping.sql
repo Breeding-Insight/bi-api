@@ -15,7 +15,37 @@
  * limitations under the License.
  */
 
+-- Mapping table
 alter table importer_mapping drop column draft;
 alter table importer_mapping drop column file;
-alter table importer_mapping rename column import_type_id to import_template_id;
+alter table importer_mapping rename column import_type_id to importer_template_id;
 alter table importer_mapping add column saved boolean default false;
+
+-- Import upload table
+alter table importer_import rename to importer_upload;
+alter table importer_upload drop column file_data;
+alter table importer_upload drop column user_id;
+alter table importer_upload drop column modified_data;
+
+-- Progress table
+alter table importer_progress alter column statusCode type int;
+alter table importer_progress rename column statusCode to status_code;
+
+-- Create table for importer_templates
+create table importer_template (
+    id int PRIMARY KEY,
+    name text unique
+);
+
+-- Create records for Germplasm and Experiment Import templates
+insert into importer_template (id, name)
+values
+(1, 'GermplasmImport'),
+(2, 'ExperimentImport');
+
+-- Update all of the existing imports
+update importer_mapping set importer_template_id = 1 where importer_template_id = 'GermplasmImport';
+update importer_mapping set importer_template_id = 2 where importer_template_id = 'ExperimentImport';
+alter table importer_mapping alter column importer_template_id type int using (importer_template_id::int);
+alter table importer_mapping add foreign key (importer_template_id) references importer_template (id);
+

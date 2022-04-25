@@ -21,11 +21,9 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
-import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRole;
@@ -38,8 +36,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
-import org.breedinginsight.brapps.importer.model.response.ImportResponse;
-import org.breedinginsight.brapps.importer.services.ImportConfigManager;
+import org.breedinginsight.brapps.importer.services.OldTemplateManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.*;
@@ -55,13 +52,13 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class MappingController {
 
-    private ImportConfigManager importManager;
+    private OldTemplateManager importManager;
     private SecurityService securityService;
     private FileImportService fileImportService;
 
     @Inject
-    MappingController(ImportConfigManager brAPIImportConfigManager, SecurityService securityService, FileImportService fileImportService) {
-        this.importManager = brAPIImportConfigManager;
+    MappingController(OldTemplateManager brAPITemplateManager, SecurityService securityService, FileImportService fileImportService) {
+        this.importManager = brAPITemplateManager;
         this.securityService = securityService;
         this.fileImportService = fileImportService;
     }

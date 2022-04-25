@@ -84,8 +84,10 @@ public class ExperimentProcessor implements Processor {
         this.brAPILocationDAO = brAPILocationDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
+    }
 
-
+    public ExperimentObservation getSupportedImport(){
+        return new ExperimentObservation();
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
@@ -179,8 +181,14 @@ public class ExperimentProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                                                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
+    public void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
+
+    }
+
+    @Override
+    public void process(List<BrAPIImport> importRows, Program program, User user, boolean commit,
+                            Map<Integer, PendingImport> mappedBrAPIImport, Map<String, ImportPreviewStatistics> importStatistics
+                        ) throws ValidatorException {
 
         // Validations
         // GID for existing germplasm. Throw error if GID not found.
@@ -257,9 +265,7 @@ public class ExperimentProcessor implements Processor {
 
 
         //TODO What do we what mapped
-        return Map.of(
-                "Experiment", experimentStats
-        );
+        importStatistics.put("Experiment", experimentStats);
     }
 
     private void extracted() {
@@ -329,14 +335,4 @@ public class ExperimentProcessor implements Processor {
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
         // TODO
     }
-
-    @Override
-    public String getName() {
-        return NAME;
-    }
-
-
-
-
-
 }

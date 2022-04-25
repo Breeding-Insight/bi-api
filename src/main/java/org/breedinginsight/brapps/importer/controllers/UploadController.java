@@ -32,43 +32,51 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
-import org.breedinginsight.brapps.importer.services.FileImportService;
+import org.breedinginsight.brapps.importer.services.UploadService;
 import org.breedinginsight.services.exceptions.*;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 public class UploadController {
     private SecurityService securityService;
-    private FileImportService fileImportService;
+    private UploadService uploadService;
 
     @Inject
-    UploadController(SecurityService securityService, FileImportService fileImportService) {
+    UploadController(SecurityService securityService, UploadService uploadService) {
         this.securityService = securityService;
-        this.fileImportService = fileImportService;
+        this.uploadService = uploadService;
     }
 
-    @Post("programs/{programId}/import/mappings/{mappingId}/data")
+    /**
+     * Imports a file for the specified import template. If a mapping id is specified, the mapping
+     * will be used to map the file data to the template.
+     * @param programId
+     * @param templateId
+     * @param file
+     * @return
+     */
+    @Post("programs/{programId}/import/{templateId}{?mappingId}{?commit}")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> uploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                             @Part("file") CompletedFileUpload file) {
+    public HttpResponse<Response<ImportResponse>> upload(@PathVariable UUID programId, @PathVariable Integer templateId,
+                                                         @QueryValue @Nullable UUID mappingId, @QueryValue(defaultValue = "false") Boolean commit,
+                                                         @Part("file") CompletedFileUpload file, @Part("userInput") @Nullable Map<String, Object> userInput) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file);
+            ImportResponse result = uploadService.uploadData(programId, templateId, mappingId, userInput, actingUser, file, commit);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.notFound();
-        } catch (AuthorizationException e) {
-            log.error(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (UnsupportedTypeException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE, e.getMessage());
@@ -83,16 +91,15 @@ public class UploadController {
     }
 
 
-    @Get("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}{?mapping}")
+    @Get("programs/{programId}/import/{uploadId}{?mapping}")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> getUploadData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                             @PathVariable UUID uploadId, @QueryValue(defaultValue = "false") Boolean mapping) {
+    public HttpResponse<Response<ImportResponse>> getUpload(@PathVariable UUID programId, @PathVariable UUID uploadId,
+                                                            @QueryValue(defaultValue = "false") Boolean mapping) {
         try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, mapping);
+            Pair<HttpStatus, ImportResponse> result = uploadService.getDataUpload(uploadId, mapping);
             Response<ImportResponse> response = new Response(result.getRight());
             if (result.getLeft().equals(HttpStatus.ACCEPTED)) {
                 return HttpResponse.ok(response).status(result.getLeft());
@@ -102,58 +109,6 @@ public class UploadController {
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
-        }
-    }
-
-    @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/commit")
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                             @PathVariable UUID uploadId, @Body Map<String, Object> userInput) {
-        try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, true);
-            Response<ImportResponse> response = new Response(result);
-            return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
-        } catch (AuthorizationException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
-        } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        } catch (HttpStatusException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(e.getStatus(), e.getMessage());
-        }
-    }
-
-    @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/preview")
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                              @PathVariable UUID uploadId) {
-        try {
-            AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, null, false);
-            Response<ImportResponse> response = new Response(result);
-            return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
-            return HttpResponse.notFound();
-        } catch (AuthorizationException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
-        } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
-        } catch (HttpStatusException e) {
-            log.info(e.getMessage());
-            return HttpResponse.status(e.getStatus(), e.getMessage());
         }
     }
 }

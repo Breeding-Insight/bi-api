@@ -27,7 +27,7 @@ import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
-import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
+import org.breedinginsight.dao.db.tables.pojos.ImporterUploadEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.jooq.Record;
@@ -36,7 +36,8 @@ import tech.tablesaw.api.Table;
 import java.util.List;
 import java.util.Map;
 
-import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
+import static org.breedinginsight.dao.db.Tables.IMPORTER_UPLOAD;
+
 
 @Getter
 @Setter
@@ -44,7 +45,7 @@ import static org.breedinginsight.dao.db.Tables.IMPORTER_IMPORT;
 @ToString
 @NoArgsConstructor
 @SuperBuilder(builderMethodName = "uploadBuilder")
-public class ImportUpload extends ImporterImportEntity {
+public class ImportUpload extends ImporterUploadEntity {
 
     private Program program;
     private User user;
@@ -70,19 +71,16 @@ public class ImportUpload extends ImporterImportEntity {
     public static ImportUpload parseSQLRecord(Record record) {
 
         return ImportUpload.uploadBuilder()
-                .id(record.getValue(IMPORTER_IMPORT.ID))
-                .programId(record.getValue(IMPORTER_IMPORT.PROGRAM_ID))
-                .importerMappingId(record.getValue(IMPORTER_IMPORT.IMPORTER_MAPPING_ID))
-                .importerProgressId(record.getValue(IMPORTER_IMPORT.IMPORTER_PROGRESS_ID))
-                .userId(record.getValue(IMPORTER_IMPORT.USER_ID))
-                .uploadFileName(record.getValue(IMPORTER_IMPORT.UPLOAD_FILE_NAME))
-                .fileData(record.getValue(IMPORTER_IMPORT.FILE_DATA))
-                .modifiedData(record.getValue(IMPORTER_IMPORT.MODIFIED_DATA))
-                .mappedData(record.getValue(IMPORTER_IMPORT.MAPPED_DATA))
-                .createdAt(record.getValue(IMPORTER_IMPORT.CREATED_AT))
-                .updatedAt(record.getValue(IMPORTER_IMPORT.UPDATED_AT))
-                .createdBy(record.getValue(IMPORTER_IMPORT.CREATED_BY))
-                .updatedBy(record.getValue(IMPORTER_IMPORT.UPDATED_BY))
+                .id(record.getValue(IMPORTER_UPLOAD.ID))
+                .programId(record.getValue(IMPORTER_UPLOAD.PROGRAM_ID))
+                .importerMappingId(record.getValue(IMPORTER_UPLOAD.IMPORTER_MAPPING_ID))
+                .importerProgressId(record.getValue(IMPORTER_UPLOAD.IMPORTER_PROGRESS_ID))
+                .uploadFileName(record.getValue(IMPORTER_UPLOAD.UPLOAD_FILE_NAME))
+                .mappedData(record.getValue(IMPORTER_UPLOAD.MAPPED_DATA))
+                .createdAt(record.getValue(IMPORTER_UPLOAD.CREATED_AT))
+                .updatedAt(record.getValue(IMPORTER_UPLOAD.UPDATED_AT))
+                .createdBy(record.getValue(IMPORTER_UPLOAD.CREATED_BY))
+                .updatedBy(record.getValue(IMPORTER_UPLOAD.UPDATED_BY))
                 .build();
     }
 }

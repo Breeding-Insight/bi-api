@@ -34,13 +34,13 @@ import java.util.stream.Collectors;
 
 @Context
 @Singleton
-public class TemplateManager {
+public class OldTemplateManager {
 
     private Map<String, BrAPIImportService> brAPIImportsMap;
 
     // brapiimport instead of brapiimportservice
     @Inject
-    TemplateManager(BrAPIImportService[] importServices) {
+    OldTemplateManager(BrAPIImportService[] importServices) {
         // Get all imports
         brAPIImportsMap = new HashMap<>();
         for (BrAPIImportService importService: importServices) {
@@ -63,7 +63,7 @@ public class TemplateManager {
         Field[] objectFields = c.getDeclaredFields();
         ImportConfigMetadata metadata = (ImportConfigMetadata) c.getAnnotation(ImportConfigMetadata.class);
         ImportConfigResponse importConfigResponse = new ImportConfigResponse();
-        importConfigResponse.setId(metadata.id());
+        importConfigResponse.setId(String.valueOf(metadata.dbId()));
         importConfigResponse.setName(metadata.name());
         importConfigResponse.setDescription(metadata.description());
 

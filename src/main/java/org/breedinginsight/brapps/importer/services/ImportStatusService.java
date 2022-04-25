@@ -20,6 +20,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.jooq.JSONB;
@@ -33,7 +34,6 @@ import javax.inject.Singleton;
 public class ImportStatusService {
 
     private ImportDAO importDAO;
-    private ImportUpload upload;
     private ObjectMapper objMapper;
 
     @Inject
@@ -42,42 +42,34 @@ public class ImportStatusService {
         this.objMapper = objMapper;
     }
 
-    public void setUpload(ImportUpload upload) {
-        this.upload = upload;
-    }
-
-    public ImportUpload getUpload() {
-        return this.upload;
-    }
-
-    public void updateMessage(String message) {
+    public void updateMessage(ImportUpload upload, String message) {
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
     }
 
-    public void startUpload(long numberObjects, String message) {
+    public void updateStatus(ImportUpload upload, HttpStatus status, String message) {
+        upload.getProgress().setMessage(message);
+        upload.getProgress().setStatusCode(status.getCode());
+        importDAO.update(upload);
+    }
+
+    public void startUpload(ImportUpload upload, long numberObjects, String message) {
         upload.getProgress().setTotal(numberObjects);
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
     }
 
-    public void finishUpload(String message) {
-        upload.getProgress().setMessage(message);
-        upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
-        importDAO.update(upload);
-    }
-
-    public void updateMappedData(ImportPreviewResponse response, String message) {
-        // Save our results to the db
+    public void finishUpload(ImportUpload upload, ImportPreviewResponse response, String message) {
         JSON config = new JSON();
         String json = config.getGson().toJson(response);
         upload.setMappedData(JSONB.valueOf(json));
         upload.getProgress().setMessage(message);
+        upload.getProgress().setStatusCode(HttpStatus.OK.getCode());
         importDAO.update(upload);
     }
 
-    public void updateOk() {
-        upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
+    public void updateOk(ImportUpload upload) {
+        upload.getProgress().setStatusCode(HttpStatus.OK.getCode());
         importDAO.update(upload);
     }
 

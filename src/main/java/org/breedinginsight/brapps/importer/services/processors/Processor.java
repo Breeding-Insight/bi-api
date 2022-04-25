@@ -28,6 +28,7 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import java.util.List;
 import java.util.Map;
 
+// TODO: Do away with ApiException
 public interface Processor {
 
     /**
@@ -38,6 +39,8 @@ public interface Processor {
      */
     void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException;
 
+    void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException;
+
     /**
      * Update mappedBrAPIImport mapping with PendingImport data for brapi object based on new and existing objects.
      * Return stats on number of new & existing objects
@@ -47,9 +50,10 @@ public interface Processor {
      * @return
      * @throws ValidatorException
      */
-    Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                                                 Map<Integer, PendingImport> mappedBrAPIImport,
-                                                 Program program, User user, boolean commit) throws ValidatorException;
+    void process(List<BrAPIImport> importRows,
+                                                 Program program, User user, boolean commit,
+                                                 Map<Integer, PendingImport> mappedBrAPIImport, Map<String,
+                                                 ImportPreviewStatistics> importStatistics) throws ValidatorException;
 
     /**
      * Given mapped brapi import with updates from prior dependencies, check if have everything needed
@@ -71,6 +75,7 @@ public interface Processor {
      * Provide a human readable name that should just be the name of the import object the processor works with
      * @return
      */
-    String getName();
+    BrAPIImport getSupportedImport();
+
 
 }

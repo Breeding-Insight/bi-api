@@ -238,7 +238,7 @@ public class MappingControllerIntegrationTest extends BrAPITest {
         String mappingId = result.get("id").getAsString();
         result.addProperty("name", name);
         result.add("mapping", gson.toJsonTree(validMapping.getMappingConfig()));
-        result.addProperty("importTemplateId", validMapping.getImportTemplateId());
+        result.addProperty("importerTemplateId", validMapping.getImporterTemplateId());
         result.remove("file");
 
         Flowable<HttpResponse<String>> nameUpdateCall = client.exchange(

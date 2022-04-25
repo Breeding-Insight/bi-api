@@ -47,9 +47,9 @@ import java.util.stream.Collectors;
 import static org.breedinginsight.brapps.importer.model.config.ImportRelationType.DB_LOOKUP_CONSTANT_VALUE;
 
 @Singleton
-public class MappingManager {
+public class Mapper {
 
-    private ImportConfigManager configManager;
+    private TemplateManager configManager;
 
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
     public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
@@ -58,7 +58,7 @@ public class MappingManager {
     public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
 
     @Inject
-    MappingManager(ImportConfigManager configManager) {
+    Mapper(TemplateManager configManager) {
         this.configManager = configManager;
     }
 
@@ -84,12 +84,11 @@ public class MappingManager {
         for (int rowIndex = 0; rowIndex < data.rowCount(); rowIndex++) {
 
             // TODO: Change this to just calling the processor
-            Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTemplateId());
-            if (optionalImportService.isEmpty()){
+            Optional<BrAPIImport> optionalImport = configManager.getTemplate(importMapping.getImporterTemplateId());
+            if (optionalImport.isEmpty()){
                 throw new UnprocessableEntityException("Import type with that id does not exist.");
             }
-            BrAPIImportService importService = optionalImportService.get();
-            BrAPIImport brAPIImport = importService.getImportClass();
+            BrAPIImport brAPIImport = optionalImport.get();
 
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();

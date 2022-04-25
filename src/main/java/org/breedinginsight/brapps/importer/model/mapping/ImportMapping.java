@@ -47,14 +47,14 @@ public class ImportMapping extends ImporterMappingEntity {
     public ImportMapping(ImporterMappingEntity importMappingEntity) {
         this.setId(importMappingEntity.getId());
         this.setName(importMappingEntity.getName());
-        this.setImportTemplateId(importMappingEntity.getImportTemplateId());
+        this.setImporterTemplateId(importMappingEntity.getImporterTemplateId());
     }
 
     public static ImportMapping parseSQLRecord(Record record) {
 
         return ImportMapping.builder()
                 .id(record.getValue(IMPORTER_MAPPING.ID))
-                .importTemplateId(record.getValue(IMPORTER_MAPPING.IMPORT_TEMPLATE_ID))
+                .importerTemplateId(record.getValue(IMPORTER_MAPPING.IMPORTER_TEMPLATE_ID))
                 .name(record.getValue(IMPORTER_MAPPING.NAME))
                 .mapping(record.getValue(IMPORTER_MAPPING.MAPPING))
                 .createdAt(record.getValue(IMPORTER_MAPPING.CREATED_AT))

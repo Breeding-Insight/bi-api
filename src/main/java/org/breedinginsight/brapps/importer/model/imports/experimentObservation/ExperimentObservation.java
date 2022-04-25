@@ -24,6 +24,7 @@ import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -34,7 +35,7 @@ import java.util.function.Supplier;
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportConfigMetadata(id="ExperimentImport", name="Experiment Import",
+@ImportConfigMetadata(dbId=2, name="Experiment Import",
         description = "This import is used to create Observation Unit and Experiment data")
 public class ExperimentObservation implements BrAPIImport {
 

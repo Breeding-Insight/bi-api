@@ -49,7 +49,7 @@ public class ImportProgress extends ImporterProgressEntity {
 
         return ImportProgress.builder()
                 .id(record.getValue(IMPORTER_PROGRESS.ID))
-                .statuscode(record.getValue(IMPORTER_PROGRESS.STATUSCODE))
+                .statusCode(record.getValue(IMPORTER_PROGRESS.STATUS_CODE))
                 .message(record.getValue(IMPORTER_PROGRESS.MESSAGE))
                 .total(record.getValue(IMPORTER_PROGRESS.TOTAL))
                 .finished(record.getValue(IMPORTER_PROGRESS.FINISHED))

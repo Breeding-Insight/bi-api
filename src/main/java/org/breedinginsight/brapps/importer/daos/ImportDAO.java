@@ -21,9 +21,8 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.dao.db.tables.BiUserTable;
-import org.breedinginsight.dao.db.tables.daos.ImporterImportDao;
 import org.breedinginsight.dao.db.tables.daos.ImporterProgressDao;
-import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
+import org.breedinginsight.dao.db.tables.daos.ImporterUploadDao;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -44,7 +43,7 @@ import java.util.UUID;
 import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
-public class ImportDAO extends ImporterImportDao {
+public class ImportDAO extends ImporterUploadDao {
 
     private DSLContext dsl;
     private ImporterProgressDao progressDao;
@@ -58,7 +57,7 @@ public class ImportDAO extends ImporterImportDao {
 
     public Optional<ImportUpload> getUploadById(UUID id) {
         List<Record> records = getUploadsQuery()
-                .where(IMPORTER_IMPORT.ID.eq(id))
+                .where(IMPORTER_UPLOAD.ID.eq(id))
                 .fetch();
 
         if (records.isEmpty()) {
@@ -87,17 +86,6 @@ public class ImportDAO extends ImporterImportDao {
             upload.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
             upload.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
             upload.setProgress(ImportProgress.parseSQLRecord(record));
-            // Parse our file data and modified data into a data table
-            try {
-                if (upload.getFileData() != null) {
-                    upload.setFileDataTable(FileUtil.parseTableFromJson(upload.getFileData().toString()));
-                }
-                if (upload.getModifiedData() != null) {
-                    upload.setModifiedDataTable(FileUtil.parseTableFromJson(upload.getModifiedData().toString()));
-                }
-            } catch (ParsingException e) {
-                throw new InternalServerException(e.toString(), e);
-            }
             resultUploads.add(upload);
         }
         return resultUploads;
@@ -109,12 +97,11 @@ public class ImportDAO extends ImporterImportDao {
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
 
         return dsl.select()
-                .from(IMPORTER_IMPORT)
-                .leftJoin(IMPORTER_PROGRESS).on(IMPORTER_IMPORT.IMPORTER_PROGRESS_ID.eq(IMPORTER_PROGRESS.ID))
-                .innerJoin(PROGRAM).on(IMPORTER_IMPORT.PROGRAM_ID.eq(PROGRAM.ID))
-                .innerJoin(BI_USER).on(IMPORTER_IMPORT.USER_ID.eq(BI_USER.ID))
-                .innerJoin(createdByUser).on(IMPORTER_IMPORT.CREATED_BY.eq(createdByUser.ID))
-                .innerJoin(updatedByUser).on(IMPORTER_IMPORT.UPDATED_BY.eq(updatedByUser.ID));
+                .from(IMPORTER_UPLOAD)
+                .leftJoin(IMPORTER_PROGRESS).on(IMPORTER_UPLOAD.IMPORTER_PROGRESS_ID.eq(IMPORTER_PROGRESS.ID))
+                .innerJoin(PROGRAM).on(IMPORTER_UPLOAD.PROGRAM_ID.eq(PROGRAM.ID))
+                .innerJoin(createdByUser).on(IMPORTER_UPLOAD.CREATED_BY.eq(createdByUser.ID))
+                .innerJoin(updatedByUser).on(IMPORTER_UPLOAD.UPDATED_BY.eq(updatedByUser.ID));
     }
 
     public void updateProgress(ImportProgress importProgress) {

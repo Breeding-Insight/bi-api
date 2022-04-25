@@ -35,6 +35,7 @@ import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -95,6 +96,10 @@ public class GermplasmProcessor implements Processor {
         this.breedingMethodDAO = breedingMethodDAO;
         this.brAPIListDAO = brAPIListDAO;
         this.brAPIGermplasmService = brAPIGermplasmService;
+    }
+
+    public BrAPIImport getSupportedImport() {
+        return new GermplasmImport();
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
@@ -201,8 +206,14 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
+    public void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
+
+    }
+
+    @Override
+    public void process(List<BrAPIImport> importRows, Program program, User user, boolean commit,
+                    Map<Integer, PendingImport> mappedBrAPIImport, Map<String, ImportPreviewStatistics> importStatistics
+                                                        ) throws ValidatorException {
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
@@ -320,11 +331,8 @@ public class GermplasmProcessor implements Processor {
                                 (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
                 ).collect(Collectors.toList()).size()).build();
 
-        return Map.of(
-                "Germplasm", germplasmStats,
-                "Pedigree Connections", pedigreeConnectStats
-        );
-
+        importStatistics.put("Germplasm", germplasmStats);
+        importStatistics.put("Pedigree Connections", pedigreeConnectStats);
     }
 
     private void createPostOrder() {
@@ -414,11 +422,6 @@ public class GermplasmProcessor implements Processor {
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
         // TODO
-    }
-
-    @Override
-    public String getName() {
-        return NAME;
     }
 
     public void constructPedigreeString(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Boolean commit) {

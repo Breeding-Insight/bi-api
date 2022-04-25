@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.model.imports;
 
 import org.breedinginsight.brapps.importer.model.base.*;
+import org.breedinginsight.brapps.importer.services.processors.Processor;
 
 import java.util.List;
 
