@@ -84,7 +84,7 @@ public class MappingManager {
         List<BrAPIImport> brAPIImports = new ArrayList<>();
         for (int rowIndex = 0; rowIndex < data.rowCount(); rowIndex++) {
 
-            Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTypeId());
+            Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(importMapping.getImportTemplateId());
             if (optionalImportService.isEmpty()){
                 throw new UnprocessableEntityException("Import type with that id does not exist.");
             }

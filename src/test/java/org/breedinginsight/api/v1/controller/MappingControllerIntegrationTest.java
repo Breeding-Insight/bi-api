@@ -55,7 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ImportControllerIntegrationTest extends BrAPITest {
+public class MappingControllerIntegrationTest extends BrAPITest {
 
     private FannyPack fp;
     private Program validProgram;
@@ -238,7 +238,7 @@ public class ImportControllerIntegrationTest extends BrAPITest {
         String mappingId = result.get("id").getAsString();
         result.addProperty("name", name);
         result.add("mapping", gson.toJsonTree(validMapping.getMappingConfig()));
-        result.addProperty("importTypeId", validMapping.getImportTypeId());
+        result.addProperty("importTemplateId", validMapping.getImportTemplateId());
         result.remove("file");
 
         Flowable<HttpResponse<String>> nameUpdateCall = client.exchange(

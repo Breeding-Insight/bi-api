@@ -84,6 +84,12 @@ public class GermplasmTemplateMap extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
+    // TODO: Tests to check
+    // Name is required when saving a mapping
+    // getMappings only returns saved mappings
+    // getDetails allows you to get unsaved mappings
+    // Mapping name is ignored when mapping isn't saved
+
     @BeforeAll
     public void setup() {
         fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");

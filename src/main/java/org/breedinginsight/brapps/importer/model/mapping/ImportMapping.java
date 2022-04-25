@@ -43,27 +43,20 @@ import static org.breedinginsight.dao.db.tables.ImporterMappingTable.IMPORTER_MA
 public class ImportMapping extends ImporterMappingEntity {
     @JsonProperty("mapping")
     private List<MappingField> mappingConfig;
-    @JsonProperty("file")
-    @JsonSerialize(converter = TableConverter.class)
-    private Table fileTable;
-
 
     public ImportMapping(ImporterMappingEntity importMappingEntity) {
         this.setId(importMappingEntity.getId());
         this.setName(importMappingEntity.getName());
-        this.setImportTypeId(importMappingEntity.getImportTypeId());
-        this.setDraft(importMappingEntity.getDraft());
+        this.setImportTemplateId(importMappingEntity.getImportTemplateId());
     }
 
     public static ImportMapping parseSQLRecord(Record record) {
 
         return ImportMapping.builder()
                 .id(record.getValue(IMPORTER_MAPPING.ID))
-                .importTypeId(record.getValue(IMPORTER_MAPPING.IMPORT_TYPE_ID))
-                .draft(record.getValue(IMPORTER_MAPPING.DRAFT))
+                .importTemplateId(record.getValue(IMPORTER_MAPPING.IMPORT_TEMPLATE_ID))
                 .name(record.getValue(IMPORTER_MAPPING.NAME))
                 .mapping(record.getValue(IMPORTER_MAPPING.MAPPING))
-                .file(record.getValue(IMPORTER_MAPPING.FILE))
                 .createdAt(record.getValue(IMPORTER_MAPPING.CREATED_AT))
                 .updatedAt(record.getValue(IMPORTER_MAPPING.UPDATED_AT))
                 .createdBy(record.getValue(IMPORTER_MAPPING.CREATED_BY))

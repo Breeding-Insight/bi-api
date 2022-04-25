@@ -58,7 +58,6 @@ import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -101,41 +100,129 @@ public class FileImportService {
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
         return configManager.getAllImportTypeConfigs();
     }
-    /*
-        Saves the file for the mapping record
+
+    /**
+     * Saves an import template mapping. Matches to the template fields is not enforced.
+     * Intended to be called from controller.
+     * @param programId
+     * @param actingUser
+     * @param mappingRequest
+     * @return
+     * @throws DoesNotExistException
+     * @throws AuthorizationException
+     * @throws UnsupportedTypeException
      */
-    public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
-            DoesNotExistException, AuthorizationException, UnsupportedTypeException {
+    public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, ImportMapping mappingRequest) throws AlreadyExistsException, UnprocessableEntityException {
+
+        // TODO: Check import type exists
+
+        // Check a name was passed if saving mapping
+        if (mappingRequest.getSaved() && mappingRequest.getName() == null) {
+            throw new UnprocessableEntityException("Mapping name required when saving a mapping");
+        }
+
+        // Check mapping name not already in use
+        List<ImportMapping> matchingMappings = importMappingDAO.getProgramMappingsByName(programId, mappingRequest.getName());
+        if (matchingMappings.size() > 0){
+            throw new AlreadyExistsException("A mapping with that name already exists");
+        }
+
+        // Convert mapping to json for storage
+        String json = convertMappingToJson(mappingRequest);
+
+        // Create mapping
+        ImporterMappingEntity importMappingEntity = ImporterMappingEntity.builder()
+                .name(mappingRequest.getSaved() ? mappingRequest.getName() : null)
+                .importTemplateId(mappingRequest.getImportTemplateId())
+                .mapping(JSONB.valueOf(json))
+                .saved(mappingRequest.getSaved())
+                .createdBy(actingUser.getId())
+                .updatedBy(actingUser.getId())
+                .build();
+        importMappingDAO.insert(importMappingEntity);
+
+        // Create program association
+        ImporterMappingProgramEntity importerMappingProgramEntity = ImporterMappingProgramEntity.builder()
+                .programId(programId)
+                .importerMappingId(importMappingEntity.getId())
+                .build();
+        importMappingProgramDAO.insert(importerMappingProgramEntity);
+
+        return importMappingDAO.getMapping(importMappingEntity.getId()).get();
+    }
+
+    /**
+     * Updates an import template mapping. Matches to the template fields is not enforced.
+     * Intended to be called from controller.
+     * @param programId
+     * @param actingUser
+     * @param mappingId
+     * @param mappingRequest
+     * @return
+     * @throws DoesNotExistException
+     * @throws AuthorizationException
+     * @throws AlreadyExistsException
+     */
+    public ImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
+                                       ImportMapping mappingRequest) throws
+            DoesNotExistException, AuthorizationException, AlreadyExistsException {
 
         Program program = validateRequest(programId, actingUser);
 
-        Table df = parseUploadedFile(file);
+        // Get existing mapping
+        Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
+        if (optionalImportMapping.isEmpty()) {
+            throw new DoesNotExistException("Mapping with that id does not exist");
+        }
 
-        // Convert the table to json to store
-        String jsonString = df.write().toString("json");
-        JSONB jsonb = JSONB.valueOf(jsonString);
+        // Check it doesn't use a reserved name
+        // TODO: Remove when default imports go right to template instead of needing mapping
+        List<ImportMapping> importMappings = importMappingDAO.getAllSystemMappings();
+        for(ImportMapping systemMapping: importMappings) {
+            if (systemMapping.getName().equalsIgnoreCase(mappingRequest.getName())) {
+                throw new AlreadyExistsException(String.format("Import name '%s' is a reserved name and cannot be used", mappingRequest.getName()));
+            }
+        }
 
-        ImportMapping importMapping = dsl.transactionResult(configuration -> {
-            ImporterMappingEntity importMappingEntity = ImporterMappingEntity.builder()
-                    .file(jsonb)
-                    .draft(true)
-                    .createdBy(actingUser.getId())
-                    .updatedBy(actingUser.getId())
-                    .build();
-            importMappingDAO.insert(importMappingEntity);
+        // Check mappings within the given program with the same name
+        List<ImportMapping> matchingMappings = importMappingDAO.getProgramMappingsByName(programId, mappingRequest.getName());
+        List<ImportMapping> nonSelfMappings = matchingMappings.stream()
+                .filter(mapping -> !mapping.getId().equals(mappingId)).collect(Collectors.toList());
+        if (nonSelfMappings.size() > 0){
+            throw new AlreadyExistsException("A mapping with that name already exists");
+        }
 
-            // Create program association
-            ImporterMappingProgramEntity importerMappingProgramEntity = ImporterMappingProgramEntity.builder()
-                    .programId(programId)
-                    .importerMappingId(importMappingEntity.getId())
-                    .build();
-            importMappingProgramDAO.insert(importerMappingProgramEntity);
+        // Save the mapping
+        String json = convertMappingToJson(mappingRequest);
 
-            ImportMapping newImportMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
+        ImporterMappingEntity importMappingEntity = importMappingDAO.fetchOneById(mappingId);
+        importMappingEntity.setName(mappingRequest.getName());
+        importMappingEntity.setImportTemplateId(mappingRequest.getImportTemplateId());
+        importMappingEntity.setMapping(JSONB.valueOf(json));
+        importMappingDAO.update(importMappingEntity);
 
-            return newImportMapping;
-        });
-        return importMapping;
+        Optional<ImportMapping> updatedMapping = importMappingDAO.getMapping(importMappingEntity.getId());
+
+        return updatedMapping.get();
+    }
+
+    /**
+     * Converts a mapping object into json for storage in the db.
+     * @param mappingRequest
+     * @return
+     */
+    private String convertMappingToJson(ImportMapping mappingRequest) {
+
+        // Save the mapping
+        String json = null;
+        try {
+            json = objectMapper.writeValueAsString(mappingRequest.getMappingConfig());
+        } catch(JsonProcessingException e) {
+            log.error("Problem converting traits json", e);
+            // If we didn't catch this in parsing to the class, this is a server error
+            throw new InternalServerException("Problem converting mapping json", e);
+        }
+        return json;
     }
 
     private Table parseUploadedFile(CompletedFileUpload file) throws UnsupportedTypeException, HttpStatusException {
@@ -183,85 +270,6 @@ public class FileImportService {
         }
 
         return df;
-    }
-
-    public ImportMapping updateMappingFile(UUID programId, UUID mappingId, AuthenticatedUser actingUser, CompletedFileUpload file)
-            throws UnsupportedTypeException, HttpStatusException, DoesNotExistException, AuthorizationException {
-
-        Program program = validateRequest(programId, actingUser);
-
-        ImportMapping importMapping;
-        Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
-
-        Table df = parseUploadedFile(file);
-
-        //TODO: Validate the new file works with the mapping, if validate is specified
-
-        // Convert the table to json to store
-        String jsonString = df.write().toString("json");
-        JSONB jsonb = JSONB.valueOf(jsonString);
-        ImporterMappingEntity importMappingEntity = importMappingDAO.fetchOneById(mappingId);
-        importMappingEntity.setFile(jsonb);
-        importMappingDAO.update(importMappingEntity);
-
-        importMapping = importMappingDAO.getMapping(importMappingEntity.getId()).get();
-
-        return importMapping;
-    }
-
-    public ImportMapping updateMapping(UUID programId, AuthenticatedUser actingUser, UUID mappingId,
-                                       ImportMapping mappingRequest, Boolean validate) throws
-            DoesNotExistException, AuthorizationException, HttpStatusException, UnprocessableEntityException, AlreadyExistsException, ValidatorException {
-
-        Program program = validateRequest(programId, actingUser);
-
-        Optional<ImportMapping> optionalImportMapping = importMappingDAO.getMapping(mappingId);
-        if (optionalImportMapping.isEmpty()) {
-            throw new DoesNotExistException("Mapping with that id does not exist");
-        }
-        ImportMapping importMapping = optionalImportMapping.get();
-
-        // Check it doesn't use a reserved name
-        List<ImportMapping> importMappings = importMappingDAO.getAllSystemMappings();
-        for(ImportMapping systemMapping: importMappings) {
-            if (systemMapping.getName().equalsIgnoreCase(mappingRequest.getName())) {
-                throw new AlreadyExistsException(String.format("Import name '%s' is a reserved name and cannot be used", mappingRequest.getName()));
-            }
-        }
-
-        // Check mappings within the given program with the same name
-        List<ImportMapping> matchingMappings = importMappingDAO.getProgramMappingsByName(programId, mappingRequest.getName());
-        List<ImportMapping> nonSelfMappings = matchingMappings.stream()
-                .filter(mapping -> !mapping.getId().equals(mappingId)).collect(Collectors.toList());
-        if (nonSelfMappings.size() > 0){
-            throw new AlreadyExistsException("A mapping with that name already exists");
-        }
-
-        // If validate is true, validate the mapping
-        if (validate) {
-            mappingManager.map(mappingRequest, importMapping.getFileTable());
-        }
-
-        // Save the mapping
-        String json = null;
-        try {
-            json = objectMapper.writeValueAsString(mappingRequest.getMappingConfig());
-        } catch(JsonProcessingException e) {
-            log.error("Problem converting traits json", e);
-            // If we didn't catch this in parsing to the class, this is a server error
-            throw new InternalServerException("Problem converting mapping json", e);
-        }
-
-        ImporterMappingEntity importMappingEntity = importMappingDAO.fetchOneById(mappingId);
-        importMappingEntity.setName(mappingRequest.getName());
-        importMappingEntity.setImportTypeId(mappingRequest.getImportTypeId());
-        importMappingEntity.setMapping(JSONB.valueOf(json));
-        importMappingEntity.setDraft(mappingRequest.getDraft());
-        importMappingDAO.update(importMappingEntity);
-
-        Optional<ImportMapping> updatedMapping = importMappingDAO.getMapping(importMappingEntity.getId());
-
-        return updatedMapping.get();
     }
 
     public Boolean exists(UUID mappingId) {
@@ -339,7 +347,7 @@ public class FileImportService {
 
         // Check that the program that the user created the import for is the one they are updating for
         if (!programId.equals(upload.getProgramId())){
-            throw new BadRequestException("Unable to update upload for a different program than the upload was created in.");
+            throw new UnprocessableEntityException("Unable to update upload for a different program than the upload was created in.");
         }
 
         // Get mapping
@@ -347,7 +355,7 @@ public class FileImportService {
         if (mappingConfigOptional.isEmpty()) throw new DoesNotExistException("Cannot find mapping config associated with upload.");
         ImportMapping mappingConfig = mappingConfigOptional.get();
 
-        Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(mappingConfig.getImportTypeId());
+        Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(mappingConfig.getImportTemplateId());
         if (optionalImportService.isEmpty()) throw new DoesNotExistException("Config with that id does not exist");
         BrAPIImportService importService = optionalImportService.get();
         // TODO: maybe return brapiimport from configmanager
@@ -470,12 +478,10 @@ public class FileImportService {
         return new ImmutablePair<>(status, response);
     }
 
-    public List<ImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)
-            throws DoesNotExistException, AuthorizationException {
+    public List<ImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser)
+            throws DoesNotExistException {
 
-        Program program = validateRequest(programId, actingUser);
-        List<ImportMapping> importMappings = importMappingDAO.getAllProgramMappings(programId, draft);
-        return importMappings;
+        return importMappingDAO.getAllProgramMappings(programId);
     }
 
     private Program validateRequest(UUID programId, AuthenticatedUser actingUser) throws DoesNotExistException, AuthorizationException{
@@ -500,5 +506,13 @@ public class FileImportService {
     public List<ImportMapping> getSystemMappingByName(AuthenticatedUser actingUser, String name) {
         List<ImportMapping> importMappings = importMappingDAO.getSystemMappingByName(name);
         return importMappings;
+    }
+
+    public ImportMapping getMappingDetails(UUID mappingId) throws DoesNotExistException {
+        Optional<ImportMapping> optionalMapping = importMappingDAO.getMapping(mappingId);
+        if (optionalMapping.isEmpty()) {
+            throw new DoesNotExistException("Mapping with that ID does not exist");
+        }
+        return optionalMapping.get();
     }
 }

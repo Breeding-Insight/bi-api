@@ -59,14 +59,14 @@ public class ImportMappingDAO extends ImporterMappingDao {
         }
     }
 
-    public List<ImportMapping> getAllProgramMappings(UUID programId, Boolean draft) {
+    public List<ImportMapping> getAllProgramMappings(UUID programId) {
 
         List<Record> records = dsl.select()
                 .from(IMPORTER_MAPPING)
                 .join(IMPORTER_MAPPING_PROGRAM).on(
                         IMPORTER_MAPPING_PROGRAM.PROGRAM_ID.eq(programId).and(
                         IMPORTER_MAPPING.ID.eq(IMPORTER_MAPPING_PROGRAM.IMPORTER_MAPPING_ID)))
-                .where(IMPORTER_MAPPING.DRAFT.eq(draft))
+                .where(IMPORTER_MAPPING.SAVED.isTrue())
                 .fetch();
 
         List<ImportMapping> mappings = new ArrayList<>();
@@ -128,14 +128,11 @@ public class ImportMappingDAO extends ImporterMappingDao {
 
         ImportMapping importMapping = new ImportMapping(importMappingEntity);
         try {
-            if (importMappingEntity.getFile() != null){
-                importMapping.setFileTable(FileUtil.parseTableFromJson(importMappingEntity.getFile().toString()));
-            }
             if (importMappingEntity.getMapping() != null) {
                 MappingField[] mappingFields = objectMapper.readValue(importMappingEntity.getMapping().toString(), MappingField[].class);
                 importMapping.setMappingConfig(Arrays.asList(mappingFields));
             }
-        } catch (ParsingException | JsonProcessingException e) {
+        } catch (JsonProcessingException e) {
             throw new InternalServerException(e.toString());
         }
 
