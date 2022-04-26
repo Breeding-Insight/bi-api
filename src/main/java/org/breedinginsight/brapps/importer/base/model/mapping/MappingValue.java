@@ -19,14 +19,10 @@ package org.breedinginsight.brapps.importer.base.model.mapping;
 
 import lombok.Getter;
 import lombok.Setter;
-import org.breedinginsight.brapps.importer.base.model.config.ImportRelationType;
 
 @Getter
 @Setter
 public class MappingValue {
     private String fileFieldName;
     private String constantValue;
-    private String fieldAlias;
-    private ImportRelationType relationValue;
-    private MappingRelationship relationMap;
 }

@@ -64,7 +64,6 @@ public class MappingService {
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
-        // TODO: Need to fix this
         return configManager.getAllImportTemplates();
     }
 
