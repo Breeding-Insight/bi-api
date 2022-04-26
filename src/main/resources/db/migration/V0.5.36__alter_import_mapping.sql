@@ -26,6 +26,7 @@ alter table importer_import rename to importer_upload;
 alter table importer_upload drop column file_data;
 alter table importer_upload drop column user_id;
 alter table importer_upload drop column modified_data;
+alter table importer_upload alter importer_mapping_id drop not null;
 
 -- Progress table
 alter table importer_progress alter column statusCode type int;

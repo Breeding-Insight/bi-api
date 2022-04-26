@@ -48,7 +48,6 @@ import static org.breedinginsight.dao.db.Tables.IMPORTER_UPLOAD;
 public class ImportUpload extends ImporterUploadEntity {
 
     private Program program;
-    private User user;
     private User createdByUser;
     private User updatedByUser;
     private ImportProgress progress;

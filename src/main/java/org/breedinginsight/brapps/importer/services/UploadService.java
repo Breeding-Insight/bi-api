@@ -118,14 +118,8 @@ public class UploadService {
             importMapping = optionalMapping.get();
         } else {
             // Generate mapping from template
+            // TODO: Add this option to mapping when map isn't passed instead of generated a map
             importMapping = configManager.generateMappingForTemplate(template.getClass());
-            // Save the mapping for this import
-            // TODO: Can we get it without the name exception?
-            try {
-                importMapping = fileImportService.createMapping(programId, actingUser, importMapping);
-            } catch (AlreadyExistsException e) {
-                throw new InternalServerException("Conflict should not have occurred", e);
-            }
         }
         ImportMapping finalImportMapping = importMapping;
 
@@ -144,52 +138,34 @@ public class UploadService {
             ImportProgress importProgress = new ImportProgress();
             importProgress.setCreatedBy(actingUser.getId());
             importProgress.setUpdatedBy(actingUser.getId());
-            importProgress.setStatusCode(HttpStatus.OK.getCode());
-            importProgress.setMessage("Request received, starting upload");
+            importProgress.setStatusCode(HttpStatus.ACCEPTED.getCode());
+            importProgress.setMessage("Request received, waiting for available job");
             importDAO.createProgress(importProgress);
 
             newUpload.setImporterProgressId(importProgress.getId());
+            newUpload.setProgress(importProgress);
             importDAO.insert(newUpload);
             return newUpload;
         });
 
         // Do our work in separate thread
-        // TODO: The progress object isn't being grabbed
         executor.execute(() -> {
-            ImportProgress progress = upload.getProgress();
 
-            // Read the file
-            //TODO: Get better errors on this
-            Table data = null;
             try {
-                data = parseUploadedFile(file);
-            } catch (UnsupportedTypeException e) {
-                // TODO: Get proper error and use convenience methods
-                progress.setStatusCode(HttpStatus.BAD_REQUEST.getCode());
-                throw new InternalServerException("Unable to process");
-            }
+                statusService.updateMessage(upload, "Upload started");
+                Table data = parseUploadedFile(file);
 
-            // Map the data
-            // TODO: Move validations out from mapper
-            // Map the file to validate it
-            upload.getProgress().setMessage("Mapping file to import objects");
-            List<BrAPIImport> brAPIImportList = new ArrayList<>();
-            try {
+                statusService.updateMessage(upload, "Mapping file to import objects");
+                List<BrAPIImport> brAPIImportList = new ArrayList<>();
+                // TODO: Move null and data type validations out from mapper
                 if (commit) {
                     brAPIImportList = mapper.map(finalImportMapping, data, userInput);
-
                 } else {
                     brAPIImportList = mapper.map(finalImportMapping, data);
                 }
-            } catch (UnprocessableEntityException e) {
-                e.printStackTrace();
-            } catch (ValidatorException e) {
-                e.printStackTrace();
-            }
 
-            Map<Integer, PendingImport> mappedImport = new HashMap<>();
-            Map<String, ImportPreviewStatistics> importStatistics = new HashMap<>();
-            try {
+                Map<Integer, PendingImport> mappedImport = new HashMap<>();
+                Map<String, ImportPreviewStatistics> importStatistics = new HashMap<>();
                 // Processor getExisting
                 statusService.updateMessage(upload, "Checking existing objects in brapi service and mapping data.");
                 processor.getExistingBrapiData(brAPIImportList, program);
@@ -204,21 +180,31 @@ public class UploadService {
                     statusService.updateMessage(upload, "Committing data to BrAPI Server");
                     processor.postBrapiData(mappedImport, program, upload);
                 }
+
+                ImportPreviewResponse response = new ImportPreviewResponse();
+                response.setStatistics(importStatistics);
+                List<PendingImport> mappedBrAPIImportList = new ArrayList<>(mappedImport.values());
+                response.setRows(mappedBrAPIImportList);
+                statusService.finishUpload(upload, response, String.format("Finished ", commit ? "upload": "preview"));
+
+            } catch (UnsupportedTypeException e) {
+                statusService.updateStatus(upload, HttpStatus.BAD_REQUEST, "Unable to process file.");
+                // TODO: Throw a custom importer error
+                throw new InternalServerException("Unable to process");
+            } catch (UnprocessableEntityException e) {
+                e.printStackTrace();
             } catch (ValidatorException e) {
                 // TODO: The toString method on this won't work, error could also be better.
                 statusService.updateStatus(upload, HttpStatus.UNPROCESSABLE_ENTITY, e.getErrors().toString());
-
+                throw new InternalServerException(e.getMessage(), e);
             } catch (ApiException e) {
                 // TODO: Error could be better
                 statusService.updateStatus(upload, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
                 throw new InternalServerException(e.getMessage(), e);
+            } catch (Exception e) {
+                statusService.updateStatus(upload, HttpStatus.INTERNAL_SERVER_ERROR, "Uknown error has occurred");
+                throw new InternalServerException(e.getMessage(), e);
             }
-
-            ImportPreviewResponse response = new ImportPreviewResponse();
-            response.setStatistics(importStatistics);
-            List<PendingImport> mappedBrAPIImportList = new ArrayList<>(mappedImport.values());
-            response.setRows(mappedBrAPIImportList);
-            statusService.finishUpload(upload, response, String.format("Finished ", commit ? "upload": "preview"));
         });
 
         // Construct our return with our import id
@@ -228,7 +214,7 @@ public class UploadService {
         return response;
     }
 
-    public Pair<HttpStatus, ImportResponse> getDataUpload(UUID uploadId, Boolean includeMapping) throws DoesNotExistException {
+    public Pair<HttpStatus, ImportResponse> getDataUpload(UUID uploadId) throws DoesNotExistException {
 
         Optional<ImportUpload> uploadOptional = importDAO.getUploadById(uploadId);
         if (uploadOptional.isEmpty()){
@@ -240,11 +226,9 @@ public class UploadService {
         ImportResponse response = new ImportResponse();
         response.setImportId(uploadId);
         response.setProgress(upload.getProgress());
-        if (includeMapping){
-            response.setPreview(upload.getMappedData());
-        }
+        response.setPreview(upload.getMappedData());
 
-        Integer statusCode = (int) upload.getProgress().getStatusCode();
+        Integer statusCode = upload.getProgress().getStatusCode();
         HttpStatus status = HttpStatus.valueOf(statusCode);
 
         return new ImmutablePair<>(status, response);

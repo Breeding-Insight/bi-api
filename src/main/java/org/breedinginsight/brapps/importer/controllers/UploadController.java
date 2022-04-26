@@ -91,15 +91,14 @@ public class UploadController {
     }
 
 
-    @Get("programs/{programId}/import/{uploadId}{?mapping}")
+    @Get("programs/{programId}/import/{uploadId}")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
-    public HttpResponse<Response<ImportResponse>> getUpload(@PathVariable UUID programId, @PathVariable UUID uploadId,
-                                                            @QueryValue(defaultValue = "false") Boolean mapping) {
+    public HttpResponse<Response<ImportResponse>> getUpload(@PathVariable UUID programId, @PathVariable UUID uploadId) {
         try {
-            Pair<HttpStatus, ImportResponse> result = uploadService.getDataUpload(uploadId, mapping);
+            Pair<HttpStatus, ImportResponse> result = uploadService.getDataUpload(uploadId);
             Response<ImportResponse> response = new Response(result.getRight());
             if (result.getLeft().equals(HttpStatus.ACCEPTED)) {
                 return HttpResponse.ok(response).status(result.getLeft());

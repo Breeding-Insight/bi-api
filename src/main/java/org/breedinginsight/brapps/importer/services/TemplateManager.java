@@ -52,8 +52,8 @@ public class TemplateManager {
     public Optional<BrAPIImport> getTemplate(int importId) {
         // Iterate through all of the brapi imports
         for (Processor processor: processors) {
-            Class importClass = processor.getSupportedImport().getClass();
-            ImportConfigMetadata metadata = (ImportConfigMetadata) importClass.getAnnotation(ImportConfigMetadata.class);
+            Class<? extends BrAPIImport> importClass = processor.getSupportedImport().getClass();
+            ImportConfigMetadata metadata = importClass.getAnnotation(ImportConfigMetadata.class);
             if (importId == metadata.dbId()) {
                 return Optional.of(processor.getSupportedImport());
             }
@@ -64,9 +64,14 @@ public class TemplateManager {
     public ImportMapping generateMappingForTemplate(Class<? extends BrAPIImport> importClass) {
 
         ImportMapping importMapping = new ImportMapping();
-        importMapping.setSaved(false);
+        // Set mapping
         Field[] fields = importClass.getDeclaredFields();
         importMapping.setMappingConfig(processFields(fields));
+        // Set fields
+        importMapping.setSaved(false);
+        // Set template id
+        ImportConfigMetadata metadata = importClass.getAnnotation(ImportConfigMetadata.class);
+        importMapping.setImporterTemplateId(metadata.dbId());
         return importMapping;
     }
 

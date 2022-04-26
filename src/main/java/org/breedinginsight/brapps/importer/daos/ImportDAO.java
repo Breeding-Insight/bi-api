@@ -82,7 +82,6 @@ public class ImportDAO extends ImporterUploadDao {
         for (Record record : records) {
             ImportUpload upload = ImportUpload.parseSQLRecord(record);
             upload.setProgram(Program.parseSQLRecord(record));
-            upload.setUser(User.parseSQLRecord(record));
             upload.setCreatedByUser(User.parseSQLRecord(record, createdByUser));
             upload.setUpdatedByUser(User.parseSQLRecord(record, updatedByUser));
             upload.setProgress(ImportProgress.parseSQLRecord(record));
