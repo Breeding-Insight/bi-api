@@ -39,7 +39,7 @@ public interface Processor {
      */
     void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException;
 
-    void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException;
+    void validate(List<BrAPIImport> importRows, Program program, Boolean commit) throws ValidatorException;
 
     /**
      * Update mappedBrAPIImport mapping with PendingImport data for brapi object based on new and existing objects.
@@ -54,14 +54,6 @@ public interface Processor {
                                                  Program program, User user, boolean commit,
                                                  Map<Integer, PendingImport> mappedBrAPIImport, Map<String,
                                                  ImportPreviewStatistics> importStatistics) throws ValidatorException;
-
-    /**
-     * Given mapped brapi import with updates from prior dependencies, check if have everything needed
-     * prior to posting objects and throw a validatorException if not
-     * @param mappedBrAPIImport
-     * @throws ValidatorException
-     */
-    void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException;
 
     /**
      * Given mapped brapi import with updates from prior dependencies, post complete brapi objects

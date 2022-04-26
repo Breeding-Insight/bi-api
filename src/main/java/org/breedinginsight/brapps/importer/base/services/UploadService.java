@@ -162,7 +162,7 @@ public class UploadService {
                 processor.getExistingBrapiData(brAPIImportList, program);
                 // Processor validate
                 statusService.updateMessage(upload, "Checking data validations.");
-                processor.validate(brAPIImportList, program);
+                processor.validate(brAPIImportList, program, commit);
                 // Processor process
                 statusService.updateMessage(upload, "Constructing BrAPI objects from input.");
                 processor.process(brAPIImportList, program, user, commit, mappedImport, importStatistics);

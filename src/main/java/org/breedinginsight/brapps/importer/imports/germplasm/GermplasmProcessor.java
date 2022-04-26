@@ -39,6 +39,7 @@ import org.breedinginsight.brapps.importer.base.model.response.ImportObjectState
 import org.breedinginsight.brapps.importer.base.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.base.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.base.services.Processor;
+import org.breedinginsight.brapps.importer.validator.CommonValidator;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
@@ -211,10 +212,38 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
-        // TODO: Null value checks on file and user input
+    public void validate(List<BrAPIImport> importRows, Program program, Boolean commit) throws ValidatorException {
+        ValidationErrors errors = new ValidationErrors();
+        // TODO: Can move these into validator class to remove some work from this processor
+        // TODO: Display these errors on the front end.
 
-        // TODO: Type checks
+        // Single errors
+        if (importRows.size() > 0) {
+            GermplasmImport row = (GermplasmImport) importRows.get(0);
+            Germplasm germplasm = row.getGermplasm();
+
+            if (commit) {
+                CommonValidator.required("List Name", germplasm.getListName(), errors);
+            }
+        }
+
+        for (int i = 0; i < importRows.size(); i++) {
+            GermplasmImport row = (GermplasmImport) importRows.get(i);
+            Integer rowIndex = i + 2;
+            Germplasm germplasm = row.getGermplasm();
+
+            // TODO: This could be better, I don't like the free text field names. Could do required validations on class field names.
+            // Row errors
+            CommonValidator.required("Germplasm Name", rowIndex, germplasm.getGermplasmName(), errors);
+            CommonValidator.required("Breeding Method", rowIndex, germplasm.getBreedingMethod(), errors);
+            CommonValidator.required("Germplasm Source", rowIndex, germplasm.getGermplasmSource(), errors);
+        }
+
+        // TODO: Move existing checks into here -- later
+
+        if (errors.hasErrors()) {
+            throw new ValidatorException(errors);
+        }
     }
 
     @Override
@@ -390,14 +419,7 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException {
-        // TODO
-    }
-
-    @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) {
-        // check shared data object for dependency data and update
-        updateDependencyValues(mappedBrAPIImport);
 
         // POST Germplasm
         List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
@@ -429,10 +451,6 @@ public class GermplasmProcessor implements Processor {
 
 
 
-    }
-
-    private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
-        // TODO
     }
 
     public void constructPedigreeString(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Boolean commit) {

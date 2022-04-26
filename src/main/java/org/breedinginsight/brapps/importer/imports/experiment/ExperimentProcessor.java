@@ -179,7 +179,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     @Override
-    public void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
+    public void validate(List<BrAPIImport> importRows, Program program, Boolean commit) throws ValidatorException {
 
     }
 
@@ -266,17 +266,9 @@ public class ExperimentProcessor implements Processor {
         importStatistics.put("Experiment", experimentStats);
     }
 
-    @Override
-    public void validateDependencies(Map<Integer, PendingImport> mappedBrAPIImport) throws ValidatorException {
-        // TODO
-    }
 
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) {
 
-    }
-
-    private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
-        // TODO
     }
 }
