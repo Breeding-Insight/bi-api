@@ -21,7 +21,8 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.base.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.base.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 

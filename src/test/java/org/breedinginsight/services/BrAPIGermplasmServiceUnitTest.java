@@ -1,36 +1,12 @@
 package org.breedinginsight.services;
 
-import com.google.gson.JsonObject;
-import io.reactivex.functions.Function;
-import io.reactivex.functions.Function3;
-import lombok.SneakyThrows;
-import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
-import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.base.daos.ImportDAO;
 import org.breedinginsight.daos.ProgramDAO;
-import org.breedinginsight.model.DownloadFile;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
-import org.breedinginsight.utilities.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.mockito.MockedStatic;
-import tech.tablesaw.api.Table;
-
-import java.io.InputStream;
-import java.lang.reflect.Method;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
