@@ -18,7 +18,6 @@ package org.breedinginsight.services.validators;
 
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
-import org.breedinginsight.brapi.v1.model.TraitDataType;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.Method;
@@ -52,44 +51,44 @@ public class TraitValidatorService {
 
             if (method == null) {
                 ValidationError error = traitValidatorErrors.getMissingMethodMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             } else {
                 if (isBlank(method.getMethodClass()) || method.getMethodClass() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodClassMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                    errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
 
             if (scale == null) {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             } else {
                 if (scale.getDataType() != null & scale.getDataType() == DataType.NUMERICAL &&
                         (isBlank(scale.getScaleName()) || scale.getScaleName() == null )) {
                     ValidationError error = traitValidatorErrors.getMissingScaleNameMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                    errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
                 }
                 if (scale.getDataType() == null || scale.getDataType() == null) {
                     ValidationError error = traitValidatorErrors.getMissingScaleDataTypeMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                    errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
 
             if (isBlank(trait.getObservationVariableName()) || trait.getObservationVariableName() == null) {
                 ValidationError error = traitValidatorErrors.getMissingObsVarNameMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (isBlank(trait.getEntity()) || trait.getEntity() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitEntityMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (isBlank(trait.getAttribute()) || trait.getAttribute() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitAttributeMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
             if (isBlank(trait.getTraitDescription()) || trait.getTraitDescription() == null) {
                 ValidationError error = traitValidatorErrors.getMissingTraitDescriptionMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
         }
 
@@ -110,14 +109,14 @@ public class TraitValidatorService {
             if (method != null && method.getMethodClass() != null && method.getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
                 if (isBlank(method.getFormula()) || method.getFormula() == null) {
                     ValidationError error = traitValidatorErrors.getMissingMethodFormulaMsg();
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                    errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
                 }
             }
 
             if (scale != null && scale.getDataType() != null && (scale.getDataType() == DataType.ORDINAL || scale.getDataType() == DataType.NOMINAL)) {
                 if (scale.getCategories() == null || scale.getCategories().isEmpty()) {
                     ValidationError error = traitValidatorErrors.getMissingScaleCategoriesMsg(scale.getDataType());
-                    errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                    errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
                 } else {
 
                     ValidationErrors categoryErrors = new ValidationErrors();
@@ -128,36 +127,36 @@ public class TraitValidatorService {
                         if (scale.getDataType() == DataType.ORDINAL) {
                             if (isBlank(scale.getCategories().get(k).getLabel())) {
                                 ValidationError error = traitValidatorErrors.getBlankScaleCategoryLabelMsg();
-                                categoryErrors.addError(k, error);
+                                categoryErrors.addRowError(k, error);
                             }
                         }
 
                         if (scale.getDataType() == DataType.NOMINAL) {
                             if (!isBlank(scale.getCategories().get(k).getLabel())) {
                                 ValidationError error = traitValidatorErrors.getPopulatedNominalCategoryLabelMsg();
-                                categoryErrors.addError(k, error);
+                                categoryErrors.addRowError(k, error);
                             }
                         }
 
                         if (isBlank(scale.getCategories().get(k).getValue())) {
                             ValidationError error = traitValidatorErrors.getBlankScaleCategoryValueMsg();
-                            categoryErrors.addError(k, error);
+                            categoryErrors.addRowError(k, error);
                         }
                     }
 
                     if (categoryErrors.hasErrors()) {
                         ValidationError categoryError = traitValidatorErrors.getBadScaleCategory();
                         categoryError.setRowErrors(categoryErrors.getRowErrors());
-                        errors.addError(traitValidatorErrors.getRowNumber(i), categoryError);
+                        errors.addRowError(traitValidatorErrors.getRowNumber(i), categoryError);
                     }
 
                     //Check if sufficient categories if scale is ordinal (2) or nominal (1)
                     if ((scale.getDataType() == DataType.NOMINAL) && (scale.getCategories().size() < 1)) {
                         ValidationError InsufficientNominalValError = traitValidatorErrors.getInsufficientNominalValError();
-                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
+                        errors.addRowError(traitValidatorErrors.getRowNumber(i), InsufficientNominalValError);
                     } else if ((scale.getDataType() == DataType.ORDINAL) && (scale.getCategories().size() < 2)) {
                         ValidationError InsufficientOrdinalValError = traitValidatorErrors.getInsufficientOrdinalValError();
-                        errors.addError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
+                        errors.addRowError(traitValidatorErrors.getRowNumber(i), InsufficientOrdinalValError);
                     }
                 }
             }
@@ -167,7 +166,7 @@ public class TraitValidatorService {
                     // Check if max < min
                     if (scale.getValidValueMax().compareTo(scale.getValidValueMin()) <= 0) {
                         ValidationError minMaxError = traitValidatorErrors.getMaxLessThenMinError();
-                        errors.addError(traitValidatorErrors.getRowNumber(i), minMaxError);
+                        errors.addRowError(traitValidatorErrors.getRowNumber(i), minMaxError);
                     }
                 }
             }
@@ -189,19 +188,19 @@ public class TraitValidatorService {
 
             if ((trait.getObservationVariableName() != null) && (trait.getObservationVariableName().length() > shortCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitObsVarNameMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
             if ((trait.getEntity() != null) && (trait.getEntity().length() > longCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitTraitEntityMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
             if ((trait.getAttribute() != null) && (trait.getAttribute().length() > longCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitTraitAttributeMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
             if ((method.getDescription() != null) && (method.getDescription().length() > longCharLimit)) {
                 ValidationError error = traitValidatorErrors.getCharLimitMethodDescriptionMsg();
-                errors.addError(traitValidatorErrors.getRowNumber(i), error);
+                errors.addRowError(traitValidatorErrors.getRowNumber(i), error);
             }
 
         }
@@ -254,7 +253,7 @@ public class TraitValidatorService {
             if (namesMap.get(name).size() > 1){
                 for (Integer rowIndex: namesMap.get(name)){
                     ValidationError validationError = traitValidatorErrors.getDuplicateTraitsByNameInFileMsg(namesMap.get(name));
-                    errors.addError(traitValidatorErrors.getRowNumber(rowIndex), validationError);
+                    errors.addRowError(traitValidatorErrors.getRowNumber(rowIndex), validationError);
                 }
             }
         }

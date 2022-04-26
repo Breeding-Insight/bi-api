@@ -9,6 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MediaType;
+import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -34,7 +35,6 @@ import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.DSLContext;
-import org.jooq.JSONB;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
@@ -154,13 +154,7 @@ public class UploadService {
                 Table data = parseUploadedFile(file);
 
                 statusService.updateMessage(upload, "Mapping file to import objects");
-                List<BrAPIImport> brAPIImportList = new ArrayList<>();
-                // TODO: Move null and data type validations out from mapper
-                if (commit) {
-                    brAPIImportList = mapper.map(finalImportMapping, data, userInput);
-                } else {
-                    brAPIImportList = mapper.map(finalImportMapping, data);
-                }
+                List<BrAPIImport> brAPIImportList = mapper.map(finalImportMapping, data, userInput);
 
                 Map<Integer, PendingImport> mappedImport = new HashMap<>();
                 Map<String, ImportPreviewStatistics> importStatistics = new HashMap<>();
@@ -189,18 +183,17 @@ public class UploadService {
                 statusService.updateStatus(upload, HttpStatus.BAD_REQUEST, "Unable to process file.");
                 // TODO: Throw a custom importer error
                 throw new InternalServerException("Unable to process");
-            } catch (UnprocessableEntityException e) {
-                e.printStackTrace();
             } catch (ValidatorException e) {
                 // TODO: The toString method on this won't work, error could also be better.
-                statusService.updateStatus(upload, HttpStatus.UNPROCESSABLE_ENTITY, e.getErrors().toString());
+                statusService.updateStatus(upload, HttpStatus.UNPROCESSABLE_ENTITY, "Validation errors during import.");
+                statusService.updateBody(upload, (new JSON()).getGson().toJson(e.getErrors()));
                 throw new InternalServerException(e.getMessage(), e);
             } catch (ApiException e) {
                 // TODO: Error could be better
                 statusService.updateStatus(upload, HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
                 throw new InternalServerException(e.getMessage(), e);
             } catch (Exception e) {
-                statusService.updateStatus(upload, HttpStatus.INTERNAL_SERVER_ERROR, "Uknown error has occurred");
+                statusService.updateStatus(upload, HttpStatus.INTERNAL_SERVER_ERROR, "Unknown error has occurred");
                 throw new InternalServerException(e.getMessage(), e);
             }
         });

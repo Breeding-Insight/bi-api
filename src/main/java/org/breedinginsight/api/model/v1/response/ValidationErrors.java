@@ -17,6 +17,7 @@
 
 package org.breedinginsight.api.model.v1.response;
 
+import io.micronaut.http.HttpStatus;
 import lombok.*;
 import lombok.experimental.Accessors;
 
@@ -29,12 +30,14 @@ import java.util.List;
 @ToString
 public class ValidationErrors {
     private List<RowValidationErrors> rowErrors;
+    private List<ValidationError> errors;
 
     public ValidationErrors() {
         this.rowErrors = new ArrayList<>();
+        this.errors = new ArrayList<>();
     }
 
-    public void addError(Integer rowNumber, ValidationError validationError){
+    public void addRowError(Integer rowNumber, ValidationError validationError){
         for (RowValidationErrors row: rowErrors) {
             if (row.getRowIndex() == rowNumber){
                 row.addError(validationError);
@@ -50,7 +53,7 @@ public class ValidationErrors {
     public void merge(ValidationErrors validationErrors){
         for (RowValidationErrors rowValidationErrors: validationErrors.getRowErrors()){
             for (ValidationError validationError: rowValidationErrors.getErrors()) {
-                this.addError(rowValidationErrors.getRowIndex(), validationError);
+                this.addRowError(rowValidationErrors.getRowIndex(), validationError);
             }
         }
     }
@@ -61,7 +64,16 @@ public class ValidationErrors {
         }
     }
 
+    public void addError(String field, HttpStatus status, String message) {
+        ValidationError error = new ValidationError();
+        error.setField(field);
+        error.setErrorMessage(message);
+        error.setHttpStatus(status);
+        error.setHttpStatusCode(status.getCode());
+        this.errors.add(error);
+    }
+
     public Boolean hasErrors(){
-        return this.getRowErrors().size() > 0;
+        return this.getRowErrors().size() > 0 || this.getErrors().size() > 0;
     }
 }

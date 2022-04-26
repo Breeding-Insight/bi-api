@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.services.parsers.trait;
 
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -134,7 +133,7 @@ public class TraitFileParser {
                 if (!TRAIT_STATUS_VALID_VALUES.contains(traitStatus.toLowerCase())) {
                     ValidationError error = new ValidationError(TraitFileColumns.STATUS.toString(),
                             ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                    validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
                 }
                 active = !traitStatus.toLowerCase().equals(TRAIT_STATUS_ARCHIVED);
             }
@@ -150,7 +149,7 @@ public class TraitFileParser {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.METHOD_CLASS.toString(),
                             ParsingExceptionType.INVALID_METHOD_CLASS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                    validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
                 }
             }
 
@@ -176,7 +175,7 @@ public class TraitFileParser {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_CLASS.toString(),
                             ParsingExceptionType.INVALID_SCALE_CLASS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                    validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
                 }
             }
 
@@ -191,7 +190,7 @@ public class TraitFileParser {
                 log.error(e.getMessage());
                 ValidationError error = new ValidationError(TraitFileColumns.SCALE_CATEGORIES.toString(),
                         ParsingExceptionType.INVALID_SCALE_CATEGORIES.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
             }
 
             Integer decimalPlaces = null;
@@ -209,7 +208,7 @@ public class TraitFileParser {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(),
                             ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                    validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
                 }
             }
 
@@ -220,7 +219,7 @@ public class TraitFileParser {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_LOWER_LIMIT.toString(),
                             ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                    validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
                 }
             }
 
@@ -231,7 +230,7 @@ public class TraitFileParser {
                     log.error(e.getMessage());
                     ValidationError error = new ValidationError(TraitFileColumns.SCALE_UPPER_LIMIT.toString(),
                             ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                    validationErrors.addRowError(traitValidatorError.getRowNumber(i), error);
                 }
             }
 

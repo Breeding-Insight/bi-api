@@ -67,6 +67,15 @@ public class ImportProgress extends ImporterProgressEntity {
         return (ArrayList<Object>) (objectMapper.readValue(super.getBody().data(), Map.class)).get("rowErrors");
     }
 
+    @JsonProperty("errors")
+    public ArrayList<Object> getErrors() throws JsonProcessingException {
+        ObjectMapper objectMapper = new ObjectMapper();
+        if (super.getBody() == null) {
+            return null;
+        }
+        return (ArrayList<Object>) (objectMapper.readValue(super.getBody().data(), Map.class)).get("errors");
+    }
+
 }
 
 

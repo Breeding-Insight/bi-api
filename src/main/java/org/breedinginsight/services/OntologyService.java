@@ -181,7 +181,7 @@ public class OntologyService {
                 ValidationError error = new ValidationError("program",
                         String.format("Program %s does not have same species or brapi server.", programRequest.getProgramName()),
                         HttpStatus.UNPROCESSABLE_ENTITY);
-                validationErrors.addError(i, error);
+                validationErrors.addRowError(i, error);
             } else {
                 shareProgramIdsSet.add(programRequest.getProgramId());
             }

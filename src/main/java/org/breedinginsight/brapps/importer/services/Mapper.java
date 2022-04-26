@@ -20,37 +20,30 @@ package org.breedinginsight.brapps.importer.services;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.StringUtils;
-import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
-import org.breedinginsight.brapps.importer.model.mapping.MappingValue;
 import org.breedinginsight.brapps.importer.model.base.BrAPIObject;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
-import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static org.breedinginsight.brapps.importer.model.config.ImportRelationType.DB_LOOKUP_CONSTANT_VALUE;
 
 @Singleton
 public class Mapper {
 
     private TemplateManager configManager;
 
+    // TODO: Extra, remove these
     public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
     public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
     public static String missingColumn = "Column name \"%s\" does not exist in file";
@@ -61,15 +54,7 @@ public class Mapper {
         this.configManager = configManager;
     }
 
-    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws UnprocessableEntityException, ValidatorException {
-        return map(importMapping, data, userInput, true);
-    }
-
-    public List<BrAPIImport> map(ImportMapping importMapping, Table data) throws UnprocessableEntityException, ValidatorException {
-        return map(importMapping, data, null, false);
-    }
-
-    private List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput, Boolean process) throws UnprocessableEntityException, ValidatorException {
+    public List<BrAPIImport> map(ImportMapping importMapping, Table data, Map<String, Object> userInput) throws ValidatorException {
 
         ValidationErrors validationErrors = new ValidationErrors();
 
@@ -100,7 +85,7 @@ public class Mapper {
     }
 
     private void processRow(Object parent, Field[] fields, List<MappingField> mappingConfig, Table importFile, Integer rowIndex,
-                              Map<String, Object> userInput, ValidationErrors validationErrors) throws UnprocessableEntityException {
+                              Map<String, Object> userInput, ValidationErrors validationErrors) {
 
         Row focusRow = importFile.row(rowIndex);
 
@@ -122,8 +107,8 @@ public class Mapper {
 
             // Check required column is present
             if (required != null && foundMappings.size() == 0) {
-                // TODO: Collect in validation response
-                throw new UnprocessableEntityException(String.format("Required column, %s, not provided", metadata.name()));
+                validationErrors.addError(metadata.name(), HttpStatus.BAD_REQUEST, String.format(missingColumn, metadata.name()));
+                continue;
             } else if (required == null && foundMappings.size() == 0) {
                 return;
             }
@@ -148,13 +133,14 @@ public class Mapper {
                 }
             } else {
                 // Process primitive
-                processPrimitive(parent, focusRow, field, matchedMapping);
+                processPrimitive(parent, focusRow, field, matchedMapping, validationErrors);
             }
         }
     }
 
-    private void processPrimitive(Object parent, Row focusRow, Field field, MappingField matchedMapping) throws UnprocessableEntityException {
+    private void processPrimitive(Object parent, Row focusRow, Field field, MappingField matchedMapping, ValidationErrors validationErrors) {
         ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
+        ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class);
 
         // If column is not required and is not passed, skip it.
         if (required == null && matchedMapping.getValue() == null) return;
@@ -164,8 +150,9 @@ public class Mapper {
         if (matchedMapping.getValue().getFileFieldName() != null) {
             // Check that the file has this name
             if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
-                // TODO: Add to validation error
-                throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
+                validationErrors.addError(metadata.name(), HttpStatus.BAD_REQUEST,
+                        String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
+                return;
             }
 
             // Imports only parse to string. All type validations done in processor validation
@@ -185,7 +172,7 @@ public class Mapper {
         }
     }
 
-    private void processUserInput(Object parent, Field field, Map<String, Object> userInput) throws UnprocessableEntityException {
+    private void processUserInput(Object parent, Field field, Map<String, Object> userInput) {
 
         if (userInput == null) return;
 
@@ -194,14 +181,9 @@ public class Mapper {
 
         String fieldId = metadata.id();
         if (!userInput.containsKey(fieldId) && required != null) {
-            // TODO: Validation error
-            throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
-        }
-        else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
-            // TODO: Validation error
-            throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
-        }
-        else if (userInput.containsKey(fieldId)) {
+            // Let the processor through validations for the user input
+            return;
+        } else if (userInput.containsKey(fieldId)) {
             String value = userInput.get(fieldId).toString();
             try {
                 field.setAccessible(true);
@@ -211,9 +193,5 @@ public class Mapper {
                 throw new InternalServerException(e.toString(), e);
             }
         }
-    }
-
-    private static ValidationError getMissingRequiredErr(String fieldName) {
-        return new ValidationError(fieldName, String.format(blankRequiredField, fieldName), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }

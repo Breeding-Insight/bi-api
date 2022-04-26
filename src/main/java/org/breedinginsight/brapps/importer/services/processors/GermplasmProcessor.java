@@ -208,8 +208,8 @@ public class GermplasmProcessor implements Processor {
     @Override
     public void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
         // TODO: Null value checks on file and user input
-        // TODO: Type checks
 
+        // TODO: Type checks
     }
 
     @Override
@@ -262,7 +262,7 @@ public class GermplasmProcessor implements Processor {
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                         } else {
                             ValidationError ve = new ValidationError("Breeding Method", badBreedMethodsMsg, HttpStatus.UNPROCESSABLE_ENTITY);
-                            validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
+                            validationErrors.addRowError(i+2, ve );  // +2 instead of +1 to account for the column header row.
                             badBreedingMethods.add(germplasm.getBreedingMethod());
                             breedingMethod = null;
                         }

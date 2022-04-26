@@ -278,7 +278,7 @@ public class TraitService {
             if (i == -1){
                 throw new InternalServerException("Duplicate trait was not referenced correctly");
             } else {
-                duplicateErrors.addError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByNamesMsg());
+                duplicateErrors.addRowError(traitValidatorError.getRowNumber(i), traitValidatorError.getDuplicateTraitByNamesMsg());
                 traitIndexToRemove.add(i);
             }
         }
@@ -346,7 +346,7 @@ public class TraitService {
             if (existingTrait != null) {
                 existingTraitEntities.add(existingTrait);
             } else {
-                missingTraitValidationErrors.addError(i, traitValidatorError.getTraitIdDoesNotExistMsg());
+                missingTraitValidationErrors.addRowError(i, traitValidatorError.getTraitIdDoesNotExistMsg());
             }
         }
 

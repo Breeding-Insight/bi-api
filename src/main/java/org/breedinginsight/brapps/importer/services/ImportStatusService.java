@@ -53,12 +53,6 @@ public class ImportStatusService {
         importDAO.update(upload);
     }
 
-    public void startUpload(ImportUpload upload, long numberObjects, String message) {
-        upload.getProgress().setTotal(numberObjects);
-        upload.getProgress().setMessage(message);
-        importDAO.update(upload);
-    }
-
     public void finishUpload(ImportUpload upload, ImportPreviewResponse response, String message) {
         JSON config = new JSON();
         String json = config.getGson().toJson(response);
@@ -73,6 +67,8 @@ public class ImportStatusService {
         importDAO.update(upload);
     }
 
-
-
+    public void updateBody(ImportUpload upload, String json) {
+        upload.getProgress().setBody(JSONB.valueOf(json));
+        importDAO.update(upload);
+    }
 }
