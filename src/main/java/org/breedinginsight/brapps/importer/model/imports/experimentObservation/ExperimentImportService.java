@@ -67,11 +67,7 @@ public class ExperimentImportService extends BrAPIImportService {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
-        try {
-            response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
-        } catch (ValidatorException | ApiException e) {
-            log.error(e.getMessage());
-        }
+        response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
         return response;
 
     }
