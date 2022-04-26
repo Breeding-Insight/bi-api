@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MediaType;
-import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -18,7 +17,6 @@ import org.breedinginsight.brapps.importer.daos.ImportMappingProgramDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
@@ -70,7 +68,7 @@ public class UploadService {
             4, // max size
             60, // idle timeout
             TimeUnit.SECONDS,
-            new ArrayBlockingQueue<Runnable>(100));
+            new ArrayBlockingQueue<>(100));
 
     @Inject
     UploadService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
@@ -232,56 +230,6 @@ public class UploadService {
         HttpStatus status = HttpStatus.valueOf(statusCode);
 
         return new ImmutablePair<>(status, response);
-    }
-
-    private void processFile(List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
-                             ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
-                             AuthenticatedUser actingUser) {
-        // Spin off new process for processing the file
-        CompletableFuture.supplyAsync(() -> {
-            try {
-                importService.process(finalBrAPIImportList, data, program, upload, user, commit);
-            } catch (UnprocessableEntityException e) {
-                log.error(e.getMessage(), e);
-                ImportProgress progress = upload.getProgress();
-                progress.setStatusCode(HttpStatus.UNPROCESSABLE_ENTITY.getCode());
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (DoesNotExistException e) {
-                log.error(e.getMessage(), e);
-                ImportProgress progress = upload.getProgress();
-                progress.setStatusCode(HttpStatus.NOT_FOUND.getCode());
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (HttpStatusException e) {
-                log.error(e.getMessage(), e);
-                ImportProgress progress = upload.getProgress();
-                progress.setStatusCode(e.getStatus().getCode());
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (ValidatorException e) {
-                log.error("Validation errors", e);
-                ImportProgress progress = upload.getProgress();
-                progress.setStatusCode(HttpStatus.UNPROCESSABLE_ENTITY.getCode());
-                progress.setMessage("Multiple Errors");
-                String json = (new JSON()).getGson().toJson(e.getErrors());
-                progress.setBody(JSONB.valueOf(json));
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            } catch (Exception e) {
-                log.error(e.getMessage(), e);
-                ImportProgress progress = upload.getProgress();
-                progress.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.getCode());
-                // TODO: Probably don't want to return this message. But do it for now
-                progress.setMessage(e.getMessage());
-                progress.setUpdatedBy(actingUser.getId());
-                importDAO.update(upload);
-            }
-            return null;
-        });
     }
 
     private Table parseUploadedFile(CompletedFileUpload file) throws UnsupportedTypeException, HttpStatusException {

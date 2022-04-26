@@ -50,3 +50,6 @@ update importer_mapping set importer_template_id = 2 where importer_template_id 
 alter table importer_mapping alter column importer_template_id type int using (importer_template_id::int);
 alter table importer_mapping add foreign key (importer_template_id) references importer_template (id);
 
+-- Remove olf system imports
+delete from importer_mapping where name in ('GermplasmTemplateMap', 'ExperimentsTemplateMap');
+

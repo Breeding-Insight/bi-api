@@ -55,7 +55,6 @@ public class Mapper {
     public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
     public static String missingColumn = "Column name \"%s\" does not exist in file";
     public static String missingUserInput = "User input, \"%s\" is required";
-    public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
 
     @Inject
     Mapper(TemplateManager configManager) {
@@ -78,24 +77,18 @@ public class Mapper {
             throw new NullPointerException("Mapping must be supplied");
         }
 
-        // Go through the file and do the mapping
-        // Validity of mapping is checked during the mapping
+        // Map each row to a BrAPI Import object
         List<BrAPIImport> brAPIImports = new ArrayList<>();
         for (int rowIndex = 0; rowIndex < data.rowCount(); rowIndex++) {
 
-            // TODO: Change this to just calling the processor
-            Optional<BrAPIImport> optionalImport = configManager.getTemplate(importMapping.getImporterTemplateId());
-            if (optionalImport.isEmpty()){
-                throw new UnprocessableEntityException("Import type with that id does not exist.");
-            }
-            BrAPIImport brAPIImport = optionalImport.get();
+            // Get new template object template
+            BrAPIImport brAPIImport = configManager.getTemplate(importMapping.getImporterTemplateId()).get();
 
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
-            for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process, validationErrors);
-            }
+            processRow(brAPIImport, fields, importMapping.getMappingConfig(), data, rowIndex, userInput, validationErrors);
 
+            // Each element in list corresponds to row in file
             brAPIImports.add(brAPIImport);
         }
 
@@ -106,253 +99,110 @@ public class Mapper {
         return brAPIImports;
     }
 
-    private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex,
-                          Map<String, Object> userInput, Boolean process, ValidationErrors validationErrors) throws UnprocessableEntityException {
-
-
+    private void processRow(Object parent, Field[] fields, List<MappingField> mappingConfig, Table importFile, Integer rowIndex,
+                              Map<String, Object> userInput, ValidationErrors validationErrors) throws UnprocessableEntityException {
 
         Row focusRow = importFile.row(rowIndex);
-        // Process this field
-        ImportFieldType type = field.getAnnotation(ImportFieldType.class);
-        ImportFieldMetadata metadata;
-        if (type == null) {
-            return;
-        } else if (type.type() != ImportFieldTypeEnum.LIST) {
-            metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
-                    field.getAnnotation(ImportFieldMetadata.class) : field.getType().getAnnotation(ImportFieldMetadata.class);
-        } else {
-            metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
-                    field.getAnnotation(ImportFieldMetadata.class) : (ImportFieldMetadata) type.clazz().getAnnotation(ImportFieldMetadata.class);
-        }
 
-        ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
+        for (Field field: fields) {
+            // Get metadata from field annotations
+            ImportFieldType type = field.getAnnotation(ImportFieldType.class);
+            ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class);
+            ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
 
-        // Check if it is a user input field
-        if (type.collectTime().equals(ImportCollectTimeEnum.UPLOAD)) {
-            // User input, check that it was passed
-            if (process) {
-                mapUserInputField(parent, field, userInput, type, metadata, required);
+            // Skip any fields that don't have a type annotation on them
+            if (type == null) continue;
+
+            // Get mapping for column to template field
+            List<MappingField> foundMappings = new ArrayList<>();
+            if (mappingConfig != null) {
+                foundMappings = mappingConfig.stream()
+                        .filter(mappingField -> mappingField.getObjectId().equals(metadata.id())).collect(Collectors.toList());
             }
-            return;
-        }
 
-        List<MappingField> foundMappings = new ArrayList<>();
-        if (mappings != null) {
-             foundMappings = mappings.stream()
-                    .filter(mappingField -> mappingField.getObjectId().equals(metadata.id())).collect(Collectors.toList());
-        }
-
-        // Check required field is present
-        // TODO: Separate into validation method to add other validations later on
-        if (required != null && foundMappings.size() == 0) {
-            throw new UnprocessableEntityException(String.format(
-                    "Required field, %s, not provided", metadata.id()));
-        } else if (required == null && foundMappings.size() == 0) {
-            return;
-        }
-
-        MappingField matchedMapping = foundMappings.get(0);
-        if (type == null) {
-            throw new InternalServerException("BrAPIObject is missing import type annotation");
-        } else if (type.type() == ImportFieldTypeEnum.OBJECT) {
-
-            Boolean objectIsEmpty = fieldObjectIsEmpty(matchedMapping);
-            if (required != null && objectIsEmpty) {
-                throw new UnprocessableEntityException(String.format(
-                        "Required object, %s, was not mapped", metadata.id()));
-            } else if (required == null && objectIsEmpty) {
+            // Check required column is present
+            if (required != null && foundMappings.size() == 0) {
+                // TODO: Collect in validation response
+                throw new UnprocessableEntityException(String.format("Required column, %s, not provided", metadata.name()));
+            } else if (required == null && foundMappings.size() == 0) {
                 return;
             }
 
-            BrAPIObject brAPIObject;
-            try {
-                brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
-                List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
-                for (Field lowerField: fields) {
-                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
-                }
-                if (brapiObjectIsEmpty(brAPIObject)) brAPIObject = null;
-
-                field.setAccessible(true);
-                field.set(parent, brAPIObject);
-                field.setAccessible(false);
-            } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
-                throw new InternalServerException(e.toString(), e);
-            }
-        } else if (type.type() == ImportFieldTypeEnum.LIST) {
-            //TODO: Current can't handle primitive types, only BrAPIObject types
-
-            if (matchedMapping.getMapping() == null && required != null) {
-                throw new UnprocessableEntityException(String.format(
-                        "List field, %s, contains no entries", metadata.id()));
-            } else if (matchedMapping.getMapping() == null) {
-                return;
-            }
-
-            List<BrAPIObject> updatedList = new ArrayList<>();
-            for (MappingField listField: matchedMapping.getMapping()){
-
-                BrAPIObject newObject;
+            // Check data type
+            // TODO: Validation for extra matchings found
+            MappingField matchedMapping = foundMappings.get(0);
+            if (type.collectTime().equals(ImportCollectTimeEnum.UPLOAD)) {
+                processUserInput(parent, field, userInput);
+            } else if (type.type() == ImportFieldTypeEnum.OBJECT) {
+                // Process object
                 try {
-                    newObject = (BrAPIObject) type.clazz().getDeclaredConstructor().newInstance();
+                    BrAPIObject brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
+                    processRow(brAPIObject, brAPIObject.getClass().getDeclaredFields(), matchedMapping.getMapping(),
+                            importFile, rowIndex, userInput, validationErrors);
+
+                    field.setAccessible(true);
+                    field.set(parent, brAPIObject);
+                    field.setAccessible(false);
                 } catch (InstantiationException | IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
                     throw new InternalServerException(e.toString(), e);
                 }
+            } else {
+                // Process primitive
+                processPrimitive(parent, focusRow, field, matchedMapping);
+            }
+        }
+    }
 
-                // Populate new object
-                List<Field> fields = Arrays.asList(newObject.getClass().getDeclaredFields());
-                for (Field lowerField: fields) {
-                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
-                }
+    private void processPrimitive(Object parent, Row focusRow, Field field, MappingField matchedMapping) throws UnprocessableEntityException {
+        ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
 
-                field.setAccessible(true);
-                List<BrAPIObject> currentList;
-                try {
-                    currentList = (List<BrAPIObject>) field.get(parent);
-                } catch (IllegalAccessException e) {
-                    throw new InternalServerException(e.toString(), e);
-                }
-                if (currentList != null) updatedList.addAll(currentList);
-                else updatedList.add(newObject);
+        // If column is not required and is not passed, skip it.
+        if (required == null && matchedMapping.getValue() == null) return;
+
+        // Get mapped string
+        String value = null;
+        if (matchedMapping.getValue().getFileFieldName() != null) {
+            // Check that the file has this name
+            if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
+                // TODO: Add to validation error
+                throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
             }
 
-            try {
-                field.setAccessible(true);
-                field.set(parent, updatedList);
-                field.setAccessible(false);
-            } catch (IllegalAccessException e) {
-                throw new InternalServerException(e.toString(), e);
-            }
-        } else if (type.type() == ImportFieldTypeEnum.RELATIONSHIP) {
-            if (required != null && (matchedMapping.getValue() == null ||
-                    matchedMapping.getValue().getRelationMap() == null)) {
-                throw new UnprocessableEntityException(String.format("Relationship field %s is required", metadata.name()));
-            } else if (matchedMapping.getValue() == null || matchedMapping.getValue().getRelationMap() == null) {
-                return;
-            } else if (matchedMapping.getValue().getRelationMap().getReference() == null &&
-                    matchedMapping.getValue().getRelationMap().getTarget() == null)
-            {
-                throw new BadRequestException("Relationship field is not properly formatted");
-            }
-
-            MappingValue value = matchedMapping.getValue();
-            MappedImportRelation relationship = new MappedImportRelation();
-            relationship.setType(value.getRelationValue());
-            relationship.setTargetColumn(value.getRelationMap().getTarget());
-            String referenceColumn = value.getRelationMap().getReference();
-            if (referenceColumn != null){
-                if (relationship.getType() == DB_LOOKUP_CONSTANT_VALUE) {
-                    relationship.setReferenceValue(referenceColumn);
-                } else {
-                    relationship.setReferenceValue(focusRow.getString(referenceColumn));
-                }
-            }
-            if (StringUtils.isBlank(relationship.getReferenceValue())) relationship = null;
-            try {
-                field.setAccessible(true);
-                field.set(parent, relationship);
-                field.setAccessible(false);
-            } catch (IllegalAccessException e) {
-                throw new InternalServerException(e.toString(), e);
-            }
-        } else {
-            // It is a simple type
-
-            // Check that request field is properly formatted
-            if (required != null && matchedMapping.getValue() == null) {
-                throw new UnprocessableEntityException(String.format("Field %s is required", metadata.name()));
-            } else if (required == null && matchedMapping.getValue() == null) {
-                return;
-            } else if (matchedMapping.getValue() != null &&
-                    matchedMapping.getValue().getFileFieldName() == null && matchedMapping.getValue().getConstantValue() == null){
-                throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
-            }
-
-            // Check if the mapping passed a constant value or a mapped value
-            if (matchedMapping.getValue().getFileFieldName() != null) {
-                // Check that the file has this name
-                if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
-                    throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
-                }
-
-                // TODO: should handle all types, not sure if better way to do this with tablesaw?
-                String fileValue;
-                ColumnType columnType = focusRow.getColumnType(matchedMapping.getValue().getFileFieldName());
-                if (columnType == ColumnType.DOUBLE) {
-                    fileValue = String.valueOf(focusRow.getDouble(matchedMapping.getValue().getFileFieldName()));
-                } else if (columnType == ColumnType.INTEGER) {
-                    fileValue = String.valueOf(focusRow.getInt(matchedMapping.getValue().getFileFieldName()));
-                }
-                else {
-                    fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
-                }
-
-                checkFieldType(type.type(), matchedMapping.getValue().getFileFieldName(), fileValue);
-
-                // Check non-null value
-                if (required != null && fileValue.isBlank()) {
-                    ValidationError ve = getMissingRequiredErr(matchedMapping.getValue().getFileFieldName());
-                    validationErrors.addError(getRowNumber(rowIndex), ve);
-                }
-
-                if (StringUtils.isBlank(fileValue)) fileValue = null;
-                try {
-                    field.setAccessible(true);
-                    field.set(parent, fileValue);
-                    field.setAccessible(false);
-                } catch (IllegalAccessException e) {
-                    throw new InternalServerException(e.toString(), e);
-                }
-            } else if (matchedMapping.getValue().getConstantValue() != null){
-                String value = matchedMapping.getValue().getConstantValue();
-                checkFieldType(type.type(), metadata.name(), value);
-
-                // Check non-null value
-                if (required != null && value.isBlank()) {
-                    //throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
-                    ValidationError ve = getMissingRequiredErr(metadata.name());
-                    validationErrors.addError(getRowNumber(rowIndex), ve);
-                }
-
-                if (StringUtils.isBlank(value)) value = null;
-                try {
-                    field.setAccessible(true);
-                    field.set(parent, value);
-                    field.setAccessible(false);
-                } catch (IllegalAccessException e) {
-                    throw new InternalServerException(e.toString(), e);
-                }
-            }
-
+            // Imports only parse to string. All type validations done in processor validation
+            value = focusRow.getString(matchedMapping.getValue().getFileFieldName());
+        } else if (matchedMapping.getValue().getConstantValue() != null) {
+            value = matchedMapping.getValue().getConstantValue();
         }
 
+        // Set our value
+        if (StringUtils.isBlank(value)) value = null;
+        try {
+            field.setAccessible(true);
+            field.set(parent, value);
+            field.setAccessible(false);
+        } catch (IllegalAccessException e) {
+            throw new InternalServerException(e.toString(), e);
+        }
     }
 
-    private static int getRowNumber(int row) {
-        // 0 index and header offset
-        return row+2;
-    }
+    private void processUserInput(Object parent, Field field, Map<String, Object> userInput) throws UnprocessableEntityException {
 
-    private static ValidationError getMissingRequiredErr(String fieldName) {
-        return new ValidationError(fieldName, String.format(blankRequiredField, fieldName), HttpStatus.UNPROCESSABLE_ENTITY);
-    }
+        if (userInput == null) return;
 
-    private void mapUserInputField(Object parent, Field field, Map<String, Object> userInput, ImportFieldType type,
-                                   ImportFieldMetadata metadata, ImportMappingRequired required) throws UnprocessableEntityException {
+        ImportFieldMetadata metadata = field.getAnnotation(ImportFieldMetadata.class);
+        ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
 
-        // Only supports user input at the top level of an object at the moment. No nested objects. Map<String, String>
         String fieldId = metadata.id();
         if (!userInput.containsKey(fieldId) && required != null) {
+            // TODO: Validation error
             throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
         }
         else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
+            // TODO: Validation error
             throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
         }
         else if (userInput.containsKey(fieldId)) {
             String value = userInput.get(fieldId).toString();
-            if (!isCorrectType(type.type(), value)) {
-                throw new UnprocessableEntityException(String.format(wrongUserInputDataType, metadata.name(), type.type().toString().toLowerCase()));
-            }
             try {
                 field.setAccessible(true);
                 field.set(parent, value);
@@ -363,82 +213,7 @@ public class Mapper {
         }
     }
 
-    private void checkFieldType(ImportFieldTypeEnum expectedType, String column, String value) throws UnprocessableEntityException {
-        //TODO: Do more type checks
-        if (!isCorrectType(expectedType, value)) {
-            throw new UnprocessableEntityException(String.format(wrongDataTypeMsg, column));
-        }
-    }
-
-    private Boolean isCorrectType(ImportFieldTypeEnum expectedType, String value) {
-        if (!value.isBlank()) {
-            if (expectedType == ImportFieldTypeEnum.INTEGER) {
-                try {
-                    Integer d = Integer.parseInt(value);
-                } catch (NumberFormatException nfe) {
-                    return false;
-                }
-            }
-        }
-        return true;
-    }
-
-    /*
-        A mapped object is considered null if no fields in it have been mapped
-     */
-    private Boolean fieldObjectIsEmpty(MappingField mappedObject) {
-        if (mappedObject.getMapping() != null){
-            for (MappingField mappedField: mappedObject.getMapping()) {
-                if (mappedField != null &&
-                        (mappedField.getValue() != null ||
-                                (mappedField.getMapping() != null && mappedField.getMapping().size() > 0))
-                ){
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private Boolean brapiObjectIsEmpty(BrAPIObject brAPIObject) {
-
-        if (brAPIObject == null) return true;
-
-        Field[] fields = brAPIObject.getClass().getDeclaredFields();
-        for (Field field: fields) {
-
-            // Check the type
-            ImportFieldType type = field.getAnnotation(ImportFieldType.class);
-            if (type == null) continue;
-
-            Object fieldValue;
-            try {
-                field.setAccessible(true);
-                fieldValue = field.get(brAPIObject);
-                field.setAccessible(false);
-            } catch (IllegalAccessException e) {
-                throw new InternalServerException(e.toString(), e);
-            }
-
-            if (type.type() == ImportFieldTypeEnum.LIST) continue;
-            else if (type.type() == ImportFieldTypeEnum.OBJECT) {
-                // Dive deeper
-                BrAPIObject childBrAPIObject = (BrAPIObject) fieldValue;
-                Boolean childObjectIsEmpty = brapiObjectIsEmpty(childBrAPIObject);
-                if (!childObjectIsEmpty) return false;
-            }
-            else if (type.type() == ImportFieldTypeEnum.RELATIONSHIP) {
-                // Check the reference value of the relationship
-                MappedImportRelation relation = (MappedImportRelation) fieldValue;
-                if (relation != null && !StringUtils.isBlank(relation.getReferenceValue())) return false;
-            } else {
-                // Check the value isn't blank
-                String simpleValue = (String) fieldValue;
-                if (!StringUtils.isBlank(simpleValue)) return false;
-            }
-        }
-
-        return true;
+    private static ValidationError getMissingRequiredErr(String fieldName) {
+        return new ValidationError(fieldName, String.format(blankRequiredField, fieldName), HttpStatus.UNPROCESSABLE_ENTITY);
     }
 }

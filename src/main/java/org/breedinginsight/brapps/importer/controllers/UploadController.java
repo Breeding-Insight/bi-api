@@ -55,10 +55,12 @@ public class UploadController {
 
     /**
      * Imports a file for the specified import template. If a mapping id is specified, the mapping
-     * will be used to map the file data to the template.
+     * will be used to map the file data to the template. Otherwise, uses the bare template.
      * @param programId
      * @param templateId
      * @param file
+     * @queryparam mappingId -- Id of the mapping to be used for the import
+     * @queryparam commit -- false for a preview of the data, true to post data to the brapi server.
      * @return
      */
     @Post("programs/{programId}/import/{templateId}{?mappingId}{?commit}")
@@ -91,6 +93,12 @@ public class UploadController {
     }
 
 
+    /**
+     * Get the status of import if its ongoing, if finished this endpoint will return the result.
+     * @param programId
+     * @param uploadId
+     * @return
+     */
     @Get("programs/{programId}/import/{uploadId}")
     @Consumes(MediaType.MULTIPART_FORM_DATA)
     @Produces(MediaType.APPLICATION_JSON)

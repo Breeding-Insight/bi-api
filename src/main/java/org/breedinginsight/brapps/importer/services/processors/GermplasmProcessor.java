@@ -207,6 +207,8 @@ public class GermplasmProcessor implements Processor {
 
     @Override
     public void validate(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
+        // TODO: Null value checks on file and user input
+        // TODO: Type checks
 
     }
 

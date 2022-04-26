@@ -63,6 +63,10 @@ public class MappingController {
         this.fileImportService = fileImportService;
     }
 
+    /**
+     * Gets the available templates to create mappings to.
+     * @return
+     */
     @Get("/import/templates")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
@@ -76,33 +80,6 @@ public class MappingController {
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
         Response<DataResponse<ImportConfigResponse>> response = new Response(metadata, new DataResponse<>(configs));
-        return HttpResponse.ok(response);
-    }
-
-    // TODO: Probably don't need
-    @Get("/import/mappings{?importName}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @AddMetadata
-    @Secured(SecurityRule.IS_ANONYMOUS)
-    public HttpResponse<Response<DataResponse<ImportMapping>>> getSystemMappings(@Nullable @QueryValue String importName) {
-
-        AuthenticatedUser actingUser = securityService.getUser();
-        List<ImportMapping> result;
-        if (StringUtils.isBlank(importName)){
-            result = fileImportService.getAllSystemMappings(actingUser);
-        } else {
-            result = fileImportService.getSystemMappingByName(actingUser, importName);
-        }
-        log.info("...............");
-        result.forEach((r) -> System.out.println(r.getId() + " ||| "));
-        log.info("...............");
-
-        List<Status> metadataStatus = new ArrayList<>();
-        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
-        Pagination pagination = new Pagination(result.size(), result.size(), 1, 0);
-        Metadata metadata = new Metadata(pagination, metadataStatus);
-
-        Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
         return HttpResponse.ok(response);
     }
 
@@ -146,7 +123,6 @@ public class MappingController {
     public HttpResponse<Response<ImportMapping>> getMappingDetails(@PathVariable UUID programId, @PathVariable UUID mappingId) {
 
         try {
-            AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.getMappingDetails(mappingId);
             return HttpResponse.ok(new Response(result));
         } catch (DoesNotExistException e) {
