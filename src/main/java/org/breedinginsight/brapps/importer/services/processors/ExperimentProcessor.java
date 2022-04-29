@@ -141,40 +141,34 @@ public class ExperimentProcessor implements Processor {
         // For each import row
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
-            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
             // Collect date for stats.
             addIfNotNull(environmentNameCounter, importRow.getEnv());
             addIfNotNull(obsUnitsIDCounter, importRow.getExpUnitId());
             addIfNotNull(GIDCounter, importRow.getGid());
 
-            ////////////////////////////////////////////
-            // Create and store PendingImportObject's //
-            ////////////////////////////////////////////
-            PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow );
-            mappedImportRow.setTrial( trialPIO );
-            this.trialByNameNoScope.put( importRow.getExpTitle(), trialPIO );
+            ////////////////////////////////////////////////////
+            // Create (or get) and store PendingImportObjects //
+            // into the PendingImport                         //
+            ////////////////////////////////////////////////////
+            PendingImport mappedImportRow =
+                    getPendingImport(
+                            mappedBrAPIImport,
+                            program,
+                            commit,
+                            studyNextVal,
+                            obsUnitNextVal,
+                            i,
+                            importRow);
 
-            PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
-            mappedImportRow.setLocation( locationPIO );
-            this.locationByName.put( importRow.getEnvLocation(), locationPIO );
-
-            PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, studyNextVal, importRow);
-            mappedImportRow.setStudy( studyPIO );
-            this.studyByNameNoScope.put( importRow.getEnv(),studyPIO );
-
-            PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
-            mappedImportRow.setObservationUnit(obsUnitPIO);
-            this.observationUnitByNameNoScope.put( importRow.getExpUnitId(), obsUnitPIO );
-
-            PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(validationErrors, importRow, mappedImportRow);
-            mappedImportRow.setGermplasm( germplasmPIO );
-            validateGerplam( validationErrors, i, germplasmPIO );
+            validateGerplam( validationErrors, i, mappedImportRow.getGermplasm() );
 
             // Construct Observations -- Done in another card
             mappedBrAPIImport.put(i, mappedImportRow);
         }
         // End-of-loop
+
+        validationErrors = validateConditionallyRequiredFields(importRows, validationErrors);
 
         if (validationErrors.hasErrors() ){
             throw new ValidatorException(validationErrors);
@@ -182,6 +176,92 @@ public class ExperimentProcessor implements Processor {
 
         // Construct our response object
         return getStatisticsMap(environmentNameCounter, obsUnitsIDCounter, GIDCounter);
+    }
+
+    private ValidationErrors validateConditionallyRequiredFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
+        for (int i = 0; i < importRows.size(); i++) {
+            ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
+            String experimentTitle = importRow.getExpTitle();
+            ImportObjectState expState = this.trialByNameNoScope.get(experimentTitle).getState();
+            boolean isExistingNew = (expState == ImportObjectState.NEW);
+
+            if (isExistingNew) {
+                String errorMessage = "Field is blank when creating a new experiment";
+                validateNotNullOrBlank( importRow.getGid(),
+                        "GID",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getExpUnit(),
+                        "Exp Unit",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getExpType(),
+                        "Exp Type",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getEnv(),
+                        "Env",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getEnvLocation(),
+                        "Env Location",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getEnvYear(),
+                        "Env Year",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getExpUnitId(),
+                        "Exp Unit ID",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getExpReplicateNo(),
+                        "Exp Replicate #",
+                        errorMessage, validationErrors, i);
+                validateNotNullOrBlank( importRow.getExpBlockNo(),
+                        "Exp Block #",
+                        errorMessage, validationErrors, i);
+            }
+        }
+        return validationErrors;
+    }
+
+    private void validateNotNullOrBlank(String value, String columHeader, String errorMessage, ValidationErrors validationErrors, int i) {
+        if ( value==null ||  value.isBlank()) {
+            addRowError(
+                    columHeader,
+                    errorMessage,
+                    validationErrors, i
+            ) ;
+        }
+    }
+
+    private void addRowError(String field, String errorMessage, ValidationErrors validationErrors, int i) {
+        ValidationError ve = new ValidationError(field, errorMessage, HttpStatus.UNPROCESSABLE_ENTITY);
+        validationErrors.addError(i + 2, ve);  // +2 instead of +1 to account for the column header row.
+    }
+
+    private PendingImport getPendingImport(
+            Map<Integer, PendingImport> mappedBrAPIImport,
+            Program program,
+            boolean commit,
+            Supplier<BigInteger> studyNextVal,
+            Supplier<BigInteger> obsUnitNextVal,
+            int i,
+            ExperimentObservation importRow) {
+        PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+        PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow);
+        mappedImportRow.setTrial( trialPIO );
+        this.trialByNameNoScope.put( importRow.getExpTitle(), trialPIO );
+
+        PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
+        mappedImportRow.setLocation( locationPIO );
+        this.locationByName.put( importRow.getEnvLocation(), locationPIO );
+
+        PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, studyNextVal, importRow);
+        mappedImportRow.setStudy( studyPIO );
+        this.studyByNameNoScope.put( importRow.getEnv(),studyPIO );
+
+        PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
+        mappedImportRow.setObservationUnit(obsUnitPIO);
+        this.observationUnitByNameNoScope.put( importRow.getExpUnitId(), obsUnitPIO );
+
+        PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow, mappedImportRow);
+        mappedImportRow.setGermplasm( germplasmPIO );
+        return mappedImportRow;
     }
 
     private void addIfNotNull(HashSet<String> set, String setValue) {
@@ -208,12 +288,12 @@ public class ExperimentProcessor implements Processor {
 
     private void validateGerplam(ValidationErrors validationErrors, int i, PendingImportObject<BrAPIGermplasm> germplasmPIO) {
         if( germplasmPIO == null ) {
-            ValidationError ve = new ValidationError("GID", "Not an existing GID", HttpStatus.UNPROCESSABLE_ENTITY);
+            ValidationError ve = new ValidationError("GID", "A non-existing GID", HttpStatus.UNPROCESSABLE_ENTITY);
             validationErrors.addError(i + 2, ve);  // +2 instead of +1 to account for the column header row.
         }
     }
 
-    private PendingImportObject<BrAPIGermplasm> getGidPio(ValidationErrors validationErrors, ExperimentObservation importRow, PendingImport mappedImportRow) {
+    private PendingImportObject<BrAPIGermplasm> getGidPio(ExperimentObservation importRow, PendingImport mappedImportRow) {
         if( this.existingGermplasmByGID.containsKey( importRow.getGid() )){
             return existingGermplasmByGID.get(importRow.getGid());
         }
@@ -332,6 +412,7 @@ public class ExperimentProcessor implements Processor {
         List<String> uniqueObservationUnitNames = experimentImportRows.stream()
                 .map(experimentImport -> experimentImport.getExpUnitId())
                 .distinct()
+                .filter(name -> null !=name)
                 .collect(Collectors.toList());
 
         // check for existing observation units. Don't want to update existing, just create new.
@@ -358,6 +439,7 @@ public class ExperimentProcessor implements Processor {
         List<String> uniqueStudyNames = experimentImportRows.stream()
                 .map(experimentImport -> experimentImport.getEnv())
                 .distinct()
+                .filter(name -> null !=name)
                 .collect(Collectors.toList());
 
         List<BrAPIStudy> existingStudies;
@@ -384,6 +466,7 @@ public class ExperimentProcessor implements Processor {
         List<String> uniqueLocationNames = experimentImportRows.stream()
                 .map(experimentImport -> experimentImport.getEnvLocation())
                 .distinct()
+                .filter(name -> null !=name)
                 .collect(Collectors.toList());
 
         List<BrAPILocation> existingLocations;
@@ -403,9 +486,11 @@ public class ExperimentProcessor implements Processor {
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = new HashMap<>();
         List<String> uniqueTrialNames = experimentImportRows.stream()
                 .map(experimentImport -> experimentImport.getExpTitle())
-                .distinct()
+                .distinct().
+                filter(name -> null !=name)
                 .collect(Collectors.toList());
         List<BrAPITrial> existingTrials;
+log.info(uniqueTrialNames.toString());
 
         try {
             existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
