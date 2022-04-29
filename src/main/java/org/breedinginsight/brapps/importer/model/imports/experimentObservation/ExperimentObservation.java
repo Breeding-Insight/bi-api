@@ -148,7 +148,7 @@ public class ExperimentObservation implements BrAPIImport {
         study.setStudyType(getExpType());
         study.setLocationName(getEnvLocation());
         study.setTrialName(getExpTitle());
-        study.setSeasons(List.of(getEnvYear()));
+        study.setSeasons( List.of( getEnvYear()==null ? "" : getEnvYear() ) );
         /*
         TODO: Not used
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
