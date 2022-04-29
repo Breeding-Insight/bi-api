@@ -22,6 +22,8 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -36,6 +38,7 @@ import org.breedinginsight.services.exceptions.*;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -115,5 +118,16 @@ public class UploadController {
             log.info(e.getMessage());
             return HttpResponse.notFound();
         }
+    }
+
+    @Post("import/fileColumns")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_AUTHENTICATED)
+    public HttpResponse<Response<List<String>>> getFileColumns(@Part("file") CompletedFileUpload file) {
+        List<String> result = uploadService.getFileColumns(file);
+        Response<List<String>> response = new Response(result);
+        return HttpResponse.ok(response);
     }
 }

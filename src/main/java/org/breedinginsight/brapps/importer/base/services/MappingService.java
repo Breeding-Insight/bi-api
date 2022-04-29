@@ -23,9 +23,11 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.base.daos.ImportMappingProgramDAO;
+import org.breedinginsight.brapps.importer.base.daos.ImportTemplateDAO;
 import org.breedinginsight.brapps.importer.base.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.base.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.base.daos.ImportMappingDAO;
+import org.breedinginsight.dao.db.tables.daos.ImporterTemplateDao;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
@@ -33,11 +35,11 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.ProgramUserService;
 import org.breedinginsight.services.exceptions.*;
 import org.jooq.JSONB;
+import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -50,17 +52,19 @@ public class MappingService {
     private ObjectMapper objectMapper;
     private TemplateManager configManager;
     private ImportMappingProgramDAO importMappingProgramDAO;
+    private ImportTemplateDAO templateDAO;
 
     @Inject
     MappingService(ProgramUserService programUserService, ProgramService programService,
                    ImportMappingDAO importMappingDAO, ObjectMapper objectMapper,
-                   TemplateManager configManager, ImportMappingProgramDAO importMappingProgramDAO) {
+                   TemplateManager configManager, ImportMappingProgramDAO importMappingProgramDAO, ImportTemplateDAO templateDAO) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.importMappingDAO = importMappingDAO;
         this.objectMapper = objectMapper;
         this.configManager = configManager;
         this.importMappingProgramDAO = importMappingProgramDAO;
+        this.templateDAO = templateDAO;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -80,10 +84,14 @@ public class MappingService {
      */
     public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, ImportMapping mappingRequest) throws AlreadyExistsException, UnprocessableEntityException {
 
-        // TODO: Check import type exists
+        // Check import type exists
+        Integer templateId = mappingRequest.getImporterTemplateId();
+        if (templateId == null || !templateDAO.existsById(templateId)) {
+            throw new UnprocessableEntityException("Template with that ID does not exist");
+        }
 
         // Check a name was passed if saving mapping
-        if (mappingRequest.getSaved() && mappingRequest.getName() == null) {
+        if (mappingRequest.getSaved() && StringUtils.isBlank(mappingRequest.getName())) {
             throw new UnprocessableEntityException("Mapping name required when saving a mapping");
         }
 

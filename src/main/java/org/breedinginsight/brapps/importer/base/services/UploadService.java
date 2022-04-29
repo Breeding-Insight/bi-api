@@ -224,6 +224,15 @@ public class UploadService {
         return new ImmutablePair<>(status, response);
     }
 
+    public List<String> getFileColumns(CompletedFileUpload file) {
+        try {
+            Table data = parseUploadedFile(file);
+            return data.columnNames();
+        } catch (UnsupportedTypeException e) {
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to read file");
+        }
+    }
+
     private Table parseUploadedFile(CompletedFileUpload file) throws UnsupportedTypeException, HttpStatusException {
 
         MediaType mediaType;
