@@ -73,12 +73,12 @@ public class ExperimentProcessor implements Processor {
     private final BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     //These are initially populated by the getExistingBrapiData() method,
-    // then updated by the process() method.
+    // then updated by the getNewBrapiData() method.
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPILocation>> locationByName = null;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
-    // existingGermplasmByGID is initially populated by getExistingBrapiData(), but not updated by the process() method
+    // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
 
     @Inject
@@ -119,47 +119,35 @@ public class ExperimentProcessor implements Processor {
      * @param mappedBrAPIImport - passed in by reference and modified withing this program (this will latter be passed to the front end for the preview)
      * @param program
      * @param user
-     * @param commit - true when the data should be saved (ie when the user has pressed the "Commit" button)
+     * @param commit -  true when the data should be saved (ie when the user has pressed the "Commit" button)
+     *                  false when used for preview only
      * @return Map<String, ImportPreviewStatistics> - used to display the summary statistics.
      * @throws ValidatorException
      */
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                                                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
-        //TODO retrieve sequanceName from the program table.
-        String studySequenceName = "";
-        Supplier<BigInteger> studyNextVal = () -> dsl.nextval(studySequenceName.toLowerCase());
-        String opsUnitSequenceName = "";
-        Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(opsUnitSequenceName.toLowerCase());
+    public Map<String, ImportPreviewStatistics> process(
+            List<BrAPIImport> importRows,
+            Map<Integer, PendingImport> mappedBrAPIImport,
+            Program program,
+            User user,
+            boolean commit) throws ValidatorException {
+
         ValidationErrors validationErrors = new ValidationErrors();
 
-        // Data for stats.
-        HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
-        HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
-        HashSet<String> GIDCounter = new HashSet<>(); // set of unique GID's
+        // add "New" pending data to the BrapiData objects
+        getNewBrapiData(importRows, program, commit);
 
         // For each import row
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
 
-            // Collect date for stats.
-            addIfNotNull(environmentNameCounter, importRow.getEnv());
-            addIfNotNull(obsUnitsIDCounter, importRow.getExpUnitId());
-            addIfNotNull(GIDCounter, importRow.getGid());
-
-            ////////////////////////////////////////////////////
-            // Create (or get) and store PendingImportObjects //
-            // into the PendingImport                         //
-            ////////////////////////////////////////////////////
-            PendingImport mappedImportRow =
-                    getPendingImport(
-                            mappedBrAPIImport,
-                            program,
-                            commit,
-                            studyNextVal,
-                            obsUnitNextVal,
-                            i,
-                            importRow);
+            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+            mappedImportRow.setTrial( this.trialByNameNoScope.get( importRow.getExpTitle() ) );
+            mappedImportRow.setLocation( this.locationByName.get( importRow.getEnvLocation() ) );
+            mappedImportRow.setStudy( this.studyByNameNoScope.get( importRow.getEnv() ) );
+            mappedImportRow.setObservationUnit( this.observationUnitByNameNoScope.get( importRow.getExpUnitId() ) );
+            PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow, mappedImportRow);
+            mappedImportRow.setGermplasm( germplasmPIO );
 
             validateGerplam( validationErrors, i, mappedImportRow.getGermplasm() );
 
@@ -175,7 +163,31 @@ public class ExperimentProcessor implements Processor {
         }
 
         // Construct our response object
-        return getStatisticsMap(environmentNameCounter, obsUnitsIDCounter, GIDCounter);
+        return getStatisticsMap(importRows);
+    }
+
+    private void getNewBrapiData(List<BrAPIImport> importRows, Program program, boolean commit) {
+
+        //TODO retrieve sequanceName from the program table.
+        String studySequenceName = "";
+        Supplier<BigInteger> studyNextVal = () -> dsl.nextval(studySequenceName.toLowerCase());
+        String opsUnitSequenceName = "";
+        Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(opsUnitSequenceName.toLowerCase());
+        for (int i = 0; i < importRows.size(); i++) {
+            ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
+
+            PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow);
+            this.trialByNameNoScope.put( importRow.getExpTitle(), trialPIO );
+
+            PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
+            this.locationByName.put( importRow.getEnvLocation(), locationPIO );
+
+            PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, studyNextVal, importRow);
+            this.studyByNameNoScope.put( importRow.getEnv(),studyPIO );
+
+            PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
+            this.observationUnitByNameNoScope.put( importRow.getExpUnitId(), obsUnitPIO );
+        }
     }
 
     private ValidationErrors validateConditionallyRequiredFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
@@ -234,41 +246,21 @@ public class ExperimentProcessor implements Processor {
         validationErrors.addError(i + 2, ve);  // +2 instead of +1 to account for the column header row.
     }
 
-    private PendingImport getPendingImport(
-            Map<Integer, PendingImport> mappedBrAPIImport,
-            Program program,
-            boolean commit,
-            Supplier<BigInteger> studyNextVal,
-            Supplier<BigInteger> obsUnitNextVal,
-            int i,
-            ExperimentObservation importRow) {
-        PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
-        PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow);
-        mappedImportRow.setTrial( trialPIO );
-        this.trialByNameNoScope.put( importRow.getExpTitle(), trialPIO );
-
-        PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
-        mappedImportRow.setLocation( locationPIO );
-        this.locationByName.put( importRow.getEnvLocation(), locationPIO );
-
-        PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, studyNextVal, importRow);
-        mappedImportRow.setStudy( studyPIO );
-        this.studyByNameNoScope.put( importRow.getEnv(),studyPIO );
-
-        PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
-        mappedImportRow.setObservationUnit(obsUnitPIO);
-        this.observationUnitByNameNoScope.put( importRow.getExpUnitId(), obsUnitPIO );
-
-        PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow, mappedImportRow);
-        mappedImportRow.setGermplasm( germplasmPIO );
-        return mappedImportRow;
-    }
-
     private void addIfNotNull(HashSet<String> set, String setValue) {
         if( setValue!=null) { set.add(setValue); }
     }
 
-    private Map<String, ImportPreviewStatistics> getStatisticsMap(HashSet<String> environmentNameSet, HashSet<String> obsUnitsIDSet, HashSet<String> GIDSet) {
+    private Map<String, ImportPreviewStatistics> getStatisticsMap(List<BrAPIImport> importRows) {
+        // Data for stats.
+        HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
+        HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
+        HashSet<String> GIDCounter = new HashSet<>(); // set of unique GID's
+        for (int i = 0; i < importRows.size(); i++) {
+            // Collect date for stats.
+            addIfNotNull(environmentNameCounter, importRow.getEnv());
+            addIfNotNull(obsUnitsIDCounter, importRow.getExpUnitId());
+            addIfNotNull(GIDCounter, importRow.getGid());
+        }
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                 .newObjectCount(environmentNameSet.size())
                 .build();
