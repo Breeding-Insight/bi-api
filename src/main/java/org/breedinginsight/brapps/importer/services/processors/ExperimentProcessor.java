@@ -21,6 +21,7 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
@@ -36,7 +37,6 @@ import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
-import org.breedinginsight.brapps.importer.model.imports.experimentObservation.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -60,8 +60,6 @@ public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
 
-    private FileData fileData = new FileData();
-
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
@@ -72,7 +70,7 @@ public class ExperimentProcessor implements Processor {
     private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final BrAPIGermplasmDAO brAPIGermplasmDAO;
 
-    //These are initially populated by the getExistingBrapiData() method,
+    //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the getNewBrapiData() method.
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPILocation>> locationByName = null;
@@ -116,7 +114,7 @@ public class ExperimentProcessor implements Processor {
 
     /**
      * @param importRows - one element of the list for every row of the import file.
-     * @param mappedBrAPIImport - passed in by reference and modified withing this program (this will latter be passed to the front end for the preview)
+     * @param mappedBrAPIImport - passed in by reference and modified within this program (this will latter be passed to the front end for the preview)
      * @param program
      * @param user
      * @param commit -  true when the data should be saved (ie when the user has pressed the "Commit" button)
@@ -149,14 +147,15 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow, mappedImportRow);
             mappedImportRow.setGermplasm( germplasmPIO );
 
-            validateGerplam( validationErrors, i, mappedImportRow.getGermplasm() );
-
+            if (! StringUtils.isBlank( importRow.getGid() )) { // if GID is blank, don't bother to check if it is valid.
+                validateGermplam(importRow,validationErrors, i, germplasmPIO);
+            }
             // Construct Observations -- Done in another card
             mappedBrAPIImport.put(i, mappedImportRow);
         }
         // End-of-loop
 
-        validationErrors = validateConditionallyRequiredFields(importRows, validationErrors);
+        validationErrors = validateFields(importRows, validationErrors);
 
         if (validationErrors.hasErrors() ){
             throw new ValidatorException(validationErrors);
@@ -190,49 +189,63 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private ValidationErrors validateConditionallyRequiredFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
+    private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
-            String experimentTitle = importRow.getExpTitle();
-            ImportObjectState expState = this.trialByNameNoScope.get(experimentTitle).getState();
-            boolean isExistingNew = (expState == ImportObjectState.NEW);
 
-            if (isExistingNew) {
-                String errorMessage = "Field is blank when creating a new experiment";
-                validateNotNullOrBlank( importRow.getGid(),
-                        "GID",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getExpUnit(),
-                        "Exp Unit",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getExpType(),
-                        "Exp Type",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getEnv(),
-                        "Env",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getEnvLocation(),
-                        "Env Location",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getEnvYear(),
-                        "Env Year",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getExpUnitId(),
-                        "Exp Unit ID",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getExpReplicateNo(),
-                        "Exp Replicate #",
-                        errorMessage, validationErrors, i);
-                validateNotNullOrBlank( importRow.getExpBlockNo(),
-                        "Exp Block #",
-                        errorMessage, validationErrors, i);
-            }
+            validateConditionallyRequired(validationErrors, i, importRow);
         }
         return validationErrors;
     }
 
-    private void validateNotNullOrBlank(String value, String columHeader, String errorMessage, ValidationErrors validationErrors, int i) {
-        if ( value==null ||  value.isBlank()) {
+    private void validateConditionallyRequired(ValidationErrors validationErrors, int i, ExperimentObservation importRow) {
+        String experimentTitle = importRow.getExpTitle();
+        String obsUnitID = importRow.getObsUnitID();
+        if( StringUtils.isBlank( obsUnitID )){
+            validateRequiredCell(
+                    experimentTitle,
+                    "Exp Title",
+                    "Field is blank", validationErrors, i
+                    );
+        }
+
+        ImportObjectState expState = this.trialByNameNoScope.get(experimentTitle).getState();
+        boolean isExperimentNew = (expState == ImportObjectState.NEW);
+
+        if (isExperimentNew) {
+            String errorMessage = "Field is blank when creating a new experiment";
+            validateRequiredCell( importRow.getGid(),
+                    "GID",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getExpUnit(),
+                    "Exp Unit",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getExpType(),
+                    "Exp Type",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getEnv(),
+                    "Env",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getEnvLocation(),
+                    "Env Location",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getEnvYear(),
+                    "Env Year",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getExpUnitId(),
+                    "Exp Unit ID",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getExpReplicateNo(),
+                    "Exp Replicate #",
+                    errorMessage, validationErrors, i);
+            validateRequiredCell( importRow.getExpBlockNo(),
+                    "Exp Block #",
+                    errorMessage, validationErrors, i);
+        }
+    }
+
+    private void validateRequiredCell(String value, String columHeader, String errorMessage, ValidationErrors validationErrors, int i) {
+        if ( StringUtils.isBlank( value )) {
             addRowError(
                     columHeader,
                     errorMessage,
@@ -254,21 +267,22 @@ public class ExperimentProcessor implements Processor {
         // Data for stats.
         HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
         HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
-        HashSet<String> GIDCounter = new HashSet<>(); // set of unique GID's
+        HashSet<String> gidCounter = new HashSet<>(); // set of unique GID's
         for (int i = 0; i < importRows.size(); i++) {
+            ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
             // Collect date for stats.
             addIfNotNull(environmentNameCounter, importRow.getEnv());
             addIfNotNull(obsUnitsIDCounter, importRow.getExpUnitId());
-            addIfNotNull(GIDCounter, importRow.getGid());
+            addIfNotNull(gidCounter, importRow.getGid());
         }
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
-                .newObjectCount(environmentNameSet.size())
+                .newObjectCount(environmentNameCounter.size())
                 .build();
         ImportPreviewStatistics obdUnitStats = ImportPreviewStatistics.builder()
-                .newObjectCount(obsUnitsIDSet.size())
+                .newObjectCount(obsUnitsIDCounter.size())
                 .build();
         ImportPreviewStatistics gidStats = ImportPreviewStatistics.builder()
-                .newObjectCount(GIDSet.size())
+                .newObjectCount(gidCounter.size())
                 .build();
 
         return Map.of(
@@ -278,10 +292,14 @@ public class ExperimentProcessor implements Processor {
         );
     }
 
-    private void validateGerplam(ValidationErrors validationErrors, int i, PendingImportObject<BrAPIGermplasm> germplasmPIO) {
-        if( germplasmPIO == null ) {
-            ValidationError ve = new ValidationError("GID", "A non-existing GID", HttpStatus.UNPROCESSABLE_ENTITY);
-            validationErrors.addError(i + 2, ve);  // +2 instead of +1 to account for the column header row.
+    private void validateGermplam(ExperimentObservation importRow, ValidationErrors validationErrors, int i, PendingImportObject<BrAPIGermplasm> germplasmPIO) {
+       // error if GID is not blank but GID dose not already exist
+        if( !StringUtils.isBlank( importRow.getGid()) && germplasmPIO == null ) {
+            addRowError(
+                    "GID",
+                    "A non-existing GID",
+                    validationErrors, i
+            );
         }
     }
 
