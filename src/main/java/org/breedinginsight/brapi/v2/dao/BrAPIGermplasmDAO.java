@@ -163,14 +163,18 @@ public class BrAPIGermplasmDAO {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
                         newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
                         namePedigreeString = programGermplasmByFullName.get(parents.get(0)).getDefaultDisplayName();
-                        uuidPedigreeString = programGermplasmByFullName.get(parents.get(0)).getExternalReferences().stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).map(ref -> ref.getReferenceID()).findFirst().get();
+                        uuidPedigreeString = programGermplasmByFullName.get(parents.get(0)).getExternalReferences().
+                                stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
+                                map(ref -> ref.getReferenceID()).findFirst().orElse("");
                     }
                 }
                 if (parents.size() == 2) {
                     if (programGermplasmByFullName.containsKey(parents.get(1))) {
                         newPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getAccessionNumber();
                         namePedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getDefaultDisplayName();
-                        uuidPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getExternalReferences().stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).map(ref -> ref.getReferenceID()).findFirst().get();
+                        uuidPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getExternalReferences().
+                                stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
+                                map(ref -> ref.getReferenceID()).findFirst().orElse("");
                     }
                 }
                 //For use in individual germplasm display
