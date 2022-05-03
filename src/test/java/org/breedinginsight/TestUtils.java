@@ -28,6 +28,7 @@ import io.reactivex.Flowable;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Trait;
 import se.sawano.java.text.AlphanumericComparator;
 
 import java.io.File;
@@ -218,5 +219,18 @@ public class TestUtils {
         } else {
             return response;
         }
+    }
+
+    public static void insertTestTraits(Gson gson, RxHttpClient client, Program program, List<Trait> traits) {
+
+        String url = String.format("/programs/%s/traits", program.getId());
+        String json = gson.toJson(traits);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(url, json)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
     }
 }
