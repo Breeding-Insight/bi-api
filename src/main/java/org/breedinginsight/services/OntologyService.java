@@ -347,11 +347,11 @@ public class OntologyService {
 
     public UUID getSubscribedOntologyProgramId(UUID programId) throws DoesNotExistException {
         // get shared ontology programs
-        List<SubscribedProgram> subscriptionOptions = getSubscribeOntologyOptions(programId);
+        List<SubscribedOntology> subscriptionOptions = getSubscribeOntologyOptions(programId);
 
         // check if we are subscribed to one of the programs
-        SubscribedProgram subscribedOntology = null;
-        for (SubscribedProgram sharingProgram : subscriptionOptions) {
+        SubscribedOntology subscribedOntology = null;
+        for (SubscribedOntology sharingProgram : subscriptionOptions) {
             if (sharingProgram.getSubscribed()) {
                 subscribedOntology = sharingProgram;
             }
