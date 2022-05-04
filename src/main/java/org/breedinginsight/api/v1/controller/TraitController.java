@@ -37,7 +37,6 @@ import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.Editable;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.SubscribedProgram;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.TraitService;
