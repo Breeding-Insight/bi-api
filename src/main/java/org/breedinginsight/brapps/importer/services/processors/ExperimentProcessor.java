@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.services.processors;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -170,7 +171,11 @@ public class ExperimentProcessor implements Processor {
     private void getNewBrapiData(List<BrAPIImport> importRows, Program program, boolean commit) {
 
         //TODO retrieve sequanceName from the program table.
-        String studySequenceName = "";
+        String studySequenceName = program.getStudySequence();
+        if (studySequenceName == null) {
+            log.error(String.format("Program, %s, is missing a value in the study sequence column.", program.getName()));
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for study import");
+        }
         Supplier<BigInteger> studyNextVal = () -> dsl.nextval(studySequenceName.toLowerCase());
         String opsUnitSequenceName = "";
         Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(opsUnitSequenceName.toLowerCase());
@@ -382,10 +387,70 @@ public class ExperimentProcessor implements Processor {
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) {
 
+        List<BrAPITrial> trials = ProcessorData.getNewObjects(this.trialByNameNoScope);
+        List<BrAPILocation> locations = ProcessorData.getNewObjects(this.locationByName);
+        List<BrAPIStudy> studies = ProcessorData.getNewObjects(this.studyByNameNoScope);
+
+        List<BrAPITrial> createdTrials = new ArrayList<>();
+        List<BrAPILocation> createdLocations = new ArrayList<>();
+        List<BrAPIStudy> createdStudies = new ArrayList<>();
+        try {
+            createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));
+            createdLocations.addAll(brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload));
+
+            updateStudyDependencyValues(mappedBrAPIImport);
+            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
+        } catch (ApiException e) {
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // Update our records
+        createdTrials.forEach(trial -> {
+            PendingImportObject<BrAPITrial> preview = this.trialByNameNoScope.get(trial.getTrialName());
+            preview.setBrAPIObject(trial);
+        });
+        createdLocations.forEach(location -> {
+            PendingImportObject<BrAPILocation> preview = locationByName.get(location.getLocationName());
+            preview.setBrAPIObject(location);
+        });
+        createdStudies.forEach(study -> {
+            PendingImportObject<BrAPIStudy> preview = this.studyByNameNoScope.get(study.getStudyName());
+            preview.setBrAPIObject(study);
+        });
     }
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
-        // TODO
+        updateStudyDependencyValues(mappedBrAPIImport);
+    }
+
+    private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
+        // update location DbIds in studies for all distinct locations
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getLocation)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateStudyLocationDbId);
+
+        // update trial DbIds in studies for all distinct trials
+        mappedBrAPIImport.values().stream()
+                .map(PendingImport::getTrial)
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateTrialDbId);
+    }
+
+    private void updateStudyLocationDbId(BrAPILocation location) {
+        this.studyByNameNoScope.values().stream()
+                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getLocationName()))
+                .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
+    }
+
+    private void updateTrialDbId(BrAPITrial trial) {
+        this.studyByNameNoScope.values().stream()
+                .filter(study -> study.getBrAPIObject().getTrialName().equals(trial.getTrialName()))
+                .forEach(study -> study.getBrAPIObject().setTrialDbId(trial.getTrialDbId()));
     }
 
     @Override

@@ -157,7 +157,7 @@ public class StudyProcessor implements Processor {
     }
 
     private void updateLocationDbId(BrAPILocation location) {
-        studyByName.values().stream()
+        this.studyByName.values().stream()
                 .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getLocationName()))
                 .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
     }
