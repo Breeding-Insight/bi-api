@@ -87,6 +87,7 @@ public class Program extends ProgramEntity {
                 .active(record.getValue(programTable.ACTIVE))
                 .germplasmSequence(record.getValue(programTable.GERMPLASM_SEQUENCE))
                 .studySequence(record.getValue(programTable.STUDY_SEQUENCE))
+                .obsUnitSequence(record.getValue(programTable.OBS_UNIT_SEQUENCE))
                 .build();
 
         return program;

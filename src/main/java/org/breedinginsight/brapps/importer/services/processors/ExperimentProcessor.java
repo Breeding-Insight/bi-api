@@ -177,8 +177,14 @@ public class ExperimentProcessor implements Processor {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for study import");
         }
         Supplier<BigInteger> studyNextVal = () -> dsl.nextval(studySequenceName.toLowerCase());
-        String opsUnitSequenceName = "";
+
+        String opsUnitSequenceName = program.getObsUnitSequence();
+        if (opsUnitSequenceName == null) {
+            log.error(String.format("Program, %s, is missing a value in the obsUnit sequence column.", program.getName()));
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for observation unit import");
+        }
         Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(opsUnitSequenceName.toLowerCase());
+
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
 
@@ -190,7 +196,6 @@ public class ExperimentProcessor implements Processor {
 
             PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, studyNextVal, importRow);
             this.studyByNameNoScope.put( importRow.getEnv(),studyPIO );
-
             PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
             this.observationUnitByNameNoScope.put( importRow.getExpUnitId(), obsUnitPIO );
         }
@@ -333,7 +338,7 @@ public class ExperimentProcessor implements Processor {
 
     private PendingImportObject<BrAPIObservationUnit> createObsUnitPIO(Program program, boolean commit, Supplier<BigInteger> obsUnitNextVal, ExperimentObservation importRow) {
         PendingImportObject<BrAPIObservationUnit> pio = null;
-        if( observationUnitByNameNoScope.containsKey( importRow.getExpUnitId() ) ) {
+        if( this.observationUnitByNameNoScope.containsKey( importRow.getExpUnitId() ) ) {
             pio = observationUnitByNameNoScope.get(importRow.getExpUnitId() ) ;
         }
         else{
@@ -390,40 +395,97 @@ public class ExperimentProcessor implements Processor {
         List<BrAPITrial> trials = ProcessorData.getNewObjects(this.trialByNameNoScope);
         List<BrAPILocation> locations = ProcessorData.getNewObjects(this.locationByName);
         List<BrAPIStudy> studies = ProcessorData.getNewObjects(this.studyByNameNoScope);
+        List<BrAPIObservationUnit> observationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
 
         List<BrAPITrial> createdTrials = new ArrayList<>();
         List<BrAPILocation> createdLocations = new ArrayList<>();
         List<BrAPIStudy> createdStudies = new ArrayList<>();
+        List<BrAPIObservationUnit> createdObservationUnits = new ArrayList<>();
         try {
             createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));
+            for ( BrAPITrial createdTrial: createdTrials ) {
+                String createdTrialName = createdTrial.getTrialName();
+                String createdTrialName_no_key = Utilities.removeProgramKey( createdTrialName, program.getKey() );
+                PendingImportObject<BrAPITrial> pi = this.trialByNameNoScope.get(createdTrialName_no_key);
+                BrAPITrial listedTrial = pi.getBrAPIObject();
+                String dbid = createdTrial.getTrialDbId();
+                listedTrial.setTrialDbId( dbid );
+            }
             createdLocations.addAll(brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload));
 
-            updateStudyDependencyValues(mappedBrAPIImport);
+            updateStudyDependencyValues(mappedBrAPIImport,program.getKey());
             createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
+            for( BrAPIStudy createdStudy : createdStudies){
+                String createdStudy_name_no_key = Utilities.removeProgramKeyAndUnknownAdditionalData( createdStudy.getStudyName(), program.getKey() );
+                PendingImportObject<BrAPIStudy> pi = this.studyByNameNoScope.get( createdStudy_name_no_key );
+                BrAPIStudy brAPIStudy = pi.getBrAPIObject();
+                brAPIStudy.setStudyDbId( createdStudy.getStudyDbId() );
+            }
+
+            updateObsUnitDependencyValues(mappedBrAPIImport,program.getKey());
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
 
-        // Update our records
-        createdTrials.forEach(trial -> {
-            PendingImportObject<BrAPITrial> preview = this.trialByNameNoScope.get(trial.getTrialName());
-            preview.setBrAPIObject(trial);
-        });
-        createdLocations.forEach(location -> {
-            PendingImportObject<BrAPILocation> preview = locationByName.get(location.getLocationName());
-            preview.setBrAPIObject(location);
-        });
-        createdStudies.forEach(study -> {
-            PendingImportObject<BrAPIStudy> preview = this.studyByNameNoScope.get(study.getStudyName());
-            preview.setBrAPIObject(study);
-        });
+//        // Update our records
+//        createdTrials.forEach(trial -> {
+//            PendingImportObject<BrAPITrial> preview = this.trialByNameNoScope.get( Utilities.removeProgramKey( trial.getTrialName(),program.getKey() ) );
+//            preview.setBrAPIObject(trial);
+//        });
+//        createdLocations.forEach(location -> {
+//            PendingImportObject<BrAPILocation> preview = locationByName.get(location.getLocationName());
+//            preview.setBrAPIObject(location);
+//        });
+//        createdStudies.forEach(study -> {
+//            String studyName = Utilities.removeProgramKey(study.getStudyName(),program.getKey() );
+//            PendingImportObject<BrAPIStudy> preview = this.studyByNameNoScope.get( studyName ) ;
+//            preview.setBrAPIObject(study);
+//        });
     }
 
-    private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
-        updateStudyDependencyValues(mappedBrAPIImport);
+//    private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
+//        updateStudyDependencyValues(mappedBrAPIImport);
+//    }
+
+    private void updateObsUnitDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
+
+        // update study DbIds
+        this.studyByNameNoScope.values().stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(study -> updateStudyDbId(study, programKey));
+
+        // update germplasm DbIds
+        this.existingGermplasmByGID.values().stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateGermplasmDbId);
     }
 
-    private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {
+    private void updateStudyDbId(BrAPIStudy study, String programKey) {
+        this.observationUnitByNameNoScope.values().stream()
+                .filter(obsUnit -> obsUnit.getBrAPIObject().getStudyName().equals( Utilities.removeProgramKeyAndUnknownAdditionalData( study.getStudyName(), programKey ) ))
+                .forEach(obsUnit -> obsUnit.getBrAPIObject().setStudyDbId(study.getStudyDbId()));
+    }
+
+//    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
+//        this.observationUnitByNameNoScope.values().stream()
+//                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName() != null &&
+//                        obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
+//                .forEach(obsUnit -> obsUnit.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
+//    }
+
+    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
+        this.observationUnitByNameNoScope.values().stream()
+                .filter(obsUnit -> obsUnit.getBrAPIObject().getGermplasmName() != null &&
+                        obsUnit.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
+                .forEach(obsUnit -> obsUnit.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
+    }
+
+
+    private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
         // update location DbIds in studies for all distinct locations
         mappedBrAPIImport.values().stream()
                 .map(PendingImport::getLocation)
@@ -433,12 +495,11 @@ public class ExperimentProcessor implements Processor {
                 .forEach(this::updateStudyLocationDbId);
 
         // update trial DbIds in studies for all distinct trials
-        mappedBrAPIImport.values().stream()
-                .map(PendingImport::getTrial)
+        this.trialByNameNoScope.values().stream()
                 .filter(Objects::nonNull)
                 .distinct()
                 .map(PendingImportObject::getBrAPIObject)
-                .forEach(this::updateTrialDbId);
+                .forEach(trait -> this.updateTrialDbId(trait, programKey));
     }
 
     private void updateStudyLocationDbId(BrAPILocation location) {
@@ -447,9 +508,9 @@ public class ExperimentProcessor implements Processor {
                 .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
     }
 
-    private void updateTrialDbId(BrAPITrial trial) {
+    private void updateTrialDbId(BrAPITrial trial, String programKey) {
         this.studyByNameNoScope.values().stream()
-                .filter(study -> study.getBrAPIObject().getTrialName().equals(trial.getTrialName()))
+                .filter(study -> study.getBrAPIObject().getTrialName().equals(Utilities.removeProgramKey(trial.getTrialName(), programKey ) ) )
                 .forEach(study -> study.getBrAPIObject().setTrialDbId(trial.getTrialDbId()));
     }
 
@@ -594,7 +655,9 @@ log.info(uniqueTrialNames.toString());
             throw new InternalServerException(e.toString(), e);
         }
     }
-
+    private String simpleStudyName(String scopedName){
+        return scopedName.replaceFirst(" \\[.*\\]", "");
+    }
 
 
 }

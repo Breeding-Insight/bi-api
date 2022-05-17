@@ -74,7 +74,8 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id="envLocation", name="Environment Location", description = "Location of the environment")
     private String envLocation;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
+    //TODO make this ImportFieldTypeEnum.INTEGER
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="envYear", name="Environment Year", description = "Year corresponding to the environment")
     private String envYear;
 
@@ -149,6 +150,7 @@ public class ExperimentObservation implements BrAPIImport {
         study.setLocationName(getEnvLocation());
         study.setTrialName(getExpTitle());
         study.setSeasons( List.of( getEnvYear()==null ? "" : getEnvYear() ) );
+
         /*
         TODO: Not used
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
@@ -171,7 +173,7 @@ public class ExperimentObservation implements BrAPIImport {
         observationUnit.setStudyName(getEnv());
 
         // TODO: Set the germplasm
-        //observationUnit.setGermplasmName(getGermplasm().getReferenceValue());
+        observationUnit.setGermplasmName(getGermplasmName());
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
