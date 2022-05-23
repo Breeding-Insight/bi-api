@@ -182,6 +182,7 @@ public class ProgramService {
                     .key(programRequest.getKey())
                     .germplasmSequence(germplasm_sequence_name)
                     .studySequence(study_sequence_name)
+                    .obsUnitSequence( obs_unit_sequence_name )
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();

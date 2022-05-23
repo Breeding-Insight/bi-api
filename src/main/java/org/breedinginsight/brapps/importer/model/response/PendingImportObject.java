@@ -30,9 +30,12 @@ public class PendingImportObject<T> {
     private T brAPIObject;
     private UUID id;
 
-    public PendingImportObject(ImportObjectState state, T brAPIObject) {
+    public PendingImportObject(ImportObjectState state, T brAPIObject, UUID id) {
         this.state = state;
         this.brAPIObject = brAPIObject;
-        this.id = UUID.randomUUID();
+        this.id = id;
+    }
+    public PendingImportObject(ImportObjectState state, T brAPIObject) {
+        this(state, brAPIObject, UUID.randomUUID());
     }
 }

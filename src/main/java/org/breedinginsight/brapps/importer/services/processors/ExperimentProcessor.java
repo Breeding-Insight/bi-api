@@ -196,6 +196,7 @@ public class ExperimentProcessor implements Processor {
 
             PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, studyNextVal, importRow);
             this.studyByNameNoScope.put( importRow.getEnv(),studyPIO );
+
             PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
             this.observationUnitByNameNoScope.put( importRow.getExpUnitId(), obsUnitPIO );
         }
@@ -342,7 +343,16 @@ public class ExperimentProcessor implements Processor {
             pio = observationUnitByNameNoScope.get(importRow.getExpUnitId() ) ;
         }
         else{
-            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, obsUnitNextVal, commit);
+            String germplasmName = "";
+            if( this.existingGermplasmByGID.get( importRow.getGid() ) != null) {
+                germplasmName = this.existingGermplasmByGID.get(importRow.getGid()).getBrAPIObject().getGermplasmName();
+            }
+            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
+            UUID trialID = trialPIO.getId();
+            PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
+            UUID studyID = studyPIO.getId();
+            UUID id = UUID.randomUUID();
+            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, obsUnitNextVal, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, studyID, id);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit);
         }
         return pio;
@@ -354,8 +364,11 @@ public class ExperimentProcessor implements Processor {
             pio =  studyByNameNoScope.get( importRow.getEnv() ) ;
         }
         else{
-            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, studyNextVal, commit);
-            pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy);
+            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
+            UUID trialID = trialPIO.getId();
+            UUID id = UUID.randomUUID();
+            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, studyNextVal, commit, BRAPI_REFERENCE_SOURCE, trialID, id);
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
         }
         return pio;
     }
@@ -378,8 +391,9 @@ public class ExperimentProcessor implements Processor {
             pio = trialByNameNoScope.get( importRow.getExpTitle() ) ;
        }
        else {
-            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit);
-            pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial);
+            UUID id = UUID.randomUUID();
+            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit, BRAPI_REFERENCE_SOURCE, id);
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
         }
         return pio;
     }
@@ -397,12 +411,9 @@ public class ExperimentProcessor implements Processor {
         List<BrAPIStudy> studies = ProcessorData.getNewObjects(this.studyByNameNoScope);
         List<BrAPIObservationUnit> observationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
 
-        List<BrAPITrial> createdTrials = new ArrayList<>();
-        List<BrAPILocation> createdLocations = new ArrayList<>();
-        List<BrAPIStudy> createdStudies = new ArrayList<>();
-        List<BrAPIObservationUnit> createdObservationUnits = new ArrayList<>();
         try {
-            createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));
+            List<BrAPITrial> createdTrials = new ArrayList<>();
+            createdTrials.addAll( brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload) );
             for ( BrAPITrial createdTrial: createdTrials ) {
                 String createdTrialName = createdTrial.getTrialName();
                 String createdTrialName_no_key = Utilities.removeProgramKey( createdTrialName, program.getKey() );
@@ -411,10 +422,11 @@ public class ExperimentProcessor implements Processor {
                 String dbid = createdTrial.getTrialDbId();
                 listedTrial.setTrialDbId( dbid );
             }
-            createdLocations.addAll(brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload));
+            brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload);
 
             updateStudyDependencyValues(mappedBrAPIImport,program.getKey());
-            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
+            List<BrAPIStudy> createdStudies = new ArrayList<>();
+            createdStudies.addAll( brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload) );
             for( BrAPIStudy createdStudy : createdStudies){
                 String createdStudy_name_no_key = Utilities.removeProgramKeyAndUnknownAdditionalData( createdStudy.getStudyName(), program.getKey() );
                 PendingImportObject<BrAPIStudy> pi = this.studyByNameNoScope.get( createdStudy_name_no_key );
@@ -423,7 +435,9 @@ public class ExperimentProcessor implements Processor {
             }
 
             updateObsUnitDependencyValues(mappedBrAPIImport,program.getKey());
+            brAPIObservationUnitDAO.createBrAPIObservationUnits(observationUnits, program.getId(), upload);
         } catch (ApiException e) {
+            log.error(e.getResponseBody().toString());
             throw new InternalServerException(e.toString(), e);
         }
 
@@ -539,14 +553,14 @@ public class ExperimentProcessor implements Processor {
 
     private Map<String, PendingImportObject<BrAPIGermplasm>> initialize_existingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
-        List<String> uniqueGermplasmGID = experimentImportRows.stream()
+        List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
                 .map(experimentImport -> experimentImport.getGid())
                 .distinct()
                 .collect(Collectors.toList());
 
         List<BrAPIGermplasm> existingGermplasms;
         try {
-            existingGermplasms = this.getGermplasmByAccessionNumber(uniqueGermplasmGID, program.getId());
+            existingGermplasms = this.getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId());
             existingGermplasms.forEach(existingGermplasm -> {
                 existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
             });
@@ -634,8 +648,9 @@ public class ExperimentProcessor implements Processor {
 
     private Map<String, PendingImportObject<BrAPITrial>> initialize_trialByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = new HashMap<>();
+        String programKey = program.getKey();
         List<String> uniqueTrialNames = experimentImportRows.stream()
-                .map(experimentImport -> experimentImport.getExpTitle())
+                .map(experimentImport -> Utilities.appendProgramKey( experimentImport.getExpTitle(), programKey, null) )
                 .distinct().
                 filter(name -> null !=name)
                 .collect(Collectors.toList());

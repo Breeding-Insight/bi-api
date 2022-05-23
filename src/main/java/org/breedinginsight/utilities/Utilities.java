@@ -63,6 +63,10 @@ public class Utilities {
         }
     }
 
+    public static String appendProgramKey( String original, String programKey ){
+        return appendProgramKey( original, programKey, null);
+    }
+
     /**
      * Remove program key from a string. Returns a new value instead of altering original string.
      *
