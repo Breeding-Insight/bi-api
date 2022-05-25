@@ -17,8 +17,6 @@
 
 package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
-import com.google.gson.JsonObject;
-import io.micronaut.context.annotation.Property;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -115,6 +113,7 @@ public class ExperimentObservation implements BrAPIImport {
         BrAPITrial trial = new BrAPITrial();
         if( commit ){
             trial.setTrialName( Utilities.appendProgramKey(getExpTitle(), program.getKey() ));
+
             // Set external reference
             trial.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, id, null, null));
         }
@@ -141,14 +140,14 @@ public class ExperimentObservation implements BrAPIImport {
 
     public BrAPIStudy constructBrAPIStudy(
             Program program,
-            Supplier<BigInteger> nextVal,
             boolean commit,
             String referenceSource,
             UUID trialId,
             UUID id) {
         BrAPIStudy study = new BrAPIStudy();
         if ( commit ){
-            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), nextVal.get().toString()));
+            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), trialId.toString()));
+
             // Set external reference
             study.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, trialId, id,null));
         }
@@ -183,7 +182,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
         if( commit){
-            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), id.toString()));
+            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString()));
 
             // Set external reference
             observationUnit.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, trialID, studyID, id));
@@ -253,22 +252,23 @@ public class ExperimentObservation implements BrAPIImport {
     }
 
     private List<BrAPIExternalReference> getBrAPIExternalReferences(
-            Program program, String referenceSource, UUID trialId, UUID studyId, UUID obsUnitId) {
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
         List<BrAPIExternalReference> refs = new ArrayList<>();
 
-        addReference(refs, referenceSource, program.getId(), "programs");
-        if( trialId   != null ) { addReference(refs, referenceSource,  trialId,     "trials"); }
-        if( studyId   != null ) { addReference(refs, referenceSource, studyId,      "studies"); }
-        if( obsUnitId != null ) { addReference(refs, referenceSource, obsUnitId,    "observationunits"); }
+        addReference(refs, program.getId(), referenceSourceBaseName, "programs");
+        if( trialId   != null ) { addReference(refs, trialId, referenceSourceBaseName, "trials"); }
+        if( studyId   != null ) { addReference(refs, studyId, referenceSourceBaseName, "studies"); }
+        if( obsUnitId != null ) { addReference(refs, obsUnitId, referenceSourceBaseName, "observationunits"); }
 
         return refs;
     }
 
-    private void addReference(List<BrAPIExternalReference> refs, String referenceSource, UUID uuid, String refSourceName) {
+    private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, String refSourceName) {
         BrAPIExternalReference reference;
         reference = new BrAPIExternalReference();
-        reference.setReferenceSource( String.format("%s/%s",referenceSource, refSourceName) );
+        reference.setReferenceSource( String.format("%s/%s", referenceBaseNameSource, refSourceName) );
         reference.setReferenceID(uuid.toString());
         refs.add(reference);
     }
+
 }
