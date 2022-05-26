@@ -52,4 +52,6 @@ public class QueryParams implements PaginationParams {
     public Integer getDefaultPageSize() {
         return DEFAULT_PAGE_SIZE;
     }
+
+    public Boolean getShowAll() { return showAll; };
 }

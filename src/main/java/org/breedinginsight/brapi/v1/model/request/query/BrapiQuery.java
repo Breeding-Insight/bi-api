@@ -50,4 +50,6 @@ public class BrapiQuery implements PaginationParams {
     public Integer getDefaultPageSize() {
         return DEFAULT_PAGE_SIZE;
     }
+
+    public Boolean getShowAll() { return false; }
 }

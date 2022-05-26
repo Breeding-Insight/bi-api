@@ -22,4 +22,5 @@ public interface PaginationParams {
     Integer getPage();
     Integer getDefaultPageSize();
     Integer getDefaultPage();
+    Boolean getShowAll();
 }
