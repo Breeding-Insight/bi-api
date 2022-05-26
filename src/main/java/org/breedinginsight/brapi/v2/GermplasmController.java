@@ -5,6 +5,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
@@ -21,6 +22,7 @@ import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.model.DownloadFile;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
@@ -72,18 +74,30 @@ public class GermplasmController {
             HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+".xlsx");
             return germplasmListExport;
         }
-        catch (ApiException e){
-            log.info(e.getMessage());
+        catch (Exception e) {
+            log.info(e.getMessage(), e);
+            e.printStackTrace();
             HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
             return response;
-        } catch (IOException e){
-            log.info(e.getMessage());
-            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
-            return response;
-        } catch (Exception e) {
-            log.info(e.getMessage());
-            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
-            return response;
+        }
+    }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<BrAPIGermplasm>> getSingleGermplasm(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("germplasmId") String germplasmId) {
+        try {
+            log.debug("fetching germ id:" +  germplasmId +" for program: " + programId);
+            Response<BrAPIGermplasm> response = new Response(germplasmService.getGermplasmByUUID(programId, germplasmId));
+            return HttpResponse.ok(response);
+        } catch (InternalServerException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
         }
     }
 }

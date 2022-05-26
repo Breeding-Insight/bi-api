@@ -239,15 +239,26 @@ public class ObservationProcessor implements Processor {
     }
 
     private static String getBrapiObservationHash(BrAPIObservation observation) {
-        return getObservationHash(observation.getObservationUnitName(),
-               observation.getObservationVariableName(),
-               observation.getObservationTimeStamp().withOffsetSameInstant(ZoneOffset.UTC).format(Observation.formatter));
+        if (observation.getObservationTimeStamp() != null) {
+            return getObservationHash(observation.getObservationUnitName(),
+                    observation.getObservationVariableName(),
+                    observation.getObservationTimeStamp().withOffsetSameInstant(ZoneOffset.UTC).format(Observation.formatter));
+        } else {
+            return getObservationHash(observation.getObservationUnitName(),
+                    observation.getObservationVariableName());
+        }
     }
 
     private static String getImportObservationHash(Observation observation) {
-        return getObservationHash(observation.getObservationUnit().getReferenceValue(),
-                observation.getTrait().getReferenceValue(),
-                observation.getObservationDate());
+        if (observation.getObservationDate() != null) {
+            return getObservationHash(observation.getObservationUnit().getReferenceValue(),
+                    observation.getTrait().getReferenceValue(),
+                    observation.getObservationDate());
+        } else {
+            return getObservationHash(observation.getObservationUnit().getReferenceValue(),
+                    observation.getTrait().getReferenceValue());
+        }
+
     }
 
     private static String getObservationHash(String observationUnitName, String variableName, String observationDate) {
@@ -255,6 +266,13 @@ public class ObservationProcessor implements Processor {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                         DigestUtils.sha256Hex(variableName) +
                         DigestUtils.sha256Hex(observationDate);
+        return DigestUtils.sha256Hex(concat);
+    }
+
+    private static String getObservationHash(String observationUnitName, String variableName) {
+
+        String concat = DigestUtils.sha256Hex(observationUnitName) +
+                DigestUtils.sha256Hex(variableName);
         return DigestUtils.sha256Hex(concat);
     }
 

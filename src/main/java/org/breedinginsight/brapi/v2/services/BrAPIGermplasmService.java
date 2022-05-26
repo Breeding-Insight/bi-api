@@ -27,6 +27,7 @@ import org.breedinginsight.brapps.importer.model.ImportUpload;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
@@ -49,9 +50,16 @@ public class BrAPIGermplasmService {
     }
 
     public List<BrAPIGermplasm> getGermplasm(UUID programId) throws ApiException {
-        List<BrAPIGermplasm> germplasmList;
         try {
             return germplasmDAO.getGermplasm(programId);
+        } catch (ApiException e) {
+            throw new InternalServerException(e.getMessage(), e);
+        }
+    }
+
+    public BrAPIGermplasm getGermplasmByUUID(UUID programId, String germplasmId) throws DoesNotExistException {
+        try {
+            return germplasmDAO.getGermplasmByUUID(germplasmId, programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
@@ -90,13 +98,9 @@ public class BrAPIGermplasmService {
 
         //Retrieve germplasm data
         List<String> germplasmNames = listData.getData();
-        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByName(germplasmNames, programId);
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
         //processGermplasmForDisplay, numbers
         germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
-
-        //TODO change timestamp to edit date when editing functionality is added
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
-        String timestamp = formatter.format(listData.getDateCreated());
 
         String listName = listData.getListName();
         Optional<Program> optionalProgram = programService.getById(programId);
@@ -104,7 +108,7 @@ public class BrAPIGermplasmService {
             Program program = optionalProgram.get();
             listName = removeAppendedKey(listName, program.getKey());
         }
-        String fileName = listName+"_"+timestamp;
+        String fileName = createFileName(listData, listName);
 
         //Convert list data to List<Map<String, Object>> data to pass into file writer
         List<Map<String, Object>> processedData =  new ArrayList<>();
@@ -127,7 +131,7 @@ public class BrAPIGermplasmService {
                 }
             }
 
-            if (germplasmEntry.getPedigree() != null) {
+            if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
                 Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
                 row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
                 if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
@@ -138,6 +142,22 @@ public class BrAPIGermplasmService {
         StreamedFile downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData);
 
         return new DownloadFile(fileName, downloadFile);
+    }
+
+    private String createFileName(BrAPIListDetails listData, String listName) {
+        //TODO change timestamp to edit date when editing functionality is added
+        String timestamp;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+
+        //TODO this logic statement may not be appropriate whe the edit date is used (see the TODO note above)
+        if(listData.getDateCreated() == null) {
+            timestamp = formatter.format(OffsetDateTime.now());
+        }
+        else{
+            timestamp = formatter.format(listData.getDateCreated());
+        }
+        String fileName = listName +"_"+timestamp;
+        return fileName;
     }
 
     //Helper method to remove appended key from germplasm lists
