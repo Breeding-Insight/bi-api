@@ -56,7 +56,6 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         super.stopContainers();
     }
 
-    //TODO: Fix this test
     @Test
     public void returnsDefaultBadUrl() {
 
@@ -77,7 +76,6 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         checkAssertions(response, defaultUrl);
     }
 
-    //TODO: Fix this test
     @Test
     public void returnsPassedUrlGoodHttpUrl() {
 
@@ -99,7 +97,6 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         checkAssertions(response, expectedUrl);
     }
 
-    // TODO: Fix this test
     @Test
     public void returnsPassedUrlGoodHttpsUrl() {
 
@@ -121,7 +118,6 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         checkAssertions(response, expectedUrl);
     }
 
-    // TODO: Fix this test
     @Test
     public void returnsDefaultUrlCookieNotExist() {
 
@@ -146,10 +142,6 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         String redirectLocation = response.getHeaders().get("Location");
         assertEquals(expectedLocation, redirectLocation);
 
-        // Check that the jwt cookie was returned
-
-
-
         // Check cookies were not altered
         String cookieString = response.getHeaders().get("set-cookie");
         String[] splitCookie = cookieString.split("=");
@@ -160,6 +152,7 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
             }
         }
 
+        // Check that the jwt cookie was returned
         String token = responseCookies.get("phylo-token");
         assertTrue(token.split("\\.").length == 3, "JWT was in wrong format");
     }
