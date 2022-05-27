@@ -281,6 +281,9 @@ public class MappingManager {
                 } else if (columnType == ColumnType.INTEGER) {
                     fileValue = String.valueOf(focusRow.getInt(matchedMapping.getValue().getFileFieldName()));
                 }
+                else if (columnType == ColumnType.BOOLEAN) {
+                    fileValue = String.valueOf(focusRow.getBoolean(matchedMapping.getValue().getFileFieldName()));
+                }
                 else {
                     fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
                 }
