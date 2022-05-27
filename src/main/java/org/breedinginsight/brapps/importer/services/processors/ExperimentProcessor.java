@@ -75,6 +75,8 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPILocation>> locationByName = null;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
+    //  It is assumed that there are no pre-existing observation units for the given environment (so this will not be
+    // intitalized by getExistingBrapiData
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
@@ -190,12 +192,24 @@ public class ExperimentProcessor implements Processor {
     }
 
     private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
+        HashSet<String> uniqueStudyAndObsUnit = new HashSet<>();
         for (int i = 0; i < importRows.size(); i++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
-
             validateConditionallyRequired(validationErrors, i, importRow);
+            validateUniqueObsUnits(validationErrors, uniqueStudyAndObsUnit, i, importRow);
         }
         return validationErrors;
+    }
+
+    private void validateUniqueObsUnits(ValidationErrors validationErrors, HashSet<String> uniqueStudyAndObsUnit, int i, ExperimentObservation importRow) {
+        String envIdPlusStudyId = importRow.getEnv() + importRow.getExpUnitId();
+        if( uniqueStudyAndObsUnit.contains( envIdPlusStudyId )){
+            String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
+            this.addRowError("Exp Unit ID", errorMessage, validationErrors, i);
+        }
+        else{
+            uniqueStudyAndObsUnit.add( envIdPlusStudyId );
+        }
     }
 
     private void validateConditionallyRequired(ValidationErrors validationErrors, int i, ExperimentObservation importRow) {
