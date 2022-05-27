@@ -70,14 +70,17 @@ public class ExperimentProcessor implements Processor {
     private BrAPISeasonDAO brAPISeasonDAO;
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
 
+    // used to make the yearsToSeasonDbId() function more efficient
+    private Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
+
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the getNewBrapiData() method.
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPILocation>> locationByName = null;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
     //  It is assumed that there are no pre-existing observation units for the given environment (so this will not be
-    // intitalized by getExistingBrapiData
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
+    // initialized by getExistingBrapiData() )
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = new HashMap<>();
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
 
@@ -112,7 +115,7 @@ public class ExperimentProcessor implements Processor {
         this.trialByNameNoScope = initialize_trialByNameNoScope( program, experimentImportRows );
         this.locationByName = initialize_uniqueLocationNames ( program, experimentImportRows );
         this.studyByNameNoScope = initialize_studyByNameNoScope( program, experimentImportRows );
-        this.observationUnitByNameNoScope = initialize_observationUnitByNameNoScope( program, experimentImportRows );
+//        this.observationUnitByNameNoScope = initialize_observationUnitByNameNoScope( program, experimentImportRows );
         this.existingGermplasmByGID = initialize_existingGermplasmByGID( program, experimentImportRows );
     }
 
@@ -147,7 +150,7 @@ public class ExperimentProcessor implements Processor {
             mappedImportRow.setTrial( this.trialByNameNoScope.get( importRow.getExpTitle() ) );
             mappedImportRow.setLocation( this.locationByName.get( importRow.getEnvLocation() ) );
             mappedImportRow.setStudy( this.studyByNameNoScope.get( importRow.getEnv() ) );
-            mappedImportRow.setObservationUnit( this.observationUnitByNameNoScope.get( importRow.getExpUnitId() ) );
+            mappedImportRow.setObservationUnit( this.observationUnitByNameNoScope.get( createOUKey( importRow ) ) );
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow);
             mappedImportRow.setGermplasm( germplasmPIO );
 
@@ -202,8 +205,14 @@ public class ExperimentProcessor implements Processor {
             this.studyByNameNoScope.put(importRow.getEnv(), studyPIO);
 
             PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
-            this.observationUnitByNameNoScope.put(importRow.getExpUnitId(), obsUnitPIO);
+            String key = createOUKey(importRow);
+            this.observationUnitByNameNoScope.put(key, obsUnitPIO);
         }
+    }
+
+    private String createOUKey(ExperimentObservation importRow) {
+        String key = importRow.getEnv() + importRow.getExpUnitId();
+        return key;
     }
 
     private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
@@ -216,8 +225,21 @@ public class ExperimentProcessor implements Processor {
         return validationErrors;
     }
 
-    private void validateUniqueObsUnits(ValidationErrors validationErrors, HashSet<String> uniqueStudyAndObsUnit, int i, ExperimentObservation importRow) {
-        String envIdPlusStudyId = importRow.getEnv() + importRow.getExpUnitId();
+    /**
+     * Validate that the the observation unit is unique within a study.
+     * <br>
+     * SIDE EFFECTS:  validationErrors and uniqueStudyAndObsUnit can be modified.
+     * @param validationErrors can be modified as a side effect.
+     * @param uniqueStudyAndObsUnit can be modified as a side effect.
+     * @param i counter that is always two less the file row being validated
+     * @param importRow the data row being validated
+     */
+    private void validateUniqueObsUnits(
+            ValidationErrors validationErrors,
+            HashSet<String> uniqueStudyAndObsUnit,
+            int i,
+            ExperimentObservation importRow) {
+        String envIdPlusStudyId = createOUKey( importRow );
         if( uniqueStudyAndObsUnit.contains( envIdPlusStudyId )){
             String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
             this.addRowError("Exp Unit ID", errorMessage, validationErrors, i);
@@ -301,7 +323,7 @@ public class ExperimentProcessor implements Processor {
             ExperimentObservation importRow = (ExperimentObservation) row;
             // Collect date for stats.
             addIfNotNull(environmentNameCounter, importRow.getEnv());
-            addIfNotNull(obsUnitsIDCounter, importRow.getExpUnitId());
+            addIfNotNull(obsUnitsIDCounter, createOUKey( importRow ));
             addIfNotNull(gidCounter, importRow.getGid());
         }
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
@@ -343,8 +365,8 @@ public class ExperimentProcessor implements Processor {
 
     private PendingImportObject<BrAPIObservationUnit> createObsUnitPIO(Program program, boolean commit, Supplier<BigInteger> obsUnitNextVal, ExperimentObservation importRow) {
         PendingImportObject<BrAPIObservationUnit> pio = null;
-        if( this.observationUnitByNameNoScope.containsKey( importRow.getExpUnitId() ) ) {
-            pio = observationUnitByNameNoScope.get(importRow.getExpUnitId() ) ;
+        if( this.observationUnitByNameNoScope.containsKey( createOUKey( importRow ) ) ) {
+            pio = observationUnitByNameNoScope.get( createOUKey( importRow ) ) ;
         }
         else{
             String germplasmName = "";
@@ -556,33 +578,33 @@ public class ExperimentProcessor implements Processor {
             throw new InternalServerException(e.toString(), e);
         }
     }
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> initialize_observationUnitByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
-
-        Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = new HashMap<>();
-        List<String> uniqueObservationUnitNames = experimentImportRows.stream()
-                .map(ExperimentObservation::getExpUnitId)
-                .distinct()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-
-        // check for existing observation units. Don't want to update existing, just create new.
-        // TODO: do we allow adding observations to existing studies? yes, but not updating
-        // ignore all data for observation units existing in system
-
-        List<BrAPIObservationUnit> existingObservationUnits;
-
-        try {
-            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program);
-            existingObservationUnits.forEach(existingObservationUnit -> {
-                // update mapped brapi import, does in process
-                observationUnitByNameNoScope.put(existingObservationUnit.getObservationUnitName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingObservationUnit));
-            });
-            return observationUnitByNameNoScope;
-        } catch (ApiException e) {
-            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
-            throw new InternalServerException(e.toString(), e);
-        }
-    }
+//    private Map<String, PendingImportObject<BrAPIObservationUnit>> initialize_observationUnitByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
+//
+//        Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = new HashMap<>();
+//        List<String> uniqueObservationUnitNames = experimentImportRows.stream()
+//                .map(ExperimentObservation::getExpUnitId)
+//                .distinct()
+//                .filter(Objects::nonNull)
+//                .collect(Collectors.toList());
+//
+//        // check for existing observation units. Don't want to update existing, just create new.
+//        // TODO: do we allow adding observations to existing studies? yes, but not updating
+//        // ignore all data for observation units existing in system
+//
+//        List<BrAPIObservationUnit> existingObservationUnits;
+//
+//        try {
+//            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program);
+//            existingObservationUnits.forEach(existingObservationUnit -> {
+//                // update mapped brapi import, does in process
+//                observationUnitByNameNoScope.put(existingObservationUnit.getObservationUnitName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingObservationUnit));
+//            });
+//            return observationUnitByNameNoScope;
+//        } catch (ApiException e) {
+//            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
+//            throw new InternalServerException(e.toString(), e);
+//        }
+//    }
 
     private Map<String, PendingImportObject<BrAPIStudy>> initialize_studyByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = new HashMap<>();
@@ -662,6 +684,8 @@ public class ExperimentProcessor implements Processor {
     }
 
     /**
+     * Converts year String to SeasonDbId
+     * <br>
      * NOTE: This assumes that the only Season records of interest are ones
      * with a blank name or a name that is the same as the year.
      *
@@ -671,8 +695,20 @@ public class ExperimentProcessor implements Processor {
      * of the 'years' list (see NOTE above)
      */
     private String yearsToSeasonDbId(List<String> years, UUID programId) {
-        BrAPISeason targetSeason = null;
         String year = years.get(0);
+        String dbID = null;
+        if (this.yearToSeasonDbIdCache.containsKey(year) ){ // get it from cache if possable
+            dbID = this.yearToSeasonDbIdCache.get(year);
+        }
+        else{
+            dbID = this.yearToSeasonDbIdFromDatabase(year,programId);
+            this.yearToSeasonDbIdCache.put(year, dbID);
+        }
+        return dbID;
+    }
+
+    private String yearToSeasonDbIdFromDatabase(String year, UUID programId) {
+        BrAPISeason targetSeason = null;
         List<BrAPISeason> seasons;
         try {
             seasons = this.brAPISeasonDAO.getSeasonByYear(year, programId);
