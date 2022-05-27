@@ -19,16 +19,28 @@ package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.MediaType;
-import io.micronaut.http.annotation.*;
+import io.micronaut.http.annotation.Controller;
+import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.PathVariable;
+import io.micronaut.http.annotation.Produces;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.api.auth.*;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
+import org.breedinginsight.api.model.v1.response.metadata.Metadata;
+import org.breedinginsight.api.model.v1.response.metadata.Pagination;
+import org.breedinginsight.api.model.v1.response.metadata.Status;
+import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.job.Job;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.job.JobService;
 
 import javax.inject.Inject;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -48,11 +60,16 @@ public class JobController {
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<Response<List<Job>>> getProgramUploads(@PathVariable UUID programId) {
+    public HttpResponse<Response<DataResponse<Job>>> getProgramJobs(@PathVariable UUID programId) {
         log.debug(String.format("fetching jobs for program: %s", programId));
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            Response<List<Job>> response = new Response(jobService.getProgramJobs(programId));
+            var programJobs = jobService.getProgramJobs(programId);
+            List<Status> metadataStatus = new ArrayList<>();
+            metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+            Pagination pagination = new Pagination(programJobs.size(), programJobs.size(), 1, 0);
+            Metadata metadata = new Metadata(pagination, metadataStatus);
+            Response<DataResponse<Job>> response = new Response<>(metadata, new DataResponse<>(programJobs));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage(), e);
