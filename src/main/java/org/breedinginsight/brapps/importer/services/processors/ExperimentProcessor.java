@@ -178,6 +178,17 @@ public class ExperimentProcessor implements Processor {
         }
         Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(opsUnitSequenceName.toLowerCase());
 
+        // It is assumed, at this point, that there is only one experiment per import-file
+        String expSeqValue = null;
+        if (commit) {
+            String expUnitSequenceName = program.getExpSequence();
+            if (expUnitSequenceName == null) {
+                log.error(String.format("Program, %s, is missing a value in the exp sequence column.", program.getName()));
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for experiment import");
+            }
+            expSeqValue = dsl.nextval(expUnitSequenceName.toLowerCase()).toString();
+        }
+
         for (BrAPIImport row : importRows) {
             ExperimentObservation importRow = (ExperimentObservation) row;
 
@@ -187,7 +198,7 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
             this.locationByName.put(importRow.getEnvLocation(), locationPIO);
 
-            PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, importRow);
+            PendingImportObject<BrAPIStudy> studyPIO = createStudyPIO(program, commit, expSeqValue, importRow);
             this.studyByNameNoScope.put(importRow.getEnv(), studyPIO);
 
             PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
@@ -351,7 +362,7 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
-    private PendingImportObject<BrAPIStudy> createStudyPIO(Program program, boolean commit, ExperimentObservation importRow) {
+    private PendingImportObject<BrAPIStudy> createStudyPIO(Program program, boolean commit, String expSeqenceValue, ExperimentObservation importRow) {
         PendingImportObject<BrAPIStudy> pio = null;
         if( studyByNameNoScope.containsKey( importRow.getEnv()) ) {
             pio =  studyByNameNoScope.get( importRow.getEnv() ) ;
@@ -360,7 +371,7 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
             UUID id = UUID.randomUUID();
-            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, trialID, id);
+            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSeqenceValue, trialID, id);
 
             if( commit) {
                 String seasonID = this.yearsToSeasonDbId(newStudy.getSeasons(), program.getId());

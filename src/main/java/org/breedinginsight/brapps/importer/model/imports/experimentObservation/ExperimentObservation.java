@@ -142,11 +142,11 @@ public class ExperimentObservation implements BrAPIImport {
             Program program,
             boolean commit,
             String referenceSource,
-            UUID trialId,
+            String expSequenceValue, UUID trialId,
             UUID id) {
         BrAPIStudy study = new BrAPIStudy();
         if ( commit ){
-            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), trialId.toString()));
+            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), expSequenceValue));
 
             // Set external reference
             study.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, trialId, id,null));
