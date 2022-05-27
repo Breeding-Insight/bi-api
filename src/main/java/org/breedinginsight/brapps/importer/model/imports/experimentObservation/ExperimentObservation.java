@@ -142,7 +142,8 @@ public class ExperimentObservation implements BrAPIImport {
             Program program,
             boolean commit,
             String referenceSource,
-            String expSequenceValue, UUID trialId,
+            String expSequenceValue,
+            UUID trialId,
             UUID id) {
         BrAPIStudy study = new BrAPIStudy();
         if ( commit ){
