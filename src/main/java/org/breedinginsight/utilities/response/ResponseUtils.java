@@ -208,18 +208,10 @@ public class ResponseUtils {
 
         Pagination pagination = new Pagination();
         Integer originalCount = data.size();
-        Integer page;
-        Integer pageSize;
 
-        if (paginationRequest.getShowAll()) {
-            // If show all, all entries should be on page 1
-            page = 1;
-            pageSize = Integer.MAX_VALUE;
-        } else {
-            // Use defaults if no passed in page/page size
-            page = paginationRequest.getPage() != null ? paginationRequest.getPage() : paginationRequest.getDefaultPage();
-            pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : paginationRequest.getDefaultPageSize();
-        }
+        // Show all by default
+        Integer page = paginationRequest.getPage() != null ? paginationRequest.getPage() : paginationRequest.getDefaultPage();
+        Integer pageSize = paginationRequest.getPageSize() != null ? paginationRequest.getPageSize() : paginationRequest.getDefaultPageSize();
 
         Integer pageAdjustedByIndex = page - paginationRequest.getDefaultPage();
         Integer startIndex = pageAdjustedByIndex * pageSize;
