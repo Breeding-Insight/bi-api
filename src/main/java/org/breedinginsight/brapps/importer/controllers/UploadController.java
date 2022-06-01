@@ -100,7 +100,7 @@ public class UploadController {
                 return HttpResponse.ok(response);
             }
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage(), e);
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         }
     }
