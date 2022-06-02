@@ -113,7 +113,7 @@ public class ExperimentProcessor implements Processor {
                 .collect(Collectors.toList());
 
         this.trialByNameNoScope = initialize_trialByNameNoScope( program, experimentImportRows );
-        this.locationByName = initialize_uniqueLocationNames ( program, experimentImportRows );
+        this.locationByName = initialize_uniqueLocationNames( program, experimentImportRows );
         this.studyByNameNoScope = initialize_studyByNameNoScope( program, experimentImportRows );
 //        this.observationUnitByNameNoScope = initialize_observationUnitByNameNoScope( program, experimentImportRows );
         this.existingGermplasmByGID = initialize_existingGermplasmByGID( program, experimentImportRows );
@@ -121,7 +121,7 @@ public class ExperimentProcessor implements Processor {
 
     /**
      * @param importRows - one element of the list for every row of the import file.
-     * @param mappedBrAPIImport - passed in by reference and modified within this program (this will latter be passed to the front end for the preview)
+     * @param mappedBrAPIImport - passed in by reference and modified within this program (this will later be passed to the front end for the preview)
      * @param program
      * @param user
      * @param commit -  true when the data should be saved (ie when the user has pressed the "Commit" button)
@@ -150,7 +150,7 @@ public class ExperimentProcessor implements Processor {
             mappedImportRow.setTrial( this.trialByNameNoScope.get( importRow.getExpTitle() ) );
             mappedImportRow.setLocation( this.locationByName.get( importRow.getEnvLocation() ) );
             mappedImportRow.setStudy( this.studyByNameNoScope.get( importRow.getEnv() ) );
-            mappedImportRow.setObservationUnit( this.observationUnitByNameNoScope.get( createOUKey( importRow ) ) );
+            mappedImportRow.setObservationUnit( this.observationUnitByNameNoScope.get( createObservationUnitKey( importRow ) ) );
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow);
             mappedImportRow.setGermplasm( germplasmPIO );
 
@@ -174,12 +174,12 @@ public class ExperimentProcessor implements Processor {
 
     private void getNewBrapiData(List<BrAPIImport> importRows, Program program, boolean commit) {
 
-        String opsUnitSequenceName = program.getObsUnitSequence();
-        if (opsUnitSequenceName == null) {
+        String obsUnitSequenceName = program.getObsUnitSequence();
+        if (obsUnitSequenceName == null) {
             log.error(String.format("Program, %s, is missing a value in the obsUnit sequence column.", program.getName()));
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for observation unit import");
         }
-        Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(opsUnitSequenceName.toLowerCase());
+        Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(obsUnitSequenceName.toLowerCase());
 
         // It is assumed, at this point, that there is only one experiment per import-file
         String expSeqValue = null;
@@ -205,12 +205,12 @@ public class ExperimentProcessor implements Processor {
             this.studyByNameNoScope.put(importRow.getEnv(), studyPIO);
 
             PendingImportObject<BrAPIObservationUnit> obsUnitPIO = createObsUnitPIO(program, commit, obsUnitNextVal, importRow);
-            String key = createOUKey(importRow);
+            String key = createObservationUnitKey(importRow);
             this.observationUnitByNameNoScope.put(key, obsUnitPIO);
         }
     }
 
-    private String createOUKey(ExperimentObservation importRow) {
+    private String createObservationUnitKey(ExperimentObservation importRow) {
         String key = importRow.getEnv() + importRow.getExpUnitId();
         return key;
     }
@@ -239,7 +239,7 @@ public class ExperimentProcessor implements Processor {
             HashSet<String> uniqueStudyAndObsUnit,
             int i,
             ExperimentObservation importRow) {
-        String envIdPlusStudyId = createOUKey( importRow );
+        String envIdPlusStudyId = createObservationUnitKey( importRow );
         if( uniqueStudyAndObsUnit.contains( envIdPlusStudyId )){
             String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
             this.addRowError("Exp Unit ID", errorMessage, validationErrors, i);
@@ -323,7 +323,7 @@ public class ExperimentProcessor implements Processor {
             ExperimentObservation importRow = (ExperimentObservation) row;
             // Collect date for stats.
             addIfNotNull(environmentNameCounter, importRow.getEnv());
-            addIfNotNull(obsUnitsIDCounter, createOUKey( importRow ));
+            addIfNotNull(obsUnitsIDCounter, createObservationUnitKey( importRow ));
             addIfNotNull(gidCounter, importRow.getGid());
         }
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
@@ -344,7 +344,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     private void validateGermplasm(ExperimentObservation importRow, ValidationErrors validationErrors, int i, PendingImportObject<BrAPIGermplasm> germplasmPIO) {
-       // error if GID is not blank but GID dose not already exist
+       // error if GID is not blank but GID does not already exist
         if( !StringUtils.isBlank( importRow.getGid()) && germplasmPIO == null ) {
             addRowError(
                     "GID",
@@ -365,8 +365,8 @@ public class ExperimentProcessor implements Processor {
 
     private PendingImportObject<BrAPIObservationUnit> createObsUnitPIO(Program program, boolean commit, Supplier<BigInteger> obsUnitNextVal, ExperimentObservation importRow) {
         PendingImportObject<BrAPIObservationUnit> pio = null;
-        if( this.observationUnitByNameNoScope.containsKey( createOUKey( importRow ) ) ) {
-            pio = observationUnitByNameNoScope.get( createOUKey( importRow ) ) ;
+        if( this.observationUnitByNameNoScope.containsKey( createObservationUnitKey( importRow ) ) ) {
+            pio = observationUnitByNameNoScope.get( createObservationUnitKey( importRow ) ) ;
         }
         else{
             String germplasmName = "";
