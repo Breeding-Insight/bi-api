@@ -1,6 +1,8 @@
 package org.breedinginsight.services;
 
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.v2.model.core.BrAPIProgram;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -11,13 +13,8 @@ import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.SharedOntology;
-import org.breedinginsight.model.SubscribedOntology;
-import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.model.*;
+import org.breedinginsight.services.exceptions.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -32,13 +29,15 @@ public class OntologyService {
     private ProgramOntologyDAO programOntologyDAO;
     private TraitDAO traitDAO;
     private TraitService traitService;
+    private TraitUploadService traitUploadService;
 
     @Inject
-    public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO, TraitService traitService) {
+    public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO, TraitService traitService, TraitUploadService traitUploadService) {
         this.programDAO = programDAO;
         this.programOntologyDAO = programOntologyDAO;
         this.traitDAO = traitDAO;
         this.traitService = traitService;
+        this.traitUploadService = traitUploadService;
     }
 
     /**
@@ -300,6 +299,67 @@ public class OntologyService {
 
         // Subscribe
         programOntologyDAO.denySharedOntology(sharedOntology);
+    }
+
+    public List<Trait> getTraitsByProgramId(UUID programId, boolean getFullTrait) throws DoesNotExistException {
+        return traitService.getByProgramId(getSubscribedOntologyProgramId(programId), getFullTrait);
+    }
+
+    public List<Trait> updateTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser)
+            throws DoesNotExistException, HttpStatusException, ValidatorException, BadRequestException {
+        UUID lookupId = getSubscribedOntologyProgramId(programId);
+        if(lookupId != programId) {
+            throw new BadRequestException("Subscribed ontology terms cannot be updated");
+        }
+
+        return traitService.updateTraits(lookupId, traits, actingUser);
+    }
+
+    public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
+            throws DoesNotExistException, ValidatorException, BadRequestException {
+        UUID lookupId = getSubscribedOntologyProgramId(programId);
+        if(lookupId != programId) {
+            throw new BadRequestException("Subscribed ontology terms cannot be created");
+        }
+
+        return traitService.createTraits(lookupId, traits, actingUser, throwDuplicateErrors);
+    }
+
+    public ProgramUpload updateTraitUpload(UUID programId, CompletedFileUpload file, AuthenticatedUser actingUser)
+            throws DoesNotExistException, UnsupportedTypeException, ValidatorException, AuthorizationException, HttpStatusException, BadRequestException {
+        UUID lookupId = getSubscribedOntologyProgramId(programId);
+        if(lookupId != programId) {
+            throw new BadRequestException("Subscribed ontology terms cannot be imported");
+        }
+
+        return traitUploadService.updateTraitUpload(lookupId, file, actingUser);
+    }
+
+    public void confirmUpload(UUID programId, UUID traitUploadId, AuthenticatedUser actingUser)
+            throws DoesNotExistException, ValidatorException, BadRequestException {
+        UUID lookupId = getSubscribedOntologyProgramId(programId);
+        if(lookupId != programId) {
+            throw new BadRequestException("Subscribed ontology terms cannot be imported");
+        }
+
+        traitUploadService.confirmUpload(lookupId, traitUploadId, actingUser);
+    }
+
+    public UUID getSubscribedOntologyProgramId(UUID programId) throws DoesNotExistException {
+        // get shared ontology programs
+        List<SubscribedOntology> subscriptionOptions = getSubscribeOntologyOptions(programId);
+
+        // check if we are subscribed to one of the programs
+        SubscribedOntology subscribedOntology = null;
+        for (SubscribedOntology sharingProgram : subscriptionOptions) {
+            if (sharingProgram.getSubscribed()) {
+                subscribedOntology = sharingProgram;
+            }
+        }
+
+        UUID lookupId = subscribedOntology == null ? programId : subscribedOntology.getProgramId();
+
+        return lookupId;
     }
 
     public List<SubscribedOntology> getSubscribeOntologyOptions(UUID programId) throws DoesNotExistException {

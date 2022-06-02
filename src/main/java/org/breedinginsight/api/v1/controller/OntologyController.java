@@ -201,7 +201,7 @@ public class OntologyController {
      * @param programId -- Program request information
      * @return
      * {
-     *     programId,   -- Program that owns the ontology the request program is subscribed to.
+     *     programId,   -- Program that owns the ontology the request program may subscribe to.
      *     programName,
      *     subscribed,  -- boolean. Whether the requesting program is subscribed to this ontology or not.
      *     editable     -- boolean || null. Indicates whether this program can unsubscribe from this ontology or not. Null if not subscribed to this ontology.
