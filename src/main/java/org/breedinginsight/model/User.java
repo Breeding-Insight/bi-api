@@ -19,9 +19,11 @@ package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import io.micronaut.core.annotation.Introspected;
 import lombok.*;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.jooq.Record;
@@ -38,6 +40,8 @@ import static org.breedinginsight.dao.db.Tables.BI_USER;
 @Accessors(chain=true)
 @ToString
 @SuperBuilder
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = {"accountToken"})
 public class User extends BiUserEntity{
 

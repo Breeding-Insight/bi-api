@@ -19,6 +19,7 @@ package org.breedinginsight.api.model.v1.request;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.*;
+import lombok.extern.jackson.Jacksonized;
 import org.breedinginsight.model.SystemRole;
 
 import javax.validation.constraints.NotNull;
@@ -31,6 +32,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 @Introspected
+@Jacksonized
 public class SystemRolesRequest {
     @NotNull
     private List<SystemRole> systemRoles;

@@ -52,8 +52,7 @@
     </developers>
 
     <properties>
-        <micronaut.version>1.3.3</micronaut.version>
-        <micronaut.security.version>1.3.2</micronaut.security.version>
+        <micronaut.version>2.5.13</micronaut.version>
         <jdk.version>13</jdk.version>
         <maven.compiler.target>${jdk.version}</maven.compiler.target>
         <maven.compiler.source>${jdk.version}</maven.compiler.source>
@@ -64,17 +63,31 @@
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
         <jvm.options>--enable-preview</jvm.options>
 
-        <jooq.version>3.12.3</jooq.version>
-        <postgres.version>42.2.6</postgres.version>
-        <logback.version>1.2.3</logback.version>
-        <lombok.version>1.18.16</lombok.version>
-        <gson.version>2.8.6</gson.version>
-        <spock.version>1.1.2</spock.version>
+        <jooq.version>3.16.3</jooq.version>
+        <postgres.version>42.3.2</postgres.version>
+        <logback.version>1.2.10</logback.version>
+        <lombok.version>1.18.22</lombok.version>
+        <gson.version>2.8.9</gson.version>
         <geojson-jackson.version>1.14</geojson-jackson.version>
-        <apache-commons-csv.version>1.8</apache-commons-csv.version>
+        <apache-commons-csv.version>1.9.0</apache-commons-csv.version>
+        <apache-commons-lang.version>3.12.0</apache-commons-lang.version>
+        <testcontainers.version>1.16.3</testcontainers.version>
+        <!-- Version of flyway dependent on version of micronaut -->
+        <flyway.version>7.7.3</flyway.version>
+        <guava.version>31.0.1-jre</guava.version>
+        <okhttp.version>4.9.3</okhttp.version>
+        <mockito.version>4.3.1</mockito.version>
+        <brapi-java-client.version>2.0.2</brapi-java-client.version>
+        <commons-io.version>2.11.0</commons-io.version>
+        <tika-app.version>2.2.1</tika-app.version>
+        <!-- Version of apache-poi depends on version of tika. Tika uses these. -->
         <apache-poi.version>4.1.2</apache-poi.version>
         <apache-poi-ooxml.version>4.1.2</apache-poi-ooxml.version>
-        <apache-commons-lang.version>3.10</apache-commons-lang.version>
+        <javaxmail.version>1.6.2</javaxmail.version>
+        <st4.version>4.3.1</st4.version>
+        <tablesaw.version>0.42.0</tablesaw.version>
+        <alphanumeric-comparator.version>1.4.1</alphanumeric-comparator.version>
+        <cloning.version>1.10.3</cloning.version>
     </properties>
 
     <profiles>
@@ -164,7 +177,7 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>io.micronaut.configuration</groupId>
+            <groupId>io.micronaut.sql</groupId>
             <artifactId>micronaut-jdbc-hikari</artifactId>
             <scope>runtime</scope>
         </dependency>
@@ -174,29 +187,26 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>io.micronaut.configuration</groupId>
+            <groupId>io.micronaut.sql</groupId>
             <artifactId>micronaut-jooq</artifactId>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.micronaut</groupId>
+            <groupId>io.micronaut.security</groupId>
             <artifactId>micronaut-security</artifactId>
-            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.micronaut</groupId>
+            <groupId>io.micronaut.security</groupId>
             <artifactId>micronaut-security-jwt</artifactId>
-            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
         <dependency>
-            <groupId>io.micronaut.configuration</groupId>
+            <groupId>io.micronaut.security</groupId>
             <artifactId>micronaut-security-oauth2</artifactId>
-            <version>${micronaut.security.version}</version>
             <scope>compile</scope>
         </dependency>
 
@@ -229,14 +239,14 @@
         </dependency>
 
         <dependency>
-            <groupId>io.micronaut.configuration</groupId>
+            <groupId>io.micronaut.flyway</groupId>
             <artifactId>micronaut-flyway</artifactId>
         </dependency>
 
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>28.1-jre</version>
+            <version>${guava.version}</version>
         </dependency>
 
         <dependency>
@@ -248,12 +258,12 @@
         <dependency>
             <groupId>com.squareup.okhttp3</groupId>
             <artifactId>okhttp</artifactId>
-            <version>4.2.2</version>
+            <version>${okhttp.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
+            <version>${logback.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
@@ -277,6 +287,11 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+            <version>${flyway.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-inline</artifactId>
             <version>3.10.0</version>
@@ -296,7 +311,7 @@
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
-            <version>1.15.2</version>
+            <version>${testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -307,7 +322,7 @@
         <dependency>
             <groupId>org.brapi</groupId>
             <artifactId>brapi-java-client</artifactId>
-            <version>2.0.2</version>
+            <version>${brapi-java-client.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
@@ -332,48 +347,48 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.6</version>
+            <version>${commons-io.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.tika</groupId>
             <artifactId>tika-app</artifactId>
-            <version>1.24.1</version>
+            <version>${tika-app.version}</version>
         </dependency>
         <dependency>
             <groupId>com.sun.mail</groupId>
             <artifactId>javax.mail</artifactId>
-            <version>1.6.2</version>
+            <version>${javaxmail.version}</version>
         </dependency>
         <dependency>
             <groupId>org.antlr</groupId>
             <artifactId>ST4</artifactId>
-            <version>4.3</version>
+            <version>${st4.version}</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>tech.tablesaw</groupId>
             <artifactId>tablesaw-core</artifactId>
-            <version>0.38.2</version>
+            <version>${tablesaw.version}</version>
         </dependency>
         <dependency>
             <groupId>tech.tablesaw</groupId>
             <artifactId>tablesaw-excel</artifactId>
-            <version>0.38.2</version>
+            <version>${tablesaw.version}</version>
         </dependency>
         <dependency>
             <groupId>tech.tablesaw</groupId>
             <artifactId>tablesaw-json</artifactId>
-            <version>0.38.2</version>
+            <version>${tablesaw.version}</version>
         </dependency>
         <dependency>
             <groupId>se.sawano.java</groupId>
             <artifactId>alphanumeric-comparator</artifactId>
-            <version>1.4.1</version>
+            <version>${alphanumeric-comparator.version}</version>
         </dependency>
         <dependency>
             <groupId>io.github.kostaskougios</groupId>
             <artifactId>cloning</artifactId>
-            <version>1.10.3</version>
+            <version>${cloning.version}</version>
         </dependency>
     </dependencies>
     <build>
@@ -523,14 +538,14 @@
                 <dependency>
                     <groupId>org.breedinginsight</groupId>
                     <artifactId>bi-jooq-codegen</artifactId>
-                    <version>1.0-SNAPSHOT</version>
+                    <version>${jooq.version}</version>
                 </dependency>
             </dependencies>
         </plugin>
         <plugin>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-maven-plugin</artifactId>
-            <version>6.0.0</version>
+            <version>${flyway.version}</version>
             <configuration>
                 <url>jdbc:postgresql://${DB_SERVER}/${DB_NAME}</url>
                 <user>${DB_USER}</user>
@@ -560,7 +575,7 @@
                         <dependency>
                             <groupId>org.junit.jupiter</groupId>
                             <artifactId>junit-jupiter-engine</artifactId>
-                            <version>5.1.0</version>
+                            <version>5.7.0</version>
                         </dependency>
                     </dependencies>
                     <configuration>
