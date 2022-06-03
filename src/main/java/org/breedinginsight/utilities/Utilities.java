@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities;
 
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 
 import java.util.List;
 import java.util.Optional;
@@ -60,6 +61,24 @@ public class Utilities {
             return String.format("%s [%s-%s]", original, programKey, additionalKeyData);
         } else {
             return String.format("%s [%s]", original, programKey);
+        }
+    }
+
+    /**
+     * Remove program key from a string. Returns a new value instead of altering original string.
+     *
+     * @param original
+     * @param programKey
+     * @param additionalKeyData
+     * @return
+     */
+    public static String removeProgramKey(String original, String programKey, String additionalKeyData) {
+        if(StringUtils.isNotEmpty(additionalKeyData)) {
+            String keyValue = String.format(" [%s-%s]", programKey, additionalKeyData);
+            return original.replace(keyValue, "");
+        } else {
+            String keyValue = String.format(" [%s]", programKey);
+            return original.replace(keyValue, "");
         }
     }
 }

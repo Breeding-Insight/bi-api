@@ -20,6 +20,7 @@ import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
@@ -49,5 +50,12 @@ public class BrapiQuery implements PaginationParams {
 
     public Integer getDefaultPageSize() {
         return DEFAULT_PAGE_SIZE;
+    }
+
+    protected FilterRequest constructFilterRequest(String field, String value) {
+        return FilterRequest.builder()
+                .field(field)
+                .value(value)
+                .build();
     }
 }

@@ -31,6 +31,7 @@ import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.model.ProgramUpload;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.TraitUploadService;
 import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -47,12 +48,14 @@ public class TraitUploadController {
     private TraitUploadService traitUploadService;
     private SecurityService securityService;
     private TraitQueryMapper traitQueryMapper;
+    private OntologyService ontologyService;
 
     public TraitUploadController(TraitUploadService traitUploadService, SecurityService securityService,
-                                 TraitQueryMapper traitQueryMapper) {
+                                 TraitQueryMapper traitQueryMapper, OntologyService ontologyService) {
         this.traitUploadService = traitUploadService;
         this.securityService = securityService;
         this.traitQueryMapper = traitQueryMapper;
+        this.ontologyService = ontologyService;
     }
 
     // only allowing one trait upload to exist (per user per program) so put is more appropriate than post
@@ -67,9 +70,12 @@ public class TraitUploadController {
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ProgramUpload programUpload = traitUploadService.updateTraitUpload(programId, file, actingUser);
+            ProgramUpload programUpload = ontologyService.updateTraitUpload(programId, file, actingUser);
             Response<ProgramUpload> response = new Response(programUpload);
             return HttpResponse.ok(response);
+        } catch (BadRequestException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
@@ -146,11 +152,14 @@ public class TraitUploadController {
                                            @PathVariable UUID traitUploadId) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            traitUploadService.confirmUpload(programId, traitUploadId, actingUser);
+            ontologyService.confirmUpload(programId, traitUploadId, actingUser);
             return HttpResponse.ok();
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (BadRequestException e) {
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.BAD_REQUEST, e.getMessage());
         } catch (ValidatorException e) {
             log.info(e.getErrors().toString());
             HttpResponse response = HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY).body(e.getErrors());
