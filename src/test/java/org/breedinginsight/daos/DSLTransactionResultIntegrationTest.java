@@ -17,7 +17,7 @@
 
 package org.breedinginsight.daos;
 
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;

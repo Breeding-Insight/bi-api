@@ -50,7 +50,6 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import javax.ws.rs.NotFoundException;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;

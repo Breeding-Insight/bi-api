@@ -23,17 +23,15 @@ import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.cookie.Cookie;
 import io.micronaut.http.simple.cookies.SimpleCookies;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.security.authentication.UserDetails;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 import javax.inject.Inject;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,6 +49,8 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
     @Property(name = "web.cookies.login-redirect")
     private String loginRedirectCookieName;
 
+    private String userName = "1111-2222-3333-4444";
+
     @AfterAll
     public void finish() {
         super.stopContainers();
@@ -59,21 +59,21 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
     @Test
     public void returnsDefaultBadUrl() {
 
+
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
-        Cookie returnUrlCookie = Cookie.of(loginRedirectCookieName, "localhost:8080/test");
+        Cookie returnUrlCookie = Cookie.of(loginRedirectCookieName, "cats man...");
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
+        doReturn(false).when(request).isSecure();
         AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
         when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
-        Cookie jwtToken = Cookie.of("phylo-token", "test");
-        List<Cookie> securityCookies = List.of(jwtToken);
+        UserDetails user = new UserDetails(userName, new ArrayList<>());
 
-        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccess(user, request);
 
-        checkAssertions(response, jwtToken, defaultUrl);
-
+        checkAssertions(response, defaultUrl);
     }
 
     @Test
@@ -85,16 +85,16 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
+        doReturn(false).when(request).isSecure();
         AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
         when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
-        Cookie jwtToken = Cookie.of("phylo-token", "test");
-        List<Cookie> securityCookies = List.of(jwtToken);
+        UserDetails user = new UserDetails(userName, new ArrayList<>());
 
-        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccess(user, request);
 
         reset(request);
-        checkAssertions(response, jwtToken, expectedUrl);
+        checkAssertions(response, expectedUrl);
     }
 
     @Test
@@ -106,16 +106,16 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         cookies.put("redirect-login", returnUrlCookie);
         doReturn(cookies).when(request).getCookies();
+        doReturn(false).when(request).isSecure();
         AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
         when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
-        Cookie jwtToken = Cookie.of("phylo-token", "test");
-        List<Cookie> securityCookies = List.of(jwtToken);
+        UserDetails user = new UserDetails(userName, new ArrayList<>());
 
-        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccess(user, request);
 
         reset(request);
-        checkAssertions(response, jwtToken, expectedUrl);
+        checkAssertions(response, expectedUrl);
     }
 
     @Test
@@ -124,19 +124,19 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
         HttpRequest request = mock(HttpRequest.class, CALLS_REAL_METHODS);
         SimpleCookies cookies = new SimpleCookies(ConversionService.SHARED);
         doReturn(cookies).when(request).getCookies();
+        doReturn(false).when(request).isSecure();
         AuthServiceLoginHandler authServiceSpy = spy(authServiceLoginHandler);
         when(authServiceSpy.getCurrentRequest()).thenReturn(Optional.of(request));
 
-        Cookie jwtToken = Cookie.of("phylo-token", "test");
-        List<Cookie> securityCookies = List.of(jwtToken);
+        UserDetails user = new UserDetails(userName, new ArrayList<>());
 
-        HttpResponse response = authServiceSpy.loginSuccessWithCookies(securityCookies);
+        HttpResponse response = authServiceSpy.loginSuccess(user, request);
 
         reset(request);
-        checkAssertions(response, jwtToken, defaultUrl);
+        checkAssertions(response, defaultUrl);
     }
 
-    public void checkAssertions(HttpResponse response, Cookie jwtToken, String expectedLocation) {
+    public void checkAssertions(HttpResponse response, String expectedLocation) {
 
         // Check location is as expected
         String redirectLocation = response.getHeaders().get("Location");
@@ -151,15 +151,10 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
                 responseCookies.put(splitCookie[i], splitCookie[i+1]);
             }
         }
-        Map<String, String> requestCookie = new HashMap<>();
-        requestCookie.put(jwtToken.getName(), jwtToken.getValue());
 
-        for (String key: responseCookies.keySet()){
-            assertTrue(requestCookie.containsKey(key));
-            if (requestCookie.containsKey(key)){
-                assertEquals(requestCookie.get(key), responseCookies.get(key),"Returned cookie does not equal passed cookie (cookie was modified)");
-            }
-        }
+        // Check that the jwt cookie was returned
+        String token = responseCookies.get("phylo-token");
+        assertTrue(token.split("\\.").length == 3, "JWT was in wrong format");
     }
 
 }
