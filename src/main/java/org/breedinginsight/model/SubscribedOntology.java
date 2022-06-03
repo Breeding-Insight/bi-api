@@ -6,13 +6,12 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor
-public class SharedProgram {
+@AllArgsConstructor
+@Builder
+public class SubscribedOntology {
     private UUID programId;
     private String programName;
-    private Boolean shared;
-    private Boolean accepted;
+    private Boolean subscribed;
     private Boolean editable;
 }

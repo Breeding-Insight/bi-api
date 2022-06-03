@@ -237,6 +237,13 @@ public class GermplasmTemplateMap extends BrAPITest {
                 String referenceSource = reference.getAsJsonObject().get("referenceSource").getAsString();
                 assertTrue(referenceSource != BRAPI_REFERENCE_SOURCE, "Germplasm UUID was present, but should not be");
             }
+
+            // Synonyms
+            JsonArray synonyms = germplasm.getAsJsonArray("synonyms");
+            for (JsonElement synonym: synonyms) {
+                String synonymName = synonym.getAsJsonObject().get("synonym").getAsString();
+                assertNotNull(synonymName);
+            }
         }
     }
 
@@ -299,6 +306,16 @@ public class GermplasmTemplateMap extends BrAPITest {
                 }
             }
             assertTrue(referenceFound, "Germplasm UUID reference not found");
+
+            // Synonyms
+            String[] splitGermplasmName = germplasm.get("germplasmName").getAsString().split(" ");
+            String scope = splitGermplasmName[splitGermplasmName.length - 1];
+            JsonArray synonyms = germplasm.getAsJsonArray("synonyms");
+            for (JsonElement synonym: synonyms) {
+                String synonymName = synonym.getAsJsonObject().get("synonym").getAsString();
+                assertNotNull(synonymName);
+                assertTrue(synonymName.contains(scope), "Germplasm synonym was not properly scoped");
+            }
         }
 
         // Check the germplasm list

@@ -1,6 +1,7 @@
 package org.breedinginsight.utilities.response;
 
 import lombok.SneakyThrows;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
@@ -64,7 +65,7 @@ public class FileUtilUnitTest {
     void writeExcelCheckColumns() {
         List<Column> columns = new ArrayList<>();
         columns.add(new Column("Test A", Column.ColumnDataType.STRING));
-        columns.add(new Column("Test B", Column.ColumnDataType.NUMERICAL));
+        columns.add(new Column("Test B", Column.ColumnDataType.INTEGER));
         columns.add(new Column("Test C", Column.ColumnDataType.STRING));
 
         List<String> columnNames = new ArrayList<>();
@@ -75,11 +76,11 @@ public class FileUtilUnitTest {
         List<Map<String, Object>> data =  new ArrayList<>();
         HashMap row = new HashMap<>();
         row.put("Test A", "Data A");
-        row.put("Test B", Double.valueOf("2"));
+        row.put("Test B", Integer.valueOf("2"));
         row.put("Test C", "C");
         data.add(row);
 
-        InputStream inputStream = ExcelWriter.writeToInputStream("SheetName", columns, data);
+        InputStream inputStream = ExcelWriter.writeToInputStream("SheetName", columns, data, FileType.XLSX);
         Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
 
         assertEquals(1, resultTable.rowCount(), "Wrong number of rows were exported");
