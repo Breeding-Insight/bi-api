@@ -33,6 +33,7 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import javax.inject.Inject;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
@@ -64,6 +65,25 @@ public class ObservationDAO {
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
                     .observationVariableDbIds(observationVariableDbIds);
+
+            ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
+            return BrAPIDAOUtil.search(
+                    api::searchObservationsPost,
+                    this::searchObservationsSearchResultsDbIdGet,
+                    request
+            );
+        } catch (ApiException e) {
+            throw new InternalServerException("Observations brapi search error", e);
+        }
+
+    }
+
+    public List<BrAPIObservation> getObservationsByVariableAndBrAPIProgram(String brapiProgramId, List<String> observationVariableDbIds) {
+
+        try {
+            BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
+                    .observationVariableDbIds(observationVariableDbIds)
+                    .programDbIds(List.of(brapiProgramId));
 
             ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
             return BrAPIDAOUtil.search(
