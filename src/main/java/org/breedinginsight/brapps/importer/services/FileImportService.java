@@ -58,7 +58,6 @@ import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -339,7 +338,7 @@ public class FileImportService {
 
         // Check that the program that the user created the import for is the one they are updating for
         if (!programId.equals(upload.getProgramId())){
-            throw new BadRequestException("Unable to update upload for a different program than the upload was created in.");
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to update upload for a different program than the upload was created in.");
         }
 
         // Get mapping
