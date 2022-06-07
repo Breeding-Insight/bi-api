@@ -198,7 +198,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
-        level.setLevelName("plot");  //BreedBase only excepts "plot" or "plant"
+        level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
         level.setLevelCode( getExpUnitId() );
         position.setObservationLevel(level);
         observationUnit.putAdditionalInfoItem("observationLevel", getExpUnit());

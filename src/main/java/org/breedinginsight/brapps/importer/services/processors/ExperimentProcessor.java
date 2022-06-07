@@ -78,9 +78,9 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPILocation>> locationByName = null;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
-    //  It is assumed that there are no pre-existing observation units for the given environment (so this will not be
+    //  It is assumed that there are no preexisting Observation Units for the given environment (so this will not be
     // initialized by getExistingBrapiData() )
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
 
@@ -115,7 +115,8 @@ public class ExperimentProcessor implements Processor {
         this.trialByNameNoScope = initialize_trialByNameNoScope( program, experimentImportRows );
         this.locationByName = initialize_uniqueLocationNames( program, experimentImportRows );
         this.studyByNameNoScope = initialize_studyByNameNoScope( program, experimentImportRows );
-//        this.observationUnitByNameNoScope = initialize_observationUnitByNameNoScope( program, experimentImportRows );
+        // All of the Observation Units will be new.  None will be preexisting.
+        this.observationUnitByNameNoScope =  new HashMap<>();
         this.existingGermplasmByGID = initialize_existingGermplasmByGID( program, experimentImportRows );
     }
 
@@ -151,7 +152,7 @@ public class ExperimentProcessor implements Processor {
             mappedImportRow.setLocation( this.locationByName.get( importRow.getEnvLocation() ) );
             mappedImportRow.setStudy( this.studyByNameNoScope.get( importRow.getEnv() ) );
             mappedImportRow.setObservationUnit( this.observationUnitByNameNoScope.get( createObservationUnitKey( importRow ) ) );
-            PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPio(importRow);
+            PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
             mappedImportRow.setGermplasm( germplasmPIO );
 
             if (! StringUtils.isBlank( importRow.getGid() )) { // if GID is blank, don't bother to check if it is valid.
@@ -354,7 +355,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private PendingImportObject<BrAPIGermplasm> getGidPio(ExperimentObservation importRow) {
+    private PendingImportObject<BrAPIGermplasm> getGidPOI(ExperimentObservation importRow) {
         if( this.existingGermplasmByGID.containsKey( importRow.getGid() )){
             return existingGermplasmByGID.get(importRow.getGid());
         }
@@ -543,7 +544,6 @@ public class ExperimentProcessor implements Processor {
         return NAME;
     }
 
-    //TODO should this method be moved to BrAPIExperimentService.java
     private ArrayList<BrAPIGermplasm> getGermplasmByAccessionNumber(
             List<String> germplasmAccessionNumbers,
             UUID programId) throws ApiException {
@@ -578,33 +578,6 @@ public class ExperimentProcessor implements Processor {
             throw new InternalServerException(e.toString(), e);
         }
     }
-//    private Map<String, PendingImportObject<BrAPIObservationUnit>> initialize_observationUnitByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
-//
-//        Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = new HashMap<>();
-//        List<String> uniqueObservationUnitNames = experimentImportRows.stream()
-//                .map(ExperimentObservation::getExpUnitId)
-//                .distinct()
-//                .filter(Objects::nonNull)
-//                .collect(Collectors.toList());
-//
-//        // check for existing observation units. Don't want to update existing, just create new.
-//        // TODO: do we allow adding observations to existing studies? yes, but not updating
-//        // ignore all data for observation units existing in system
-//
-//        List<BrAPIObservationUnit> existingObservationUnits;
-//
-//        try {
-//            existingObservationUnits = brAPIObservationUnitDAO.getObservationUnitByName(uniqueObservationUnitNames, program);
-//            existingObservationUnits.forEach(existingObservationUnit -> {
-//                // update mapped brapi import, does in process
-//                observationUnitByNameNoScope.put(existingObservationUnit.getObservationUnitName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingObservationUnit));
-//            });
-//            return observationUnitByNameNoScope;
-//        } catch (ApiException e) {
-//            // We shouldn't get an error back from our services. If we do, nothing the user can do about it
-//            throw new InternalServerException(e.toString(), e);
-//        }
-//    }
 
     private Map<String, PendingImportObject<BrAPIStudy>> initialize_studyByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = new HashMap<>();
