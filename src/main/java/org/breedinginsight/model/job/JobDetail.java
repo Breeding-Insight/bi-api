@@ -17,6 +17,9 @@
 
 package org.breedinginsight.model.job;
 
+/**
+ * Represents an object that contains the details about a specific asynchronous job.
+ */
 public interface JobDetail {
     String getJobType();
 }
