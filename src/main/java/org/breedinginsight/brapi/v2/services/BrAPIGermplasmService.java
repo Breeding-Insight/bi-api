@@ -12,6 +12,7 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
@@ -30,6 +31,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -136,6 +138,15 @@ public class BrAPIGermplasmService {
                 row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
                 if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
             }
+
+            // Synonyms
+            if (germplasmEntry.getSynonyms() != null && !germplasmEntry.getSynonyms().isEmpty()) {
+                String joinedSynonyms = germplasmEntry.getSynonyms().stream()
+                        .map(synonym -> synonym.getSynonym())
+                        .collect(Collectors.joining(";"));
+                row.put("Synonyms", joinedSynonyms);
+            }
+
             processedData.add(row);
         }
 

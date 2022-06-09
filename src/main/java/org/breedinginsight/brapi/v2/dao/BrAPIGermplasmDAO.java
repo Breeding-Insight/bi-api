@@ -26,6 +26,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -111,6 +112,11 @@ public class BrAPIGermplasmDAO {
     private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
 
+        // Get the program key
+        List<Program> programs = programDAO.get(programId);
+        if (programs.size() != 1) throw new InternalServerException("Program was not found for given key");
+        Program program = programs.get(0);
+
         // Set query params and make call
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
@@ -119,7 +125,7 @@ public class BrAPIGermplasmDAO {
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
-        ));
+        ), program.getKey());
     }
 
     /**
@@ -128,7 +134,7 @@ public class BrAPIGermplasmDAO {
      * @return Map<Key = string representing germplasm UUID, value = formatted BrAPIGermplasm>
      * @throws ApiException
      */
-    private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm) {
+    private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm, String programKey) {
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
         log.debug("processing germ for display: " + programGermplasm);
@@ -143,6 +149,14 @@ public class BrAPIGermplasmDAO {
 
             if (germplasm.getDefaultDisplayName() != null) {
                 germplasm.setGermplasmName(germplasm.getDefaultDisplayName());
+            }
+
+            // Remove program key
+            if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
+                for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
+                    String newSynonym = Utilities.removeProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber());
+                    synonym.setSynonym(newSynonym);
+                }
             }
         }
 
