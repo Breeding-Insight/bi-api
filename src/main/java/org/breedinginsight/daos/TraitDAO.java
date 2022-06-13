@@ -36,6 +36,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.jooq.*;
+import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -285,7 +286,7 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getMethod().getId().toString())
                     .referenceSource(referenceSource);
             BrAPIMethod brApiMethod = new BrAPIMethod()
-                                                 .methodName(String.format("%s %s [%s]", trait.getMethod().getDescription(), trait.getMethod().getMethodClass(), program.getKey()))
+                                                 .methodName(constructMethodName(trait, program))
                                                  .externalReferences(List.of(methodReference))
                                                  .methodClass(trait.getMethod().getMethodClass())
                                                  .description(trait.getMethod().getDescription())
@@ -405,7 +406,7 @@ public class TraitDAO extends TraitDao {
             BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId());
 
             // Change method
-            existingVariable.getMethod().setMethodName(String.format("%s %s [%s]", trait.getMethod().getDescription(), trait.getMethod().getMethodClass(), program.getKey()));
+            existingVariable.getMethod().setMethodName(constructMethodName(trait, program));
             existingVariable.getMethod().setMethodClass(trait.getMethod().getMethodClass());
             existingVariable.getMethod().setDescription(trait.getMethod().getDescription());
             existingVariable.getMethod().setFormula(trait.getMethod().getFormula());
@@ -451,6 +452,12 @@ public class TraitDAO extends TraitDao {
         }
 
         return updatedTrait;
+    }
+
+    private String constructMethodName(Trait trait, Program program) {
+        return !StringUtils.isBlank(trait.getMethod().getDescription()) ?
+                String.format("%s %s [%s]", trait.getMethod().getDescription(), trait.getMethod().getMethodClass(), program.getKey()) :
+                String.format("%s [%s]", trait.getMethod().getMethodClass(), program.getKey());
     }
 
     private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {

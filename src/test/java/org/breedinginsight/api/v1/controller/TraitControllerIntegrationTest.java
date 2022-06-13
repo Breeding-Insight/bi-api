@@ -455,6 +455,82 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         
     }
 
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void postNullMethodDescriptionNotInMethodName() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test M Desc");
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.TEXT);
+        Method method1 = new Method();
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        // Set the brapi properties
+        setBrAPIProperties(trait1);
+
+        // set the synonyms
+        trait1.setSynonyms(List.of("Test Trait", "test1", "test2"));
+
+        // Set the tags
+        trait1.setTags(List.of("leaf trait"));
+
+        // Set method description to null
+        method1.setDescription(null);
+
+        List<Trait> traits = List.of(trait1);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> res = call.blockingFirst();
+        assertEquals(HttpStatus.OK, res.getStatus());
+
+        JsonObject result = JsonParser.parseString(res.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        for (JsonElement traitJson: data) {
+            JsonObject trait = (JsonObject) traitJson;
+            String traitName = trait.get("observationVariableName").getAsString();
+            if (traitName.equals(trait1.getObservationVariableName())) {
+                trait1.setId(UUID.fromString(trait.get("id").getAsString()));
+            }
+        }
+
+        String validProgramKey = validProgram.getKey();
+        BrAPIObservationVariable variable = getBrapiVariable(trait1.getObservationVariableName(), "Test Program");
+
+        String methodName = String.format("%s", trait1.getMethod().getMethodClass());
+        assertEquals(String.format("%s [%s]", methodName, validProgramKey),
+                variable.getMethod().getMethodName(), "Unexpected method name");
+
+        // update
+        trait1.getMethod().setMethodClass("Observation");
+
+        Flowable<HttpResponse<String>> call2 = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response2 = call2.blockingFirst();
+        assertEquals(HttpStatus.OK, response2.getStatus());
+
+        variable = getBrapiVariable(trait1.getObservationVariableName(), "Test Program");
+
+        methodName = String.format("%s", trait1.getMethod().getMethodClass());
+        assertEquals(String.format("%s [%s]", methodName, validProgramKey),
+                variable.getMethod().getMethodName(), "Unexpected method name");
+    }
+
     private BrAPIObservationVariable getBrapiVariable(String variableName, String programName) throws ApiException {
         BrAPIClient client2 = new BrAPIClient(getProperties().get("brapi.server.pheno-url"));
         ObservationVariablesApi variablesApi = new ObservationVariablesApi(client2);
