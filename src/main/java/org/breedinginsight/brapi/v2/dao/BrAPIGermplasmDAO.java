@@ -49,8 +49,6 @@ import java.util.stream.Collectors;
 @Context
 public class BrAPIGermplasmDAO {
 
-    private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
-
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
 
@@ -143,8 +141,8 @@ public class BrAPIGermplasmDAO {
             programGermplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
 
             JsonObject additionalInfo = germplasm.getAdditionalInfo();
-            if (additionalInfo != null && additionalInfo.has(BREEDING_METHOD_ID_KEY)) {
-                germplasm.setBreedingMethodDbId(additionalInfo.get(BREEDING_METHOD_ID_KEY).getAsString());
+            if (additionalInfo != null && additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID)) {
+                germplasm.setBreedingMethodDbId(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString());
             }
 
             if (germplasm.getDefaultDisplayName() != null) {
