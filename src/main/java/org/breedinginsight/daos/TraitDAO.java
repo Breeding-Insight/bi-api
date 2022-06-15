@@ -317,7 +317,7 @@ public class TraitDAO extends TraitDao {
                     .traitDescription(trait.getTraitDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
-                    .entity(trait.getEntity())
+                    .entity(trait.getProgramObservationLevel().getName())
                     .mainAbbreviation(trait.getMainAbbreviation())
                     .traitClass(trait.getTraitClass())
                     .externalReferences(List.of(traitReference))
