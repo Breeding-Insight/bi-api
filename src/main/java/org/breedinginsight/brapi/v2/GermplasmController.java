@@ -63,11 +63,11 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export/{fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<StreamedFile> germplasmListExport(
-            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId) {
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId, @PathVariable("fileExtension") String fileExtension) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
             DownloadFile germplasmListFile = germplasmService.exportGermplasmList(programId, listDbId);
