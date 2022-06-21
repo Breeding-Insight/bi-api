@@ -324,7 +324,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     public JsonArray callFilterGermplasm(SearchRequest searchRequest) {
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                POST(String.format("/programs/%s/brapi/v2/germplasm/search",validProgram.getId().toString()), gson.toJson(searchRequest))
+                POST(String.format("/programs/%s/brapi/v2/search/germplasm",validProgram.getId().toString()), gson.toJson(searchRequest))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
         HttpResponse<String> response = call.blockingFirst();

@@ -24,12 +24,12 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
                 Map.entry("accessionNumber", BrAPIGermplasm::getAccessionNumber),
-                Map.entry("germplasmName", BrAPIGermplasm::getGermplasmName),
+                Map.entry("defaultDisplayName", BrAPIGermplasm::getDefaultDisplayName),
                 Map.entry("breedingMethod", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString() :
                                 null),
-                Map.entry("source", BrAPIGermplasm::getSeedSource),
+                Map.entry("seedSource", BrAPIGermplasm::getSeedSource),
                 Map.entry("femaleParentGID", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsString() :
@@ -42,7 +42,7 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString() :
                                 null),
-                Map.entry("createdBy.userName", (germplasm) ->
+                Map.entry("createdByUserName", (germplasm) ->
                         germplasm.getAdditionalInfo() != null
                                 && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_BY)
                                 && germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).has(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME) ?

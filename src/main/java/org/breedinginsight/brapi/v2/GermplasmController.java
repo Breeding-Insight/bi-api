@@ -21,13 +21,13 @@ import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
+import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
-import org.breedinginsight.utilities.response.mappers.TraitQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -49,7 +49,7 @@ public class GermplasmController {
         this.germplasmQueryMapper = germplasmQueryMapper;
     }
 
-    @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/search{?queryParams*}")
+    @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> searchGermplasm(
@@ -73,13 +73,15 @@ public class GermplasmController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
             @PathVariable("programId") UUID programId,
-            @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid BrapiQuery queryParams) {
+            @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
         try {
             log.debug("fetching germ for program: " + programId);
+
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
             queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
             queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
-            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams);
+            SearchRequest searchRequest = queryParams.constructSearchRequest();
+            return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
