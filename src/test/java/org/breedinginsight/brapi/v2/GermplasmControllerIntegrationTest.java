@@ -244,7 +244,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     public void filterGermplasmNameSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
-                List.of("germplasmName", "synonyms"),
+                List.of("defaultDisplayName", "synonyms"),
                 List.of("Full", "test1"));
         JsonArray data = callFilterGermplasm(searchRequest);
 
@@ -258,7 +258,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     public void filterGermplasmBreedingMethodSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
-                List.of("breedingMethod", "germplasmName"),
+                List.of("breedingMethod", "defaultDisplayName"),
                 List.of("Aneupoly", "Germplasm 1"));
         JsonArray data = callFilterGermplasm(searchRequest);
 
@@ -272,7 +272,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     public void filterGermplasmSourceSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
-                List.of("source"),
+                List.of("seedSource"),
                 List.of("cultivate"));
         JsonArray data = callFilterGermplasm(searchRequest);
 
@@ -314,7 +314,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     public void filterGermplasmOneMatchOneNoMatch() {
 
         SearchRequest searchRequest = constructSearchRequest(
-                List.of("germplasmName", "synonyms"),
+                List.of("defaultDisplayName", "synonyms"),
                 List.of("No Match", "test1"));
         JsonArray data = callFilterGermplasm(searchRequest);
 
