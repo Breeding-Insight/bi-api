@@ -3,10 +3,15 @@ package org.breedinginsight.services.writers;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
+import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
 import java.util.*;
@@ -16,17 +21,31 @@ import java.util.*;
  * as data.
  */
 @Slf4j
-public class ExcelWriter {
+public class ExcelWriter extends FileWriter {
 
     private static final int EXCEL_COLUMN_NAMES_ROW = 0;
 
+    public ExcelWriter(@NotNull String fileName) throws IOException {
+        super(fileName);
+    }
+
     //Writes a xlsx workbook with one sheet with desired columns and data
-    public static XSSFWorkbook writeToWorkbook(String sheetName, List<Column> columns, List<Map<String, Object>> data) {
+    public static Workbook writeToWorkbook(String sheetName, List<Column> columns, List<Map<String, Object>> data, FileType extension) {
+        Workbook workbook;
+        Sheet sheet;
+
         //Create workbook
-        XSSFWorkbook workbook = new XSSFWorkbook();
+        if (extension.getName().equals("xlsx")){
+            workbook = new XSSFWorkbook();
+        } else if (extension.getName().equals("xls")) {
+            workbook = new HSSFWorkbook();
+        } else {
+            //todo throw error
+            workbook = new HSSFWorkbook();
+        }
 
         //Create sheet
-        XSSFSheet sheet = workbook.createSheet(sheetName);
+        sheet = workbook.createSheet(sheetName);
 
         //Fill in header and data
         int cellCount;
@@ -57,13 +76,13 @@ public class ExcelWriter {
         return workbook;
     }
 
-    public static StreamedFile writeToDownload(String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
-        XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
+    public static StreamedFile writeToDownload(String sheetName, List<Column> columns, List<Map<String, Object>> data, FileType extension) throws IOException {
+        Workbook workbook = writeToWorkbook(sheetName, columns, data, extension);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             workbook.write(out);
             InputStream inputStream = new ByteArrayInputStream(out.toByteArray());
-            MediaType fileVal = new MediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "xlsx");
+            MediaType fileVal = new MediaType(extension.getMimeType(), extension.getName());
             StreamedFile downloadFile = new StreamedFile(inputStream, fileVal);
             return downloadFile;
         } catch (IOException e) {
@@ -74,7 +93,7 @@ public class ExcelWriter {
 
     //For unit testing
     public static InputStream writeToInputStream(String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
-        XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
+        Workbook workbook = writeToWorkbook(sheetName, columns, data, Enum.valueOf(FileType.class, "xlsx"));
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             workbook.write(out);
@@ -87,7 +106,7 @@ public class ExcelWriter {
 
     //Writes doc to file in project, for optional testing
     public static void writeToFile(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
-        XSSFWorkbook workbook = writeToWorkbook(sheetName, columns, data);
+        Workbook workbook = writeToWorkbook(sheetName, columns, data, Enum.valueOf(FileType.class, "xlsx"));
 
         try (FileOutputStream fileOutput = new FileOutputStream(fileName +".xlsx")) {
             workbook.write(fileOutput);

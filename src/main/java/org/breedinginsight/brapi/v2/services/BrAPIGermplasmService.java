@@ -14,6 +14,7 @@ import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Pedigree;
@@ -21,6 +22,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
+import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -92,27 +94,7 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public DownloadFile exportGermplasmList(UUID programId, String listId) throws ApiException, IOException {
-        List<Column> columns = GermplasmFileColumns.getOrderedColumns();
-
-        //Retrieve germplasm list data
-        BrAPIListDetails listData = brAPIListDAO.getListById(listId, programId).getResult();
-
-        //Retrieve germplasm data
-        List<String> germplasmNames = listData.getData();
-        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
-        //processGermplasmForDisplay, numbers
-        germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
-
-        String listName = listData.getListName();
-        Optional<Program> optionalProgram = programService.getById(programId);
-        if (optionalProgram.isPresent()) {
-            Program program = optionalProgram.get();
-            listName = removeAppendedKey(listName, program.getKey());
-        }
-        String fileName = createFileName(listData, listName);
-
-        //Convert list data to List<Map<String, Object>> data to pass into file writer
+    public List<Map<String, Object>> processData(List<BrAPIGermplasm> germplasm){
         List<Map<String, Object>> processedData =  new ArrayList<>();
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
@@ -149,8 +131,37 @@ public class BrAPIGermplasmService {
 
             processedData.add(row);
         }
+        return processedData;
+    }
 
-        StreamedFile downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData);
+    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws ApiException, IOException {
+        List<Column> columns = GermplasmFileColumns.getOrderedColumns();
+
+        //Retrieve germplasm list data
+        BrAPIListDetails listData = brAPIListDAO.getListById(listId, programId).getResult();
+
+        //Retrieve germplasm data
+        List<String> germplasmNames = listData.getData();
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+        //processGermplasmForDisplay, numbers
+        germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
+
+        String listName = listData.getListName();
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (optionalProgram.isPresent()) {
+            Program program = optionalProgram.get();
+            listName = removeAppendedKey(listName, program.getKey());
+        }
+        String fileName = createFileName(listData, listName);
+        StreamedFile downloadFile;
+        //Convert list data to List<Map<String, Object>> data to pass into file writer
+        List<Map<String, Object>> processedData =  processData(germplasm);
+
+        if (fileExtension.getName().equals("csv")){
+            downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
+        } else {
+            downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData, fileExtension);
+        }
 
         return new DownloadFile(fileName, downloadFile);
     }
