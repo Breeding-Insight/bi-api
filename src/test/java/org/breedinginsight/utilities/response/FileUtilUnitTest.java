@@ -1,6 +1,7 @@
 package org.breedinginsight.utilities.response;
 
 import lombok.SneakyThrows;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
@@ -79,7 +80,7 @@ public class FileUtilUnitTest {
         row.put("Test C", "C");
         data.add(row);
 
-        InputStream inputStream = ExcelWriter.writeToInputStream("SheetName", columns, data);
+        InputStream inputStream = ExcelWriter.writeToInputStream("SheetName", columns, data, Enum.valueOf(FileType.class, "XLSX"));
         Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
 
         assertEquals(1, resultTable.rowCount(), "Wrong number of rows were exported");

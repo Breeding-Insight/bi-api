@@ -21,13 +21,9 @@ import java.util.*;
  * as data.
  */
 @Slf4j
-public class ExcelWriter extends FileWriter {
+public class ExcelWriter {
 
     private static final int EXCEL_COLUMN_NAMES_ROW = 0;
-
-    public ExcelWriter(@NotNull String fileName) throws IOException {
-        super(fileName);
-    }
 
     //Writes a xlsx workbook with one sheet with desired columns and data
     public static Workbook writeToWorkbook(String sheetName, List<Column> columns, List<Map<String, Object>> data, FileType extension) {
@@ -40,8 +36,7 @@ public class ExcelWriter extends FileWriter {
         } else if (extension.getName().equals("xls")) {
             workbook = new HSSFWorkbook();
         } else {
-            //todo throw error
-            workbook = new HSSFWorkbook();
+            throw new IllegalArgumentException(extension.getName()+" is invalid file extension for excel.");
         }
 
         //Create sheet
@@ -92,8 +87,8 @@ public class ExcelWriter extends FileWriter {
     }
 
     //For unit testing
-    public static InputStream writeToInputStream(String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
-        Workbook workbook = writeToWorkbook(sheetName, columns, data, Enum.valueOf(FileType.class, "xlsx"));
+    public static InputStream writeToInputStream(String sheetName, List<Column> columns, List<Map<String, Object>> data, FileType extension) throws IOException {
+        Workbook workbook = writeToWorkbook(sheetName, columns, data, extension);
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             workbook.write(out);
@@ -105,8 +100,8 @@ public class ExcelWriter extends FileWriter {
     }
 
     //Writes doc to file in project, for optional testing
-    public static void writeToFile(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data) throws IOException {
-        Workbook workbook = writeToWorkbook(sheetName, columns, data, Enum.valueOf(FileType.class, "xlsx"));
+    public static void writeToFile(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data, FileType extension) throws IOException {
+        Workbook workbook = writeToWorkbook(sheetName, columns, data, extension);
 
         try (FileOutputStream fileOutput = new FileOutputStream(fileName +".xlsx")) {
             workbook.write(fileOutput);

@@ -34,11 +34,7 @@ import java.util.*;
  * as data.
  */
 @Slf4j
-public class CSVWriter extends FileWriter {
-
-    public CSVWriter(@NotNull String fileName) throws IOException {
-        super(fileName);
-    }
+public class CSVWriter {
 
     public static StreamedFile writeToDownload(List<Column> columns, List<Map<String, Object>> data, FileType extension) throws IOException {
         try (ByteArrayOutputStream out = writeToCSV(columns, data)) {
