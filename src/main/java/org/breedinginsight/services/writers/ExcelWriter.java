@@ -31,9 +31,9 @@ public class ExcelWriter {
         Sheet sheet;
 
         //Create workbook
-        if (extension.getName().equals("xlsx")){
+        if (extension == FileType.XLSX){
             workbook = new XSSFWorkbook();
-        } else if (extension.getName().equals("xls")) {
+        } else if (extension == FileType.XLS) {
             workbook = new HSSFWorkbook();
         } else {
             throw new IllegalArgumentException(extension.getName()+" is invalid file extension for excel.");
@@ -103,7 +103,7 @@ public class ExcelWriter {
     public static void writeToFile(String fileName, String sheetName, List<Column> columns, List<Map<String, Object>> data, FileType extension) throws IOException {
         Workbook workbook = writeToWorkbook(sheetName, columns, data, extension);
 
-        try (FileOutputStream fileOutput = new FileOutputStream(fileName +".xlsx")) {
+        try (FileOutputStream fileOutput = new FileOutputStream(fileName + extension.getExtension())) {
             workbook.write(fileOutput);
             workbook.close();
         } catch (IOException e) {

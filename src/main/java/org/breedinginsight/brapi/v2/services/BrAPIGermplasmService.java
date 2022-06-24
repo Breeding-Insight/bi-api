@@ -157,7 +157,7 @@ public class BrAPIGermplasmService {
         //Convert list data to List<Map<String, Object>> data to pass into file writer
         List<Map<String, Object>> processedData =  processData(germplasm);
 
-        if (fileExtension.getName().equals("csv")){
+        if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
         } else {
             downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData, fileExtension);
