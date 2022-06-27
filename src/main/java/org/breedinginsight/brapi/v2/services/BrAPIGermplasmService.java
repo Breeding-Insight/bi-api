@@ -85,16 +85,12 @@ public class BrAPIGermplasmService {
                 germplasmList.setListName(newListName);
 
                 //Retrieve germplasm details to get list owner name
+                //Due to listOwnerName not being stored in breedbase
                 BrAPIListDetails listData = brAPIListDAO.getListById(germplasmList.getListDbId(), programId).getResult();
                 List<String> germplasmNames = listData.getData().subList(0,1);
                 List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
                 String createdBy = germplasm.get(0).getAdditionalInfo().getAsJsonObject("createdBy").get("userName").getAsString();
                 germplasmList.setListOwnerName(createdBy);
-
-                //germplasmList.getListType(); value germplasm name GERMPLASM
-                //germplasmList.getAdditionalInfo(); todo utilize this instead if possible
-                //logic based on listType to know what BrAPI endpoint to call after fetching the first record in the list
-                //in order to fetch the full object
             }
 
             return germplasmLists;
