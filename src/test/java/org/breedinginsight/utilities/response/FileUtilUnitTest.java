@@ -76,7 +76,7 @@ public class FileUtilUnitTest {
         List<Map<String, Object>> data =  new ArrayList<>();
         HashMap row = new HashMap<>();
         row.put("Test A", "Data A");
-        row.put("Test B", Double.valueOf("2"));
+        row.put("Test B", Integer.valueOf("2"));
         row.put("Test C", "C");
         data.add(row);
 
