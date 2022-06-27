@@ -99,9 +99,9 @@ public class BrAPIGermplasmService {
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
             HashMap<String, Object> row = new HashMap<>();
-            row.put("GID", Double.valueOf(germplasmEntry.getAccessionNumber()));
+            row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             row.put("Name", germplasmEntry.getGermplasmName());
-            row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsDouble());
+            row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsInt());
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get("breedingMethod").getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
@@ -117,8 +117,8 @@ public class BrAPIGermplasmService {
 
             if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
                 Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
-                row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
-                if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
+                row.put("Female Parent GID", Integer.parseInt(germPedigree.femaleParent));
+                if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Integer.parseInt(germPedigree.maleParent));
             }
 
             // Synonyms

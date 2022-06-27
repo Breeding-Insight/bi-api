@@ -64,7 +64,6 @@ public class CSVWriter {
                 for (Column column: columns) {
                     if(data.get(i).containsKey(column.getValue())){
                         cellValue = data.get(i).get(column.getValue());
-                        if (cellValue instanceof Double) { cellValue = ((Double) cellValue).intValue(); }
                         rowVals.add(cellValue);
                     } else {
                      rowVals.add("");

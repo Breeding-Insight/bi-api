@@ -56,7 +56,9 @@ public class ExcelWriter {
                     if (data.get(i-1).get(column.getValue()) != null) {
                         if (column.getDataType() == Column.ColumnDataType.STRING) {
                             row.createCell(cellCount).setCellValue((String) data.get(i - 1).get(column.getValue()));
-                        } else if (column.getDataType() == Column.ColumnDataType.NUMERICAL) {
+                        } else if (column.getDataType() == Column.ColumnDataType.INTEGER) {
+                            row.createCell(cellCount).setCellValue((Integer) data.get(i - 1).get(column.getValue()));
+                        } else if (column.getDataType() == Column.ColumnDataType.DOUBLE) {
                             row.createCell(cellCount).setCellValue((Double) data.get(i - 1).get(column.getValue()));
                         }
                     } else {

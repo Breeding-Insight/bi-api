@@ -65,7 +65,7 @@ public class FileUtilUnitTest {
     void writeExcelCheckColumns() {
         List<Column> columns = new ArrayList<>();
         columns.add(new Column("Test A", Column.ColumnDataType.STRING));
-        columns.add(new Column("Test B", Column.ColumnDataType.NUMERICAL));
+        columns.add(new Column("Test B", Column.ColumnDataType.INTEGER));
         columns.add(new Column("Test C", Column.ColumnDataType.STRING));
 
         List<String> columnNames = new ArrayList<>();
