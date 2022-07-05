@@ -83,6 +83,14 @@ public class BrAPIGermplasmService {
                 String listName = germplasmList.getListName();
                 String newListName = removeAppendedKey(listName, program.getKey());
                 germplasmList.setListName(newListName);
+
+                //Retrieve germplasm details to get list owner name
+                //Due to listOwnerName not being stored in breedbase
+                BrAPIListDetails listData = brAPIListDAO.getListById(germplasmList.getListDbId(), programId).getResult();
+                List<String> germplasmNames = listData.getData().subList(0,1);
+                List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+                String createdBy = germplasm.get(0).getAdditionalInfo().getAsJsonObject("createdBy").get("userName").getAsString();
+                germplasmList.setListOwnerName(createdBy);
             }
 
             return germplasmLists;
