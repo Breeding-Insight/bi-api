@@ -5,6 +5,8 @@ on:
     branches:
       - develop
       - release/**
+      - future/**
+      
   workflow_dispatch:
 
 jobs:
@@ -103,3 +105,8 @@ jobs:
         run: |
           docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:rc
           docker push breedinginsight/biapi:rc
+      - name: Tag alpha release
+        if: contains(github.ref, '/future/')
+        run: |
+          docker tag ${{steps.vars.outputs.imageName}} breedinginsight/biapi:alpha
+          docker push breedinginsight/biapi:alpha

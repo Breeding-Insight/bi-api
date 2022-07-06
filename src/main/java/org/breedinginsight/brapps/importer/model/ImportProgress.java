@@ -55,6 +55,8 @@ public class ImportProgress extends ImporterProgressEntity {
                 .finished(record.getValue(IMPORTER_PROGRESS.FINISHED))
                 .inProgress(record.getValue(IMPORTER_PROGRESS.IN_PROGRESS))
                 .body(record.getValue(IMPORTER_PROGRESS.BODY))
+                .updatedAt(record.getValue(IMPORTER_PROGRESS.UPDATED_AT))
+                .createdAt(record.getValue(IMPORTER_PROGRESS.CREATED_AT))
                 .build();
     }
 

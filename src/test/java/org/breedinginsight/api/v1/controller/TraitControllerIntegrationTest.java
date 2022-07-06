@@ -32,6 +32,7 @@ import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
@@ -41,6 +42,7 @@ import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponseResult;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
@@ -358,6 +360,192 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         }
 
         validTraits = traits;
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void checkBrapiValues() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test Brapi");
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.TEXT);
+        Method method1 = new Method();
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        // Set the brapi properties
+        setBrAPIProperties(trait1);
+
+        // set the synonyms
+        trait1.setSynonyms(List.of("Test Trait", "test1", "test2"));
+
+        // Set the tags
+        trait1.setTags(List.of("leaf trait"));
+
+        List<Trait> traits = List.of(trait1);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> res = call.blockingFirst();
+        assertEquals(HttpStatus.OK, res.getStatus());
+
+        JsonObject result = JsonParser.parseString(res.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        for (JsonElement traitJson: data) {
+            JsonObject trait = (JsonObject) traitJson;
+            String traitName = trait.get("observationVariableName").getAsString();
+            if (traitName.equals(trait1.getObservationVariableName())) {
+                trait1.setId(UUID.fromString(trait.get("id").getAsString()));
+            }
+        }
+
+        String validProgramKey = validProgram.getKey();
+        BrAPIObservationVariable variable = getBrapiVariable(trait1.getObservationVariableName(), "Test Program");
+
+        assertEquals(String.format("%s [%s]", trait1.getObservationVariableName(), validProgramKey),
+                variable.getObservationVariableName(), "Unexpected observation variable name");
+        String methodName = String.format("%s %s", trait1.getMethod().getDescription(), trait1.getMethod().getMethodClass());
+        assertEquals(String.format("%s [%s]", methodName, validProgramKey),
+                variable.getMethod().getMethodName(), "Unexpected method name");
+        assertEquals(String.format("%s [%s]", trait1.getScale().getScaleName(), validProgramKey),
+                variable.getScale().getScaleName(), "Unexpected scale name");
+        String traitName = String.format("%s %s", trait1.getEntity(), trait1.getAttribute());
+        assertEquals(String.format("%s [%s]", traitName, validProgramKey),
+                variable.getTrait().getTraitName(), "Unexpected trait name");
+
+        // update
+        trait1.getMethod().setMethodClass("Observation");
+        trait1.getMethod().setDescription("Updated description");
+        trait1.setEntity("Updated entity");
+        trait1.setAttribute("Updated attribute");
+        trait1.setObservationVariableName("Updated name");
+        trait1.getScale().setScaleName("Updated Scale");
+
+        Flowable<HttpResponse<String>> call2 = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response2 = call2.blockingFirst();
+        assertEquals(HttpStatus.OK, response2.getStatus());
+
+        variable = getBrapiVariable(trait1.getObservationVariableName(), "Test Program");
+
+        assertEquals(String.format("%s [%s]", trait1.getObservationVariableName(), validProgramKey),
+                variable.getObservationVariableName(), "Unexpected observation variable name");
+        methodName = String.format("%s %s", trait1.getMethod().getDescription(), trait1.getMethod().getMethodClass());
+        assertEquals(String.format("%s [%s]", methodName, validProgramKey),
+                variable.getMethod().getMethodName(), "Unexpected method name");
+        assertEquals(String.format("%s [%s]", trait1.getScale().getScaleName(), validProgramKey),
+                variable.getScale().getScaleName(), "Unexpected scale name");
+        traitName = String.format("%s %s", trait1.getEntity(), trait1.getAttribute());
+        assertEquals(String.format("%s [%s]", traitName, validProgramKey),
+                variable.getTrait().getTraitName(), "Unexpected trait name");
+        
+    }
+
+    @Test
+    @SneakyThrows
+    @Order(4)
+    public void postNullMethodDescriptionNotInMethodName() {
+
+        Trait trait1 = new Trait();
+        trait1.setTraitDescription("trait 1 description");
+        trait1.setEntity("entity1");
+        trait1.setObservationVariableName("Test M Desc");
+        trait1.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
+        Scale scale1 = new Scale();
+        scale1.setScaleName("Test Scale");
+        scale1.setDataType(DataType.TEXT);
+        Method method1 = new Method();
+        trait1.setScale(scale1);
+        trait1.setMethod(method1);
+
+        // Set the brapi properties
+        setBrAPIProperties(trait1);
+
+        // set the synonyms
+        trait1.setSynonyms(List.of("Test Trait", "test1", "test2"));
+
+        // Set the tags
+        trait1.setTags(List.of("leaf trait"));
+
+        // Set method description to null
+        method1.setDescription(null);
+
+        List<Trait> traits = List.of(trait1);
+
+        // Call endpoint
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> res = call.blockingFirst();
+        assertEquals(HttpStatus.OK, res.getStatus());
+
+        JsonObject result = JsonParser.parseString(res.getBody().get()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        for (JsonElement traitJson: data) {
+            JsonObject trait = (JsonObject) traitJson;
+            String traitName = trait.get("observationVariableName").getAsString();
+            if (traitName.equals(trait1.getObservationVariableName())) {
+                trait1.setId(UUID.fromString(trait.get("id").getAsString()));
+            }
+        }
+
+        String validProgramKey = validProgram.getKey();
+        BrAPIObservationVariable variable = getBrapiVariable(trait1.getObservationVariableName(), "Test Program");
+
+        String methodName = String.format("%s", trait1.getMethod().getMethodClass());
+        assertEquals(String.format("%s [%s]", methodName, validProgramKey),
+                variable.getMethod().getMethodName(), "Unexpected method name");
+
+        // update
+        trait1.getMethod().setMethodClass("Observation");
+
+        Flowable<HttpResponse<String>> call2 = client.exchange(
+                PUT("/programs/" + validProgram.getId() + "/traits", traits)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response2 = call2.blockingFirst();
+        assertEquals(HttpStatus.OK, response2.getStatus());
+
+        variable = getBrapiVariable(trait1.getObservationVariableName(), "Test Program");
+
+        methodName = String.format("%s", trait1.getMethod().getMethodClass());
+        assertEquals(String.format("%s [%s]", methodName, validProgramKey),
+                variable.getMethod().getMethodName(), "Unexpected method name");
+    }
+
+    private BrAPIObservationVariable getBrapiVariable(String variableName, String programName) throws ApiException {
+        BrAPIClient client2 = new BrAPIClient(getProperties().get("brapi.server.pheno-url"));
+        ObservationVariablesApi variablesApi = new ObservationVariablesApi(client2);
+        VariableQueryParams queryParams = new VariableQueryParams();
+        ApiResponse<BrAPIObservationVariableListResponse> response = variablesApi.variablesGet(queryParams);
+
+        BrAPIObservationVariableListResponse variableResponse = response.getBody();
+        BrAPIObservationVariableListResponseResult result = variableResponse.getResult();
+        List<BrAPIObservationVariable> variables = result.getData();
+
+        Optional<BrAPIObservationVariable> searchResult = variables.stream().filter(
+                variable -> variable.getObservationVariableName().contains(variableName)
+                        && variable.getInstitution().equals(programName)).findFirst();
+
+        return searchResult.orElseThrow();
     }
 
     @Test
@@ -1008,12 +1196,12 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject categoryError = categoryErrors.get(0).getAsJsonObject();
         assertEquals(0, categoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
         JsonObject valueError = categoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
-        assertEquals("Scale Categories Value", valueError.get("field").getAsString(), "wrong error returned");
+        assertEquals("scale.categories.value", valueError.get("field").getAsString(), "wrong error returned");
 
         JsonObject secondCategoryError = categoryErrors.get(1).getAsJsonObject();
         assertEquals(2, secondCategoryError.get("rowIndex").getAsInt(), "wrong error row index returned");
         JsonObject labelError = secondCategoryError.getAsJsonArray("errors").get(0).getAsJsonObject();
-        assertEquals("Scale Categories Label", labelError.get("field").getAsString(), "wrong error returned");
+        assertEquals("scale.categories.label", labelError.get("field").getAsString(), "wrong error returned");
     }
 
     @Test
@@ -1172,7 +1360,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         updateTrait.setTraitDescription("Updated description");
         updateTrait.setEntity("Updated entity");
         updateTrait.setObservationVariableName("Updated name");
-        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated Level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
         updateTrait.getMethod().setDescription("A method");
@@ -1253,13 +1441,13 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error1 = errors.get(0).getAsJsonObject();
-        assertEquals("Name", error1.get("field").getAsString(), "wrong error returned");
+        assertEquals("observationVariableName", error1.get("field").getAsString(), "wrong error returned");
 
         JsonObject badIdRowError = rowErrors.get(1).getAsJsonObject();
         errors = badIdRowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
-        assertEquals("Trait Id", error.get("field").getAsString(), "wrong error returned");
+        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
     }
 
     @Test
@@ -1306,7 +1494,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         updateTrait.setId(UUID.randomUUID());
         updateTrait.setObservationVariableName("Update Name");
-        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated Level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
         updateTrait.getMethod().setDescription("A method");
@@ -1335,7 +1523,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonArray errors = rowError.getAsJsonArray("errors");
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
-        assertEquals("Trait Id", error.get("field").getAsString(), "wrong error returned");
+        assertEquals("traitId", error.get("field").getAsString(), "wrong error returned");
     }
 
     @Test

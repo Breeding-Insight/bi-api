@@ -17,17 +17,18 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.WordUtils;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.breedinginsight.dao.db.tables.pojos.ScaleEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.*;
@@ -53,6 +54,7 @@ public class TraitService {
     private ObservationDAO observationDAO;
     private ProgramService programService;
     private ProgramOntologyService programOntologyService;
+    private ProgramOntologyDAO programOntologyDAO;
     private ProgramObservationLevelService programObservationLevelService;
     private UserService userService;
     private TraitValidatorService traitValidator;
@@ -64,7 +66,8 @@ public class TraitService {
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
-                        UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError) {
+                        UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError,
+                        ProgramOntologyDAO programOntologyDAO) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
@@ -76,6 +79,7 @@ public class TraitService {
         this.traitValidator = traitValidator;
         this.dsl = dsl;
         this.traitValidatorError = traitValidatorError;
+        this.programOntologyDAO = programOntologyDAO;
     }
 
     public List<Trait> getByProgramId(UUID programId, boolean getFullTrait) throws DoesNotExistException {
@@ -90,6 +94,16 @@ public class TraitService {
             return traitDAO.getTraitsByProgramId(programId);
         }
 
+    }
+
+    public List<Trait> getSubscribedOntologyTraits(UUID programId) {
+        Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSubscribedSharedOntology(programId);
+        if (optionalSharedOntology.isEmpty()) {
+            return new ArrayList<>();
+        }
+        ProgramSharedOntologyEntity sharedOntology = optionalSharedOntology.get();
+
+        return traitDAO.getTraitsFullByProgramId(sharedOntology.getProgramId());
     }
 
     public List<Trait> getByProgramIds(List<UUID> programIds, boolean getFullTrait) throws DoesNotExistException {
@@ -228,11 +242,11 @@ public class TraitService {
                 if (matchingLevels.size() == 0) {
                     // If doesn't exist, save it without an id. We will create it later
                     ProgramObservationLevel programObservationLevel = new ProgramObservationLevel();
-                    programObservationLevel.setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    programObservationLevel.setName(WordUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
                     trait.setProgramObservationLevel(programObservationLevel);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
-                    trait.getProgramObservationLevel().setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    trait.getProgramObservationLevel().setName(dbLevel.getName());
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
                 }
             }

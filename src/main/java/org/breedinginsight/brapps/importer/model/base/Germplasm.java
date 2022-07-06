@@ -24,6 +24,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.model.Program;
@@ -64,6 +65,10 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id="externalUID", name="External UID", description = "External UID")
     private String externalUID;
+
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id="synonyms", name="Synonyms", description = "Optional list of germplasm synonyms separated by semicolons (;).")
+    private String synonyms;
 
     @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
     @ImportFieldMetadata(id="entryNo", name="Entry No.", description = "The order of germplasm in the import list ( 1,2,3,….n). If no entry  number is specified in the import germplasm list, the database will assign entry number upon import.")
@@ -192,6 +197,23 @@ public class Germplasm implements BrAPIObject {
             germplasm.putAdditionalInfoItem("breedingMethod", breedingMethod.getName());
         }
 
+        // Synonyms
+        String blobSynonyms = getSynonyms();
+        List<BrAPIGermplasmSynonyms> brapiSynonyms = new ArrayList<>();
+        if (synonyms != null) {
+            List<String> synonyms = Arrays.asList(blobSynonyms.split(";")).stream()
+                    .map(synonym -> synonym.strip())
+                    .distinct()
+                    .collect(Collectors.toList());
+            // Create synonym
+            for (String synonym: synonyms) {
+                BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
+                brapiSynonym.setSynonym(synonym);
+                brapiSynonyms.add(brapiSynonym);
+            }
+            germplasm.setSynonyms(brapiSynonyms);
+        }
+
         return germplasm;
     }
 
@@ -214,6 +236,13 @@ public class Germplasm implements BrAPIObject {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
         germplasm.putAdditionalInfoItem("createdDate", formatter.format(now));
+
+        // Update our synonyms to <Synonym> [<program key>-<accessionNumber>]
+        if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
+            for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
+                synonym.setSynonym(Utilities.appendProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber()));
+            }
+        }
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
@@ -231,5 +260,4 @@ public class Germplasm implements BrAPIObject {
 
         return germplasm;
     }
-
 }

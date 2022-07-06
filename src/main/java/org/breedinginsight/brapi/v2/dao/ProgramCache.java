@@ -24,26 +24,31 @@ import com.rits.cloning.Cloner;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.jetbrains.annotations.NotNull;
+import javax.validation.constraints.NotNull;
 
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+/**
+ *
+ * @param <K> key/id of object
+ * @param <R> object
+ */
 @Slf4j
-public class ProgramCache<R> {
+public class ProgramCache<K, R> {
 
-    private final FetchFunction<UUID, List<R>> fetchMethod;
+    private final FetchFunction<UUID, Map<K, R>> fetchMethod;
     private final Map<UUID, Semaphore> programSemaphore = new HashMap<>();
     private final Cloner cloner;
 
     private final Executor executor = Executors.newCachedThreadPool();
-    private final LoadingCache<UUID, List<R>> cache = CacheBuilder.newBuilder()
+    private final LoadingCache<UUID, Map<K, R>> cache = CacheBuilder.newBuilder()
             .build(new CacheLoader<>() {
                 @Override
-                public List<R> load(@NotNull UUID programId) throws Exception {
+                public Map<K, R> load(@NotNull UUID programId) throws Exception {
                     try {
-                        List<R> values = fetchMethod.apply(programId);
+                        Map<K, R> values = fetchMethod.apply(programId);
                         log.debug("cache loading complete.\nprogramId: " + programId);
                         return values;
                     } catch (Exception e) {
@@ -54,7 +59,7 @@ public class ProgramCache<R> {
                 }
             });
 
-    public ProgramCache(FetchFunction<UUID, List<R>> fetchMethod, List<UUID> keys) {
+    public ProgramCache(FetchFunction<UUID, Map<K, R>> fetchMethod, List<UUID> keys) {
         this.fetchMethod = fetchMethod;
         this.cloner = new Cloner();
         // Populate cache on start up
@@ -63,12 +68,12 @@ public class ProgramCache<R> {
         }
     }
 
-    public ProgramCache(FetchFunction<UUID, List<R>> fetchMethod) {
+    public ProgramCache(FetchFunction<UUID, Map<K, R>> fetchMethod) {
         this.fetchMethod = fetchMethod;
         this.cloner = new Cloner();
     }
 
-    public List<R> get(UUID programId) throws ApiException {
+    public Map<K, R> get(UUID programId) throws ApiException {
         try {
             // This will get current cache data, or wait for the refresh to finish if there is no cache data.
             // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
@@ -76,14 +81,16 @@ public class ProgramCache<R> {
                 // If the cache is missing, refresh and get
                 log.trace("cache miss, fetching from source.\nprogramId: " + programId);
                 updateCache(programId);
-                List<R> result = new ArrayList<>(cache.get(programId));
-                result = result.stream().map(cloner::deepClone).collect(Collectors.toList());
+                Map<K, R> result = new HashMap<>(cache.get(programId));
+                result = result.entrySet().stream().map(cloner::deepClone)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 return result;
             } else {
                 log.trace("cache contains records for the program.\nprogramId: " + programId);
                 // Most cases where the cache is populated
-                List<R> result = new ArrayList<>(cache.get(programId));
-                result = result.stream().map(cloner::deepClone).collect(Collectors.toList());
+                Map<K, R> result = new HashMap<>(cache.get(programId));
+                result = result.entrySet().stream().map(cloner::deepClone)
+                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 return result;
             }
         } catch (ExecutionException e) {

@@ -26,6 +26,7 @@ import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
 import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
 import org.breedinginsight.model.Program;
@@ -51,6 +52,7 @@ public class ImportUpload extends ImporterImportEntity {
     private User createdByUser;
     private User updatedByUser;
     private ImportProgress progress;
+    private ImportMapping mapping;
 
     private Table fileDataTable;
     private Table modifiedDataTable;
