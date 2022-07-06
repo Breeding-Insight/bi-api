@@ -21,6 +21,7 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
@@ -63,15 +64,16 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export{?fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<StreamedFile> germplasmListExport(
-            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId) {
+            @PathVariable("programId") UUID programId, @PathVariable("listDbId") String listDbId, @QueryValue(defaultValue = "XLSX") String fileExtension) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
-            DownloadFile germplasmListFile = germplasmService.exportGermplasmList(programId, listDbId);
-            HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+".xlsx");
+            FileType extension = Enum.valueOf(FileType.class, fileExtension);
+            DownloadFile germplasmListFile = germplasmService.exportGermplasmList(programId, listDbId, extension);
+            HttpResponse<StreamedFile> germplasmListExport = HttpResponse.ok(germplasmListFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+germplasmListFile.getFileName()+extension.getExtension());
             return germplasmListExport;
         }
         catch (Exception e) {

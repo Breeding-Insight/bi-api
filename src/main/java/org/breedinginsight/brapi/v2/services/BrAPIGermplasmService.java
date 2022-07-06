@@ -14,6 +14,7 @@ import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Pedigree;
@@ -21,6 +22,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
+import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -100,7 +102,47 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public DownloadFile exportGermplasmList(UUID programId, String listId) throws ApiException, IOException {
+    public List<Map<String, Object>> processData(List<BrAPIGermplasm> germplasm){
+        List<Map<String, Object>> processedData =  new ArrayList<>();
+
+        for (BrAPIGermplasm germplasmEntry: germplasm) {
+            HashMap<String, Object> row = new HashMap<>();
+            row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
+            row.put("Name", germplasmEntry.getGermplasmName());
+            row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsInt());
+            row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get("breedingMethod").getAsString());
+            String source = germplasmEntry.getSeedSource();
+            row.put("Source", source);
+
+            //If germplasm was imported with an external UID, it will be stored in external reference with same source as seed source
+            List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
+            for (BrAPIExternalReference reference: externalReferences){
+                if (reference.getReferenceSource().equals(source)) {
+                    row.put("External UID", reference.getReferenceID());
+                    break;
+                }
+            }
+
+            if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
+                Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
+                row.put("Female Parent GID", Integer.parseInt(germPedigree.femaleParent));
+                if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Integer.parseInt(germPedigree.maleParent));
+            }
+
+            // Synonyms
+            if (germplasmEntry.getSynonyms() != null && !germplasmEntry.getSynonyms().isEmpty()) {
+                String joinedSynonyms = germplasmEntry.getSynonyms().stream()
+                        .map(synonym -> synonym.getSynonym())
+                        .collect(Collectors.joining(";"));
+                row.put("Synonyms", joinedSynonyms);
+            }
+
+            processedData.add(row);
+        }
+        return processedData;
+    }
+
+    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
@@ -119,46 +161,15 @@ public class BrAPIGermplasmService {
             listName = removeAppendedKey(listName, program.getKey());
         }
         String fileName = createFileName(listData, listName);
-
+        StreamedFile downloadFile;
         //Convert list data to List<Map<String, Object>> data to pass into file writer
-        List<Map<String, Object>> processedData =  new ArrayList<>();
+        List<Map<String, Object>> processedData =  processData(germplasm);
 
-        for (BrAPIGermplasm germplasmEntry: germplasm) {
-            HashMap<String, Object> row = new HashMap<>();
-            row.put("GID", Double.valueOf(germplasmEntry.getAccessionNumber()));
-            row.put("Name", germplasmEntry.getGermplasmName());
-            row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsDouble());
-            row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get("breedingMethod").getAsString());
-            String source = germplasmEntry.getSeedSource();
-            row.put("Source", source);
-
-            //If germplasm was imported with an external UID, it will be stored in external reference with same source as seed source
-            List<BrAPIExternalReference> externalReferences = germplasmEntry.getExternalReferences();
-            for (BrAPIExternalReference reference: externalReferences){
-                if (reference.getReferenceSource().equals(source)) {
-                    row.put("External UID", reference.getReferenceID());
-                    break;
-                }
-            }
-
-            if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
-                Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
-                row.put("Female Parent GID", Double.parseDouble(germPedigree.femaleParent));
-                if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Double.parseDouble(germPedigree.maleParent));
-            }
-
-            // Synonyms
-            if (germplasmEntry.getSynonyms() != null && !germplasmEntry.getSynonyms().isEmpty()) {
-                String joinedSynonyms = germplasmEntry.getSynonyms().stream()
-                        .map(synonym -> synonym.getSynonym())
-                        .collect(Collectors.joining(";"));
-                row.put("Synonyms", joinedSynonyms);
-            }
-
-            processedData.add(row);
+        if (fileExtension == FileType.CSV){
+            downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
+        } else {
+            downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData, fileExtension);
         }
-
-        StreamedFile downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData);
 
         return new DownloadFile(fileName, downloadFile);
     }

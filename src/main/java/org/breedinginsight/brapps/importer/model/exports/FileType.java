@@ -15,35 +15,26 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model;
+package org.breedinginsight.brapps.importer.model.exports;
 
-import lombok.*;
-import lombok.experimental.Accessors;
-import lombok.experimental.SuperBuilder;
+import lombok.Getter;
 
-@Getter
-@Setter
-@Accessors(chain=true)
-@ToString
-@SuperBuilder
-@NoArgsConstructor
 /**
- * Represents a column for use in exporting data as file
+Defines MediaType parameters for file export
  */
-public class Column {
+@Getter
+public enum FileType {
+    XLS("xls", ".xls", "application/vnd.ms-excel"),
+    XLSX("xlsx", ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
+    CSV("csv", ".csv", "text/csv");
 
-    private String value;
-    private ColumnDataType dataType;
+    private String name;
+    private String extension;
+    private String mimeType;
 
-    public Column(String value, ColumnDataType dataType) {
-        this.setValue(value);
-        this.setDataType(dataType);
-    }
-
-    //TODO add date if necessary
-    public enum ColumnDataType {
-        STRING,
-        INTEGER,
-        DOUBLE
+    FileType(String name, String extension, String mimeType) {
+        this.name = name;
+        this.extension = extension;
+        this.mimeType = mimeType;
     }
 }
