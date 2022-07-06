@@ -45,8 +45,8 @@ public class BrAPISeasonDAO {
         SeasonQueryParams queryParams =
                 SeasonQueryParams.builder()
                         .year( year )
+                        .pageSize( 10000 )
                         .build();
-
         List<BrAPISeason> seasons = new ArrayList<>();
         ApiResponse<BrAPISeasonListResponse> apiResponse = api.seasonsGet( queryParams );
         BrAPISeasonListResponse seasonListResponse = apiResponse.getBody();

@@ -23,6 +23,7 @@ import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.pheno.*;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.model.Program;
@@ -114,7 +115,7 @@ public class ExperimentObservation implements BrAPIImport {
             trial.setTrialName( Utilities.appendProgramKey(getExpTitle(), program.getKey() ));
 
             // Set external reference
-            trial.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, id, null, null));
+            trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
         }
         else{
             trial.setTrialName( getExpTitle() );
@@ -124,8 +125,8 @@ public class ExperimentObservation implements BrAPIImport {
         trial.setProgramDbId(brapiProgram.getProgramDbId());
         trial.setProgramName(brapiProgram.getProgramName());
 
-        trial.putAdditionalInfoItem("defaultObservationLevel", getExpUnit());
-        trial.putAdditionalInfoItem("experimentType", getExpType());
+        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
+        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
 
         return trial;
     }
@@ -148,7 +149,7 @@ public class ExperimentObservation implements BrAPIImport {
             study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), expSequenceValue));
 
             // Set external reference
-            study.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, trialId, id,null));
+            study.setExternalReferences(getStudyExternalReferences(program, referenceSource, trialId, id));
         }
         else {
             study.setStudyName(getEnv());
@@ -159,7 +160,9 @@ public class ExperimentObservation implements BrAPIImport {
         study.setTrialName(getExpTitle());
         study.setSeasons( List.of( getEnvYear()==null ? "" : getEnvYear() ) );
 
-        String designType = "Analysis";
+        String designType = "Analysis"; // to support the BRApi server, the design type must be one of the following:
+                                        // 'CRD','Alpha','MAD','Lattice','Augmented','RCBD','p-rep','splitplot','greenhouse','Westcott', or 'Analysis'
+                                        // For now it will be hardcoded to 'Analysis'
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
         design.setPUI(designType);
         design.setDescription(designType);
@@ -184,7 +187,7 @@ public class ExperimentObservation implements BrAPIImport {
             observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString()));
 
             // Set external reference
-            observationUnit.setExternalReferences(getBrAPIExternalReferences(program, referenceSource, trialID, studyID, id));
+            observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, studyID, id));
         }
         else {
             observationUnit.setObservationUnitName(getExpUnitId());
@@ -260,6 +263,20 @@ public class ExperimentObservation implements BrAPIImport {
 
         return refs;
     }
+
+    private List<BrAPIExternalReference> getTrialExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null);
+    }
+    private List<BrAPIExternalReference> getStudyExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+    }
+    private List<BrAPIExternalReference> getObsUnitExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+    }
+
 
     private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, String refSourceName) {
         BrAPIExternalReference reference;
