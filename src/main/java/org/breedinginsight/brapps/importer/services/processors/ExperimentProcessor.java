@@ -686,7 +686,7 @@ public class ExperimentProcessor implements Processor {
         try {
             seasons = this.brAPISeasonDAO.getSeasonByYear(year, programId);
             for( BrAPISeason season : seasons){
-                if(null == season.getSeasonName() || season.getSeasonName().isBlank() || year.equals(season.getSeasonName())){
+                if(null == season.getSeasonName() || season.getSeasonName().isBlank() || season.getSeasonName().equals(year)){
                     targetSeason = season;
                     break;
                 }

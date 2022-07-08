@@ -26,6 +26,7 @@ import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -158,7 +159,10 @@ public class ExperimentObservation implements BrAPIImport {
         study.setStudyType(getExpType());
         study.setLocationName(getEnvLocation());
         study.setTrialName(getExpTitle());
-        study.setSeasons( List.of( getEnvYear()==null ? "" : getEnvYear() ) );
+
+        List<String> seasonList = new ArrayList<>();
+        seasonList.add( getEnvYear() );
+        study.setSeasons( seasonList );
 
         String designType = "Analysis"; // to support the BRApi server, the design type must be one of the following:
                                         // 'CRD','Alpha','MAD','Lattice','Augmented','RCBD','p-rep','splitplot','greenhouse','Westcott', or 'Analysis'
@@ -204,13 +208,13 @@ public class ExperimentObservation implements BrAPIImport {
         level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
         level.setLevelCode( getExpUnitId() );
         position.setObservationLevel(level);
-        observationUnit.putAdditionalInfoItem("observationLevel", getExpUnit());
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
 
         // Exp Unit
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
         if( getExpReplicateNo() !=null ) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName("replicate");
+            repLvl.setLevelName(BrAPIConstants.REPLICATE.getValue());
             repLvl.setLevelCode(getExpReplicateNo());
             levelRelationships.add(repLvl);
         }
@@ -218,7 +222,7 @@ public class ExperimentObservation implements BrAPIImport {
         // Block number
         if( getExpBlockNo() != null ) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName("block");
+            repLvl.setLevelName( BrAPIConstants.REPLICATE.getValue() );
             repLvl.setLevelCode(getExpBlockNo());
             levelRelationships.add(repLvl);
         }
