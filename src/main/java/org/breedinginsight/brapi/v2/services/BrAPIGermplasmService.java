@@ -13,6 +13,7 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
@@ -109,8 +110,8 @@ public class BrAPIGermplasmService {
             HashMap<String, Object> row = new HashMap<>();
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             row.put("Name", germplasmEntry.getGermplasmName());
-            row.put("Entry No", germplasmEntry.getAdditionalInfo().get("importEntryNumber").getAsInt());
-            row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get("breedingMethod").getAsString());
+            row.put("Entry No", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt());
+            row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
 
@@ -152,7 +153,7 @@ public class BrAPIGermplasmService {
         List<String> germplasmNames = listData.getData();
         List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
         //processGermplasmForDisplay, numbers
-        germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get("importEntryNumber").getAsInt()));
+        germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt()));
 
         String listName = listData.getListName();
         Optional<Program> optionalProgram = programService.getById(programId);

@@ -49,8 +49,6 @@ import java.util.stream.Collectors;
 @Context
 public class BrAPIGermplasmDAO {
 
-    private final String BREEDING_METHOD_ID_KEY = "breedingMethodId";
-
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
 
@@ -143,8 +141,8 @@ public class BrAPIGermplasmDAO {
             programGermplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
 
             JsonObject additionalInfo = germplasm.getAdditionalInfo();
-            if (additionalInfo != null && additionalInfo.has(BREEDING_METHOD_ID_KEY)) {
-                germplasm.setBreedingMethodDbId(additionalInfo.get(BREEDING_METHOD_ID_KEY).getAsString());
+            if (additionalInfo != null && additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID)) {
+                germplasm.setBreedingMethodDbId(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString());
             }
 
             if (germplasm.getDefaultDisplayName() != null) {
@@ -175,20 +173,24 @@ public class BrAPIGermplasmDAO {
                 List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 if (parents.size() >= 1) {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
-                        newPedigreeString = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
+                        String femaleParentAccessionNumber = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
+                        newPedigreeString = femaleParentAccessionNumber;
                         namePedigreeString = programGermplasmByFullName.get(parents.get(0)).getDefaultDisplayName();
                         uuidPedigreeString = programGermplasmByFullName.get(parents.get(0)).getExternalReferences().
                                 stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
                                 map(ref -> ref.getReferenceID()).findFirst().orElse("");
+                        additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParentAccessionNumber);
                     }
                 }
                 if (parents.size() == 2) {
                     if (programGermplasmByFullName.containsKey(parents.get(1))) {
-                        newPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getAccessionNumber();
+                        String maleParentAccessionNumber = programGermplasmByFullName.get(parents.get(1)).getAccessionNumber();
+                        newPedigreeString += "/" + maleParentAccessionNumber;
                         namePedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getDefaultDisplayName();
                         uuidPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getExternalReferences().
                                 stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
                                 map(ref -> ref.getReferenceID()).findFirst().orElse("");
+                        additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParentAccessionNumber);
                     }
                 }
                 //For use in individual germplasm display

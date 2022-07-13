@@ -18,12 +18,14 @@
 package org.breedinginsight.utilities.response.mappers;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.function.Function;
 
 @Getter
 @AllArgsConstructor
+@Builder
 public class FilterField {
     Function field;
     String value;
