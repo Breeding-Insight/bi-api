@@ -78,8 +78,6 @@ public class GermplasmController {
             log.debug("fetching germ for program: " + programId);
 
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
-            queryParams.setSortField(germplasmQueryMapper.getDefaultSortField());
-            queryParams.setSortOrder(germplasmQueryMapper.getDefaultSortOrder());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {
