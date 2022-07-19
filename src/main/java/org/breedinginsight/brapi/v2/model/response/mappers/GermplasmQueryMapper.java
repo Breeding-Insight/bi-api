@@ -26,24 +26,24 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
         fields = Map.ofEntries(
                 Map.entry("accessionNumber", BrAPIGermplasm::getAccessionNumber),
                 Map.entry("defaultDisplayName", BrAPIGermplasm::getDefaultDisplayName),
-                Map.entry("additionalInfo.breedingMethod", (germplasm) ->
+                Map.entry("breedingMethod", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString() :
                                 null),
                 Map.entry("seedSource", BrAPIGermplasm::getSeedSource),
-                Map.entry("femaleParent", (germplasm) ->
+                Map.entry("femaleParentGID", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsString() :
                                 null),
-                Map.entry("maleParent", (germplasm) ->
+                Map.entry("maleParentGID", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsString() :
                                 null),
-                Map.entry("additionalInfo.createdDate", (germplasm) ->
+                Map.entry("createdDate", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString() :
                                 null),
-                Map.entry("additionalInfo.createdBy.userName", (germplasm) ->
+                Map.entry("createdByUserName", (germplasm) ->
                             germplasm.getAdditionalInfo() != null
                                 && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_BY)
                                 && germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).has(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME) ?

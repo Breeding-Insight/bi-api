@@ -32,22 +32,22 @@ public class GermplasmQuery extends BrapiQuery {
             filters.add(constructFilterRequest("defaultDisplayName", getDefaultDisplayName()));
         }
         if (!StringUtils.isBlank(getBreedingMethod())) {
-            filters.add(constructFilterRequest("additionalInfo.breedingMethod", getBreedingMethod()));
+            filters.add(constructFilterRequest("breedingMethod", getBreedingMethod()));
         }
         if (!StringUtils.isBlank(getSeedSource())) {
             filters.add(constructFilterRequest("seedSource", getSeedSource()));
         }
         if (!StringUtils.isBlank(getFemaleParentGID())) {
-            filters.add(constructFilterRequest("femaleParent", getFemaleParentGID()));
+            filters.add(constructFilterRequest("femaleParentGID", getFemaleParentGID()));
         }
         if (!StringUtils.isBlank(getMaleParentGID())) {
-            filters.add(constructFilterRequest("maleParent", getMaleParentGID()));
+            filters.add(constructFilterRequest("maleParentGID", getMaleParentGID()));
         }
         if (!StringUtils.isBlank(getCreatedDate())) {
-            filters.add(constructFilterRequest("additionalInfo.createdDate", getCreatedDate()));
+            filters.add(constructFilterRequest("createdDate", getCreatedDate()));
         }
         if (!StringUtils.isBlank(getCreatedByUserName())) {
-            filters.add(constructFilterRequest("additionalInfo.createdBy.userName", getCreatedByUserName()));
+            filters.add(constructFilterRequest("createdByUserName", getCreatedByUserName()));
         }
         if (!StringUtils.isBlank(getSynonym())) {
             filters.add(constructFilterRequest("synonyms", getSynonym()));
