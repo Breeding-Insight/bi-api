@@ -20,9 +20,6 @@ package org.breedinginsight.brapi.v2.constants;
 public final class BrAPIAdditionalInfoFields {
     public static final String GERMPLASM_RAW_PEDIGREE = "rawPedigree";
     public static final String GERMPLASM_PEDIGREE_BY_NAME = "pedigreeByName";
-    public static final String DEFAULT_OBSERVATION_LEVEL = "defaultObservationLevel";
-    public static final String OBSERVATION_LEVEL = "observationLevel";
-    public static final String EXPERIMENT_TYPE = "experimentType";
     public static final String GERMPLASM_PEDIGREE_BY_UUID = "pedigreeByUUID";
     public static final String GERMPLASM_IMPORT_ENTRY_NUMBER = "importEntryNumber";
     public static final String GERMPLASM_FEMALE_PARENT_GID = "femaleParentGid";
@@ -35,4 +32,8 @@ public final class BrAPIAdditionalInfoFields {
     public static final String GERMPLASM_BREEDING_METHOD_ID = "breedingMethodId";
     public static final String GERMPLASM_BREEDING_METHOD = "breedingMethod";
     public static final String CREATED_DATE = "createdDate";
+    public static final String DEFAULT_OBSERVATION_LEVEL = "defaultObservationLevel";
+    public static final String OBSERVATION_LEVEL = "observationLevel";
+    public static final String EXPERIMENT_TYPE = "experimentType";
+    public static final String EXPERIMENT_NUMBER = "experimentNumber";
 }
