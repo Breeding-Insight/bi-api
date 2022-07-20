@@ -7,7 +7,7 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
@@ -15,7 +15,10 @@ import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
+import org.breedinginsight.api.model.v1.request.query.FilterRequest;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
@@ -23,6 +26,7 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.utilities.response.mappers.FilterField;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -30,10 +34,12 @@ import javax.inject.Inject;
 
 import java.io.File;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 import static io.micronaut.http.HttpRequest.GET;
+import static io.micronaut.http.HttpRequest.POST;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
@@ -60,6 +66,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
+    GermplasmQueryMapper germplasmQueryMapper = new GermplasmQueryMapper();
 
     private final String germplasmListName = "Program List";
     private final String germplasmListDesc = "Program List";
@@ -234,5 +241,111 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 throw new AssertionFailedError("List name not found");
             }
         }
+    }
+
+    @Test
+    @SneakyThrows
+    public void filterGermplasmNameSuccess() {
+
+        SearchRequest searchRequest = constructSearchRequest(
+                List.of("defaultDisplayName", "synonyms"),
+                List.of("Full", "test1"));
+        JsonArray data = callFilterGermplasm(searchRequest);
+
+        assertEquals(1, data.size(), "Wrong number of germplasm were returned");
+        JsonObject germplasm = data.get(0).getAsJsonObject();
+        assertEquals("Full Germplasm 1", germplasm.get("germplasmName").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void filterGermplasmBreedingMethodSuccess() {
+
+        SearchRequest searchRequest = constructSearchRequest(
+                List.of("breedingMethod", "defaultDisplayName"),
+                List.of("Aneupoly", "Germplasm 1"));
+        JsonArray data = callFilterGermplasm(searchRequest);
+
+        assertEquals(1, data.size(), "Wrong number of germplasm were returned");
+        JsonObject germplasm = data.get(0).getAsJsonObject();
+        assertEquals("Full Germplasm 1", germplasm.get("germplasmName").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void filterGermplasmSourceSuccess() {
+
+        SearchRequest searchRequest = constructSearchRequest(
+                List.of("seedSource"),
+                List.of("cultivate"));
+        JsonArray data = callFilterGermplasm(searchRequest);
+
+        assertEquals(1, data.size(), "Wrong number of germplasm were returned");
+        JsonObject germplasm = data.get(0).getAsJsonObject();
+        assertEquals("Germplasm 2", germplasm.get("germplasmName").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void filterGermplasmFemaleParentGIDSuccess() {
+
+        SearchRequest searchRequest = constructSearchRequest(
+                List.of("femaleParentGID"),
+                List.of("2"));
+        JsonArray data = callFilterGermplasm(searchRequest);
+
+        assertEquals(1, data.size(), "Wrong number of germplasm were returned");
+        JsonObject germplasm = data.get(0).getAsJsonObject();
+        assertEquals("Full Germplasm 2", germplasm.get("germplasmName").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void filterGermplasmMaleParentGIDSuccess() {
+
+        SearchRequest searchRequest = constructSearchRequest(
+                List.of("maleParentGID"),
+                List.of("2"));
+        JsonArray data = callFilterGermplasm(searchRequest);
+
+        assertEquals(1, data.size(), "Wrong number of germplasm were returned");
+        JsonObject germplasm = data.get(0).getAsJsonObject();
+        assertEquals("Full Germplasm 1", germplasm.get("germplasmName").getAsString());
+    }
+
+    @Test
+    @SneakyThrows
+    public void filterGermplasmOneMatchOneNoMatch() {
+
+        SearchRequest searchRequest = constructSearchRequest(
+                List.of("defaultDisplayName", "synonyms"),
+                List.of("No Match", "test1"));
+        JsonArray data = callFilterGermplasm(searchRequest);
+
+        assertEquals(0, data.size(), "Wrong number of germplasm were returned");
+    }
+
+    public JsonArray callFilterGermplasm(SearchRequest searchRequest) {
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(String.format("/programs/%s/brapi/v2/search/germplasm",validProgram.getId().toString()), gson.toJson(searchRequest))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        return result.getAsJsonArray("data");
+    }
+
+    public SearchRequest constructSearchRequest(List<String> fields, List<String> values) {
+        SearchRequest searchRequest = new SearchRequest();
+        List<FilterRequest> filters = new ArrayList<>();
+        for (int i = 0; i < fields.size(); i++) {
+            filters.add(new FilterRequest(fields.get(i), values.get(i)));
+        }
+        searchRequest.setFilters(filters);
+        return searchRequest;
     }
 }

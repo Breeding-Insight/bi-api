@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services;
 
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -39,7 +40,6 @@ import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -230,7 +230,7 @@ public class MappingManager {
             } else if (matchedMapping.getValue().getRelationMap().getReference() == null &&
                     matchedMapping.getValue().getRelationMap().getTarget() == null)
             {
-                throw new BadRequestException("Relationship field is not properly formatted");
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Relationship field is not properly formatted");
             }
 
             MappingValue value = matchedMapping.getValue();
@@ -263,7 +263,7 @@ public class MappingManager {
                 return;
             } else if (matchedMapping.getValue() != null &&
                     matchedMapping.getValue().getFileFieldName() == null && matchedMapping.getValue().getConstantValue() == null){
-                throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Basic mapping field must have file field or constant value specified.");
             }
 
             // Check if the mapping passed a constant value or a mapped value

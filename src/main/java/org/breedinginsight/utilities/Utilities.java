@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities;
 
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 
 import java.util.List;
 import java.util.Optional;

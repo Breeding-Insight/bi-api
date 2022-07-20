@@ -17,7 +17,7 @@
 
 package org.breedinginsight.api.model.v1.request;
 
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.validation.validator.Validator;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.AfterAll;

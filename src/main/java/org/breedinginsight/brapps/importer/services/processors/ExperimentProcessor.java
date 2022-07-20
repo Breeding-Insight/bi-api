@@ -67,8 +67,8 @@ public class ExperimentProcessor implements Processor {
     private BrAPILocationDAO brAPILocationDAO;
     private BrAPIStudyDAO brAPIStudyDAO;
     private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
+	private final BrAPIGermplasmDAO brAPIGermplasmDAO;
     private BrAPISeasonDAO brAPISeasonDAO;
-    private BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     // used to make the yearsToSeasonDbId() function more efficient
     private Map<String, String > yearToSeasonDbIdCache = new HashMap<>();

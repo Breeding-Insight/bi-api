@@ -22,6 +22,7 @@ import org.apache.tika.config.TikaConfig;
 import org.apache.tika.detect.Detector;
 import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
+import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
 
 import javax.inject.Singleton;
@@ -39,7 +40,7 @@ public class MimeTypeParser {
 
     public MediaType getMimeType(CompletedFileUpload file) throws IOException {
         Metadata metadata = new Metadata();
-        metadata.add(Metadata.RESOURCE_NAME_KEY, file.getFilename());
+        metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getFilename());
         TikaInputStream tikaStream = TikaInputStream.get(file.getInputStream());
         return detector.detect(tikaStream, metadata);
     }

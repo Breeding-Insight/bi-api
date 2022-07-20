@@ -17,5 +17,20 @@
  */
 
 -- name: AddObservations
-insert into observation (id, observation_variable_id, value)
-select row_number() over (order by id), id, 'test' from observation_variable;
+insert into observation (id, observation_variable_id, program_id, value)
+select md5(random()::text || clock_timestamp()::text)::uuid, observation_variable.id, matching_program.id, 'test'
+from observation_variable
+join
+ (
+     select p.id, er.external_reference_id from
+         "program" p
+             join
+         program_external_references per on p.id = per.program_entity_id
+             join
+         external_reference er on per.external_references_id  = er.id
+            where
+         er.external_reference_id = ?::text
+ ) as matching_program on 1=1;
+
+-- name: DeleteObservations
+delete from observation;

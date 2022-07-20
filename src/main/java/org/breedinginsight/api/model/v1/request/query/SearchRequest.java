@@ -26,6 +26,8 @@ import java.util.List;
 @Getter
 @Setter
 @Introspected
+@AllArgsConstructor
+@NoArgsConstructor
 public class SearchRequest {
     private List<FilterRequest> filters = new ArrayList<>();
 }

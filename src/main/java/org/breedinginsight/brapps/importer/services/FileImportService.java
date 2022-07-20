@@ -58,7 +58,6 @@ import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -339,7 +338,7 @@ public class FileImportService {
 
         // Check that the program that the user created the import for is the one they are updating for
         if (!programId.equals(upload.getProgramId())){
-            throw new BadRequestException("Unable to update upload for a different program than the upload was created in.");
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to update upload for a different program than the upload was created in.");
         }
 
         // Get mapping
@@ -468,6 +467,33 @@ public class FileImportService {
         HttpStatus status = HttpStatus.valueOf(statusCode);
 
         return new ImmutablePair<>(status, response);
+    }
+
+    public List<ImportResponse> getProgramUploads(UUID programId, Boolean includeMapping) throws DoesNotExistException {
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (!optionalProgram.isPresent()) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+        List<ImportUpload> uploads = importDAO.getProgramUploads(programId);
+
+        return uploads.stream().map(upload -> {
+            ImportResponse response = new ImportResponse();
+            response.setImportId(upload.getId());
+            response.setImportMappingId(upload.getMapping().getId());
+            response.setImportMappingName(upload.getMapping().getName());
+            response.setImportType(upload.getMapping().getImportTypeId());
+            response.setUploadFileName(upload.getUploadFileName());
+            response.setCreatedByUser(upload.getCreatedByUser());
+            response.setCreatedAt(upload.getCreatedAt());
+            response.setUpdatedByUser(upload.getUpdatedByUser());
+            response.setUpdatedAt(upload.getUpdatedAt());
+            response.setProgress(upload.getProgress());
+            if (includeMapping){
+                response.setPreview(upload.getMappedData());
+            }
+
+            return response;
+        }).collect(Collectors.toList());
     }
 
     public List<ImportMapping> getAllMappings(UUID programId, AuthenticatedUser actingUser, Boolean draft)

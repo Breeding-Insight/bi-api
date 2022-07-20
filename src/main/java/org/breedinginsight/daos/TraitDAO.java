@@ -36,6 +36,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.jooq.*;
+import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -45,8 +46,7 @@ import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
 import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
-import static org.jooq.impl.DSL.row;
-import static org.jooq.impl.DSL.values;
+import static org.jooq.impl.DSL.*;
 
 @Singleton
 public class TraitDAO extends TraitDao {
@@ -218,7 +218,28 @@ public class TraitDAO extends TraitDao {
         return observationDao.getObservationsByVariableDbIds(brapiVariableIds);
     }
 
+    public List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, List<UUID> traitIds) {
+
+        List<String> ids = traitIds.stream()
+                .map(trait -> trait.toString())
+                .collect(Collectors.toList());
+
+        List<BrAPIObservationVariable> variables = searchVariables(ids);
+
+        // TODO: make sure have all expected external references
+        if (variables.size() != ids.size()) {
+            throw new InternalServerException("Observation variables search results mismatch");
+        }
+
+        List<String> brapiVariableIds = variables.stream()
+                .map(variable -> variable.getObservationVariableDbId()).collect(Collectors.toList());
+
+        return observationDao.getObservationsByVariableAndBrAPIProgram(brapiProgramId, brapiVariableIds);
+    }
+
     public List<BrAPIObservationVariable> searchVariables(List<String> variableIds) {
+
+        if (variableIds == null || variableIds.size() == 0) return new ArrayList<>();
         try {
             BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
                     .externalReferenceIDs(variableIds);
@@ -264,7 +285,7 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getMethod().getId().toString())
                     .referenceSource(referenceSource);
             BrAPIMethod brApiMethod = new BrAPIMethod()
-                                                 .methodName(String.format("%s %s", trait.getMethod().getDescription(), trait.getMethod().getMethodClass()))
+                                                 .methodName(constructMethodName(trait, program))
                                                  .externalReferences(List.of(methodReference))
                                                  .methodClass(trait.getMethod().getMethodClass())
                                                  .description(trait.getMethod().getDescription())
@@ -280,7 +301,7 @@ public class TraitDAO extends TraitDao {
                                                                                .max(trait.getScale().getValidValueMax())
                                                                                .min(trait.getScale().getValidValueMin());
             BrAPIScale brApiScale = new BrAPIScale()
-                    .scaleName(trait.getScale().getScaleName())
+                    .scaleName(String.format("%s [%s]", trait.getScale().getScaleName(), program.getKey()))
                     .externalReferences(List.of(scaleReference))
                     .dataType(brApiTraitDataType)
                     .decimalPlaces(trait.getScale().getDecimalPlaces())
@@ -291,7 +312,7 @@ public class TraitDAO extends TraitDao {
                     .referenceID(trait.getId().toString())
                     .referenceSource(referenceSource);
             BrAPITrait brApiTrait = new BrAPITrait()
-                    .traitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()))
+                    .traitName(String.format("%s %s [%s]", trait.getEntity(), trait.getAttribute(), program.getKey()))
                     .traitDescription(trait.getTraitDescription())
                     .synonyms(trait.getSynonyms())
                     .status("active")
@@ -309,7 +330,7 @@ public class TraitDAO extends TraitDao {
                     .scale(brApiScale)
                     .trait(brApiTrait)
                     .externalReferences(List.of(variableReference))
-                    .observationVariableName(trait.getObservationVariableName())
+                    .observationVariableName(String.format("%s [%s]", trait.getObservationVariableName(), program.getKey()))
                     .status("active")
                     .language("english")
                     .scientist(actingUser.getName())
@@ -384,14 +405,14 @@ public class TraitDAO extends TraitDao {
             BrAPIObservationVariable existingVariable = getBrAPIVariable(variablesAPI, trait.getId());
 
             // Change method
-            existingVariable.getMethod().setMethodName(String.format("%s %s", trait.getMethod().getDescription(), trait.getMethod().getMethodClass()));
+            existingVariable.getMethod().setMethodName(constructMethodName(trait, program));
             existingVariable.getMethod().setMethodClass(trait.getMethod().getMethodClass());
             existingVariable.getMethod().setDescription(trait.getMethod().getDescription());
             existingVariable.getMethod().setFormula(trait.getMethod().getFormula());
 
             // Change scale
             BrAPITraitDataType brApiTraitDataType = BrAPITraitDataType.valueOf(trait.getScale().getDataType().toString());
-            existingVariable.getScale().setScaleName(trait.getScale().getScaleName());
+            existingVariable.getScale().setScaleName(String.format("%s [%s]", trait.getScale().getScaleName(), program.getKey()));
             existingVariable.getScale().setDataType(brApiTraitDataType);
             existingVariable.getScale().setDecimalPlaces(trait.getScale().getDecimalPlaces());
             BrAPIScaleValidValues brApiScaleValidValues = new BrAPIScaleValidValues()
@@ -401,7 +422,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.getScale().setValidValues(brApiScaleValidValues);
 
             // Change trait
-            existingVariable.getTrait().setTraitName(String.format("%s %s", trait.getEntity(), trait.getAttribute()));
+            existingVariable.getTrait().setTraitName(String.format("%s %s [%s]", trait.getEntity(), trait.getAttribute(), program.getKey()));
             existingVariable.getTrait().setTraitDescription(trait.getTraitDescription());
             existingVariable.getTrait().setSynonyms(trait.getSynonyms());
             existingVariable.getTrait().setEntity(trait.getProgramObservationLevel().getName());
@@ -410,7 +431,7 @@ public class TraitDAO extends TraitDao {
             existingVariable.getTrait().setAttribute(trait.getAttribute());
 
             // Change variable
-            existingVariable.setObservationVariableName(trait.getObservationVariableName());
+            existingVariable.setObservationVariableName(String.format("%s [%s]", trait.getObservationVariableName(), program.getKey()));
             existingVariable.setDefaultValue(trait.getDefaultValue());
             existingVariable.setSynonyms(trait.getSynonyms());
             if (trait.getActive() == null || trait.getActive()){
@@ -430,6 +451,12 @@ public class TraitDAO extends TraitDao {
         }
 
         return updatedTrait;
+    }
+
+    private String constructMethodName(Trait trait, Program program) {
+        return !StringUtils.isBlank(trait.getMethod().getDescription()) ?
+                String.format("%s %s [%s]", trait.getMethod().getDescription(), trait.getMethod().getMethodClass(), program.getKey()) :
+                String.format("%s [%s]", trait.getMethod().getMethodClass(), program.getKey());
     }
 
     private BrAPIObservationVariable getBrAPIVariable(ObservationVariablesApi variablesAPI, UUID traitId) {
@@ -500,24 +527,22 @@ public class TraitDAO extends TraitDao {
 
     public List<Trait> getTraitsByTraitName(UUID programId, List<Trait> traits){
 
-        RowN[] valueRows = traits.stream()
+        String[] names = traits.stream()
                 .filter(trait -> trait.getObservationVariableName() != null)
-                .map(trait -> (RowN) row(trait.getObservationVariableName()))
-                .collect(Collectors.toList()).toArray(RowN[]::new);
+                .map(trait -> trait.getObservationVariableName().toLowerCase())
+                .collect(Collectors.toList()).toArray(String[]::new);
 
         List<Trait> traitResults = new ArrayList<>();
-        if (valueRows.length > 0){
-            Table newTraits = dsl.select()
-                    .from(values(valueRows).as("newTraits", "new_trait_name")).asTable("newTraits");
+        if (names.length > 0){
 
             Result<Record> records = dsl.select()
-                    .from(newTraits)
-                    .join(TRAIT).on(TRAIT.OBSERVATION_VARIABLE_NAME.upper().equalIgnoreCase(newTraits.field("new_trait_name")))
+                    .from(TRAIT)
                     .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
                     .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
                     .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID))
                     .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID))
                     .where(PROGRAM.ID.eq(programId))
+                    .and(lower(TRAIT.OBSERVATION_VARIABLE_NAME).in(names))
                     .fetch();
 
             for (Record record: records) {
@@ -573,5 +598,4 @@ public class TraitDAO extends TraitDao {
         Scale scale = trait.getScale();
         scale.setBrAPIProperties(brApiVariable.getScale());
     }
-
 }

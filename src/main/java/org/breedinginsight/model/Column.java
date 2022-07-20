@@ -43,6 +43,7 @@ public class Column {
     //TODO add date if necessary
     public enum ColumnDataType {
         STRING,
-        NUMERICAL,
+        INTEGER,
+        DOUBLE
     }
 }
