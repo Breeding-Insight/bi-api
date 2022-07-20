@@ -18,24 +18,23 @@ package org.breedinginsight.services.parsers.germplasm;
 
 import org.breedinginsight.model.Column;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 public enum GermplasmFileColumns {
 
-    GID("GID", Column.ColumnDataType.NUMERICAL),
+    GID("GID", Column.ColumnDataType.INTEGER),
     NAME("Name", Column.ColumnDataType.STRING),
     BREEDING_METHOD("Breeding Method", Column.ColumnDataType.STRING),
     SOURCE("Source", Column.ColumnDataType.STRING),
-    FEMALE_PARENT_GID("Female Parent GID", Column.ColumnDataType.NUMERICAL),
-    MALE_PARENT_GID("Male Parent GID", Column.ColumnDataType.NUMERICAL),
-    ENTRY_NO("Entry No", Column.ColumnDataType.NUMERICAL),
-    FEMALE_PARENT_ENTRY_NO("Female Parent Entry No", Column.ColumnDataType.NUMERICAL),
-    MALE_PARENT_ENTRY_NO("Male Parent Entry No", Column.ColumnDataType.NUMERICAL),
-    EXTERNAL_UID("External UID", Column.ColumnDataType.STRING);
+    FEMALE_PARENT_GID("Female Parent GID", Column.ColumnDataType.INTEGER),
+    MALE_PARENT_GID("Male Parent GID", Column.ColumnDataType.INTEGER),
+    ENTRY_NO("Entry No", Column.ColumnDataType.INTEGER),
+    FEMALE_PARENT_ENTRY_NO("Female Parent Entry No", Column.ColumnDataType.INTEGER),
+    MALE_PARENT_ENTRY_NO("Male Parent Entry No", Column.ColumnDataType.INTEGER),
+    EXTERNAL_UID("External UID", Column.ColumnDataType.STRING),
+    SYNONYMS("Synonyms", Column.ColumnDataType.STRING);
 
     private final Column column;
 

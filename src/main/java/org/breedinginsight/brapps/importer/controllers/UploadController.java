@@ -101,7 +101,7 @@ public class UploadController {
                 return HttpResponse.ok(response);
             }
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         }
     }
@@ -118,16 +118,16 @@ public class UploadController {
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (HttpStatusException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(e.getStatus(), e.getMessage());
         }
     }
@@ -144,16 +144,16 @@ public class UploadController {
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.FORBIDDEN, e.getMessage());
         } catch (UnprocessableEntityException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
         } catch (HttpStatusException e) {
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.status(e.getStatus(), e.getMessage());
         }
     }

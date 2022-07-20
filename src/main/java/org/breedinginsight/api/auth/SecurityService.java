@@ -20,6 +20,7 @@ package org.breedinginsight.api.auth;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.security.authentication.Authentication;
+import io.micronaut.security.token.config.TokenConfiguration;
 import io.micronaut.security.utils.DefaultSecurityService;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -41,7 +42,8 @@ public class SecurityService extends DefaultSecurityService {
 
     @Inject
     public SecurityService(ProgramDao programDao, UserDAO userDAO,
-                           Provider<ActingUserProvider> actingUserProvider) {
+                           Provider<ActingUserProvider> actingUserProvider, TokenConfiguration tokenConfiguration) {
+        super(tokenConfiguration);
         this.programDao = programDao;
         this.userDAO = userDAO;
         this.actingUserProvider = actingUserProvider;

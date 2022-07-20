@@ -23,4 +23,16 @@ public final class BrAPIAdditionalInfoFields {
     public static final String DEFAULT_OBSERVATION_LEVEL = "defaultObservationLevel";
     public static final String OBSERVATION_LEVEL = "observationLevel";
     public static final String EXPERIMENT_TYPE = "experimentType";
+    public static final String GERMPLASM_PEDIGREE_BY_UUID = "pedigreeByUUID";
+    public static final String GERMPLASM_IMPORT_ENTRY_NUMBER = "importEntryNumber";
+    public static final String GERMPLASM_FEMALE_PARENT_GID = "femaleParentGid";
+    public static final String GERMPLASM_MALE_PARENT_GID = "maleParentGid";
+    public static final String GERMPLASM_FEMALE_PARENT_ENTRY_NO = "femaleParentEntryNo";
+    public static final String GERMPLASM_MALE_PARENT_ENTRY_NO = "maleParentEntryNo";
+    public static final String CREATED_BY = "createdBy";
+    public static final String CREATED_BY_USER_ID = "userId";
+    public static final String CREATED_BY_USER_NAME = "userName";
+    public static final String GERMPLASM_BREEDING_METHOD_ID = "breedingMethodId";
+    public static final String GERMPLASM_BREEDING_METHOD = "breedingMethod";
+    public static final String CREATED_DATE = "createdDate";
 }

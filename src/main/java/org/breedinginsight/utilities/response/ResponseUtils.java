@@ -171,15 +171,19 @@ public class ResponseUtils {
 
     private static List search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
 
-        List<FilterField> filterFields = searchRequest.getFilters().stream()
-                .map(filter -> new FilterField(mapper.getField(filter.getField()), filter.getValue()))
-                .collect(Collectors.toList());
+        List<FilterField> filterFields = new ArrayList<>();
+        if (searchRequest.getFilters() != null) {
+            filterFields = searchRequest.getFilters().stream()
+                    .map(filter -> new FilterField(mapper.getField(filter.getField()), filter.getValue()))
+                    .collect(Collectors.toList());
+        }
 
         if (filterFields.size() > 0){
             // Apply filters
+            List<FilterField> finalFilterFields = filterFields;
             return data.stream()
                     .filter(record ->
-                            filterFields.stream().allMatch(filterField -> {
+                            finalFilterFields.stream().allMatch(filterField -> {
                                 if (filterField.getField().apply(record) == null) {
                                     return false;
                                 } else if (filterField.getField().apply(record) instanceof List ||

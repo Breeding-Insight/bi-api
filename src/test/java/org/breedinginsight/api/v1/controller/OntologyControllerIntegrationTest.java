@@ -11,10 +11,7 @@ import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.BrAPITest;
-import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
@@ -33,7 +30,6 @@ import javax.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static io.micronaut.http.HttpRequest.*;
@@ -50,6 +46,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     private Program mainProgram;
     private Program otherProgram;
     private Program thirdProgram;
+    private Program fourthProgram;
 
     @Inject
     private DSLContext dsl;
@@ -111,24 +108,35 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
                 .species(speciesRequest)
                 .key("OTC")
                 .build();
+        ProgramRequest programRequest4 = ProgramRequest.builder()
+                .name("Test Program4")
+                .abbreviation("test3")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
+                .species(speciesRequest)
+                .key("OTD")
+                .build();
+
 
         TestUtils.insertAndFetchTestProgram(gson, client, programRequest1);
         TestUtils.insertAndFetchTestProgram(gson, client, programRequest2);
         TestUtils.insertAndFetchTestProgram(gson, client, programRequest3);
+        TestUtils.insertAndFetchTestProgram(gson, client, programRequest4);
 
         // Get main program
         List<Program> programs = programDAO.getAll();
         mainProgram = programs.get(0);
         otherProgram = programs.get(1);
         thirdProgram = programs.get(2);
+        fourthProgram = programs.get(3);
 
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), mainProgram.getId().toString());
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), otherProgram.getId().toString());
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), thirdProgram.getId().toString());
 
         // Add trait to program
-        addTrait(otherProgram);
-        // Add a single observation to all traits
-        super.getBrapiDsl().execute(brapiObservationFp.get("AddObservations"));
+        addTrait(mainProgram);
+        addTrait(thirdProgram);
     }
 
     private void addTrait(Program program) {
@@ -155,13 +163,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
         List<Trait> traits = List.of(trait);
 
         // Call endpoint
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST("/programs/" + program.getId() + "/traits", traits)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
+        TestUtils.insertTestTraits(gson, client, program, traits);
     }
 
     @Test
@@ -177,7 +179,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
-        assertEquals(2, data.size(), "Wrong number of programs returned");
+        assertEquals(3, data.size(), "Wrong number of programs returned");
 
         // Check all are not shared and are inactive
         for (JsonElement element: data) {
@@ -196,6 +198,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
         String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
         List<SharedOntologyProgramRequest> requests = new ArrayList<>();
         requests.add(new SharedOntologyProgramRequest(otherProgram.getId(), otherProgram.getName()));
+        requests.add(new SharedOntologyProgramRequest(thirdProgram.getId(), thirdProgram.getName()));
         String json = gson.toJson(requests);
 
         Flowable<HttpResponse<String>> call = client.exchange(
@@ -209,7 +212,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
-        assertEquals(1, data.size(), "Wrong number of programs returned");
+        assertEquals(2, data.size(), "Wrong number of programs returned");
 
         // Check all are not shared and are inactive
         for (JsonElement element: data) {
@@ -222,16 +225,100 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
-    @Order(2)
-    void shareOntologySubscribedToOtherProgram() {
-        // TODO: When subscribe ontology card is done
-        // Cannot share ontology if you are using a shared ontology
+    @Order(3)
+    void subscribeOntologyProgramHasTraitsError() {
+        String url = String.format("/programs/%s/ontology/subscribe/%s", thirdProgram.getId(), mainProgram.getId());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(url, "")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
     }
 
     @Test
     @Order(3)
+    void subscribeOntologySuccess() {
+        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                PUT(url, "")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(4)
+    void getSubscribedOntologyOptions() {
+
+        String url = String.format("/programs/%s/ontology/subscribe", otherProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(1, data.size(), "Wrong number of programs returned");
+
+        // Check all are not shared and are inactive
+        for (JsonElement element: data) {
+            JsonObject program = element.getAsJsonObject();
+
+            assertTrue(program.get("subscribed").getAsBoolean());
+            assertTrue(program.get("editable").getAsBoolean());
+        }
+    }
+
+    @Test
+    @Order(4)
     void getAllProgramsSharedPrograms() {
         String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+        assertEquals(3, data.size(), "Wrong number of programs returned");
+
+        // Check all are not shared and are inactive
+        for (JsonElement element: data) {
+            JsonObject program = element.getAsJsonObject();
+
+            if (program.get("programId").getAsString().equals(fourthProgram.getId().toString())) {
+                assertFalse(program.get("shared").getAsBoolean());
+            } else {
+                assertTrue(program.get("shared").getAsBoolean(), "Shared should have been true");
+                assertTrue(program.get("editable").getAsBoolean(), "Editable should have been false");
+                if (program.get("programId").getAsString().equals(otherProgram.getId().toString())) {
+                    assertTrue(program.get("accepted").getAsBoolean());
+                } else {
+                    assertFalse(program.get("accepted").getAsBoolean());
+                }
+            }
+        }
+    }
+
+    @Test
+    @Order(4)
+    void getOnlySharedPrograms() {
+        String url = String.format("/programs/%s/ontology/shared/programs?shared=true", mainProgram.getId());
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -247,56 +334,86 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
         for (JsonElement element: data) {
             JsonObject program = element.getAsJsonObject();
 
-            if (program.get("programId").getAsString().equals(otherProgram.getId().toString())) {
-                assertTrue(program.get("shared").getAsBoolean(), "Shared should have been true");
-                assertFalse(program.get("accepted").getAsBoolean(), "Accepted should have been false");
-                assertTrue(program.get("editable").getAsBoolean(), "Editable should have been false");
-            } else {
-                assertFalse(program.get("shared").getAsBoolean(), "Shared should have been false");
-                assertNull(program.get("accepted"), "Accepted should have been false");
-                assertNull(program.get("editable"), "Editable should have been false");
-            }
-
-        }
-    }
-
-    @Test
-    @Order(3)
-    void getOnlySharedPrograms() {
-        String url = String.format("/programs/%s/ontology/shared/programs?shared=true", mainProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        assertEquals(1, data.size(), "Wrong number of programs returned");
-
-        // Check all are not shared and are inactive
-        for (JsonElement element: data) {
-            JsonObject program = element.getAsJsonObject();
-
             assertTrue(program.get("shared").getAsBoolean(), "Shared should have been true");
-            assertFalse(program.get("accepted").getAsBoolean(), "Accepted should have been false");
-            assertTrue(program.get("editable").getAsBoolean(), "Editable should have been false");
         }
     }
 
     @Test
     @Order(4)
+    void shareOntologySubscribedToOtherProgram() {
+        // Cannot share ontology if you are using a shared ontology
+        String url = String.format("/programs/%s/ontology/shared/programs", otherProgram.getId());
+        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
+        requests.add(new SharedOntologyProgramRequest(fourthProgram.getId(), fourthProgram.getName()));
+        String json = gson.toJson(requests);
+
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(url, json)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+    }
+
+    @Test
+    @Order(4)
     void revokeOntologyUneditable() {
-        // TODO: When subscribe ontology card is done
         // Ontology cannot be revoke if shared program has accepted and has observations
+        super.getBrapiDsl().execute(brapiObservationFp.get("AddObservations"), otherProgram.getId().toString());
+
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), otherProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        super.getBrapiDsl().execute(brapiObservationFp.get("DeleteObservations"));
+    }
+
+    @Test
+    @Order(4)
+    void unsubscribeOntologyUneditableError() {
+        super.getBrapiDsl().execute(brapiObservationFp.get("AddObservations"), otherProgram.getId().toString());
+
+        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = call.blockingFirst();
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        super.getBrapiDsl().execute(brapiObservationFp.get("DeleteObservations"));
     }
 
     @Test
     @Order(5)
-    void revokeProgram() {
+    void unsubscribeOntologySuccess() {
 
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), otherProgram.getId());
+        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
+        Flowable<HttpResponse<String>> call = client.exchange(
+                DELETE(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+    }
+
+    @Test
+    @Order(5)
+    void revokeOntologySuccess() {
+
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), thirdProgram.getId());
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -354,7 +471,7 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
 
     @Test
     void revokeOntologySharedProgramNotShared() {
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), thirdProgram.getId());
+        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), fourthProgram.getId());
         Flowable<HttpResponse<String>> call = client.exchange(
                 DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
