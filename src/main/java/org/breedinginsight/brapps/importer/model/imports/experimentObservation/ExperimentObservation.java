@@ -99,7 +99,7 @@ public class ExperimentObservation implements BrAPIImport {
     private String column;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="treatmentFactors", name="Exp Treatment Factor Name", description = "treatement factors in an experiment with applied variables, like fertilizer or water regimens.")
+    @ImportFieldMetadata(id="treatmentFactors", name="Treatment Factors", description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
     private String treatmentFactors;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
@@ -148,7 +148,10 @@ public class ExperimentObservation implements BrAPIImport {
         study.setStudyType(getExpType());
         study.setLocationName(getEnvLocation());
         study.setTrialName(getExpTitle());
-        study.setSeasons( List.of( getEnvYear()==null ? "" : getEnvYear() ) );
+
+        List<String> seasonsList= new ArrayList<>();
+        seasonsList.add(getEnvYear());
+        study.setSeasons(seasonsList);
         /*
         TODO: Not used
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
