@@ -32,6 +32,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -106,6 +107,7 @@ public class ExperimentProcessor implements Processor {
      * @param importRows
      * @param program
      */
+    @Override
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         List<ExperimentObservation> experimentImportRows = importRows.stream()
@@ -582,7 +584,15 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIStudy>> initialize_studyByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = new HashMap<>();
         List<String> uniqueStudyNames = experimentImportRows.stream()
-                .map(ExperimentObservation::getEnv)
+                .map(experimentObservation -> {
+                    String envName = experimentObservation.getEnv();
+                    PendingImportObject<BrAPITrial> trial = trialByNameNoScope.get(experimentObservation.getExpTitle());
+                    if(trial.getBrAPIObject().getAdditionalInfo() != null) {
+                        envName = Utilities.appendProgramKey(envName, program.getName(), trial.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString());
+                    }
+
+                    return envName;
+                })
                 .distinct()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
@@ -591,12 +601,14 @@ public class ExperimentProcessor implements Processor {
         try {
             existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
             existingStudies.forEach(existingStudy -> {
-                String studySequence = null;
-                if ((existingStudy.getAdditionalInfo()!=null) && (existingStudy.getAdditionalInfo().get("studySequence") != null )) {
-                    studySequence = existingStudy.getAdditionalInfo().get("studySequence").getAsString();
-                }
+                // I don't think this is needed anymore
+//                String studySequence = null;
+//                if ((existingStudy.getAdditionalInfo()!=null) && (existingStudy.getAdditionalInfo().get("studySequence") != null )) {
+//                    studySequence = existingStudy.getAdditionalInfo().get("studySequence").getAsString();
+//                }
+                existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
                 studyByNameNoScope.put(
-                        Utilities.removeProgramKey(existingStudy.getStudyName(), program.getKey(), studySequence),
+                        existingStudy.getStudyName(),
                         new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
             });
             return studyByNameNoScope;
@@ -632,18 +644,17 @@ public class ExperimentProcessor implements Processor {
         String programKey = program.getKey();
         List<String> uniqueTrialNames = experimentImportRows.stream()
                 .map(experimentImport -> Utilities.appendProgramKey( experimentImport.getExpTitle(), programKey, null) )
-                .distinct().
-                filter(Objects::nonNull)
+                .distinct()
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
         List<BrAPITrial> existingTrials;
 
         try {
             existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
-                String simpleTrialName = Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey());
-                existingTrial.setTrialName(simpleTrialName);
+                existingTrial.setTrialName(Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()));
                 trialByNameNoScope.put(
-                        simpleTrialName,
+                        existingTrial.getTrialName(),
                         new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
             });
             return trialByNameNoScope;
