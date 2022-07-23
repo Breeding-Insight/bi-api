@@ -109,7 +109,7 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id="ObsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
     private String ObsUnitID;
 
-    public BrAPITrial constructBrAPITrial(Program program, boolean commit, String referenceSource, UUID id) {
+    public BrAPITrial constructBrAPITrial(Program program, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
         if( commit ){
@@ -128,6 +128,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
         trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
+        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER, expSeqValue);
 
         return trial;
     }

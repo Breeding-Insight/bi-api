@@ -24,6 +24,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
@@ -32,7 +33,6 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -62,6 +62,7 @@ public class ExperimentProcessor implements Processor {
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
+
 
     private DSLContext dsl;
     private BrAPITrialDAO brapiTrialDAO;
@@ -198,9 +199,10 @@ public class ExperimentProcessor implements Processor {
         for (BrAPIImport row : importRows) {
             ExperimentObservation importRow = (ExperimentObservation) row;
 
-            PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow);
+            PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow, expSeqValue);
             this.trialByNameNoScope.put(importRow.getExpTitle(), trialPIO);
 
+            //TODO move this above the creation of trialPIO (see BI-1189 tech spec 4.b)?
             PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
             this.locationByName.put(importRow.getEnvLocation(), locationPIO);
 
@@ -420,14 +422,14 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
-    private PendingImportObject<BrAPITrial> createTrialPIO(Program program, boolean commit, ExperimentObservation importRow) {
+    private PendingImportObject<BrAPITrial> createTrialPIO(Program program, boolean commit, ExperimentObservation importRow, String expSeqValue) {
         PendingImportObject<BrAPITrial> pio = null;
         if( trialByNameNoScope.containsKey( importRow.getExpTitle()) ) {
             pio = trialByNameNoScope.get( importRow.getExpTitle() ) ;
        }
        else {
             UUID id = UUID.randomUUID();
-            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit, BRAPI_REFERENCE_SOURCE, id);
+            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
         }
         return pio;
@@ -583,29 +585,30 @@ public class ExperimentProcessor implements Processor {
 
     private Map<String, PendingImportObject<BrAPIStudy>> initialize_studyByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = new HashMap<>();
-        List<String> uniqueStudyNames = experimentImportRows.stream()
-                .map(experimentObservation -> {
-                    String envName = experimentObservation.getEnv();
-                    PendingImportObject<BrAPITrial> trial = trialByNameNoScope.get(experimentObservation.getExpTitle());
-                    if(trial.getBrAPIObject().getAdditionalInfo() != null) {
-                        envName = Utilities.appendProgramKey(envName, program.getName(), trial.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString());
-                    }
 
-                    return envName;
-                })
-                .distinct()
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+
+        if( this.trialByNameNoScope.size()!=1){
+            return studyByNameNoScope;
+        }
+        ExperimentObservation experimentObservation = experimentImportRows.get(0);
+
+        PendingImportObject<BrAPITrial> trial = this.trialByNameNoScope.get(experimentObservation.getExpTitle());
+        List<BrAPIExternalReference> experimentRefs = trial.getBrAPIObject().getExternalReferences();
+        Optional <BrAPIExternalReference> experimentIDRef = experimentRefs.stream()
+                .filter(this::isRefSource)
+                .findFirst();
+        if( experimentIDRef.isEmpty()){
+            throw new InternalServerException("An Experiment ID was not found any of the external references");
+        }
+
+        //get experimentID
+        String experimentIDStr = experimentIDRef.get().getReferenceID();
 
         List<BrAPIStudy> existingStudies;
         try {
-            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
+            existingStudies = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(experimentIDStr), program);
             existingStudies.forEach(existingStudy -> {
-                // I don't think this is needed anymore
-//                String studySequence = null;
-//                if ((existingStudy.getAdditionalInfo()!=null) && (existingStudy.getAdditionalInfo().get("studySequence") != null )) {
-//                    studySequence = existingStudy.getAdditionalInfo().get("studySequence").getAsString();
-//                }
+
                 existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
                 studyByNameNoScope.put(
                         existingStudy.getStudyName(),
@@ -715,5 +718,9 @@ public class ExperimentProcessor implements Processor {
 
         String seasonDbId = (targetSeason==null) ? null : targetSeason.getSeasonDbId();
         return seasonDbId;
+    }
+
+    private boolean isRefSource(BrAPIExternalReference brAPIExternalReference) {
+        return brAPIExternalReference.getReferenceSource().equals(BRAPI_REFERENCE_SOURCE);
     }
 }
