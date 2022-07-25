@@ -42,6 +42,7 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -721,6 +722,6 @@ public class ExperimentProcessor implements Processor {
     }
 
     private boolean isRefSource(BrAPIExternalReference brAPIExternalReference) {
-        return brAPIExternalReference.getReferenceSource().equals(BRAPI_REFERENCE_SOURCE);
+        return brAPIExternalReference.getReferenceSource().equals( String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()) );
     }
 }
