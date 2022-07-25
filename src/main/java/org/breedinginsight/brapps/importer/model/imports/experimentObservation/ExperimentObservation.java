@@ -26,6 +26,7 @@ import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
@@ -261,10 +262,10 @@ public class ExperimentObservation implements BrAPIImport {
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
         List<BrAPIExternalReference> refs = new ArrayList<>();
 
-        addReference(refs, program.getId(), referenceSourceBaseName, "programs");
-        if( trialId   != null ) { addReference(refs, trialId, referenceSourceBaseName, "trials"); }
-        if( studyId   != null ) { addReference(refs, studyId, referenceSourceBaseName, "studies"); }
-        if( obsUnitId != null ) { addReference(refs, obsUnitId, referenceSourceBaseName, "observationunits"); }
+        addReference(refs, program.getId(), referenceSourceBaseName, ExternalReferenceSource.PROGRAMS);
+        if( trialId   != null ) { addReference(refs, trialId, referenceSourceBaseName, ExternalReferenceSource.TRIALS); }
+        if( studyId   != null ) { addReference(refs, studyId, referenceSourceBaseName, ExternalReferenceSource.STUDIES); }
+        if( obsUnitId != null ) { addReference(refs, obsUnitId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATION_UNITS); }
 
         return refs;
     }
@@ -283,10 +284,10 @@ public class ExperimentObservation implements BrAPIImport {
     }
 
 
-    private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, String refSourceName) {
+    private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, ExternalReferenceSource refSourceName) {
         BrAPIExternalReference reference;
         reference = new BrAPIExternalReference();
-        reference.setReferenceSource( String.format("%s/%s", referenceBaseNameSource, refSourceName) );
+        reference.setReferenceSource( String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()) );
         reference.setReferenceID(uuid.toString());
         refs.add(reference);
     }
