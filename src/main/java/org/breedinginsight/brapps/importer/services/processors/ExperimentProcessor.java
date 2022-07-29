@@ -203,7 +203,6 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow, expSeqValue);
             this.trialByNameNoScope.put(importRow.getExpTitle(), trialPIO);
 
-            //TODO move this above the creation of trialPIO (see BI-1189 tech spec 4.b)?
             PendingImportObject<BrAPILocation> locationPIO = createLocationPIO(importRow);
             this.locationByName.put(importRow.getEnvLocation(), locationPIO);
 
@@ -596,7 +595,7 @@ public class ExperimentProcessor implements Processor {
         PendingImportObject<BrAPITrial> trial = this.trialByNameNoScope.get(experimentObservation.getExpTitle());
         List<BrAPIExternalReference> experimentRefs = trial.getBrAPIObject().getExternalReferences();
         Optional <BrAPIExternalReference> experimentIDRef = experimentRefs.stream()
-                .filter(this::isRefSource)
+                .filter(this::isTrialRefSource)
                 .findFirst();
         if( experimentIDRef.isEmpty()){
             throw new InternalServerException("An Experiment ID was not found any of the external references");
@@ -721,7 +720,7 @@ public class ExperimentProcessor implements Processor {
         return seasonDbId;
     }
 
-    private boolean isRefSource(BrAPIExternalReference brAPIExternalReference) {
+    private boolean isTrialRefSource(BrAPIExternalReference brAPIExternalReference) {
         return brAPIExternalReference.getReferenceSource().equals( String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()) );
     }
 }
