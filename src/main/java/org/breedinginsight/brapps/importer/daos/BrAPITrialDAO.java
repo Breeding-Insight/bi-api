@@ -81,11 +81,9 @@ public class BrAPITrialDAO {
      */
     public List<BrAPITrial> getTrials(UUID programId) throws ApiException, DoesNotExistException {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
-        //todo check external references
+        //TODO check external references filter works once implemented in BI-1552
         trialSearch.externalReferenceSources(List.of(String.format("%s/programs", referenceSource)));
         trialSearch.externalReferenceIDs(List.of(programId.toString()));
-
-        //todo handle page size?
 
         Optional<Program> optionalProgram = programService.getById(programId);
         if (!optionalProgram.isPresent())
@@ -110,20 +108,8 @@ public class BrAPITrialDAO {
             List<String> datasets = new ArrayList<>();
 
             if (metadata) {
-                BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
-                studySearch.trialDbIds(List.of(trial.getTrialDbId()));
-                StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
-                List<BrAPIStudy> studies = BrAPIDAOUtil.search(
-                        api::searchStudiesPost,
-                        api::searchStudiesSearchResultsDbIdGet,
-                        studySearch);
-
-                for (BrAPIStudy study : studies) {
-                    //todo possibly make a set, clarify what value actually desired
-                    //todo possibly pass along more info if needed for download
-                    datasets.add(Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), programKey));
-                }
-
+                //todo presumably BI-1193 replace dummy value with list of datasets once datasets implemented
+                datasets.add("Observation Dataset");
                 trial.putAdditionalInfoItem("datasets", datasets);
             }
 
