@@ -35,6 +35,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
 import org.breedinginsight.services.exceptions.*;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.Map;
 import java.util.UUID;
@@ -110,7 +111,7 @@ public class UploadController {
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                             @PathVariable UUID uploadId, @Body Map<String, Object> userInput) {
+                                                             @PathVariable UUID uploadId, @Body @Nullable Map<String, Object> userInput) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, true);

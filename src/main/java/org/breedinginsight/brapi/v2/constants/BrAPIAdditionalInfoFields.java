@@ -32,4 +32,8 @@ public final class BrAPIAdditionalInfoFields {
     public static final String GERMPLASM_BREEDING_METHOD_ID = "breedingMethodId";
     public static final String GERMPLASM_BREEDING_METHOD = "breedingMethod";
     public static final String CREATED_DATE = "createdDate";
+	public static final String DEFAULT_OBSERVATION_LEVEL = "defaultObservationLevel";
+    public static final String OBSERVATION_LEVEL = "observationLevel";
+    public static final String EXPERIMENT_TYPE = "experimentType";
+    public static final String EXPERIMENT_NUMBER = "experimentNumber";
 }

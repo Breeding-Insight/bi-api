@@ -20,10 +20,14 @@ package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.pheno.*;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -106,11 +110,14 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id="ObsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
     private String ObsUnitID;
 
-    public BrAPITrial constructBrAPITrial(Program program, boolean commit) {
+    public BrAPITrial constructBrAPITrial(Program program, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
         if( commit ){
-            trial.setTrialName( getTrialNameWithProgramKey( program ));
+            trial.setTrialName( Utilities.appendProgramKey(getExpTitle(), program.getKey() ));
+
+            // Set external reference
+            trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
         }
         else{
             trial.setTrialName( getExpTitle() );
@@ -120,14 +127,11 @@ public class ExperimentObservation implements BrAPIImport {
         trial.setProgramDbId(brapiProgram.getProgramDbId());
         trial.setProgramName(brapiProgram.getProgramName());
 
-        // TODO: Get to a constant
-        trial.putAdditionalInfoItem("defaultObservationLevel", getExpUnit());
-        trial.putAdditionalInfoItem("experimentType", getExpType());
-        return trial;
-    }
+        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
+        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
+        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER, expSeqValue);
 
-    public String getTrialNameWithProgramKey(Program program){
-        return String.format("%s [%s]", getExpTitle(), program.getKey());
+        return trial;
     }
 
     public BrAPILocation constructBrAPILocation() {
@@ -136,10 +140,19 @@ public class ExperimentObservation implements BrAPIImport {
         return location;
     }
 
-    public BrAPIStudy constructBrAPIStudy(Program program, Supplier<BigInteger> nextVal, boolean commit) {
+    public BrAPIStudy constructBrAPIStudy(
+            Program program,
+            boolean commit,
+            String referenceSource,
+            String expSequenceValue,
+            UUID trialId,
+            UUID id) {
         BrAPIStudy study = new BrAPIStudy();
         if ( commit ){
-            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), nextVal.get().toString()));
+            study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), expSequenceValue));
+
+            // Set external reference
+            study.setExternalReferences(getStudyExternalReferences(program, referenceSource, trialId, id));
         }
         else {
             study.setStudyName(getEnv());
@@ -149,43 +162,61 @@ public class ExperimentObservation implements BrAPIImport {
         study.setLocationName(getEnvLocation());
         study.setTrialName(getExpTitle());
 
-        List<String> seasonsList= new ArrayList<>();
-        seasonsList.add(getEnvYear());
-        study.setSeasons(seasonsList);
-        /*
-        TODO: Not used
+        List<String> seasonList = new ArrayList<>();
+        seasonList.add( getEnvYear() );
+        study.setSeasons( seasonList );
+
+        String designType = "Analysis"; // to support the BRApi server, the design type must be one of the following:
+                                        // 'CRD','Alpha','MAD','Lattice','Augmented','RCBD','p-rep','splitplot','greenhouse','Westcott', or 'Analysis'
+                                        // For now it will be hardcoded to 'Analysis'
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
-        design.setPUI(getExperimentalDesignPUI());
+        design.setPUI(designType);
+        design.setDescription(designType);
         study.setExperimentalDesign(design);
-        */
 
         return study;
     }
 
-    public BrAPIObservationUnit constructBrAPIObservationUnit(Program program, Supplier<BigInteger> nextVal, boolean commit) {
+    public BrAPIObservationUnit constructBrAPIObservationUnit(
+            Program program,
+            Supplier<BigInteger> nextVal,
+            boolean commit,
+            String germplasmName,
+            String referenceSource,
+            UUID trialID,
+            UUID studyID,
+            UUID id
+    ) {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
         if( commit){
             observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString()));
+
+            // Set external reference
+            observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, studyID, id));
         }
         else {
             observationUnit.setObservationUnitName(getExpUnitId());
         }
         observationUnit.setStudyName(getEnv());
 
-        // TODO: Set the germplasm
-        //observationUnit.setGermplasmName(getGermplasm().getReferenceValue());
+        if(germplasmName==null){
+            germplasmName = getGermplasmName();
+        }
+        observationUnit.setGermplasmName(germplasmName);
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
-        level.setLevelName(getExpUnit());
+        level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
+        level.setLevelCode( getExpUnitId() );
         position.setObservationLevel(level);
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
 
         // Exp Unit
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
         if( getExpReplicateNo() !=null ) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName("replicate");
+            repLvl.setLevelName(BrAPIConstants.REPLICATE.getValue());
             repLvl.setLevelCode(getExpReplicateNo());
             levelRelationships.add(repLvl);
         }
@@ -193,7 +224,7 @@ public class ExperimentObservation implements BrAPIImport {
         // Block number
         if( getExpBlockNo() != null ) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName("block");
+            repLvl.setLevelName( BrAPIConstants.REPLICATE.getValue() );
             repLvl.setLevelCode(getExpBlockNo());
             levelRelationships.add(repLvl);
         }
@@ -227,4 +258,39 @@ public class ExperimentObservation implements BrAPIImport {
         return observationUnit;
     }
 
+    private List<BrAPIExternalReference> getBrAPIExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+
+        addReference(refs, program.getId(), referenceSourceBaseName, ExternalReferenceSource.PROGRAMS);
+        if( trialId   != null ) { addReference(refs, trialId, referenceSourceBaseName, ExternalReferenceSource.TRIALS); }
+        if( studyId   != null ) { addReference(refs, studyId, referenceSourceBaseName, ExternalReferenceSource.STUDIES); }
+        if( obsUnitId != null ) { addReference(refs, obsUnitId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATION_UNITS); }
+
+        return refs;
+    }
+
+    private List<BrAPIExternalReference> getTrialExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null);
+    }
+    private List<BrAPIExternalReference> getStudyExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+    }
+    private List<BrAPIExternalReference> getObsUnitExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+    }
+
+
+    private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, ExternalReferenceSource refSourceName) {
+        BrAPIExternalReference reference;
+        reference = new BrAPIExternalReference();
+        reference.setReferenceSource( String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()) );
+        reference.setReferenceID(uuid.toString());
+        refs.add(reference);
+    }
+
 }
+
