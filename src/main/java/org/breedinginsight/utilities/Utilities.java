@@ -64,6 +64,10 @@ public class Utilities {
         }
     }
 
+    public static String appendProgramKey( String original, String programKey ){
+        return appendProgramKey( original, programKey, null);
+    }
+
     /**
      * Remove program key from a string. Returns a new value instead of altering original string.
      *
@@ -91,5 +95,11 @@ public class Utilities {
      */
     public static String removeProgramKey(String original, String programKey) {
         return removeProgramKey(original, programKey, null);
+    }
+
+    public static String removeProgramKeyAndUnknownAdditionalData(String original, String programKey) {
+        String keyValueRegEx = String.format(" \\[%s\\-.*\\]", programKey);
+        String stripped =  original.replaceAll(keyValueRegEx, "");
+        return stripped;
     }
 }

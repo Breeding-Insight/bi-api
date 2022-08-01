@@ -59,6 +59,8 @@ public class ProgramService {
     private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
     private static final String PROGRAM_KEY_IN_USE = "PROGRAM_KEY_IN_USE";
     private static final String GERMPLASM_SEQUENCE_TEMPLATE = "%s_germplasm_sequence";
+    private static final String OBS_UNIT_SEQUENCE_TEMPLATE = "%s_obs_unit_sequence";
+    private static final String EXP_SEQUENCE_TEMPLATE = "%s_exp_sequence";
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
@@ -161,6 +163,14 @@ public class ProgramService {
             String germplasm_sequence_name = String.format(GERMPLASM_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
             dsl.createSequence(germplasm_sequence_name).execute();
 
+            // Create experiment sequence
+            String exp_sequence_name = String.format(EXP_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(exp_sequence_name).execute();
+
+            // Create obs unit sequence
+            String obs_unit_sequence_name = String.format(OBS_UNIT_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(obs_unit_sequence_name).execute();
+
             // Parse and create the program object
             ProgramEntity programEntity = ProgramEntity.builder()
                     .name(programRequest.getName())
@@ -171,6 +181,8 @@ public class ProgramService {
                     .brapiUrl(brapiUrl)
                     .key(programRequest.getKey())
                     .germplasmSequence(germplasm_sequence_name)
+                    .expSequence( exp_sequence_name )
+                    .obsUnitSequence( obs_unit_sequence_name )
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();

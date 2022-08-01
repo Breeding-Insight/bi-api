@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.daos;
 
+import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.v2.model.core.BrAPIStudy;
@@ -32,6 +33,8 @@ import java.util.UUID;
 
 @Singleton
 public class BrAPIStudyDAO {
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
@@ -46,6 +49,19 @@ public class BrAPIStudyDAO {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
+        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        return BrAPIDAOUtil.search(
+                api::searchStudiesPost,
+                api::searchStudiesSearchResultsDbIdGet,
+                studySearch
+        );
+    }
+
+    public List<BrAPIStudy> getStudiesByExperimentID(UUID experimentID, Program program ) throws ApiException {
+        BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
+        studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        studySearch.addExternalReferenceIDsItem(experimentID.toString());
+        studySearch.addExternalReferenceSourcesItem(BRAPI_REFERENCE_SOURCE + "/trials");
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
         return BrAPIDAOUtil.search(
                 api::searchStudiesPost,

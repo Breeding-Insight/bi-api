@@ -15,27 +15,20 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
+alter table program add column exp_sequence text;
 
-import lombok.*;
-
-import java.util.UUID;
-
-@Getter
-@Setter
-public class PendingImportObject<T> {
-    @NonNull
-    private ImportObjectState state;
-    @NonNull
-    private T brAPIObject;
-    private UUID id;
-
-    public PendingImportObject(ImportObjectState state, T brAPIObject, UUID id) {
-        this.state = state;
-        this.brAPIObject = brAPIObject;
-        this.id = id;
-    }
-    public PendingImportObject(ImportObjectState state, T brAPIObject) {
-        this(state, brAPIObject, UUID.randomUUID());
-    }
-}
+do
+$$
+declare
+f record;
+begin
+for f in select * from program
+loop
+    if f.key is NULL then
+       RAISE EXCEPTION 'Programs must have a key associated with them';
+    end if;
+    execute format('create sequence %s_exp_sequence',f.key);
+    update program set exp_sequence = format('%s_exp_sequence', f.key) where id = f.id;
+end loop;
+end;
+$$
