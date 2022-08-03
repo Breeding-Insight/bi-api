@@ -56,17 +56,19 @@ public class TraitDAO extends TraitDao {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
     private ObservationDAO observationDao;
+    private final BrAPIDAOUtil brAPIDAOUtil;
     private Gson gson;
 
     private final static String TAGS_KEY = "tags";
     private final static String FULLNAME_KEY = "fullname";
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao, BrAPIDAOUtil brAPIDAOUtil) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
+        this.brAPIDAOUtil = brAPIDAOUtil;
         this.gson = new Gson();
     }
 
@@ -245,7 +247,7 @@ public class TraitDAO extends TraitDao {
                     .externalReferenceIDs(variableIds);
 
             ObservationVariablesApi api = brAPIProvider.getVariablesAPI(PHENO);
-            return BrAPIDAOUtil.search(
+            return brAPIDAOUtil.search(
                     api::searchVariablesPost,
                     api::searchVariablesSearchResultsDbIdGet,
                     request

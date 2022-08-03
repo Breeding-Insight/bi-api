@@ -51,6 +51,7 @@ public class BrAPIGermplasmDAO {
 
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
@@ -58,9 +59,10 @@ public class BrAPIGermplasmDAO {
     ProgramCache<String, BrAPIGermplasm> programGermplasmCache;
 
     @Inject
-    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     @PostConstruct
@@ -119,7 +121,7 @@ public class BrAPIGermplasmDAO {
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
         germplasmSearch.externalReferenceSources(List.of(String.format("%s/programs", referenceSource)));
-        return processGermplasmForDisplay(BrAPIDAOUtil.search(
+        return processGermplasmForDisplay(brAPIDAOUtil.search(
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
@@ -211,7 +213,7 @@ public class BrAPIGermplasmDAO {
     public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
         try {
-            Callable<List<BrAPIGermplasm>> postFunction = () -> BrAPIDAOUtil.post(brAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
+            Callable<List<BrAPIGermplasm>> postFunction = () -> brAPIDAOUtil.post(brAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
             return programGermplasmCache.post(programId, postFunction);
         } catch (ApiException e) {
             throw e;

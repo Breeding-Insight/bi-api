@@ -48,7 +48,7 @@ public class BrAPIGermplasmServiceUnitTest {
         //Set up mocks in here
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class));
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), mock(BrAPIDAOUtil.class));
         programService = mock(ProgramService.class);
     }
 

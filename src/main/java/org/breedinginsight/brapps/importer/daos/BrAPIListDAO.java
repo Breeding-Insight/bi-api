@@ -30,18 +30,20 @@ public class BrAPIListDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIListSummary> getListByName(List<String> listNames, UUID programId) throws ApiException {
         BrAPIListSearchRequest listSearch = new BrAPIListSearchRequest();
         listSearch.listNames(listNames);
         ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchListsPost,
                 api::searchListsSearchResultsDbIdGet,
                 listSearch
@@ -61,7 +63,7 @@ public class BrAPIListDAO {
                 .listType(listType);
 
         ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
-        return processListsForProgram(BrAPIDAOUtil.search(
+        return processListsForProgram(brAPIDAOUtil.search(
                 api::searchListsPost,
                 api::searchListsSearchResultsDbIdGet,
                 searchRequest
