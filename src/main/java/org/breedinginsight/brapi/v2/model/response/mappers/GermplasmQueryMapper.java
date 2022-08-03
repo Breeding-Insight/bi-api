@@ -1,5 +1,6 @@
 package org.breedinginsight.brapi.v2.model.response.mappers;
 
+import com.google.gson.JsonObject;
 import lombok.Getter;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -43,7 +44,7 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString() :
                                 null),
                 Map.entry("createdByUserName", (germplasm) ->
-                        germplasm.getAdditionalInfo() != null
+                            germplasm.getAdditionalInfo() != null
                                 && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_BY)
                                 && germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).has(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME) ?
                                 germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).get(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME).getAsString() :

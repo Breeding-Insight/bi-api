@@ -15,25 +15,20 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.api.model.v1.request;
+alter table program add column exp_sequence text;
 
-import io.micronaut.core.annotation.Introspected;
-import lombok.*;
-import lombok.extern.jackson.Jacksonized;
-import org.breedinginsight.model.SystemRole;
-
-import javax.validation.constraints.NotNull;
-import java.util.List;
-
-@Getter
-@Setter
-@Builder
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
-@Introspected
-@Jacksonized
-public class SystemRolesRequest {
-    @NotNull
-    private List<SystemRole> systemRoles;
-}
+do
+$$
+declare
+f record;
+begin
+for f in select * from program
+loop
+    if f.key is NULL then
+       RAISE EXCEPTION 'Programs must have a key associated with them';
+    end if;
+    execute format('create sequence %s_exp_sequence',f.key);
+    update program set exp_sequence = format('%s_exp_sequence', f.key) where id = f.id;
+end loop;
+end;
+$$

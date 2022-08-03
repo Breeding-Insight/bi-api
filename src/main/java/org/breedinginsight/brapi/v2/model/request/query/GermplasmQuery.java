@@ -25,15 +25,33 @@ public class GermplasmQuery extends BrapiQuery {
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
-        if (!StringUtils.isBlank(getAccessionNumber())) filters.add(constructFilterRequest("accessionNumber", getAccessionNumber()));
-        if (!StringUtils.isBlank(getDefaultDisplayName())) filters.add(constructFilterRequest("defaultDisplayName", getDefaultDisplayName()));
-        if (!StringUtils.isBlank(getBreedingMethod())) filters.add(constructFilterRequest("breedingMethod", getBreedingMethod()));
-        if (!StringUtils.isBlank(getSeedSource())) filters.add(constructFilterRequest("seedSource", getSeedSource()));
-        if (!StringUtils.isBlank(getFemaleParentGID())) filters.add(constructFilterRequest("femaleParentGID", getFemaleParentGID()));
-        if (!StringUtils.isBlank(getMaleParentGID())) filters.add(constructFilterRequest("maleParentGID", getMaleParentGID()));
-        if (!StringUtils.isBlank(getCreatedDate())) filters.add(constructFilterRequest("createdDate", getCreatedDate()));
-        if (!StringUtils.isBlank(getCreatedByUserName())) filters.add(constructFilterRequest("createdByUserName", getCreatedByUserName()));
-        if (!StringUtils.isBlank(getSynonym())) filters.add(constructFilterRequest("synonym", getSynonym()));
+        if (!StringUtils.isBlank(getAccessionNumber())) {
+            filters.add(constructFilterRequest("accessionNumber", getAccessionNumber()));
+        }
+        if (!StringUtils.isBlank(getDefaultDisplayName())) {
+            filters.add(constructFilterRequest("defaultDisplayName", getDefaultDisplayName()));
+        }
+        if (!StringUtils.isBlank(getBreedingMethod())) {
+            filters.add(constructFilterRequest("breedingMethod", getBreedingMethod()));
+        }
+        if (!StringUtils.isBlank(getSeedSource())) {
+            filters.add(constructFilterRequest("seedSource", getSeedSource()));
+        }
+        if (!StringUtils.isBlank(getFemaleParentGID())) {
+            filters.add(constructFilterRequest("femaleParentGID", getFemaleParentGID()));
+        }
+        if (!StringUtils.isBlank(getMaleParentGID())) {
+            filters.add(constructFilterRequest("maleParentGID", getMaleParentGID()));
+        }
+        if (!StringUtils.isBlank(getCreatedDate())) {
+            filters.add(constructFilterRequest("createdDate", getCreatedDate()));
+        }
+        if (!StringUtils.isBlank(getCreatedByUserName())) {
+            filters.add(constructFilterRequest("createdByUserName", getCreatedByUserName()));
+        }
+        if (!StringUtils.isBlank(getSynonym())) {
+            filters.add(constructFilterRequest("synonyms", getSynonym()));
+        }
         return new SearchRequest(filters);
     }
 }
