@@ -29,11 +29,7 @@ public class BrAPITrialService {
         this.trialDAO = trialDAO;
     }
 
-    public List<BrAPITrial> getExperiments(UUID programId) throws ApiException {
-        try {
-            return trialDAO.getTrials(programId);
-        } catch (ApiException | DoesNotExistException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
+    public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
+        return trialDAO.getTrials(programId);
     }
 }

@@ -16,6 +16,7 @@ import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
@@ -52,6 +53,9 @@ public class ExperimentController {
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving experiments");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 }
