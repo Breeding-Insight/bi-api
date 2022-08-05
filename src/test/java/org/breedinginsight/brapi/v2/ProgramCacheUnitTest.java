@@ -165,7 +165,7 @@ public class ProgramCacheUnitTest {
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Now post another object and call get immediately to see that it returns the old data
-        cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime*5), BrAPIGermplasm.class);
+        cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime*4), BrAPIGermplasm.class);
         cache.post(programId, postFunction);
         System.out.println("calling get at: "+ LocalDateTime.now());
         cachedGermplasm = cache.get(programId);
