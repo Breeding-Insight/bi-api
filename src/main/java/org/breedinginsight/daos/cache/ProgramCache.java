@@ -35,103 +35,6 @@ import java.util.concurrent.*;
  */
 @Slf4j
 public class ProgramCache<R> {
-
-//    private final FetchFunction<UUID, Map<K, R>> fetchMethod;
-//    private final Map<UUID, Semaphore> programSemaphore = new HashMap<>();
-//    private final Cloner cloner;
-//
-//    private final Executor executor = Executors.newCachedThreadPool();
-//    private final LoadingCache<UUID, Map<K, R>> cache = CacheBuilder.newBuilder()
-//            .build(new CacheLoader<>() {
-//                @Override
-//                public Map<K, R> load(@NotNull UUID programId) throws Exception {
-//                    try {
-//                        Map<K, R> values = fetchMethod.apply(programId);
-//                        log.debug("cache loading complete.\nprogramId: " + programId);
-//                        return values;
-//                    } catch (Exception e) {
-//                        log.error("cache loading error:\nprogramId: " + programId, e);
-//                        cache.invalidate(programId);
-//                        throw e;
-//                    }
-//                }
-//            });
-//
-//    public ProgramCache(FetchFunction<UUID, Map<K, R>> fetchMethod, List<UUID> keys) {
-//        this.fetchMethod = fetchMethod;
-//        this.cloner = new Cloner();
-//        // Populate cache on start up
-//        for (UUID key: keys) {
-//            updateCache(key);
-//        }
-//    }
-//
-//    public ProgramCache(FetchFunction<UUID, Map<K, R>> fetchMethod) {
-//        this.fetchMethod = fetchMethod;
-//        this.cloner = new Cloner();
-//    }
-//
-//    public Map<K, R> get(UUID programId) throws ApiException {
-//        try {
-//            // This will get current cache data, or wait for the refresh to finish if there is no cache data.
-//            // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
-//            if (!programSemaphore.containsKey(programId) || cache.getIfPresent(programId) == null) {
-//                // If the cache is missing, refresh and get
-//                log.trace("cache miss, fetching from source.\nprogramId: " + programId);
-//                updateCache(programId);
-//                Map<K, R> result = new HashMap<>(cache.get(programId));
-//                result = result.entrySet().stream().map(cloner::deepClone)
-//                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//                return result;
-//            } else {
-//                log.trace("cache contains records for the program.\nprogramId: " + programId);
-//                // Most cases where the cache is populated
-//                Map<K, R> result = new HashMap<>(cache.get(programId));
-//                result = result.entrySet().stream().map(cloner::deepClone)
-//                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-//                return result;
-//            }
-//        } catch (ExecutionException e) {
-//            log.error("cache error:\nprogramId: " + programId, e);
-//            return fetchMethod.apply(programId);
-//        }
-//    }
-//
-//    /*
-//        Checks to see whether atleast 1 refresh process is queued up and doesn't make another
-//        refresh request if there is one queued. The idea here is that if you request to refresh the
-//        cache state, but there is a refresh already waiting, that waiting refresh will grab the most recent
-//        state of the cache, so queuing another one will be a waste of threads.
-//    */
-//    private void updateCache(UUID programId) {
-//
-//        if (!programSemaphore.containsKey(programId)) {
-//            programSemaphore.put(programId, new Semaphore(1));
-//        }
-//
-//        if (!programSemaphore.get(programId).hasQueuedThreads()) { // if false, an update is already queued, skip this one
-//            // Start a refresh process asynchronously
-//            executor.execute(() -> {
-//                // Synchronous
-//                try {
-//                    programSemaphore.get(programId).acquire();
-//                    cache.refresh(programId);
-//                } catch (InterruptedException e) {
-//                    log.error("cache loading error:\nprogramId: " + programId, e);
-//                    throw new InternalServerException(e.getMessage(), e);
-//                } finally {
-//                    programSemaphore.get(programId).release();
-//                }
-//            });
-//        }
-//    }
-//
-//    public List<R> post(UUID programId, Callable<List<R>> postMethod) throws Exception {
-//        List<R> response = postMethod.call();
-//        updateCache(programId);
-//        return response;
-//    }
-
     private final StatefulRedisConnection<String, String> connection;
     private final Gson gson;
     private final FetchFunction<UUID, Map<String, R>> fetchMethod;
@@ -179,6 +82,7 @@ public class ProgramCache<R> {
                     log.debug("cache loading complete for key: " + cacheKey);
                 } catch (Exception e) {
                     log.error("cache loading error for key: " + cacheKey, e);
+                    invalidate(key);
                     throw new InternalServerException(e.getMessage(), e);
                 } finally {
                     programSemaphore.get(cacheKey).release();
@@ -192,7 +96,7 @@ public class ProgramCache<R> {
         commands.hset(generateCacheKey(key), id, gson.toJson(value));
     }
 
-    public void invalidate(@NotNull UUID key) throws Exception {
+    public void invalidate(@NotNull UUID key) {
         RedisCommands<String, String> commands = connection.sync();
         commands.del(generateCacheKey(key));
     }
@@ -203,17 +107,14 @@ public class ProgramCache<R> {
         String cacheKey = generateCacheKey(key);
 
         try {
-            if (!programSemaphore.containsKey(cacheKey) || commands.exists(cacheKey) == 0) {
+            if (commands.exists(cacheKey) == 0) {
+                log.debug("cache miss, populating");
                 populate(key);
-            } else if(commands.exists(cacheKey) == 1) {
-                return deserialize(commands.hgetall(cacheKey));
+                //block until any updates are done
+                programSemaphore.get(cacheKey).acquire();
+                programSemaphore.get(cacheKey).release();
             }
-
-            //block until any updates are done
-            programSemaphore.get(cacheKey).acquire();
-            programSemaphore.get(cacheKey).release();
             return deserialize(commands.hgetall(cacheKey));
-
         } catch (Exception e) {
             throw new ApiException(e);
         }
@@ -225,11 +126,15 @@ public class ProgramCache<R> {
         return retMap;
     }
 
-    public List<R> post(UUID key, Callable<List<R>> postMethod) throws Exception {
+    public List<R> post(UUID key, Callable<List<R>> postMethod) {
         log.debug("posting for key: " + key);
-        List<R> response = postMethod.call();
-        invalidate(key);
-        populate(key);
+        List<R> response = null;
+        try {
+            response = postMethod.call();
+            populate(key);
+        } catch (Exception e) {
+            invalidate(key);
+        }
         return response;
     }
 
