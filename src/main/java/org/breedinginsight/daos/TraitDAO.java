@@ -17,9 +17,15 @@
 
 package org.breedinginsight.daos;
 
+import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonDeserializer;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.scheduling.annotation.Scheduled;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
@@ -29,8 +35,10 @@ import org.brapi.v2.model.pheno.*;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
+import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
+import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
@@ -40,36 +48,78 @@ import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
 import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
-import static org.jooq.impl.DSL.*;
+import static org.jooq.impl.DSL.lower;
 
 @Singleton
+@Slf4j
 public class TraitDAO extends TraitDao {
 
-    private DSLContext dsl;
-    private BrAPIProvider brAPIProvider;
+    private final DSLContext dsl;
+    private final BrAPIProvider brAPIProvider;
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
-    private ObservationDAO observationDao;
+    private final ObservationDAO observationDao;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private Gson gson;
+    private final ProgramCache<Trait> cache;
+    private final ProgramDAO programDAO;
+    private final Gson gson;
 
     private final static String TAGS_KEY = "tags";
     private final static String FULLNAME_KEY = "fullname";
 
     @Inject
-    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao, BrAPIDAOUtil brAPIDAOUtil) {
+    public TraitDAO(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao, BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, ProgramCacheProvider programCacheProvider) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;
         this.brAPIDAOUtil = brAPIDAOUtil;
-        this.gson = new Gson();
+        this.cache = programCacheProvider.getProgramCache(this::populateCache, Trait.class);
+        this.programDAO = programDAO;
+        this.gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+                                                                 (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+                                                         .registerTypeAdapterFactory(new GeometryAdapterFactory())
+                                                         .create();;
+    }
+
+    @Scheduled(initialDelay = "5s")
+    public void setup() {
+        // Populate trait cache for all programs on startup
+        List<Program> activePrograms = programDAO.getAll();
+        if(activePrograms != null) {
+            cache.populate(activePrograms.stream().filter(Program::getActive).map(Program::getId).collect(Collectors.toList()));
+        }
+    }
+
+    public Map<String, Trait> populateCache(UUID programId, Map<String, Trait> cachedResults) {
+        Integer totalTerms = dsl.selectCount()
+                             .from(TRAIT)
+                             .join(PROGRAM_ONTOLOGY)
+                             .on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
+                             .join(PROGRAM)
+                             .on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
+                             .and(PROGRAM.ID.eq(programId))
+                             .fetchOne(0, int.class);
+        totalTerms = totalTerms != null && totalTerms > 0 ? totalTerms : -1;
+
+        if(cachedResults.size() != totalTerms) {
+            List<Trait> programTraits = fetchTraitsFullByProgramId(programId);
+            Map<String, Trait> traits = new HashMap<>();
+            if (!programTraits.isEmpty()) {
+                programTraits.forEach(trait -> traits.put(trait.getId().toString(), trait));
+            }
+
+            return traits;
+        } else {
+            return cachedResults;
+        }
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -79,13 +129,31 @@ public class TraitDAO extends TraitDao {
     }
 
     public List<Trait> getTraitsFullByProgramIds(List<UUID> programIds) {
+        List<Trait> saturatedTraits = new ArrayList<>();
+        for(UUID id : programIds) {
+            Map<String, Trait> programTraits = null;
+            try {
+                programTraits = cache.get(id);
+            } catch (ApiException e) {
+                throw new RuntimeException(e);
+            }
+            if(programTraits != null) {
+                saturatedTraits.addAll(programTraits.values());
+            }
+        }
 
+        return saturatedTraits;
+    }
+
+    private List<Trait> fetchTraitsFullByProgramId(UUID programId) {
+        List<Trait> saturatedTraits = new ArrayList<>();
         // Get our db traits (equivalent to brapi variables)
-        List<Trait> dbVariables = getTraitsByProgramIds(programIds.toArray(UUID[]::new));
-        if (dbVariables.size() == 0){
+        List<Trait> programTraits = getTraitsByProgramIds(programId);
+        if (programTraits.size() == 0) {
             return new ArrayList<>();
         }
-        Map<UUID, Trait> dbVariablesMap = dbVariables.stream().collect(Collectors.toMap(Trait::getId, p -> p));
+
+//        Map<UUID, Trait> dbVariablesMap = dbVariables.stream().collect(Collectors.toMap(Trait::getId, p -> p));
 
         // Get brapi variables
         VariableQueryParams variablesRequest = new VariableQueryParams();
@@ -94,26 +162,30 @@ public class TraitDAO extends TraitDao {
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
+            brApiVariables = brAPIProvider.getVariablesAPI(PHENO)
+                                          .variablesGet(variablesRequest);
         } catch (ApiException e) {
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
         Map<String, BrAPIObservationVariable> brApiVariableMap = new HashMap<>();
-        for (BrAPIObservationVariable brApiVariable: brApiVariables.getBody().getResult().getData()) {
+        for (BrAPIObservationVariable brApiVariable : brApiVariables.getBody()
+                                                                    .getResult()
+                                                                    .getData()) {
             List<BrAPIExternalReference> brApiExternalReferences = brApiVariable.getExternalReferences();
-            for (BrAPIExternalReference brApiExternalReference: brApiExternalReferences){
+            for (BrAPIExternalReference brApiExternalReference : brApiExternalReferences) {
                 if (brApiExternalReference.getReferenceID() != null) {
                     brApiVariableMap.put(brApiExternalReference.getReferenceID(), brApiVariable);
                 }
             }
         }
 
-        List<Trait> saturatedTraits = new ArrayList<>();
-        for (Trait trait: dbVariables) {
+        for (Trait trait : programTraits) {
             // assumes external reference id is unique to each brapi variable
-            if (brApiVariableMap.containsKey(trait.getId().toString())){
-                BrAPIObservationVariable brApiVariable = brApiVariableMap.get(trait.getId().toString());
+            if (brApiVariableMap.containsKey(trait.getId()
+                                                  .toString())) {
+                BrAPIObservationVariable brApiVariable = brApiVariableMap.get(trait.getId()
+                                                                                   .toString());
                 saturateTrait(trait, brApiVariable);
                 saturatedTraits.add(trait);
             } else {
@@ -327,11 +399,14 @@ public class TraitDAO extends TraitDao {
             BrAPIExternalReference variableReference = new BrAPIExternalReference()
                     .referenceID(trait.getId().toString())
                     .referenceSource(referenceSource);
+            BrAPIExternalReference programReference = new BrAPIExternalReference()
+                    .referenceID(program.getId().toString())
+                    .referenceSource(referenceSource+"/programs");
             BrAPIObservationVariable brApiVariable = new BrAPIObservationVariable()
                     .method(brApiMethod)
                     .scale(brApiScale)
                     .trait(brApiTrait)
-                    .externalReferences(List.of(variableReference))
+                    .externalReferences(List.of(variableReference, programReference))
                     .observationVariableName(String.format("%s [%s]", trait.getObservationVariableName(), program.getKey()))
                     .status("active")
                     .language("english")
@@ -386,7 +461,6 @@ public class TraitDAO extends TraitDao {
                     for (BrAPIExternalReference brApiExternalReference: variable.getExternalReferences()){
                         if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
                                 brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
-
                             saturateTrait(trait, variable);
                         }
                     }
@@ -398,7 +472,6 @@ public class TraitDAO extends TraitDao {
     }
 
     public Trait updateTraitBrAPI(Trait trait, Program program) {
-
         //TODO: Need to roll back somehow if there is an error
         Trait updatedTrait = null;
         List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
@@ -450,6 +523,9 @@ public class TraitDAO extends TraitDao {
             // Retrieve our update trait from the db
             updatedTrait = getTrait(program.getId(), trait.getId()).get();
             saturateTrait(updatedTrait, updatedVariable);
+
+            //update cache
+            cache.set(program.getId(), updatedTrait.getId().toString(), updatedTrait);
         }
 
         return updatedTrait;
