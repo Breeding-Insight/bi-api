@@ -248,8 +248,6 @@ public class BrAPIGermplasmDAO {
         try {
             Callable<List<BrAPIGermplasm>> postFunction = () -> brAPIDAOUtil.post(brAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
             return programGermplasmCache.post(programId, postFunction);
-        } catch (ApiException e) {
-            throw e;
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
