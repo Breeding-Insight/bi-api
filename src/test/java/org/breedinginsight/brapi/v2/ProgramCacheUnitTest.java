@@ -1,23 +1,21 @@
 package org.breedinginsight.brapi.v2;
 
+import io.lettuce.core.RedisClient;
+import io.lettuce.core.api.StatefulRedisConnection;
 import io.micronaut.test.annotation.MockBean;
-import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
-import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.breedinginsight.TestUtils;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
-import org.breedinginsight.brapi.v2.dao.FetchFunction;
-import org.breedinginsight.brapi.v2.dao.ProgramCache;
-import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.utilities.email.EmailUtil;
+import org.breedinginsight.daos.cache.ProgramCache;
 import org.junit.jupiter.api.*;
-import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.PullPolicy;
 
 import javax.inject.Inject;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -45,8 +43,24 @@ public class ProgramCacheUnitTest {
     @Inject
     BrAPIGermplasmDAO germplasmDAO;
 
+    private static GenericContainer redisContainer;
+    private static StatefulRedisConnection<String, String> redisConnection;
+
     @BeforeAll
-    void setup() {}
+    void setup() {
+        redisContainer = new GenericContainer<>("redis")
+                .withNetwork(Network.newNetwork())
+                .withNetworkAliases("redis")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(6379)
+                .waitingFor(Wait.forListeningPort());
+        redisContainer.start();
+
+        Integer containerPort = redisContainer.getMappedPort(6379);
+        String containerIp = redisContainer.getContainerIpAddress();
+
+        redisConnection = RedisClient.create(String.format("redis://%s:%s", containerIp, containerPort)).connect();
+    }
 
     @AfterEach
     @SneakyThrows
@@ -60,7 +74,9 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public Map<String, BrAPIGermplasm> mockFetch(UUID programId, Integer sleepTime) {
         fetchCount += 1;
+        System.out.println("Starting sleep at " + LocalDateTime.now());
         Thread.sleep(sleepTime);
+        System.out.println("Woken up at " + LocalDateTime.now());
         return mockBrAPI.containsKey(programId) ? new HashMap<>(mockBrAPI.get(programId).stream().collect(Collectors.toMap(germplasm -> UUID.randomUUID().toString(), germplasm -> germplasm))) : new HashMap<>();
     }
 
@@ -76,16 +92,16 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-    @SneakyThrows
-    public void populatedRefreshQueueSkipsRefresh() {
+//    @SneakyThrows
+    public void populatedRefreshQueueSkipsRefresh() throws Exception {
         // Make a lot of post calls and just how many times the fetch method is called
-        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
         UUID programId = UUID.randomUUID();
         int numPost = 10;
         int currPost = 0;
         while (currPost < numPost) {
             List<BrAPIGermplasm> newList = new ArrayList<>();
-            newList.add(new BrAPIGermplasm());
+            newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
             cache.post(programId, () -> mockPost(programId, new ArrayList<>(newList)));
             currPost += 1;
         }
@@ -97,16 +113,16 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-    @SneakyThrows
-    public void programRefreshesSeparated() {
+//    @SneakyThrows
+    public void programRefreshesSeparated() throws Exception {
         // Make a lot of post calls on different programs to check that they don't wait for each other
-        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
         int numPost = 10;
         int currPost = 0;
         while (currPost < numPost) {
             UUID id = UUID.randomUUID();
             List<BrAPIGermplasm> newList = new ArrayList<>();
-            newList.add(new BrAPIGermplasm());
+            newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
             cache.post(id, () -> mockPost(id, new ArrayList<>(newList)));
             // This doesn't have to do with our code, our mock function is just tripping over itself trying to update the number of fetches
             Thread.sleep(waitTime/5);
@@ -121,25 +137,27 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-    @SneakyThrows
-    public void initialGetMethodWaitsForLoad() {
+//    @SneakyThrows
+    public void initialGetMethodWaitsForLoad() throws ApiException {
         // Test that the get method waits for an ongoing refresh to finish when there isn't any day
         UUID programId = UUID.randomUUID();
-        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime), List.of(programId));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
+        cache.populate(programId);
         cache.get(programId);
         // Our fetch method should have only been called once for the initial loading
         assertEquals(1, fetchCount, "Fetch method was called on get");
     }
 
     @Test
-    @SneakyThrows
-    public void getMethodDoesNotWaitForRefresh() {
+//    @SneakyThrows
+    public void getMethodDoesNotWaitForRefresh() throws Exception {
         // Test that the get method does not wait for a refresh when there is data present
         UUID programId = UUID.randomUUID();
         List<BrAPIGermplasm> newList = new ArrayList<>();
-        newList.add(new BrAPIGermplasm());
+        newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
         mockBrAPI.put(programId, new ArrayList<>(newList));
-        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime*2), List.of(programId));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
+        cache.populate(programId);
         Callable<List<BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
         // Get waits for initial fetch
@@ -147,52 +165,51 @@ public class ProgramCacheUnitTest {
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Now post another object and call get immediately to see that it returns the old data
+        cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(id, waitTime*5), BrAPIGermplasm.class);
         cache.post(programId, postFunction);
+        System.out.println("calling get at: "+ LocalDateTime.now());
         cachedGermplasm = cache.get(programId);
         assertEquals(1, cachedGermplasm.size(), "Get method seemed to have waited for refresh method");
 
         // Now wait for the fetch after the post to finish
-        Thread.sleep(waitTime*3);
+        Thread.sleep(waitTime*5);
         cachedGermplasm = cache.get(programId);
         assertEquals(2, cachedGermplasm.size(), "Get method did not get updated germplasm");
     }
 
     @Test
-    @SneakyThrows
+//    @SneakyThrows
     @Order(1)
-    public void refreshErrorInvalidatesCache() {
+    public void refreshErrorInvalidatesCache() throws Exception {
         // Tests that data is invalidated when a refresh method fails
         // Tests that data is no longer retrievable when invalidated and needs to be refreshed
 
         // Set starter data
         UUID programId = UUID.randomUUID();
         List<BrAPIGermplasm> newList = new ArrayList<>();
-        newList.add(new BrAPIGermplasm());
+        newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
         mockBrAPI.put(programId, new ArrayList<>(newList));
 
-        // Mock our method
-        ProgramCacheUnitTest mockTest = spy(this);
-
         // Start cache
-        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockTest.mockFetch(programId, waitTime), List.of(programId));
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
+        cache.populate(programId);
 
         // Get waits for initial fetch
         Map<String, BrAPIGermplasm> cachedGermplasm = cache.get(programId);
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Change our fetch method to throw an error now
-        when(mockTest.mockFetch(any(UUID.class), any(Integer.class))).thenAnswer(invocation -> {throw new ApiException("Uhoh");});
+        cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> {throw new ApiException("UhOh");}, BrAPIGermplasm.class);
         cache.post(programId, () -> mockPost(programId, new ArrayList<>(newList)));
         // Give it a second so we can wait for the cache to be invalidated and refresh to finish
         Thread.sleep(waitTime*2);
 
         // Check that the fetch function needs to be called again since the cache was invalidated
-        reset(mockTest);
-        verify(mockTest, times(0)).mockFetch(any(UUID.class), any(Integer.class));
+        cache = new ProgramCache<>(redisConnection, (UUID id, Map<String, BrAPIGermplasm> cachedVals) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
+        assertEquals(fetchCount, 1);
         cachedGermplasm = cache.get(programId);
         Thread.sleep(waitTime*2);
-        verify(mockTest, times(1)).mockFetch(any(UUID.class), any(Integer.class));
+        assertEquals(fetchCount, 2);
         assertEquals(2, cachedGermplasm.size(), "Newly retrieved germplasm not as expected");
     }
-
 }

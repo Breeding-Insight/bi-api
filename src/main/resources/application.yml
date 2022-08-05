@@ -170,4 +170,7 @@ email:
     port: ${EMAIL_RELAY_PORT}
   from: ${EMAIL_FROM}
 
-
+redis:
+  uri: ${REDIS_URL:`redis://localhost`}
+  ssl: ${REDIS_SSL:false}
+  timeout: ${REDIS_TIMEOUT:30s}
