@@ -1,8 +1,6 @@
 package org.breedinginsight.services;
 
 import com.google.gson.JsonObject;
-import io.micronaut.context.annotation.Property;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 import lombok.SneakyThrows;
@@ -17,6 +15,7 @@ import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
@@ -25,7 +24,6 @@ import org.breedinginsight.utilities.FileUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.mockito.MockedStatic;
 import tech.tablesaw.api.Table;
 
 import java.io.InputStream;
@@ -48,6 +46,7 @@ public class BrAPIGermplasmServiceUnitTest {
     private BrAPIGermplasmService germplasmService;
     private BrAPIDAOUtil brAPIDAOUtil;
     private String referenceSource;
+    private ProgramCacheProvider cacheProvider;
 
     @SneakyThrows
     @BeforeEach
@@ -57,7 +56,8 @@ public class BrAPIGermplasmServiceUnitTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil);
+        cacheProvider = mock(ProgramCacheProvider.class);
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider);
         programService = mock(ProgramService.class);
 
         Field externalReferenceSource = BrAPIGermplasmDAO.class.getDeclaredField("referenceSource");

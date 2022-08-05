@@ -395,6 +395,10 @@
             <artifactId>cloning</artifactId>
             <version>${cloning.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.micronaut.redis</groupId>
+            <artifactId>micronaut-redis-lettuce</artifactId>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
