@@ -65,7 +65,7 @@ public class BrAPIStudyDAO {
         studySearch.addExternalReferenceIDsItem(experimentID.toString());
         studySearch.addExternalReferenceSourcesItem(BRAPI_REFERENCE_SOURCE + "/trials");
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
                 studySearch
