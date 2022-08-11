@@ -29,6 +29,7 @@ import org.brapi.v2.model.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
 import javax.inject.Singleton;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -39,7 +40,7 @@ public class BrAPIDAOUtil {
     @Property(name = "brapi.search.wait-time")
     private int searchWaitTime;
     @Property(name = "brapi.read-timeout")
-    private int searchTimeout;
+    private Duration searchTimeout;
     @Property(name = "brapi.page-size")
     private int pageSize;
     @Property(name = "brapi.post-group-size")
@@ -105,7 +106,7 @@ public class BrAPIDAOUtil {
                         // Wait a bit before we call again
                         Thread.sleep(searchWaitTime);
                         accruedWait += searchWaitTime;
-                        if (accruedWait >= searchTimeout) {
+                        if (accruedWait >= searchTimeout.toMillis()) {
                             throw new ApiException("Search response timeout");
                         }
                     }
