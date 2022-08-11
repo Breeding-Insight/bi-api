@@ -13,6 +13,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
@@ -42,6 +43,7 @@ public class BrAPIGermplasmServiceUnitTest {
     private ProgramService programService;
     private ProgramDAO programDAO;
     private BrAPIGermplasmService germplasmService;
+    private BrAPIDAOUtil brAPIDAOUtil;
 
     @BeforeEach
     void setup() {
@@ -53,7 +55,6 @@ public class BrAPIGermplasmServiceUnitTest {
     }
 
     //TODO: Refactoring in BI-1443 needs to be done before this can be enabled due to BrAPIDAOUtil.search currently being static
-    /*
     @Test
     @SneakyThrows
     public void getGermplasmListExport() {
@@ -117,7 +118,7 @@ public class BrAPIGermplasmServiceUnitTest {
 
         doReturn(listResponse).when(brAPIListSpy).getListById(listId, testProgramId);
         MockedStatic<BrAPIDAOUtil> brapiDaoUtilMock = mockStatic(BrAPIDAOUtil.class);
-        brapiDaoUtilMock.when(() -> BrAPIDAOUtil.search(any(Function.class),
+        brapiDaoUtilMock.when(() -> brAPIDAOUtil.search(any(Function.class),
                                                   any(Function3.class),
                                                   any(BrAPIGermplasmSearchRequest.class))).thenReturn(germplasm);
         doReturn(Optional.of(testProgram)).when(programSpy).getById(testProgramId);
@@ -129,7 +130,7 @@ public class BrAPIGermplasmServiceUnitTest {
         germplasmService = new BrAPIGermplasmService(brAPIListSpy, programSpy, germplasmDAO);
 
         //Retrieve file
-        DownloadFile downloadFile = germplasmService.exportGermplasmList(testProgramId, listId);
+        DownloadFile downloadFile = germplasmService.exportGermplasmList(testProgramId, listId, FileType.XLS);
         InputStream inputStream = downloadFile.getStreamedFile().getInputStream();
         Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
 
@@ -146,5 +147,4 @@ public class BrAPIGermplasmServiceUnitTest {
         assertEquals("Germplasm A", resultTable.get(0, 1), "Incorrect data exported");
         assertEquals("2", resultTable.get(0, 6), "Incorrect data exported");
     }
-     */
 }
