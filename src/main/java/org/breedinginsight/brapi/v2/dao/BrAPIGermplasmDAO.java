@@ -161,6 +161,7 @@ public class BrAPIGermplasmDAO {
         }
 
         // Update pedigree string
+        //TODO update namepedigreeString
         for (BrAPIGermplasm germplasm: programGermplasm) {
             if (germplasm.getPedigree() != null) {
                 JsonObject additionalInfo = germplasm.getAdditionalInfo();
@@ -194,6 +195,13 @@ public class BrAPIGermplasmDAO {
                                 map(ref -> ref.getReferenceID()).findFirst().orElse("");
                         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParentAccessionNumber);
                     }
+                }
+                //Add Unknown germplasm for display
+                if (germplasm.getAdditionalInfo().has("femaleParentUnknown") && germplasm.getAdditionalInfo().get("femaleParentUnknown").getAsBoolean()) {
+                    namePedigreeString = "Unknown";
+                }
+                if (germplasm.getAdditionalInfo().has("maleParentUnknown") && germplasm.getAdditionalInfo().get("maleParentUnknown").getAsBoolean()) {
+                    namePedigreeString += "/Unknown";
                 }
                 //For use in individual germplasm display
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
@@ -238,6 +246,19 @@ public class BrAPIGermplasmDAO {
         }
         if (germplasm == null) {
             throw new DoesNotExistException("UUID for this germplasm does not exist");
+        }
+        return germplasm;
+    }
+
+    public BrAPIGermplasm getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException, DoesNotExistException {
+        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
+        //key is UUID, want to filter by DBID
+        BrAPIGermplasm germplasm = null;
+        if (cache != null) {
+            germplasm = cache.values().stream().filter(x -> x.getGermplasmDbId().equals(germplasmDbId)).collect(Collectors.toList()).get(0);
+        }
+        if (germplasm == null) {
+            throw new DoesNotExistException("DBID for this germplasm does not exist");
         }
         return germplasm;
     }
