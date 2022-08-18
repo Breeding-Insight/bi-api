@@ -396,8 +396,9 @@
             <version>${cloning.version}</version>
         </dependency>
         <dependency>
-            <groupId>io.micronaut.redis</groupId>
-            <artifactId>micronaut-redis-lettuce</artifactId>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-micronaut-20</artifactId>
+            <version>3.17.5</version>
         </dependency>
     </dependencies>
     <build>

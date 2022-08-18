@@ -18,12 +18,12 @@
 package org.breedinginsight.daos.cache;
 
 import com.google.gson.Gson;
-import io.lettuce.core.api.StatefulRedisConnection;
-import io.lettuce.core.api.sync.RedisCommands;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.redisson.api.*;
+
 import javax.validation.constraints.NotNull;
 
 import java.util.*;
@@ -35,14 +35,14 @@ import java.util.concurrent.*;
  */
 @Slf4j
 public class ProgramCache<R> {
-    private final StatefulRedisConnection<String, String> connection;
+    private final RedissonClient connection;
     private final Gson gson;
     private final FetchFunction<UUID, Map<String, R>> fetchMethod;
-    private final Map<String, Semaphore> programSemaphore = new HashMap<>();
+    private final Map<String, RSemaphore> programSemaphore = new HashMap<>();
     private Class<R> type;
     private final Executor executor = Executors.newCachedThreadPool();
 
-    public ProgramCache(StatefulRedisConnection<String, String> connection, FetchFunction<UUID, Map<String, R>> fetchMethod, Class<R> type) {
+    public ProgramCache(RedissonClient connection, FetchFunction<UUID, Map<String, R>> fetchMethod, Class<R> type) {
         this.connection = connection;
         this.gson = new JSON().getGson();
         this.fetchMethod = fetchMethod;
@@ -57,27 +57,52 @@ public class ProgramCache<R> {
 
     public void populate(@NotNull UUID key) {
         String cacheKey = generateCacheKey(key);
+        String queueKey = cacheKey+":semaphore:queue";
         if (!programSemaphore.containsKey(cacheKey)) {
-            programSemaphore.put(cacheKey, new Semaphore(1));
+            RSemaphore semaphore = connection.getSemaphore(cacheKey+":semaphore");
+            semaphore.trySetPermits(1);
+            programSemaphore.put(cacheKey, semaphore);
         }
 
-        if (programSemaphore.get(cacheKey).tryAcquire()) { // if false, an update is already in progress, skip this one
+        boolean acquired = programSemaphore.get(cacheKey).tryAcquire();
+
+        boolean refresh = true;
+        if(!acquired) {
+            long queueSize = connection.getAtomicLong(queueKey)
+                               .incrementAndGet();
+            if(queueSize == 1) {
+                try {
+                    programSemaphore.get(cacheKey).acquire();
+                    log.debug("repopulating cache for " + cacheKey);
+                    connection.getAtomicLong(queueKey).set(0);
+                } catch (InterruptedException e) {
+                    log.error("Error acquiring lock to refresh "+cacheKey, e);
+                    throw new RuntimeException(e);
+                }
+            } else {
+                log.debug("A refresh is queued up for key: "+cacheKey+", leaving");
+                refresh = false;
+            }
+        }
+
+        if (refresh) { // if false, an update is already in progress and another one queued up, skip this one
             // Start a refresh process asynchronously
             executor.execute(() -> {
                 // Synchronous
                 try {
-                    log.debug("loading cache for key: " + key);
-                    RedisCommands<String, String> commands = connection.sync();
-                    Map<String, R> values = fetchMethod.apply(key, deserialize(commands.hgetall(generateCacheKey(key))));
+                    log.debug("loading cache for key: " + cacheKey);
+                    Map<String, R> values = fetchMethod.apply(key);
                     if(!values.isEmpty()) {
-                        log.debug("Caching new values for key: " + key);
+                        log.debug("Caching new values for key: " + cacheKey);
                         Map<String, String> entryMap = new HashMap<>();
                         for (Map.Entry<String, R> val : values.entrySet()) {
                             String entryVal = gson.toJson(val.getValue());
                             entryMap.put(val.getKey(), entryVal);
                         }
 
-                        commands.hmset(cacheKey, entryMap);
+                        RMap<String, String> map = connection.getMap(cacheKey);
+                        map.clear();
+                        map.putAll(entryMap);
                     }
                     log.debug("cache loading complete for key: " + cacheKey);
                 } catch (Exception e) {
@@ -92,29 +117,26 @@ public class ProgramCache<R> {
     }
 
     public void set(@NotNull UUID key, @NotNull String id, @NotNull R value) {
-        RedisCommands<String, String> commands = connection.sync();
-        commands.hset(generateCacheKey(key), id, gson.toJson(value));
+        connection.getMap(generateCacheKey(key)).put(id, gson.toJson(value));
     }
 
     public void invalidate(@NotNull UUID key) {
-        RedisCommands<String, String> commands = connection.sync();
-        commands.del(generateCacheKey(key));
+        connection.getMap(generateCacheKey(key)).delete();
     }
 
     public Map<String, R> get(UUID key) throws ApiException {
-        log.debug("Getting for key: " + key);
-        RedisCommands<String, String> commands = connection.sync();
         String cacheKey = generateCacheKey(key);
+        log.debug("Getting for key: " + cacheKey);
 
         try {
-            if (commands.exists(cacheKey) == 0) {
+            if (!connection.getBucket(cacheKey).isExists()) {
                 log.debug("cache miss, populating");
                 populate(key);
                 //block until any updates are done
                 programSemaphore.get(cacheKey).acquire();
                 programSemaphore.get(cacheKey).release();
             }
-            return deserialize(commands.hgetall(cacheKey));
+            return deserialize(connection.getMap(cacheKey));
         } catch (Exception e) {
             throw new ApiException(e);
         }
@@ -127,7 +149,7 @@ public class ProgramCache<R> {
     }
 
     public List<R> post(UUID key, Callable<List<R>> postMethod) {
-        log.debug("posting for key: " + key);
+        log.debug("posting for key: " + generateCacheKey(key));
         List<R> response = null;
         try {
             response = postMethod.call();
@@ -139,6 +161,6 @@ public class ProgramCache<R> {
     }
 
     private String generateCacheKey(UUID key) {
-        return type.getSimpleName().toLowerCase() + ":" + key.toString();
+        return key.toString() + ":" + type.getSimpleName().toLowerCase();
     }
 }
