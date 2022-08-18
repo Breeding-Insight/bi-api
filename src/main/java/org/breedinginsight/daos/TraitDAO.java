@@ -21,7 +21,6 @@ import com.github.filosganga.geogson.gson.GeometryAdapterFactory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonDeserializer;
-import io.lettuce.core.api.StatefulRedisConnection;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
@@ -43,6 +42,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
 import org.jooq.tools.StringUtils;
 
@@ -89,37 +89,24 @@ public class TraitDAO extends TraitDao {
                                                          .create();;
     }
 
-    @Scheduled(initialDelay = "5s")
+    @Scheduled(initialDelay = "2s")
     public void setup() {
         // Populate trait cache for all programs on startup
-        List<Program> activePrograms = programDAO.getAll();
-        if(activePrograms != null) {
-            cache.populate(activePrograms.stream().filter(Program::getActive).map(Program::getId).collect(Collectors.toList()));
+        log.debug("Populate traits cache");
+        List<Program> programs = programDAO.getActive();
+        if(programs != null) {
+            cache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
         }
     }
 
-    public Map<String, Trait> populateCache(UUID programId, Map<String, Trait> cachedResults) {
-        Integer totalTerms = dsl.selectCount()
-                             .from(TRAIT)
-                             .join(PROGRAM_ONTOLOGY)
-                             .on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
-                             .join(PROGRAM)
-                             .on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
-                             .and(PROGRAM.ID.eq(programId))
-                             .fetchOne(0, int.class);
-        totalTerms = totalTerms != null && totalTerms > 0 ? totalTerms : -1;
-
-        if(cachedResults.size() != totalTerms) {
-            List<Trait> programTraits = fetchTraitsFullByProgramId(programId);
-            Map<String, Trait> traits = new HashMap<>();
-            if (!programTraits.isEmpty()) {
-                programTraits.forEach(trait -> traits.put(trait.getId().toString(), trait));
-            }
-
-            return traits;
-        } else {
-            return cachedResults;
+    private Map<String, Trait> populateCache(UUID programId) {
+        List<Trait> programTraits = fetchTraitsFullByProgramId(programId);
+        Map<String, Trait> traits = new HashMap<>();
+        if (!programTraits.isEmpty()) {
+            programTraits.forEach(trait -> traits.put(trait.getId().toString(), trait));
         }
+
+        return traits;
     }
 
     public List<Trait> getTraitsFullByProgramId(UUID programId) {
@@ -162,9 +149,10 @@ public class TraitDAO extends TraitDao {
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
-            brApiVariables = brAPIProvider.getVariablesAPI(PHENO)
+            brApiVariables = new ObservationVariablesApi(programDAO.getCoreClient(programId))
                                           .variablesGet(variablesRequest);
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -253,6 +241,7 @@ public class TraitDAO extends TraitDao {
             brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
         } catch (ApiException e) {
             // If variable is not found, is still a server exception
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -443,6 +432,7 @@ public class TraitDAO extends TraitDao {
                 createdVariables = variablesAPI.variablesPost(brApiVariables);
             }
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -554,6 +544,7 @@ public class TraitDAO extends TraitDao {
             }
 
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException(String.format("Unable to retrieve variable with id %s in brapi server.", traitId.toString()));
         }
 
@@ -568,6 +559,7 @@ public class TraitDAO extends TraitDao {
                     variablesAPI.variablesObservationVariableDbIdPut(variable.getObservationVariableDbId(), variable);
             updatedVariable = updatedResponse.getBody().getResult();
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException(String.format("Unable to save variable in brapi server."));
         }
         return updatedVariable;

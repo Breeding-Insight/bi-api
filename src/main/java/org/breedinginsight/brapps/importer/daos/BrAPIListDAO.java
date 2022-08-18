@@ -12,13 +12,12 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
-import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.ExternalReference;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -93,12 +92,28 @@ public class BrAPIListDAO {
     public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
         ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
         // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
-        ApiResponse response =  api.listsPost(brapiLists);
-        if (response.getBody() == null) throw new ApiException("Response is missing body");
-        BrAPIResponse body = (BrAPIResponse) response.getBody();
-        if (body.getResult() == null) throw new ApiException("Response body is missing result");
-        BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
-        if (result.getData() == null) throw new ApiException("Response result is missing data");
-        return result.getData();
+        ApiResponse response;
+        try {
+            response = api.listsPost(brapiLists);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        }
+        if(response != null) {
+            BrAPIResponse body = (BrAPIResponse) response.getBody();
+            if (body == null) {
+                throw new ApiException("Response is missing body");
+            }
+            BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
+            if (result == null) {
+                throw new ApiException("Response body is missing result");
+            }
+            if (result.getData() == null) {
+                throw new ApiException("Response result is missing data");
+            }
+            return result.getData();
+        }
+
+        throw new ApiException("No response after creating list");
     }
 }

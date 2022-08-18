@@ -71,12 +71,13 @@ public class BrAPIGermplasmDAO {
         this.programGermplasmCache = programCacheProvider.getProgramCache(this::fetchProgramGermplasm, BrAPIGermplasm.class);
     }
 
-    @Scheduled(initialDelay = "5s")
+    @Scheduled(initialDelay = "2s")
     public void setup() {
         // Populate germplasm cache for all programs on startup
-        List<Program> activePrograms = programDAO.getAll();
-        if(activePrograms != null) {
-            programGermplasmCache.populate(activePrograms.stream().filter(Program::getActive).map(Program::getId).collect(Collectors.toList()));
+        log.debug("populating germplasm cache");
+        List<Program> programs = programDAO.getActive();
+        if(programs != null) {
+            programGermplasmCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
         }
     }
 
@@ -117,40 +118,24 @@ public class BrAPIGermplasmDAO {
      * @return Map<Key = string representing germplasm UUID, value = formatted BrAPIGermplasm>
      * @throws ApiException
      */
-    private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId, Map<String, BrAPIGermplasm> cachedValues) throws ApiException {
+    private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
-        ApiResponse<BrAPIGermplasmListResponse> brAPIGermplasmListResponseApiResponse = api.germplasmGet(GermplasmQueryParams.builder()
-                                                                                                                             .externalReferenceID(referenceSource)
-                                                                                                                             .externalReferenceSource(String.format("%s/programs", referenceSource))
-                                                                                                                             .pageSize(1)
-                                                                                                                             .build());
-        int totalGerm = -1;
-        if(brAPIGermplasmListResponseApiResponse.getBody() != null
-                && brAPIGermplasmListResponseApiResponse.getBody().getMetadata() != null
-                && brAPIGermplasmListResponseApiResponse.getBody().getMetadata().getPagination() != null
-                && brAPIGermplasmListResponseApiResponse.getBody().getMetadata().getPagination().getTotalCount() > 0) {
-            totalGerm = brAPIGermplasmListResponseApiResponse.getBody().getMetadata().getPagination().getTotalCount();
+        // Get the program key
+        List<Program> programs = programDAO.get(programId);
+        if (programs.size() != 1) {
+            throw new InternalServerException("Program was not found for given key");
         }
-        if(totalGerm != cachedValues.size()) {
-            // Get the program key
-            List<Program> programs = programDAO.get(programId);
-            if (programs.size() != 1) {
-                throw new InternalServerException("Program was not found for given key");
-            }
-            Program program = programs.get(0);
+        Program program = programs.get(0);
 
-	        // Set query params and make call
-	        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
-	        germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
-	        germplasmSearch.externalReferenceSources(List.of(String.format("%s/programs", referenceSource)));
-	        return processGermplasmForDisplay(brAPIDAOUtil.search(
-	                api::searchGermplasmPost,
-	                api::searchGermplasmSearchResultsDbIdGet,
-	                germplasmSearch
-	        ), program.getKey());
-        } else {
-            return cachedValues;
-        }
+        // Set query params and make call
+        BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
+        germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
+        germplasmSearch.externalReferenceSources(List.of(String.format("%s/programs", referenceSource)));
+        return processGermplasmForDisplay(brAPIDAOUtil.search(
+                api::searchGermplasmPost,
+                api::searchGermplasmSearchResultsDbIdGet,
+                germplasmSearch
+        ), program.getKey());
     }
 
     /**
@@ -162,7 +147,7 @@ public class BrAPIGermplasmDAO {
     private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm, String programKey) {
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
-        log.debug("processing germ for display: " + programGermplasm);
+        log.trace("processing germ for display: " + programGermplasm);
         Map<String, BrAPIGermplasm> programGermplasmByFullName = new HashMap<>();
         for (BrAPIGermplasm germplasm: programGermplasm) {
             programGermplasmByFullName.put(germplasm.getGermplasmName(), germplasm);

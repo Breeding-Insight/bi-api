@@ -1,6 +1,6 @@
 package org.breedinginsight.daos.cache;
 
-import io.lettuce.core.api.StatefulRedisConnection;
+import org.redisson.api.RedissonClient;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -9,10 +9,10 @@ import java.util.UUID;
 
 @Singleton
 public class ProgramCacheProvider {
-    private final StatefulRedisConnection<String, String> connection;
+    private final RedissonClient connection;
 
     @Inject
-    public ProgramCacheProvider(StatefulRedisConnection<String, String> connection) {
+    public ProgramCacheProvider(RedissonClient connection) {
         this.connection = connection;
     }
 
