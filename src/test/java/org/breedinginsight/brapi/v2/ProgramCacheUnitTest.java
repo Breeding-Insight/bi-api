@@ -64,6 +64,11 @@ public class ProgramCacheUnitTest {
         redisConnection = Redisson.create(redissonConfig);
     }
 
+    @AfterAll
+    public void cleanup() {
+        redisContainer.stop();
+    }
+
     @AfterEach
     @SneakyThrows
     void setupNextTest() {
