@@ -33,6 +33,10 @@ public class DatabaseTest implements TestPropertyProvider {
 
     @Getter
     private static GenericContainer dbContainer;
+
+    @Getter
+    private static GenericContainer redisContainer;
+
     private final String dbName = "bitest";
     private final String dbPassword = "postgres";
 
@@ -47,6 +51,14 @@ public class DatabaseTest implements TestPropertyProvider {
                 .withEnv("POSTGRES_PASSWORD", dbPassword)
                 .waitingFor(Wait.forListeningPort());
         dbContainer.start();
+
+        redisContainer = new GenericContainer<>("redis")
+                .withNetwork(Network.newNetwork())
+                .withNetworkAliases("redis")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(6379)
+                .waitingFor(Wait.forListeningPort());
+        redisContainer.start();
     }
 
     @Nonnull
@@ -55,8 +67,12 @@ public class DatabaseTest implements TestPropertyProvider {
         Map<String, String> properties = new HashMap<>();
         Integer containerPort = dbContainer.getMappedPort(5432);
         String containerIp = dbContainer.getContainerIpAddress();
-
         properties.put("datasources.default.url", String.format("jdbc:postgresql://%s:%s/%s", containerIp, containerPort, dbName));
+
+        Integer redisContainerPort = redisContainer.getMappedPort(6379);
+        String redisContainerIp = redisContainer.getContainerIpAddress();
+        properties.put("redisson.single-server-config.address", String.format("redis://%s:%s", redisContainerIp, redisContainerPort));
+
         return properties;
     }
 
