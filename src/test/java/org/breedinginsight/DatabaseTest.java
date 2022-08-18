@@ -82,5 +82,6 @@ public class DatabaseTest implements TestPropertyProvider {
 
     protected void stopContainers() {
         dbContainer.stop();
+        redisContainer.stop();
     }
 }
