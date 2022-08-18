@@ -94,7 +94,7 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-//    @SneakyThrows
+    @SneakyThrows
     public void populatedRefreshQueueSkipsRefresh() throws Exception {
         // Make a lot of post calls and just how many times the fetch method is called
         ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
@@ -115,7 +115,7 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-//    @SneakyThrows
+    @SneakyThrows
     public void programRefreshesSeparated() throws Exception {
         // Make a lot of post calls on different programs to check that they don't wait for each other
         ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
@@ -139,7 +139,7 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-//    @SneakyThrows
+    @SneakyThrows
     public void onlyOneRefreshIsQueued() throws ApiException {
         // Test that the get method waits for an ongoing refresh to finish when there isn't any day
         UUID programId = UUID.randomUUID();
@@ -156,7 +156,7 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-//    @SneakyThrows
+    @SneakyThrows
     public void getMethodDoesNotWaitForRefresh() throws Exception {
         // Test that the get method does not wait for a refresh when there is data present
         UUID programId = UUID.randomUUID();
@@ -185,7 +185,7 @@ public class ProgramCacheUnitTest {
     }
 
     @Test
-//    @SneakyThrows
+    @SneakyThrows
     @Order(1)
     public void refreshErrorInvalidatesCache() throws Exception {
         // Tests that data is invalidated when a refresh method fails
