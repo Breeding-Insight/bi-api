@@ -41,6 +41,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
 import org.jooq.tools.StringUtils;
 
@@ -104,9 +105,12 @@ public class ProgramDAO extends ProgramDao {
         return getPrograms(programList);
     }
 
-    public List<Program> getAll()
-    {
+    public List<Program> getAll() {
         return getPrograms(null);
+    }
+
+    public List<Program> getActive() {
+        return getPrograms(null, true);
     }
 
     public List<Program> getProgramByName(String name, boolean caseInsensitive){
@@ -152,26 +156,33 @@ public class ProgramDAO extends ProgramDao {
         return parseProgramQuery(queryResult, createdByUser, updatedByUser);
     }
 
-    private List<Program> getPrograms(List<UUID> programIds){
+    private List<Program> getPrograms(List<UUID> programIds) {
+        return getPrograms(programIds, null);
+    }
+    private List<Program> getPrograms(List<UUID> programIds, Boolean active){
 
         BiUserTable createdByUser = BI_USER.as("createdByUser");
         BiUserTable updatedByUser = BI_USER.as("updatedByUser");
         Result<Record> queryResult;
         List<Program> resultPrograms = new ArrayList<>();
 
-        SelectOnConditionStep<Record> query = dsl.select()
-                .from(PROGRAM)
-                .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
-                .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
-                .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID));
+        SelectConditionStep<Record> query = dsl.select()
+                                                        .from(PROGRAM)
+                                                        .join(SPECIES).on(PROGRAM.SPECIES_ID.eq(SPECIES.ID))
+                                                        .join(createdByUser).on(PROGRAM.CREATED_BY.eq(createdByUser.ID))
+                                                        .join(updatedByUser).on(PROGRAM.UPDATED_BY.eq(updatedByUser.ID))
+                                                        .where("1=1");
 
         if (programIds != null){
-            queryResult = query
-                    .where(PROGRAM.ID.in(programIds))
-                    .fetch();
-        } else {
-            queryResult = query.fetch();
+            query = query
+                    .and(PROGRAM.ID.in(programIds));
         }
+
+        if(active != null) {
+            query = query.and(PROGRAM.ACTIVE.eq(active));
+        }
+
+        queryResult = query.fetch();
 
         return parseProgramQuery(queryResult, createdByUser, updatedByUser);
     }
@@ -233,7 +244,7 @@ public class ProgramDAO extends ProgramDao {
         try {
             ApiResponse<BrAPIServerInfoResponse> response = serverInfoAPI.serverinfoGet(BrAPIWSMIMEDataTypes.APPLICATION_JSON);
         } catch (ApiException e) {
-            log.error(e.getMessage());
+            log.error(Utilities.generateApiExceptionLogMessage(e));
             supported = false;
         }
         return supported;
@@ -251,6 +262,7 @@ public class ProgramDAO extends ProgramDao {
         try {
             brApiPrograms = programsApi.programsGet(searchRequest);
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new HttpServerException("Could not find program in BrAPI service.");
         }
 
@@ -283,9 +295,7 @@ public class ProgramDAO extends ProgramDao {
                 programsAPI.programsPost(List.of(brApiProgram));
             }
         } catch (ApiException e) {
-            log.debug(e.getMessage());
-            log.debug(e.getResponseBody());
-            log.debug(String.valueOf(e.getCode()));
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -307,6 +317,7 @@ public class ProgramDAO extends ProgramDao {
             try {
                 brApiPrograms = programsAPI.programsGet(searchRequest);
             } catch (ApiException e) {
+                log.warn(Utilities.generateApiExceptionLogMessage(e));
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
 
@@ -326,6 +337,7 @@ public class ProgramDAO extends ProgramDao {
             try {
                 programsAPI.programsProgramDbIdPut(brApiProgram.getProgramDbId(), brApiProgram);
             } catch (ApiException e) {
+                log.warn(Utilities.generateApiExceptionLogMessage(e));
                 throw new HttpServerException("Could not find program in BrAPI service.");
             }
         }
