@@ -37,13 +37,16 @@ public class DatabaseTest implements TestPropertyProvider {
     @Getter
     private static GenericContainer redisContainer;
 
+    private static Network network;
+
     private final String dbName = "bitest";
     private final String dbPassword = "postgres";
 
     @SneakyThrows
     public DatabaseTest() {
+        network = Network.newNetwork();
         dbContainer = new GenericContainer<>("postgres:11.4")
-                .withNetwork(Network.newNetwork())
+                .withNetwork(network)
                 .withNetworkAliases("test-db")
                 .withImagePullPolicy(PullPolicy.defaultPolicy())
                 .withExposedPorts(5432)
@@ -53,7 +56,7 @@ public class DatabaseTest implements TestPropertyProvider {
         dbContainer.start();
 
         redisContainer = new GenericContainer<>("redis")
-                .withNetwork(Network.newNetwork())
+                .withNetwork(network)
                 .withNetworkAliases("redis")
                 .withImagePullPolicy(PullPolicy.defaultPolicy())
                 .withExposedPorts(6379)
@@ -83,5 +86,6 @@ public class DatabaseTest implements TestPropertyProvider {
     protected void stopContainers() {
         dbContainer.stop();
         redisContainer.stop();
+        network.close();
     }
 }
