@@ -14,12 +14,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.BrAPIParentType;
-import org.brapi.v2.model.germ.BrAPIPedigreeNode;
-import org.brapi.v2.model.germ.BrAPIPedigreeNodeParents;
+import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.germ.*;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -41,6 +41,8 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -137,8 +139,6 @@ public class GermplasmController {
         }
     }
 
-
-    //todo add queryparams for includeSiblings and notation
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/pedigree{?notation}{?includeSiblings}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
@@ -152,16 +152,25 @@ public class GermplasmController {
             BrAPIPedigreeNode returnNode;
             BrAPIGermplasmPedigreeResponse response;
             BrAPIMetadata metadata;
-            if (germplasmId == "0") {
-                //todo check germplasmId is germplasmDbId
+            if (germplasmId.equals("0")) {
                 //Unknown germplasm node
                 returnNode = new BrAPIPedigreeNode();
                 returnNode.setGermplasmDbId("0");
                 returnNode.setGermplasmName("Unknown");
-                returnNode.setParents(null);
-                returnNode.setSiblings(null);
-                returnNode.setPedigree(null);
+                returnNode.setParents(new ArrayList<>());
+                returnNode.setSiblings(new ArrayList<>());
+                returnNode.setPedigree("/");
                 metadata = new BrAPIMetadata();
+                BrAPIStatus status = new BrAPIStatus();
+                status.setMessage("Complete");
+                status.setMessageType(BrAPIStatus.MessageTypeEnum.INFO);
+                BrAPIIndexPagination pagination = new BrAPIIndexPagination();
+                pagination.setTotalPages(1);
+                pagination.setTotalCount(1);
+                pagination.setPageSize(1);
+                pagination.setCurrentPage(0);
+                metadata.setStatus(Collections.singletonList(status));
+                metadata.setPagination(pagination);
                 response = new BrAPIGermplasmPedigreeResponse();
             } else {
                 BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId);
@@ -189,7 +198,60 @@ public class GermplasmController {
                 }
             }
             response.setResult(returnNode);
+            response.setMetadata(metadata);
             return HttpResponse.ok(response);
+        } catch (InternalServerException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Pedigree node not found");
+        } catch (ApiException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        }
+    }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/progeny")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<BrAPIGermplasmProgenyResponse> getGermplasmProgenyInfo(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("germplasmId") String germplasmId) {
+        try {
+            log.debug("fetching progeny for germ id:" +  germplasmId +" for program: " + programId);
+            BrAPIProgenyNode returnNode;
+            BrAPIGermplasmProgenyResponse response;
+            BrAPIMetadata metadata;
+            if (germplasmId.equals("0")) {
+                //Unknown germplasm node
+                returnNode = new BrAPIProgenyNode();
+                returnNode.setGermplasmDbId("0");
+                returnNode.setGermplasmName("Unknown");
+                returnNode.setProgeny(new ArrayList<>());
+
+                metadata = new BrAPIMetadata();
+                BrAPIStatus status = new BrAPIStatus();
+                status.setMessage("Complete");
+                status.setMessageType(BrAPIStatus.MessageTypeEnum.INFO);
+                BrAPIIndexPagination pagination = new BrAPIIndexPagination();
+                pagination.setTotalPages(1);
+                pagination.setTotalCount(1);
+                pagination.setPageSize(1);
+                pagination.setCurrentPage(0);
+                metadata.setStatus(Collections.singletonList(status));
+                metadata.setPagination(pagination);
+                response = new BrAPIGermplasmProgenyResponse();
+                response.setResult(returnNode);
+                response.setMetadata(metadata);
+                return HttpResponse.ok(response);
+            } else {
+                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId);
+                //Forward the progeny call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
+                GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+                ApiResponse<BrAPIGermplasmProgenyResponse> progenyResponse = api.germplasmGermplasmDbIdProgenyGet(germplasmId);
+                return HttpResponse.ok(progenyResponse.getBody());
+            }
         } catch (InternalServerException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
