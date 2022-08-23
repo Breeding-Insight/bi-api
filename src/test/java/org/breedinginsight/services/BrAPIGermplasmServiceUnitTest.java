@@ -163,7 +163,7 @@ public class BrAPIGermplasmServiceUnitTest {
         assertEquals(listName+"_"+timestamp, downloadFile.getFileName(), "Incorrect export file name");
         assertEquals(expectedColumnNames, resultTable.columnNames(), "Incorrect columns were exported");
         assertEquals(2, resultTable.rowCount(), "Wrong number of rows were exported");
-        // assertEquals("Germplasm A", resultTable.get(0, 1), "Incorrect data exported");
-        // assertEquals("2", resultTable.get(0, 6), "Incorrect data exported");
+        assertEquals("Germplasm A", resultTable.get(0, 1), "Incorrect data exported");
+        assertEquals("2", resultTable.get(0, 6), "Incorrect data exported");
     }
 }
