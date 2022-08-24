@@ -32,17 +32,19 @@ import java.util.UUID;
 public class BrAPIObservationVariableDAO {
 
     private ProgramDAO programDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPIObservationVariableDAO(ProgramDAO programDAO) {
+    public BrAPIObservationVariableDAO(ProgramDAO programDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIObservationVariable> getVariableByName(List<String> variableNames, UUID programId) throws ApiException {
         BrAPIObservationVariableSearchRequest variableSearch = new BrAPIObservationVariableSearchRequest();
         variableSearch.observationVariableNames(variableNames);
         ObservationVariablesApi api = new ObservationVariablesApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchVariablesPost,
                 api::searchVariablesSearchResultsDbIdGet,
                 variableSearch

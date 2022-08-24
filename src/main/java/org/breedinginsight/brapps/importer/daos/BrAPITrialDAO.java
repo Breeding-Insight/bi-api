@@ -35,11 +35,13 @@ public class BrAPITrialDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPITrialDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPITrialDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPITrial> getTrialByName(List<String> trialNames, Program program) throws ApiException {
@@ -47,7 +49,7 @@ public class BrAPITrialDAO {
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,
                 trialSearch
@@ -56,7 +58,7 @@ public class BrAPITrialDAO {
 
     public List<BrAPITrial> createBrAPITrial(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) throws ApiException {
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
     }
 
 }

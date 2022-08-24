@@ -38,11 +38,13 @@ public class BrAPIStudyDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIStudy> getStudyByName(List<String> studyNames, Program program) throws ApiException {
@@ -50,7 +52,7 @@ public class BrAPIStudyDAO {
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
                 studySearch
@@ -63,7 +65,7 @@ public class BrAPIStudyDAO {
         studySearch.addExternalReferenceIDsItem(experimentID.toString());
         studySearch.addExternalReferenceSourcesItem(BRAPI_REFERENCE_SOURCE + "/trials");
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
                 studySearch
@@ -72,7 +74,7 @@ public class BrAPIStudyDAO {
 
     public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
     }
 
 }
