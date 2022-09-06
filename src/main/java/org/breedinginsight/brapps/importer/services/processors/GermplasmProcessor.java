@@ -128,8 +128,6 @@ public class GermplasmProcessor implements Processor {
         List<String> missingDbIds = new ArrayList<>(germplasmDBIDs);
         if (germplasmDBIDs.size() > 0) {
             try {
-                //Remove germplasm DBID of 0 todo may move this
-                germplasmDBIDs.remove("0");
                 existingParentGermplasms = brAPIGermplasmService.getRawGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
                 List<String> existingDbIds = existingParentGermplasms.stream()
                         .map(germplasm -> germplasm.getAccessionNumber())
@@ -151,13 +149,12 @@ public class GermplasmProcessor implements Processor {
         List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
         dbGermplasm.stream().forEach(germplasm -> dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm));
 
-        /*
         // Check for existing germplasm lists
         Boolean listNameDup = false;
         if (importRows.size() > 0 && importRows.get(0).getGermplasm().getListName() != null) {
             try {
                 Germplasm row = importRows.get(0).getGermplasm();
-                String listName = row.constructGermplasmListName(row.getListName(), program);
+                String listName = Germplasm.constructGermplasmListName(row.getListName(), program);
                 List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
@@ -167,7 +164,10 @@ public class GermplasmProcessor implements Processor {
             } catch (ApiException e) {
                 throw new InternalServerException(e.toString(), e);
             }
-        }*/
+        }
+
+        //Remove id indicating unknown parent
+        missingDbIds.remove("0");
 
         // Parent reference checks
         if (missingDbIds.size() > 0) {
@@ -198,10 +198,9 @@ public class GermplasmProcessor implements Processor {
                             arrayOfStringFormatter.apply(missingEntryNumbers)));
         }
 
-        /*
         if (listNameDup) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, listNameAlreadyExists);
-        }*/
+        }
     }
 
     @Override

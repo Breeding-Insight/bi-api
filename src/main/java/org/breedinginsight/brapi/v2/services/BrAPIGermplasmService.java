@@ -64,13 +64,6 @@ public class BrAPIGermplasmService {
 
     public BrAPIGermplasm getGermplasmByUUID(UUID programId, String germplasmId) throws DoesNotExistException {
         try {
-            if (germplasmId.equals(0)){
-                //Unknown germplasm todo check if this necessary
-                BrAPIGermplasm unknownGermplasm = new BrAPIGermplasm();
-                unknownGermplasm.setGermplasmName("Unknown");
-                unknownGermplasm.setGermplasmDbId("0");
-                return unknownGermplasm;
-            }
             return germplasmDAO.getGermplasmByUUID(germplasmId, programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
