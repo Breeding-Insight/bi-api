@@ -20,41 +20,46 @@ package org.breedinginsight;
 import io.micronaut.test.support.TestPropertyProvider;
 import lombok.Getter;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.AfterAll;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
 
 import javax.annotation.Nonnull;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 public class DatabaseTest implements TestPropertyProvider {
 
-    @Getter
-    private static GenericContainer dbContainer;
+    private static final String dbName = "bitest";
+    private static final String dbPassword = "postgres";
 
     @Getter
-    private static GenericContainer redisContainer;
+    private GenericContainer dbContainer;
 
-    private static Network network;
+    @Getter
+    private Network network;
 
-    private final String dbName = "bitest";
-    private final String dbPassword = "postgres";
+    @Getter
+    private GenericContainer redisContainer;
 
     @SneakyThrows
     public DatabaseTest() {
         network = Network.newNetwork();
         dbContainer = new GenericContainer<>("postgres:11.4")
                 .withNetwork(network)
-                .withNetworkAliases("test-db")
+                .withNetworkAliases("testdb")
                 .withImagePullPolicy(PullPolicy.defaultPolicy())
                 .withExposedPorts(5432)
                 .withEnv("POSTGRES_DB", dbName)
                 .withEnv("POSTGRES_PASSWORD", dbPassword)
-                .waitingFor(Wait.forListeningPort());
+                .waitingFor(Wait.forLogMessage(".*LOG:  database system is ready to accept connections.*", 1).withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
         dbContainer.start();
-
         redisContainer = new GenericContainer<>("redis")
                 .withNetwork(network)
                 .withNetworkAliases("redis")
@@ -71,10 +76,14 @@ public class DatabaseTest implements TestPropertyProvider {
         Integer containerPort = dbContainer.getMappedPort(5432);
         String containerIp = dbContainer.getContainerIpAddress();
         properties.put("datasources.default.url", String.format("jdbc:postgresql://%s:%s/%s", containerIp, containerPort, dbName));
+        properties.put("micronaut.bi.api.run-scheduled-tasks", "false");
+        properties.put("datasources.default.initialization-fail-timeout", "10");
 
         Integer redisContainerPort = redisContainer.getMappedPort(6379);
         String redisContainerIp = redisContainer.getContainerIpAddress();
         properties.put("redisson.single-server-config.address", String.format("redis://%s:%s", redisContainerIp, redisContainerPort));
+
+        properties.put("micronaut.http.client.read-timeout", "1m");
 
         return properties;
     }
@@ -83,9 +92,11 @@ public class DatabaseTest implements TestPropertyProvider {
         return dbContainer;
     }
 
-    protected void stopContainers() {
-        dbContainer.stop();
+    @SneakyThrows
+    @AfterAll
+    public void stopContainers() {
         redisContainer.stop();
+        dbContainer.stop();
         network.close();
     }
 }
