@@ -53,9 +53,6 @@ public class RoleControllerIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @Test
     @Order(1)
     // Expects at least one valid role in the database to pass

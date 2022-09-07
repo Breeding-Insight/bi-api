@@ -107,9 +107,6 @@ public class InternalServerErrorHandlerUnitTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-    
     @BeforeAll
     void setup() {
         var securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
