@@ -34,26 +34,23 @@ import org.brapi.v2.model.pheno.*;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
+import org.breedinginsight.dao.db.tables.BiUserTable;
+import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.dao.db.tables.records.TraitRecord;
 import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.daos.cache.ProgramCache;
-import org.breedinginsight.dao.db.tables.BiUserTable;
-import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
-import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
-import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jooq.*;
-import org.jooq.conf.Settings;
-import org.jooq.exception.DataAccessException;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Result;
+import org.jooq.SelectOnConditionStep;
 import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
@@ -253,35 +250,6 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
-
-//        Optional<Trait> optionalDbTrait = getTrait(programId, traitId);
-//        if (!optionalDbTrait.isPresent()){
-//            return Optional.empty();
-//        }
-//        Trait dbTrait = optionalDbTrait.get();
-//
-//        ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
-//
-//        VariableQueryParams variablesRequest = new VariableQueryParams()
-//                .externalReferenceID(traitId.toString())
-//                .externalReferenceSource(referenceSource);
-//        try {
-//            brApiVariables = brAPIProvider.getVariablesAPI(PHENO).variablesGet(variablesRequest);
-//        } catch (ApiException e) {
-//            // If variable is not found, is still a server exception
-//            log.warn(Utilities.generateApiExceptionLogMessage(e));
-//            throw new InternalServerException("Error making BrAPI call", e);
-//        }
-//
-//        BrAPIObservationVariable brApiVariable;
-//        if (brApiVariables.getBody().getResult().getData().size() > 0){
-//            brApiVariable = brApiVariables.getBody().getResult().getData().get(0);
-//        } else {
-//            throw new InternalServerException("No variable found in brapi server");
-//        }
-//
-//        saturateTrait(dbTrait, brApiVariable);
-//        return Optional.of(dbTrait);
     }
 
     // could be more efficient to do a single get instead of search in saved search case but less code this way
