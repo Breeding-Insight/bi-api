@@ -51,11 +51,6 @@ public class AuthServiceLoginHandlerUnitTest extends DatabaseTest {
 
     private String userName = "1111-2222-3333-4444";
 
-    @AfterAll
-    public void finish() {
-        super.stopContainers();
-    }
-
     @Test
     public void returnsDefaultBadUrl() {
 

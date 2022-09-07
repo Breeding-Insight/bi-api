@@ -115,6 +115,9 @@ public class ProgramCacheUnitTest {
         assertTrue(fetchCount < numPost, "A fetch call was made for every post. It shouldn't.");
         assertEquals(1, mockBrAPI.size(), "More than one program existed in mocked brapi db.");
         assertEquals(numPost, mockBrAPI.get(programId).size(), "Wrong number of germplasm in db");
+        while(cache.isRefreshing(programId)) {
+            Thread.sleep(waitTime);
+        }
         Map<String, BrAPIGermplasm> cachedGermplasm = cache.get(programId);
         assertEquals(numPost, cachedGermplasm.size(), "Wrong number of germplasm in cache");
     }
