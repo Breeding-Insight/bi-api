@@ -61,6 +61,9 @@ public class BrAPIGermplasmDAO {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
+    @Property(name = "micronaut.bi.api.run-scheduled-tasks")
+    private Boolean runScheduledTasks;
+
     private final ProgramCache<BrAPIGermplasm> programGermplasmCache;
 
     @Inject
@@ -73,6 +76,9 @@ public class BrAPIGermplasmDAO {
 
     @Scheduled(initialDelay = "2s")
     public void setup() {
+        if(!runScheduledTasks) {
+            return;
+        }
         // Populate germplasm cache for all programs on startup
         log.debug("populating germplasm cache");
         List<Program> programs = programDAO.getActive();
