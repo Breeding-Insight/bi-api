@@ -1,6 +1,5 @@
 package org.breedinginsight.brapi.v2;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -41,7 +40,6 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -230,8 +228,7 @@ public class GermplasmController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<BrAPIGermplasmProgenyResponse> getGermplasmProgenyInfo(
             @PathVariable("programId") UUID programId,
-            @PathVariable("germplasmId") String germplasmId,
-            @QueryValue(defaultValue = "0") String page) {
+            @PathVariable("germplasmId") String germplasmId) {
         try {
             log.debug("fetching progeny for germ id:" +  germplasmId +" for program: " + programId);
             BrAPIProgenyNode returnNode;
@@ -246,7 +243,7 @@ public class GermplasmController {
                 ArrayList<BrAPIProgenyNodeProgeny> progeny = new ArrayList<>();
                 BrAPIProgenyNodeProgeny singleProgeny = new BrAPIProgenyNodeProgeny();
                 singleProgeny.setGermplasmDbId(germplasmId.split("-")[0]);
-                singleProgeny.setGermplasmName("todo"); //todo, see if necessary, preferable to avoid longer id string/making more endpoint calls
+                singleProgeny.setGermplasmName("Name"); //does not seem necessary, preferable to avoid longer id string/making more endpoint calls
                 if (germplasmId.endsWith("F-Unknown")) {
                     singleProgeny.setParentType(BrAPIParentType.FEMALE);
                 } else {
@@ -272,9 +269,8 @@ public class GermplasmController {
             } else {
                 //Forward the progeny call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
                 GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
-                //need new method to make api call?
-                ApiResponse<BrAPIGermplasmProgenyResponse> progenyResponse = germplasmDAO.getGermplasmProgenyByDBID(programId, germplasmId, page);
-                //ApiResponse<BrAPIGermplasmProgenyResponse> progenyResponse = api.germplasmGermplasmDbIdProgenyGet(germplasmId);
+                ApiResponse<BrAPIGermplasmProgenyResponse> progenyResponse = api.germplasmGermplasmDbIdProgenyGet(germplasmId);
+
                 //If no progeny, need to add empty progeny for display to work
                 if (progenyResponse.getBody().getResult().getProgeny().isEmpty()) {
                     BrAPIProgenyNodeProgeny emptyProgeny = new BrAPIProgenyNodeProgeny();

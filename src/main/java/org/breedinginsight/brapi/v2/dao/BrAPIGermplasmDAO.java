@@ -18,21 +18,16 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import com.google.gson.JsonObject;
-import com.google.gson.reflect.TypeToken;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
-import org.brapi.client.v2.ApiResponse;
-import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
-import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -45,7 +40,6 @@ import org.breedinginsight.utilities.Utilities;
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.lang.reflect.Type;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -167,7 +161,6 @@ public class BrAPIGermplasmDAO {
         }
 
         // Update pedigree string
-        //TODO update namepedigreeString
         for (BrAPIGermplasm germplasm: programGermplasm) {
             if (germplasm.getPedigree() != null) {
                 JsonObject additionalInfo = germplasm.getAdditionalInfo();
@@ -268,36 +261,4 @@ public class BrAPIGermplasmDAO {
         }
         return germplasm;
     }
-
-    public ApiResponse<BrAPIGermplasmProgenyResponse> getGermplasmProgenyByDBID(UUID programId, String germplasmDbId, String page) throws ApiException {
-        BrAPIClient apiClient = programDAO.getCoreClient(programId);
-
-        if (germplasmDbId == null) {
-            throw new IllegalArgumentException("germplasmDbId cannot be null");
-        } else {
-            Object localVarPostBody = null;
-            String localVarPath = "/germplasm/{germplasmDbId}/progeny".replaceAll("\\{germplasmDbId\\}", germplasmDbId);
-            Map<String, String> localVarQueryParams = new HashMap();
-            Map<String, String> localVarCollectionQueryParams = new HashMap();
-            Map<String, String> localVarHeaderParams = new HashMap();
-            Map<String, Object> localVarFormParams = new HashMap();
-            apiClient.prepQueryParameter(localVarQueryParams, "page", page);
-
-            String[] localVarAccepts = new String[]{"application/json"};
-            String localVarAccept = apiClient.selectHeaderAccept(localVarAccepts); //todo next
-            if (localVarAccept != null) {
-                localVarHeaderParams.put("Accept", localVarAccept);
-            }
-
-            String[] localVarContentTypes = new String[0];
-            String localVarContentType = apiClient.selectHeaderContentType(localVarContentTypes);
-            localVarHeaderParams.put("Content-Type", localVarContentType);
-            String[] localVarAuthNames = new String[]{"AuthorizationToken"};
-            Call call = apiClient.buildCall(localVarPath, "GET", localVarQueryParams, localVarCollectionQueryParams, localVarPostBody, localVarHeaderParams, localVarFormParams, localVarAuthNames);
-            Type localVarReturnType = (new TypeToken<BrAPIGermplasmProgenyResponse>() {
-            }).getType();
-            return apiClient.execute(call, localVarReturnType);//verify, grab body, etc
-        }
-    }
-
 }

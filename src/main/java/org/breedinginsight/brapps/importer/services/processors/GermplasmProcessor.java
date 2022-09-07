@@ -469,7 +469,6 @@ public class GermplasmProcessor implements Processor {
                     }
                     if ((germplasmByAccessionNumber.containsKey(germplasm.getMaleParentDBID()))) {
                         BrAPIGermplasm maleParent = germplasmByAccessionNumber.get(maleParentDB).getBrAPIObject();
-                        //todo name for display retrieved here, irksome
                         if (!femaleParentUnknown) pedigreeString += String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName());
                     }
                 } else if (maleParentFile != null){
@@ -484,11 +483,9 @@ public class GermplasmProcessor implements Processor {
                 }
             }
             mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString);
-            //only set if unknown, or simpler to just always add boolean, todo, consider that previous imported values won't have that value
+            //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
             mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("femaleParentUnknown", femaleParentUnknown);
             mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("maleParentUnknown", maleParentUnknown);
-            //Temporary measure until breedbase permits unknown female, knowm male pedigrees, but honestly messy  todo
-            //mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("maleParentUnknown", maleParentUnknown);
         }
     }
 }
