@@ -39,6 +39,7 @@ public class ProgramCache<R> {
     private final Gson gson;
     private final FetchFunction<UUID, Map<String, R>> fetchMethod;
     private final Map<String, RSemaphore> programSemaphore = new HashMap<>();
+    private final Map<String, RSemaphore> programQueueSemaphore = new HashMap<>();
     private Class<R> type;
     private final Executor executor = Executors.newCachedThreadPool();
 
@@ -57,24 +58,32 @@ public class ProgramCache<R> {
 
     public void populate(@NotNull UUID key) {
         String cacheKey = generateCacheKey(key);
-        String queueKey = cacheKey+":semaphore:queue";
         if (!programSemaphore.containsKey(cacheKey)) {
             RSemaphore semaphore = connection.getSemaphore(cacheKey+":semaphore");
             semaphore.trySetPermits(1);
             programSemaphore.put(cacheKey, semaphore);
+
+            RSemaphore queueSemaphore = connection.getSemaphore(cacheKey+":semaphore:queue");
+            queueSemaphore.trySetPermits(1);
+            programQueueSemaphore.put(cacheKey, queueSemaphore);
         }
 
         boolean acquired = programSemaphore.get(cacheKey).tryAcquire();
 
         boolean refresh = true;
         if(!acquired) {
-            long queueSize = connection.getAtomicLong(queueKey)
-                               .incrementAndGet();
-            if(queueSize == 1) {
+            /*
+                put this thread in line to refresh once the current refresh finishes.
+                If there is already a thread in line, let this thread finish as the
+                next refresh will pick up data persisted by this thread
+             */
+            if(programQueueSemaphore.get(cacheKey).tryAcquire()) {
                 try {
+                    // block until we get the green light to refresh the cache
                     programSemaphore.get(cacheKey).acquire();
+                    // and let go of our hold on the refresh queue
+                    programQueueSemaphore.get(cacheKey).release();
                     log.debug("repopulating cache for " + cacheKey);
-                    connection.getAtomicLong(queueKey).set(0);
                 } catch (InterruptedException e) {
                     log.error("Error acquiring lock to refresh "+cacheKey, e);
                     throw new RuntimeException(e);
@@ -91,6 +100,7 @@ public class ProgramCache<R> {
                 // Synchronous
                 try {
                     log.debug("loading cache for key: " + cacheKey);
+                    connection.getAtomicLong(cacheKey+":refreshing").set(1);
                     Map<String, R> values = fetchMethod.apply(key);
                     if(!values.isEmpty()) {
                         log.debug("Caching new values for key: " + cacheKey);
@@ -110,6 +120,7 @@ public class ProgramCache<R> {
                     invalidate(key);
                     throw new InternalServerException(e.getMessage(), e);
                 } finally {
+                    connection.getAtomicLong(cacheKey+":refreshing").set(0);
                     programSemaphore.get(cacheKey).release();
                 }
             });
@@ -158,6 +169,12 @@ public class ProgramCache<R> {
             invalidate(key);
         }
         return response;
+    }
+
+    public boolean isRefreshing(UUID key) {
+        RAtomicLong isRefreshing = connection.getAtomicLong(generateCacheKey(key) + ":refreshing");
+
+        return isRefreshing.get() == 1;
     }
 
     private String generateCacheKey(UUID key) {
