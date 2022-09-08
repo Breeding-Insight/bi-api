@@ -39,19 +39,15 @@ import java.util.Map;
 public class BrAPITest extends DatabaseTest {
 
     @Getter
-    private static GenericContainer brapiContainer;
+    private GenericContainer brapiContainer;
 
-    private static Connection con;
+    private Connection con;
     @Getter
-    private static DSLContext brapiDsl;
+    private DSLContext brapiDsl;
 
     @SneakyThrows
     public BrAPITest() {
         super();
-
-        if(brapiContainer != null && brapiContainer.isRunning()) {
-            stopBrApiContainer();
-        }
 
         brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
                 .withNetwork(super.getNetwork())
@@ -94,7 +90,7 @@ public class BrAPITest extends DatabaseTest {
 
     @SneakyThrows
     @AfterAll
-    public static void stopBrApiContainer() {
+    public void stopBrApiContainer() {
         con.close();
         brapiContainer.stop();
     }
