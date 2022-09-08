@@ -50,7 +50,7 @@ public class BrAPITest extends DatabaseTest {
         super();
 
         if(brapiContainer != null && brapiContainer.isRunning()) {
-            stopBrApiContainers();
+            stopBrApiContainer();
         }
 
         brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
