@@ -4,16 +4,10 @@ import io.micronaut.test.annotation.MockBean;
 import lombok.SneakyThrows;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.daos.cache.ProgramCache;
 import org.junit.jupiter.api.*;
-import org.redisson.Redisson;
-import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.images.PullPolicy;
 
 import javax.inject.Inject;
 import java.time.LocalDateTime;
@@ -21,13 +15,14 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ProgramCacheUnitTest {
+public class ProgramCacheUnitTest extends DatabaseTest {
 
     // TODO: Tests
     // POSTing skips refresh if one is already queued
@@ -42,32 +37,6 @@ public class ProgramCacheUnitTest {
     BrAPIGermplasmDAO germplasmDAO() { return mock(BrAPIGermplasmDAO.class);}
     @Inject
     BrAPIGermplasmDAO germplasmDAO;
-
-    private static GenericContainer redisContainer;
-    private static RedissonClient redisConnection;
-
-    @BeforeAll
-    void setup() {
-        redisContainer = new GenericContainer<>("redis")
-                .withNetwork(Network.newNetwork())
-                .withNetworkAliases("redis")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
-                .withExposedPorts(6379)
-                .waitingFor(Wait.forListeningPort());
-        redisContainer.start();
-
-        Integer containerPort = redisContainer.getMappedPort(6379);
-        String containerIp = redisContainer.getContainerIpAddress();
-
-        Config redissonConfig = new Config();
-        redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", containerIp, containerPort));
-        redisConnection = Redisson.create(redissonConfig);
-    }
-
-    @AfterAll
-    public void cleanup() {
-        redisContainer.stop();
-    }
 
     @AfterEach
     @SneakyThrows
@@ -102,7 +71,7 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public void populatedRefreshQueueSkipsRefresh() throws Exception {
         // Make a lot of post calls and just how many times the fetch method is called
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
         UUID programId = UUID.randomUUID();
         int numPost = 10;
         int currPost = 0;
@@ -126,7 +95,7 @@ public class ProgramCacheUnitTest {
     @SneakyThrows
     public void programRefreshesSeparated() throws Exception {
         // Make a lot of post calls on different programs to check that they don't wait for each other
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
         int numPost = 10;
         int currPost = 0;
         while (currPost < numPost) {
@@ -155,7 +124,7 @@ public class ProgramCacheUnitTest {
         newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
         mockBrAPI.put(programId, new ArrayList<>(newList));
 
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime*3), BrAPIGermplasm.class);
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime*3), BrAPIGermplasm.class);
         cache.populate(programId);
         cache.get(programId);
         cache.get(programId);
@@ -171,7 +140,7 @@ public class ProgramCacheUnitTest {
         List<BrAPIGermplasm> newList = new ArrayList<>();
         newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
         mockBrAPI.put(programId, new ArrayList<>(newList));
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
         cache.populate(programId);
         Callable<List<BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
@@ -180,7 +149,7 @@ public class ProgramCacheUnitTest {
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Now post another object and call get immediately to see that it returns the old data
-        cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(id, waitTime*4), BrAPIGermplasm.class);
+        cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime*4), BrAPIGermplasm.class);
         cache.post(programId, postFunction);
         System.out.println("calling get at: "+ LocalDateTime.now());
         cachedGermplasm = cache.get(programId);
@@ -206,7 +175,7 @@ public class ProgramCacheUnitTest {
         mockBrAPI.put(programId, new ArrayList<>(newList));
 
         // Start cache
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
         cache.populate(programId);
 
         //wait for the initial fetch to complete
@@ -216,13 +185,13 @@ public class ProgramCacheUnitTest {
         assertEquals(1, cachedGermplasm.size(), "Initial germplasm not as expected");
 
         // Change our fetch method to throw an error now
-        cache = new ProgramCache<>(redisConnection, (UUID id) -> {throw new ApiException("UhOh");}, BrAPIGermplasm.class);
+        cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> {throw new ApiException("UhOh");}, BrAPIGermplasm.class);
         cache.post(programId, () -> mockPost(programId, new ArrayList<>(newList)));
         // Give it a second so we can wait for the cache to be invalidated and refresh to finish
         Thread.sleep(waitTime*2);
 
         // Check that the fetch function needs to be called again since the cache was invalidated
-        cache = new ProgramCache<>(redisConnection, (UUID id) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
+        cache = new ProgramCache<>(DatabaseTest.getRedisConnection(), (UUID id) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
         assertEquals(1, fetchCount);
         cachedGermplasm = cache.get(programId);
         Thread.sleep(waitTime*2);
