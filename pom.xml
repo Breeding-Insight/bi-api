@@ -61,7 +61,7 @@
         <exec.mainClass>org.breedinginsight.api.Application</exec.mainClass>
         <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version> <!-- 2.22.2 -->
         <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
-        <jvm.options>--enable-preview</jvm.options>
+        <jvm.options>-Xmx1024m -XX:MaxPermSize=256m --enable-preview</jvm.options>
 
         <jooq.version>3.16.3</jooq.version>
         <postgres.version>42.3.2</postgres.version>
@@ -590,7 +590,7 @@
                     </dependencies>
                     <configuration>
                         <redirectTestOutputToFile>false</redirectTestOutputToFile>
-                            <argLine>${jvm.options}</argLine>
+                        <argLine>${jvm.options}</argLine>
                         <detail>true</detail>
                         <includes>
                             <include>%regex[.*]</include>
