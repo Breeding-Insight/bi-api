@@ -22,6 +22,9 @@ import lombok.Getter;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.AfterAll;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -40,16 +43,24 @@ public class DatabaseTest implements TestPropertyProvider {
     private static final String dbPassword = "postgres";
 
     @Getter
-    private GenericContainer dbContainer;
+    private static GenericContainer dbContainer;
 
     @Getter
-    private Network network;
+    private static Network network;
 
     @Getter
-    private GenericContainer redisContainer;
+    private static GenericContainer redisContainer;
+
+    @Getter
+    private static RedissonClient redisConnection;
 
     @SneakyThrows
     public DatabaseTest() {
+        if(network != null && dbContainer != null && redisContainer != null &&
+                (dbContainer.isRunning() || redisContainer.isRunning())) {
+            stopContainers();
+        }
+
         network = Network.newNetwork();
         dbContainer = new GenericContainer<>("postgres:11.4")
                 .withNetwork(network)
@@ -67,6 +78,12 @@ public class DatabaseTest implements TestPropertyProvider {
                 .withExposedPorts(6379)
                 .waitingFor(Wait.forListeningPort());
         redisContainer.start();
+
+        Integer redisContainerPort = redisContainer.getMappedPort(6379);
+        String redisContainerIp = redisContainer.getContainerIpAddress();
+        Config redissonConfig = new Config();
+        redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", redisContainerIp, redisContainerPort));
+        redisConnection = Redisson.create(redissonConfig);
     }
 
     @Nonnull
@@ -88,13 +105,13 @@ public class DatabaseTest implements TestPropertyProvider {
         return properties;
     }
 
-    public GenericContainer getDbContainer() {
+    public GenericContainer<?> getDbContainer() {
         return dbContainer;
     }
 
     @SneakyThrows
     @AfterAll
-    public void stopContainers() {
+    public static void stopContainers() {
         redisContainer.stop();
         dbContainer.stop();
         network.close();

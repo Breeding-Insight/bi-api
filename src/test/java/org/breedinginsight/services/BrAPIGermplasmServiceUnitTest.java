@@ -9,6 +9,7 @@ import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
+import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
@@ -21,14 +22,9 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.FileUtil;
-import org.junit.jupiter.api.*;
-import org.redisson.Redisson;
-import org.redisson.api.RedissonClient;
-import org.redisson.config.Config;
-import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.Network;
-import org.testcontainers.containers.wait.strategy.Wait;
-import org.testcontainers.images.PullPolicy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import tech.tablesaw.api.Table;
 
 import java.io.InputStream;
@@ -43,7 +39,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class BrAPIGermplasmServiceUnitTest {
+public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
     private BrAPIListDAO listDAO;
     private BrAPIGermplasmDAO germplasmDAO;
     private ProgramService programService;
@@ -53,32 +49,6 @@ public class BrAPIGermplasmServiceUnitTest {
     private String referenceSource;
     private ProgramCacheProvider cacheProvider;
 
-    private static GenericContainer redisContainer;
-    private static RedissonClient redisConnection;
-
-    @BeforeAll
-    void beforeAll() {
-        redisContainer = new GenericContainer<>("redis")
-                .withNetwork(Network.newNetwork())
-                .withNetworkAliases("redis")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
-                .withExposedPorts(6379)
-                .waitingFor(Wait.forListeningPort());
-        redisContainer.start();
-
-        Integer containerPort = redisContainer.getMappedPort(6379);
-        String containerIp = redisContainer.getContainerIpAddress();
-
-        Config redissonConfig = new Config();
-        redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", containerIp, containerPort));
-        redisConnection = Redisson.create(redissonConfig);
-    }
-
-    @AfterAll
-    public void cleanup() {
-        redisContainer.stop();
-    }
-
     @SneakyThrows
     @BeforeEach
     void setup() {
@@ -87,7 +57,7 @@ public class BrAPIGermplasmServiceUnitTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        cacheProvider = new ProgramCacheProvider(redisConnection);
+        cacheProvider = new ProgramCacheProvider(DatabaseTest.getRedisConnection());
         germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider);
         programService = mock(ProgramService.class);
 

@@ -23,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
 import org.jooq.impl.DSL;
+import org.junit.jupiter.api.AfterAll;
 import org.testcontainers.containers.BindMode;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -38,15 +39,20 @@ import java.util.Map;
 public class BrAPITest extends DatabaseTest {
 
     @Getter
-    private final GenericContainer brapiContainer;
+    private static GenericContainer brapiContainer;
 
-    private final Connection con;
+    private static Connection con;
     @Getter
-    private final DSLContext brapiDsl;
+    private static DSLContext brapiDsl;
 
     @SneakyThrows
     public BrAPITest() {
         super();
+
+        if(brapiContainer != null && brapiContainer.isRunning()) {
+            stopBrApiContainers();
+        }
+
         brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
                 .withNetwork(super.getNetwork())
                 .withImagePullPolicy(PullPolicy.alwaysPull())
@@ -87,11 +93,10 @@ public class BrAPITest extends DatabaseTest {
     }
 
     @SneakyThrows
-    @Override
-    public void stopContainers() {
+    @AfterAll
+    public static void stopBrApiContainer() {
         con.close();
         brapiContainer.stop();
-        super.stopContainers();
     }
 }
 
