@@ -57,7 +57,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        cacheProvider = new ProgramCacheProvider(DatabaseTest.getRedisConnection());
+        cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
         germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider);
         programService = mock(ProgramService.class);
 
