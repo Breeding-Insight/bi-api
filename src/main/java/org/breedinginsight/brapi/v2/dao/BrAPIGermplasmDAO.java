@@ -62,7 +62,7 @@ public class BrAPIGermplasmDAO {
     private String referenceSource;
 
     @Property(name = "micronaut.bi.api.run-scheduled-tasks")
-    private Boolean runScheduledTasks;
+    private boolean runScheduledTasks;
 
     private final ProgramCache<BrAPIGermplasm> programGermplasmCache;
 

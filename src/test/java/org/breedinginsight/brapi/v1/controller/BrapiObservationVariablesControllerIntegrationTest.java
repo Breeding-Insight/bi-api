@@ -252,10 +252,19 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         data = result.getAsJsonArray("data");
         assertEquals(2, data.size(), "Array size should be 2");
 
-        Iterator<Trait> itr = programTraits.iterator();
+        List<Trait> allTraits = programTraits.stream()
+                                      .sorted(Comparator.comparing(TraitEntity::getObservationVariableName))
+                                      .collect(Collectors.toList());
+        Iterator<Trait> itr = allTraits.iterator();
 
+        List<JsonObject> sortedTraitNames = new ArrayList<>();
         for (JsonElement element : data) {
-            JsonObject variable = element.getAsJsonObject();
+            sortedTraitNames.add(element.getAsJsonObject());
+        }
+        sortedTraitNames.sort(Comparator.comparing(o -> o.get("observationVariableName")
+                                                         .getAsString()));
+
+        for(JsonObject variable : sortedTraitNames) {
             checkTraits(itr.next(), variable);
         }
 
