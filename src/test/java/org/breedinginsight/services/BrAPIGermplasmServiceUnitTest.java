@@ -21,9 +21,14 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.FileUtil;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.config.Config;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.PullPolicy;
 import tech.tablesaw.api.Table;
 
 import java.io.InputStream;
@@ -48,6 +53,32 @@ public class BrAPIGermplasmServiceUnitTest {
     private String referenceSource;
     private ProgramCacheProvider cacheProvider;
 
+    private static GenericContainer redisContainer;
+    private static RedissonClient redisConnection;
+
+    @BeforeAll
+    void beforeAll() {
+        redisContainer = new GenericContainer<>("redis")
+                .withNetwork(Network.newNetwork())
+                .withNetworkAliases("redis")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(6379)
+                .waitingFor(Wait.forListeningPort());
+        redisContainer.start();
+
+        Integer containerPort = redisContainer.getMappedPort(6379);
+        String containerIp = redisContainer.getContainerIpAddress();
+
+        Config redissonConfig = new Config();
+        redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", containerIp, containerPort));
+        redisConnection = Redisson.create(redissonConfig);
+    }
+
+    @AfterAll
+    public void cleanup() {
+        redisContainer.stop();
+    }
+
     @SneakyThrows
     @BeforeEach
     void setup() {
@@ -56,7 +87,7 @@ public class BrAPIGermplasmServiceUnitTest {
         listDAO = mock(BrAPIListDAO.class);
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
-        cacheProvider = mock(ProgramCacheProvider.class);
+        cacheProvider = new ProgramCacheProvider(redisConnection);
         germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider);
         programService = mock(ProgramService.class);
 
