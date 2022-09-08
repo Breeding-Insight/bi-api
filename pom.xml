@@ -59,8 +59,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <exec.mainClass>org.breedinginsight.api.Application</exec.mainClass>
-        <maven-surefire-plugin.version>2.19.1</maven-surefire-plugin.version> <!-- 2.22.2 -->
-        <maven-failsafe-plugin.version>2.19.1</maven-failsafe-plugin.version>
+        <maven-surefire-plugin.version>3.0.0-M4</maven-surefire-plugin.version> <!-- 2.22.2 -->
+        <maven-failsafe-plugin.version>3.0.0-M4</maven-failsafe-plugin.version>
         <jvm.options>-Xmx1024m -XX:MaxPermSize=256m --enable-preview</jvm.options>
 
         <jooq.version>3.16.3</jooq.version>
