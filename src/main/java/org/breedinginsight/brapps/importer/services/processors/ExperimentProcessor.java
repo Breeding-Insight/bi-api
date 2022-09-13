@@ -43,11 +43,14 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
+import tech.tablesaw.api.Table;
+import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import java.math.BigInteger;
@@ -138,6 +141,7 @@ public class ExperimentProcessor implements Processor {
     public Map<String, ImportPreviewStatistics> process(
             List<BrAPIImport> importRows,
             Map<Integer, PendingImport> mappedBrAPIImport,
+            Table data,
             Program program,
             User user,
             boolean commit) throws ValidatorException {
