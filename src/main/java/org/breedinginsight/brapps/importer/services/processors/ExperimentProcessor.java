@@ -606,20 +606,12 @@ public class ExperimentProcessor implements Processor {
         ExperimentObservation experimentObservation = experimentImportRows.get(0);
 
         PendingImportObject<BrAPITrial> trial = this.trialByNameNoScope.get(experimentObservation.getExpTitle());
-        List<BrAPIExternalReference> experimentRefs = trial.getBrAPIObject().getExternalReferences();
-        Optional <BrAPIExternalReference> experimentIDRef = experimentRefs.stream()
-                .filter(this::isTrialRefSource)
-                .findFirst();
-        if( experimentIDRef.isEmpty()){
-            throw new InternalServerException("An Experiment ID was not found any of the external references");
-        }
 
-        //get experimentID
-        String experimentIDStr = experimentIDRef.get().getReferenceID();
+        UUID experimentId = trial.getId();
 
         List<BrAPIStudy> existingStudies;
         try {
-            existingStudies = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(experimentIDStr), program);
+            existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
             existingStudies.forEach(existingStudy -> {
                 //Swap season DbId with year String
                 String seasonId = existingStudy.getSeasons().get(0);
@@ -672,9 +664,20 @@ public class ExperimentProcessor implements Processor {
             existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
                 existingTrial.setTrialName(Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()));
+
+                //get TrialId from existingTrial
+                List<BrAPIExternalReference> experimentRefs = existingTrial.getExternalReferences();
+                Optional <BrAPIExternalReference> experimentIDRef = experimentRefs.stream()
+                        .filter(this::isTrialRefSource)
+                        .findFirst();
+                if( experimentIDRef.isEmpty()){
+                    throw new InternalServerException("An Experiment ID was not found any of the external references");
+                }
+                UUID experimentId = UUID.fromString(  experimentIDRef.get().getReferenceID() );
+
                 trialByNameNoScope.put(
                         existingTrial.getTrialName(),
-                        new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
+                        new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial, experimentId));
             });
             return trialByNameNoScope;
         } catch (ApiException e) {
