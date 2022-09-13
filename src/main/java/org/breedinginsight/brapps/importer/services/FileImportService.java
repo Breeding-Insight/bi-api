@@ -523,7 +523,7 @@ public class FileImportService {
         return importMappings;
     }
 
-    public List<ImportMapping> getSystemMappingByName(AuthenticatedUser actingUser, String name) {
+    public List<ImportMapping> getSystemMappingByName(String name) {
         List<ImportMapping> importMappings = importMappingDAO.getSystemMappingByName(name);
         return importMappings;
     }
