@@ -1,7 +1,7 @@
-Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
-Full Germplasm 1,ANE,Wild,,,,,,,
-Full Germplasm 2,ANE,Wild,,,,,,,
-Full Germplasm 3,ANE,Wild,,,,,,,
-Unique Germplasm 1,ANE,Wild,,,,,,,
-File Germplasm 1,ANE,Wild,,,,,,,
-File Germplasm 1,ANE,Wild,,,,,,,
+GID,Name,Breeding Method,Source,Female Parent GID,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
+,Full Germplasm 1,ANE,Wild,,,,,,,
+,Full Germplasm 2,ANE,Wild,,,,,,,
+,Full Germplasm 3,ANE,Wild,,,,,,,
+,Unique Germplasm 1,ANE,Wild,,,,,,,
+,File Germplasm 1,ANE,Wild,,,,,,,
+,File Germplasm 1,ANE,Wild,,,,,,,
