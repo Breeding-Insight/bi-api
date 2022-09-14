@@ -107,6 +107,10 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="collection", name="Family Name", description = "The name of the family this germplasm is a part of.")
     private String collection;
 
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id="germplasmAccessionNumber", name="Accession Number", description = "The accession number of the germplasm if germplasm is being re-imported with updated synonyms/parents.")
+    private String accessionNumber;
+
     // Removed for now, need to add to breedbase
     /*@ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
     private List<GermplasmAttribute> germplasmAttributes;*/
@@ -149,6 +153,7 @@ public class Germplasm implements BrAPIObject {
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
+        germplasm.setGermplasmDbId(getAccessionNumber());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo);
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
