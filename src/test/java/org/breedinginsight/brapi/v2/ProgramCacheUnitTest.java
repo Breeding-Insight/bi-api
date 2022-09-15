@@ -57,14 +57,16 @@ public class ProgramCacheUnitTest extends DatabaseTest {
     }
 
     @SneakyThrows
-    public List<BrAPIGermplasm> mockPost(UUID programId, List<BrAPIGermplasm> germplasm) {
+    public Map<String, BrAPIGermplasm> mockPost(UUID programId, List<BrAPIGermplasm> germplasm) {
         if (!mockBrAPI.containsKey(programId)) {
             mockBrAPI.put(programId, germplasm);
         } else {
             List<BrAPIGermplasm> allGermplasm = mockBrAPI.get(programId);
             allGermplasm.addAll(germplasm);
         }
-        return germplasm;
+        Map<String, BrAPIGermplasm> germMap = new HashMap<>();
+        germplasm.forEach(brAPIGermplasm -> germMap.put(brAPIGermplasm.getGermplasmDbId(), brAPIGermplasm));
+        return germMap;
     }
 
     @Test
@@ -134,7 +136,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
 
     @Test
     @SneakyThrows
-    public void getMethodDoesNotWaitForRefresh() throws Exception {
+    public void postTriggersRefresh() throws Exception {
         // Test that the get method does not wait for a refresh when there is data present
         UUID programId = UUID.randomUUID();
         List<BrAPIGermplasm> newList = new ArrayList<>();
@@ -142,7 +144,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
         mockBrAPI.put(programId, new ArrayList<>(newList));
         ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(super.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
         cache.populate(programId);
-        Callable<List<BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
+        Callable<Map<String, BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
         // Get waits for initial fetch
         Map<String, BrAPIGermplasm> cachedGermplasm = cache.get(programId);
@@ -153,7 +155,8 @@ public class ProgramCacheUnitTest extends DatabaseTest {
         cache.post(programId, postFunction);
         System.out.println("calling get at: "+ LocalDateTime.now());
         cachedGermplasm = cache.get(programId);
-        assertEquals(1, cachedGermplasm.size(), "Get method seemed to have waited for refresh method");
+        assertEquals(2, cachedGermplasm.size(), "Get post method didn't insert the new data");
+        assertEquals(true, cache.isRefreshing(programId), "Cache is not refreshing");
 
         // Now wait for the fetch after the post to finish
         Thread.sleep(waitTime*5);

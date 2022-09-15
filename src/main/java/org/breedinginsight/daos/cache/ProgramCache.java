@@ -159,16 +159,23 @@ public class ProgramCache<R> {
         return retMap;
     }
 
-    public List<R> post(UUID key, Callable<List<R>> postMethod) {
+    public List<R> post(UUID key, Callable<Map<String, R>> postMethod) {
         log.debug("posting for key: " + generateCacheKey(key));
-        List<R> response = null;
+        Map<String, R> response = null;
         try {
             response = postMethod.call();
+
+            String cacheKey = generateCacheKey(key);
+            RMap<String, String> map = connection.getMap(cacheKey);
+            //temporarily populate the cache with the returned objects from the postMethod so they show in immediate cache requests
+            for(Map.Entry<String, R> obj : response.entrySet()) {
+                map.put(obj.getKey(), gson.toJson(obj.getValue()));
+            }
             populate(key);
         } catch (Exception e) {
             invalidate(key);
         }
-        return response;
+        return new ArrayList<>(response.values());
     }
 
     public boolean isRefreshing(UUID key) {

@@ -235,9 +235,12 @@ public class BrAPIGermplasmDAO {
 
     public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
-        var program = programDAO.get(programId);
+        var program = programDAO.fetchOneById(programId);
         try {
-            Callable<List<BrAPIGermplasm>> postFunction = () -> brAPIDAOUtil.post(brAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
+            Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
+                List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(brAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
+                return processGermplasmForDisplay(postResponse, program.getKey());
+            };
             return programGermplasmCache.post(programId, postFunction);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);

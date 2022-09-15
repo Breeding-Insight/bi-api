@@ -100,10 +100,6 @@ public class DatabaseTest implements TestPropertyProvider {
         return properties;
     }
 
-    public GenericContainer<?> getDbContainer() {
-        return dbContainer;
-    }
-
     @SneakyThrows
     @AfterAll
     public void stopContainers() {
