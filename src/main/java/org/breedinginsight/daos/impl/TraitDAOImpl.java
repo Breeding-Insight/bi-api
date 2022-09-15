@@ -44,13 +44,11 @@ import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.*;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Result;
-import org.jooq.SelectOnConditionStep;
+import org.jooq.*;
 import org.jooq.tools.StringUtils;
 
 import javax.inject.Inject;
@@ -263,7 +261,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
     public List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds) {
 
         List<String> ids = traitIds.stream()
-                .map(trait -> trait.toString())
+                .map(UUID::toString)
                 .collect(Collectors.toList());
 
         List<BrAPIObservationVariable> variables = searchVariables(ids);
@@ -274,7 +272,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
         }
 
         List<String> brapiVariableIds = variables.stream()
-                .map(variable -> variable.getObservationVariableDbId()).collect(Collectors.toList());
+                                                 .map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
 
         return observationDao.getObservationsByVariableDbIds(brapiVariableIds);
     }
@@ -283,7 +281,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
     public List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, List<UUID> traitIds) {
 
         List<String> ids = traitIds.stream()
-                .map(trait -> trait.toString())
+                .map(UUID::toString)
                 .collect(Collectors.toList());
 
         List<BrAPIObservationVariable> variables = searchVariables(ids);
@@ -294,7 +292,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
         }
 
         List<String> brapiVariableIds = variables.stream()
-                .map(variable -> variable.getObservationVariableDbId()).collect(Collectors.toList());
+                                                 .map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
 
         return observationDao.getObservationsByVariableAndBrAPIProgram(brapiProgramId, brapiVariableIds);
     }
@@ -443,7 +441,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
         }
 
         // Pull our traits from the db
-        List<UUID> traitIds = traits.stream().map(trait -> trait.getId()).collect(Collectors.toList());
+        List<UUID> traitIds = traits.stream().map(TraitEntity::getId).collect(Collectors.toList());
         List<Trait> createdTraits = getTraitsById(traitIds.toArray(UUID[]::new));
 
         // Saturate our traits from the brapi return information
@@ -454,6 +452,8 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
                         if (brApiExternalReference.getReferenceSource().equals(referenceSource) &&
                                 brApiExternalReference.getReferenceID().equals(trait.getId().toString())){
                             saturateTrait(trait, variable);
+
+                            cache.set(program.getId(), trait.getId().toString(), trait);
                         }
                     }
                 }
@@ -563,7 +563,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
             updatedVariable = updatedResponse.getBody().getResult();
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException(String.format("Unable to save variable in brapi server."));
+            throw new InternalServerException("Unable to save variable in brapi server.");
         }
         return updatedVariable;
     }
