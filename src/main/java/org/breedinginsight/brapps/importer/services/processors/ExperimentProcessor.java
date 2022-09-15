@@ -65,18 +65,18 @@ public class ExperimentProcessor implements Processor {
     private String BRAPI_REFERENCE_SOURCE;
 
 
-    private DSLContext dsl;
-    private BrAPITrialDAO brapiTrialDAO;
-    private BrAPILocationDAO brAPILocationDAO;
-    private BrAPIStudyDAO brAPIStudyDAO;
-    private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
-    private BrAPISeasonDAO brAPISeasonDAO;
-    private BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private final DSLContext dsl;
+    private final BrAPITrialDAO brapiTrialDAO;
+    private final BrAPILocationDAO brAPILocationDAO;
+    private final BrAPIStudyDAO brAPIStudyDAO;
+    private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
+    private final BrAPISeasonDAO brAPISeasonDAO;
+    private final BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     // used to make the yearsToSeasonDbId() function more efficient
-    private Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
+    private final Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
     // used to make the seasonDbIdtoYear() function more efficient
-    private Map<String, String > seasonDbIdToYearCache = new HashMap<>();
+    private final Map<String, String > seasonDbIdToYearCache = new HashMap<>();
 
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the getNewBrapiData() method.
@@ -574,6 +574,8 @@ public class ExperimentProcessor implements Processor {
                 .distinct()
                 .collect(Collectors.toList());
 
+        //todo check here
+
         List<BrAPIGermplasm> existingGermplasms;
         try {
             existingGermplasms = this.getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId());
@@ -730,7 +732,7 @@ public class ExperimentProcessor implements Processor {
             }
 
         } catch (ApiException e) {
-            log.error(e.getResponseBody(), e);;
+            log.error(e.getResponseBody(), e);
         }
 
         String seasonDbId = (targetSeason==null) ? null : targetSeason.getSeasonDbId();
@@ -743,9 +745,9 @@ public class ExperimentProcessor implements Processor {
         try {
             season = this.brAPISeasonDAO.getSeasonById (seasonDbId, programId);
         } catch (ApiException e) {
-            log.error(e.getResponseBody(), e);;
+            log.error(e.getResponseBody(), e);
         }
-        Integer yearInt = (season == null) ? null : season.getYear();;
+        Integer yearInt = (season == null) ? null : season.getYear();
         String yearStr = (yearInt==null) ? "" : yearInt.toString();
         return yearStr;
     }

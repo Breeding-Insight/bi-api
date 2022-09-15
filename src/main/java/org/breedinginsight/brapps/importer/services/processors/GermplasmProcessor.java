@@ -27,8 +27,10 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -61,13 +63,15 @@ public class GermplasmProcessor implements Processor {
     private String BRAPI_REFERENCE_SOURCE;
 
     private BrAPIGermplasmService brAPIGermplasmService;
-    private BreedingMethodDAO breedingMethodDAO;
-    private BrAPIListDAO brAPIListDAO;
-    private DSLContext dsl;
+    private final BreedingMethodDAO breedingMethodDAO;
+    private final BrAPIListDAO brAPIListDAO;
+    private final DSLContext dsl;
+    private final BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByAccessionNumber = new HashMap<>();
     Map<String, Integer> fileGermplasmByName = new HashMap<>();
     Map<String, BrAPIGermplasm> dbGermplasmByName = new HashMap<>();
+    Map<String, BrAPIGermplasm> dbGermplasmByAccessionNo = new HashMap<>();
     Map<String, Integer> germplasmIndexByEntryNo = new HashMap<>();
     List<BrAPIGermplasm> newGermplasmList;
     List<BrAPIGermplasm> existingGermplasms;
@@ -82,6 +86,8 @@ public class GermplasmProcessor implements Processor {
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static String circularDependency = "Circular dependency in the pedigree tree";
     public static String listNameAlreadyExists = "Import group name already exists";
+    public static String missingGID = "No germplasm of GID %s was found in the database";
+    public static String pedigreeAlreadyExists = "Pedigree information cannot be overwritten";
     public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
         List<String> lstCopy = new ArrayList<>(lst);
         Collections.sort(lstCopy);
@@ -89,10 +95,11 @@ public class GermplasmProcessor implements Processor {
     };
 
     @Inject
-    public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO) {
+    public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO, BrAPIGermplasmDAO brAPIGermplasmDAO) {
         this.brAPIGermplasmService = brAPIGermplasmService;
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
+        this.brAPIGermplasmDAO = brAPIGermplasmDAO;
         this.brAPIListDAO = brAPIListDAO;
         this.brAPIGermplasmService = brAPIGermplasmService;
     }
@@ -148,13 +155,14 @@ public class GermplasmProcessor implements Processor {
         // Get existing germplasm names
         List<BrAPIGermplasm> dbGermplasm = brAPIGermplasmService.getGermplasmByDisplayName(new ArrayList<>(fileGermplasmByName.keySet()), program.getId());
         dbGermplasm.stream().forEach(germplasm -> dbGermplasmByName.put(germplasm.getDefaultDisplayName(), germplasm));
+        dbGermplasm.stream().forEach(germplasm -> dbGermplasmByAccessionNo.put(germplasm.getAccessionNumber(), germplasm));
 
         // Check for existing germplasm lists
         Boolean listNameDup = false;
         if (importRows.size() > 0 && importRows.get(0).getGermplasm().getListName() != null) {
             try {
                 Germplasm row = importRows.get(0).getGermplasm();
-                String listName = row.constructGermplasmListName(row.getListName(), program);
+                String listName = Germplasm.constructGermplasmListName(row.getListName(), program);
                 List<BrAPIListSummary> existingLists = brAPIListDAO.getListByName(List.of(listName), program.getId());
                 for (BrAPIListSummary existingList: existingLists) {
                     if (existingList.getListName().equals(listName)) {
@@ -202,7 +210,7 @@ public class GermplasmProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
+                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException, ApiException {
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
@@ -220,7 +228,7 @@ public class GermplasmProcessor implements Processor {
             importList = germplasm.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
         }
 
-        // All rows are considered new germplasm, we don't check for duplicates
+        // All rows are considered new germplasm, we don't check for duplicates //todo except now we do oops
         newGermplasmList = new ArrayList<>();
         Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
@@ -235,7 +243,40 @@ public class GermplasmProcessor implements Processor {
             Germplasm germplasm = brapiImport.getGermplasm();
 
             // Germplasm
+
+            //todo double check what dbgermplasmbyaccessionNo actually getting
+            //TODO maybe make separate method for cleanliness
             if (germplasm != null && germplasm.getGermplasmName() != null) {
+                //Fetch and update existing germplasm
+                BrAPIGermplasm existingGermplasm;
+                if (germplasm.getAccessionNumber() != null) {
+                    if (dbGermplasmByAccessionNo.containsKey(germplasm.getAccessionNumber()) ) {
+                        existingGermplasm = dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber());
+                    } else {
+                        ValidationError ve = new ValidationError("GID", missingGID, HttpStatus.NOT_FOUND);
+                        validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
+                        continue;
+                    }
+                    if (germplasm.getFemaleParentDBID() != null || germplasm.getFemaleParentEntryNo() != null) {
+                        if (germplasm.getFemaleParentDBID() == null && germplasm.getFemaleParentEntryNo() == null) {
+                            //todo handle later cause gonna get weird in mixed file with posting order
+                        } else {
+                            ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
+                            validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
+                            continue;
+                        }
+                    }
+                    if (germplasm.getSynonyms() != null) {
+                        for (String synonym: germplasm.getSynonyms().split(";")){
+                            BrAPIGermplasmSynonyms newSynonym = new BrAPIGermplasmSynonyms();
+                            newSynonym.setSynonym(synonym);
+                            existingGermplasm.addSynonymsItem(newSynonym);
+                        }
+                    }
+
+                    //Consider case with only edits, only new, and mixed
+                    //check to see how this should be handled relative to newGermplasmList
+                }
 
                 // Get the breeding method database object
                 BreedingMethodEntity breedingMethod = null;
@@ -308,6 +349,7 @@ public class GermplasmProcessor implements Processor {
         }
 
         // Construct our response object
+        //todo handle stats
         ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
                 .newObjectCount(newGermplasmList.size())
                 .build();
@@ -330,6 +372,8 @@ public class GermplasmProcessor implements Processor {
     private void createPostOrder() {
         // Construct a dependency tree for POSTing order
         Set<String> created = existingGermplasms.stream().map(BrAPIGermplasm::getGermplasmName).collect(Collectors.toSet());
+
+        //todo this gets messy
 
         int totalRecorded = 0;
 
