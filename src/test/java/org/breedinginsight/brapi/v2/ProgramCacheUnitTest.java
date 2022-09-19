@@ -156,6 +156,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
         System.out.println("calling get at: "+ LocalDateTime.now());
         cachedGermplasm = cache.get(programId);
         assertEquals(2, cachedGermplasm.size(), "Get post method didn't insert the new data");
+        Thread.sleep(waitTime);
         assertEquals(true, cache.isRefreshing(programId), "Cache is not refreshing");
 
         // Now wait for the fetch after the post to finish
