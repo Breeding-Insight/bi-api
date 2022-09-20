@@ -26,6 +26,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.services.processors.*;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
@@ -41,8 +42,8 @@ public class ExperimentImportService extends BrAPIImportService {
 
     private final String IMPORT_TYPE_ID = "ExperimentImport";
 
-    private Provider<ExperimentProcessor> experimentProcessorProvider;
-    private Provider<ProcessorManager> processorManagerProvider;
+    private final Provider<ExperimentProcessor> experimentProcessorProvider;
+    private final Provider<ProcessorManager> processorManagerProvider;
 
     @Inject
     public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider, Provider<ProcessorManager> processorManagerProvider)
@@ -63,7 +64,7 @@ public class ExperimentImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, ValidatorException, ApiException {
+            throws UnprocessableEntityException, ValidatorException, ApiException, MissingRequiredInfoException {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
