@@ -179,7 +179,7 @@ public class ExperimentObservation implements BrAPIImport {
 
     public BrAPIObservationUnit constructBrAPIObservationUnit(
             Program program,
-            Supplier<BigInteger> nextVal,
+            String nextObjsUnitSeqVal,
             boolean commit,
             String germplasmName,
             String referenceSource,
@@ -190,7 +190,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
         if( commit){
-            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString()));
+            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextObjsUnitSeqVal) );
 
             // Set external reference
             observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, studyID, id));
@@ -208,7 +208,7 @@ public class ExperimentObservation implements BrAPIImport {
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
         level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
-        level.setLevelCode( getExpUnitId() );
+        level.setLevelCode( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextObjsUnitSeqVal) );
         position.setObservationLevel(level);
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
 
