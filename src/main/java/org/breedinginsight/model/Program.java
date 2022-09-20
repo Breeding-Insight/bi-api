@@ -92,6 +92,7 @@ public class Program extends ProgramEntity {
                 .germplasmSequence(record.getValue(programTable.GERMPLASM_SEQUENCE))
                 .expSequence( record.getValue(programTable.EXP_SEQUENCE))
                 .obsUnitSequence(( record.getValue(programTable.OBS_UNIT_SEQUENCE)))
+                .envSequence(( record.getValue(programTable.ENV_SEQUENCE)))
                 .build();
 
         return program;
