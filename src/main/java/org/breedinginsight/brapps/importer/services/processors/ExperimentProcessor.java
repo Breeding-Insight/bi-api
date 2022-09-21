@@ -564,7 +564,7 @@ public class ExperimentProcessor implements Processor {
 
     private void updateStudyLocationDbId(BrAPILocation location) {
         this.studyByNameNoScope.values().stream()
-                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getLocationName()))
+                .filter(study -> location.getLocationName().equals( study.getBrAPIObject().getLocationName() ))
                 .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
     }
 
