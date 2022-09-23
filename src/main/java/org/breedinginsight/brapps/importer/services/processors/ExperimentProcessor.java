@@ -33,6 +33,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v1.controller.BrapiObservationVariablesController;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -49,12 +50,17 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
+import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -75,6 +81,9 @@ public class ExperimentProcessor implements Processor {
     private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private BrAPISeasonDAO brAPISeasonDAO;
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private BrAPIObservationVariableDAO brAPIObservationVariableDAO;
+
+    private FileMappingUtil fileMappingUtil;
 
     // used to make the yearsToSeasonDbId() function more efficient
     private Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
@@ -97,7 +106,9 @@ public class ExperimentProcessor implements Processor {
                                BrAPIStudyDAO brAPIStudyDAO,
                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                BrAPISeasonDAO brAPISeasonDAO,
-                               BrAPIGermplasmDAO brAPIGermplasmDAO) {
+                               BrAPIGermplasmDAO brAPIGermplasmDAO,
+                               BrAPIObservationVariableDAO brAPIObservationVariableDAO,
+                               FileMappingUtil fileMappingUtil) {
         this.dsl = dsl;
         this.brapiTrialDAO = brapiTrialDAO;
         this.brAPILocationDAO = brAPILocationDAO;
@@ -105,6 +116,8 @@ public class ExperimentProcessor implements Processor {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
+        this.brAPIObservationVariableDAO = brAPIObservationVariableDAO;
+        this.fileMappingUtil = fileMappingUtil;
     }
 
     /**
@@ -147,6 +160,46 @@ public class ExperimentProcessor implements Processor {
             boolean commit) throws ValidatorException {
 
         ValidationErrors validationErrors = new ValidationErrors();
+
+        // Get dynamic phenotype columns for processing
+        List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, "ExperimentsTemplateMap");
+        List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
+        validateDuplicateObservationVariables(varNames);
+        List<String> programVars = varNames.stream().map(var -> var + " [" + program.getKey() + "]").collect(Collectors.toList());
+        List<BrAPIObservationVariable> obsVars = null;
+
+        try {
+            obsVars = brAPIObservationVariableDAO.getVariableByName(programVars, program.getId());
+        } catch (ApiException e) {
+            log.error(e.getResponseBody());
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        Map<String, BrAPIObservationVariable> colVarMap = obsVars.stream()
+                .collect(Collectors.toMap(BrAPIObservationVariable::getObservationVariableName, Function.identity()));
+
+        /*
+        if (obsVars.size() != programVars.size()) {
+
+            List<String> returnedVarNames = obsVars.stream().map(var -> var.getObservationVariableName()).collect(Collectors.toList());
+
+            List<String> differences = programVars.stream()
+                    .map(element -> element.)
+                    .filter(element -> !obsVars.contains(element))
+                    .collect(Collectors.toList());
+
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Ontology term(s) not found: ");
+        }
+
+         */
+
+        for (Column<?> column : phenotypeCols) {
+            for (int i=0; i < column.size(); i++) {
+                String value = column.getString(i);
+                String colName = column.name() + " [" + program.getKey() + "]";
+                validateObservationValue(colVarMap.get(colName), value, column.name(), validationErrors, i);
+            }
+        }
 
         // add "New" pending data to the BrapiData objects
         getNewBrapiData(importRows, program, commit);
@@ -672,6 +725,79 @@ public class ExperimentProcessor implements Processor {
     }
     private String simpleStudyName(String scopedName){
         return scopedName.replaceFirst(" \\[.*\\]", "");
+    }
+
+    private void validateDuplicateObservationVariables(List<String> variables) {
+        if (!variables.stream().allMatch(new HashSet<>()::add)) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Duplicate ontology variable names detected, ensure each phenotype column header is unique");
+        }
+    }
+
+    private void validateObservationValue(BrAPIObservationVariable variable, String value,
+                                          String columnHeader, ValidationErrors validationErrors, int row) {
+
+        switch(variable.getScale().getDataType()) {
+            case NUMERICAL:
+                Optional<BigDecimal> number = validNumericValue(value);
+                if (number.isEmpty()) {
+                    addRowError(columnHeader, "Non-numeric text detected detected", validationErrors, row);
+                }
+                if (!validNumericRange(number.get(), variable.getScale().getValidValues())) {
+                    addRowError(columnHeader, "Value outside of min/max range detected", validationErrors, row);
+                }
+                break;
+            case DATE:
+                if (!validDateValue(value)) {
+                    addRowError(columnHeader, "Incorrect date format (YYYY-MM-DD) detected", validationErrors, row);
+                }
+                break;
+            case ORDINAL:
+                if (!validCategory(variable.getScale().getValidValues().getCategories(), value)) {
+                    addRowError(columnHeader, "Undefined ordinal category detected", validationErrors, row);
+                }
+                break;
+            case NOMINAL:
+                if (!validCategory(variable.getScale().getValidValues().getCategories(), value)) {
+                    addRowError(columnHeader, "Undefined nominal category detected", validationErrors, row);
+                }
+                break;
+            default:
+                break;
+        }
+
+    }
+    private Optional<BigDecimal> validNumericValue(String value) {
+        BigDecimal number;
+        try {
+            number = new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+        return Optional.of(number);
+    }
+
+    private boolean validNumericRange(BigDecimal value, BrAPIScaleValidValues validValues) {
+        if (value.compareTo(BigDecimal.valueOf(validValues.getMin())) >= 0 &&
+            value.compareTo(BigDecimal.valueOf(validValues.getMax())) <= 0) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean validDateValue(String value) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
+        try {
+            formatter.parse(value);
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean validCategory(List<BrAPIScaleValidValuesCategories> categories, String value) {
+        Set<String> categoryValues = categories.stream().map(category -> category.getValue().toLowerCase()).collect(Collectors.toSet());
+        return categoryValues.contains(value.toLowerCase());
     }
 
     /**
