@@ -61,7 +61,7 @@ import java.util.stream.Collectors;
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String missingObsUnitIdError = "Experiment Units are missing Observation Unit Id.\n" +
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.\n" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
             "for each experiment unit).";
@@ -172,7 +172,7 @@ public class ExperimentProcessor implements Processor {
 
             //Check if existing environment. If so, ObsUnitId must be assigned
             if ((this.studyByNameNoScope.get(importRow.getEnv()).getState() == ImportObjectState.EXISTING) && (StringUtils.isBlank(importRow.getObsUnitID()))){
-                throw new MissingRequiredInfoException(missingObsUnitIdError);
+                throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
             }
 
             // Construct Observations -- Done in another card
