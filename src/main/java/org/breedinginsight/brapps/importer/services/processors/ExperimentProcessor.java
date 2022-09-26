@@ -164,7 +164,6 @@ public class ExperimentProcessor implements Processor {
         // Get dynamic phenotype columns for processing
         List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, "ExperimentsTemplateMap");
         List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
-        validateDuplicateObservationVariables(varNames);
         List<String> programVars = varNames.stream().map(var -> var + " [" + program.getKey() + "]").collect(Collectors.toList());
         List<BrAPIObservationVariable> obsVars = null;
 
@@ -725,13 +724,6 @@ public class ExperimentProcessor implements Processor {
     }
     private String simpleStudyName(String scopedName){
         return scopedName.replaceFirst(" \\[.*\\]", "");
-    }
-
-    private void validateDuplicateObservationVariables(List<String> variables) {
-        if (!variables.stream().allMatch(new HashSet<>()::add)) {
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Duplicate ontology variable names detected, ensure each phenotype column header is unique");
-        }
     }
 
     private void validateObservationValue(BrAPIObservationVariable variable, String value,
