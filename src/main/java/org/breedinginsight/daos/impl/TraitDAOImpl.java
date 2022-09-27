@@ -152,8 +152,6 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
             return new ArrayList<>();
         }
 
-//        Map<UUID, Trait> dbVariablesMap = dbVariables.stream().collect(Collectors.toMap(Trait::getId, p -> p));
-
         // Get brapi variables
         VariableQueryParams variablesRequest = new VariableQueryParams();
         variablesRequest.externalReferenceSource(referenceSource);
