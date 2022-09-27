@@ -50,9 +50,6 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
     @Inject
     private TraitValidatorService traitValidator;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     public void setup() {
 

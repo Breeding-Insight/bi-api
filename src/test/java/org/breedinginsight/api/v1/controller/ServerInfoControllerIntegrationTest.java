@@ -44,9 +44,6 @@ public class ServerInfoControllerIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @Test
     public void getVersionInfo() throws IOException {
         Flowable<HttpResponse<String>> call = client.exchange(GET("/server-info"), String.class);

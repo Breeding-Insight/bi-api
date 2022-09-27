@@ -26,10 +26,10 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.test.annotation.MockBean;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import junit.framework.AssertionFailedError;
 import lombok.SneakyThrows;
 import okhttp3.Call;
 import org.brapi.client.v2.BrAPIClient;
@@ -39,23 +39,30 @@ import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.daos.cache.FetchFunction;
+import org.breedinginsight.daos.cache.ProgramCache;
+import org.breedinginsight.daos.cache.ProgramCacheProvider;
+import org.breedinginsight.daos.impl.ProgramDAOImpl;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.redisson.api.RedissonClient;
 
 import javax.inject.Inject;
 import java.lang.reflect.Type;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,6 +80,16 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     private TraitEntity validVariable;
 
     @Inject
+    private RedissonClient redissonClient;
+    @Inject
+    private ProgramCacheProvider programCacheProvider;
+
+    @MockBean(ProgramCacheProvider.class)
+    ProgramCacheProvider programCacheProvider() {
+        return mock(ProgramCacheProvider.class);
+    }
+
+    @Inject
     private ProgramService programService;
     @MockBean(ProgramService.class)
     ProgramService programService() { return mock(ProgramService.class);}
@@ -80,6 +97,9 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     private BrAPIClientProvider brAPIClientProvider;
     @MockBean(BrAPIClientProvider.class)
     BrAPIClientProvider brAPIClientProvider() { return mock(BrAPIClientProvider.class, CALLS_REAL_METHODS); }
+
+    @Inject
+    private ProgramDAO programDAO;
 
     @Inject
     private DSLContext dsl;
@@ -91,19 +111,53 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     private UserDAO userDAO;
 
     @Inject
+    private BrAPIProvider brAPIProvider;
+
+    @MockBean(ProgramDAO.class)
+    ProgramDAO programDAO() {
+        return spy(new ProgramDAOImpl(programDao, dsl, brAPIProvider, brAPIClientProvider, Duration.of(10, ChronoUnit.MINUTES)));
+    }
+
+    @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
-
-    @AfterAll
-    public void finish() {
-        super.stopContainers();
-    }
 
     @BeforeAll
     public void setup() {
 
         insertTestData();
         retrieveTestData();
+    }
+
+    private AtomicReference<Optional<Exception>> fetchException;
+    private AtomicReference<Optional<String>> urlCheck;
+    private BrAPIClient brAPIClient;
+    @BeforeEach
+    @SneakyThrows
+    public void beforeEach() {
+        fetchException = new AtomicReference<>(Optional.empty());
+        urlCheck = new AtomicReference<>(Optional.empty());
+        brAPIClient = spy(new BrAPIClient());
+
+        when(programCacheProvider.getProgramCache(isA(FetchFunction.class), any(Class.class))).thenAnswer((Answer<ProgramCache>) invocation -> {
+            FetchFunction fetchFunction = invocation.getArgument(0);
+            return new ProgramCache(redissonClient, uuid -> {
+                try {
+                    return fetchFunction.apply(uuid);
+                } catch (Exception e) {
+                    fetchException.set(Optional.of(e));
+                    throw e;
+                }
+            }, invocation.getArgument(1));
+        });
+
+        doAnswer(invocation -> {
+            BrAPIClient executingBrAPIClient = (BrAPIClient) invocation.getMock();
+            // fetch the url that's set in the client
+            urlCheck.set(Optional.of(executingBrAPIClient.getBasePath()));
+            return invocation.callRealMethod();
+        }).when(brAPIClient)
+          .execute(any(Call.class), any(Type.class));
     }
 
     public void insertTestData() {
@@ -155,23 +209,21 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        // Assert our brapi url was used
-        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
+        brAPIClient.setBasePath(coreUrl);
+        doReturn(brAPIClient).when(programDAO).getCoreClient(any(UUID.class));
 
-        Flowable<HttpResponse<String>> call = client.exchange(
+        client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
+        ).blockingFirst();
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
+        assertTrue(fetchException.get().isPresent(), "No exception was thrown");
+        assertTrue(fetchException.get().get() instanceof InternalServerException, "Wrong exception type was thrown");
+        assertEquals("Error making BrAPI call", fetchException.get().get().getMessage());
 
         // Check that our error is not an assertion error
-        assertEquals(phenoUrl, urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(coreUrl, urlCheck.get().get(), "URL was not as expected");
     }
 
     @Test
@@ -188,58 +240,26 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
+        brAPIClient.setBasePath(coreUrl1);
+        doReturn(brAPIClient).when(programDAO).getCoreClient(any(UUID.class));
+
         // Assert our brapi url was used
-        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
+        client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true")
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
+        ).blockingFirst();
 
-        // Expect error because brapi results will not be returned
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
+        assertTrue(fetchException.get().isPresent(), "No exception was thrown");
+        assertTrue(fetchException.get().get() instanceof InternalServerException, "Wrong exception type was thrown");
+        assertEquals("Error making BrAPI call", fetchException.get().get().getMessage());
 
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
-
-        // Check that our error is not an assertion error
-        assertEquals(phenoUrl1, urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(coreUrl1, urlCheck.get().get(), "Url was not as expected");
     }
 
     @Test
     @SneakyThrows
-    public void getTraitsUsesFilter() {
-
-        String phenoUrl = "http://getTraits" + UUID.randomUUID().toString() + "/brapi/v2";
-        ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints("", phenoUrl, "");
-
-        reset(programService);
-        when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
-        when(programService.exists(any(UUID.class))).thenReturn(true);
-
-        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/" + validProgram.getId() + "/traits?full=true")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        // Expect error because brapi results will not be returned
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
-
-        assertEquals(phenoUrl, urlCheckFuture.get(), "Url was not as expected");
-    }
-
-    @Test
-    @SneakyThrows
-    public void getTraitSingleUsesFilter() {
+    public void getTraitSingleEditableUsesFilter() {
 
         String phenoUrl = "http://getTraitSingle" + UUID.randomUUID().toString() + "/brapi/v2";
         ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(null, phenoUrl, null);
@@ -248,10 +268,18 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        CompletableFuture<String> urlCheckFuture = checkBrAPIClientExecution();
+        validProgram.setBrapiUrl(phenoUrl);
+        programDAO.update(validProgram);
+
+        when(brAPIClientProvider.getClient(BrAPIClientType.PHENO)).thenAnswer((Answer<BrAPIClient>) invocation -> {
+            // Create a spy on our real brapi client to see what url was ultimately used
+            BrAPIClient realBrAPIClient = (BrAPIClient) invocation.callRealMethod();
+            brAPIClient.setBasePath(realBrAPIClient.getBasePath());
+            return brAPIClient;
+        });
 
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/programs/" + validProgram.getId() + "/traits/" + validVariable.getId())
+                GET("/programs/" + validProgram.getId() + "/traits/" + validVariable.getId()+"/editable")
                         .contentType(MediaType.APPLICATION_JSON)
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
@@ -262,8 +290,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         });
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus(), "Response status is incorrect");
-
-        assertEquals(phenoUrl, urlCheckFuture.get(), "Url was not as expected");
+        assertEquals(phenoUrl, urlCheck.get().get(), "Url was not as expected");
     }
 
     public ProgramBrAPIEndpoints getBrAPIEndpoints(String coreUrl, String phenoUrl, String genoUrl){
@@ -273,40 +300,4 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
                 .phenoUrl(phenoUrl == null ? Optional.empty() : Optional.of(phenoUrl))
                 .build();
     }
-
-    public CompletableFuture<String> checkBrAPIClientExecution() throws AssertionFailedError {
-
-        CompletableFuture<String> future = new CompletableFuture<String>().orTimeout(30, TimeUnit.SECONDS);
-
-        // Takes advantage of brapi library code to mimic no return results from api.
-        Answer<Optional<Object>> checkBrAPIExecution = new Answer<Optional<Object>>() {
-            @Override
-            public Optional<Object> answer(InvocationOnMock invocation) throws AssertionFailedError {
-                BrAPIClient executingBrAPIClient = (BrAPIClient) invocation.getMock();
-                // Check that our url is correct
-                future.complete(executingBrAPIClient.getBasePath());
-                return Optional.empty();
-            }
-        };
-
-        // Test the correct url was set for our provider
-        reset(brAPIClientProvider);
-        when(brAPIClientProvider.getClient(BrAPIClientType.PHENO)).thenAnswer(new Answer<BrAPIClient>() {
-            @Override
-            public BrAPIClient answer(InvocationOnMock invocation) throws Throwable {
-                // Create a spy on our real brapi client to see what url was ultimately used
-                BrAPIClient realBrAPIClient = (BrAPIClient) invocation.callRealMethod();
-                BrAPIClient brAPIClientSpy = spy(realBrAPIClient);
-                doAnswer(checkBrAPIExecution)
-                        .when(brAPIClientSpy)
-                        .execute(any(Call.class), any(Type.class));
-
-                return brAPIClientSpy;
-            }
-        });
-
-        return future;
-
-    }
-
 }

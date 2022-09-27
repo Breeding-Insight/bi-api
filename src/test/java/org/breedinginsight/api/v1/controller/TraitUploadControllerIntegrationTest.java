@@ -95,9 +95,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     String invalidProgram = invalidUUID;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     public void setup() {
 

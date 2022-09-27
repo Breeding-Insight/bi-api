@@ -60,9 +60,6 @@ public class BrapiAuthorizeControllerIntegrationTest extends DatabaseTest {
 
     private ProgramEntity validProgram;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     @SneakyThrows
     public void setup() {
