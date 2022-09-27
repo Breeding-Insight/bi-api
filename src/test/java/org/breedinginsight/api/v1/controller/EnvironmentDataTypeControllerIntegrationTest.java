@@ -51,9 +51,6 @@ public class EnvironmentDataTypeControllerIntegrationTest extends DatabaseTest {
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @Test
     @Order(1)
     // Expects at least one valid environmentType in the database to pass

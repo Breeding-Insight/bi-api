@@ -79,9 +79,6 @@ public class ImportControllerIntegrationTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     @SneakyThrows
     public void setup() {

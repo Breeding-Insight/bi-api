@@ -30,6 +30,8 @@ services:
     depends_on:
       - bidb
       - brapi-server
+      - redis
+      - mailhog
     volumes:
       - /usr/bin/docker:/usr/bin/docker
       - /var/run/docker.sock:/var/run/docker.sock
@@ -51,6 +53,9 @@ services:
       - EMAIL_RELAY_HOST=${EMAIL_RELAY_HOST}
       - EMAIL_RELAY_PORT=${EMAIL_RELAY_PORT}
       - EMAIL_FROM=${EMAIL_FROM}
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379}
+      - REDIS_TIMEOUT=${REDIS_TIMEOUT:-30s}
+      - REDIS_SSL=${REDIS_SSL:-false}
     ports:
       - ${API_INTERNAL_PORT}:${API_INTERNAL_PORT}
     networks:
@@ -62,7 +67,7 @@ services:
       - POSTGRES_DB=${DB_NAME}
       - POSTGRES_PASSWORD=${DB_PASSWORD}
     ports:
-      - 5432:5432
+      - "5432:5432"
     volumes:
       - biapi_data:/var/lib/postgresql/data
     networks:
@@ -70,7 +75,7 @@ services:
         aliases:
           - dbserver
   brapi-server:
-    image: breedinginsight/brapi-java-server:latest
+    image: breedinginsight/brapi-java-server:develop
     container_name: brapi-server
     depends_on:
       - bidb
@@ -93,8 +98,16 @@ services:
     container_name: mailhog
     restart: always
     ports:
-      - 1025:1025
-      - 8025:8025
+      - "1025:1025"
+      - "8025:8025"
+  redis:
+    image: redis
+    container_name: redis
+    restart: always
+    ports:
+      - "6379:6379"
+    networks:
+      backend:
 
 networks:
   backend:
