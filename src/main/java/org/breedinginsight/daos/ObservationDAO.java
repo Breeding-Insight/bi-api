@@ -17,6 +17,7 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -29,14 +30,19 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
+
+@Singleton
+@Slf4j
 public class ObservationDAO {
     private BrAPIProvider brAPIProvider;
     private final BrAPIDAOUtil brAPIDAOUtil;
@@ -55,6 +61,7 @@ public class ObservationDAO {
         try {
             brapiObservations = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO).observationsGet(observationsRequest);
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 

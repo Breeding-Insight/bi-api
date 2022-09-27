@@ -34,6 +34,7 @@ micronaut:
   bi:
     api:
       version: v1
+      run-scheduled-tasks: true
   security:
     enabled: true
     oauth2:
@@ -170,4 +171,10 @@ email:
     port: ${EMAIL_RELAY_PORT}
   from: ${EMAIL_FROM}
 
-
+redisson:
+  single-server-config:
+    address: ${REDIS_URL:`redis://localhost:6379`}
+    connect-timeout: ${REDIS_TIMEOUT:30s}
+    ssl-enable-endpoint-identification: ${REDIS_SSL:false}
+  threads: 16
+  netty-threads: 32
