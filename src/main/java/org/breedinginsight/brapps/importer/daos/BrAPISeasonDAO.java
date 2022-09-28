@@ -17,6 +17,7 @@ import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.core.response.BrAPISeasonListResponse;
 import org.brapi.v2.model.core.response.BrAPISeasonListResponseResult;
+import org.brapi.v2.model.core.response.BrAPISeasonSingleResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
@@ -54,6 +55,14 @@ public class BrAPISeasonDAO {
         seasons = result.getData();
 
         return seasons;
+    }
+
+    public BrAPISeason getSeasonById(String id, UUID programId) throws ApiException {
+        SeasonsApi api = new SeasonsApi(programDAO.getCoreClient(programId));
+        ApiResponse<BrAPISeasonSingleResponse> apiResponse = api.seasonsSeasonDbIdGet(id);
+        BrAPISeasonSingleResponse seasonListResponse = apiResponse.getBody();
+        BrAPISeason season = seasonListResponse.getResult();
+        return season;
     }
 
     public BrAPISeason addOneSeason(BrAPISeason season, UUID programId) throws ApiException {

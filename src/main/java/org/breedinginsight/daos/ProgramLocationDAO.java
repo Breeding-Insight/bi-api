@@ -24,6 +24,7 @@ import com.google.gson.GsonBuilder;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.LocationQueryParams;
@@ -36,6 +37,7 @@ import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -51,6 +53,7 @@ import java.util.UUID;
 import static org.breedinginsight.dao.db.Tables.*;
 
 @Singleton
+@Slf4j
 public class ProgramLocationDAO extends PlaceDao {
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
@@ -169,6 +172,7 @@ public class ProgramLocationDAO extends PlaceDao {
                 locationsAPI.locationsPost(List.of(brApiLocation));
             }
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -190,6 +194,7 @@ public class ProgramLocationDAO extends PlaceDao {
             try {
                 brApiLocations = locationsAPI.locationsGet(searchRequest);
             } catch (ApiException e) {
+                log.warn(Utilities.generateApiExceptionLogMessage(e));
                 throw new HttpServerException("Could not find location in BrAPI service.");
             }
 
@@ -221,6 +226,7 @@ public class ProgramLocationDAO extends PlaceDao {
             try {
                 locationsAPI.locationsLocationDbIdPut(brApiLocation.getLocationDbId(), brApiLocation);
             } catch (ApiException e) {
+                log.warn(Utilities.generateApiExceptionLogMessage(e));
                 throw new HttpServerException("Could not find location in BrAPI service.");
             }
         }

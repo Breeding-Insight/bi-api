@@ -74,17 +74,6 @@ public class ProgramService {
         this.brAPIClientProvider = brAPIClientProvider;
     }
 
-    @Inject
-    public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO,
-                          ProgramObservationLevelDAO programObservationLevelDAO, SpeciesService speciesService,
-                          DSLContext dsl) {
-        this.dao = dao;
-        this.programOntologyDAO = programOntologyDAO;
-        this.programObservationLevelDAO = programObservationLevelDAO;
-        this.speciesService = speciesService;
-        this.dsl = dsl;
-    }
-
     public Optional<Program> getById(UUID programId) {
 
         List<Program> programs = dao.get(programId);

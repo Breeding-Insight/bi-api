@@ -18,6 +18,7 @@
 package org.breedinginsight.utilities;
 
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 
 import java.util.List;
@@ -101,5 +102,17 @@ public class Utilities {
         String keyValueRegEx = String.format(" \\[%s\\-.*\\]", programKey);
         String stripped =  original.replaceAll(keyValueRegEx, "");
         return stripped;
+    }
+
+    public static String generateApiExceptionLogMessage(ApiException e) {
+        return new StringBuilder("BrAPI Exception: \n\t").append("message: ")
+                                                         .append(e.getMessage())
+                                                         .append("\n\t")
+                                                         .append("body: ")
+                                                         .append(e.getResponseBody())
+                                                         .append("\n\t")
+                                                         .append("code: ")
+                                                         .append(e.getCode())
+                                                         .toString();
     }
 }

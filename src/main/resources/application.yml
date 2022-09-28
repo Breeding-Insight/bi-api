@@ -34,6 +34,7 @@ micronaut:
   bi:
     api:
       version: v1
+      run-scheduled-tasks: true
   security:
     enabled: true
     oauth2:
@@ -159,6 +160,10 @@ brapi:
     geno-url: ${brapi.server.default-url}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
   read-timeout: 10m
+  page-size: 1000
+  search:
+    wait-time: 1000
+  post-group-size: 100
 
 email:
   relay-server:
@@ -166,4 +171,10 @@ email:
     port: ${EMAIL_RELAY_PORT}
   from: ${EMAIL_FROM}
 
-
+redisson:
+  single-server-config:
+    address: ${REDIS_URL:`redis://localhost:6379`}
+    connect-timeout: ${REDIS_TIMEOUT:30s}
+    ssl-enable-endpoint-identification: ${REDIS_SSL:false}
+  threads: 16
+  netty-threads: 32

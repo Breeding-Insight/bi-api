@@ -17,6 +17,7 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -29,20 +30,27 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
+
+@Singleton
+@Slf4j
 public class ObservationDAO {
     private BrAPIProvider brAPIProvider;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public ObservationDAO(BrAPIProvider brAPIProvider) {
+    public ObservationDAO(BrAPIProvider brAPIProvider, BrAPIDAOUtil brAPIDAOUtil) {
         this.brAPIProvider = brAPIProvider;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId) {
@@ -53,6 +61,7 @@ public class ObservationDAO {
         try {
             brapiObservations = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO).observationsGet(observationsRequest);
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -67,7 +76,7 @@ public class ObservationDAO {
                     .observationVariableDbIds(observationVariableDbIds);
 
             ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return BrAPIDAOUtil.search(
+            return brAPIDAOUtil.search(
                     api::searchObservationsPost,
                     this::searchObservationsSearchResultsDbIdGet,
                     request
@@ -86,7 +95,7 @@ public class ObservationDAO {
                     .programDbIds(List.of(brapiProgramId));
 
             ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return BrAPIDAOUtil.search(
+            return brAPIDAOUtil.search(
                     api::searchObservationsPost,
                     this::searchObservationsSearchResultsDbIdGet,
                     request

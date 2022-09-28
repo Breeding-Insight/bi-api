@@ -32,14 +32,16 @@ import java.util.List;
 public class BrAPICrossDAO {
 
     private BrAPIProvider brAPIProvider;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPICrossDAO(BrAPIProvider brAPIProvider) {
+    public BrAPICrossDAO(BrAPIProvider brAPIProvider, BrAPIDAOUtil brAPIDAOUtil) {
         this.brAPIProvider = brAPIProvider;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPICross> createBrAPICrosses(List<BrAPICross> brAPICrossList) throws ApiException {
         CrossesApi api = brAPIProvider.getCrossesApi(BrAPIClientType.CORE);
-        return BrAPIDAOUtil.post(brAPICrossList, api::crossesPost);
+        return brAPIDAOUtil.post(brAPICrossList, api::crossesPost);
     }
 }
