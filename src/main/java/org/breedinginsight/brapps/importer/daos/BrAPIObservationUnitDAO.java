@@ -38,11 +38,13 @@ public class BrAPIObservationUnitDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     /*
@@ -69,7 +71,7 @@ public class BrAPIObservationUnitDAO {
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationUnitSearchRequest.observationUnitNames(observationUnitNames);
         ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearchRequest
@@ -78,6 +80,6 @@ public class BrAPIObservationUnitDAO {
 
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException {
         ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
     }
 }

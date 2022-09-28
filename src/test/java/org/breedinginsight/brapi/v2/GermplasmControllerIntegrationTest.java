@@ -76,9 +76,6 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     @Inject
     private BrAPIListDAO listDAO;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     @SneakyThrows
     public void setup() {

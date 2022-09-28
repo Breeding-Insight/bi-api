@@ -87,6 +87,8 @@ public class ExperimentProcessor implements Processor {
 
     // used to make the yearsToSeasonDbId() function more efficient
     private Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
+    // used to make the seasonDbIdtoYear() function more efficient
+    private Map<String, String > seasonDbIdToYearCache = new HashMap<>();
 
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the getNewBrapiData() method.
@@ -664,6 +666,9 @@ public class ExperimentProcessor implements Processor {
         try {
             existingStudies = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(experimentIDStr), program);
             existingStudies.forEach(existingStudy -> {
+                //Swap season DbId with year String
+                String seasonId = existingStudy.getSeasons().get(0);
+                existingStudy.setSeasons( List.of( this.seasonDbIdToYear( seasonId, program.getId() ) ) );
 
                 existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
                 studyByNameNoScope.put(
@@ -806,7 +811,7 @@ public class ExperimentProcessor implements Processor {
     private String yearsToSeasonDbId(List<String> years, UUID programId) {
         String year = years.get(0);
         String dbID = null;
-        if (this.yearToSeasonDbIdCache.containsKey(year) ){ // get it from cache if possable
+        if (this.yearToSeasonDbIdCache.containsKey(year) ){ // get it from cache if possible
             dbID = this.yearToSeasonDbIdCache.get(year);
         }
         else{
@@ -814,6 +819,18 @@ public class ExperimentProcessor implements Processor {
             this.yearToSeasonDbIdCache.put(year, dbID);
         }
         return dbID;
+    }
+
+    private String seasonDbIdToYear(String seasonDbId, UUID programId) {
+        String year = null;
+        if (this.seasonDbIdToYearCache.containsKey(seasonDbId) ){ // get it from cache if possible
+            year = this.seasonDbIdToYearCache.get(seasonDbId);
+        }
+        else{
+            year = this.seasonDbIdToYearFromDatabase(seasonDbId,programId);
+            this.seasonDbIdToYearCache.put(seasonDbId, year);
+        }
+        return year;
     }
 
     private String yearToSeasonDbIdFromDatabase(String year, UUID programId) {
@@ -835,11 +852,25 @@ public class ExperimentProcessor implements Processor {
             }
 
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             log.error(e.getResponseBody(), e);;
         }
 
         String seasonDbId = (targetSeason==null) ? null : targetSeason.getSeasonDbId();
         return seasonDbId;
+    }
+
+    private String seasonDbIdToYearFromDatabase(String seasonDbId, UUID programId) {
+        BrAPISeason targetSeason = null;
+        BrAPISeason season = null;
+        try {
+            season = this.brAPISeasonDAO.getSeasonById (seasonDbId, programId);
+        } catch (ApiException e) {
+            log.error(e.getResponseBody(), e);;
+        }
+        Integer yearInt = (season == null) ? null : season.getYear();;
+        String yearStr = (yearInt==null) ? "" : yearInt.toString();
+        return yearStr;
     }
 
     private boolean isTrialRefSource(BrAPIExternalReference brAPIExternalReference) {

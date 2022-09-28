@@ -45,12 +45,14 @@ public class BrAPIObservationDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
     private UUID programId;
 
     @Inject
-    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
@@ -60,7 +62,7 @@ public class BrAPIObservationDAO {
         observationSearchRequest.setStudyNames(new ArrayList<>(studyNames));
         ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(program.getId()));
         this.programId = program.getId();
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchObservationsPost,
                 this::searchObservationsSearchResultsDbIdGet,
                 observationSearchRequest
@@ -76,7 +78,7 @@ public class BrAPIObservationDAO {
 
     public List<BrAPIObservation> createBrAPIObservation(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
         ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
     }
 
 }

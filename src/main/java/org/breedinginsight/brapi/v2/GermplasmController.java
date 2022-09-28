@@ -27,6 +27,7 @@ import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;

@@ -36,11 +36,13 @@ public class BrAPILocationDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPILocation> getLocationsByName(List<String> locationNames, UUID programId) throws ApiException {
@@ -49,7 +51,7 @@ public class BrAPILocationDAO {
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
         //TODO: Locations don't connect to programs. How to get locations for the program?
         LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchLocationsPost,
                 api::searchLocationsSearchResultsDbIdGet,
                 locationSearchRequest
@@ -58,7 +60,7 @@ public class BrAPILocationDAO {
 
     public List<BrAPILocation> createBrAPILocation(List<BrAPILocation> brAPILocationList, UUID programId, ImportUpload upload) throws ApiException {
         LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
     }
 
 }

@@ -44,15 +44,17 @@ public class BrAPITrialDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
     private ProgramService programService;
 
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
     @Inject
-    public BrAPITrialDAO(ProgramDAO programDAO, ImportDAO importDAO, ProgramService programService) {
+    public BrAPITrialDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramService programService) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
         this.programService = programService;
     }
 
@@ -61,7 +63,7 @@ public class BrAPITrialDAO {
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,
                 trialSearch
@@ -70,7 +72,7 @@ public class BrAPITrialDAO {
 
     public List<BrAPITrial> createBrAPITrial(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) throws ApiException {
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
     }
 
     /**
@@ -94,7 +96,7 @@ public class BrAPITrialDAO {
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
 
         TrialsApi api = new TrialsApi(programDAO.getCoreClient(programId));
-        return processExperimentsForDisplay(BrAPIDAOUtil.search(
+        return processExperimentsForDisplay(brAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,
                 trialSearch), program.getKey(), programId, true);
