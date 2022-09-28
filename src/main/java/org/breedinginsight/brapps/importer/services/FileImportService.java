@@ -67,17 +67,17 @@ import java.util.stream.Collectors;
 @Singleton
 public class FileImportService {
 
-    private ProgramUserService programUserService;
-    private ProgramService programService;
-    private UserService userService;
-    private MimeTypeParser mimeTypeParser;
-    private ImportMappingDAO importMappingDAO;
-    private ObjectMapper objectMapper;
-    private MappingManager mappingManager;
-    private ImportConfigManager configManager;
-    private ImportDAO importDAO;
-    private DSLContext dsl;
-    private ImportMappingProgramDAO importMappingProgramDAO;
+    private final ProgramUserService programUserService;
+    private final ProgramService programService;
+    private final UserService userService;
+    private final MimeTypeParser mimeTypeParser;
+    private final ImportMappingDAO importMappingDAO;
+    private final ObjectMapper objectMapper;
+    private final MappingManager mappingManager;
+    private final ImportConfigManager configManager;
+    private final ImportDAO importDAO;
+    private final DSLContext dsl;
+    private final ImportMappingProgramDAO importMappingProgramDAO;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
@@ -425,7 +425,14 @@ public class FileImportService {
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
-            } catch (ValidatorException e) {
+            } catch (MissingRequiredInfoException e) {
+                log.error(e.getMessage(), e);
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+                progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
+            }catch (ValidatorException e) {
                 log.info("Validation errors", e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
