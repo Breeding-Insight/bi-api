@@ -224,7 +224,7 @@ public class ExperimentObservation implements BrAPIImport {
         // Block number
         if( getExpBlockNo() != null ) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName( BrAPIConstants.REPLICATE.getValue() );
+            repLvl.setLevelName( BrAPIConstants.BLOCK.getValue() );
             repLvl.setLevelCode(getExpBlockNo());
             levelRelationships.add(repLvl);
         }
