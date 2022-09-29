@@ -189,7 +189,6 @@ public class ProgramService {
                     .germplasmSequence(germplasm_sequence_name)
                     .expSequence( exp_sequence_name )
                     .envSequence( env_sequence_name )
-                    .obsUnitSequence( obs_unit_sequence_name )
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();

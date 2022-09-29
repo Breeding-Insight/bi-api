@@ -193,14 +193,7 @@ public class ExperimentProcessor implements Processor {
 
     private void getNewBrapiData(List<BrAPIImport> importRows, Program program, boolean commit) {
 
-        String obsUnitSequenceName = program.getObsUnitSequence();
-        if (obsUnitSequenceName == null) {
-            log.error(String.format("Program, %s, is missing a value in the obsUnit sequence column.", program.getName()));
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for observation unit import");
-        }
-        Supplier<BigInteger> obsUnitNextVal = () -> dsl.nextval(obsUnitSequenceName.toLowerCase());
-
-        String expSequenceName = program.getObsUnitSequence();
+        String expSequenceName = program.getExpSequence();
         if (expSequenceName == null) {
             log.error(String.format("Program, %s, is missing a value in the exp sequence column.", program.getName()));
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for observation unit import");
