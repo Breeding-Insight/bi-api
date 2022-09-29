@@ -45,8 +45,13 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Scale;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.OntologyService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
@@ -83,6 +88,8 @@ public class ExperimentProcessor implements Processor {
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
     private BrAPIObservationVariableDAO brAPIObservationVariableDAO;
 
+    private OntologyService ontologyService;
+
     private FileMappingUtil fileMappingUtil;
 
     // used to make the yearsToSeasonDbId() function more efficient
@@ -110,6 +117,7 @@ public class ExperimentProcessor implements Processor {
                                BrAPISeasonDAO brAPISeasonDAO,
                                BrAPIGermplasmDAO brAPIGermplasmDAO,
                                BrAPIObservationVariableDAO brAPIObservationVariableDAO,
+                               OntologyService ontologyService,
                                FileMappingUtil fileMappingUtil) {
         this.dsl = dsl;
         this.brapiTrialDAO = brapiTrialDAO;
@@ -119,6 +127,7 @@ public class ExperimentProcessor implements Processor {
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
         this.brAPIObservationVariableDAO = brAPIObservationVariableDAO;
+        this.ontologyService = ontologyService;
         this.fileMappingUtil = fileMappingUtil;
     }
 
@@ -166,39 +175,41 @@ public class ExperimentProcessor implements Processor {
         // Get dynamic phenotype columns for processing
         List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, "ExperimentsTemplateMap");
         List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
-        List<String> programVars = varNames.stream().map(var -> var + " [" + program.getKey() + "]").collect(Collectors.toList());
-        List<BrAPIObservationVariable> obsVars = null;
 
+        // Lookup all traits in system for program, maybe eventually add a variable search in ontology service
+        List<Trait> traits = null;
         try {
-            obsVars = brAPIObservationVariableDAO.getVariableByName(programVars, program.getId());
-        } catch (ApiException e) {
-            log.error(e.getResponseBody());
+            traits = ontologyService.getTraitsByProgramId(program.getId(), true);
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage());
             throw new InternalServerException(e.toString(), e);
         }
 
-        Map<String, BrAPIObservationVariable> colVarMap = obsVars.stream()
-                .collect(Collectors.toMap(BrAPIObservationVariable::getObservationVariableName, Function.identity()));
+        // filter out just traits specified in file
+        List<Trait> filteredTraits = traits.stream()
+                .filter(e -> varNames.contains(e.getObservationVariableName()))
+                .collect(Collectors.toList());
 
-        /*
-        if (obsVars.size() != programVars.size()) {
-
-            List<String> returnedVarNames = obsVars.stream().map(var -> var.getObservationVariableName()).collect(Collectors.toList());
-
-            List<String> differences = programVars.stream()
-                    .map(element -> element.)
-                    .filter(element -> !obsVars.contains(element))
+        // check that all specified ontology terms were found
+        if (filteredTraits.size() != varNames.size()) {
+            List<String> returnedVarNames = filteredTraits.stream().map(TraitEntity::getObservationVariableName)
                     .collect(Collectors.toList());
-
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Ontology term(s) not found: ");
+            List<String> differences = varNames.stream()
+                    .filter(var -> !returnedVarNames.contains(var))
+                    .collect(Collectors.toList());
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Ontology term(s) not found: " + String.join(", ", differences));
         }
 
-         */
+        // Perform ontology validations on each observation value in phenotype column
+        Map<String, Trait> colVarMap = filteredTraits.stream()
+                .collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
 
         for (Column<?> column : phenotypeCols) {
             for (int i=0; i < column.size(); i++) {
                 String value = column.getString(i);
-                String colName = column.name() + " [" + program.getKey() + "]";
-                validateObservationValue(colVarMap.get(colName), value, column.name(), validationErrors, i);
+                String colName = column.name();
+                validateObservationValue(colVarMap.get(colName), value, colName, validationErrors, i);
             }
         }
 
@@ -731,7 +742,7 @@ public class ExperimentProcessor implements Processor {
         return scopedName.replaceFirst(" \\[.*\\]", "");
     }
 
-    private void validateObservationValue(BrAPIObservationVariable variable, String value,
+    private void validateObservationValue(Trait variable, String value,
                                           String columnHeader, ValidationErrors validationErrors, int row) {
 
         switch(variable.getScale().getDataType()) {
@@ -740,7 +751,7 @@ public class ExperimentProcessor implements Processor {
                 if (number.isEmpty()) {
                     addRowError(columnHeader, "Non-numeric text detected detected", validationErrors, row);
                 }
-                if (!validNumericRange(number.get(), variable.getScale().getValidValues())) {
+                if (!validNumericRange(number.get(), variable.getScale())) {
                     addRowError(columnHeader, "Value outside of min/max range detected", validationErrors, row);
                 }
                 break;
@@ -750,12 +761,12 @@ public class ExperimentProcessor implements Processor {
                 }
                 break;
             case ORDINAL:
-                if (!validCategory(variable.getScale().getValidValues().getCategories(), value)) {
+                if (!validCategory(variable.getScale().getCategories(), value)) {
                     addRowError(columnHeader, "Undefined ordinal category detected", validationErrors, row);
                 }
                 break;
             case NOMINAL:
-                if (!validCategory(variable.getScale().getValidValues().getCategories(), value)) {
+                if (!validCategory(variable.getScale().getCategories(), value)) {
                     addRowError(columnHeader, "Undefined nominal category detected", validationErrors, row);
                 }
                 break;
@@ -774,9 +785,9 @@ public class ExperimentProcessor implements Processor {
         return Optional.of(number);
     }
 
-    private boolean validNumericRange(BigDecimal value, BrAPIScaleValidValues validValues) {
-        if (value.compareTo(BigDecimal.valueOf(validValues.getMin())) >= 0 &&
-            value.compareTo(BigDecimal.valueOf(validValues.getMax())) <= 0) {
+    private boolean validNumericRange(BigDecimal value, Scale validValues) {
+        if (value.compareTo(BigDecimal.valueOf(validValues.getValidValueMin())) >= 0 &&
+            value.compareTo(BigDecimal.valueOf(validValues.getValidValueMax())) <= 0) {
             return true;
         }
         return false;
