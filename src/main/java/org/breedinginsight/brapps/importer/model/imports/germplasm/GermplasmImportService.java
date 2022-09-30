@@ -27,6 +27,7 @@ import org.breedinginsight.brapps.importer.services.processors.*;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
@@ -40,10 +41,10 @@ import java.util.*;
 @Slf4j
 public class GermplasmImportService extends BrAPIImportService {
 
-    private String IMPORT_TYPE_ID = "GermplasmImport";
+    private final String IMPORT_TYPE_ID = "GermplasmImport";
 
-    private Provider<GermplasmProcessor> germplasmProcessorProvider;
-    private Provider<ProcessorManager> processorManagerProvider;
+    private final Provider<GermplasmProcessor> germplasmProcessorProvider;
+    private final Provider<ProcessorManager> processorManagerProvider;
 
     @Inject
     public GermplasmImportService(Provider<GermplasmProcessor> germplasmProcessorProvider,
@@ -65,7 +66,7 @@ public class GermplasmImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException {
+            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get());

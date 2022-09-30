@@ -33,7 +33,6 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
-import org.breedinginsight.brapi.v1.controller.BrapiObservationVariablesController;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -52,10 +51,10 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
-import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
@@ -74,10 +73,13 @@ import java.util.stream.Collectors;
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.\n" +
+            "If you’re trying to add these units to the experiment, please create a new environment" +
+            " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
+            "for each experiment unit).";
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
-
 
     private DSLContext dsl;
     private BrAPITrialDAO brapiTrialDAO;
@@ -86,16 +88,13 @@ public class ExperimentProcessor implements Processor {
     private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private BrAPISeasonDAO brAPISeasonDAO;
     private BrAPIGermplasmDAO brAPIGermplasmDAO;
-    private BrAPIObservationVariableDAO brAPIObservationVariableDAO;
-
     private OntologyService ontologyService;
-
     private FileMappingUtil fileMappingUtil;
 
     // used to make the yearsToSeasonDbId() function more efficient
-    private Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
+    private final Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
     // used to make the seasonDbIdtoYear() function more efficient
-    private Map<String, String > seasonDbIdToYearCache = new HashMap<>();
+    private final Map<String, String > seasonDbIdToYearCache = new HashMap<>();
 
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the getNewBrapiData() method.
@@ -116,7 +115,6 @@ public class ExperimentProcessor implements Processor {
                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                BrAPISeasonDAO brAPISeasonDAO,
                                BrAPIGermplasmDAO brAPIGermplasmDAO,
-                               BrAPIObservationVariableDAO brAPIObservationVariableDAO,
                                OntologyService ontologyService,
                                FileMappingUtil fileMappingUtil) {
         this.dsl = dsl;
@@ -126,7 +124,6 @@ public class ExperimentProcessor implements Processor {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
-        this.brAPIObservationVariableDAO = brAPIObservationVariableDAO;
         this.ontologyService = ontologyService;
         this.fileMappingUtil = fileMappingUtil;
     }
@@ -168,7 +165,7 @@ public class ExperimentProcessor implements Processor {
             Table data,
             Program program,
             User user,
-            boolean commit) throws ValidatorException {
+            boolean commit) throws ValidatorException, MissingRequiredInfoException {
 
         ValidationErrors validationErrors = new ValidationErrors();
 
@@ -231,6 +228,12 @@ public class ExperimentProcessor implements Processor {
             if (! StringUtils.isBlank( importRow.getGid() )) { // if GID is blank, don't bother to check if it is valid.
                 validateGermplasm(importRow,validationErrors, i, germplasmPIO);
             }
+
+            //Check if existing environment. If so, ObsUnitId must be assigned
+            if ((this.studyByNameNoScope.get(importRow.getEnv()).getState() == ImportObjectState.EXISTING) && (StringUtils.isBlank(importRow.getObsUnitID()))){
+                throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
+            }
+
             // Construct Observations -- Done in another card
             mappedBrAPIImport.put(i, mappedImportRow);
         }
@@ -864,7 +867,7 @@ public class ExperimentProcessor implements Processor {
 
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
-            log.error(e.getResponseBody(), e);;
+            log.error(e.getResponseBody(), e);
         }
 
         String seasonDbId = (targetSeason==null) ? null : targetSeason.getSeasonDbId();
@@ -877,9 +880,9 @@ public class ExperimentProcessor implements Processor {
         try {
             season = this.brAPISeasonDAO.getSeasonById (seasonDbId, programId);
         } catch (ApiException e) {
-            log.error(e.getResponseBody(), e);;
+            log.error(e.getResponseBody(), e);
         }
-        Integer yearInt = (season == null) ? null : season.getYear();;
+        Integer yearInt = (season == null) ? null : season.getYear();
         String yearStr = (yearInt==null) ? "" : yearInt.toString();
         return yearStr;
     }

@@ -107,8 +107,8 @@ public class ExperimentObservation implements BrAPIImport {
     private String treatmentFactors;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="ObsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
-    private String ObsUnitID;
+    @ImportFieldMetadata(id="obsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
+    private String obsUnitID;
 
     public BrAPITrial constructBrAPITrial(Program program, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
@@ -224,7 +224,7 @@ public class ExperimentObservation implements BrAPIImport {
         // Block number
         if( getExpBlockNo() != null ) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName( BrAPIConstants.REPLICATE.getValue() );
+            repLvl.setLevelName( BrAPIConstants.BLOCK.getValue() );
             repLvl.setLevelCode(getExpBlockNo());
             levelRelationships.add(repLvl);
         }
@@ -253,6 +253,10 @@ public class ExperimentObservation implements BrAPIImport {
             BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
             treatment.setFactor(getTreatmentFactors());
             observationUnit.setTreatments(List.of(treatment));
+        }
+
+        if (getObsUnitID() != null) {
+            observationUnit.setObservationUnitDbId(getObsUnitID());
         }
 
         return observationUnit;

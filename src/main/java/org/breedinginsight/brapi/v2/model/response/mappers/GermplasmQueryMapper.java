@@ -17,10 +17,10 @@ import java.util.stream.Collectors;
 @Singleton
 public class GermplasmQueryMapper extends AbstractQueryMapper {
 
-    private String defaultSortField = "accessionNumber";
-    private SortOrder defaultSortOrder = SortOrder.ASC;
+    private final String defaultSortField = "accessionNumber";
+    private final SortOrder defaultSortOrder = SortOrder.ASC;
 
-    private Map<String, Function<BrAPIGermplasm, ?>> fields;
+    private final Map<String, Function<BrAPIGermplasm, ?>> fields;
 
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
@@ -31,6 +31,10 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString() :
                                 null),
                 Map.entry("seedSource", BrAPIGermplasm::getSeedSource),
+                Map.entry("pedigree", (germplasm) ->
+                        germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME) ?
+                                germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString() :
+                                null),
                 Map.entry("femaleParentGID", (germplasm) ->
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsString() :

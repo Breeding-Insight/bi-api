@@ -27,6 +27,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
@@ -41,9 +42,9 @@ import java.util.Map;
 public class ProcessorManager {
 
     private List<Processor> processors;
-    private Map<Integer, PendingImport> mappedBrAPIImport;
-    private ImportStatusService statusService;
-    private Map<String, ImportPreviewStatistics> statistics = new HashMap<>();
+    private final Map<Integer, PendingImport> mappedBrAPIImport;
+    private final ImportStatusService statusService;
+    private final Map<String, ImportPreviewStatistics> statistics = new HashMap<>();
 
     @Inject
     public ProcessorManager(ImportStatusService statusService) {
@@ -52,7 +53,7 @@ public class ProcessorManager {
         this.statusService = statusService;
     }
 
-    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Table data, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException {
+    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Table data, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException, MissingRequiredInfoException {
 
         this.processors = processors;
         statusService.setUpload(upload);
