@@ -22,11 +22,13 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
+import io.reactivex.functions.Function4;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
 import javax.inject.Singleton;
@@ -34,6 +36,9 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+
+import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 @Singleton
 @Slf4j
@@ -47,12 +52,24 @@ public class BrAPIDAOUtil {
     private int pageSize;
     @Property(name = "brapi.post-group-size")
     private int postGroupSize;
+    public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                               Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                               U searchBody
+    ) throws ApiException {
+        return searchInternal(searchMethod, searchGetMethod, null, searchBody);
+    }
 
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                    Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
-                                    U searchBody
+                                                                               Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                               U searchBody
     ) throws ApiException {
+        return searchInternal(searchMethod, null, searchGetMethod, searchBody);
+    }
 
+    private <T, U extends BrAPISearchRequestParametersPaging, V> List<V> searchInternal(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                                        Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod3,
+                                                                                        Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod4,
+                                                                                U searchBody) throws ApiException {
         try {
             List<V> listResult = new ArrayList<>();
             searchBody.pageSize(pageSize);
@@ -83,7 +100,9 @@ public class BrAPIDAOUtil {
                 while (!searchFinished) {
                     BrAPIAcceptedSearchResponse searchResult = response.getBody().getRight().get();
 
-                    ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse = searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
+                    ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse =
+                            searchGetMethod3 != null ? searchGetMethod3.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
+                                    searchGetMethod4.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
                     if (searchGetResponse.getBody().getLeft().isPresent()) {
                         searchFinished = true;
                         BrAPIResponse listResponse = (BrAPIResponse) searchGetResponse.getBody().getLeft().get();
@@ -92,11 +111,12 @@ public class BrAPIDAOUtil {
                         if(hasMorePages(listResponse)) {
                             currentPage++;
                             int totalPages = listResponse.getMetadata()
-                                                         .getPagination()
-                                                         .getTotalPages();
+                                    .getPagination()
+                                    .getTotalPages();
 
                             while (currentPage < totalPages) {
-                                searchGetResponse = searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
+                                searchGetResponse = searchGetMethod3 != null ? searchGetMethod3.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
+                                        searchGetMethod4.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
                                 if (searchGetResponse.getBody().getLeft().isPresent()) {
                                     listResult.addAll(getListResult(searchGetResponse));
                                 }

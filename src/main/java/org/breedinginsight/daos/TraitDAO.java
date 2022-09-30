@@ -28,13 +28,13 @@ public interface TraitDAO extends DAO<TraitRecord, TraitEntity, UUID> {
 
     // could be more efficient to do a single get instead of search in saved search case but less code this way
     // and search stuff is working in breedbase
-    List<BrAPIObservation> getObservationsForTrait(UUID traitId);
+    List<BrAPIObservation> getObservationsForTrait(UUID traitId, UUID programId);
 
-    List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds);
+    List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds, UUID programId);
 
-    List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, List<UUID> traitIds);
+    List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, UUID programId, List<UUID> traitIds);
 
-    List<BrAPIObservationVariable> searchVariables(List<String> variableIds);
+    List<BrAPIObservationVariable> searchVariables(List<String> variableIds, UUID programId);
 
     Optional<Trait> getTrait(UUID programId, UUID traitId);
 
