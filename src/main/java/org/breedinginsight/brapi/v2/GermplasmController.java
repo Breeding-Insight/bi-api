@@ -10,8 +10,15 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.client.v2.modules.germplasm.GermplasmApi;
+import org.brapi.v2.model.BrAPIIndexPagination;
+import org.brapi.v2.model.BrAPIMetadata;
+import org.brapi.v2.model.BrAPIStatus;
+import org.brapi.v2.model.germ.*;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmPedigreeResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmProgenyResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -21,10 +28,12 @@ import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
@@ -32,7 +41,8 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -43,11 +53,16 @@ public class GermplasmController {
 
     private final BrAPIGermplasmService germplasmService;
     private final GermplasmQueryMapper germplasmQueryMapper;
+    private final ProgramDAO programDAO;
+    private final BrAPIGermplasmDAO germplasmDAO;
+
 
     @Inject
-    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper) {
+    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
+        this.programDAO = programDAO;
+        this.germplasmDAO = germplasmDAO;
     }
 
     @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
@@ -125,4 +140,152 @@ public class GermplasmController {
             return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
         }
     }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/pedigree{?notation}{?includeSiblings}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<BrAPIGermplasmPedigreeResponse> getGermplasmPedigreeInfo(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("germplasmId") String germplasmId,
+            @QueryValue(defaultValue = "") String notation,
+            @QueryValue(defaultValue = "false") Boolean includeSiblings)
+    {
+        try {
+            log.debug("fetching pedigree for germ id:" +  germplasmId +" for program: " + programId);
+            BrAPIPedigreeNode returnNode;
+            BrAPIGermplasmPedigreeResponse response;
+            BrAPIMetadata metadata;
+            if (germplasmId.endsWith("-Unknown")) {
+                //Unknown germplasm node
+                returnNode = new BrAPIPedigreeNode();
+                returnNode.setGermplasmDbId(germplasmId);
+                returnNode.setGermplasmName("Unknown");
+
+                BrAPIPedigreeNodeParents emptyParents = new BrAPIPedigreeNodeParents();
+                returnNode.addParentsItem(emptyParents);
+
+                returnNode.setSiblings(new ArrayList<>());
+                returnNode.setPedigree("/");
+                metadata = new BrAPIMetadata();
+                BrAPIStatus status = new BrAPIStatus();
+                status.setMessage("Complete");
+                status.setMessageType(BrAPIStatus.MessageTypeEnum.INFO);
+                BrAPIIndexPagination pagination = new BrAPIIndexPagination();
+                pagination.setTotalPages(1);
+                pagination.setTotalCount(1);
+                pagination.setPageSize(1);
+                pagination.setCurrentPage(0);
+                metadata.setStatus(Collections.singletonList(status));
+                metadata.setPagination(pagination);
+                response = new BrAPIGermplasmPedigreeResponse();
+            } else {
+                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId);
+                //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
+                GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+                ApiResponse<BrAPIGermplasmPedigreeResponse> pedigreeResponse = api.germplasmGermplasmDbIdPedigreeGet(germplasmId, notation, includeSiblings);
+                returnNode = pedigreeResponse.getBody().getResult();
+                metadata = pedigreeResponse.getBody().getMetadata();
+                response = pedigreeResponse.getBody();
+
+                //Add nodes for unknown parents if applicable
+                if (germplasm.getAdditionalInfo().has("femaleParentUnknown") && germplasm.getAdditionalInfo().get("femaleParentUnknown").getAsBoolean()) {
+                    BrAPIPedigreeNodeParents unknownFemale = new BrAPIPedigreeNodeParents();
+                    unknownFemale.setGermplasmDbId(germplasm.getGermplasmDbId()+"-F-Unknown");
+                    unknownFemale.setGermplasmName("Unknown");
+                    unknownFemale.setParentType(BrAPIParentType.FEMALE);
+                    returnNode.addParentsItem(unknownFemale);
+                }
+                if (germplasm.getAdditionalInfo().has("maleParentUnknown") && germplasm.getAdditionalInfo().get("maleParentUnknown").getAsBoolean()) {
+                    BrAPIPedigreeNodeParents unknownMale = new BrAPIPedigreeNodeParents();
+                    unknownMale.setGermplasmDbId(germplasm.getGermplasmDbId()+"-M-Unknown");
+                    unknownMale.setGermplasmName("Unknown");
+                    unknownMale.setParentType(BrAPIParentType.MALE);
+                    returnNode.addParentsItem(unknownMale);
+                }
+
+                //If no parents, need to add empty parents for display to work
+                if (returnNode.getParents().isEmpty()) {
+                    BrAPIPedigreeNodeParents emptyParents = new BrAPIPedigreeNodeParents();
+                    returnNode.addParentsItem(emptyParents);
+                }
+            }
+            response.setResult(returnNode);
+            response.setMetadata(metadata);
+            return HttpResponse.ok(response);
+        } catch (InternalServerException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Pedigree node not found");
+        } catch (ApiException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        }
+    }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/progeny")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<BrAPIGermplasmProgenyResponse> getGermplasmProgenyInfo(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("germplasmId") String germplasmId) {
+        try {
+            log.debug("fetching progeny for germ id:" +  germplasmId +" for program: " + programId);
+            BrAPIProgenyNode returnNode;
+            BrAPIGermplasmProgenyResponse response;
+            BrAPIMetadata metadata;
+            if (germplasmId.endsWith("-Unknown")) {
+                //Unknown germplasm node, only has one child
+                //We know progeny and parent type based on germplasmId
+                returnNode = new BrAPIProgenyNode();
+                returnNode.setGermplasmDbId(germplasmId);
+                returnNode.setGermplasmName("Unknown [-0]");
+                ArrayList<BrAPIProgenyNodeProgeny> progeny = new ArrayList<>();
+                BrAPIProgenyNodeProgeny singleProgeny = new BrAPIProgenyNodeProgeny();
+                singleProgeny.setGermplasmDbId(germplasmId.split("-")[0]);
+                singleProgeny.setGermplasmName("Name"); //does not seem necessary, preferable to avoid longer id string/making more endpoint calls
+                if (germplasmId.endsWith("F-Unknown")) {
+                    singleProgeny.setParentType(BrAPIParentType.FEMALE);
+                } else {
+                    singleProgeny.setParentType(BrAPIParentType.MALE);
+                }
+                returnNode.setProgeny(Collections.singletonList(singleProgeny));
+
+                metadata = new BrAPIMetadata();
+                BrAPIStatus status = new BrAPIStatus();
+                status.setMessage("Complete");
+                status.setMessageType(BrAPIStatus.MessageTypeEnum.INFO);
+                BrAPIIndexPagination pagination = new BrAPIIndexPagination();
+                pagination.setTotalPages(1);
+                pagination.setTotalCount(1);
+                pagination.setPageSize(1);
+                pagination.setCurrentPage(0);
+                metadata.setStatus(Collections.singletonList(status));
+                metadata.setPagination(pagination);
+                response = new BrAPIGermplasmProgenyResponse();
+                response.setResult(returnNode);
+                response.setMetadata(metadata);
+                return HttpResponse.ok(response);
+            } else {
+                //Forward the progeny call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
+                GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+                ApiResponse<BrAPIGermplasmProgenyResponse> progenyResponse = api.germplasmGermplasmDbIdProgenyGet(germplasmId);
+
+                //If no progeny, need to add empty progeny for display to work
+                if (progenyResponse.getBody().getResult().getProgeny().isEmpty()) {
+                    BrAPIProgenyNodeProgeny emptyProgeny = new BrAPIProgenyNodeProgeny();
+                    progenyResponse.getBody().getResult().addProgenyItem(emptyProgeny);
+                }
+                return HttpResponse.ok(progenyResponse.getBody());
+            }
+        } catch (InternalServerException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        } catch (ApiException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        }
+    }
+
 }

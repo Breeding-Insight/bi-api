@@ -70,6 +70,14 @@ public class BrAPIGermplasmService {
         }
     }
 
+    public BrAPIGermplasm getGermplasmByDBID(UUID programId, String germplasmId) throws DoesNotExistException {
+        try {
+            return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
+        } catch (ApiException e) {
+            throw new InternalServerException(e.getMessage(), e);
+        }
+    }
+
     public List<BrAPIListSummary> getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
 
         if (!programService.exists(programId)) {
