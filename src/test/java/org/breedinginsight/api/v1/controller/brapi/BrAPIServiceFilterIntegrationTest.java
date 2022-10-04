@@ -262,21 +262,14 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     public void getTraitSingleEditableUsesFilter() {
 
         String phenoUrl = "http://getTraitSingle" + UUID.randomUUID().toString() + "/brapi/v2";
-        ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(null, phenoUrl, null);
+        ProgramBrAPIEndpoints programBrAPIEndpoints = getBrAPIEndpoints(phenoUrl, phenoUrl, phenoUrl);
 
         reset(programService);
         when(programService.getBrapiEndpoints(any(UUID.class))).thenReturn(programBrAPIEndpoints);
         when(programService.exists(any(UUID.class))).thenReturn(true);
 
-        validProgram.setBrapiUrl(phenoUrl);
-        programDAO.update(validProgram);
-
-        when(brAPIClientProvider.getClient(BrAPIClientType.PHENO)).thenAnswer((Answer<BrAPIClient>) invocation -> {
-            // Create a spy on our real brapi client to see what url was ultimately used
-            BrAPIClient realBrAPIClient = (BrAPIClient) invocation.callRealMethod();
-            brAPIClient.setBasePath(realBrAPIClient.getBasePath());
-            return brAPIClient;
-        });
+        brAPIClient.setBasePath(phenoUrl);
+        doReturn(brAPIClient).when(programDAO).getCoreClient(any(UUID.class));
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits/" + validVariable.getId()+"/editable")
