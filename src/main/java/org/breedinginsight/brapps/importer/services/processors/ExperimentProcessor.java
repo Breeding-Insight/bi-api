@@ -474,7 +474,6 @@ public class ExperimentProcessor implements Processor {
 
         try {
             List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrial(newTrials, program.getId(), upload));
-
             // set the DbId to the for each newly created trial
             for ( BrAPITrial createdTrial: createdTrials ) {
                 String createdTrialName = createdTrial.getTrialName();
@@ -484,7 +483,16 @@ public class ExperimentProcessor implements Processor {
                 String dbid = createdTrial.getTrialDbId();
                 listedTrial.setTrialDbId( dbid );
             }
-            brAPILocationDAO.createBrAPILocation(newLocations, program.getId(), upload);
+
+            List<BrAPILocation> createdLocations = new ArrayList<>(brAPILocationDAO.createBrAPILocation(newLocations, program.getId(), upload));
+            // set the DbId to the for each newly created trial
+            for ( BrAPILocation createdLocation : createdLocations){
+                String createdLocationName = createdLocation.getLocationName();
+                PendingImportObject<BrAPILocation> pi = this.locationByName.get(createdLocationName);
+                BrAPILocation listedLocation = pi.getBrAPIObject();
+                String dbid = createdLocation.getLocationDbId();
+                listedLocation.setLocationDbId(dbid);
+            }
 
             updateStudyDependencyValues(mappedBrAPIImport,program.getKey());
             List<BrAPIStudy> createdStudies = new ArrayList<>();
