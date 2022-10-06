@@ -206,7 +206,7 @@ public class GermplasmProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                                                        Map<Integer, PendingImport> mappedBrAPIImport, Table table,
+                                                        Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                         Program program, User user, boolean commit) throws ValidatorException {
 
         // Method for generating accession number

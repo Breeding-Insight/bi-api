@@ -45,13 +45,13 @@ public interface Processor {
      * Return stats on number of new & existing objects
      * @param importRows
      * @param mappedBrAPIImport
-     * @param table
+     * @param data
      * @param program
      * @return
      * @throws ValidatorException
      */
     Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                                                 Map<Integer, PendingImport> mappedBrAPIImport, Table table,
+                                                 Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                  Program program, User user, boolean commit)
             throws ValidatorException, MissingRequiredInfoException;
 
