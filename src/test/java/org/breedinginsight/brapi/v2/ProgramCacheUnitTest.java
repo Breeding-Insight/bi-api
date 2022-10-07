@@ -139,7 +139,7 @@ public class ProgramCacheUnitTest {
         List<BrAPIGermplasm> newList = new ArrayList<>();
         newList.add(new BrAPIGermplasm());
         mockBrAPI.put(programId, new ArrayList<>(newList));
-        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime), List.of(programId));
+        ProgramCache<String, BrAPIGermplasm> cache = new ProgramCache<>((UUID id) -> mockFetch(id, waitTime*2), List.of(programId));
         Callable<List<BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
         // Get waits for initial fetch
@@ -152,7 +152,7 @@ public class ProgramCacheUnitTest {
         assertEquals(1, cachedGermplasm.size(), "Get method seemed to have waited for refresh method");
 
         // Now wait for the fetch after the post to finish
-        Thread.sleep(waitTime*2);
+        Thread.sleep(waitTime*3);
         cachedGermplasm = cache.get(programId);
         assertEquals(2, cachedGermplasm.size(), "Get method did not get updated germplasm");
     }

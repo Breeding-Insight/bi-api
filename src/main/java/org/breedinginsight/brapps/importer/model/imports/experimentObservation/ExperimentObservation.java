@@ -177,8 +177,8 @@ public class ExperimentObservation implements BrAPIImport {
         String envSequenceValue = null;
         if( commit ){
             envSequenceValue = envNextVal.get().toString();
+            study.putAdditionalInfoItem( BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envSequenceValue);
         }
-        study.putAdditionalInfoItem( BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envSequenceValue);
         return study;
     }
 
