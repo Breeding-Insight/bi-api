@@ -26,7 +26,6 @@ public class BrAPIDAOUtilUnitTest {
     private BrAPIDAOUtil brAPIDAOUtil;
     private List<BrAPIGermplasm> germplasm;
     private Program testProgram;
-    private HashMap<String, BrAPIGermplasm> germplasmMap;
     private List<BrAPIGermplasm>  paginatedGermplasm;
     private BrAPIGermplasmSearchRequest germplasmSearch;
 
@@ -35,7 +34,6 @@ public class BrAPIDAOUtilUnitTest {
         int pageStart = page * pageSize;
         int pageEnd = pageStart + pageSize;
         Integer totalPages = (int) Math.ceil(germplasm.size() / pageSize);
-        //(germplasm.size() - germplasm.size() % pageSize) / pageSize;
         if (!(pageEnd  > germplasm.size())) {
             for (int i = pageStart; i < pageEnd; i++) {
                 paginatedGermplasm.add(germplasm.get(i));
@@ -92,7 +90,6 @@ public class BrAPIDAOUtilUnitTest {
         shortNames.add("J");
 
         germplasm = new ArrayList();
-        germplasmMap = new HashMap<>();
 
         for (int i = 0; i < shortNames.size(); i++) {
             String entry = String.valueOf(i + 2);
@@ -117,7 +114,6 @@ public class BrAPIDAOUtilUnitTest {
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
             germplasm.add(testGermplasm);
-            germplasmMap.put(testReference.getReferenceID(), testGermplasm);
         }
 
         // Set query params
