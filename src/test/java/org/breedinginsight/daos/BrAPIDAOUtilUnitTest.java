@@ -4,9 +4,7 @@ import com.google.gson.JsonObject;
 import lombok.SneakyThrows;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
-import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
-import org.brapi.v2.model.BrAPIAcceptedSearchResponseResult;
-import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.*;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
@@ -32,10 +30,12 @@ public class BrAPIDAOUtilUnitTest {
     private List<BrAPIGermplasm>  paginatedGermplasm;
     private BrAPIGermplasmSearchRequest germplasmSearch;
 
-    public void fetchPaginatedGermplasm(int page, int pageSize) {
+    public Integer fetchPaginatedGermplasm(int page, int pageSize) {
         paginatedGermplasm = new ArrayList<>();
         int pageStart = page * pageSize;
         int pageEnd = pageStart + pageSize;
+        Integer totalPages = (int) Math.ceil(germplasm.size() / pageSize);
+        //(germplasm.size() - germplasm.size() % pageSize) / pageSize;
         if (!(pageEnd  > germplasm.size())) {
             for (int i = pageStart; i < pageEnd; i++) {
                 paginatedGermplasm.add(germplasm.get(i));
@@ -43,12 +43,15 @@ public class BrAPIDAOUtilUnitTest {
         } else {
             paginatedGermplasm = germplasm;
         }
+        return totalPages;
     }
 
     public ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>> getStubbedGermplasm(int page, int pageSize) {
-        fetchPaginatedGermplasm(page, pageSize);
+        Integer totalPages = fetchPaginatedGermplasm(page, pageSize);
         BrAPIGermplasmListResponse searchPostResponse = new BrAPIGermplasmListResponse();
         searchPostResponse.setResult(new BrAPIGermplasmListResponseResult().data(paginatedGermplasm));
+        searchPostResponse.setMetadata(new BrAPIMetadata().pagination(
+                (BrAPIIndexPagination) new BrAPIIndexPagination().currentPage(page).pageSize(pageSize).totalPages(totalPages)));
 
         Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>> searchPostResponsePair =
                 Pair.of(Optional.of(searchPostResponse), Optional.empty());
@@ -140,8 +143,11 @@ public class BrAPIDAOUtilUnitTest {
         );
 
         //Check if all requested germplasm are returned
-        for (BrAPIGermplasm germplasm : searchResult) {
-            assertTrue(germplasmMap.containsKey(germplasm.getExternalReferences().get(0).getReferenceID()));
+        for (BrAPIGermplasm accession : germplasm) {
+            assert searchResult.stream().anyMatch(
+                    result -> result.getExternalReferences().get(0).getReferenceID().equals(
+                            accession.getExternalReferences().get(0).getReferenceID()
+                    ));
         }
     }
 
@@ -155,7 +161,7 @@ public class BrAPIDAOUtilUnitTest {
 
                     Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>> searchPostResponsePair =
                             Pair.of(Optional.empty(), Optional.of(searchPostResponse));
-                    return new ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>>(200, new HashMap<>(), searchPostResponsePair);
+                    return new ApiResponse<Pair<Optional<BrAPIGermplasmListResponse>, Optional<BrAPIAcceptedSearchResponse>>>(202, new HashMap<>(), searchPostResponsePair);
 
                 },
                 (searchId, page, pageSize) -> {
@@ -165,8 +171,11 @@ public class BrAPIDAOUtilUnitTest {
         );
 
         //Check if all germplasm are returned
-        for (BrAPIGermplasm germplasm : searchResult) {
-            assertTrue(germplasmMap.containsKey(germplasm.getExternalReferences().get(0).getReferenceID()));
+        for (BrAPIGermplasm accession : germplasm) {
+            assert searchResult.stream().anyMatch(
+                    result -> result.getExternalReferences().get(0).getReferenceID().equals(
+                            accession.getExternalReferences().get(0).getReferenceID()
+                    ));
         }
     }
 }
