@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-alter table program add column  IF NOT EXISTS obs_unit_sequence text;
+alter table program add column obs_unit_sequence text;
 
 do
 $$
@@ -27,7 +27,7 @@ loop
     if f.key is NULL then
        RAISE EXCEPTION 'Programs must have a key associated with them';
     end if;
-    execute format('create sequence  IF NOT EXISTS %s_obs_unit_sequence',f.key);
+    execute format('create sequence %s_obs_unit_sequence',f.key);
     update program set obs_unit_sequence = format('%s_obs_unit_sequence', f.key) where id = f.id;
 end loop;
 end;
