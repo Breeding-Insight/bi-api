@@ -162,7 +162,6 @@ public class BrAPIGermplasmDAO {
 
         // Update pedigree string
         for (BrAPIGermplasm germplasm: programGermplasm) {
-            if (germplasm.getPedigree() != null) {
                 JsonObject additionalInfo = germplasm.getAdditionalInfo();
                 if(additionalInfo == null) {
                     additionalInfo = new JsonObject();
@@ -172,7 +171,10 @@ public class BrAPIGermplasmDAO {
                 String newPedigreeString = "";
                 String namePedigreeString = "";
                 String uuidPedigreeString = "";
-                List<String> parents = Arrays.asList(germplasm.getPedigree().split("/"));
+                List<String> parents = Arrays.asList("","");
+                if (germplasm.getPedigree() != null) {
+                    parents = Arrays.asList(germplasm.getPedigree().split("/"));
+                }
                 if (parents.size() >= 1) {
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
                         String femaleParentAccessionNumber = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
@@ -195,19 +197,18 @@ public class BrAPIGermplasmDAO {
                         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParentAccessionNumber);
                     }
                 }
-                //Add Unknown germplasm for display
-                if (germplasm.getAdditionalInfo().has("femaleParentUnknown") && germplasm.getAdditionalInfo().get("femaleParentUnknown").getAsBoolean()) {
-                    namePedigreeString = "Unknown";
-                }
-                if (germplasm.getAdditionalInfo().has("maleParentUnknown") && germplasm.getAdditionalInfo().get("maleParentUnknown").getAsBoolean()) {
-                    namePedigreeString += "/Unknown";
-                }
+                    //Add Unknown germplasm for display
+                    if (additionalInfo.has("femaleParentUnknown") && additionalInfo.get("femaleParentUnknown").getAsBoolean()) {
+                        namePedigreeString = "Unknown";
+                    }
+                    if (additionalInfo.has("maleParentUnknown") && additionalInfo.get("maleParentUnknown").getAsBoolean()) {
+                        namePedigreeString += "/Unknown";
+                    }
                 //For use in individual germplasm display
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_UUID, uuidPedigreeString);
 
                 germplasm.setPedigree(newPedigreeString);
-            }
 
             BrAPIExternalReference extRef = germplasm.getExternalReferences().stream().filter(reference -> referenceSource.equals(reference.getReferenceSource())).findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
             String germplasmId = extRef.getReferenceID();
