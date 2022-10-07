@@ -68,6 +68,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPERIMENT_TEMPLATE_NAME;
+
 @Slf4j
 @Prototype
 public class ExperimentProcessor implements Processor {
@@ -170,7 +172,7 @@ public class ExperimentProcessor implements Processor {
         ValidationErrors validationErrors = new ValidationErrors();
 
         // Get dynamic phenotype columns for processing
-        List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, "ExperimentsTemplateMap");
+        List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, EXPERIMENT_TEMPLATE_NAME);
         List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
 
         // Lookup all traits in system for program, maybe eventually add a variable search in ontology service
