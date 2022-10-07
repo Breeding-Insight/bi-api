@@ -197,13 +197,13 @@ public class BrAPIGermplasmDAO {
                         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParentAccessionNumber);
                     }
                 }
-                    //Add Unknown germplasm for display
-                    if (additionalInfo.has("femaleParentUnknown") && additionalInfo.get("femaleParentUnknown").getAsBoolean()) {
-                        namePedigreeString = "Unknown";
-                    }
-                    if (additionalInfo.has("maleParentUnknown") && additionalInfo.get("maleParentUnknown").getAsBoolean()) {
-                        namePedigreeString += "/Unknown";
-                    }
+                //Add Unknown germplasm for display
+                if (additionalInfo.has("femaleParentUnknown") && additionalInfo.get("femaleParentUnknown").getAsBoolean()) {
+                    namePedigreeString = "Unknown";
+                }
+                if (additionalInfo.has("maleParentUnknown") && additionalInfo.get("maleParentUnknown").getAsBoolean()) {
+                    namePedigreeString += "/Unknown";
+                }
                 //For use in individual germplasm display
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_UUID, uuidPedigreeString);
