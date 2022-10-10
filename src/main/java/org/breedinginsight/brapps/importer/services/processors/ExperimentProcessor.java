@@ -218,7 +218,7 @@ public class ExperimentProcessor implements Processor {
         }
 
         // add "New" pending data to the BrapiData objects
-        getNewBrapiData(importRows, List<Column<?>> phenotypeCols, program, commit);
+        getNewBrapiData(importRows, phenotypeCols, program, commit);
 
         // For each import row
         for (int i = 0; i < importRows.size(); i++) {
@@ -232,7 +232,7 @@ public class ExperimentProcessor implements Processor {
 
             // loop over phenotype column observation data for current row
             for (Column<?> column : phenotypeCols) {
-                mappedImportRow.setObservation();
+                mappedImportRow.setObservation(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
             }
 
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
@@ -254,12 +254,17 @@ public class ExperimentProcessor implements Processor {
 
         validationErrors = validateFields(importRows, validationErrors);
 
-        if (validationErrors.hasErrors() ){
+        if (validationErrors.hasErrors()){
             throw new ValidatorException(validationErrors);
         }
 
         // Construct our response object
         return getStatisticsMap(importRows);
+    }
+
+    private String getVariableNameFromColumn(Column<?> column) {
+        // TOO: timestamp stripping?
+        return column.name();
     }
 
     private void getNewBrapiData(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Program program, boolean commit) {
@@ -299,7 +304,7 @@ public class ExperimentProcessor implements Processor {
             this.observationUnitByNameNoScope.put(key, obsUnitPIO);
 
             for (Column<?> column : phenotypeCols) {
-                PendingImportObject<BrAPIObservation> obsPIO =
+                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(program, commit, obsUnitNextVal, importRow);
             }
         }
     }
@@ -309,9 +314,9 @@ public class ExperimentProcessor implements Processor {
         return key;
     }
 
-    private static String getImportObservationHash(ExperimentObservation importRow) {
+    private static String getImportObservationHash(ExperimentObservation importRow, String variableName) {
         // TODO: handle timestamps once we support them
-        return getObservationHash(createObservationUnitKey(importRow), ,importRow.getEnv());
+        return getObservationHash(createObservationUnitKey(importRow), variableName, importRow.getEnv());
     }
 
     //TODO: Add timestamp parameter once we support them
@@ -491,10 +496,10 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
-    private PendingImportObject<BrAPIObservation> createObservationPIO(Program program, boolean commit, Supplier<BigInteger> obsUnitNextVal, ExperimentObservation importRow) {
+    private PendingImportObject<BrAPIObservation> createObservationPIO(Program program, boolean commit, Supplier<BigInteger> obsUnitNextVal, ExperimentObservation importRow, String variableName) {
         PendingImportObject<BrAPIObservation> pio = null;
-        if ( this.observationByHash.containsKey( createObservationUnitKey( importRow ) ) ) {
-            pio = observationUnitByNameNoScope.get( createObservationUnitKey( importRow ) ) ;
+        if (this.observationByHash.containsKey(getImportObservationHash(importRow, variableName))) {
+            pio = observationByHash.get(getImportObservationHash(importRow, variableName));
         }
         else {
             String germplasmName = "";
@@ -507,6 +512,8 @@ public class ExperimentProcessor implements Processor {
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
             BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, obsUnitNextVal, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, studyID, id);
+
+
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit);
         }
         return pio;
