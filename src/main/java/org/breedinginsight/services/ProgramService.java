@@ -61,6 +61,8 @@ public class ProgramService {
     private static final String GERMPLASM_SEQUENCE_TEMPLATE = "%s_germplasm_sequence";
     private static final String OBS_UNIT_SEQUENCE_TEMPLATE = "%s_obs_unit_sequence";
     private static final String EXP_SEQUENCE_TEMPLATE = "%s_exp_sequence";
+    private static final String ENV_SEQUENCE_TEMPLATE = "%s_env_sequence";
+
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
@@ -171,6 +173,10 @@ public class ProgramService {
             String obs_unit_sequence_name = String.format(OBS_UNIT_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
             dsl.createSequence(obs_unit_sequence_name).execute();
 
+            // Create env sequence
+            String env_sequence_name = String.format(ENV_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(env_sequence_name).execute();
+
             // Parse and create the program object
             ProgramEntity programEntity = ProgramEntity.builder()
                     .name(programRequest.getName())
@@ -182,7 +188,7 @@ public class ProgramService {
                     .key(programRequest.getKey())
                     .germplasmSequence(germplasm_sequence_name)
                     .expSequence( exp_sequence_name )
-                    .obsUnitSequence( obs_unit_sequence_name )
+                    .envSequence( env_sequence_name )
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();
