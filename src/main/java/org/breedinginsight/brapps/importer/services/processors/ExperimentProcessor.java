@@ -763,6 +763,7 @@ public class ExperimentProcessor implements Processor {
             }
 
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             log.error(e.getResponseBody(), e);
         }
 

@@ -58,9 +58,6 @@ public class DSLTransactionResultIntegrationTest extends DatabaseTest {
 
     private User actingUser;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     void setup() throws Exception {
         Optional<User> userOptional = userService.getByOrcid(TestTokenValidator.TEST_USER_ORCID);
