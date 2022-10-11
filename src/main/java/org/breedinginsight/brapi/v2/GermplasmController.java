@@ -103,19 +103,19 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version/programs/{programId}/germplasm/lists/{listDbId}/records{?queryParams*}")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/records{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasmListRecords(
         @PathVariable("programId") UUID programId,
-        @PathVariable("listDbId") String listId)
+        @PathVariable("listDbId") String listId,
         @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
         try {
-            List<Germplasm> dummyData = new ArrayList<>();
-            dummyData.add(new Germplasm());
+            List<BrAPIGermplasm> dummyData = new ArrayList<>();
+            dummyData.add(new BrAPIGermplasm());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
-            return ResponseUtils.getQueryResponse(dummyData, germplasmQueryMapper, queryParams, searchRequest );
-        } catch (ApiException e) {
+            return ResponseUtils.getBrapiQueryResponse(dummyData, germplasmQueryMapper, queryParams, searchRequest);
+        } catch (Exception e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm list records");
         }
