@@ -151,6 +151,14 @@ public class BrAPIGermplasmService {
         return processedData;
     }
 
+    public List<BrAPIGermplasm> getGermplasmByList(UUID programId, String listId) throws ApiException {
+        // get list germplasm names
+        BrAPIListDetails listData = brAPIListDAO.getListById(listId, programId).getResult();
+        List<String> germplasmNames = listData.getData();
+
+        // get list BrAPI germplasm variables
+        return germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+    }
     public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
