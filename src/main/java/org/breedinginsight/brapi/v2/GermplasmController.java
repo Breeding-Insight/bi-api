@@ -108,11 +108,13 @@ public class GermplasmController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasmListRecords(
         @PathVariable("programId") UUID programId,
-        @PathVariable("listDbId") String listId){
+        @PathVariable("listDbId") String listId)
+        @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
         try {
             List<Germplasm> dummyData = new ArrayList<>();
             dummyData.add(new Germplasm());
-            return ResponseUtils.getQueryResponse(dummyData, );
+            SearchRequest searchRequest = queryParams.constructSearchRequest();
+            return ResponseUtils.getQueryResponse(dummyData, germplasmQueryMapper, queryParams, searchRequest );
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm list records");
