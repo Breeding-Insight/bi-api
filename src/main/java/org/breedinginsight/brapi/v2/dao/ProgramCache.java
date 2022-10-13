@@ -129,9 +129,17 @@ public class ProgramCache<K, R> {
         }
     }
 
-    public List<R> post(UUID programId, Callable<List<R>> postMethod) throws Exception {
-        List<R> response = postMethod.call();
+    public List<R> post(UUID programId, Callable<Map<K, R>> postMethod) throws Exception {
+        Map<K, R> response = postMethod.call();
+
+        Map<K, R> map = cache.getIfPresent(programId);
+        if(map != null) {
+            map.putAll(response);
+        } else {
+            cache.put(programId, response);
+        }
+
         updateCache(programId);
-        return response;
+        return new ArrayList<>(response.values());
     }
 }
