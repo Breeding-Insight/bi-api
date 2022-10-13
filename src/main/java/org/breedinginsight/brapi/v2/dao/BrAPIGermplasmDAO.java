@@ -137,7 +137,7 @@ public class BrAPIGermplasmDAO {
     private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm, String programKey) {
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
-        log.debug("processing germ for display: " + programGermplasm);
+        log.trace("processing germ for display: " + programGermplasm);
         Map<String, BrAPIGermplasm> programGermplasmByFullName = new HashMap<>();
         for (BrAPIGermplasm germplasm: programGermplasm) {
             programGermplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
