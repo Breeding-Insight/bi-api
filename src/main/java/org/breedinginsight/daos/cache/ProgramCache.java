@@ -38,8 +38,6 @@ public class ProgramCache<R> {
     private final RedissonClient connection;
     private final Gson gson;
     private final FetchFunction<UUID, Map<String, R>> fetchMethod;
-    private final Map<String, RSemaphore> programSemaphore = new HashMap<>();
-    private final Map<String, RSemaphore> programQueueSemaphore = new HashMap<>();
     private Class<R> type;
     private final Executor executor = Executors.newCachedThreadPool();
 
@@ -58,17 +56,13 @@ public class ProgramCache<R> {
 
     public void populate(@NotNull UUID key) {
         String cacheKey = generateCacheKey(key);
-        if (!programSemaphore.containsKey(cacheKey)) {
-            RSemaphore semaphore = connection.getSemaphore(cacheKey+":semaphore");
-            semaphore.trySetPermits(1);
-            programSemaphore.put(cacheKey, semaphore);
+        RSemaphore semaphore = connection.getSemaphore(cacheKey+":semaphore");
+        semaphore.trySetPermits(1);
 
-            RSemaphore queueSemaphore = connection.getSemaphore(cacheKey+":semaphore:queue");
-            queueSemaphore.trySetPermits(1);
-            programQueueSemaphore.put(cacheKey, queueSemaphore);
-        }
+        RSemaphore queueSemaphore = connection.getSemaphore(cacheKey+":semaphore:queue");
+        queueSemaphore.trySetPermits(1);
 
-        boolean acquired = programSemaphore.get(cacheKey).tryAcquire();
+        boolean acquired = semaphore.tryAcquire();
 
         boolean refresh = true;
         if(!acquired) {
@@ -77,16 +71,19 @@ public class ProgramCache<R> {
                 If there is already a thread in line, let this thread finish as the
                 next refresh will pick up data persisted by this thread
              */
-            if(programQueueSemaphore.get(cacheKey).tryAcquire()) {
+            if(queueSemaphore.tryAcquire()) {
+                log.debug("Attempting to refresh");
                 try {
                     // block until we get the green light to refresh the cache
-                    programSemaphore.get(cacheKey).acquire();
+                    semaphore.acquire();
                     // and let go of our hold on the refresh queue
-                    programQueueSemaphore.get(cacheKey).release();
                     log.debug("repopulating cache for " + cacheKey);
                 } catch (InterruptedException e) {
                     log.error("Error acquiring lock to refresh "+cacheKey, e);
                     throw new RuntimeException(e);
+                } finally {
+                    log.debug("Released queue semaphore: "+cacheKey);
+                    queueSemaphore.release();
                 }
             } else {
                 log.debug("A refresh is queued up for key: "+cacheKey+", leaving");
@@ -120,8 +117,9 @@ public class ProgramCache<R> {
                     invalidate(key);
                     throw new InternalServerException(e.getMessage(), e);
                 } finally {
+                    log.debug("Releasing semaphore: " + cacheKey);
                     connection.getAtomicLong(cacheKey+":refreshing").set(0);
-                    programSemaphore.get(cacheKey).release();
+                    semaphore.release();
                 }
             });
         }
@@ -138,15 +136,22 @@ public class ProgramCache<R> {
     public Map<String, R> get(UUID key) throws ApiException {
         String cacheKey = generateCacheKey(key);
         log.debug("Getting for key: " + cacheKey);
-
-        try {
-            if (!connection.getBucket(cacheKey).isExists()) {
+        if (!connection.getBucket(cacheKey).isExists()) {
+            RSemaphore semaphore = connection.getSemaphore(cacheKey + ":semaphore");
+            try {
                 log.debug("cache miss, populating");
                 populate(key);
                 //block until any updates are done
-                programSemaphore.get(cacheKey).acquire();
-                programSemaphore.get(cacheKey).release();
+                semaphore.acquire();
+                log.debug("Cache loading done!!!!");
+            } catch(Exception e){
+                throw new ApiException(e);
+            } finally {
+                semaphore.release();
             }
+        }
+
+        try {
             return deserialize(connection.getMap(cacheKey));
         } catch (Exception e) {
             throw new ApiException(e);
