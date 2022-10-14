@@ -22,6 +22,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Singleton
+@Slf4j
 public class BrAPIDAOUtil {
 
     @Property(name = "brapi.search.wait-time")
@@ -53,12 +55,18 @@ public class BrAPIDAOUtil {
 
         try {
             List<V> listResult = new ArrayList<>();
-            searchBody.pageSize(pageSize);
+            //NOTE: Because of the way Breedbase implements BrAPI searches, the page size is initially set to an
+            //arbitrary, large value to ensure that in the event that a 202 response is returned, the searchDbId
+            //stored will refer to all records of the BrAPI variable.
+            searchBody.pageSize(10000000);
             ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response = searchMethod.apply(searchBody);
             if (response.getBody().getLeft().isPresent()) {
                 BrAPIResponse listResponse = (BrAPIResponse) response.getBody().getLeft().get();
                 listResult = getListResult(response);
 
+            /*  NOTE: may want to check for additional pages depending on whether BrAPI standard specifies how
+                pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
+                changed or updated
                 if(hasMorePages(listResponse)) {
                     int currentPage = listResponse.getMetadata().getPagination().getCurrentPage() + 1;
                     int totalPages = listResponse.getMetadata().getPagination().getTotalPages();
@@ -73,6 +81,7 @@ public class BrAPIDAOUtil {
                         currentPage++;
                     }
                 }
+            */
             } else {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;
@@ -115,6 +124,7 @@ public class BrAPIDAOUtil {
 
             return listResult;
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
         } catch (Exception e) {
             throw new InternalServerException(e.toString(), e);
@@ -176,6 +186,7 @@ public class BrAPIDAOUtil {
 
             return listResult;
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;
         } catch (Exception e) {
             throw new InternalServerException(e.toString(), e);

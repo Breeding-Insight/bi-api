@@ -35,7 +35,7 @@ import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.SpeciesService;
@@ -43,11 +43,11 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
-
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -91,9 +91,6 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
 
     private Program validProgram;
     private Program otherValidProgram;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     @SneakyThrows
@@ -255,10 +252,19 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         data = result.getAsJsonArray("data");
         assertEquals(2, data.size(), "Array size should be 2");
 
-        Iterator<Trait> itr = programTraits.iterator();
+        List<Trait> allTraits = programTraits.stream()
+                                      .sorted(Comparator.comparing(TraitEntity::getObservationVariableName))
+                                      .collect(Collectors.toList());
+        Iterator<Trait> itr = allTraits.iterator();
 
+        List<JsonObject> sortedTraitNames = new ArrayList<>();
         for (JsonElement element : data) {
-            JsonObject variable = element.getAsJsonObject();
+            sortedTraitNames.add(element.getAsJsonObject());
+        }
+        sortedTraitNames.sort(Comparator.comparing(o -> o.get("observationVariableName")
+                                                         .getAsString()));
+
+        for(JsonObject variable : sortedTraitNames) {
             checkTraits(itr.next(), variable);
         }
 
@@ -298,11 +304,18 @@ public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITes
         assertEquals(4, data.size(), "Array size should be 4");
 
         List<Trait> allTraits = Stream.concat(programTraits.stream(), otherProgramTraits.stream())
-                .collect(Collectors.toList());
+                                      .sorted(Comparator.comparing(TraitEntity::getObservationVariableName))
+                                      .collect(Collectors.toList());
         Iterator<Trait> itr = allTraits.iterator();
 
+        List<JsonObject> sortedTraitNames = new ArrayList<>();
         for (JsonElement element : data) {
-            JsonObject variable = element.getAsJsonObject();
+            sortedTraitNames.add(element.getAsJsonObject());
+        }
+        sortedTraitNames.sort(Comparator.comparing(o -> o.get("observationVariableName")
+                                                         .getAsString()));
+
+        for(JsonObject variable : sortedTraitNames) {
             checkTraits(itr.next(), variable);
         }
     }

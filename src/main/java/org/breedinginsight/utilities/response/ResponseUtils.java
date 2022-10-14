@@ -169,7 +169,7 @@ public class ResponseUtils {
         return data;
     }
 
-    private static List search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
+    private static List<?> search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
 
         List<FilterField> filterFields = new ArrayList<>();
         if (searchRequest.getFilters() != null) {

@@ -19,35 +19,35 @@
 -- name: InsertProgram
 insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
 select species.id, 'Test Program', 'test', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'system' limit 1
+join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: InsertProgramNotBrapi
 insert into program (species_id, name, abbreviation, documentation_url, objective, created_by, updated_by)
 select species.id, 'Test Program Not Brapi', 'testnotbrapi', 'localhost:8080', 'To test things', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'system' limit 1
+join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: InsertProgramObservationLevel
 insert into program_observation_level(program_id, name, created_by, updated_by)
 select program.id, 'Plant', bi_user.id, bi_user.id from program
-join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 1
+join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 1;
 
 -- name: InsertProgramOntology
 insert into program_ontology (program_id, created_by, updated_by)
 select program.id, bi_user.id, bi_user.id from program
-join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 1
+join bi_user on bi_user.name = 'system' and program.name = 'Test Program' limit 1;
 
 -- name: InsertMethod
 insert into method (program_ontology_id, created_by, updated_by)
 select program_ontology.id, bi_user.id, bi_user.id from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join bi_user on bi_user.name = 'system' limit 1
+join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: InsertScale
 insert into scale (program_ontology_id, scale_name, data_type, created_by, updated_by)
 select program_ontology.id, 'Test Scale', 'TEXT', bi_user.id, bi_user.id
 from program_ontology
 join program on program.id = program_ontology.program_id and program.name = 'Test Program'
-join bi_user on bi_user.name = 'system' limit 1
+join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: InsertTrait
 insert into trait (program_ontology_id, observation_variable_name, method_id, scale_id, program_observation_level_id, created_by, updated_by)
@@ -57,7 +57,7 @@ join program on program.id = program_ontology.program_id and program.name = 'Tes
 join method on method.program_ontology_id = program_ontology.id
 join scale on scale.program_ontology_id = program_ontology.id and scale.scale_name = 'Test Scale'
 join program_observation_level on program_ontology.program_id = program_observation_level.program_id and program_observation_level.name = 'Plant'
-join bi_user on bi_user.name = 'system' limit 1
+join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: DeleteTrait
 delete from trait;
@@ -67,17 +67,17 @@ delete from scale;
 -- name: InsertOtherProgram
 insert into program (species_id, name, created_by, updated_by)
 select species.id, 'Other Test Program', bi_user.id, bi_user.id from species
-join bi_user on bi_user.name = 'system' limit 1
+join bi_user on bi_user.name = 'system' limit 1;
 
 -- name: InsertOtherProgramObservationLevel
 insert into program_observation_level(program_id, name, created_by, updated_by)
 select program.id, 'Plant', bi_user.id, bi_user.id from program
-join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' limit 1
+join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' limit 1;
 
 -- name: InsertOtherProgramOntology
 insert into program_ontology (program_id, created_by, updated_by)
 select program.id, bi_user.id, bi_user.id from program
-join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' limit 1
+join bi_user on bi_user.name = 'system' and program.name = 'Other Test Program' limit 1;
 
 -- name: InsertManyTraits
 DO $$

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-alter table program add column exp_sequence text;
+alter table program add column  IF NOT EXISTS exp_sequence text;
 
 do
 $$
@@ -27,7 +27,7 @@ loop
     if f.key is NULL then
        RAISE EXCEPTION 'Programs must have a key associated with them';
     end if;
-    execute format('create sequence %s_exp_sequence',f.key);
+    execute format('create sequence  IF NOT EXISTS %s_exp_sequence',f.key);
     update program set exp_sequence = format('%s_exp_sequence', f.key) where id = f.id;
 end loop;
 end;

@@ -146,7 +146,8 @@ public class ExperimentObservation implements BrAPIImport {
             String referenceSource,
             String expSequenceValue,
             UUID trialId,
-            UUID id) {
+            UUID id,
+            Supplier<BigInteger> envNextVal) {
         BrAPIStudy study = new BrAPIStudy();
         if ( commit ){
             study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), expSequenceValue));
@@ -173,13 +174,17 @@ public class ExperimentObservation implements BrAPIImport {
         design.setPUI(designType);
         design.setDescription(designType);
         study.setExperimentalDesign(design);
-
+        String envSequenceValue = null;
+        if( commit ){
+            envSequenceValue = envNextVal.get().toString();
+            study.putAdditionalInfoItem( BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envSequenceValue);
+        }
         return study;
     }
 
     public BrAPIObservationUnit constructBrAPIObservationUnit(
             Program program,
-            Supplier<BigInteger> nextVal,
+            String seqVal,
             boolean commit,
             String germplasmName,
             String referenceSource,
@@ -190,7 +195,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
         if( commit){
-            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), nextVal.get().toString()));
+            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal) );
 
             // Set external reference
             observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, studyID, id));
@@ -208,7 +213,7 @@ public class ExperimentObservation implements BrAPIImport {
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
         level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
-        level.setLevelCode( getExpUnitId() );
+        level.setLevelCode( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal) );
         position.setObservationLevel(level);
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
 
