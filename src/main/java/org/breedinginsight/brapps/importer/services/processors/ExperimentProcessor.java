@@ -778,7 +778,7 @@ public class ExperimentProcessor implements Processor {
                 if (number.isEmpty()) {
                     addRowError(columnHeader, "Non-numeric text detected detected", validationErrors, row);
                 }
-                if (!validNumericRange(number.get(), variable.getScale())) {
+                else if (!validNumericRange(number.get(), variable.getScale())) {
                     addRowError(columnHeader, "Value outside of min/max range detected", validationErrors, row);
                 }
                 break;
