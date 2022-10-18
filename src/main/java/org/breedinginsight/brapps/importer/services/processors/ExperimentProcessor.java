@@ -214,7 +214,7 @@ public class ExperimentProcessor implements Processor {
         }
 
         // add "New" pending data to the BrapiData objects
-        getNewBrapiData(importRows, program, commit);
+        getNewBrapiData(importRows, program, user, commit);
 
         // For each import row
         for (int i = 0; i < importRows.size(); i++) {
@@ -252,7 +252,7 @@ public class ExperimentProcessor implements Processor {
         return getStatisticsMap(importRows);
     }
 
-    private void getNewBrapiData(List<BrAPIImport> importRows, Program program, boolean commit) {
+    private void getNewBrapiData(List<BrAPIImport> importRows, Program program, User user, boolean commit) {
 
         String expSequenceName = program.getExpSequence();
         if (expSequenceName == null) {
@@ -271,7 +271,7 @@ public class ExperimentProcessor implements Processor {
         for (BrAPIImport row : importRows) {
             ExperimentObservation importRow = (ExperimentObservation) row;
 
-            PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow, expNextVal);
+            PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, user, commit, importRow, expNextVal);
             this.trialByNameNoScope.put(importRow.getExpTitle(), trialPIO);
 
             String expSeqValue = null;
@@ -503,7 +503,7 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
-    private PendingImportObject<BrAPITrial> createTrialPIO(Program program, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) {
+    private PendingImportObject<BrAPITrial> createTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) {
         PendingImportObject<BrAPITrial> pio = null;
         if( trialByNameNoScope.containsKey( importRow.getExpTitle()) ) {
             pio = trialByNameNoScope.get( importRow.getExpTitle() ) ;
@@ -514,7 +514,7 @@ public class ExperimentProcessor implements Processor {
             if(commit){
                 expSeqValue = expNextVal.get().toString();
             }
-            BrAPITrial newTrial = importRow.constructBrAPITrial(program, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
+            BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
         }
         return pio;
