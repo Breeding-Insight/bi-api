@@ -145,9 +145,8 @@ public class ExperimentObservation implements BrAPIImport {
         trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
 
         // Set createdDate field
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
         LocalDateTime now = LocalDateTime.now();
-        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, formatter.format(now));
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_LOCAL_DATE.format(now));
 
     }
 
