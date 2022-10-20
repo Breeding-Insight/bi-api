@@ -788,7 +788,7 @@ public class ExperimentProcessor implements Processor {
                 break;
             case DATE:
                 if (!validDateValue(value)) {
-                    addRowError(columnHeader, "Incorrect date format (YYYY-MM-DD) detected", validationErrors, row);
+                    addRowError(columnHeader, "Incorrect date format detected. Expected YYYY-MM-DD", validationErrors, row);
                 }
                 break;
             case ORDINAL:
