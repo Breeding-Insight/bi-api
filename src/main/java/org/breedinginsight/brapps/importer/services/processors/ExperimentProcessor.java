@@ -181,7 +181,7 @@ public class ExperimentProcessor implements Processor {
         try {
             traits = ontologyService.getTraitsByProgramId(program.getId(), true);
         } catch (DoesNotExistException e) {
-            log.error(e.getMessage());
+            log.error(e.getMessage(), e);
             throw new InternalServerException(e.toString(), e);
         }
 
