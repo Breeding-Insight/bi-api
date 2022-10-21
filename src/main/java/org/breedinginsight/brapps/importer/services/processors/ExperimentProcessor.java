@@ -817,11 +817,9 @@ public class ExperimentProcessor implements Processor {
     }
 
     private boolean validNumericRange(BigDecimal value, Scale validValues) {
-        if (value.compareTo(BigDecimal.valueOf(validValues.getValidValueMin())) >= 0 &&
-            value.compareTo(BigDecimal.valueOf(validValues.getValidValueMax())) <= 0) {
-            return true;
-        }
-        return false;
+        // account for empty min or max in valid determination
+        return (validValues.getValidValueMin() == null || value.compareTo(BigDecimal.valueOf(validValues.getValidValueMin())) >= 0) &&
+               (validValues.getValidValueMax() == null || value.compareTo(BigDecimal.valueOf(validValues.getValidValueMax())) <= 0);
     }
 
     private boolean validDateValue(String value) {
