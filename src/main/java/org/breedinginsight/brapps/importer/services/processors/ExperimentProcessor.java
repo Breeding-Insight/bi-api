@@ -234,8 +234,6 @@ public class ExperimentProcessor implements Processor {
             for (Column<?> column : phenotypeCols) {
                 List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
                 observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
-
-                //mappedImportRow.setObservations(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
             }
 
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
@@ -266,7 +264,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     private String getVariableNameFromColumn(Column<?> column) {
-        // TOO: timestamp stripping?
+        // TODO: timestamp stripping?
         return column.name();
     }
 
