@@ -28,7 +28,6 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
-import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
 import javax.inject.Singleton;
@@ -36,7 +35,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
@@ -67,17 +65,23 @@ public class BrAPIDAOUtil {
     }
 
     private <T, U extends BrAPISearchRequestParametersPaging, V> List<V> searchInternal(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
-                                                                                        Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod3,
-                                                                                        Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod4,
+                                                                                        Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                                        Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
                                                                                 U searchBody) throws ApiException {
         try {
             List<V> listResult = new ArrayList<>();
-            searchBody.pageSize(pageSize);
+            //NOTE: Because of the way Breedbase implements BrAPI searches, the page size is initially set to an
+            //arbitrary, large value to ensure that in the event that a 202 response is returned, the searchDbId
+            //stored will refer to all records of the BrAPI variable.
+            searchBody.pageSize(10000000);
             ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response = searchMethod.apply(searchBody);
             if (response.getBody().getLeft().isPresent()) {
                 BrAPIResponse listResponse = (BrAPIResponse) response.getBody().getLeft().get();
                 listResult = getListResult(response);
 
+            /*  NOTE: may want to check for additional pages depending on whether BrAPI standard specifies how
+                pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
+                changed or updated
                 if(hasMorePages(listResponse)) {
                     int currentPage = listResponse.getMetadata().getPagination().getCurrentPage() + 1;
                     int totalPages = listResponse.getMetadata().getPagination().getTotalPages();
@@ -92,6 +96,7 @@ public class BrAPIDAOUtil {
                         currentPage++;
                     }
                 }
+            */
             } else {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;
@@ -101,8 +106,7 @@ public class BrAPIDAOUtil {
                     BrAPIAcceptedSearchResponse searchResult = response.getBody().getRight().get();
 
                     ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse =
-                            searchGetMethod3 != null ? searchGetMethod3.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
-                                    searchGetMethod4.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
+                            searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage);
                     if (searchGetResponse.getBody().getLeft().isPresent()) {
                         searchFinished = true;
                         BrAPIResponse listResponse = (BrAPIResponse) searchGetResponse.getBody().getLeft().get();
@@ -115,8 +119,7 @@ public class BrAPIDAOUtil {
                                     .getTotalPages();
 
                             while (currentPage < totalPages) {
-                                searchGetResponse = searchGetMethod3 != null ? searchGetMethod3.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
-                                        searchGetMethod4.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
+                                searchGetResponse = searchGetResponse(searchGetMethod, searchGetMethodWithMimeType, searchResult, currentPage);
                                 if (searchGetResponse.getBody().getLeft().isPresent()) {
                                     listResult.addAll(getListResult(searchGetResponse));
                                 }
@@ -142,6 +145,14 @@ public class BrAPIDAOUtil {
         } catch (Exception e) {
             throw new InternalServerException(e.toString(), e);
         }
+    }
+
+    private <T> ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse(Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                                                        Function4<BrAPIWSMIMEDataTypes, String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethodWithMimeType,
+                                                                                                        BrAPIAcceptedSearchResponse searchResult,
+                                                                                                        int currentPage) throws Exception{
+        return searchGetMethod != null ? searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize) :
+                searchGetMethodWithMimeType.apply(APPLICATION_JSON, searchResult.getResult().getSearchResultsDbId(), currentPage, pageSize);
     }
 
     private boolean hasMorePages(BrAPIResponse listResponse) {

@@ -306,6 +306,7 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
 
             BrAPIClient client = programDAO.getCoreClient(programId);
             ObservationVariablesApi api = new ObservationVariablesApi(client);
+
             return brAPIDAOUtil.search(
                     api::searchVariablesPost,
                     api::searchVariablesSearchResultsDbIdGet,
