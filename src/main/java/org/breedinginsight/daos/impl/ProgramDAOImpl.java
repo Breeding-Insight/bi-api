@@ -281,7 +281,6 @@ public class ProgramDAOImpl extends AbstractDAO<ProgramRecord, ProgramEntity, UU
 
         BrAPIClient client = getCoreClient(program.getId());
         ProgramsApi programsApi = new ProgramsApi(client);
-
         // Get existing brapi program
         ApiResponse<BrAPIProgramListResponse> brApiPrograms;
         try {

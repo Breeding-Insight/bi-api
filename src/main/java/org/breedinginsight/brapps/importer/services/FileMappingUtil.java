@@ -40,6 +40,8 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class FileMappingUtil {
+
+    public static final String EXPERIMENT_TEMPLATE_NAME = "ExperimentsTemplateMap";
     private FileImportService fileImportService;
 
     @Inject
