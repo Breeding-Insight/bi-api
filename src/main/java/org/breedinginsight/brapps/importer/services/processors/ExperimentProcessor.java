@@ -232,7 +232,10 @@ public class ExperimentProcessor implements Processor {
 
             // loop over phenotype column observation data for current row
             for (Column<?> column : phenotypeCols) {
-                mappedImportRow.setObservation(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
+                List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
+                observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
+
+                //mappedImportRow.setObservations(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
             }
 
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
@@ -287,7 +290,8 @@ public class ExperimentProcessor implements Processor {
             expSeqValue = dsl.nextval(expUnitSequenceName.toLowerCase()).toString();
         }
 
-        for (BrAPIImport row : importRows) {
+        for (int i=0; i<importRows.size(); i++) {
+            BrAPIImport row = importRows.get(i);
             ExperimentObservation importRow = (ExperimentObservation) row;
 
             PendingImportObject<BrAPITrial> trialPIO = createTrialPIO(program, commit, importRow, expSeqValue);
@@ -304,7 +308,8 @@ public class ExperimentProcessor implements Processor {
             this.observationUnitByNameNoScope.put(key, obsUnitPIO);
 
             for (Column<?> column : phenotypeCols) {
-                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(program, commit, obsUnitNextVal, importRow);
+                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i));
+                this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
             }
         }
     }
@@ -496,25 +501,14 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
-    private PendingImportObject<BrAPIObservation> createObservationPIO(Program program, boolean commit, Supplier<BigInteger> obsUnitNextVal, ExperimentObservation importRow, String variableName) {
+    private PendingImportObject<BrAPIObservation> createObservationPIO(ExperimentObservation importRow, String variableName, String value) {
         PendingImportObject<BrAPIObservation> pio = null;
         if (this.observationByHash.containsKey(getImportObservationHash(importRow, variableName))) {
             pio = observationByHash.get(getImportObservationHash(importRow, variableName));
         }
         else {
-            String germplasmName = "";
-            if( this.existingGermplasmByGID.get( importRow.getGid() ) != null) {
-                germplasmName = this.existingGermplasmByGID.get(importRow.getGid()).getBrAPIObject().getGermplasmName();
-            }
-            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
-            UUID trialID = trialPIO.getId();
-            PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
-            UUID studyID = studyPIO.getId();
-            UUID id = UUID.randomUUID();
-            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, obsUnitNextVal, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, studyID, id);
-
-
-            pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit);
+            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value);
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
         }
         return pio;
     }
