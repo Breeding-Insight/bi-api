@@ -44,7 +44,6 @@ public class PendingImport {
     private PendingImportObject<BrAPIObservationUnit> observationUnit;
     private List<PendingImportObject<BrAPIObservation>> observations = new ArrayList<>();
 
-
     @JsonIgnore
     public PendingImportObject<BrAPIObservation> getObservation() {
         return observations.get(0);
