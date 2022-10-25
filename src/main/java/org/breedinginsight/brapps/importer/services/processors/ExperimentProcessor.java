@@ -236,7 +236,12 @@ public class ExperimentProcessor implements Processor {
             // loop over phenotype column observation data for current row
             for (Column<?> column : phenotypeCols) {
                 List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
-                observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
+
+                // if value was blank won't be entry in map for this observation
+                PendingImportObject<BrAPIObservation> observation = this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column)));
+                if (observation != null) {
+                    observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
+                }
             }
 
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
@@ -315,8 +320,10 @@ public class ExperimentProcessor implements Processor {
             this.observationUnitByNameNoScope.put(key, obsUnitPIO);
 
             for (Column<?> column : phenotypeCols) {
-                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i));
-                this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
+                if (!StringUtils.isBlank(column.getString(i))) {
+                    PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i));
+                    this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
+                }
             }
         }
     }
@@ -443,6 +450,7 @@ public class ExperimentProcessor implements Processor {
         HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
         HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
         HashSet<String> gidCounter = new HashSet<>(); // set of unique GID's
+
         for (BrAPIImport row : importRows) {
             ExperimentObservation importRow = (ExperimentObservation) row;
             // Collect date for stats.
@@ -450,6 +458,7 @@ public class ExperimentProcessor implements Processor {
             addIfNotNull(obsUnitsIDCounter, createObservationUnitKey( importRow ));
             addIfNotNull(gidCounter, importRow.getGid());
         }
+
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                 .newObjectCount(environmentNameCounter.size())
                 .build();
@@ -459,11 +468,15 @@ public class ExperimentProcessor implements Processor {
         ImportPreviewStatistics gidStats = ImportPreviewStatistics.builder()
                 .newObjectCount(gidCounter.size())
                 .build();
+        ImportPreviewStatistics observationStats = ImportPreviewStatistics.builder()
+                .newObjectCount(ProcessorData.getNumNewObjects(observationByHash))
+                .build();
 
         return Map.of(
                 "Environments",         environmentStats,
                 "Observation_Units",    obdUnitStats,
-                "GIDs",                 gidStats
+                "GIDs",                 gidStats,
+                "Observations",         observationStats
         );
     }
 
