@@ -44,18 +44,32 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.FileMappingUtil;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Scale;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.OntologyService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
+import tech.tablesaw.api.Table;
+import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPERIMENT_TEMPLATE_NAME;
 
 @Slf4j
 @Prototype
@@ -70,14 +84,15 @@ public class ExperimentProcessor implements Processor {
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
-
-    private final DSLContext dsl;
-    private final BrAPITrialDAO brapiTrialDAO;
-    private final BrAPILocationDAO brAPILocationDAO;
-    private final BrAPIStudyDAO brAPIStudyDAO;
-    private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
-    private final BrAPISeasonDAO brAPISeasonDAO;
-    private final BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private DSLContext dsl;
+    private BrAPITrialDAO brapiTrialDAO;
+    private BrAPILocationDAO brAPILocationDAO;
+    private BrAPIStudyDAO brAPIStudyDAO;
+    private BrAPIObservationUnitDAO brAPIObservationUnitDAO;
+    private BrAPISeasonDAO brAPISeasonDAO;
+    private BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private OntologyService ontologyService;
+    private FileMappingUtil fileMappingUtil;
 
     // used to make the yearsToSeasonDbId() function more efficient
     private final Map<String, String > yearToSeasonDbIdCache = new HashMap<>();
@@ -102,7 +117,9 @@ public class ExperimentProcessor implements Processor {
                                BrAPIStudyDAO brAPIStudyDAO,
                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                BrAPISeasonDAO brAPISeasonDAO,
-                               BrAPIGermplasmDAO brAPIGermplasmDAO) {
+                               BrAPIGermplasmDAO brAPIGermplasmDAO,
+                               OntologyService ontologyService,
+                               FileMappingUtil fileMappingUtil) {
         this.dsl = dsl;
         this.brapiTrialDAO = brapiTrialDAO;
         this.brAPILocationDAO = brAPILocationDAO;
@@ -110,6 +127,8 @@ public class ExperimentProcessor implements Processor {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
+        this.ontologyService = ontologyService;
+        this.fileMappingUtil = fileMappingUtil;
     }
 
     /**
@@ -146,11 +165,53 @@ public class ExperimentProcessor implements Processor {
     public Map<String, ImportPreviewStatistics> process(
             List<BrAPIImport> importRows,
             Map<Integer, PendingImport> mappedBrAPIImport,
+            Table data,
             Program program,
             User user,
             boolean commit) throws ValidatorException, MissingRequiredInfoException {
 
         ValidationErrors validationErrors = new ValidationErrors();
+
+        // Get dynamic phenotype columns for processing
+        List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, EXPERIMENT_TEMPLATE_NAME);
+        List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
+
+        // Lookup all traits in system for program, maybe eventually add a variable search in ontology service
+        List<Trait> traits = null;
+        try {
+            traits = ontologyService.getTraitsByProgramId(program.getId(), true);
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage(), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        // filter out just traits specified in file
+        List<Trait> filteredTraits = traits.stream()
+                .filter(e -> varNames.contains(e.getObservationVariableName()))
+                .collect(Collectors.toList());
+
+        // check that all specified ontology terms were found
+        if (filteredTraits.size() != varNames.size()) {
+            List<String> returnedVarNames = filteredTraits.stream().map(TraitEntity::getObservationVariableName)
+                    .collect(Collectors.toList());
+            List<String> differences = varNames.stream()
+                    .filter(var -> !returnedVarNames.contains(var))
+                    .collect(Collectors.toList());
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Ontology term(s) not found: " + String.join(", ", differences));
+        }
+
+        // Perform ontology validations on each observation value in phenotype column
+        Map<String, Trait> colVarMap = filteredTraits.stream()
+                .collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
+
+        for (Column<?> column : phenotypeCols) {
+            for (int i=0; i < column.size(); i++) {
+                String value = column.getString(i);
+                String colName = column.name();
+                validateObservationValue(colVarMap.get(colName), value, colName, validationErrors, i);
+            }
+        }
 
         // add "New" pending data to the BrapiData objects
         getNewBrapiData(importRows, program, commit);
@@ -706,6 +767,74 @@ public class ExperimentProcessor implements Processor {
     }
     private String simpleStudyName(String scopedName){
         return scopedName.replaceFirst(" \\[.*\\]", "");
+    }
+
+    private void validateObservationValue(Trait variable, String value,
+                                          String columnHeader, ValidationErrors validationErrors, int row) {
+        if(StringUtils.isBlank(value)) {
+            log.debug(String.format("skipping validation of observation because there is no value.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
+            return;
+        }
+
+        switch(variable.getScale().getDataType()) {
+            case NUMERICAL:
+                Optional<BigDecimal> number = validNumericValue(value);
+                if (number.isEmpty()) {
+                    addRowError(columnHeader, "Non-numeric text detected detected", validationErrors, row);
+                }
+                else if (!validNumericRange(number.get(), variable.getScale())) {
+                    addRowError(columnHeader, "Value outside of min/max range detected", validationErrors, row);
+                }
+                break;
+            case DATE:
+                if (!validDateValue(value)) {
+                    addRowError(columnHeader, "Incorrect date format detected. Expected YYYY-MM-DD", validationErrors, row);
+                }
+                break;
+            case ORDINAL:
+                if (!validCategory(variable.getScale().getCategories(), value)) {
+                    addRowError(columnHeader, "Undefined ordinal category detected", validationErrors, row);
+                }
+                break;
+            case NOMINAL:
+                if (!validCategory(variable.getScale().getCategories(), value)) {
+                    addRowError(columnHeader, "Undefined nominal category detected", validationErrors, row);
+                }
+                break;
+            default:
+                break;
+        }
+
+    }
+    private Optional<BigDecimal> validNumericValue(String value) {
+        BigDecimal number;
+        try {
+            number = new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+        return Optional.of(number);
+    }
+
+    private boolean validNumericRange(BigDecimal value, Scale validValues) {
+        // account for empty min or max in valid determination
+        return (validValues.getValidValueMin() == null || value.compareTo(BigDecimal.valueOf(validValues.getValidValueMin())) >= 0) &&
+               (validValues.getValidValueMax() == null || value.compareTo(BigDecimal.valueOf(validValues.getValidValueMax())) <= 0);
+    }
+
+    private boolean validDateValue(String value) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
+        try {
+            formatter.parse(value);
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean validCategory(List<BrAPIScaleValidValuesCategories> categories, String value) {
+        Set<String> categoryValues = categories.stream().map(category -> category.getValue().toLowerCase()).collect(Collectors.toSet());
+        return categoryValues.contains(value.toLowerCase());
     }
 
     /**

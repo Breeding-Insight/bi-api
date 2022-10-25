@@ -71,7 +71,7 @@ public class ImportMappingDAO extends ImporterMappingDao {
 
         List<ImportMapping> mappings = new ArrayList<>();
         for (Record record: records) {
-            mappings.add(ImportMapping.parseSQLRecord(record));
+            mappings.add(parseBrAPIImportMapping(ImportMapping.parseSQLRecord(record)));
         }
         return mappings;
     }
@@ -87,7 +87,7 @@ public class ImportMappingDAO extends ImporterMappingDao {
 
         List<ImportMapping> mappings = new ArrayList<>();
         for (Record record: records) {
-            mappings.add(ImportMapping.parseSQLRecord(record));
+            mappings.add(parseBrAPIImportMapping(ImportMapping.parseSQLRecord(record)));
         }
         return mappings;
     }
@@ -102,7 +102,7 @@ public class ImportMappingDAO extends ImporterMappingDao {
 
         List<ImportMapping> mappings = new ArrayList<>();
         for (Record record: records) {
-            mappings.add(ImportMapping.parseSQLRecord(record));
+            mappings.add(parseBrAPIImportMapping(ImportMapping.parseSQLRecord(record)));
         }
         return mappings;
     }
@@ -119,7 +119,7 @@ public class ImportMappingDAO extends ImporterMappingDao {
 
         List<ImportMapping> mappings = new ArrayList<>();
         for (Record record: records) {
-            mappings.add(ImportMapping.parseSQLRecord(record));
+            mappings.add(parseBrAPIImportMapping(ImportMapping.parseSQLRecord(record)));
         }
         return mappings;
     }

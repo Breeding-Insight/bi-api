@@ -44,6 +44,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.jooq.DSLContext;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.math.BigInteger;
@@ -205,7 +206,8 @@ public class GermplasmProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                        Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
+                                                        Map<Integer, PendingImport> mappedBrAPIImport, Table data,
+                                                        Program program, User user, boolean commit) throws ValidatorException {
 
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();

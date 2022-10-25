@@ -85,9 +85,13 @@ public class FileUtil {
         // Read from the excel header row to get proper order
         Table table = Table.create();
         Iterator<Cell> headerIterator = headerRow.cellIterator();
+        HashSet<String> colNames = new HashSet<>();
         while (headerIterator.hasNext()) {
             Cell cell = headerIterator.next();
             StringColumn column = StringColumn.create(formatter.formatCellValue(cell), columns.get(formatter.formatCellValue(cell)));
+            if (!colNames.add(column.name())) {
+                throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
+            }
             table.addColumns(column);
         }
 

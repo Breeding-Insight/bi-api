@@ -26,6 +26,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
@@ -251,18 +252,18 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
     // could be more efficient to do a single get instead of search in saved search case but less code this way
     // and search stuff is working in breedbase
     @Override
-    public List<BrAPIObservation> getObservationsForTrait(UUID traitId) {
-        return getObservationsForTraits(Stream.of(traitId).collect(Collectors.toList()));
+    public List<BrAPIObservation> getObservationsForTrait(UUID traitId, UUID programId) {
+        return getObservationsForTraits(Stream.of(traitId).collect(Collectors.toList()), programId);
     }
 
     @Override
-    public List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds) {
+    public List<BrAPIObservation> getObservationsForTraits(List<UUID> traitIds, UUID programId) {
 
         List<String> ids = traitIds.stream()
                 .map(UUID::toString)
                 .collect(Collectors.toList());
 
-        List<BrAPIObservationVariable> variables = searchVariables(ids);
+        List<BrAPIObservationVariable> variables = searchVariables(ids, programId);
 
         // TODO: make sure have all expected external references
         if (variables.size() != ids.size()) {
@@ -272,17 +273,17 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
         List<String> brapiVariableIds = variables.stream()
                                                  .map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
 
-        return observationDao.getObservationsByVariableDbIds(brapiVariableIds);
+        return observationDao.getObservationsByVariableDbIds(brapiVariableIds, programId);
     }
 
     @Override
-    public List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, List<UUID> traitIds) {
+    public List<BrAPIObservation> getObservationsForTraitsByBrAPIProgram(String brapiProgramId, UUID programId, List<UUID> traitIds) {
 
         List<String> ids = traitIds.stream()
                 .map(UUID::toString)
                 .collect(Collectors.toList());
 
-        List<BrAPIObservationVariable> variables = searchVariables(ids);
+        List<BrAPIObservationVariable> variables = searchVariables(ids, programId);
 
         // TODO: make sure have all expected external references
         if (variables.size() != ids.size()) {
@@ -292,18 +293,20 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
         List<String> brapiVariableIds = variables.stream()
                                                  .map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
 
-        return observationDao.getObservationsByVariableAndBrAPIProgram(brapiProgramId, brapiVariableIds);
+        return observationDao.getObservationsByVariableAndBrAPIProgram(brapiProgramId, programId, brapiVariableIds);
     }
 
     @Override
-    public List<BrAPIObservationVariable> searchVariables(List<String> variableIds) {
+    public List<BrAPIObservationVariable> searchVariables(List<String> variableIds, UUID programId) {
 
         if (variableIds == null || variableIds.size() == 0) return new ArrayList<>();
         try {
             BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
                     .externalReferenceIDs(variableIds);
 
-            ObservationVariablesApi api = brAPIProvider.getVariablesAPI(PHENO);
+            BrAPIClient client = programDAO.getCoreClient(programId);
+            ObservationVariablesApi api = new ObservationVariablesApi(client);
+
             return brAPIDAOUtil.search(
                     api::searchVariablesPost,
                     api::searchVariablesSearchResultsDbIdGet,

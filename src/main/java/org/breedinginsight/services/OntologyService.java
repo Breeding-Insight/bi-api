@@ -141,7 +141,7 @@ public class OntologyService {
             BrAPIProgram brAPIProgram = programDAO.getProgramBrAPI(program.get(0));
 
             // Get all observations for the ontology
-            return traitDAO.getObservationsForTraitsByBrAPIProgram(brAPIProgram.getProgramDbId(), traitIds).isEmpty();
+            return traitDAO.getObservationsForTraitsByBrAPIProgram(brAPIProgram.getProgramDbId(), program.get(0).getId(), traitIds).isEmpty();
         } else {
             return true;
         }

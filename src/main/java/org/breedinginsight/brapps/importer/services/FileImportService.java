@@ -104,7 +104,7 @@ public class FileImportService {
         Saves the file for the mapping record
      */
     public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
-            DoesNotExistException, AuthorizationException, UnsupportedTypeException {
+            DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpStatusException {
 
         Program program = validateRequest(programId, actingUser);
 
@@ -530,7 +530,7 @@ public class FileImportService {
         return importMappings;
     }
 
-    public List<ImportMapping> getSystemMappingByName(AuthenticatedUser actingUser, String name) {
+    public List<ImportMapping> getSystemMappingByName(String name) {
         List<ImportMapping> importMappings = importMappingDAO.getSystemMappingByName(name);
         return importMappings;
     }

@@ -279,7 +279,8 @@ public class ProgramDAOImpl extends AbstractDAO<ProgramRecord, ProgramEntity, UU
                 .externalReferenceID(program.getId().toString())
                 .externalReferenceSource(referenceSource);
 
-        ProgramsApi programsApi = brAPIProvider.getProgramsAPI(BrAPIClientType.CORE);
+        BrAPIClient client = getCoreClient(program.getId());
+        ProgramsApi programsApi = new ProgramsApi(client);
         // Get existing brapi program
         ApiResponse<BrAPIProgramListResponse> brApiPrograms;
         try {
