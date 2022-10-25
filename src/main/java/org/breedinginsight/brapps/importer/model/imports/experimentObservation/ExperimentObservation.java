@@ -263,6 +263,7 @@ public class ExperimentObservation implements BrAPIImport {
         return observationUnit;
     }
 
+    // TODO: Fill out with rest of data for saving to BRAPI
     public BrAPIObservation constructBrAPIObservation(String value) {
         BrAPIObservation observation = new BrAPIObservation();
 
