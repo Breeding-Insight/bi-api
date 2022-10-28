@@ -60,7 +60,7 @@ import static org.breedinginsight.dao.db.Tables.*;
 
 @Slf4j
 @Singleton
-public class ProgramDAOImpl extends AbstractDAO<ProgramRecord, ProgramEntity, UUID> implements ProgramDAO {
+public class ProgramDAOImpl extends ProgramDao implements ProgramDAO {
 
     @Property(name = "brapi.server.core-url")
     private String defaultBrAPICoreUrl;
@@ -80,9 +80,9 @@ public class ProgramDAOImpl extends AbstractDAO<ProgramRecord, ProgramEntity, UU
     private final static String SYSTEM_DEFAULT = BrAPIConstants.SYSTEM_DEFAULT.getValue();
 
     @Inject
-    public ProgramDAOImpl(ProgramDao programDao, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider,
+    public ProgramDAOImpl(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider,
                       @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout) {
-        super(programDao);
+        super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.brAPIClientProvider = brAPIClientProvider;

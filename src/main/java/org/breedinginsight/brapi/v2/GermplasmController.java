@@ -35,7 +35,10 @@ import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
+import org.breedinginsight.model.GermplasmGenotype;
+import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.geno.GenoService;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
@@ -46,7 +49,7 @@ import java.util.List;
 import java.util.UUID;
 
 @Slf4j
-@Controller
+@Controller("/${micronaut.bi.api.version}")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class GermplasmController {
 
@@ -55,16 +58,19 @@ public class GermplasmController {
     private final ProgramDAO programDAO;
     private final BrAPIGermplasmDAO germplasmDAO;
 
+    private final GenoService genoService;
+
 
     @Inject
-    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO) {
+    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenoService genoService) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
         this.programDAO = programDAO;
         this.germplasmDAO = germplasmDAO;
+        this.genoService = genoService;
     }
 
-    @Post("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
+    @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> searchGermplasm(
@@ -83,7 +89,7 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
+    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasm(
@@ -118,7 +124,7 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}/germplasm/lists/{listDbId}/export{?fileExtension}")
+    @Get("/programs/{programId}/germplasm/lists/{listDbId}/export{?fileExtension}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<StreamedFile> germplasmListExport(
@@ -138,7 +144,7 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
+    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<BrAPIGermplasm>> getSingleGermplasm(
@@ -157,7 +163,7 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/pedigree{?notation}{?includeSiblings}")
+    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/pedigree{?notation}{?includeSiblings}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<BrAPIGermplasmPedigreeResponse> getGermplasmPedigreeInfo(
@@ -240,7 +246,7 @@ public class GermplasmController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/progeny")
+    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/germplasm/{germplasmId}/progeny")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<BrAPIGermplasmProgenyResponse> getGermplasmProgenyInfo(
@@ -301,6 +307,27 @@ public class GermplasmController {
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        }
+    }
+
+    @Get("/programs/{programId}/germplasm/{germplasmId}/genotype")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<GermplasmGenotype>> getGermplasmGenotype(@PathVariable("programId") UUID programId,
+                                                                          @PathVariable("germplasmId") String germplasmId) {
+
+        try {
+            BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByUUID(germplasmId, programId);
+            GermplasmGenotype germplasmGenotype = genoService.retrieveGenotypeData(programId, germplasm);
+
+            Response<GermplasmGenotype> response = new Response(germplasmGenotype);
+            return HttpResponse.ok(response);
+        } catch (DoesNotExistException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Germplasm not found");
+        } catch (AuthorizationException | ApiException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving genotype data");
         }
     }
 

@@ -65,7 +65,7 @@ import static org.jooq.impl.DSL.lower;
 
 @Singleton
 @Slf4j
-public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> implements TraitDAO {
+public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
     private final DSLContext dsl;
     private final BrAPIProvider brAPIProvider;
@@ -83,8 +83,8 @@ public class TraitDAOImpl extends AbstractDAO<TraitRecord, TraitEntity, UUID> im
     private final static String FULLNAME_KEY = "fullname";
 
     @Inject
-    public TraitDAOImpl(TraitDao traitDao, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao, BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, ProgramCacheProvider programCacheProvider) {
-        super(traitDao);
+    public TraitDAOImpl(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao, BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, ProgramCacheProvider programCacheProvider) {
+        super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.observationDao = observationDao;

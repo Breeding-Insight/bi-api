@@ -24,6 +24,8 @@ import org.apache.tika.io.TikaInputStream;
 import org.apache.tika.metadata.Metadata;
 import org.apache.tika.metadata.TikaCoreProperties;
 import org.apache.tika.mime.MediaType;
+import org.apache.tika.mime.MimeType;
+import org.apache.tika.mime.MimeTypeException;
 
 import javax.inject.Singleton;
 import java.io.IOException;
@@ -31,19 +33,25 @@ import java.io.IOException;
 @Singleton
 public class MimeTypeParser {
 
-    private Detector detector;
+    private final TikaConfig config;
+    private final Detector detector;
 
     public MimeTypeParser() {
-        TikaConfig config = TikaConfig.getDefaultConfig();
+        config = TikaConfig.getDefaultConfig();
         this.detector = config.getDetector();
     }
 
-    public MediaType getMimeType(CompletedFileUpload file) throws IOException {
+    public MediaType getMediaType(CompletedFileUpload file) throws IOException {
         Metadata metadata = new Metadata();
         metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, file.getFilename());
         TikaInputStream tikaStream = TikaInputStream.get(file.getInputStream());
         return detector.detect(tikaStream, metadata);
     }
 
+    public MimeType getMimeType(CompletedFileUpload file) throws IOException, MimeTypeException {
+        MediaType mediaType = getMediaType(file);
+        return config.getMimeRepository()
+                     .getRegisteredMimeType(mediaType.toString());
+    }
 
 }

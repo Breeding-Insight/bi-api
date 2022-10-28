@@ -51,6 +51,7 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.mockito.stubbing.Answer;
@@ -109,13 +110,15 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     private TraitDao traitDao;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private Configuration config;
 
     @Inject
     private BrAPIProvider brAPIProvider;
 
     @MockBean(ProgramDAO.class)
     ProgramDAO programDAO() {
-        return spy(new ProgramDAOImpl(programDao, dsl, brAPIProvider, brAPIClientProvider, Duration.of(10, ChronoUnit.MINUTES)));
+        return spy(new ProgramDAOImpl(config, dsl, brAPIProvider, brAPIClientProvider, Duration.of(10, ChronoUnit.MINUTES)));
     }
 
     @Inject

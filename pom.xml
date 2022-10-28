@@ -77,7 +77,7 @@
         <guava.version>31.0.1-jre</guava.version>
         <okhttp.version>4.9.3</okhttp.version>
         <mockito.version>4.3.1</mockito.version>
-        <brapi-java-client.version>2.0.2</brapi-java-client.version>
+        <brapi-java-client.version>2.0-SNAPSHOT</brapi-java-client.version>
         <commons-io.version>2.11.0</commons-io.version>
         <tika-app.version>2.2.1</tika-app.version>
         <!-- Version of apache-poi depends on version of tika. Tika uses these. -->
@@ -399,6 +399,16 @@
             <groupId>org.redisson</groupId>
             <artifactId>redisson-micronaut-20</artifactId>
             <version>3.17.5</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.micronaut.aws</groupId>
+            <artifactId>micronaut-aws-sdk-v2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.agorapulse</groupId>
+            <artifactId>micronaut-amazon-awssdk-s3</artifactId>
+            <version>2.0.5-micronaut-2.0</version>
         </dependency>
     </dependencies>
     <build>

@@ -141,7 +141,7 @@ public class FileImportService {
 
         MediaType mediaType;
         try {
-            mediaType = mimeTypeParser.getMimeType(file);
+            mediaType = mimeTypeParser.getMediaType(file);
         } catch (IOException e){
             throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Could not determine file type");
         }
