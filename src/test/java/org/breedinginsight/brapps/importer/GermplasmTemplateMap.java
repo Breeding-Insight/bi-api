@@ -25,6 +25,7 @@ import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
@@ -745,7 +746,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(testUser.getName(), additionalInfo.getAsJsonObject("createdBy").get("userName").getAsString(), "Wrong createdBy userId");
         // Breeding Method
         String breedingMethodName = fileData.getString(i, "Breeding Method");
-        BreedingMethodEntity breedingMethod = breedingMethodDAO.findByNameOrAbbreviation(breedingMethodName).get(0);
+        ProgramBreedingMethodEntity breedingMethod = breedingMethodDAO.findByNameOrAbbreviation(breedingMethodName, validProgram.getId()).get(0);
         assertEquals(breedingMethod.getId().toString(), additionalInfo.get("breedingMethodId").getAsString(), "Wrong Breeding Method ID");
         assertEquals(breedingMethod.getName(), additionalInfo.get("breedingMethod").getAsString(), "Wrong Breeding Method name");
         // Seed source
