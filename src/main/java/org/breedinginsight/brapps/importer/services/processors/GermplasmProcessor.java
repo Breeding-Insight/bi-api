@@ -39,7 +39,6 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -231,7 +230,7 @@ public class GermplasmProcessor implements Processor {
 
         // All rows are considered new germplasm, we don't check for duplicates
         newGermplasmList = new ArrayList<>();
-        Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();
+        Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
         Map<String, Integer> entryNumberCounts = new HashMap<>();
@@ -248,12 +247,12 @@ public class GermplasmProcessor implements Processor {
             if (germplasm != null && germplasm.getGermplasmName() != null) {
 
                 // Get the breeding method database object
-                ProgramBreedingMethodEntity breedingMethod = null;
+                BreedingMethodEntity breedingMethod = null;
                 if (germplasm.getBreedingMethod() != null) {
                     if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
                         breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                     } else {
-                        List<ProgramBreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod(), program.getId());
+                        List<BreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod());
                         if (breedingMethodResults.size() > 0) {
                             breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
