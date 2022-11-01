@@ -38,7 +38,7 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -132,8 +132,8 @@ public class GermplasmProcessor implements Processor {
             try {
                 existingParentGermplasms = brAPIGermplasmService.getRawGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs), program.getId());
                 List<String> existingDbIds = existingParentGermplasms.stream()
-                        .map(germplasm -> germplasm.getAccessionNumber())
-                        .collect(Collectors.toList());
+                                                                     .map(germplasm -> germplasm.getAccessionNumber())
+                                                                     .collect(Collectors.toList());
                 missingDbIds.removeAll(existingDbIds);
 
                 existingParentGermplasms.forEach(existingGermplasm -> {
@@ -174,8 +174,8 @@ public class GermplasmProcessor implements Processor {
         // Parent reference checks
         if (missingDbIds.size() > 0) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    String.format(missingParentalDbIdsMsg,
-                            arrayOfStringFormatter.apply(missingDbIds)));
+                                          String.format(missingParentalDbIdsMsg,
+                                                        arrayOfStringFormatter.apply(missingDbIds)));
         }
 
         List<String> missingEntryNumbers = new ArrayList<>();
@@ -196,8 +196,8 @@ public class GermplasmProcessor implements Processor {
         }
         if (missingEntryNumbers.size() > 0) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    String.format(missingParentalEntryNoMsg,
-                            arrayOfStringFormatter.apply(missingEntryNumbers)));
+                                          String.format(missingParentalEntryNoMsg,
+                                                        arrayOfStringFormatter.apply(missingEntryNumbers)));
         }
 
         if (listNameDup) {
@@ -228,7 +228,7 @@ public class GermplasmProcessor implements Processor {
 
         // All rows are considered new germplasm, we don't check for duplicates
         newGermplasmList = new ArrayList<>();
-        Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
+        Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
         Map<String, Integer> entryNumberCounts = new HashMap<>();
@@ -244,12 +244,12 @@ public class GermplasmProcessor implements Processor {
             if (germplasm != null && germplasm.getGermplasmName() != null) {
 
                 // Get the breeding method database object
-                BreedingMethodEntity breedingMethod = null;
+                ProgramBreedingMethodEntity breedingMethod = null;
                 if (germplasm.getBreedingMethod() != null) {
                     if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
                         breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                     } else {
-                        List<BreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod());
+                        List<ProgramBreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod(), program.getId());
                         if (breedingMethodResults.size() > 0) {
                             breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
@@ -271,7 +271,7 @@ public class GermplasmProcessor implements Processor {
                     userProvidedEntryNumbers.add(germplasm.getEntryNo());
                 }
                 entryNumberCounts.put(germplasm.getEntryNo(),
-                        entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
+                                      entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
 
                 BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
 
@@ -301,10 +301,10 @@ public class GermplasmProcessor implements Processor {
         // Check for duplicate entry numbers
         if (entryNumberCounts.size() < importRows.size()) {
             List<String> dups = entryNumberCounts.keySet().stream()
-                    .filter(key -> entryNumberCounts.get(key) > 1)
-                    .collect(Collectors.toList());
+                                                 .filter(key -> entryNumberCounts.get(key) > 1)
+                                                 .collect(Collectors.toList());
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
+                                          String.format(duplicateEntryNoMsg, arrayOfStringFormatter.apply(dups)));
         }
 
         // Construct pedigree
@@ -317,16 +317,16 @@ public class GermplasmProcessor implements Processor {
 
         // Construct our response object
         ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
-                .newObjectCount(newGermplasmList.size())
-                .build();
+                                                                        .newObjectCount(newGermplasmList.size())
+                                                                        .build();
 
         //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
         int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
         ImportPreviewStatistics pedigreeConnectStats = ImportPreviewStatistics.builder()
-                .newObjectCount(importRows.stream().filter(germplasmImport ->
-                        germplasmImport.getGermplasm() != null &&
-                                (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
-                ).collect(Collectors.toList()).size()).build();
+                                                                              .newObjectCount(importRows.stream().filter(germplasmImport ->
+                                                                                                                                 germplasmImport.getGermplasm() != null &&
+                                                                                                                                         (germplasmImport.getGermplasm().getFemaleParentDBID() != null || germplasmImport.getGermplasm().getFemaleParentEntryNo() != null)
+                                                                              ).collect(Collectors.toList()).size()).build();
 
         return Map.of(
                 "Germplasm", germplasmStats,
