@@ -30,9 +30,12 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -111,14 +114,11 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id="obsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
     private String obsUnitID;
 
-    public BrAPITrial constructBrAPITrial(Program program, boolean commit, String referenceSource, UUID id, String expSeqValue) {
+    public BrAPITrial constructBrAPITrial(Program program, User user, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
-        if( commit ){
-            trial.setTrialName( Utilities.appendProgramKey(getExpTitle(), program.getKey() ));
-
-            // Set external reference
-            trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
+        if (commit) {
+            setBrAPITrialCommitFields(program, trial, referenceSource, id);
         }
         else{
             trial.setTrialName( getExpTitle() );
@@ -128,11 +128,27 @@ public class ExperimentObservation implements BrAPIImport {
         trial.setProgramDbId(brapiProgram.getProgramDbId());
         trial.setProgramName(brapiProgram.getProgramName());
 
+        Map<String, String> createdBy = new HashMap<>();
+        createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId().toString());
+        createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
         trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
         trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
         trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER, expSeqValue);
 
         return trial;
+    }
+
+    private void setBrAPITrialCommitFields(Program program, BrAPITrial trial, String referenceSource, UUID id) {
+        trial.setTrialName( Utilities.appendProgramKey(getExpTitle(), program.getKey() ));
+
+        // Set external reference
+        trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
+
+        // Set createdDate field
+        LocalDateTime now = LocalDateTime.now();
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_LOCAL_DATE.format(now));
+
     }
 
     public BrAPILocation constructBrAPILocation() {
