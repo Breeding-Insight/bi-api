@@ -21,6 +21,7 @@ import org.brapi.v2.model.core.response.BrAPISeasonSingleResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -34,15 +35,17 @@ public class BrAPISeasonDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPISeasonDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPISeasonDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPISeason> getSeasonByYear(String year, UUID programId) throws ApiException {
-        SeasonsApi api = new SeasonsApi(programDAO.getCoreClient(programId));
+        SeasonsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), SeasonsApi.class);
         SeasonQueryParams queryParams =
                 SeasonQueryParams.builder()
                         .year( year )
@@ -58,7 +61,7 @@ public class BrAPISeasonDAO {
     }
 
     public BrAPISeason getSeasonById(String id, UUID programId) throws ApiException {
-        SeasonsApi api = new SeasonsApi(programDAO.getCoreClient(programId));
+        SeasonsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), SeasonsApi.class);
         ApiResponse<BrAPISeasonSingleResponse> apiResponse = api.seasonsSeasonDbIdGet(id);
         BrAPISeasonSingleResponse seasonListResponse = apiResponse.getBody();
         BrAPISeason season = seasonListResponse.getResult();
@@ -67,7 +70,7 @@ public class BrAPISeasonDAO {
 
     public BrAPISeason addOneSeason(BrAPISeason season, UUID programId) throws ApiException {
         BrAPISeason resultSeason = null;
-        SeasonsApi api = new SeasonsApi(programDAO.getCoreClient(programId));
+        SeasonsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), SeasonsApi.class);
 
         ApiResponse<BrAPISeasonListResponse> apiResponse = api.seasonsPost(Arrays.asList(season));
         BrAPISeasonListResponse seasonListResponse = apiResponse.getBody();

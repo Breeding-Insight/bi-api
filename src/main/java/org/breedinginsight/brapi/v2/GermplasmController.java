@@ -36,6 +36,7 @@ import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.GermplasmGenotype;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.geno.GenoService;
@@ -60,14 +61,17 @@ public class GermplasmController {
 
     private final GenoService genoService;
 
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
+
 
     @Inject
-    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenoService genoService) {
+    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenoService genoService, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
         this.programDAO = programDAO;
         this.germplasmDAO = germplasmDAO;
         this.genoService = genoService;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
@@ -203,7 +207,7 @@ public class GermplasmController {
             } else {
                 BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId);
                 //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
-                GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+                GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
                 ApiResponse<BrAPIGermplasmPedigreeResponse> pedigreeResponse = api.germplasmGermplasmDbIdPedigreeGet(germplasmId, notation, includeSiblings);
                 returnNode = pedigreeResponse.getBody().getResult();
                 metadata = pedigreeResponse.getBody().getMetadata();
@@ -234,15 +238,12 @@ public class GermplasmController {
             response.setResult(returnNode);
             response.setMetadata(metadata);
             return HttpResponse.ok(response);
-        } catch (InternalServerException e) {
-            log.info(e.getMessage(), e);
+        } catch (InternalServerException | ApiException e) {
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
         } catch (DoesNotExistException e) {
-            log.info(e.getMessage(), e);
+            log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, "Pedigree node not found");
-        } catch (ApiException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
         }
     }
 
@@ -291,7 +292,7 @@ public class GermplasmController {
                 return HttpResponse.ok(response);
             } else {
                 //Forward the progeny call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
-                GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+                GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
                 ApiResponse<BrAPIGermplasmProgenyResponse> progenyResponse = api.germplasmGermplasmDbIdProgenyGet(germplasmId);
 
                 //If no progeny, need to add empty progeny for display to work
@@ -301,10 +302,7 @@ public class GermplasmController {
                 }
                 return HttpResponse.ok(progenyResponse.getBody());
             }
-        } catch (InternalServerException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
-        } catch (ApiException e) {
+        } catch (InternalServerException | ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
         }

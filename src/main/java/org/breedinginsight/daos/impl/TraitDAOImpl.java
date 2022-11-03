@@ -35,6 +35,7 @@ import org.brapi.v2.model.pheno.*;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
@@ -46,6 +47,7 @@ import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.*;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -69,21 +71,29 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
     private final DSLContext dsl;
     private final BrAPIProvider brAPIProvider;
-    @Property(name = "brapi.server.reference-source")
-    private String referenceSource;
-    @Property(name = "micronaut.bi.api.run-scheduled-tasks")
-    private Boolean runScheduledTasks;
+    private final String referenceSource;
+    private final Boolean runScheduledTasks;
     private final ObservationDAO observationDao;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final ProgramCache<Trait> cache;
     private final ProgramDAO programDAO;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final Gson gson;
 
     private final static String TAGS_KEY = "tags";
     private final static String FULLNAME_KEY = "fullname";
 
     @Inject
-    public TraitDAOImpl(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, ObservationDAO observationDao, BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, ProgramCacheProvider programCacheProvider) {
+    public TraitDAOImpl(Configuration config,
+                        DSLContext dsl,
+                        BrAPIProvider brAPIProvider,
+                        ObservationDAO observationDao,
+                        BrAPIDAOUtil brAPIDAOUtil,
+                        ProgramDAO programDAO,
+                        ProgramCacheProvider programCacheProvider,
+                        BrAPIEndpointProvider brAPIEndpointProvider,
+                        @Property(name = "brapi.server.reference-source") String referenceSource,
+                        @Property(name = "micronaut.bi.api.run-scheduled-tasks") Boolean runScheduledTasks) {
         super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
@@ -91,10 +101,14 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.cache = programCacheProvider.getProgramCache(this::populateCache, Trait.class);
         this.programDAO = programDAO;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                                                                  (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
                                                          .registerTypeAdapterFactory(new GeometryAdapterFactory())
                                                          .create();
+
+        this.referenceSource = referenceSource;
+        this.runScheduledTasks = runScheduledTasks;
     }
 
     @Scheduled(initialDelay = "2s")
@@ -160,7 +174,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
         ApiResponse<BrAPIObservationVariableListResponse> brApiVariables;
         try {
-            brApiVariables = new ObservationVariablesApi(programDAO.getCoreClient(programId))
+            brApiVariables = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class)
                                           .variablesGet(variablesRequest);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
@@ -305,7 +319,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                     .externalReferenceIDs(variableIds);
 
             BrAPIClient client = programDAO.getCoreClient(programId);
-            ObservationVariablesApi api = new ObservationVariablesApi(client);
+            ObservationVariablesApi api = brAPIEndpointProvider.get(client, ObservationVariablesApi.class);
 
             return brAPIDAOUtil.search(
                     api::searchVariablesPost,
@@ -391,7 +405,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                     .referenceSource(referenceSource);
             BrAPIExternalReference programReference = new BrAPIExternalReference()
                     .referenceID(program.getId().toString())
-                    .referenceSource(referenceSource+"/programs");
+                    .referenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
             BrAPIObservationVariable brApiVariable = new BrAPIObservationVariable()
                     .method(brApiMethod)
                     .scale(brApiScale)

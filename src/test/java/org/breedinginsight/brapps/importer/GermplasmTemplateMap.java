@@ -22,6 +22,7 @@ import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
@@ -32,6 +33,7 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import tech.tablesaw.api.Table;
@@ -758,7 +760,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         // External Reference program
         JsonArray externalReferences = germplasm.getAsJsonArray("externalReferences");
         Map<String, String> expectedReferences = new HashMap<>();
-        expectedReferences.put(String.format("%s/programs", BRAPI_REFERENCE_SOURCE), validProgram.getId().toString());
+        expectedReferences.put(Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.PROGRAMS), validProgram.getId().toString());
         expectedReferences.put(fileData.getString(i, "Source"), fileData.getString(i, "External UID"));
         Integer referencesFound = 0;
         for (JsonElement reference: externalReferences) {

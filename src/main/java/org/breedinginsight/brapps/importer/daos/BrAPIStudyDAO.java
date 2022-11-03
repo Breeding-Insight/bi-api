@@ -22,9 +22,12 @@ import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,19 +42,21 @@ public class BrAPIStudyDAO {
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
+    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPIStudy> getStudyByName(List<String> studyNames, Program program) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
@@ -63,8 +68,8 @@ public class BrAPIStudyDAO {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.addExternalReferenceIDsItem(experimentID.toString());
-        studySearch.addExternalReferenceSourcesItem(BRAPI_REFERENCE_SOURCE + "/trials");
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        studySearch.addExternalReferenceSourcesItem(Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,

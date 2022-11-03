@@ -23,6 +23,7 @@ import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -37,12 +38,14 @@ public class BrAPILocationDAO {
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
+    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPILocation> getLocationsByName(List<String> locationNames, UUID programId) throws ApiException {
@@ -50,7 +53,7 @@ public class BrAPILocationDAO {
         BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
         //TODO: Locations don't connect to programs. How to get locations for the program?
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
+        LocationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
         return brAPIDAOUtil.search(
                 api::searchLocationsPost,
                 api::searchLocationsSearchResultsDbIdGet,
@@ -59,7 +62,7 @@ public class BrAPILocationDAO {
     }
 
     public List<BrAPILocation> createBrAPILocation(List<BrAPILocation> brAPILocationList, UUID programId, ImportUpload upload) throws ApiException {
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
+        LocationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
         return brAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
     }
 

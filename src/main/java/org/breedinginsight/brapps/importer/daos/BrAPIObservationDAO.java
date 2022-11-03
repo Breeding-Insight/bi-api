@@ -28,6 +28,7 @@ import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.jetbrains.annotations.NotNull;
 
@@ -46,13 +47,14 @@ public class BrAPIObservationDAO {
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private UUID programId;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
+    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
@@ -60,24 +62,23 @@ public class BrAPIObservationDAO {
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
         observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationSearchRequest.setStudyNames(new ArrayList<>(studyNames));
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(program.getId()));
-        this.programId = program.getId();
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
         return brAPIDAOUtil.search(
                 api::searchObservationsPost,
-                this::searchObservationsSearchResultsDbIdGet,
+                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
                 observationSearchRequest
         );
     }
 
     @NotNull
     private ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>>
-    searchObservationsSearchResultsDbIdGet(String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
+    searchObservationsSearchResultsDbIdGet(UUID programId, String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         return api.searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchResultsDbId, page, pageSize);
     }
 
     public List<BrAPIObservation> createBrAPIObservation(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         return brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
     }
 

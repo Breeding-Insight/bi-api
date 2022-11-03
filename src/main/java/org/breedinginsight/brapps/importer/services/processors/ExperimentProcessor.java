@@ -1138,6 +1138,6 @@ public class ExperimentProcessor implements Processor {
     }
 
     private boolean isTrialRefSource(BrAPIExternalReference brAPIExternalReference) {
-        return brAPIExternalReference.getReferenceSource().equals( String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()) );
+        return brAPIExternalReference.getReferenceSource().equals( Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS));
     }
 }
