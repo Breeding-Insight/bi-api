@@ -239,9 +239,7 @@ public class ExperimentProcessor implements Processor {
 
                 // if value was blank won't be entry in map for this observation
                 PendingImportObject<BrAPIObservation> observation = this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column)));
-                if (observation != null) {
-                    observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
-                }
+                observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
             }
 
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
@@ -320,10 +318,8 @@ public class ExperimentProcessor implements Processor {
             this.observationUnitByNameNoScope.put(key, obsUnitPIO);
 
             for (Column<?> column : phenotypeCols) {
-                if (!StringUtils.isBlank(column.getString(i))) {
-                    PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i));
-                    this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
-                }
+                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i));
+                this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
             }
         }
     }
@@ -459,6 +455,13 @@ public class ExperimentProcessor implements Processor {
             addIfNotNull(gidCounter, importRow.getGid());
         }
 
+        int numNewObservations = Math.toIntExact(
+                observationByHash.values().stream()
+                .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW &&
+                        !StringUtils.isBlank(preview.getBrAPIObject().getValue()))
+                .count()
+        );
+
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                 .newObjectCount(environmentNameCounter.size())
                 .build();
@@ -469,7 +472,7 @@ public class ExperimentProcessor implements Processor {
                 .newObjectCount(gidCounter.size())
                 .build();
         ImportPreviewStatistics observationStats = ImportPreviewStatistics.builder()
-                .newObjectCount(ProcessorData.getNumNewObjects(observationByHash))
+                .newObjectCount(numNewObservations)
                 .build();
 
         return Map.of(
