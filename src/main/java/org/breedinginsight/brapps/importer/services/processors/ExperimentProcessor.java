@@ -528,7 +528,7 @@ public class ExperimentProcessor implements Processor {
             pio = observationByHash.get(getImportObservationHash(importRow, variableName));
         }
         else {
-            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value);
+            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
         }
         return pio;

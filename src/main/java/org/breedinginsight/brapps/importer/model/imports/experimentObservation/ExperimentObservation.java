@@ -269,10 +269,11 @@ public class ExperimentObservation implements BrAPIImport {
     }
 
     // TODO: Fill out with rest of data for saving to BRAPI
-    public BrAPIObservation constructBrAPIObservation(String value) {
+    public BrAPIObservation constructBrAPIObservation(String value, String variableName) {
         BrAPIObservation observation = new BrAPIObservation();
 
         observation.setValue(value);
+        observation.setObservationVariableName(variableName);
 
         return observation;
     }
