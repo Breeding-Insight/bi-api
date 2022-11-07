@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +30,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
     // POSTing refresh tracking separate for each program
     // Cache refresh failure invalidates cache
 
-    Integer fetchCount = 0;
+    AtomicInteger fetchCount = new AtomicInteger(0);
     Integer waitTime = 1000;
     Map<UUID, List<BrAPIGermplasm>> mockBrAPI = new HashMap<>();
 
@@ -43,13 +44,13 @@ public class ProgramCacheUnitTest extends DatabaseTest {
     void setupNextTest() {
         // There is some thread sleeping used in this testing, wait for all processes to clean out between tests
         Thread.sleep(5000);
-        fetchCount = 0;
+        fetchCount.set(0);
         mockBrAPI = new HashMap<>();
     }
 
     @SneakyThrows
     public Map<String, BrAPIGermplasm> mockFetch(UUID programId, Integer sleepTime) {
-        fetchCount += 1;
+        fetchCount.incrementAndGet();
         System.out.println("Starting sleep at " + LocalDateTime.now());
         Thread.sleep(sleepTime);
         System.out.println("Woken up at " + LocalDateTime.now());
@@ -83,7 +84,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
             cache.post(programId, () -> mockPost(programId, new ArrayList<>(newList)));
             currPost += 1;
         }
-        assertTrue(fetchCount < numPost, "A fetch call was made for every post. It shouldn't.");
+        assertTrue(fetchCount.get() < numPost, "A fetch call was made for every post. It shouldn't.");
         assertEquals(1, mockBrAPI.size(), "More than one program existed in mocked brapi db.");
         assertEquals(numPost, mockBrAPI.get(programId).size(), "Wrong number of germplasm in db");
         while(cache.isRefreshing(programId)) {
@@ -105,11 +106,10 @@ public class ProgramCacheUnitTest extends DatabaseTest {
             List<BrAPIGermplasm> newList = new ArrayList<>();
             newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
             cache.post(id, () -> mockPost(id, new ArrayList<>(newList)));
-            // This doesn't have to do with our code, our mock function is just tripping over itself trying to update the number of fetches
-            Thread.sleep(waitTime/5);
             currPost += 1;
         }
-        assertEquals(numPost, fetchCount, "A fetch call should have been made for every post");
+        Thread.sleep(waitTime);
+        assertEquals(numPost, fetchCount.get(), "A fetch call should have been made for every post");
         assertEquals(numPost, mockBrAPI.size(), "Less programs existed than existed in mock brapi db.");
         for (UUID key: mockBrAPI.keySet()) {
             assertEquals(1, mockBrAPI.get(key).size(), "Wrong number of germplasm in db");
@@ -131,7 +131,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
         cache.get(programId);
         cache.get(programId);
         // Our fetch method should have only been called once for the initial loading
-        assertEquals(2, fetchCount, "Fetch method was called on every get");
+        assertEquals(1, fetchCount.get(), "Fetch method was called on every get");
     }
 
     @Test
@@ -142,7 +142,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
         List<BrAPIGermplasm> newList = new ArrayList<>();
         newList.add(new BrAPIGermplasm().germplasmDbId(UUID.randomUUID().toString()));
         mockBrAPI.put(programId, new ArrayList<>(newList));
-        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(super.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime), BrAPIGermplasm.class);
+        ProgramCache<BrAPIGermplasm> cache = new ProgramCache<>(super.getRedisConnection(), (UUID id) -> mockFetch(id, waitTime*2), BrAPIGermplasm.class);
         cache.populate(programId);
         Callable<Map<String, BrAPIGermplasm>> postFunction = () -> mockPost(programId, new ArrayList<>(newList));
 
