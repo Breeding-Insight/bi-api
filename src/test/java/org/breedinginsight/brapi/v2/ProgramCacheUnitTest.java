@@ -131,7 +131,7 @@ public class ProgramCacheUnitTest extends DatabaseTest {
         cache.get(programId);
         cache.get(programId);
         // Our fetch method should have only been called once for the initial loading
-        assertEquals(1, fetchCount.get(), "Fetch method was called on every get");
+        assertEquals(2, fetchCount.get(), "Fetch method was called on every get");
     }
 
     @Test
@@ -196,10 +196,10 @@ public class ProgramCacheUnitTest extends DatabaseTest {
 
         // Check that the fetch function needs to be called again since the cache was invalidated
         cache = new ProgramCache<>(super.getRedisConnection(), (UUID id) -> mockFetch(programId, waitTime), BrAPIGermplasm.class);
-        assertEquals(1, fetchCount);
+        assertEquals(1, fetchCount.get());
         cachedGermplasm = cache.get(programId);
         Thread.sleep(waitTime*2);
-        assertEquals(2, fetchCount);
+        assertEquals(2, fetchCount.get());
         assertEquals(2, cachedGermplasm.size(), "Newly retrieved germplasm not as expected");
     }
 }
