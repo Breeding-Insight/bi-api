@@ -24,6 +24,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapps.importer.model.base.Observation;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -281,6 +282,16 @@ public class ExperimentObservation implements BrAPIImport {
         }
 
         return observationUnit;
+    }
+
+    // TODO: Fill out with rest of data for saving to BRAPI
+    public BrAPIObservation constructBrAPIObservation(String value, String variableName) {
+        BrAPIObservation observation = new BrAPIObservation();
+
+        observation.setValue(value);
+        observation.setObservationVariableName(variableName);
+
+        return observation;
     }
 
     private List<BrAPIExternalReference> getBrAPIExternalReferences(

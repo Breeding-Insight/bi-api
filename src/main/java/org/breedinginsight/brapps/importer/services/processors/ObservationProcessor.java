@@ -167,7 +167,6 @@ public class ObservationProcessor implements Processor {
                     mappedImportRow.setObservation(observationByHash.get(hash));
                     mappedBrAPIImport.put(i, mappedImportRow);
                 }
-
             }
         }
 
