@@ -11,6 +11,7 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -153,11 +154,14 @@ public class BrAPIGermplasmService {
 
     public List<BrAPIGermplasm> getGermplasmByList(UUID programId, String listId) throws ApiException {
         // get list germplasm names
-        BrAPIListDetails listData = brAPIListDAO.getListById(listId, programId).getResult();
-        List<String> germplasmNames = listData.getData();
+        BrAPIListsSingleResponse listResponse = brAPIListDAO.getListById(listId, programId);
+        if(Objects.nonNull(listResponse)) {
+            BrAPIListDetails listData = listResponse.getResult();
+            List<String> germplasmNames = listData.getData();
 
-        // get list BrAPI germplasm variables
-        return germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+            // get list BrAPI germplasm variables
+            return germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+        } else throw new ApiException();
     }
     public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
