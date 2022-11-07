@@ -85,7 +85,7 @@ public class OntologyService {
     }
 
     private List<Program> getMatchingPrograms(Program program) {
-        List<Program> allPrograms = programDAO.getAll();
+        List<Program> allPrograms = programDAO.getActive();
         List<Program> matchingPrograms = new ArrayList<>();
         for (Program candidate: allPrograms) {
 
