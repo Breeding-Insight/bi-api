@@ -325,18 +325,18 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private static String createObservationUnitKey(ExperimentObservation importRow) {
+    private String createObservationUnitKey(ExperimentObservation importRow) {
         String key = importRow.getEnv() + importRow.getExpUnitId();
         return key;
     }
 
-    private static String getImportObservationHash(ExperimentObservation importRow, String variableName) {
+    private String getImportObservationHash(ExperimentObservation importRow, String variableName) {
         // TODO: handle timestamps once we support them
         return getObservationHash(createObservationUnitKey(importRow), variableName, importRow.getEnv());
     }
 
     //TODO: Add timestamp parameter once we support them
-    private static String getObservationHash(String observationUnitName, String variableName, String studyName) {
+    private String getObservationHash(String observationUnitName, String variableName, String studyName) {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                 DigestUtils.sha256Hex(variableName) +
                 DigestUtils.sha256Hex(studyName);
