@@ -155,9 +155,8 @@ public class BrAPIGermplasmService {
     public List<BrAPIGermplasm> getGermplasmByList(UUID programId, String listId) throws ApiException {
         // get list germplasm names
         BrAPIListsSingleResponse listResponse = brAPIListDAO.getListById(listId, programId);
-        if(Objects.nonNull(listResponse)) {
-            BrAPIListDetails listData = listResponse.getResult();
-            List<String> germplasmNames = listData.getData();
+        if(Objects.nonNull(listResponse) && Objects.nonNull(listResponse.getResult())) {
+            List<String> germplasmNames = listResponse.getResult().getData();
 
             // get list BrAPI germplasm variables
             return germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
