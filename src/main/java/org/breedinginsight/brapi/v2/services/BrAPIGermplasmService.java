@@ -120,7 +120,7 @@ public class BrAPIGermplasmService {
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             row.put("Name", germplasmEntry.getGermplasmName());
             row.put("Entry No", germplasmEntry.getAdditionalInfo()
-                    .getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(listName).getAsString());
+                    .getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(listName).getAsInt());
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
@@ -176,8 +176,11 @@ public class BrAPIGermplasmService {
         //Retrieve germplasm data
         List<String> germplasmNames = listData.getData();
         List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+
         //processGermplasmForDisplay, numbers
-        germplasm.sort(Comparator.comparingInt(g -> g.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt()));
+        germplasm.sort(Comparator.comparingInt(g ->
+                g.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(listData.getListName()).getAsInt()));
+
 
         String listName = listData.getListName();
         Optional<Program> optionalProgram = programService.getById(programId);
