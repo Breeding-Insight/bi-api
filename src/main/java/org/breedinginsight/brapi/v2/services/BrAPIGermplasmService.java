@@ -112,14 +112,15 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public List<Map<String, Object>> processData(List<BrAPIGermplasm> germplasm){
+    public List<Map<String, Object>> processData(List<BrAPIGermplasm> germplasm, String listName){
         List<Map<String, Object>> processedData =  new ArrayList<>();
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
             HashMap<String, Object> row = new HashMap<>();
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
             row.put("Name", germplasmEntry.getGermplasmName());
-            row.put("Entry No", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt());
+            row.put("Entry No", germplasmEntry.getAdditionalInfo()
+                    .getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(listName).getAsString());
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
@@ -187,7 +188,7 @@ public class BrAPIGermplasmService {
         String fileName = createFileName(listData, listName);
         StreamedFile downloadFile;
         //Convert list data to List<Map<String, Object>> data to pass into file writer
-        List<Map<String, Object>> processedData =  processData(germplasm);
+        List<Map<String, Object>> processedData =  processData(germplasm, listName);
 
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
