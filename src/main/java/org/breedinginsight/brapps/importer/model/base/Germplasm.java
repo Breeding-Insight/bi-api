@@ -250,7 +250,7 @@ public class Germplasm implements BrAPIObject {
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, String listName) {
-        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user);
+        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user, listName);
         if (commit) {
             setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
         }
