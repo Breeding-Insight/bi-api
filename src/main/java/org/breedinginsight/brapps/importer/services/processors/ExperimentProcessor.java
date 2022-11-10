@@ -64,6 +64,7 @@ import tech.tablesaw.columns.Column;
 import javax.inject.Inject;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -114,6 +115,9 @@ public class ExperimentProcessor implements Processor {
 
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
+
+    // Associates timestamp columns to associated phenotype column name for ease of storage
+    private Map<String, Column> timeStampColByPheno = new HashMap<>();
 
     @Inject
     public ExperimentProcessor(DSLContext dsl,
@@ -180,8 +184,21 @@ public class ExperimentProcessor implements Processor {
         ValidationErrors validationErrors = new ValidationErrors();
 
         // Get dynamic phenotype columns for processing
-        List<Column<?>> phenotypeCols = fileMappingUtil.getDynamicColumns(data, EXPERIMENT_TEMPLATE_NAME);
+        List<Column<?>> dynamicCols = fileMappingUtil.getDynamicColumns(data, EXPERIMENT_TEMPLATE_NAME);
+        List<Column<?>> phenotypeCols = new ArrayList<>();
+        List<Column<?>> timestampCols = new ArrayList<>();
+        //todo can maybe be clever later with filter and differences
+        for (Column dynamicCol: dynamicCols) {
+            //Distinguish between phenotype and timestamp columns
+            if (dynamicCol.name().startsWith("TS: ")) {
+                timestampCols.add(dynamicCol);
+            } else {
+                phenotypeCols.add(dynamicCol);
+            }
+        }
+
         List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
+        List<String> tsNames = timestampCols.stream().map(Column::name).collect(Collectors.toList());
 
         // Lookup all traits in system for program, maybe eventually add a variable search in ontology service
         List<Trait> traits = null;
@@ -208,6 +225,20 @@ public class ExperimentProcessor implements Processor {
                     "Ontology term(s) not found: " + String.join(", ", differences));
         }
 
+        // Check that each ts column corresponds to a phenotype column
+        List<String> unmatchedTimestamps = tsNames.stream()
+                .filter(e -> !(varNames.contains(e.replaceFirst("TS: ",""))))
+                .collect(Collectors.toList());
+        if (unmatchedTimestamps.size() > 0) {
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Timestamp column(s) lack corresponding phenotype column(s): " + String.join(", ", unmatchedTimestamps));
+        }
+
+        //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
+        for (Column tsColumn: timestampCols) {
+            timeStampColByPheno.put(tsColumn.name().replaceFirst("TS: ",""), tsColumn);
+        }
+
         // Perform ontology validations on each observation value in phenotype column
         Map<String, Trait> colVarMap = filteredTraits.stream()
                 .collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
@@ -217,6 +248,15 @@ public class ExperimentProcessor implements Processor {
                 String value = column.getString(i);
                 String colName = column.name();
                 validateObservationValue(colVarMap.get(colName), value, colName, validationErrors, i);
+            }
+        }
+
+        //Timestamp validation
+        for (Column<?> column : timestampCols) {
+            for (int i=0; i < column.size(); i++) {
+                String value = column.getString(i);
+                String colName = column.name();
+                validateTimeStampValue(colVarMap.get(colName), value, colName, validationErrors, i);
             }
         }
 
@@ -319,7 +359,16 @@ public class ExperimentProcessor implements Processor {
             this.observationUnitByNameNoScope.put(key, obsUnitPIO);
 
             for (Column<?> column : phenotypeCols) {
-                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i));
+                //If associated timestamp column, add
+                String dateTimeValue = null;
+                if (timeStampColByPheno.get(column.name())!=null) {
+                    dateTimeValue = timeStampColByPheno.get(column.name()).getString(i);
+                    //If no timestamp, set to midnight
+                    if (!validDateTimeValue(dateTimeValue)){
+                        dateTimeValue+="T00:00:00-00:00";
+                    }
+                }
+                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i), dateTimeValue);
                 this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
             }
         }
@@ -526,13 +575,16 @@ public class ExperimentProcessor implements Processor {
     }
 
 
-    private PendingImportObject<BrAPIObservation> createObservationPIO(ExperimentObservation importRow, String variableName, String value) {
+    private PendingImportObject<BrAPIObservation> createObservationPIO(ExperimentObservation importRow, String variableName, String value, String timeStampValue) {
         PendingImportObject<BrAPIObservation> pio = null;
         if (this.observationByHash.containsKey(getImportObservationHash(importRow, variableName))) {
             pio = observationByHash.get(getImportObservationHash(importRow, variableName));
         }
         else {
             BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName);
+            if (timeStampValue != null) {
+                newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
+            }
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
         }
         return pio;
@@ -837,6 +889,17 @@ public class ExperimentProcessor implements Processor {
         return scopedName.replaceFirst(" \\[.*\\]", "");
     }
 
+    private void validateTimeStampValue(Trait variable, String value,
+                                        String columnHeader, ValidationErrors validationErrors, int row){
+        if(StringUtils.isBlank(value)) {
+            log.debug(String.format("skipping validation of observation timestamp because there is no value.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
+            return;
+        }
+        if (!validDateValue(value) && !validDateTimeValue(value)) {
+            addRowError(columnHeader, "Incorrect datetime format detected. Expected YYYY-MM-DD or YYYY-MM-DDThh:mm:ss+hh:mm", validationErrors, row);
+        }
+
+    }
     private void validateObservationValue(Trait variable, String value,
                                           String columnHeader, ValidationErrors validationErrors, int row) {
         if(StringUtils.isBlank(value)) {
@@ -892,6 +955,16 @@ public class ExperimentProcessor implements Processor {
 
     private boolean validDateValue(String value) {
         DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
+        try {
+            formatter.parse(value);
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean validDateTimeValue(String value) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
         try {
             formatter.parse(value);
         } catch (DateTimeParseException e) {
