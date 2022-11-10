@@ -149,7 +149,6 @@ public class Germplasm implements BrAPIObject {
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo);
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
