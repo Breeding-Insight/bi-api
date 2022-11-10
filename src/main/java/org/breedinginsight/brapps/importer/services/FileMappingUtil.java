@@ -32,10 +32,7 @@ import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -97,7 +94,10 @@ public class FileMappingUtil {
             }
         }
 
-        List<String> differences = data.columnNames().stream()
+        List<String> names = data.columnNames();
+        Collections.reverse(names);
+
+        List<String> differences = names.stream()
                 .filter(col -> !columnNames.contains(col))
                 .collect(Collectors.toList());
 
