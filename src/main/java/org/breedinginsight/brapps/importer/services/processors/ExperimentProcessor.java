@@ -256,7 +256,7 @@ public class ExperimentProcessor implements Processor {
             for (int i=0; i < column.size(); i++) {
                 String value = column.getString(i);
                 String colName = column.name();
-                validateTimeStampValue(colVarMap.get(colName), value, colName, validationErrors, i);
+                validateTimeStampValue(value, colName, validationErrors, i);
             }
         }
 
@@ -364,7 +364,7 @@ public class ExperimentProcessor implements Processor {
                 if (timeStampColByPheno.get(column.name())!=null) {
                     dateTimeValue = timeStampColByPheno.get(column.name()).getString(i);
                     //If no timestamp, set to midnight
-                    if (!validDateTimeValue(dateTimeValue)){
+                    if (!validDateTimeValue(dateTimeValue) && !dateTimeValue.isBlank()){
                         dateTimeValue+="T00:00:00-00:00";
                     }
                 }
@@ -380,11 +380,9 @@ public class ExperimentProcessor implements Processor {
     }
 
     private String getImportObservationHash(ExperimentObservation importRow, String variableName) {
-        // TODO: handle timestamps once we support them
         return getObservationHash(createObservationUnitKey(importRow), variableName, importRow.getEnv());
     }
 
-    //TODO: Add timestamp parameter once we support them
     private String getObservationHash(String observationUnitName, String variableName, String studyName) {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                 DigestUtils.sha256Hex(variableName) +
@@ -582,7 +580,7 @@ public class ExperimentProcessor implements Processor {
         }
         else {
             BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName);
-            if (timeStampValue != null) {
+            if (timeStampValue != null && !timeStampValue.isBlank()) {
                 newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
             }
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
@@ -889,10 +887,10 @@ public class ExperimentProcessor implements Processor {
         return scopedName.replaceFirst(" \\[.*\\]", "");
     }
 
-    private void validateTimeStampValue(Trait variable, String value,
+    private void validateTimeStampValue(String value,
                                         String columnHeader, ValidationErrors validationErrors, int row){
         if(StringUtils.isBlank(value)) {
-            log.debug(String.format("skipping validation of observation timestamp because there is no value.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
+            log.debug(String.format("skipping validation of observation timestamp because there is no value.\n\tvariable: %s\n\trow: %d", columnHeader, row));
             return;
         }
         if (!validDateValue(value) && !validDateTimeValue(value)) {
