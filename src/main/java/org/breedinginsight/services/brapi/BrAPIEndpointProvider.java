@@ -10,7 +10,7 @@ public class BrAPIEndpointProvider {
     public <T> T get(BrAPIClient brAPIClient, Class<T> type) {
         try {
             return type.getDeclaredConstructor(BrAPIClient.class).newInstance(brAPIClient);
-        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException e) {
+        } catch (Exception e) {
             throw new RuntimeException("Unable to create object of type: "+type.getName(), e);
         }
     }

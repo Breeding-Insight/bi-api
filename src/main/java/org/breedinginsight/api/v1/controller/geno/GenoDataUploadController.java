@@ -5,6 +5,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRole;
@@ -43,9 +44,14 @@ public class GenoDataUploadController {
             Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
+            log.error("Missing data", e);
             return HttpResponse.notFound();
         } catch (AuthorizationException e) {
+            log.error("Error authorizing to backing service", e);
             return HttpResponse.unauthorized();
+        } catch (ApiException e) {
+            log.error("Error importing geno data", e);
+            return HttpResponse.serverError();
         }
     }
 }

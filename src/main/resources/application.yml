@@ -186,11 +186,12 @@ gigwa:
   password: ${GIGWA_PASSWORD}
 
 aws:
-  region: ${AWS_REGION}
+  region: ${AWS_REGION:`us-east-1`}
   accessKeyId: ${AWS_ACCESS_KEY_ID}
   secretKey: ${AWS_SECRET_KEY}
   s3:
-    region: ${AWS_REGION}
+    region: ${aws.region}
     buckets:
       geno:
         bucket: ${AWS_GENO_BUCKET}
+        endpoint: ${AWS_S3_ENDPOINT:`https://s3.${aws.region}.amazonaws.com`}

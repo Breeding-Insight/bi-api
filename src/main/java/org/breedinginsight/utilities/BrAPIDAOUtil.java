@@ -51,6 +51,7 @@ public class BrAPIDAOUtil {
     private int pageSize;
     @Property(name = "brapi.post-group-size")
     private int postGroupSize;
+
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                                                                Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                U searchBody
@@ -168,13 +169,15 @@ public class BrAPIDAOUtil {
                 pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
                 changed or updated
             */
-                if(hasMorePages(listResponse)) {
-                    String nextPageToken = ((BrAPITokenPagination) listResponse.getMetadata().getPagination()).getNextPageToken();
-
+                if(listResponse.getMetadata().getPagination() instanceof BrAPITokenPagination) {
+                    String nextPageToken = ((BrAPITokenPagination) listResponse.getMetadata()
+                                                                               .getPagination()).getNextPageToken();
                     while (StringUtils.isNotBlank(nextPageToken)) {
                         searchBody.setPageToken(nextPageToken);
                         response = searchMethod.apply(searchBody);
-                        if (response.getBody().getLeft().isPresent()) {
+                        if (response.getBody()
+                                    .getLeft()
+                                    .isPresent()) {
                             listResult.addAll(getListResult(response));
                         }
                     }

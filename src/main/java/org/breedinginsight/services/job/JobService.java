@@ -57,6 +57,7 @@ public class JobService {
         List<ImportResponse> uploads = fileImportService.getProgramUploads(programId, false);
         return uploads.stream()
                       .map(importJob -> new Job().setJobDetail(importJob)
+                                                                  .setId(importJob.getImportId().toString())
                                                                   .setJobType(importJob.getImportType())
                                                                   .setCreatedAt(importJob.getCreatedAt())
                                                                   .setUpdatedAt(importJob.getProgress().getUpdatedAt())

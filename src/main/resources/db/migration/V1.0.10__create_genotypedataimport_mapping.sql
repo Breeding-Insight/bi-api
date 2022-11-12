@@ -15,28 +15,24 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.model.job;
+DO $$
+    DECLARE
+        user_id UUID;
+    BEGIN
 
-import lombok.*;
-import lombok.experimental.Accessors;
-import org.breedinginsight.model.User;
+        user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
-import java.time.OffsetDateTime;
-
-@Getter
-@Setter
-@Accessors(chain=true)
-@ToString
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class Job {
-    private String id;
-    private int statuscode;
-    private String statusMessage;
-    private String jobType;
-    private OffsetDateTime createdAt;
-    private OffsetDateTime updatedAt;
-    private User createdByUser;
-    private JobDetail jobDetail;
-}
+        insert into importer_mapping (id, name, import_type_id, mapping, file, draft, created_at, updated_at, created_by, updated_by)
+        values (
+                   uuid_generate_v4(),
+                   'GenotypicDataImport',
+                   'GenotypicDataImport',
+                   null,
+                   '[]',
+                   false,
+                   '2022-10-25 03:27:41',
+                   '2022-10-25 03:27:41',
+                   user_id,
+                   user_id
+               );
+    END $$;
