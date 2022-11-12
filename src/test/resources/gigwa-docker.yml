@@ -1,0 +1,27 @@
+version: '3.5'
+
+# You may use the following (Linux) command to start Gigwa by dynamically setting the docker0 IP address:
+# export docker0=$(ip a list docker0 | grep "inet " | sed 's/^ *//g' | awk -F'[ |/]' '{print $2}') && docker-compose up -d && sleep 2 && xdg-open http://$docker0:8080/gigwa &> /dev/null
+
+services:
+  tomcat:
+    depends_on:
+      - mongo
+    image: breedinginsight/gigwa:2.5.2-snapshot
+    environment:
+      MONGO_IP: gigwa_db # Set your host machine IP here
+      MONGO_PORT: 27017 # Must match mongo container external port
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+      HOST_LOCALE: "${LANG}"
+
+  mongo:
+    image: mongo:4.2.21
+    command: --profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongo
+      MONGO_INITDB_ROOT_PASSWORD: mongo
+    networks:
+      default:
+        aliases:
+          - gigwa_db
