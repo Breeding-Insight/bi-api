@@ -282,13 +282,15 @@ public class ProgramLocationService {
         placeEntity.setExposure(programLocationRequest.getExposure());
         placeEntity.setDocumentationUrl(programLocationRequest.getDocumentationUrl());
         placeEntity.setUpdatedBy(actingUser.getId());
+        //  This is warped in a transaction so if the BrAPI update post fails, the BI database update is rolled back.
+        ProgramLocation location = dsl.transactionResult(configuration -> {
+            programLocationDao.update(placeEntity);
+            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId()).get();
 
-        programLocationDao.update(placeEntity);
-        ProgramLocation location = programLocationDao.getById(programId, placeEntity.getId()).get();
-
-        // Update location in brapi service
-        programLocationDao.updateProgramLocationBrAPI(location);
-
+            // Update location in brapi service
+            programLocationDao.updateProgramLocationBrAPI(progLocation);
+            return progLocation;
+        });
         return location;
     }
 
