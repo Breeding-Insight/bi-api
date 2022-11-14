@@ -29,6 +29,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.geojson.*;
+import org.jooq.DSLContext;
 import org.jooq.JSONB;
 
 import javax.inject.Inject;
@@ -48,6 +49,7 @@ public class ProgramLocationService {
     private EnvironmentTypeService environmentTypeService;
     private AccessibilityService accessibilityService;
     private TopographyService topographyService;
+    private DSLContext dsl;
 
     @Inject
     public ProgramLocationService(ProgramLocationDAO programLocationDao,
@@ -55,13 +57,15 @@ public class ProgramLocationService {
                                   CountryService countryService,
                                   EnvironmentTypeService environmentTypeService,
                                   AccessibilityService accessibilityService,
-                                  TopographyService topographyService) {
+                                  TopographyService topographyService,
+                                  DSLContext dsl) {
         this.programLocationDao = programLocationDao;
         this.programService = programService;
         this.countryService = countryService;
         this.environmentTypeService = environmentTypeService;
         this.accessibilityService = accessibilityService;
         this.topographyService = topographyService;
+        this.dsl = dsl;
     }
 
     public List<ProgramLocation> getByProgramId(UUID programId) throws DoesNotExistException {
@@ -227,13 +231,19 @@ public class ProgramLocationService {
                 .updatedBy(actingUser.getId())
                 .build();
 
+
+        ProgramLocation location = null;
         // Insert and update
-        programLocationDao.insert(placeEntity);
-        ProgramLocation location = programLocationDao.getById(programId, placeEntity.getId()).get();
+        //  This is warped in a transaction so if the BrAPI save call fails, the BI database insert is rolled back.
+        location = dsl.transactionResult(configuration -> {
+            programLocationDao.insert(placeEntity);
+            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId()).get();
 
-        // Add location to brapi service
-        programLocationDao.createProgramLocationBrAPI(location);
+            // Add location to brapi service
+            programLocationDao.createProgramLocationBrAPI(progLocation);
 
+            return progLocation;
+        });
         return location;
     }
 
