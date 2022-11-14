@@ -13,6 +13,7 @@ import java.util.List;
 @Getter
 @Introspected
 public class GermplasmQuery extends BrapiQuery {
+    private String importEntryNumber;
     private String accessionNumber;
     private String defaultDisplayName;
     private String breedingMethod;
@@ -26,6 +27,9 @@ public class GermplasmQuery extends BrapiQuery {
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
+        if (!StringUtils.isBlank(getImportEntryNumber())) {
+            filters.add(constructFilterRequest("importEntryNumber", getImportEntryNumber()));
+        }
         if (!StringUtils.isBlank(getAccessionNumber())) {
             filters.add(constructFilterRequest("accessionNumber", getAccessionNumber()));
         }
