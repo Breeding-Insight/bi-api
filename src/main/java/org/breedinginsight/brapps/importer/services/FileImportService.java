@@ -300,6 +300,11 @@ public class FileImportService {
             newUpload.setCreatedBy(actingUser.getId());
             newUpload.setUpdatedBy(actingUser.getId());
 
+            List<String> mappingCols = importMapping.getMappingConfig().stream().map(field -> field.getValue().getFileFieldName()).collect(Collectors.toList());
+            List<String> dynamicCols = data.columnNames().stream()
+                    .filter(column -> !mappingCols.contains(column)).collect(Collectors.toList());
+            newUpload.setDynamicColumnNames(dynamicCols);
+
             // Create a progress object
             ImportProgress importProgress = new ImportProgress();
             importProgress.setCreatedBy(actingUser.getId());

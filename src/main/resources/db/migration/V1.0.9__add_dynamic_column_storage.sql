@@ -15,19 +15,4 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.response;
-
-import lombok.Getter;
-import lombok.Setter;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
-
-import java.util.List;
-import java.util.Map;
-
-@Getter
-@Setter
-public class ImportPreviewResponse {
-    private Map<String, ImportPreviewStatistics> statistics;
-    private List<PendingImport> rows;
-    private List<String> dynamicColumnNames;
-}
+alter table importer_import add column dynamic_column_names text[];
