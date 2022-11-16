@@ -7,7 +7,7 @@ services:
   tomcat:
     depends_on:
       - mongo
-    image: breedinginsight/gigwa:2.5.2-snapshot
+    image: breedinginsight/gigwa:develop
     environment:
       MONGO_IP: gigwa_db # Set your host machine IP here
       MONGO_PORT: 27017 # Must match mongo container external port
