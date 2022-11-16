@@ -25,14 +25,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-import org.testcontainers.containers.DockerComposeContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
+import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
+import org.testcontainers.utility.DockerImageName;
 
 import javax.annotation.Nonnull;
-import java.io.File;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -57,7 +57,13 @@ public class DatabaseTest implements TestPropertyProvider {
     private RedissonClient redisConnection;
 
     @Getter
-    private DockerComposeContainer gigwa;
+    private GenericContainer gigwa;
+
+    @Getter
+    private GenericContainer mongo;
+
+    @Getter
+    private LocalStackContainer localStackContainer;
 
     @SneakyThrows
     public DatabaseTest() {
@@ -85,13 +91,37 @@ public class DatabaseTest implements TestPropertyProvider {
         redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", redisContainerIp, redisContainerPort));
         redisConnection = Redisson.create(redissonConfig);
 
-        gigwa = new DockerComposeContainer(new File("src/test/resources/gigwa-docker.yml"))
-                .withExposedService("tomcat", 8080)
-                .waitingFor("tomcat",
+        mongo = new GenericContainer<>("mongo:4.2.21")
+                .withNetwork(network)
+                .withNetworkAliases("gigwa_db")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(27017)
+                .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
+                .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                .withCommand("--profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet");
+        mongo.start();
+
+        gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
+                .withNetwork(network)
+                .withNetworkAliases("gigwa")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(8080)
+                .withEnv("MONGO_IP", "gigwa_db")
+                .withEnv("MONGO_PORT", "27017")
+                .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
+                .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                        .waitingFor(
                             Wait.forHttp("/gigwa")
                                 .forStatusCode(200)
                                 .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
         gigwa.start();
+
+        localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack").withTag("1.2.0"))
+                                                                      .withServices(LocalStackContainer.Service.S3)
+                                                                      .withNetwork(network)
+                                                                      .withNetworkAliases("aws");
+        localStackContainer.start();
+
     }
 
     @Nonnull
@@ -110,13 +140,15 @@ public class DatabaseTest implements TestPropertyProvider {
 
         properties.put("micronaut.http.client.read-timeout", "1m");
 
-        properties.put("gigwa.host", "http://"+gigwa.getServiceHost("tomcat", 8080)+":"+gigwa.getServicePort("tomcat", 8080)+"/");
+        properties.put("gigwa.host", "http://"+gigwa.getContainerIpAddress()+":"+gigwa.getMappedPort(8080)+"/");
         properties.put("gigwa.username", "gigwadmin");
         properties.put("gigwa.password", "nimda");
 
-        properties.put("aes.s3.buckets.geno.bucket", "TEST");
-        properties.put("aes.accessKeyId", "TEST");
-        properties.put("aes.secretKey", "TEST");
+        properties.put("aws.region", localStackContainer.getRegion());
+        properties.put("aws.accessKeyId", localStackContainer.getAccessKey());
+        properties.put("aws.secretKey", localStackContainer.getSecretKey());
+        properties.put("aws.s3.buckets.geno.bucket", "test");
+        properties.put("aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3)));
 
         return properties;
     }
@@ -128,5 +160,7 @@ public class DatabaseTest implements TestPropertyProvider {
         dbContainer.stop();
         network.close();
         gigwa.stop();
+        mongo.stop();
+        localStackContainer.stop();
     }
 }

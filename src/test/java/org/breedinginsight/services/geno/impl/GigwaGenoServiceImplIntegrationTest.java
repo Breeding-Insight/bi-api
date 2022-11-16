@@ -2,12 +2,16 @@ package org.breedinginsight.services.geno.impl;
 
 import com.agorapulse.micronaut.amazon.awssdk.s3.DefaultSimpleStorageService;
 import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageService;
+import com.agorapulse.micronaut.amazon.awssdk.s3.SimpleStorageServiceConfiguration;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micronaut.context.ApplicationContext;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.context.event.BeanCreatedEventListener;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.multipart.PartData;
+import io.micronaut.inject.qualifiers.Qualifiers;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.functions.Function;
@@ -61,19 +65,16 @@ import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
-import org.jetbrains.annotations.NotNull;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.mockito.invocation.InvocationOnMock;
-import org.testcontainers.containers.DockerComposeContainer;
-import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.containers.localstack.LocalStackContainer;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -89,11 +90,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
-@MicronautTest
+@MicronautTest(rebuildContext = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-@Property(name = "localstack.services", value = "s3")
-@Property(name = "aws.s3.buckets.geno.bucket", value = "test")
 public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
     @Inject
@@ -131,6 +130,9 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     @Inject
     @Named("geno")
     private SimpleStorageService storageService;
+
+    @Inject
+    private ApplicationContext applicationContext;
 
     @Inject
     private S3Client s3Client;
@@ -200,9 +202,24 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
         return spy(new BrAPIEndpointProvider());
     }
 
+    private String localStackIP;
+
     @BeforeAll
     public void setup() {
+        applicationContext.registerSingleton((BeanCreatedEventListener<SimpleStorageServiceConfiguration>) event -> {
+            SimpleStorageServiceConfiguration conf = event.getBean();
+            if (conf.getEndpoint() != null) {
+                return conf;
+            }
+            conf.setEndpoint(GigwaGenoServiceImplIntegrationTest.super.getLocalStackContainer().getEndpointOverride(LocalStackContainer.Service.S3).toString());
+            conf.setRegion(GigwaGenoServiceImplIntegrationTest.super.getLocalStackContainer().getRegion());
+            conf.setBucket("test");
+            return conf;
+        }, false);
+
+        storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("geno"));
         storageService.createBucket();
+        localStackIP = "http://"+super.getLocalStackContainer().getNetworkAliases().get(super.getLocalStackContainer().getNetworkAliases().size()-1)+":4566";
     }
 
     @Test
@@ -401,8 +418,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
         doAnswer(invocation -> {
             String path = (String) invocation.callRealMethod();
-            //TODO re-evaluate this...not sure it will work in github actions
-            return path.replace("127.0.0.1", "host.docker.internal");
+            return path.replaceAll("http://127\\.0\\.0\\.1:\\d*", localStackIP);
         }).when(storageService).storeMultipartFile(any(String.class), any(PartData.class), any(Consumer.class));
 
         doAnswer(invocation -> {
@@ -469,8 +485,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
         doAnswer(invocation -> {
             String path = (String) invocation.callRealMethod();
-            //TODO re-evaluate this...not sure it will work in github actions
-            return path.replace("127.0.0.1", "host.docker.internal");
+            return path.replaceAll("http://127\\.0\\.0\\.1:\\d*", localStackIP);
         }).when(storageService).storeMultipartFile(any(String.class), any(PartData.class), any(Consumer.class));
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
