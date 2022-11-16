@@ -121,7 +121,7 @@ public class ImportMappingDAOImpl extends ImporterMappingDao implements ImportMa
 
         List<ImportMapping> mappings = new ArrayList<>();
         for (Record record: records) {
-            mappings.add(ImportMapping.parseSQLRecord(record));
+            mappings.add(parseBrAPIImportMapping(ImportMapping.parseSQLRecord(record)));
         }
         return mappings;
     }

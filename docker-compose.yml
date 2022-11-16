@@ -32,6 +32,7 @@ services:
       - brapi-server
       - redis
       - mailhog
+      - gigwa
     volumes:
       - /usr/bin/docker:/usr/bin/docker
       - /var/run/docker.sock:/var/run/docker.sock
@@ -56,6 +57,14 @@ services:
       - REDIS_URL=${REDIS_URL:-redis://redis:6379}
       - REDIS_TIMEOUT=${REDIS_TIMEOUT:-30s}
       - REDIS_SSL=${REDIS_SSL:-false}
+      - GIGWA_HOST=${GIGWA_HOST:-http://gigwa:8080}
+      - GIGWA_USER=${GIGWA_USER}
+      - GIGWA_PASSWORD=${GIGWA_PASSWORD}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_KEY=${AWS_SECRET_KEY}
+      - AWS_GENO_BUCKET=${AWS_GENO_BUCKET}
+      - AWS_S3_ENDPOINT=${AWS_S3_ENDPOINT:-https://s3.us-east-1.amazonaws.com}
     ports:
       - ${API_INTERNAL_PORT}:${API_INTERNAL_PORT}
     networks:
@@ -108,6 +117,42 @@ services:
       - "6379:6379"
     networks:
       backend:
+  gigwa:
+    depends_on:
+      - mongo
+    image: breedinginsight/gigwa:develop
+    container_name: ${GIGWA_CONTAINER_NAME:-gigwa}
+    ports:
+      - ${GIGWA_PORT:-5080}:8080
+    restart: always
+    environment:
+      MONGO_IP: ${GIGWA_CONTAINER_NAME:-gigwa}_db
+      MONGO_PORT: 27017
+      MONGO_INITDB_ROOT_USERNAME: ${GIGWA_MONGO_USER:-mongo}
+      MONGO_INITDB_ROOT_PASSWORD: ${GIGWA_MONGO_PASSWORD:-mongo}
+      HOST_LOCALE: "${LANG}"
+    networks:
+      backend:
+    volumes:
+      - type: volume
+        source: gigwa_data
+        target: /usr/local/tomcat/config
+  mongo:
+    image: mongo:4.2.21
+    container_name: ${GIGWA_CONTAINER_NAME:-gigwa}_db
+    restart: always
+    command: --profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet
+    ports:
+      - ${GIGWA_MONGO_PORT:-27017}:27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${GIGWA_MONGO_USER:-mongo}
+      MONGO_INITDB_ROOT_PASSWORD: ${GIGWA_MONGO_PASSWORD:-mongo}
+    volumes:
+      - type: volume
+        source: gigwa_mongo_data
+        target: /data/db
+    networks:
+      backend:
 
 networks:
   backend:
@@ -115,3 +160,7 @@ networks:
 volumes:
   biapi_data:
     name: biapi_data
+  gigwa_data:
+    name: ${GIGWA_CONTAINER_NAME:-gigwa}_data
+  gigwa_mongo_data:
+    name: ${GIGWA_CONTAINER_NAME:-gigwa}_mongo_data
