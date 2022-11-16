@@ -25,12 +25,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
+import org.testcontainers.containers.DockerComposeContainer;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.Network;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
 
 import javax.annotation.Nonnull;
+import java.io.File;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
@@ -53,6 +55,9 @@ public class DatabaseTest implements TestPropertyProvider {
 
     @Getter
     private RedissonClient redisConnection;
+
+    @Getter
+    private DockerComposeContainer gigwa;
 
     @SneakyThrows
     public DatabaseTest() {
@@ -79,6 +84,14 @@ public class DatabaseTest implements TestPropertyProvider {
         Config redissonConfig = new Config();
         redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", redisContainerIp, redisContainerPort));
         redisConnection = Redisson.create(redissonConfig);
+
+        gigwa = new DockerComposeContainer(new File("src/test/resources/gigwa-docker.yml"))
+                .withExposedService("tomcat", 8080)
+                .waitingFor("tomcat",
+                            Wait.forHttp("/gigwa")
+                                .forStatusCode(200)
+                                .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
+        gigwa.start();
     }
 
     @Nonnull
@@ -97,6 +110,10 @@ public class DatabaseTest implements TestPropertyProvider {
 
         properties.put("micronaut.http.client.read-timeout", "1m");
 
+        properties.put("gigwa.host", "http://"+gigwa.getServiceHost("tomcat", 8080)+":"+gigwa.getServicePort("tomcat", 8080)+"/");
+        properties.put("gigwa.username", "gigwadmin");
+        properties.put("gigwa.password", "nimda");
+
         return properties;
     }
 
@@ -106,5 +123,6 @@ public class DatabaseTest implements TestPropertyProvider {
         redisContainer.stop();
         dbContainer.stop();
         network.close();
+        gigwa.stop();
     }
 }

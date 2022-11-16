@@ -200,41 +200,13 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
         return spy(new BrAPIEndpointProvider());
     }
 
-    private DockerComposeContainer gigwa;
-
-    public GigwaGenoServiceImplIntegrationTest() {
-        gigwa = new DockerComposeContainer(new File("src/test/resources/gigwa-docker.yml"))
-                .withExposedService("tomcat", 8080)
-                .waitingFor("tomcat",
-                            Wait.forHttp("/gigwa")
-                                .forStatusCode(200)
-                                .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
-        gigwa.start();
-    }
-
     @BeforeAll
     public void setup() {
         storageService.createBucket();
     }
 
-    @AfterAll
-    public void teardown() {
-        gigwa.stop();
-    }
-
-    @NotNull
-    @Override
-    public Map<String, String> getProperties() {
-        var props = super.getProperties();
-        props.put("gigwa.host", "http://"+gigwa.getServiceHost("tomcat", 8080)+":"+gigwa.getServicePort("tomcat", 8080)+"/");
-        props.put("gigwa.username", "gigwadmin");
-        props.put("gigwa.password", "nimda");
-
-        return props;
-    }
-
     @Test
-    public void testUpload() throws IOException, AuthorizationException, ApiException, MimeTypeException {
+    public void testUpload() throws ApiException {
         UUID programId = UUID.fromString("360766b8-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TEST";
         UUID expId = UUID.randomUUID();
@@ -276,7 +248,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void testFetchGermplasmGenotype() throws AuthorizationException, MimeTypeException, IOException, ApiException, DoesNotExistException {
+    public void testFetchGermplasmGenotype() throws AuthorizationException, ApiException, DoesNotExistException {
         UUID programId = UUID.fromString("8b667063-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TESTFETCH";
         UUID expId = UUID.randomUUID();
@@ -314,7 +286,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void testSubmitValidFile() throws IOException, AuthorizationException, ApiException, MimeTypeException, DoesNotExistException {
+    public void testSubmitValidFile() throws IOException, ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
         String programKey = "TESTSUBMITVALID";
         UUID expId = UUID.randomUUID();
@@ -355,7 +327,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void testSubmitInvalidHeader() throws IOException, AuthorizationException, ApiException, MimeTypeException, DoesNotExistException {
+    public void testSubmitInvalidHeader() throws ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
         String programKey = "TESTSUBMITINVALID";
         UUID expId = UUID.randomUUID();
@@ -371,7 +343,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void testSubmitMissingOUs() throws IOException, AuthorizationException, ApiException, MimeTypeException, DoesNotExistException {
+    public void testSubmitMissingOUs() throws ApiException {
         UUID programId = UUID.fromString("29162e85-e739-4f19-9fd0-0c377ed59956");
         String programKey = "TESTSUBMITMISSINGOU";
         UUID expId = UUID.randomUUID();
@@ -464,7 +436,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
         gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, expId, new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")), importUpload, progress);
     }
 
-    private ImportResponse submitGenoData(UUID programId, String programKey, UUID expId, String file) throws AuthorizationException, MimeTypeException, IOException, ApiException, DoesNotExistException {
+    private ImportResponse submitGenoData(UUID programId, String programKey, UUID expId, String file) throws AuthorizationException, IOException, ApiException, DoesNotExistException {
         Program program = Program.builder()
                                  .id(programId)
                                  .key(programKey)
