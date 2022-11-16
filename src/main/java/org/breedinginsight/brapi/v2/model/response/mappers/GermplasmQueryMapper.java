@@ -24,6 +24,10 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
 
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
+                Map.entry("importEntryNumber", (germplasm) ->
+                        germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER) ?
+                        germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString() :
+                        null),
                 Map.entry("accessionNumber", BrAPIGermplasm::getAccessionNumber),
                 Map.entry("defaultDisplayName", BrAPIGermplasm::getDefaultDisplayName),
                 Map.entry("breedingMethod", (germplasm) ->
