@@ -190,7 +190,7 @@ public class ExperimentProcessor implements Processor {
         //todo can maybe be clever later with filter and differences
         for (Column dynamicCol: dynamicCols) {
             //Distinguish between phenotype and timestamp columns
-            if (dynamicCol.name().startsWith("TS: ")) {
+            if (dynamicCol.name().startsWith("TS:")) {
                 timestampCols.add(dynamicCol);
             } else {
                 phenotypeCols.add(dynamicCol);
@@ -227,7 +227,7 @@ public class ExperimentProcessor implements Processor {
 
         // Check that each ts column corresponds to a phenotype column
         List<String> unmatchedTimestamps = tsNames.stream()
-                .filter(e -> !(varNames.contains(e.replaceFirst("TS: ",""))))
+                .filter(e -> !(varNames.contains(e.replaceFirst("^TS:\\s*",""))))
                 .collect(Collectors.toList());
         if (unmatchedTimestamps.size() > 0) {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
@@ -236,7 +236,7 @@ public class ExperimentProcessor implements Processor {
 
         //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
         for (Column tsColumn: timestampCols) {
-            timeStampColByPheno.put(tsColumn.name().replaceFirst("TS: ",""), tsColumn);
+            timeStampColByPheno.put(tsColumn.name().replaceFirst("^TS:\\s*",""), tsColumn);
         }
 
         // Perform ontology validations on each observation value in phenotype column

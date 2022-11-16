@@ -94,10 +94,7 @@ public class FileMappingUtil {
             }
         }
 
-        List<String> names = data.columnNames();
-        Collections.reverse(names);
-
-        List<String> differences = names.stream()
+        List<String> differences = data.columnNames().stream()
                 .filter(col -> !columnNames.contains(col))
                 .collect(Collectors.toList());
 
