@@ -114,6 +114,10 @@ public class DatabaseTest implements TestPropertyProvider {
         properties.put("gigwa.username", "gigwadmin");
         properties.put("gigwa.password", "nimda");
 
+        properties.put("aes.s3.buckets.geno.bucket", "TEST");
+        properties.put("aes.accessKeyId", "TEST");
+        properties.put("aes.secretKey", "TEST");
+
         return properties;
     }
 
