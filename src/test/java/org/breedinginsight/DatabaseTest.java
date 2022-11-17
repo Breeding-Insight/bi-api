@@ -48,7 +48,7 @@ public class DatabaseTest implements TestPropertyProvider {
     private GenericContainer dbContainer;
 
     @Getter
-    private Network network;
+    private static Network network;
 
     @Getter
     private GenericContainer redisContainer;
@@ -67,7 +67,9 @@ public class DatabaseTest implements TestPropertyProvider {
 
     @SneakyThrows
     public DatabaseTest() {
-        network = Network.newNetwork();
+        if(network == null) {
+            network = Network.newNetwork();
+        }
         dbContainer = new GenericContainer<>("postgres:11.4")
                 .withNetwork(network)
                 .withNetworkAliases("testdb")
@@ -91,36 +93,43 @@ public class DatabaseTest implements TestPropertyProvider {
         redissonConfig.useSingleServer().setAddress(String.format("redis://%s:%s", redisContainerIp, redisContainerPort));
         redisConnection = Redisson.create(redissonConfig);
 
-        mongo = new GenericContainer<>("mongo:4.2.21")
-                .withNetwork(network)
-                .withNetworkAliases("gigwa_db")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
-                .withExposedPorts(27017)
-                .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
-                .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
-                .withCommand("--profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet");
-        mongo.start();
+        if(mongo == null) {
+            mongo = new GenericContainer<>("mongo:4.2.21")
+                    .withNetwork(network)
+                    .withNetworkAliases("gigwa_db")
+                    .withImagePullPolicy(PullPolicy.defaultPolicy())
+                    .withExposedPorts(27017)
+                    .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
+                    .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                    .withCommand("--profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet");
+            mongo.start();
+        }
 
-        gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
-                .withNetwork(network)
-                .withNetworkAliases("gigwa")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
-                .withExposedPorts(8080)
-                .withEnv("MONGO_IP", "gigwa_db")
-                .withEnv("MONGO_PORT", "27017")
-                .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
-                .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
-                        .waitingFor(
+        if(gigwa == null) {
+            gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
+                    .withNetwork(network)
+                    .withNetworkAliases("gigwa")
+                    .withImagePullPolicy(PullPolicy.defaultPolicy())
+                    .withExposedPorts(8080)
+                    .withEnv("MONGO_IP", "gigwa_db")
+                    .withEnv("MONGO_PORT", "27017")
+                    .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
+                    .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                    .waitingFor(
                             Wait.forHttp("/gigwa")
                                 .forStatusCode(200)
                                 .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
-        gigwa.start();
+            gigwa.start();
+        }
 
-        localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack").withTag("1.2.0"))
-                                                                      .withServices(LocalStackContainer.Service.S3)
-                                                                      .withNetwork(network)
-                                                                      .withNetworkAliases("aws");
-        localStackContainer.start();
+        if(localStackContainer == null) {
+            localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack")
+                                                                         .withTag("1.2.0"))
+                    .withServices(LocalStackContainer.Service.S3)
+                    .withNetwork(network)
+                    .withNetworkAliases("aws");
+            localStackContainer.start();
+        }
 
     }
 
