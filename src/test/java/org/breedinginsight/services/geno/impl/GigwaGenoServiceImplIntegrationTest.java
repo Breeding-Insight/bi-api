@@ -65,11 +65,16 @@ import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
+import org.jetbrains.annotations.NotNull;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.mockito.invocation.InvocationOnMock;
+import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.images.PullPolicy;
+import org.testcontainers.utility.DockerImageName;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 
@@ -204,6 +209,65 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
     private String localStackIP;
 
+    private GenericContainer gigwa;
+
+    private GenericContainer mongo;
+
+    private LocalStackContainer localStackContainer;
+
+    public GigwaGenoServiceImplIntegrationTest() {
+        super();
+        mongo = new GenericContainer<>("mongo:4.2.21")
+                .withNetwork(super.getNetwork())
+                .withNetworkAliases("gigwa_db")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(27017)
+                .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
+                .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                .withCommand("--profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet");
+        mongo.start();
+
+        gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
+                .withNetwork(super.getNetwork())
+                .withNetworkAliases("gigwa")
+                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withExposedPorts(8080)
+                .withEnv("MONGO_IP", "gigwa_db")
+                .withEnv("MONGO_PORT", "27017")
+                .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
+                .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                .waitingFor(
+                        Wait.forHttp("/gigwa")
+                            .forStatusCode(200)
+                            .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
+        gigwa.start();
+
+        localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack")
+                                                                     .withTag("1.2.0"))
+                .withServices(LocalStackContainer.Service.S3)
+                .withNetwork(super.getNetwork())
+                .withNetworkAliases("aws");
+        localStackContainer.start();
+    }
+
+    @NotNull
+    @Override
+    public Map<String, String> getProperties() {
+        Map<String, String> properties = super.getProperties();
+
+        properties.put("gigwa.host", "http://"+gigwa.getContainerIpAddress()+":"+gigwa.getMappedPort(8080)+"/");
+        properties.put("gigwa.username", "gigwadmin");
+        properties.put("gigwa.password", "nimda");
+
+        properties.put("aws.region", localStackContainer.getRegion());
+        properties.put("aws.accessKeyId", localStackContainer.getAccessKey());
+        properties.put("aws.secretKey", localStackContainer.getSecretKey());
+        properties.put("aws.s3.buckets.geno.bucket", "test");
+        properties.put("aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3)));
+
+        return properties;
+    }
+
     @BeforeAll
     public void setup() {
         applicationContext.registerSingleton((BeanCreatedEventListener<SimpleStorageServiceConfiguration>) event -> {
@@ -211,15 +275,22 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
             if (conf.getEndpoint() != null) {
                 return conf;
             }
-            conf.setEndpoint(GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getEndpointOverride(LocalStackContainer.Service.S3).toString());
-            conf.setRegion(GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getRegion());
+            conf.setEndpoint(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3).toString());
+            conf.setRegion(localStackContainer.getRegion());
             conf.setBucket("test");
             return conf;
         }, false);
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("geno"));
         storageService.createBucket();
-        localStackIP = "http://"+GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getNetworkAliases().get(GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getNetworkAliases().size()-1)+":4566";
+        localStackIP = "http://"+localStackContainer.getNetworkAliases().get(localStackContainer.getNetworkAliases().size()-1)+":4566";
+    }
+
+    @AfterAll
+    public void teardown() {
+        gigwa.stop();
+        mongo.stop();
+        localStackContainer.stop();
     }
 
     @Test
