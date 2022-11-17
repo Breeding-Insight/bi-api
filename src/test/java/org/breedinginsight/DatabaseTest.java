@@ -48,7 +48,7 @@ public class DatabaseTest implements TestPropertyProvider {
     private GenericContainer dbContainer;
 
     @Getter
-    private static Network network;
+    private Network network;
 
     @Getter
     private GenericContainer redisContainer;
@@ -67,9 +67,7 @@ public class DatabaseTest implements TestPropertyProvider {
 
     @SneakyThrows
     public DatabaseTest() {
-        if(network == null) {
-            network = Network.newNetwork();
-        }
+        network = Network.SHARED;
         dbContainer = new GenericContainer<>("postgres:11.4")
                 .withNetwork(network)
                 .withNetworkAliases("testdb")
