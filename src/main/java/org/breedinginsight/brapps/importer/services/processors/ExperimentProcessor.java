@@ -187,7 +187,6 @@ public class ExperimentProcessor implements Processor {
         List<Column<?>> dynamicCols = fileMappingUtil.getDynamicColumns(data, EXPERIMENT_TEMPLATE_NAME);
         List<Column<?>> phenotypeCols = new ArrayList<>();
         List<Column<?>> timestampCols = new ArrayList<>();
-        //todo can maybe be clever later with filter and differences
         for (Column dynamicCol: dynamicCols) {
             //Distinguish between phenotype and timestamp columns
             if (dynamicCol.name().startsWith("TS:")) {
