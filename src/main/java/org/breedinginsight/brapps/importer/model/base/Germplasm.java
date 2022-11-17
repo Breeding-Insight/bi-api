@@ -131,11 +131,16 @@ public class Germplasm implements BrAPIObject {
         brapiList.setListName(constructGermplasmListName(listName, program));
         brapiList.setListDescription(this.listDescription);
         brapiList.listType(BrAPIListTypes.GERMPLASM);
-        // Set external reference
-        BrAPIExternalReference reference = new BrAPIExternalReference();
-        reference.setReferenceSource(String.format("%s/programs", referenceSource));
-        reference.setReferenceID(program.getId().toString());
-        brapiList.setExternalReferences(List.of(reference));
+
+        // Set external references
+        BrAPIExternalReference programReference = new BrAPIExternalReference();
+        programReference.setReferenceSource(String.format("%s/programs", referenceSource));
+        programReference.setReferenceID(program.getId().toString());
+        BrAPIExternalReference listReference = new BrAPIExternalReference();
+        listReference.setReferenceSource(String.format("%s/lists", referenceSource));
+        listReference.setReferenceID(UUID.randomUUID().toString());
+        brapiList.setExternalReferences(List.of(programReference, listReference));
+
         return brapiList;
     }
 
@@ -143,7 +148,7 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod, User user, String listName) {
+    public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod, User user, UUID listId) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
@@ -157,8 +162,8 @@ public class Germplasm implements BrAPIObject {
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId().toString());
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
-        Map<String, String> listEntryNumbers = new HashMap<>();
-        listEntryNumbers.put(listName, entryNo);
+        Map<UUID, String> listEntryNumbers = new HashMap<>();
+        listEntryNumbers.put(listId, entryNo);
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS, listEntryNumbers);
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
@@ -248,8 +253,8 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, String listName) {
-        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user, listName);
+    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, UUID listId) {
+        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user, listId);
         if (commit) {
             setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
         }
