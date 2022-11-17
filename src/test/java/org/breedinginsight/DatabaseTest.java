@@ -57,13 +57,13 @@ public class DatabaseTest implements TestPropertyProvider {
     private RedissonClient redisConnection;
 
     @Getter
-    private GenericContainer gigwa;
+    private static GenericContainer gigwa;
 
     @Getter
-    private GenericContainer mongo;
+    private static GenericContainer mongo;
 
     @Getter
-    private LocalStackContainer localStackContainer;
+    private static LocalStackContainer localStackContainer;
 
     @SneakyThrows
     public DatabaseTest() {
@@ -159,8 +159,8 @@ public class DatabaseTest implements TestPropertyProvider {
         redisContainer.stop();
         dbContainer.stop();
         network.close();
-        gigwa.stop();
-        mongo.stop();
-        localStackContainer.stop();
+//        gigwa.stop();
+//        mongo.stop();
+//        localStackContainer.stop();
     }
 }

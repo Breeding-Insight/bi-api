@@ -211,15 +211,15 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
             if (conf.getEndpoint() != null) {
                 return conf;
             }
-            conf.setEndpoint(GigwaGenoServiceImplIntegrationTest.super.getLocalStackContainer().getEndpointOverride(LocalStackContainer.Service.S3).toString());
-            conf.setRegion(GigwaGenoServiceImplIntegrationTest.super.getLocalStackContainer().getRegion());
+            conf.setEndpoint(GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getEndpointOverride(LocalStackContainer.Service.S3).toString());
+            conf.setRegion(GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getRegion());
             conf.setBucket("test");
             return conf;
         }, false);
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("geno"));
         storageService.createBucket();
-        localStackIP = "http://"+super.getLocalStackContainer().getNetworkAliases().get(super.getLocalStackContainer().getNetworkAliases().size()-1)+":4566";
+        localStackIP = "http://"+GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getNetworkAliases().get(GigwaGenoServiceImplIntegrationTest.getLocalStackContainer().getNetworkAliases().size()-1)+":4566";
     }
 
     @Test
