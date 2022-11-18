@@ -59,10 +59,13 @@ import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.*;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -97,7 +100,7 @@ public class GigwaGenoServiceImpl implements GenoService {
     private final ImportMappingDAO importMappingDAO;
     private final SimpleStorageService storageService;
 
-//    private final S3Client s3Client;
+    private final S3Client s3Client;
 
     private final DSLContext dsl;
 
@@ -117,7 +120,7 @@ public class GigwaGenoServiceImpl implements GenoService {
                                 ImportDAO importDAO,
                                 ImportMappingDAO importMappingDAO,
                                 @Named("geno") SimpleStorageService storageService,
-//                                S3Client s3Client,
+                                S3Client s3Client,
                                 DSLContext dsl,
                                 MimeTypeParser mimeTypeParser,
                                 BrAPIDAOUtil brAPIDAOUtil,
@@ -132,7 +135,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         this.importDAO = importDAO;
         this.importMappingDAO = importMappingDAO;
         this.storageService = storageService;
-//        this.s3Client = s3Client;
+        this.s3Client = s3Client;
         this.dsl = dsl;
         this.mimeTypeParser = mimeTypeParser;
         this.brAPIDAOUtil = brAPIDAOUtil;
@@ -196,15 +199,16 @@ public class GigwaGenoServiceImpl implements GenoService {
         }
 
         try {
-            if(validateSamples(program, experimentId, uploadedFile, upload, gigwaAuthToken)) {
+            byte[] fileContents = uploadedFile.getBytes();
+            if(validateSamples(program, experimentId, fileContents, upload, gigwaAuthToken)) {
                 executor.execute(() -> {
                     try {
-                        processSubmission(gigwaAuthToken, program, experimentId, uploadedFile, upload, progress);
+                        processSubmission(gigwaAuthToken, program, experimentId, fileContents, uploadedFile.getFilename(), upload, progress);
                     } catch (Exception ignored) {
                     }
                 });
             }
-        } catch (InstantiationException e) {
+        } catch (InstantiationException | IOException e) {
             progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
             progress.setMessage("An error occurred while trying to validate sample information");
             importDAO.updateProgress(progress);
@@ -217,7 +221,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         return response;
     }
 
-    private boolean validateSamples(Program program, UUID experimentId, CompletedFileUpload uploadedFile, ImportUpload upload, String gigwaAuthToken) throws DoesNotExistException, ApiException, InstantiationException {
+    private boolean validateSamples(Program program, UUID experimentId, byte[] fileContents, ImportUpload upload, String gigwaAuthToken) throws DoesNotExistException, ApiException, InstantiationException {
         log.debug("Validating samples in submitted VCF file for experiment: " + experimentId);
 
         BrAPIClient brAPIClient = programDAO.getCoreClient(program.getId());
@@ -232,30 +236,22 @@ public class GigwaGenoServiceImpl implements GenoService {
 
         log.debug("searching for the VCF header row");
         String[] headerParts = null;
-        try {
-            Scanner sc = new Scanner(uploadedFile.getInputStream(), "UTF-8");
-            boolean foundHeader = false;
-            while (sc.hasNextLine() && !foundHeader) {
-                String line = sc.nextLine();
-                if(line.startsWith("#CHROM")) {
-                    log.debug("Header row found! -> " + line);
-                    foundHeader = true;
-                    headerParts = line.split("\t");
-                }
+        Scanner sc = new Scanner(new ByteArrayInputStream(fileContents), "UTF-8");
+        boolean foundHeader = false;
+        while (sc.hasNextLine() && !foundHeader) {
+            String line = sc.nextLine();
+            if(line.startsWith("#CHROM")) {
+                log.debug("Header row found! -> " + line);
+                foundHeader = true;
+                headerParts = line.split("\t");
             }
+        }
 
-            if(!foundHeader) {
-                upload.getProgress().setStatuscode((short)HttpStatus.BAD_REQUEST.getCode());
-                upload.getProgress().setMessage("Could not find header row in file");
-                importDAO.updateProgress(upload.getProgress());
-                return false;
-            }
-
-            if(uploadedFile.getInputStream().markSupported()) {
-                uploadedFile.getInputStream().reset();
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if(!foundHeader) {
+            upload.getProgress().setStatuscode((short)HttpStatus.BAD_REQUEST.getCode());
+            upload.getProgress().setMessage("Could not find header row in file");
+            importDAO.updateProgress(upload.getProgress());
+            return false;
         }
 
         List<String> samples = new ArrayList<>();
@@ -481,12 +477,12 @@ public class GigwaGenoServiceImpl implements GenoService {
         return brAPIDAOUtil.searchWithToken(variantsApi::searchVariantsPost, variantsApi::searchVariantsSearchResultsDbIdGet, searchRequest);
     }
 
-    protected void processSubmission(String gigwaAuthToken, Program program, UUID experimentId, CompletedFileUpload uploadedFile, ImportUpload upload, ImportProgress progress) throws MimeTypeException, IOException, ApiException {
+    protected void processSubmission(String gigwaAuthToken, Program program, UUID experimentId, byte[] fileContents, String filename, ImportUpload upload, ImportProgress progress) throws MimeTypeException, IOException, ApiException {
         Pair<String, Long> uploadedFileResult;
         try {
             progress.setMessage("Uploading file");
             importDAO.updateProgress(progress);
-            uploadedFileResult = uploadGenoData(program.getId(), experimentId, upload.getId(), uploadedFile);
+            uploadedFileResult = uploadGenoData(program.getId(), experimentId, upload.getId(), fileContents, filename);
             log.debug("file saved to: " + uploadedFileResult.getLeft());
         } catch (Exception e) {
             progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
@@ -592,7 +588,7 @@ public class GigwaGenoServiceImpl implements GenoService {
                                                             .toString())
                             .addQueryParameter("dataFile1", fileUrl)
 
-                            .addQueryParameter("ploidy", "4") //TODO CHANGE THIS!!  it's only for the hackathon!!!!
+//                            .addQueryParameter("ploidy", "4") //TODO CHANGE THIS!!  it's only for the hackathon!!!!
 
                             .build())
                 .header(AUTHORIZATION, BEARER + gigwaAuthToken)
@@ -613,25 +609,58 @@ public class GigwaGenoServiceImpl implements GenoService {
         }
     }
 
-    private Pair<String, Long> uploadGenoData(UUID programId, UUID experimentId, UUID uploadId, CompletedFileUpload uploadedFile) throws IOException, MimeTypeException {
+    private Pair<String, Long> uploadGenoData(UUID programId, UUID experimentId, UUID uploadId, byte[] fileContents, String filename) throws IOException, MimeTypeException {
         log.debug("saving geno data to S3");
 
-        var mimeType = mimeTypeParser.getMimeType(uploadedFile);
+        if(!storageService.listBucketNames().contains(storageService.getDefaultBucketName())) {
+            log.debug("bucket doesn't exist, creating it");
+            storageService.createBucket();
+        }
+
+        var mimeType = mimeTypeParser.getMimeType(fileContents, filename);
 
         var key = programId.toString() + "/" + experimentId.toString() + "/" + uploadId + mimeType.getExtension();
-        var path = storageService.storeMultipartFile(key,
-                                                     uploadedFile,
-                                                     builder -> builder.metadata(Map.of("originalFileName", uploadedFile.getFilename()))
-                                                                       .build());
+        var path = storeMultipartFile(key, fileContents, Map.of("originalFileName", filename));
 
-//        GetObjectAttributesResponse objectAttributes = s3Client.getObjectAttributes(builder -> builder.bucket(storageService.getDefaultBucketName())
-//                                                                                                      .key(key)
-//                                                                                                      .objectAttributes(ObjectAttributes.OBJECT_SIZE)
-//                                                                                                      .build());
-//
-//        Long fileSize = objectAttributes.objectSize();
+        Long fileSize = Long.valueOf(fileContents.length);
 
-        return Pair.of(path, -1L);
+        return Pair.of(path, fileSize);
+    }
+
+    private String storeMultipartFile(String key, byte[] fileContents, Map<String, String> metadata) throws IOException {
+        String bucketName = storageService.getDefaultBucketName();
+
+        CreateMultipartUploadResponse response = s3Client.createMultipartUpload(CreateMultipartUploadRequest.builder()
+                                                                                                            .bucket(bucketName)
+                                                                                                            .key(key)
+                                                                                                            .metadata(metadata)
+                                                                                                            .build());
+        String uploadId = response.uploadId();
+
+        List<CompletedPart> parts = new ArrayList<>();
+        int partNumber = 1;
+        String etag = s3Client.uploadPart(UploadPartRequest.builder()
+                                                            .bucket(bucketName)
+                                                            .key(key)
+                                                            .uploadId(uploadId)
+                                                            .partNumber(partNumber)
+                                                            .build(),
+                                          software.amazon.awssdk.core.sync.RequestBody.fromBytes(fileContents))
+                              .eTag();
+
+        parts.add(CompletedPart.builder().partNumber(partNumber).eTag(etag).build());
+
+        log.debug("all parts have been uploaded, completing the upload");
+        CompleteMultipartUploadResponse completeMultipartUploadResponse = s3Client.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                                                                                                                                         .bucket(bucketName)
+                                                                                                                                         .key(key)
+                                                                                                                                         .uploadId(uploadId)
+                                                                                                                                         .multipartUpload(CompletedMultipartUpload.builder()
+                                                                                                                                                                                  .parts(parts)
+                                                                                                                                                                                  .build())
+                                                                                                                                         .build());
+        log.debug("upload complete");
+        return completeMultipartUploadResponse.location();
     }
 
     private boolean getBooleanValue(JsonObject progress, String key, boolean defaultVal) {

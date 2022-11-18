@@ -207,8 +207,6 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
         return spy(new BrAPIEndpointProvider());
     }
 
-    private String localStackIP;
-
     private GenericContainer gigwa;
 
     private GenericContainer mongo;
@@ -243,10 +241,11 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
         gigwa.start();
 
         localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack")
-                                                                     .withTag("1.2.0"))
+                                                                     .withTag("latest"))
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(super.getNetwork())
-                .withNetworkAliases("aws");
+                .withNetworkAliases("localstack")
+                .withEnv("HOSTNAME_EXTERNAL", "localstack");
         localStackContainer.start();
     }
 
@@ -283,7 +282,6 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("geno"));
         storageService.createBucket();
-        localStackIP = "http://"+localStackContainer.getNetworkAliases().get(localStackContainer.getNetworkAliases().size()-1)+":4566";
     }
 
     @AfterAll
@@ -488,11 +486,6 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
                                   .getSystemMappingByName(any(String.class));
 
         doAnswer(invocation -> {
-            String path = (String) invocation.callRealMethod();
-            return path.replaceAll("http://127\\.0\\.0\\.1:\\d*", localStackIP);
-        }).when(storageService).storeMultipartFile(any(String.class), any(PartData.class), any(Consumer.class));
-
-        doAnswer(invocation -> {
             var importEntity = invocation.getArgument(0, ImporterImportEntity.class);
             importEntity.setId(importId);
             return importEntity;
@@ -520,7 +513,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
         System.out.println("===================   experiment ID: " + expId + " ===============");
-        gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, expId, new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")), importUpload, progress);
+        gigwaGenoStorageService.processSubmission(gigwaGenoStorageService.getAuthToken(), program, expId, new TestFileUpload("src/test/resources/files/geno/sample.vcf", MediaType.of("application/vcard")).getBytes(), "sample.vcf", importUpload, progress);
     }
 
     private ImportResponse submitGenoData(UUID programId, String programKey, UUID expId, String file) throws AuthorizationException, IOException, ApiException, DoesNotExistException {
@@ -553,11 +546,6 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getCoreClient(any(UUID.class));
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));
-
-        doAnswer(invocation -> {
-            String path = (String) invocation.callRealMethod();
-            return path.replaceAll("http://127\\.0\\.0\\.1:\\d*", localStackIP);
-        }).when(storageService).storeMultipartFile(any(String.class), any(PartData.class), any(Consumer.class));
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
         System.out.println("===================   experiment ID: " + expId + " ===============");

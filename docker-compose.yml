@@ -153,6 +153,17 @@ services:
         target: /data/db
     networks:
       backend:
+  localstack:
+    container_name: "localstack"
+    image: localstack/localstack
+    ports:
+      - "4566:4566"
+    networks:
+      backend:
+        aliases:
+          - localstack
+    environment:
+      - HOSTNAME_EXTERNAL=localstack
 
 networks:
   backend:

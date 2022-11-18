@@ -28,6 +28,7 @@ import org.apache.tika.mime.MimeType;
 import org.apache.tika.mime.MimeTypeException;
 
 import javax.inject.Singleton;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
 @Singleton
@@ -50,6 +51,19 @@ public class MimeTypeParser {
 
     public MimeType getMimeType(CompletedFileUpload file) throws IOException, MimeTypeException {
         MediaType mediaType = getMediaType(file);
+        return config.getMimeRepository()
+                     .getRegisteredMimeType(mediaType.toString());
+    }
+
+    public MediaType getMediaType(byte[] fileContents, String filename) throws IOException {
+        Metadata metadata = new Metadata();
+        metadata.add(TikaCoreProperties.RESOURCE_NAME_KEY, filename);
+        TikaInputStream tikaStream = TikaInputStream.get(new ByteArrayInputStream(fileContents));
+        return detector.detect(tikaStream, metadata);
+    }
+
+    public MimeType getMimeType(byte[] fileContents, String filename) throws IOException, MimeTypeException {
+        MediaType mediaType = getMediaType(fileContents, filename);
         return config.getMimeRepository()
                      .getRegisteredMimeType(mediaType.toString());
     }
