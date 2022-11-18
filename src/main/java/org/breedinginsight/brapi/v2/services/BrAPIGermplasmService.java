@@ -186,10 +186,7 @@ public class BrAPIGermplasmService {
         List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
 
         //processGermplasmForDisplay, numbers
-        UUID germplasmListId = new UUID(0,0);
-        if(hasListExternalReference(listData)) {
-            germplasmListId = getGermplasmListId(listData);
-        }
+        UUID germplasmListId = getGermplasmListId(listData);
         germplasm.sort(Comparator.comparingInt(getEntryNumber(germplasmListId)));
 
         String listName = listData.getListName();
