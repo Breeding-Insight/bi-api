@@ -9,6 +9,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
@@ -187,10 +188,7 @@ public class BrAPIGermplasmService {
         //processGermplasmForDisplay, numbers
         UUID germplasmListId = new UUID(0,0);
         if(hasListExternalReference(listData)) {
-            germplasmListId = UUID.fromString(String.valueOf(listData.getExternalReferences().stream()
-                    .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
-                    .map(e -> e.getReferenceID())
-                    .findFirst()));
+            germplasmListId = getGermplasmListId(listData);
         }
         germplasm.sort(Comparator.comparingInt(getEntryNumber(germplasmListId)));
 
@@ -214,10 +212,36 @@ public class BrAPIGermplasmService {
         return new DownloadFile(fileName, downloadFile);
     }
 
+    public UUID getGermplasmListId(BrAPIListDetails listData) {
+        if(Objects.nonNull(listData.getExternalReferences()) && hasListExternalReference(listData)) {
+            return UUID.fromString(listData.getExternalReferences().stream()
+                    .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
+                    .map(e -> e.getReferenceID()).findAny().orElse("00000000-0000-0000-000000000000"));
+        } else {
+            return new UUID(0,0);
+        }
+    }
+
+    public UUID getGermplasmListId(BrAPIListNewRequest importList) {
+        if(Objects.nonNull(importList.getExternalReferences()) && hasListExternalReference(importList)) {
+            return UUID.fromString(importList.getExternalReferences().stream()
+                    .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
+                    .map(e -> e.getReferenceID()).findAny().orElse("00000000-0000-0000-000000000000"));
+        } else {
+            return new UUID(0,0);
+        }
+    }
+
     private boolean hasListExternalReference(BrAPIListDetails listData) {
         return listData.getExternalReferences().stream()
                 .anyMatch(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()));
     }
+
+    private boolean hasListExternalReference(BrAPIListNewRequest importList) {
+        return importList.getExternalReferences().stream()
+                .anyMatch(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()));
+    }
+
     private ToIntFunction<BrAPIGermplasm> getEntryNumber(UUID germplasmListId) {
         try {
             if(germplasmListId.compareTo(new UUID(0,0)) == 0) {

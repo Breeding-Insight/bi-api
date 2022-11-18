@@ -273,10 +273,7 @@ public class GermplasmProcessor implements Processor {
                 entryNumberCounts.put(germplasm.getEntryNo(),
                                       entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
 
-                UUID importListId = UUID.fromString(String.valueOf(importList.getExternalReferences().stream()
-                        .filter(e -> BRAPI_REFERENCE_SOURCE.concat("/lists").equals(e.getReferenceSource()))
-                        .map(e -> e.getReferenceID())
-                        .findFirst()));
+                UUID importListId = brAPIGermplasmService.getGermplasmListId(importList);
 
                 BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal, importListId);
 
