@@ -1,15 +1,13 @@
 package org.breedinginsight.daos.impl;
 
 import org.breedinginsight.dao.db.tables.daos.BreedingMethodDao;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
-import org.jooq.Configuration;
-import org.jooq.DSLContext;
+import org.jetbrains.annotations.NotNull;
+import org.jooq.*;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,7 +18,7 @@ import static org.breedinginsight.dao.db.Tables.PROGRAM_ENABLED_BREEDING_METHODS
 import static org.breedinginsight.dao.db.tables.BreedingMethodTable.BREEDING_METHOD;
 
 @Singleton
-public class BreedingMethodDAOImpl extends BreedingMethodDao implements BreedingMethodDAO{
+public class BreedingMethodDAOImpl extends BreedingMethodDao implements BreedingMethodDAO {
 
     private DSLContext dsl;
 
@@ -32,16 +30,10 @@ public class BreedingMethodDAOImpl extends BreedingMethodDao implements Breeding
 
     @Override
     public List<ProgramBreedingMethodEntity> getProgramBreedingMethods(UUID programId) {
-        List<ProgramBreedingMethodEntity> breedingMethodEntities = dsl.select(BREEDING_METHOD.fields())
-                                                                      .from(BREEDING_METHOD)
-                                                                      .join(PROGRAM_ENABLED_BREEDING_METHODS)
-                                                                      .on(PROGRAM_ENABLED_BREEDING_METHODS.BREEDING_METHOD_ID.eq(BREEDING_METHOD.ID))
-                                                                      .where(PROGRAM_ENABLED_BREEDING_METHODS.PROGRAM_ID.eq(programId))
+        List<ProgramBreedingMethodEntity> breedingMethodEntities = systemMethodBase(programId)
                                                                       .fetchInto(ProgramBreedingMethodEntity.class);
 
-        List<ProgramBreedingMethodEntity> programBreedingMethodEntities = dsl.select(PROGRAM_BREEDING_METHOD.fields())
-                                                                             .from(PROGRAM_BREEDING_METHOD)
-                                                                             .where(PROGRAM_BREEDING_METHOD.PROGRAM_ID.eq(programId))
+        List<ProgramBreedingMethodEntity> programBreedingMethodEntities = programMethodBase(programId)
                                                                              .fetchInto(ProgramBreedingMethodEntity.class);
 
         List<ProgramBreedingMethodEntity> ret = new ArrayList<>();
@@ -62,21 +54,15 @@ public class BreedingMethodDAOImpl extends BreedingMethodDao implements Breeding
     }
 
     public List<ProgramBreedingMethodEntity> findByNameOrAbbreviation(String nameOrAbbrev, UUID programId) {
-        List<ProgramBreedingMethodEntity> breedingMethodEntities = dsl.select()
-                                                               .from(BREEDING_METHOD)
-                                                               .join(PROGRAM_ENABLED_BREEDING_METHODS)
-                                                               .on(PROGRAM_ENABLED_BREEDING_METHODS.BREEDING_METHOD_ID.eq(BREEDING_METHOD.ID))
-                                                               .where(PROGRAM_ENABLED_BREEDING_METHODS.PROGRAM_ID.eq(programId))
-                                                               .and(BREEDING_METHOD.ABBREVIATION.equalIgnoreCase(nameOrAbbrev)
-                                                                                                .or(BREEDING_METHOD.NAME.equalIgnoreCase(nameOrAbbrev)))
-                                                               .fetchInto(ProgramBreedingMethodEntity.class);
+        List<ProgramBreedingMethodEntity> breedingMethodEntities = systemMethodBase(programId)
+                                                                      .and(BREEDING_METHOD.ABBREVIATION.equalIgnoreCase(nameOrAbbrev)
+                                                                                                       .or(BREEDING_METHOD.NAME.equalIgnoreCase(nameOrAbbrev)))
+                                                                      .fetchInto(ProgramBreedingMethodEntity.class);
 
-        List<ProgramBreedingMethodEntity> programBreedingMethodEntities = dsl.select()
-                                                               .from(PROGRAM_BREEDING_METHOD)
-                                                               .where(PROGRAM_BREEDING_METHOD.PROGRAM_ID.eq(programId))
-                                                               .and(PROGRAM_BREEDING_METHOD.ABBREVIATION.equalIgnoreCase(nameOrAbbrev)
-                                                                                                .or(PROGRAM_BREEDING_METHOD.NAME.equalIgnoreCase(nameOrAbbrev)))
-                                                               .fetchInto(ProgramBreedingMethodEntity.class);
+        List<ProgramBreedingMethodEntity> programBreedingMethodEntities = programMethodBase(programId)
+                                                                             .and(PROGRAM_BREEDING_METHOD.ABBREVIATION.equalIgnoreCase(nameOrAbbrev)
+                                                                                                                      .or(PROGRAM_BREEDING_METHOD.NAME.equalIgnoreCase(nameOrAbbrev)))
+                                                                             .fetchInto(ProgramBreedingMethodEntity.class);
 
         List<ProgramBreedingMethodEntity> ret = new ArrayList<>();
         if(!breedingMethodEntities.isEmpty()) {
@@ -144,5 +130,19 @@ public class BreedingMethodDAOImpl extends BreedingMethodDao implements Breeding
                   .where(PROGRAM_BREEDING_METHOD.ID.eq(method.getId()))
                   .returning(PROGRAM_BREEDING_METHOD.fields())
                   .fetchOneInto(ProgramBreedingMethodEntity.class);
+    }
+
+    private SelectConditionStep<Record> systemMethodBase(UUID programId) {
+        return dsl.select(BREEDING_METHOD.fields())
+                  .from(BREEDING_METHOD)
+                  .join(PROGRAM_ENABLED_BREEDING_METHODS)
+                  .on(PROGRAM_ENABLED_BREEDING_METHODS.BREEDING_METHOD_ID.eq(BREEDING_METHOD.ID))
+                  .where(PROGRAM_ENABLED_BREEDING_METHODS.PROGRAM_ID.eq(programId));
+    }
+
+    private SelectConditionStep<Record> programMethodBase(UUID programId) {
+        return dsl.select(PROGRAM_BREEDING_METHOD.fields())
+                  .from(PROGRAM_BREEDING_METHOD)
+                  .where(PROGRAM_BREEDING_METHOD.PROGRAM_ID.eq(programId));
     }
 }

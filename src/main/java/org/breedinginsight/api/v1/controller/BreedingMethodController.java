@@ -8,6 +8,7 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
@@ -19,6 +20,7 @@ import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
+import org.breedinginsight.services.BreedingMethodService;
 import org.breedinginsight.services.exceptions.BadRequestException;
 
 import javax.inject.Inject;
@@ -32,13 +34,13 @@ import java.util.stream.Collectors;
 @Controller("/${micronaut.bi.api.version}")
 public class BreedingMethodController {
 
-    private SecurityService securityService;
-    private BreedingMethodDAO breedingMethodDAO;
+    private final SecurityService securityService;
+    private final BreedingMethodService breedingMethodService;
 
     @Inject
-    public BreedingMethodController(SecurityService securityService, BreedingMethodDAO breedingMethodDAO) {
+    public BreedingMethodController(SecurityService securityService, BreedingMethodService breedingMethodService) {
         this.securityService = securityService;
-        this.breedingMethodDAO = breedingMethodDAO;
+        this.breedingMethodService = breedingMethodService;
     }
 
     @Get("/breeding-methods")
@@ -51,7 +53,7 @@ public class BreedingMethodController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
 
-            List<ProgramBreedingMethodEntity> breedingMethods = breedingMethodDAO.getSystemBreedingMethods();
+            List<ProgramBreedingMethodEntity> breedingMethods = breedingMethodService.getSystemBreedingMethods();
             return buildResponse(breedingMethods);
         } catch (Exception e) {
             log.error(e.getMessage(), e);
@@ -62,16 +64,13 @@ public class BreedingMethodController {
     @Post("programs/{programId}/breeding-methods")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<ProgramBreedingMethodEntity>> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException {
+    public HttpResponse<Response<ProgramBreedingMethodEntity>> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
         log.debug("Saving new program breeding method");
 
         try {
             AuthenticatedUser user = securityService.getUser();
-            if(!validateBreedingMethod(breedingMethod)) {
-                throw new BadRequestException("Missing required data");
-            }
             Response<ProgramBreedingMethodEntity> response = new Response<>();
-            response.result = breedingMethodDAO.createProgramMethod(breedingMethod, programId, user.getId());
+            response.result = breedingMethodService.createBreedingMethod(breedingMethod, programId, user.getId());
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Creation"));
@@ -86,21 +85,22 @@ public class BreedingMethodController {
         }
     }
 
-    @Get("programs/{programId}/breeding-methods")
+    @Get("programs/{programId}/breeding-methods{?inUse}")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<Response<DataResponse<ProgramBreedingMethodEntity>>> getProgramBreedingMethods(@PathVariable UUID programId) {
+    public HttpResponse<Response<DataResponse<ProgramBreedingMethodEntity>>> getProgramBreedingMethods(@PathVariable UUID programId, @QueryValue(defaultValue = "false") Boolean inUse) {
         log.debug(String.format("fetching breeding methods for program: %s", programId));
 
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-
-            List<ProgramBreedingMethodEntity> breedingMethods = breedingMethodDAO.getProgramBreedingMethods(programId);
+            List<ProgramBreedingMethodEntity> breedingMethods;
+            if(inUse) {
+                breedingMethods = breedingMethodService.fetchBreedingMethodsInUse(programId);
+            } else {
+                 breedingMethods = breedingMethodService.getBreedingMethods(programId);
+            }
             return buildResponse(breedingMethods);
-//        } catch (DoesNotExistException e) {
-//            log.info(e.getMessage(), e);
-//            return HttpResponse.notFound();
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             throw new InternalServerException("Error fetching breeding methods", e);
@@ -110,19 +110,16 @@ public class BreedingMethodController {
     @Put("programs/{programId}/breeding-methods/{breedingMethodId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<ProgramBreedingMethodEntity>> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException {
+    public HttpResponse<Response<ProgramBreedingMethodEntity>> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
         log.debug("Saving new program breeding method");
 
         try {
             AuthenticatedUser user = securityService.getUser();
 
-            if(!validateBreedingMethod(breedingMethod)) {
-                throw new BadRequestException("Missing required data");
-            }
             breedingMethod.setId(breedingMethodId);
 
             Response<ProgramBreedingMethodEntity> response = new Response<>();
-            response.result = breedingMethodDAO.updateProgramMethod(breedingMethod, programId, user.getId());
+            response.result = breedingMethodService.updateBreedingMethod(breedingMethod, programId, user.getId());
 
             List<Status> metadataStatus = new ArrayList<>();
             metadataStatus.add(new Status(StatusCode.INFO, "Successful Update"));
@@ -139,25 +136,18 @@ public class BreedingMethodController {
 
     @Put("programs/{programId}/breeding-methods/enable")
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse enableSystemBreedingMethods(@PathVariable UUID programId, @Body List<UUID> systemBreedingMethodIds) {
+    public HttpResponse enableSystemBreedingMethods(@PathVariable UUID programId, @Body List<UUID> systemBreedingMethodIds) throws ApiException {
         log.debug("enabling system breeding methods for program: "+programId);
 
         try {
             AuthenticatedUser user = securityService.getUser();
 
-            breedingMethodDAO.enableSystemMethods(systemBreedingMethodIds, programId, user.getId());
+            breedingMethodService.enableSystemMethods(systemBreedingMethodIds, programId, user.getId());
             return HttpResponse.ok();
         } catch (Exception e) {
             log.error("Error enabling system breeding methods for program: "+programId, e);
             throw e;
         }
-    }
-
-    private boolean validateBreedingMethod(ProgramBreedingMethodEntity method) {
-        return StringUtils.isNotBlank(method.getName())
-                && StringUtils.isNotBlank(method.getAbbreviation())
-                && StringUtils.isNotBlank(method.getCategory())
-                && StringUtils.isNotBlank(method.getGeneticDiversity());
     }
 
     private HttpResponse<Response<DataResponse<ProgramBreedingMethodEntity>>> buildResponse(List<ProgramBreedingMethodEntity> breedingMethods) {
