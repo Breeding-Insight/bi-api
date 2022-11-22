@@ -608,7 +608,8 @@ public class GermplasmTemplateMap extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString(), "Wrong entry number");
+            int finalI = i;
+            gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(Integer.toString(finalI +1), entryNumber, "Wrong entry number"));
         }
 
         // Check the germplasm list
