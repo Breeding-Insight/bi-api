@@ -175,7 +175,7 @@ public class BrAPIGermplasmService {
             return germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
         } else throw new ApiException();
     }
-    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws ApiException, IOException {
+    public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
         //Retrieve germplasm list data
@@ -239,33 +239,29 @@ public class BrAPIGermplasmService {
                 .anyMatch(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()));
     }
 
-    private ToIntFunction<BrAPIGermplasm> getEntryNumber(UUID germplasmListId) {
-        try {
-            if(germplasmListId.compareTo(new UUID(0,0)) == 0) {
-                return this::getImportEntryNumber;
-            } else {
-                return g -> getGermplasmListEntryNumber(g, germplasmListId);
-            }
-        } catch(RuntimeException e) {
-            throw e;
+    private ToIntFunction<BrAPIGermplasm> getEntryNumber(UUID germplasmListId) throws IllegalArgumentException {
+        if(germplasmListId.compareTo(new UUID(0,0)) == 0) {
+            return this::getImportEntryNumber;
+        } else {
+            return g -> getGermplasmListEntryNumber(g, germplasmListId);
         }
     }
 
-    private Integer getImportEntryNumber(BrAPIGermplasm g) throws RuntimeException {
+    private Integer getImportEntryNumber(BrAPIGermplasm g) throws IllegalArgumentException {
         if(Objects.nonNull(g.getAdditionalInfo()) &&
                 g.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER)) {
             return g.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt();
         } else {
-            throw new RuntimeException();
+            throw new IllegalArgumentException();
         }
     }
-    private Integer getGermplasmListEntryNumber(BrAPIGermplasm g, UUID germplasmListId) throws RuntimeException {
+    private Integer getGermplasmListEntryNumber(BrAPIGermplasm g, UUID germplasmListId) throws IllegalArgumentException {
         if(Objects.nonNull(g.getAdditionalInfo()) &&
                 g.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS)) {
             return g.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS)
                 .get(germplasmListId.toString()).getAsInt();
         } else {
-            throw new RuntimeException();
+            throw new IllegalArgumentException();
         }
     }
 
