@@ -18,7 +18,7 @@ import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
-import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
+import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
@@ -26,7 +26,6 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
-import org.breedinginsight.utilities.response.mappers.FilterField;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
