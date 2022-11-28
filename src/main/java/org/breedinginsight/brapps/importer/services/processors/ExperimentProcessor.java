@@ -581,7 +581,7 @@ public class ExperimentProcessor implements Processor {
             BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName);
             //NOTE: Can't parse invalid timestamp value, so have to skip if invalid.
             // Validation error should be thrown for offending value, but that doesn't happen until later downstream
-            if (timeStampValue != null && !timeStampValue.isBlank() && (validDateValue(value) || validDateTimeValue(value))) {
+            if (timeStampValue != null && !timeStampValue.isBlank() && (validDateValue(timeStampValue) || validDateTimeValue(timeStampValue))) {
                 newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
             }
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
