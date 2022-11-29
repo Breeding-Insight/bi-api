@@ -25,6 +25,7 @@ import org.breedinginsight.services.parsers.ParsingExceptionType;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.io.csv.CsvReadOptions;
 import tech.tablesaw.io.json.JsonReadOptions;
 
 import java.io.*;
@@ -69,8 +70,14 @@ public class FileUtil {
                     if (cell == null) {
                         columns.get(header).add(null);
                     } else if (cell.getCellType() == CellType.NUMERIC) {
-                        double cellValue = cell.getNumericCellValue();
-                        String stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
+                        //Distinguish between date and numeric
+                        DataFormatter dataFormatter = new DataFormatter();
+                        String stringValue = dataFormatter.formatCellValue(cell);
+                        if (!stringValue.contains("-")) {
+                            //No dashes, assume cell is numeric and not date
+                            double cellValue = cell.getNumericCellValue();
+                            stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
+                        }
                         columns.get(header).add(stringValue);
                     } else {
                         columns.get(header).add(formatter.formatCellValue(cell));
@@ -101,7 +108,15 @@ public class FileUtil {
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
         //TODO: See if this has the windows BOM issue
         try {
-            Table df = Table.read().csv(inputStream);
+            //Jackson used downstream messily converts LOCAL_DATE/LOCAL_DATETIME, so need to interpret date input as strings
+            //Note that if another type is needed later this is what needs to be updated
+            ArrayList<ColumnType> acceptedTypes = new ArrayList<>(Arrays.asList(ColumnType.STRING, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.FLOAT));
+            Table df = Table.read().usingOptions(
+                    CsvReadOptions
+                            .builder(inputStream)
+                            .columnTypesToDetect(acceptedTypes)
+                            .separator(',')
+            );
             return removeNullRows(df);
         } catch (IOException e) {
             log.error(e.getMessage());

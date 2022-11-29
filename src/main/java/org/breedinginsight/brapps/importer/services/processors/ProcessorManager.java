@@ -69,6 +69,7 @@ public class ProcessorManager {
         response.setStatistics(statistics);
         List<PendingImport> mappedBrAPIImportList = new ArrayList<>(mappedBrAPIImport.values());
         response.setRows(mappedBrAPIImportList);
+        response.setDynamicColumnNames(upload.getDynamicColumnNamesList());
 
         statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
 
