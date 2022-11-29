@@ -360,10 +360,10 @@ public class ExperimentProcessor implements Processor {
             for (Column<?> column : phenotypeCols) {
                 //If associated timestamp column, add
                 String dateTimeValue = null;
-                if (timeStampColByPheno.get(column.name())!=null) {
+                if (timeStampColByPheno.get(column.name()) != null) {
                     dateTimeValue = timeStampColByPheno.get(column.name()).getString(i);
                     //If no timestamp, set to midnight
-                    if (!validDateTimeValue(dateTimeValue) && !dateTimeValue.isBlank()){
+                    if (!dateTimeValue.isBlank() && !validDateTimeValue(dateTimeValue)){
                         dateTimeValue+="T00:00:00-00:00";
                     }
                 }
