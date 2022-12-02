@@ -73,7 +73,8 @@ public class TraitQueryMapper extends AbstractQueryMapper {
                 Map.entry("updatedByUserId",
                         trait -> trait.getUpdatedByUser() != null ? trait.getUpdatedByUser().getId() : null),
                 Map.entry("updatedByUserName",
-                        trait -> trait.getUpdatedByUser() != null ? trait.getUpdatedByUser().getName() : null)
+                        trait -> trait.getUpdatedByUser() != null ? trait.getUpdatedByUser().getName() : null),
+                Map.entry("termType", Trait::getTermType)
         );
     }
 

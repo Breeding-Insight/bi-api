@@ -91,6 +91,7 @@ public class Trait extends TraitEntity {
         this.setUpdatedAt(traitEntity.getUpdatedAt());
         this.setUpdatedBy(traitEntity.getUpdatedBy());
         this.setActive(traitEntity.getActive());
+        this.setTermType(traitEntity.getTermType());
     }
 
     public static Trait parseSqlRecord(Record record) {
@@ -106,6 +107,7 @@ public class Trait extends TraitEntity {
             .updatedAt(record.getValue(TRAIT.UPDATED_AT))
             .updatedBy(record.getValue(TRAIT.UPDATED_BY))
             .active(record.getValue(TRAIT.ACTIVE))
+            .termType(record.getValue(TRAIT.TERM_TYPE))
             .build();
     }
 
