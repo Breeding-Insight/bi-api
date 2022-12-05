@@ -23,4 +23,6 @@ public interface BreedingMethodDAO {
     ProgramBreedingMethodEntity createProgramMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID id);
 
     ProgramBreedingMethodEntity updateProgramMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID id);
+
+    void deleteProgramMethod(UUID programId, UUID breedingMethodId);
 }

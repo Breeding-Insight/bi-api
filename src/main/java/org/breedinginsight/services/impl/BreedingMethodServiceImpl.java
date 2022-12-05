@@ -8,6 +8,7 @@ import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.services.BreedingMethodService;
 import org.breedinginsight.services.exceptions.BadRequestException;
+import org.jooq.DSLContext;
 
 import javax.inject.Singleton;
 import java.util.*;
@@ -20,9 +21,12 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
     private final BreedingMethodDAO breedingMethodDAO;
     private final BrAPIGermplasmService germplasmService;
 
-    public BreedingMethodServiceImpl(BreedingMethodDAO breedingMethodDAO, BrAPIGermplasmService germplasmService) {
+    private final DSLContext dsl;
+
+    public BreedingMethodServiceImpl(BreedingMethodDAO breedingMethodDAO, BrAPIGermplasmService germplasmService, DSLContext dsl) {
         this.breedingMethodDAO = breedingMethodDAO;
         this.germplasmService = germplasmService;
+        this.dsl = dsl;
     }
 
     @Override
@@ -59,7 +63,7 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
             throw new BadRequestException("Missing required data");
         }
 
-        return breedingMethodDAO.createProgramMethod(breedingMethod, programId, userId);
+        return dsl.transactionResult(() -> breedingMethodDAO.createProgramMethod(breedingMethod, programId, userId));
     }
 
     @Override
@@ -73,7 +77,7 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
             throw new BadRequestException("Breeding method is not allowed to be edited");
         }
 
-        return breedingMethodDAO.updateProgramMethod(breedingMethod, programId, userId);
+        return dsl.transactionResult(() -> breedingMethodDAO.updateProgramMethod(breedingMethod, programId, userId));
     }
 
     @Override
@@ -89,7 +93,17 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
             }
         });
 
-        breedingMethodDAO.enableSystemMethods(new ArrayList<>(uniqueSystemIds), programId, userId);
+        dsl.transaction(() -> breedingMethodDAO.enableSystemMethods(new ArrayList<>(uniqueSystemIds), programId, userId));
+    }
+
+    @Override
+    public void deleteBreedingMethod(UUID programId, UUID breedingMethodId) throws ApiException, BadRequestException {
+        List<ProgramBreedingMethodEntity> inUseMethods = fetchBreedingMethodsInUse(programId);
+        if(inUseMethods.stream().anyMatch(method -> method.getId().equals(breedingMethodId))) {
+            throw new BadRequestException("Breeding method is not allowed to be deleted");
+        }
+
+        dsl.transaction(() -> breedingMethodDAO.deleteProgramMethod(programId, breedingMethodId));
     }
 
     private boolean validateBreedingMethod(ProgramBreedingMethodEntity method) {

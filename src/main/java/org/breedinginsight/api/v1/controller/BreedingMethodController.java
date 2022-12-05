@@ -150,6 +150,18 @@ public class BreedingMethodController {
         }
     }
 
+    @Delete("programs/{programId}/breeding-methods/{breedingMethodId}")
+    public HttpResponse deleteProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId) throws BadRequestException, ApiException {
+        try {
+            AuthenticatedUser user = securityService.getUser();
+            breedingMethodService.deleteBreedingMethod(programId, breedingMethodId);
+            return HttpResponse.ok();
+        } catch (Exception e) {
+            log.error("Error deleting breeding method.\n\tprogramId: " + programId + "\n\tbreedingMethodId: " + breedingMethodId);
+            throw e;
+        }
+    }
+
     private HttpResponse<Response<DataResponse<ProgramBreedingMethodEntity>>> buildResponse(List<ProgramBreedingMethodEntity> breedingMethods) {
         List<Status> metadataStatus = new ArrayList<>();
         metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
