@@ -168,7 +168,7 @@ public class TraitFileParserUnitTest {
         ValidatorException e = assertThrows(ValidatorException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
 
         ValidationErrors rowErrors = e.getErrors();
-        assertTrue(rowErrors.getRowErrors().size() == 3, "Wrong number of row errors returned");
+        assertTrue(rowErrors.getRowErrors().size() == 4, "Wrong number of row errors returned");
 
         Map<String, ParsingExceptionType> expectedErrors1 = new HashMap<>();
         expectedErrors1.put(TraitFileColumns.SCALE_CLASS.toString(), ParsingExceptionType.INVALID_SCALE_CLASS);
@@ -183,9 +183,14 @@ public class TraitFileParserUnitTest {
         expectedErrors3.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT);
         expectedErrors3.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT);
 
+        Map<String, ParsingExceptionType> expectedErrors4 = new HashMap<>();
+        expectedErrors3.putAll(expectedErrors1);
+        expectedErrors3.put(TraitFileColumns.TERM_TYPE.toString(), ParsingExceptionType.INVALID_TERM_TYPE);
+
         checkParsingExceptionErrors(rowErrors.getRowErrors().get(0), expectedErrors1);
         checkParsingExceptionErrors(rowErrors.getRowErrors().get(1), expectedErrors2);
         checkParsingExceptionErrors(rowErrors.getRowErrors().get(2), expectedErrors3);
+        checkParsingExceptionErrors(rowErrors.getRowErrors().get(3), expectedErrors4);
     }
 
     void checkParsingExceptionErrors(RowValidationErrors rowError, Map<String, ParsingExceptionType> errorColumns) {
