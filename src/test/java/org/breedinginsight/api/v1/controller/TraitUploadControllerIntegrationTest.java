@@ -571,7 +571,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("Leaf", observationLevel.get("name").getAsString(), "wrong level name");
 
         assertEquals(true, trait.get("active").getAsBoolean(), "wrong status");
-        assertEquals(TermType.GERM_PASSPORT.toString(), trait.get("termType"));
+        assertEquals(TermType.GERM_PASSPORT.toString(), trait.get("termType").getAsString());
 
         // TODO: trait lists
 
