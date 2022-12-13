@@ -63,6 +63,7 @@ public class Trait extends TraitEntity {
     private User updatedByUser;
 
     // Properties from brapi
+    private String observationVariableDbId;
     private String traitClass;
     private String traitDescription;
     private String attribute;
@@ -120,7 +121,7 @@ public class Trait extends TraitEntity {
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
             this.setSynonyms(brApiVariable.getTrait().getSynonyms());
         }
-
+        this.setObservationVariableDbId(brApiVariable.getObservationVariableDbId());
         this.setDefaultValue(brApiVariable.getDefaultValue());
     }
 
