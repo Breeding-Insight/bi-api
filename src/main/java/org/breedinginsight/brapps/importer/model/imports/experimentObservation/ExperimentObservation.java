@@ -284,12 +284,24 @@ public class ExperimentObservation implements BrAPIImport {
         return observationUnit;
     }
 
-    // TODO: Fill out with rest of data for saving to BRAPI
-    public BrAPIObservation constructBrAPIObservation(String value, String variableName) {
+    public BrAPIObservation constructBrAPIObservation(
+            String value,
+            String variableName,
+            String seasonDbId
+            ) {
         BrAPIObservation observation = new BrAPIObservation();
-
-        observation.setValue(value);
+        observation.setGermplasmDbId(getGid());
+        observation.setGermplasmName(getGermplasmName());
+        if(getEnv() != null) {
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.STUDY_NAME, getEnv());
+        }
         observation.setObservationVariableName(variableName);
+        observation.setValue(value);
+
+        // The BrApi server needs this.  Breedbase does not.
+        BrAPISeason season = new BrAPISeason();
+        season.setSeasonDbId(seasonDbId);
+        observation.setSeason(season);
 
         return observation;
     }

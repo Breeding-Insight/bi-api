@@ -37,4 +37,5 @@ public final class BrAPIAdditionalInfoFields {
     public static final String EXPERIMENT_TYPE = "experimentType";
     public static final String EXPERIMENT_NUMBER = "experimentNumber";
     public static final String ENVIRONMENT_NUMBER = "environmentNumber";
+    public static final String STUDY_NAME = "studyName";
 }
