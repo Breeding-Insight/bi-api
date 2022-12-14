@@ -58,7 +58,6 @@ import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -68,17 +67,17 @@ import java.util.stream.Collectors;
 @Singleton
 public class FileImportService {
 
-    private ProgramUserService programUserService;
-    private ProgramService programService;
-    private UserService userService;
-    private MimeTypeParser mimeTypeParser;
-    private ImportMappingDAO importMappingDAO;
-    private ObjectMapper objectMapper;
-    private MappingManager mappingManager;
-    private ImportConfigManager configManager;
-    private ImportDAO importDAO;
-    private DSLContext dsl;
-    private ImportMappingProgramDAO importMappingProgramDAO;
+    private final ProgramUserService programUserService;
+    private final ProgramService programService;
+    private final UserService userService;
+    private final MimeTypeParser mimeTypeParser;
+    private final ImportMappingDAO importMappingDAO;
+    private final ObjectMapper objectMapper;
+    private final MappingManager mappingManager;
+    private final ImportConfigManager configManager;
+    private final ImportDAO importDAO;
+    private final DSLContext dsl;
+    private final ImportMappingProgramDAO importMappingProgramDAO;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
@@ -339,7 +338,7 @@ public class FileImportService {
 
         // Check that the program that the user created the import for is the one they are updating for
         if (!programId.equals(upload.getProgramId())){
-            throw new BadRequestException("Unable to update upload for a different program than the upload was created in.");
+            throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Unable to update upload for a different program than the upload was created in.");
         }
 
         // Get mapping
@@ -426,8 +425,15 @@ public class FileImportService {
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
-            } catch (ValidatorException e) {
-                log.error("Validation errors", e);
+            } catch (MissingRequiredInfoException e) {
+                log.error(e.getMessage(), e);
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+                progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
+            }catch (ValidatorException e) {
+                log.info("Validation errors", e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
                 progress.setMessage("Multiple Errors");

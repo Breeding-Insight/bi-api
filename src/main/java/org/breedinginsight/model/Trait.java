@@ -20,18 +20,21 @@ package org.breedinginsight.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
 import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
+import javax.validation.Valid;
 import java.util.List;
 
 import static org.breedinginsight.dao.db.Tables.TRAIT;
@@ -42,6 +45,8 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = { "methodId", "scaleId",
         "programOntologyId", "programObservationLevelId", "createdBy", "updatedBy"})
 public class Trait extends TraitEntity {

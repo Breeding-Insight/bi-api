@@ -27,7 +27,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.*;
@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class EnvironmentTypeControllerIntegrationTest extends DatabaseTest {
+public class EnvironmentDataTypeControllerIntegrationTest extends DatabaseTest {
 
     private String validEnvironmentTypeId;
     private String validEnvironmentTypeName;

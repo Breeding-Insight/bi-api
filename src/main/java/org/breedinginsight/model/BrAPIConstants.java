@@ -3,7 +3,9 @@ package org.breedinginsight.model;
 import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum BrAPIConstants {
-    SYSTEM_DEFAULT("System Default");
+    SYSTEM_DEFAULT("System Default"),
+    REPLICATE( "replicate"),
+    BLOCK( "block");
 
     private String value;
 

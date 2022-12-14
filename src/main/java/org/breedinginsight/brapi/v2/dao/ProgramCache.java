@@ -48,11 +48,12 @@ public class ProgramCache<K, R> {
                 @Override
                 public Map<K, R> load(@NotNull UUID programId) throws Exception {
                     try {
+                        log.debug("loading cache.\n\tprogramId: " + programId);
                         Map<K, R> values = fetchMethod.apply(programId);
-                        log.debug("cache loading complete.\nprogramId: " + programId);
+                        log.debug("cache loading complete.\n\tprogramId: " + programId);
                         return values;
                     } catch (Exception e) {
-                        log.error("cache loading error:\nprogramId: " + programId, e);
+                        log.error("cache loading error:\n\tprogramId: " + programId, e);
                         cache.invalidate(programId);
                         throw e;
                     }
@@ -79,14 +80,14 @@ public class ProgramCache<K, R> {
             // TODO: Do we want to wait for a refresh method if it is running? Returns current data right now, even if old
             if (!programSemaphore.containsKey(programId) || cache.getIfPresent(programId) == null) {
                 // If the cache is missing, refresh and get
-                log.trace("cache miss, fetching from source.\nprogramId: " + programId);
+                log.trace("cache miss, fetching from source.\n\tprogramId: " + programId);
                 updateCache(programId);
                 Map<K, R> result = new HashMap<>(cache.get(programId));
                 result = result.entrySet().stream().map(cloner::deepClone)
                         .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
                 return result;
             } else {
-                log.trace("cache contains records for the program.\nprogramId: " + programId);
+                log.trace("cache contains records for the program.\n\tprogramId: " + programId);
                 // Most cases where the cache is populated
                 Map<K, R> result = new HashMap<>(cache.get(programId));
                 result = result.entrySet().stream().map(cloner::deepClone)
@@ -94,7 +95,7 @@ public class ProgramCache<K, R> {
                 return result;
             }
         } catch (ExecutionException e) {
-            log.error("cache error:\nprogramId: " + programId, e);
+            log.error("cache error:\n\tprogramId: " + programId, e);
             return fetchMethod.apply(programId);
         }
     }
@@ -119,7 +120,7 @@ public class ProgramCache<K, R> {
                     programSemaphore.get(programId).acquire();
                     cache.refresh(programId);
                 } catch (InterruptedException e) {
-                    log.error("cache loading error:\nprogramId: " + programId, e);
+                    log.error("cache loading error:\n\tprogramId: " + programId, e);
                     throw new InternalServerException(e.getMessage(), e);
                 } finally {
                     programSemaphore.get(programId).release();
@@ -128,9 +129,17 @@ public class ProgramCache<K, R> {
         }
     }
 
-    public List<R> post(UUID programId, Callable<List<R>> postMethod) throws Exception {
-        List<R> response = postMethod.call();
+    public List<R> post(UUID programId, Callable<Map<K, R>> postMethod) throws Exception {
+        Map<K, R> response = postMethod.call();
+
+        Map<K, R> map = cache.getIfPresent(programId);
+        if(map != null) {
+            map.putAll(response);
+        } else {
+            cache.put(programId, response);
+        }
+
         updateCache(programId);
-        return response;
+        return new ArrayList<>(response.values());
     }
 }

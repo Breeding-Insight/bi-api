@@ -29,8 +29,8 @@ import io.micronaut.web.router.RouteMatch;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.ProgramUser;
+import org.jetbrains.annotations.Nullable;
 
-import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
@@ -52,7 +52,7 @@ public class ProgramSecuredAnnotationRule extends SecuredAnnotationRule {
     private ProgramDAO programDAO;
 
     @Override
-    public SecurityRuleResult check(HttpRequest request, @Nullable RouteMatch routeMatch, @Nullable Map<String, Object> claims) {
+    public SecurityRuleResult check(HttpRequest<?> request, @Nullable RouteMatch<?> routeMatch, @Nullable Map<String, Object> claims) {
         // Does not approve request so that checks after it can check. Only rejects on fail.
 
         if (routeMatch instanceof MethodBasedRouteMatch) {

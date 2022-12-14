@@ -39,10 +39,12 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 public class ObservationDAO {
     private BrAPIProvider brAPIProvider;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public ObservationDAO(BrAPIProvider brAPIProvider) {
+    public ObservationDAO(BrAPIProvider brAPIProvider, BrAPIDAOUtil brAPIDAOUtil) {
         this.brAPIProvider = brAPIProvider;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId) {
@@ -67,7 +69,7 @@ public class ObservationDAO {
                     .observationVariableDbIds(observationVariableDbIds);
 
             ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return BrAPIDAOUtil.search(
+            return brAPIDAOUtil.search(
                     api::searchObservationsPost,
                     this::searchObservationsSearchResultsDbIdGet,
                     request
@@ -86,7 +88,7 @@ public class ObservationDAO {
                     .programDbIds(List.of(brapiProgramId));
 
             ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return BrAPIDAOUtil.search(
+            return brAPIDAOUtil.search(
                     api::searchObservationsPost,
                     this::searchObservationsSearchResultsDbIdGet,
                     request

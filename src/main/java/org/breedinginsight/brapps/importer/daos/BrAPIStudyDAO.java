@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.daos;
 
+import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.v2.model.core.BrAPIStudy;
@@ -32,14 +33,18 @@ import java.util.UUID;
 
 @Singleton
 public class BrAPIStudyDAO {
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
 
     @Inject
-    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
     }
 
     public List<BrAPIStudy> getStudyByName(List<String> studyNames, Program program) throws ApiException {
@@ -47,7 +52,20 @@ public class BrAPIStudyDAO {
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
-        return BrAPIDAOUtil.search(
+        return brAPIDAOUtil.search(
+                api::searchStudiesPost,
+                api::searchStudiesSearchResultsDbIdGet,
+                studySearch
+        );
+    }
+
+    public List<BrAPIStudy> getStudiesByExperimentID(UUID experimentID, Program program ) throws ApiException {
+        BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
+        studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        studySearch.addExternalReferenceIDsItem(experimentID.toString());
+        studySearch.addExternalReferenceSourcesItem(BRAPI_REFERENCE_SOURCE + "/trials");
+        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
                 studySearch
@@ -56,7 +74,7 @@ public class BrAPIStudyDAO {
 
     public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
         StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
+        return brAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
     }
 
 }
