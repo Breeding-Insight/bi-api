@@ -299,6 +299,7 @@ public class FileImportService {
             newUpload.setUserId(actingUser.getId());
             newUpload.setCreatedBy(actingUser.getId());
             newUpload.setUpdatedBy(actingUser.getId());
+            newUpload = setDynamicColumns(newUpload, data, importMapping);
 
             // Create a progress object
             ImportProgress importProgress = new ImportProgress();
@@ -395,6 +396,26 @@ public class FileImportService {
         importResponse.setImportId(upload.getId());
         importResponse.setProgress(upload.getProgress());
         return importResponse;
+    }
+
+    /**
+     * If mapping has experiment structure, retrieve dynamic columns
+     * Experiment and germplasm mapping presently have different structures
+     * @param newUpload
+     * @param data
+     * @param importMapping
+     * @return updated newUpload with dynamic columns set
+     */
+    public ImportUpload setDynamicColumns(ImportUpload newUpload, Table data, ImportMapping importMapping) {
+        if (importMapping.getMappingConfig().get(0).getValue() != null) {
+            List<String> mappingCols = importMapping.getMappingConfig().stream().map(field -> field.getValue().getFileFieldName()).collect(Collectors.toList());
+            List<String> dynamicCols = data.columnNames().stream()
+                    .filter(column -> !mappingCols.contains(column)).collect(Collectors.toList());
+            newUpload.setDynamicColumnNames(dynamicCols);
+        } else {
+            newUpload.setDynamicColumnNames(new ArrayList<>());
+        }
+        return newUpload;
     }
 
     private void processFile(List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
