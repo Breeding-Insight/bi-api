@@ -151,6 +151,7 @@ public class BreedingMethodController {
     }
 
     @Delete("programs/{programId}/breeding-methods/{breedingMethodId}")
+    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
     public HttpResponse deleteProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId) throws BadRequestException, ApiException {
         try {
             AuthenticatedUser user = securityService.getUser();

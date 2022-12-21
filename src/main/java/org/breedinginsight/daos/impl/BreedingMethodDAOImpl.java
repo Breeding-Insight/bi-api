@@ -136,7 +136,7 @@ public class BreedingMethodDAOImpl extends BreedingMethodDao implements Breeding
     public void deleteProgramMethod(UUID programId, UUID breedingMethodId) {
         dsl.deleteFrom(PROGRAM_BREEDING_METHOD)
            .where(PROGRAM_BREEDING_METHOD.ID.eq(breedingMethodId))
-           .and(PROGRAM_BREEDING_METHOD.PROGRAM_ID.eq(programId));
+           .and(PROGRAM_BREEDING_METHOD.PROGRAM_ID.eq(programId)).execute();
     }
 
     private SelectConditionStep<Record> systemMethodBase(UUID programId) {

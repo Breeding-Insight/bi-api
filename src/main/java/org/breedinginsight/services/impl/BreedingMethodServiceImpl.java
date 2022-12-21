@@ -49,9 +49,7 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         //TODO retest with new germplasm after updating the DAO to return the correct ID for a method
         germplasmService.getGermplasm(programId).forEach(germplasm -> {
             UUID id = UUID.fromString(germplasm.getBreedingMethodDbId());
-            if(!inUse.containsKey(id)) {
-                inUse.put(id, programMethods.get(id));
-            }
+            inUse.put(id, programMethods.get(id));
         });
 
         return new ArrayList<>(inUse.values());
