@@ -166,6 +166,7 @@ public class BrAPIGermplasmDAO {
                 JsonObject additionalInfo = germplasm.getAdditionalInfo();
                 if(additionalInfo == null) {
                     additionalInfo = new JsonObject();
+                    germplasm.setAdditionalInfo(additionalInfo);
                 }
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, germplasm.getPedigree());
 
