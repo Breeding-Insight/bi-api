@@ -354,7 +354,7 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void NoFemaleParentBlankPedigreeStringSuccess() {
+    public void OnlyMaleParentPreviewSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/no_female_parent_blank_pedigree.csv");
 
         Flowable<HttpResponse<String>> call = uploadDataFile(file, "NoFemaleParentList", null, true);
@@ -369,7 +369,8 @@ public class GermplasmTemplateMap extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
-            assertTrue(!germplasm.has("pedigree"), "Pedigree string is populated, but should be empty");
+            assertTrue(germplasm.has("pedigree"), "Pedigree string should be populated, but is empty");
+            assertTrue(germplasm.get("pedigree").getAsString().substring(1).length() > 0, "Male pedigree string should be populated, but is empty");
         }
     }
 
