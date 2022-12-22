@@ -369,15 +369,11 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-//    private String createObservationUnitKey(ExperimentObservation importRow) {
-//        String key = importRow.getEnv() + importRow.getExpUnitId();
-//        return key;
-//    }
-
     private String createObservationUnitKey(ExperimentObservation importRow) {
-                String key = createObservationUnitKey( importRow.getEnv(), importRow.getExpUnitId() );
-                return key;
+        String key = createObservationUnitKey( importRow.getEnv(), importRow.getExpUnitId() );
+        return key;
     }
+
     private String createObservationUnitKey(String studyName, String obsUnitName) {
         String key = studyName + obsUnitName;
         return key;
@@ -657,7 +653,7 @@ public class ExperimentProcessor implements Processor {
         List<BrAPILocation> newLocations = ProcessorData.getNewObjects(this.locationByName);
         List<BrAPIStudy> newStudies = ProcessorData.getNewObjects(this.studyByNameNoScope);
         List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
-        // Do not save observations with no 'value'
+        // filter out observations with no 'value' so they will not be saved
         List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(this.observationByHash).stream()
                 .filter(obs -> !obs.getValue().isBlank())
                 .collect(Collectors.toList());
@@ -696,15 +692,16 @@ public class ExperimentProcessor implements Processor {
             }
 
             updateObsUnitDependencyValues(program.getKey());
-            //brAPIObservationUnitDAO.createBrAPIObservationUnits(newObservationUnits, program.getId(), upload);
             List<BrAPIObservationUnit> createdObservationUnits = brAPIObservationUnitDAO.createBrAPIObservationUnits(newObservationUnits, program.getId(), upload);
 
             // set the DbId to the for each newly created Observation Unit
             for( BrAPIObservationUnit createdObservationUnit : createdObservationUnits){
+                // retrieve the BrAPI ObservationUnit from this.observationUnitByNameNoScope
                 String createdObservationUnit_StripedStudyName = Utilities.removeProgramKeyAndUnknownAdditionalData( createdObservationUnit.getStudyName(),program.getKey() );
                 String createdObservationUnit_StripedObsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData( createdObservationUnit.getObservationUnitName(),program.getKey() );
                 String createdObsUnit_key = createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName);
                 PendingImportObject<BrAPIObservationUnit> pi = this.observationUnitByNameNoScope.get(createdObsUnit_key);
+                // update the retrieved BrAPI object
                 BrAPIObservationUnit brAPIObservationUnit = pi.getBrAPIObject();
                 brAPIObservationUnit.setObservationUnitDbId ( createdObservationUnit.getObservationUnitDbId() );
             }
