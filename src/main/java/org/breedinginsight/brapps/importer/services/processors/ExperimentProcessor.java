@@ -364,9 +364,7 @@ public class ExperimentProcessor implements Processor {
                 //column.name() gets phenotype name
                 String seasonDbId = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
                 PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i), dateTimeValue, commit, seasonDbId);
-                if(obsPIO.getBrAPIObject() != null && !obsPIO.getBrAPIObject().getValue().isBlank()) {
-                    this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
-                }
+                this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
             }
         }
     }
@@ -659,8 +657,10 @@ public class ExperimentProcessor implements Processor {
         List<BrAPILocation> newLocations = ProcessorData.getNewObjects(this.locationByName);
         List<BrAPIStudy> newStudies = ProcessorData.getNewObjects(this.studyByNameNoScope);
         List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
-        List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(this.observationByHash);
-
+        // Do not save observations with no 'value'
+        List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(this.observationByHash).stream()
+                .filter(obs -> !obs.getValue().isBlank())
+                .collect(Collectors.toList());
         try {
             List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrial(newTrials, program.getId(), upload));
             // set the DbId to the for each newly created trial
