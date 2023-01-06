@@ -363,7 +363,7 @@ public class ExperimentProcessor implements Processor {
                 }
                 //column.name() gets phenotype name
                 String seasonDbId = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
-                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i), dateTimeValue, commit, seasonDbId);
+                PendingImportObject<BrAPIObservation> obsPIO = createObservationPIO(importRow, column.name(), column.getString(i), dateTimeValue, commit, seasonDbId, obsUnitPIO);
                 this.observationByHash.put(getImportObservationHash(importRow, getVariableNameFromColumn(column)), obsPIO);
             }
         }
@@ -573,13 +573,13 @@ public class ExperimentProcessor implements Processor {
     }
 
 
-    private PendingImportObject<BrAPIObservation> createObservationPIO(ExperimentObservation importRow, String variableName, String value, String timeStampValue, boolean commit, String seasonDbId) {
+    private PendingImportObject<BrAPIObservation> createObservationPIO(ExperimentObservation importRow, String variableName, String value, String timeStampValue, boolean commit, String seasonDbId, PendingImportObject<BrAPIObservationUnit> obsUnitPIO) {
         PendingImportObject<BrAPIObservation> pio = null;
         if (this.observationByHash.containsKey(getImportObservationHash(importRow, variableName))) {
             pio = observationByHash.get(getImportObservationHash(importRow, variableName));
         }
         else {
-            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName, seasonDbId);
+            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName, seasonDbId, obsUnitPIO.getBrAPIObject());
             //NOTE: Can't parse invalid timestamp value, so have to skip if invalid.
             // Validation error should be thrown for offending value, but that doesn't happen until later downstream
             if (timeStampValue != null && !timeStampValue.isBlank() && (validDateValue(timeStampValue) || validDateTimeValue(timeStampValue))) {
@@ -766,11 +766,23 @@ public class ExperimentProcessor implements Processor {
 
     private void updateObservationDbIds(BrAPIObservationUnit obsUnit, String programKey) {
         this.observationByHash.values().stream()
-                .filter(obs -> obs.getBrAPIObject().getAdditionalInfo() !=null && obs.getBrAPIObject().getAdditionalInfo().get( BrAPIAdditionalInfoFields.STUDY_NAME)!=null &&
-                        obs.getBrAPIObject().getAdditionalInfo().get( BrAPIAdditionalInfoFields.STUDY_NAME).getAsString().equals( obsUnit.getStudyName() ) )
+                              .filter(obs -> obs.getBrAPIObject()
+                                                .getAdditionalInfo() != null && obs.getBrAPIObject()
+                                                                                   .getAdditionalInfo()
+                                                                                   .get(BrAPIAdditionalInfoFields.STUDY_NAME) != null
+                                      && obs.getBrAPIObject()
+                                         .getAdditionalInfo()
+                                         .get(BrAPIAdditionalInfoFields.STUDY_NAME)
+                                         .getAsString()
+                                         .equals(obsUnit.getStudyName())
+                                      && obs.getBrAPIObject()
+                                            .getObservationUnitName()
+                                            .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey)))
                 .forEach(obs -> {
+                    if(obs.getBrAPIObject().getObservationUnitDbId() == null) {
+                        obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
+                    }
                     obs.getBrAPIObject().setStudyDbId(obsUnit.getStudyDbId());
-                    obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
                 });
     }
 

@@ -287,7 +287,8 @@ public class ExperimentObservation implements BrAPIImport {
     public BrAPIObservation constructBrAPIObservation(
             String value,
             String variableName,
-            String seasonDbId
+            String seasonDbId,
+            BrAPIObservationUnit obsUnit
             ) {
         BrAPIObservation observation = new BrAPIObservation();
         observation.setGermplasmDbId(getGid());
@@ -296,6 +297,8 @@ public class ExperimentObservation implements BrAPIImport {
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.STUDY_NAME, getEnv());
         }
         observation.setObservationVariableName(variableName);
+        observation.setObservationDbId(obsUnit.getObservationUnitDbId());
+        observation.setObservationUnitName(obsUnit.getObservationUnitName());
         observation.setValue(value);
 
         // The BrApi server needs this.  Breedbase does not.
