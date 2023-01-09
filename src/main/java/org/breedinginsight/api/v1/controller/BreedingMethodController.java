@@ -136,7 +136,7 @@ public class BreedingMethodController {
 
     @Put("programs/{programId}/breeding-methods/enable")
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse enableSystemBreedingMethods(@PathVariable UUID programId, @Body List<UUID> systemBreedingMethodIds) throws ApiException {
+    public HttpResponse enableSystemBreedingMethods(@PathVariable UUID programId, @Body List<UUID> systemBreedingMethodIds) throws ApiException, BadRequestException {
         log.debug("enabling system breeding methods for program: "+programId);
 
         try {

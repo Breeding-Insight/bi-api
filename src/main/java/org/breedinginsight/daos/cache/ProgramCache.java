@@ -164,7 +164,7 @@ public class ProgramCache<R> {
         return retMap;
     }
 
-    public List<R> post(UUID key, Callable<Map<String, R>> postMethod) {
+    public List<R> post(UUID key, Callable<Map<String, R>> postMethod) throws Exception {
         log.debug("posting for key: " + generateCacheKey(key));
         Map<String, R> response = null;
         try {
@@ -177,10 +177,13 @@ public class ProgramCache<R> {
                 map.put(obj.getKey(), gson.toJson(obj.getValue()));
             }
             populate(key);
+
+            return new ArrayList<>(response.values());
         } catch (Exception e) {
+            log.error("Error posting data and populating the cache", e);
             invalidate(key);
+            throw e;
         }
-        return new ArrayList<>(response.values());
     }
 
     public boolean isRefreshing(UUID key) {

@@ -79,8 +79,11 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
     }
 
     @Override
-    public void enableSystemMethods(List<UUID> systemBreedingMethods, UUID programId, UUID userId) throws ApiException {
+    public void enableSystemMethods(List<UUID> systemBreedingMethods, UUID programId, UUID userId) throws ApiException, BadRequestException {
         List<ProgramBreedingMethodEntity> inUseMethods = fetchBreedingMethodsInUse(programId);
+        if(!systemBreedingMethods.containsAll(inUseMethods.stream().map(method -> method.getId()).collect(Collectors.toList()))) {
+            throw new BadRequestException("Breeding method is not allowed to be edited");
+        }
 
         Set<UUID> uniqueSystemIds = new HashSet<>(systemBreedingMethods);
 

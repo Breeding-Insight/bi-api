@@ -19,7 +19,7 @@ public interface BreedingMethodService {
 
     ProgramBreedingMethodEntity updateBreedingMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID userId) throws BadRequestException, ApiException;
 
-    void enableSystemMethods(List<UUID> systemBreedingMethods, UUID programId, UUID userId) throws ApiException;
+    void enableSystemMethods(List<UUID> systemBreedingMethods, UUID programId, UUID userId) throws ApiException, BadRequestException;
 
     void deleteBreedingMethod(UUID programId, UUID breedingMethodId) throws ApiException, BadRequestException;
 }
