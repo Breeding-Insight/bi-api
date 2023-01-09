@@ -1401,7 +1401,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         updateTrait.setTraitDescription("Updated description");
         updateTrait.setEntity("Updated entity");
         updateTrait.setObservationVariableName("Updated name");
-        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated Level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
         updateTrait.getMethod().setDescription("A method");
@@ -1535,7 +1535,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         updateTrait.setId(UUID.randomUUID());
         updateTrait.setObservationVariableName("Update Name");
-        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated level").build());
+        updateTrait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Updated Level").build());
         updateTrait.getScale().setScaleName("Updated Scale");
         updateTrait.getScale().setDataType(DataType.DATE);
         updateTrait.getMethod().setDescription("A method");
