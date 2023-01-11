@@ -775,11 +775,11 @@ public class ExperimentProcessor implements Processor {
                                          .get(BrAPIAdditionalInfoFields.STUDY_NAME)
                                          .getAsString()
                                          .equals(obsUnit.getStudyName())
-                                      && obs.getBrAPIObject()
-                                            .getObservationUnitName()
-                                            .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey)))
+                                      && Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getBrAPIObject()
+                                                                                               .getObservationUnitName(), programKey)
+                                                  .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey)))
                 .forEach(obs -> {
-                    if(obs.getBrAPIObject().getObservationUnitDbId() == null) {
+                    if(StringUtils.isBlank(obs.getBrAPIObject().getObservationUnitDbId())) {
                         obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
                     }
                     obs.getBrAPIObject().setStudyDbId(obsUnit.getStudyDbId());
