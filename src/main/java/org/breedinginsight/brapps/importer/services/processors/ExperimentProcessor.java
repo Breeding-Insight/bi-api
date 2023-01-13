@@ -733,15 +733,13 @@ public class ExperimentProcessor implements Processor {
 
         // Update ObservationVariable DbIds
         List<Trait> traits = getTraitList(program);
+        Map<String, Trait> traitMap = traits.stream().collect(Collectors.toMap(trait -> trait.getObservationVariableName(), trait -> trait));
+
         for(PendingImportObject<BrAPIObservation> observation: this.observationByHash.values()){
-            traitsLoop:
-            for(Trait trait: traits){
-                if(     observation.getBrAPIObject()!=null && observation.getBrAPIObject().getObservationVariableName()!=null
-                        && observation.getBrAPIObject().getObservationVariableName().equals(trait.getObservationVariableName())
-                ){
-                    observation.getBrAPIObject().setObservationVariableDbId(trait.getObservationVariableDbId());
-                    break traitsLoop;
-                }
+            String observationVariableName = observation.getBrAPIObject().getObservationVariableName();
+            if( observationVariableName!=null && traitMap.containsKey(observationVariableName)){
+                String observationVariableDbId = traitMap.get(observationVariableName).getObservationVariableDbId();
+                observation.getBrAPIObject().setObservationVariableDbId( observationVariableDbId );
             }
         }
     }
