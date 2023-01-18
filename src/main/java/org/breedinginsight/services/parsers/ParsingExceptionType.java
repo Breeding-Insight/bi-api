@@ -32,7 +32,8 @@ public enum ParsingExceptionType {
     INVALID_SCALE_DECIMAL_PLACES("Invalid scale decimal places value"),
     INVALID_SCALE_LOWER_LIMIT("Invalid scale lower limit value. Value must be numeric and be a whole number."),
     INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value. Value must be numeric and be a whole number."),
-    INVALID_SCALE_CATEGORIES("Invalid scale categories format");
+    INVALID_SCALE_CATEGORIES("Invalid scale categories format"),
+    INVALID_TERM_TYPE("Invalid term type");
 
     private String value;
 

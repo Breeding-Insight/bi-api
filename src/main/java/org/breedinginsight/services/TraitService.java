@@ -217,6 +217,7 @@ public class TraitService {
                             .createdBy(actingUser.getId())
                             .updatedBy(actingUser.getId())
                             .active(true)
+                            .termType(trait.getTermType())
                             .build();
                     traitDAO.insert(jooqTrait);
                     trait.setId(jooqTrait.getId());
@@ -416,6 +417,7 @@ public class TraitService {
                     existingTraitEntity.setObservationVariableName(updatedTrait.getObservationVariableName());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());
+                    existingTraitEntity.setTermType(updatedTrait.getTermType());
                     traitDAO.update(existingTraitEntity);
 
                     // Update in brapi
