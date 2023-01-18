@@ -63,29 +63,31 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
         // Get all the programs
         List<Program> programs = getAllPrograms(context, defaultUrl);
 
-        // Get all of the germplasm with a program id attached
-        Map<String, List<BrAPIGermplasm>> programGermplasm = new HashMap<>();
+        // Process the germplasm for each program sequentially
         for (Program program : programs) {
-            log.debug("Fetching germplasm for programId: " + program.getId());
-            BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
+            log.debug("Migrating germplasm for programId: " + program.getId());
+            BrAPIClient client = new BrAPIClient(program.getBrapiUrl(), 240000);
             GermplasmApi api = new GermplasmApi(client);
 
             GermplasmQueryParams queryParams = new GermplasmQueryParams();
             String programReferenceSource = String.format("%s/programs", referenceSource);
             queryParams.externalReferenceSource(programReferenceSource);
             queryParams.externalReferenceID(program.getId().toString());
+            queryParams.page(0);
+            queryParams.pageSize(1000);
             ApiResponse<BrAPIGermplasmListResponse> germplasmResponse = api.germplasmGet(queryParams);
 
-            List<BrAPIGermplasm> updateGermplasm = new ArrayList<>();
-            if (germplasmResponse.getBody() != null && germplasmResponse.getBody().getResult() != null) {
+            boolean done = germplasmResponse.getBody() == null || germplasmResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || germplasmResponse.getBody().getResult() == null;
+            while(!done) {
+                log.debug(String.format("processing page %d of %d of germplasm for programId: %s", germplasmResponse.getBody().getMetadata().getPagination().getCurrentPage()+1, germplasmResponse.getBody().getMetadata().getPagination().getTotalPages(), program.getId()));
+                List<BrAPIGermplasm> updateGermplasm = new ArrayList<>();
                 // Filter out germplasm that have already been updated
-                for (BrAPIGermplasm germplasm: germplasmResponse.getBody().getResult().getData()) {
+                for (BrAPIGermplasm germplasm : germplasmResponse.getBody().getResult().getData()) {
                     // Check the germplasm are for this program
                     Boolean hasProgramRef = false;
-                    for (BrAPIExternalReference reference: germplasm.getExternalReferences()) {
+                    for (BrAPIExternalReference reference : germplasm.getExternalReferences()) {
                         if (reference.getReferenceSource().equals(programReferenceSource) &&
-                                reference.getReferenceID().equals(program.getId().toString())
-                        ) {
+                                reference.getReferenceID().equals(program.getId().toString())) {
                             hasProgramRef = true;
                         }
                     }
@@ -94,60 +96,61 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
                         updateGermplasm.add(germplasm);
                     }
                 }
-            }
 
-            // If a program has germplasm, and it doesn't have a program key, throw an error
-            if (program.getKey() == null && updateGermplasm.size() > 0) {
-                throw new Exception("Unable to process germplasm for program with no 'key'");
-            }
-
-            programGermplasm.put(program.getId().toString(), updateGermplasm);
-        }
-
-        // Checks complete, update the germplasm
-        for (Program program: programs) {
-
-            // Update germplasm
-            List<BrAPIGermplasm> allGermplasm = programGermplasm.get(program.getId().toString());
-            log.debug(String.format("Updating %d germplasm for programId: %s", allGermplasm.size(), program.getId()));
-
-            BrAPIClient client = new BrAPIClient(program.getBrapiUrl());
-            GermplasmApi api = new GermplasmApi(client);
-            for (int i = 0; i < allGermplasm.size(); i++) {
-                BrAPIGermplasm germplasm = allGermplasm.get(i);
-                log.debug(String.format("Program Key: %s. Germplasm %s out of %s", program.getKey(), i+1, allGermplasm.size()));
-
-                // Seed Source Description
-                if (germplasm.getSeedSourceDescription() == null || germplasm.getSeedSourceDescription().isBlank()) {
-                    germplasm.setSeedSource("Unknown");
+                // If a program has germplasm, and it doesn't have a program key, throw an error
+                if (program.getKey() == null && updateGermplasm.size() > 0) {
+                    throw new Exception("Unable to process germplasm for program with no 'key'");
                 }
-                // Set createdBy user
-                Map<String, String> additionalInfo = new HashMap<>();
-                additionalInfo.put("userId", systemUser.getId().toString());
-                additionalInfo.put("userName", systemUser.getName());
-                germplasm.putAdditionalInfoItem("createdBy", additionalInfo);
-                // Map breeding method
-                BreedingMethodEntity breedingMethod = getMappedBreedingMethod(context, germplasm.getBreedingMethodDbId());
-                germplasm.putAdditionalInfoItem("breedingMethodId", breedingMethod.getId().toString());
-                germplasm.putAdditionalInfoItem("breedingMethod", breedingMethod.getName().strip());
-                // Add germplasm UUID
-                BrAPIExternalReference uuidReference = new BrAPIExternalReference();
-                uuidReference.setReferenceSource(referenceSource);
-                uuidReference.setReferenceID(UUID.randomUUID().toString());
-                germplasm.getExternalReferences().add(uuidReference);
-                // Set display name to the old germplasm name
-                germplasm.setDefaultDisplayName(germplasm.getGermplasmName());
-                Integer accessionNumber = getNextSequenceVal(context, program);
-                germplasm.setAccessionNumber(accessionNumber.toString());
-                // Germplasm name = <Name> [<program key>-<accessionNumber>]
-                germplasm.setGermplasmName(String.format("%s [%s-%s]", germplasm.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
-                // Send germplasm back to server
-                BrAPIGermplasm updatedGermplasm = api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm).getBody().getResult();
-                // Check that the germplasm was in fact updated
-                if (!isUpdated(updatedGermplasm, program, referenceSource)) {
-                    throw new Exception("Germplasm returned from brapi server was not updated. Check your brapi server.");
+
+                // Checks complete, update the germplasm
+                log.debug(String.format("Updating %d germplasm for programId: %s", updateGermplasm.size(), program.getId()));
+                for (int i = 0; i < updateGermplasm.size(); i++) {
+                    BrAPIGermplasm germplasm = updateGermplasm.get(i);
+                    log.debug(String.format("Program Key: %s. Germplasm %s out of %s", program.getKey(), i + 1, updateGermplasm.size()));
+
+                    // Seed Source Description
+                    if (germplasm.getSeedSourceDescription() == null || germplasm.getSeedSourceDescription().isBlank()) {
+                        germplasm.setSeedSource("Unknown");
+                    }
+                    // Set createdBy user
+                    Map<String, String> additionalInfo = new HashMap<>();
+                    additionalInfo.put("userId", systemUser.getId().toString());
+                    additionalInfo.put("userName", systemUser.getName());
+                    germplasm.putAdditionalInfoItem("createdBy", additionalInfo);
+                    // Map breeding method
+                    BreedingMethodEntity breedingMethod = getMappedBreedingMethod(context, germplasm.getBreedingMethodDbId());
+                    germplasm.putAdditionalInfoItem("breedingMethodId", breedingMethod.getId().toString());
+                    germplasm.putAdditionalInfoItem("breedingMethod", breedingMethod.getName().strip());
+                    // Add germplasm UUID
+                    BrAPIExternalReference uuidReference = new BrAPIExternalReference();
+                    uuidReference.setReferenceSource(referenceSource);
+                    uuidReference.setReferenceID(UUID.randomUUID().toString());
+                    germplasm.getExternalReferences()
+                             .add(uuidReference);
+                    // Set display name to the old germplasm name
+                    germplasm.setDefaultDisplayName(germplasm.getGermplasmName());
+                    Integer accessionNumber = getNextSequenceVal(context, program);
+                    germplasm.setAccessionNumber(accessionNumber.toString());
+                    // Germplasm name = <Name> [<program key>-<accessionNumber>]
+                    germplasm.setGermplasmName(String.format("%s [%s-%s]", germplasm.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
+                    // Send germplasm back to server
+                    BrAPIGermplasm updatedGermplasm = api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm).getBody().getResult();
+                    // Check that the germplasm was in fact updated
+                    if (!isUpdated(updatedGermplasm, program, referenceSource)) {
+                        throw new Exception("Germplasm returned from brapi server was not updated. Check your brapi server.");
+                    }
+                }
+
+                //fetch the next page of germplasm for this program
+                if(germplasmResponse.getBody().getMetadata().getPagination().getCurrentPage()+1 == germplasmResponse.getBody().getMetadata().getPagination().getTotalPages()) {
+                    done = true;
+                } else {
+                    queryParams.page(queryParams.page() + 1);
+                    log.debug(String.format("Fetching the next page of germplasm for programId: %s", program.getId()));
+                    germplasmResponse = api.germplasmGet(queryParams);
                 }
             }
+            log.debug(String.format("Done migrating germplasm for programId: %s", program.getId()));
         }
     }
 

@@ -17,12 +17,12 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.WordUtils;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -243,11 +243,11 @@ public class TraitService {
                 if (matchingLevels.size() == 0) {
                     // If doesn't exist, save it without an id. We will create it later
                     ProgramObservationLevel programObservationLevel = new ProgramObservationLevel();
-                    programObservationLevel.setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    programObservationLevel.setName(WordUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
                     trait.setProgramObservationLevel(programObservationLevel);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
-                    trait.getProgramObservationLevel().setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    trait.getProgramObservationLevel().setName(dbLevel.getName());
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
                 }
             }

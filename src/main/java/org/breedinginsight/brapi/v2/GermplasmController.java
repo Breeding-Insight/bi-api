@@ -30,14 +30,12 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
-import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
+import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
-import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;

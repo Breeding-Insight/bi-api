@@ -19,6 +19,7 @@ package org.breedinginsight.utilities.response.mappers;
 
 import lombok.Getter;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import javax.inject.Singleton;
 import java.util.Map;
@@ -28,9 +29,17 @@ import java.util.function.Function;
 @Singleton
 public class ExperimentQueryMapper extends AbstractQueryMapper {
 
+    private final String defaultSortField = "name";
+    private final SortOrder defaultSortOrder = SortOrder.ASC;
+
     private Map<String, Function<BrAPITrial,?>> fields;
 
-    public ExperimentQueryMapper() { fields = Map.ofEntries(); }
+    public ExperimentQueryMapper() {
+        fields = Map.ofEntries(
+                Map.entry("name", BrAPITrial::getTrialName),
+                Map.entry("active", BrAPITrial::isActive)
+        );
+    }
 
     @Override
     public boolean exists(String fieldName) {

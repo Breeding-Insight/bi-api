@@ -1,4 +1,4 @@
-package org.breedinginsight.brapi.v2.model.response.mappers;
+package org.breedinginsight.utilities.response.mappers;
 
 import lombok.Getter;
 import org.brapi.v2.model.core.BrAPIListSummary;

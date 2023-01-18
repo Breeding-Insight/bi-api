@@ -181,6 +181,7 @@ public class BrAPIGermplasmDAO {
                 JsonObject additionalInfo = germplasm.getAdditionalInfo();
                 if(additionalInfo == null) {
                     additionalInfo = new JsonObject();
+                    germplasm.setAdditionalInfo(additionalInfo);
                 }
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, germplasm.getPedigree());
 
@@ -200,6 +201,8 @@ public class BrAPIGermplasmDAO {
                                 stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
                                 map(ref -> ref.getReferenceID()).findFirst().orElse("");
                         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParentAccessionNumber);
+                    } else if (additionalInfo.has("femaleParentUnknown") && additionalInfo.get("femaleParentUnknown").getAsBoolean()) {
+                        namePedigreeString = "Unknown";
                     }
                 }
                 if (parents.size() == 2) {
@@ -214,9 +217,6 @@ public class BrAPIGermplasmDAO {
                     }
                 }
                 //Add Unknown germplasm for display
-                if (additionalInfo.has("femaleParentUnknown") && additionalInfo.get("femaleParentUnknown").getAsBoolean()) {
-                    namePedigreeString = "Unknown";
-                }
                 if (additionalInfo.has("maleParentUnknown") && additionalInfo.get("maleParentUnknown").getAsBoolean()) {
                     namePedigreeString += "/Unknown";
                 }
