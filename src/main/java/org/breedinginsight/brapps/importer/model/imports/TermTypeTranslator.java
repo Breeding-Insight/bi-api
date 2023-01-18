@@ -24,17 +24,15 @@ import lombok.Getter;
  */
 @Getter
 public enum TermTypeTranslator {
-    PHENOTYPE("PHENOTYPE", "Phenotype"),
+    PHENOTYPE("Phenotype"),
 
-    GERM_ATTRIBUTE("GERM_ATTRIBUTE", "Germplasm Attribute"),
+    GERM_ATTRIBUTE("Germplasm Attribute"),
 
-    GERM_PASSPORT("GERM_PASSPORT", "Germplasm Passport");
+    GERM_PASSPORT("Germplasm Passport");
 
-    public String name;
     public String userDisplay;
 
-    TermTypeTranslator(String name, String userDisplay) {
-        this.name = name;
+    TermTypeTranslator(String userDisplay) {
         this.userDisplay = userDisplay;
     }
 
