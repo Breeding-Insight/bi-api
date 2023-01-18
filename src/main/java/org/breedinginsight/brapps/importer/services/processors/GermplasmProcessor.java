@@ -83,6 +83,7 @@ public class GermplasmProcessor implements Processor {
     public static String duplicateEntryNoMsg = "Entry numbers must be unique. Duplicated entry numbers found: %s";
     public static String circularDependency = "Circular dependency in the pedigree tree";
     public static String listNameAlreadyExists = "Import group name already exists";
+    public static String missingFemaleParent = "Female parent is missing.  If the female parent is unknown, specify GID or entry number 0 as the female parent";
     public static Function<List<String>, String> arrayOfStringFormatter = (lst) -> {
         List<String> lstCopy = new ArrayList<>(lst);
         Collections.sort(lstCopy);
@@ -261,6 +262,8 @@ public class GermplasmProcessor implements Processor {
                     }
                 }
 
+                validatePedigree(germplasm, i+2, validationErrors);
+
                 // Assign the entry number
                 if (germplasm.getEntryNo() == null) {
                     germplasm.setEntryNo(Integer.toString(i + 1));
@@ -330,6 +333,19 @@ public class GermplasmProcessor implements Processor {
                 "Pedigree Connections", pedigreeConnectStats
         );
 
+    }
+
+    private void validatePedigree(Germplasm germplasm, Integer rowNumber, ValidationErrors validationErrors) {
+        String femaleParentEntryNo = germplasm.getFemaleParentEntryNo();
+        String maleParentEntryNo = germplasm.getMaleParentEntryNo();
+        String femaleParentGID = germplasm.getFemaleParentDBID();
+        String maleParentGID = germplasm.getMaleParentDBID();
+
+        if(StringUtils.isNotBlank(maleParentEntryNo) && StringUtils.isBlank(femaleParentEntryNo) && StringUtils.isBlank(femaleParentGID)) {
+            validationErrors.addError(rowNumber, new ValidationError("Male Parent Entry No", missingFemaleParent, HttpStatus.UNPROCESSABLE_ENTITY));
+        } else if(StringUtils.isNotBlank(maleParentGID) && StringUtils.isBlank(femaleParentEntryNo) && StringUtils.isBlank(femaleParentGID)) {
+            validationErrors.addError(rowNumber, new ValidationError("Male Parent GID", missingFemaleParent, HttpStatus.UNPROCESSABLE_ENTITY));
+        }
     }
 
     private void createPostOrder() {
@@ -443,13 +459,13 @@ public class GermplasmProcessor implements Processor {
             boolean maleParentUnknown = false;
 
             boolean femaleParentFound = false;
-            String pedigreeString = null;
+            StringBuilder pedigreeString = new StringBuilder();
             if (femaleParentDB != null) {
                 if (femaleParentDB.equals("0")) {
                     femaleParentUnknown = true;
                 } else if (germplasmByAccessionNumber.containsKey(femaleParentDB)) {
                     BrAPIGermplasm femaleParent = germplasmByAccessionNumber.get(femaleParentDB).getBrAPIObject();
-                    pedigreeString = commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName();
+                    pedigreeString.append(commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName());
                     femaleParentFound = true;
                 }
             } else if (femaleParentFile != null) {
@@ -459,7 +475,7 @@ public class GermplasmProcessor implements Processor {
                 else if (germplasmIndexByEntryNo.containsKey(germplasm.getFemaleParentEntryNo())) {
                     Integer femaleParentInd = germplasmIndexByEntryNo.get(femaleParentFile);
                     BrAPIGermplasm femaleParent = mappedBrAPIImport.get(femaleParentInd).getGermplasm().getBrAPIObject();
-                    pedigreeString = commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName();
+                    pedigreeString.append(commit ? femaleParent.getGermplasmName() : femaleParent.getDefaultDisplayName());
                     femaleParentFound = true;
                 }
             }
@@ -471,7 +487,7 @@ public class GermplasmProcessor implements Processor {
                     }
                     if ((germplasmByAccessionNumber.containsKey(germplasm.getMaleParentDBID()))) {
                         BrAPIGermplasm maleParent = germplasmByAccessionNumber.get(maleParentDB).getBrAPIObject();
-                        if (!femaleParentUnknown) pedigreeString += String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName());
+                        pedigreeString.append(String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName()));
                     }
                 } else if (maleParentFile != null){
                     if (maleParentFile.equals("0")) {
@@ -480,11 +496,11 @@ public class GermplasmProcessor implements Processor {
                     if (germplasmIndexByEntryNo.containsKey(germplasm.getMaleParentEntryNo())) {
                         Integer maleParentInd = germplasmIndexByEntryNo.get(maleParentFile);
                         BrAPIGermplasm maleParent = mappedBrAPIImport.get(maleParentInd).getGermplasm().getBrAPIObject();
-                        if (!femaleParentUnknown) pedigreeString += String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName());
+                        pedigreeString.append(String.format("/%s", commit ? maleParent.getGermplasmName() : maleParent.getDefaultDisplayName()));
                     }
                 }
             }
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString);
+            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
             //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
             mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("femaleParentUnknown", femaleParentUnknown);
             mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("maleParentUnknown", maleParentUnknown);
