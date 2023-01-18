@@ -16,7 +16,6 @@
  */
 package org.breedinginsight.services.parsers.trait;
 
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
@@ -255,16 +254,17 @@ public class TraitFileParser {
 
             //Set to backend value for user input term type, if none, set to default
             TermType termType = TermType.PHENOTYPE;
-            try {
-                String termTypeVal = parseExcelValueAsString(record, TraitFileColumns.TERM_TYPE);
-                if ((!Objects.isNull(termTypeVal)) && (!termTypeVal.isBlank())) {
-                    String termTypeName = TermTypeTranslator.nameFromUserDisplay(WordUtils.capitalizeFully(termTypeVal));
-                    termType = TermType.valueOf(termTypeName);
+
+            String termTypeVal = parseExcelValueAsString(record, TraitFileColumns.TERM_TYPE);
+            if ((!Objects.isNull(termTypeVal)) && (!termTypeVal.isBlank())) {
+                Optional<TermType> termTypeOpt = TermTypeTranslator.getTermTypeFromUserDisplayName(WordUtils.capitalizeFully(termTypeVal));
+                if (termTypeOpt.isPresent()) {
+                    termType = termTypeOpt.get();
+                } else {
+                    ValidationError error = new ValidationError(TraitFileColumns.TERM_TYPE.toString(),
+                            ParsingExceptionType.INVALID_TERM_TYPE.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
                 }
-            } catch (IllegalArgumentException e) {
-                ValidationError error = new ValidationError(TraitFileColumns.TERM_TYPE.toString(),
-                        ParsingExceptionType.INVALID_TERM_TYPE.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
-                validationErrors.addError(traitValidatorError.getRowNumber(i), error);
             }
 
             Trait trait = Trait.builder()
