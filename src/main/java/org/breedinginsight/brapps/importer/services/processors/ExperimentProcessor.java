@@ -603,7 +603,8 @@ public class ExperimentProcessor implements Processor {
             BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
 
             if( commit) {
-                String seasonID = this.yearsToSeasonDbId(newStudy.getSeasons(), program.getId());
+                String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
+                String seasonID = this.yearToSeasonDbId(year, program.getId());
                 newStudy.setSeasons(Arrays.asList(seasonID));
             }
 
@@ -1056,22 +1057,6 @@ public class ExperimentProcessor implements Processor {
     private boolean validCategory(List<BrAPIScaleValidValuesCategories> categories, String value) {
         Set<String> categoryValues = categories.stream().map(category -> category.getValue().toLowerCase()).collect(Collectors.toSet());
         return categoryValues.contains(value.toLowerCase());
-    }
-
-    /**
-     * Converts year String to SeasonDbId
-     * <br>
-     * NOTE: This assumes that the only Season records of interest are ones
-     * with a blank name or a name that is the same as the year.
-     *
-     * @param years this only looks at the first year of the list.
-     * @param programId the program ID.
-     * @return the DbId of the season-record associated with the first year
-     * of the 'years' list (see NOTE above)
-     */
-    private String yearsToSeasonDbId(List<String> years, UUID programId) {
-        String year = years.get(0);
-        return this.yearToSeasonDbId(year, programId);
     }
 
     /**
