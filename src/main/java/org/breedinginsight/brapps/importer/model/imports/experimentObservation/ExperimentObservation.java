@@ -291,7 +291,6 @@ public class ExperimentObservation implements BrAPIImport {
             BrAPIObservationUnit obsUnit
             ) {
         BrAPIObservation observation = new BrAPIObservation();
-        observation.setGermplasmDbId(getGid());
         observation.setGermplasmName(getGermplasmName());
         if(getEnv() != null) {
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.STUDY_NAME, getEnv());
