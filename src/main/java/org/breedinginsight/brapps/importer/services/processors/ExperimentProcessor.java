@@ -748,22 +748,27 @@ public class ExperimentProcessor implements Processor {
         return traits;
     }
 
+    // Update each ovservation's observationUnit DbId, study DbId, and germplasm DbId
     private void updateObservationDbIds(BrAPIObservationUnit obsUnit, String programKey) {
-        // Match on Env and Exp Unit ID
+        // FILTER LOGIC: Match on Env and Exp Unit ID
         this.observationByHash.values().stream()
-                              .filter(obs ->
-                                      obs.getBrAPIObject()
-                                                .getAdditionalInfo() != null && obs.getBrAPIObject()
-                                                                                   .getAdditionalInfo()
-                                                                                   .get(BrAPIAdditionalInfoFields.STUDY_NAME) != null
-                                      && obs.getBrAPIObject()
-                                         .getAdditionalInfo()
-                                         .get(BrAPIAdditionalInfoFields.STUDY_NAME)
-                                         .getAsString()
-                                         .equals(obsUnit.getStudyName())
-                                      && Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getBrAPIObject()
-                                                                                               .getObservationUnitName(), programKey)
-                                                  .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey)))
+                .filter(obs ->
+                        obs.getBrAPIObject().getAdditionalInfo() != null
+                                && obs.getBrAPIObject()
+                                .getAdditionalInfo()
+                                .get(BrAPIAdditionalInfoFields.STUDY_NAME) != null
+                                && obs.getBrAPIObject()
+                                .getAdditionalInfo()
+                                .get(BrAPIAdditionalInfoFields.STUDY_NAME)
+                                .getAsString()
+                                .equals(obsUnit.getStudyName())
+                                && Utilities.removeProgramKeyAndUnknownAdditionalData(
+                                        obs.getBrAPIObject().getObservationUnitName(), programKey)
+                                .equals(
+                                        Utilities.removeProgramKeyAndUnknownAdditionalData(
+                                                obsUnit.getObservationUnitName(), programKey)
+                                )
+                )
                 .forEach(obs -> {
                     if(StringUtils.isBlank(obs.getBrAPIObject().getObservationUnitDbId())) {
                         obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
