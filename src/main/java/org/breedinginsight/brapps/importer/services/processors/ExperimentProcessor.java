@@ -708,7 +708,6 @@ public class ExperimentProcessor implements Processor {
          
             updateObservationDependencyValues(program);
             brAPIObservationDAO.createBrAPIObservation(newObservations, program.getId(), upload);
-
         } catch (ApiException e) {
             log.error(e.getResponseBody());
             throw new InternalServerException(e.toString(), e);
@@ -717,14 +716,8 @@ public class ExperimentProcessor implements Processor {
 
     private void updateObservationDependencyValues(Program program) {
         String programKey = program.getKey();
-        // update germplasm DbIds
-        this.existingGermplasmByGID.values().stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(PendingImportObject::getBrAPIObject)
-                .forEach(this::updateObservationGermplasmDbId);
 
-        // update study DbIds and Observation Unit DbIds
+        // update the observations study DbIds, Observation Unit DbIds and Germplasm DbIds
         this.observationUnitByNameNoScope.values().stream()
                 .filter(Objects::nonNull)
                 .distinct()
@@ -755,16 +748,11 @@ public class ExperimentProcessor implements Processor {
         return traits;
     }
 
-    private void updateObservationGermplasmDbId(BrAPIGermplasm germplasm) {
-        this.observationByHash.values().stream()
-                .filter(obs -> obs.getBrAPIObject().getGermplasmName() != null &&
-                        obs.getBrAPIObject().getGermplasmName().equals(germplasm.getGermplasmName()))
-                .forEach(obsUnit -> obsUnit.getBrAPIObject().setGermplasmDbId(germplasm.getGermplasmDbId()));
-    }
-
     private void updateObservationDbIds(BrAPIObservationUnit obsUnit, String programKey) {
+        // Match on Env and Exp Unit ID
         this.observationByHash.values().stream()
-                              .filter(obs -> obs.getBrAPIObject()
+                              .filter(obs ->
+                                      obs.getBrAPIObject()
                                                 .getAdditionalInfo() != null && obs.getBrAPIObject()
                                                                                    .getAdditionalInfo()
                                                                                    .get(BrAPIAdditionalInfoFields.STUDY_NAME) != null
@@ -781,6 +769,7 @@ public class ExperimentProcessor implements Processor {
                         obs.getBrAPIObject().setObservationUnitDbId(obsUnit.getObservationUnitDbId());
                     }
                     obs.getBrAPIObject().setStudyDbId(obsUnit.getStudyDbId());
+                    obs.getBrAPIObject().setGermplasmDbId(obsUnit.getGermplasmDbId());
                 });
     }
 
