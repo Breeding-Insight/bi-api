@@ -19,6 +19,7 @@ package org.breedinginsight.utilities;
 
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 
@@ -119,5 +120,12 @@ public class Utilities {
 
     public static String generateReferenceSource(String referenceSourceBase, ExternalReferenceSource referenceSource) {
         return String.format("%s/%s",referenceSourceBase, referenceSource.getName());
+    }
+
+    public static Optional<BrAPIExternalReference> getExternalReference(List<BrAPIExternalReference> externalReferences, String source) {
+        if(externalReferences == null) {
+            return Optional.empty();
+        }
+        return externalReferences.stream().filter(externalReference -> externalReference.getReferenceSource().equals(source)).findFirst();
     }
 }

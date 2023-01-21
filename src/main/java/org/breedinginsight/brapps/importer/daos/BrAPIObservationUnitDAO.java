@@ -17,11 +17,13 @@
 
 package org.breedinginsight.brapps.importer.daos;
 
+import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
@@ -29,8 +31,7 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class BrAPIObservationUnitDAO {
@@ -42,12 +43,15 @@ public class BrAPIObservationUnitDAO {
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
+    private final String referenceSource;
+
     @Inject
-    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.referenceSource = referenceSource;
     }
 
     /*
@@ -84,5 +88,18 @@ public class BrAPIObservationUnitDAO {
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException {
         ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationUnitsApi.class);
         return brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
+    }
+
+    public List<BrAPIObservationUnit> getObservationUnitsById(Collection<String> observationUnitExternalIds, Program program) throws ApiException {
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
+        observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
+                                                                 .getProgramDbId()));
+        observationUnitSearchRequest.externalReferenceIDs(new ArrayList<>(observationUnitExternalIds));
+        observationUnitSearchRequest.externalReferenceSources(List.of(String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName())));
+
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
+        return brAPIDAOUtil.search(api::searchObservationunitsPost,
+                                   api::searchObservationunitsSearchResultsDbIdGet,
+                                   observationUnitSearchRequest);
     }
 }
