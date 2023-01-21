@@ -18,13 +18,11 @@ package org.breedinginsight.brapps.importer.daos;
 
 import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.client.v2.modules.core.TrialsApi;
-import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -118,6 +116,26 @@ public class BrAPITrialDAO {
             displayExperiments.add(trial);
         }
         return displayExperiments;
+    }
+
+    public Optional<BrAPITrial> getTrialByExternalId(String externalId, Program program) throws ApiException {
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        trialSearch.externalReferenceSources(List.of(String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS.getName())));
+        trialSearch.externalReferenceIDs(List.of(externalId));
+        TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
+
+        List<BrAPITrial> brAPITrials = processExperimentsForDisplay(brAPIDAOUtil.search(
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
+        ), program.getKey(), program.getId(), true);
+
+        if(brAPITrials.size() == 1) {
+            return Optional.of(brAPITrials.get(0));
+        }
+
+        return Optional.empty();
     }
 
 }

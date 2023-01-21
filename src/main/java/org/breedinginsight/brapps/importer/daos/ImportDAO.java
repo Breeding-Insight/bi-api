@@ -24,7 +24,6 @@ import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ImporterImportDao;
 import org.breedinginsight.dao.db.tables.daos.ImporterProgressDao;
-import org.breedinginsight.dao.db.tables.pojos.ImporterProgressEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -135,5 +134,14 @@ public class ImportDAO extends ImporterImportDao {
 
     public void createProgress(ImportProgress importProgress) {
         progressDao.insert(importProgress);
+    }
+
+    public List<ImportUpload> getUploadsByType(UUID programId, String mappingType) {
+        List<Record> records = getUploadsQuery()
+                .where(IMPORTER_MAPPING.NAME.eq(mappingType))
+                .and(IMPORTER_IMPORT.PROGRAM_ID.eq(programId))
+                .fetch();
+
+        return parseRecords(records);
     }
 }

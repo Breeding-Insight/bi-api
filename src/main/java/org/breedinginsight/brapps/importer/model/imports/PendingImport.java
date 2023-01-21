@@ -18,9 +18,7 @@
 package org.breedinginsight.brapps.importer.model.imports;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -35,6 +33,8 @@ import java.util.List;
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class PendingImport {
 
     private PendingImportObject<BrAPIGermplasm> germplasm;

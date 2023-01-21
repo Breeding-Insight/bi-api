@@ -77,4 +77,15 @@ public class BrAPIStudyDAO {
         return brAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
     }
 
+    public List<BrAPIStudy> getStudyByDbId(List<String> studyDbIds, Program program) throws ApiException {
+        BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
+        studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        studySearch.studyDbIds(studyDbIds);
+        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        return brAPIDAOUtil.search(
+                api::searchStudiesPost,
+                api::searchStudiesSearchResultsDbIdGet,
+                studySearch
+        );
+    }
 }

@@ -18,8 +18,8 @@
 package org.breedinginsight.brapps.importer.model.response;
 
 import com.fasterxml.jackson.annotation.JsonRawValue;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.job.JobDetail;
@@ -30,6 +30,9 @@ import java.util.UUID;
 
 @Getter
 @Setter
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ImportResponse implements JobDetail {
     private UUID importId;
     private ImportProgress progress;
