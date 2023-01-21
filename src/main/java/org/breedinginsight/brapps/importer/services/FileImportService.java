@@ -329,7 +329,9 @@ public class FileImportService {
 
         // Find the import
         Optional<ImportUpload> uploadOptional = importDAO.getUploadById(uploadId);
-        if (uploadOptional.isEmpty()) throw new DoesNotExistException("Upload with that id does not exist");
+        if (uploadOptional.isEmpty()) {
+            throw new DoesNotExistException("Upload with that id does not exist");
+        }
         ImportUpload upload = uploadOptional.get();
 
         if (upload.getProgress() != null && upload.getProgress().getStatuscode().equals((short) HttpStatus.ACCEPTED.getCode())) {
@@ -344,11 +346,15 @@ public class FileImportService {
 
         // Get mapping
         Optional<ImportMapping> mappingConfigOptional = importMappingDAO.getMapping(upload.getImporterMappingId());
-        if (mappingConfigOptional.isEmpty()) throw new DoesNotExistException("Cannot find mapping config associated with upload.");
+        if (mappingConfigOptional.isEmpty()) {
+            throw new DoesNotExistException("Cannot find mapping config associated with upload.");
+        }
         ImportMapping mappingConfig = mappingConfigOptional.get();
 
         Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(mappingConfig.getImportTypeId());
-        if (optionalImportService.isEmpty()) throw new DoesNotExistException("Config with that id does not exist");
+        if (optionalImportService.isEmpty()) {
+            throw new DoesNotExistException("Config with that id does not exist");
+        }
         BrAPIImportService importService = optionalImportService.get();
         // TODO: maybe return brapiimport from configmanager
 

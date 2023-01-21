@@ -19,7 +19,7 @@ package org.breedinginsight.utilities;
 
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
+import org.brapi.v2.model.BrAPIExternalReference;
 
 import java.util.List;
 import java.util.Optional;
@@ -114,5 +114,12 @@ public class Utilities {
                                                          .append("code: ")
                                                          .append(e.getCode())
                                                          .toString();
+    }
+
+    public static Optional<BrAPIExternalReference> getExternalReference(List<BrAPIExternalReference> externalReferences, String source) {
+        if(externalReferences == null) {
+            return Optional.empty();
+        }
+        return externalReferences.stream().filter(externalReference -> externalReference.getReferenceSource().equals(source)).findFirst();
     }
 }
