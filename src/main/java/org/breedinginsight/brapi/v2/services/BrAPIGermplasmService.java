@@ -17,6 +17,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapps.importer.model.base.ExternalReference;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
@@ -210,7 +211,7 @@ public class BrAPIGermplasmService {
     }
 
     public UUID getGermplasmListId(BrAPIListDetails listData) {
-        if(Objects.nonNull(listData.getExternalReferences()) && hasListExternalReference(listData)) {
+        if(Objects.nonNull(listData.getExternalReferences()) && hasListExternalReference(listData.getExternalReferences())) {
             return UUID.fromString(listData.getExternalReferences().stream()
                     .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
                     .map(e -> e.getReferenceID()).findAny().orElse("00000000-0000-0000-000000000000"));
@@ -220,7 +221,7 @@ public class BrAPIGermplasmService {
     }
 
     public UUID getGermplasmListId(BrAPIListNewRequest importList) {
-        if(Objects.nonNull(importList.getExternalReferences()) && hasListExternalReference(importList)) {
+        if(Objects.nonNull(importList.getExternalReferences()) && hasListExternalReference(importList.getExternalReferences())) {
             return UUID.fromString(importList.getExternalReferences().stream()
                     .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
                     .map(e -> e.getReferenceID()).findAny().orElse("00000000-0000-0000-000000000000"));
@@ -229,14 +230,9 @@ public class BrAPIGermplasmService {
         }
     }
 
-    private boolean hasListExternalReference(BrAPIListDetails listData) {
-        return listData.getExternalReferences().stream()
-                .anyMatch(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()));
-    }
-
-    private boolean hasListExternalReference(BrAPIListNewRequest importList) {
-        return importList.getExternalReferences().stream()
-                .anyMatch(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()));
+    private boolean hasListExternalReference(List<BrAPIExternalReference> refs) throws IllegalArgumentException {
+        if (refs == null) throw new IllegalArgumentException();
+        return refs.stream().anyMatch(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()));
     }
 
     private ToIntFunction<BrAPIGermplasm> getEntryNumber(UUID germplasmListId) throws IllegalArgumentException {
