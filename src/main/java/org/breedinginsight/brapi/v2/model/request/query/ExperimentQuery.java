@@ -15,6 +15,8 @@ import java.util.List;
 public class ExperimentQuery extends BrapiQuery {
     private String name;
     private String active;
+    private String createdBy;
+    private String createdDate;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
@@ -23,6 +25,12 @@ public class ExperimentQuery extends BrapiQuery {
         }
         if (!StringUtils.isBlank(getActive())) {
             filters.add(constructFilterRequest("active", getActive()));
+        }
+        if (!StringUtils.isBlank(getCreatedBy())) {
+            filters.add(constructFilterRequest("createdBy", getCreatedBy()));
+        }
+        if (!StringUtils.isBlank(getCreatedDate())) {
+            filters.add(constructFilterRequest("createdDate", getCreatedDate()));
         }
         return new SearchRequest(filters);
     }
