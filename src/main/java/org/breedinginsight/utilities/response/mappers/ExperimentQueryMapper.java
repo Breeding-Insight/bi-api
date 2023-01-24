@@ -17,6 +17,7 @@
 
 package org.breedinginsight.utilities.response.mappers;
 
+import com.google.gson.JsonObject;
 import lombok.Getter;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
@@ -37,7 +38,13 @@ public class ExperimentQueryMapper extends AbstractQueryMapper {
     public ExperimentQueryMapper() {
         fields = Map.ofEntries(
                 Map.entry("name", BrAPITrial::getTrialName),
-                Map.entry("active", BrAPITrial::isActive)
+                Map.entry("active", BrAPITrial::isActive),
+                Map.entry("createdDate",
+                        brAPITrial -> brAPITrial.getAdditionalInfo().get("createdDate").getAsString()),
+                Map.entry("createdBy",
+                        brAPITrial -> brAPITrial.getAdditionalInfo()
+                        .get("createdBy").getAsJsonObject()
+                        .get("userName").getAsString())
         );
     }
 
@@ -51,4 +58,6 @@ public class ExperimentQueryMapper extends AbstractQueryMapper {
         if (fields.containsKey(fieldName)) return fields.get(fieldName);
         else throw new NullPointerException();
     }
+
+
 }
