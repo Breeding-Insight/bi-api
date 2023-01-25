@@ -112,7 +112,7 @@ public class LocationProcessor implements Processor {
 
         List<BrAPILocation> createdLocations = new ArrayList<>();
         try {
-            createdLocations.addAll(brAPILocationDAO.createBrAPILocation(locations, program.getId(), upload));
+            createdLocations.addAll(brAPILocationDAO.createBrAPILocations(locations, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }

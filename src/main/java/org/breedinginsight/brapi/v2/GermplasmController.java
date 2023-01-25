@@ -30,6 +30,7 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
@@ -44,10 +45,7 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -205,7 +203,12 @@ public class GermplasmController {
                 metadata.setPagination(pagination);
                 response = new BrAPIGermplasmPedigreeResponse();
             } else {
-                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId);
+                Optional<BrAPIGermplasm> germplasmOptional = germplasmService.getGermplasmByDBID(programId, germplasmId);
+                if(germplasmOptional.isEmpty()) {
+                    throw new DoesNotExistException("DBID for this germplasm does not exist");
+                }
+
+                BrAPIGermplasm germplasm = germplasmOptional.get();
                 //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
                 GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
                 ApiResponse<BrAPIGermplasmPedigreeResponse> pedigreeResponse = api.germplasmGermplasmDbIdPedigreeGet(germplasmId, notation, includeSiblings);
@@ -238,12 +241,15 @@ public class GermplasmController {
             response.setResult(returnNode);
             response.setMetadata(metadata);
             return HttpResponse.ok(response);
-        } catch (InternalServerException | ApiException e) {
+        } catch (InternalServerException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, "Pedigree node not found");
+        } catch (ApiException e) {
+            log.info(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
         }
     }
 

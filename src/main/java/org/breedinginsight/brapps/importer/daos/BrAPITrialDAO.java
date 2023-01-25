@@ -18,11 +18,8 @@ package org.breedinginsight.brapps.importer.daos;
 
 import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.client.v2.modules.core.TrialsApi;
-import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -36,10 +33,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class BrAPITrialDAO {
@@ -62,7 +56,7 @@ public class BrAPITrialDAO {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    public List<BrAPITrial> getTrialByName(List<String> trialNames, Program program) throws ApiException {
+    public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
@@ -74,7 +68,7 @@ public class BrAPITrialDAO {
         );
     }
 
-    public List<BrAPITrial> createBrAPITrial(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) throws ApiException {
+    public List<BrAPITrial> createBrAPITrials(List<BrAPITrial> brAPITrialList, UUID programId, ImportUpload upload) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
         return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
     }
@@ -124,6 +118,26 @@ public class BrAPITrialDAO {
         return displayExperiments;
     }
 
+    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
+        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
+        if(trials.size() == 1) {
+            return Optional.of(trials.get(0));
+        } else {
+            return Optional.empty();
+        }
+    }
+
+    public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        trialSearch.trialDbIds(new ArrayList<>(trialDbIds));
+        TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
+        return brAPIDAOUtil.search(
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
+        );
+    }
 }
 
 

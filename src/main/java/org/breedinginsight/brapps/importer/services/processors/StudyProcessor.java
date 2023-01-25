@@ -67,7 +67,7 @@ public class StudyProcessor implements Processor {
         List<BrAPIStudy> existingStudies;
 
         try {
-            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
+            existingStudies = brAPIStudyDAO.getStudiesByName(uniqueStudyNames, program);
             existingStudies.forEach(existingStudy -> {
                 studyByName.put(existingStudy.getStudyName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
             });
@@ -127,7 +127,7 @@ public class StudyProcessor implements Processor {
         // POST Study
         List<BrAPIStudy> createdStudies = new ArrayList<>();
         try {
-            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
+            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudies(studies, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
