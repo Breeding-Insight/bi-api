@@ -2208,7 +2208,7 @@ paths:
                         httpStatus: "CONFLICT"
                         httpStatusCode: 409
                       - field: "scale.dataType"
-                        errorMessage: "Missing scale data type"
+                        errorMessage: "Missing scale class"
                         httpStatus: "UNPROCESSABLE_ENTITY"
                         httpStatusCode: 422
                       - field: "scale.categories"
@@ -2346,7 +2346,7 @@ paths:
                         httpStatus: "CONFLICT"
                         httpStatusCode: 409
                       - field: "scale.dataType"
-                        errorMessage: "Missing scale data type"
+                        errorMessage: "Missing scale class"
                         httpStatus: "UNPROCESSABLE_ENTITY"
                         httpStatusCode: 422
                       - field: "scale.categories"
