@@ -47,71 +47,71 @@ import java.util.function.Supplier;
 public class ExperimentObservation implements BrAPIImport {
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "germplasmName", name = "Germplasm Name", description = "Name of germplasm")
+    @ImportFieldMetadata(id = "germplasmName", name = Columns.GERMPLASM_NAME, description = "Name of germplasm")
     private String germplasmName;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "gid", name = "Germplasm GID", description = "Unique germplasm identifier")
+    @ImportFieldMetadata(id = "gid", name = Columns.GERMPLASM_GID, description = "Unique germplasm identifier")
     private String gid;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "test_or_check", name = "Test or Check", description = "T test (T) and check (C) germplasm")
+    @ImportFieldMetadata(id = "test_or_check", name = Columns.TEST_CHECK, description = "T test (T) and check (C) germplasm")
     private String testOrCheck;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "exp_title", name = "Experiment Title", description = "Title of experiment")
+    @ImportFieldMetadata(id = "exp_title", name = Columns.EXP_TITLE, description = "Title of experiment")
     private String expTitle;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "expDescription", name = "Experiment Description", description = "Description of experiment")
+    @ImportFieldMetadata(id = "expDescription", name = Columns.EXP_DESCRIPTION, description = "Description of experiment")
     private String expDescription;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "expUnit", name = "Experiment Unit", description = "experiment unit  (Examples: plots, plant, tanks, hives, etc.)")
+    @ImportFieldMetadata(id = "expUnit", name = Columns.EXP_UNIT, description = "experiment unit  (Examples: plots, plant, tanks, hives, etc.)")
     private String expUnit;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "expType", name = "Experiment Type", description = "Description of experimental type (Examples: Performance trial, crossing block, seed orchard, etc)")
+    @ImportFieldMetadata(id = "expType", name = Columns.EXP_TYPE, description = "Description of experimental type (Examples: Performance trial, crossing block, seed orchard, etc)")
     private String expType;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "env", name = "Environment", description = "Free-text unique identifier for environment within the experiment. Common examples include: 1,2,3…n and/or a concationation of environment location and year")
+    @ImportFieldMetadata(id = "env", name = Columns.ENV, description = "Free-text unique identifier for environment within the experiment. Common examples include: 1,2,3…n and/or a concationation of environment location and year")
     private String env;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "envLocation", name = "Environment Location", description = "Location of the environment")
+    @ImportFieldMetadata(id = "envLocation", name = Columns.ENV_LOCATION, description = "Location of the environment")
     private String envLocation;
 
     @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id = "envYear", name = "Environment Year", description = "Year corresponding to the environment")
+    @ImportFieldMetadata(id = "envYear", name = Columns.ENV_YEAR, description = "Year corresponding to the environment")
     private String envYear;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "expUnitId", name = "Experiment Unit ID", description = "Human-readable alphanumeric identifier for experimental units unique within environment. Examples, like plot number, are often a numeric sequence.")
+    @ImportFieldMetadata(id = "expUnitId", name = Columns.EXP_UNIT_ID, description = "Human-readable alphanumeric identifier for experimental units unique within environment. Examples, like plot number, are often a numeric sequence.")
     private String expUnitId;
 
     @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id = "expReplicateNo", name = "Experiment Replicate Number", description = "Sequential number of experimental replications")
+    @ImportFieldMetadata(id = "expReplicateNo", name = Columns.REP_NUM, description = "Sequential number of experimental replications")
     private String expReplicateNo;
 
     @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id = "expBlockNo", name = "Experiment Block Number", description = "Sequential number of blocks in an experimental design")
+    @ImportFieldMetadata(id = "expBlockNo", name = Columns.BLOCK_NUM, description = "Sequential number of blocks in an experimental design")
     private String expBlockNo;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "row", name = "Row", description = "Horizontal (y-axis) position in 2D Cartesian space.")
+    @ImportFieldMetadata(id = "row", name = Columns.ROW, description = "Horizontal (y-axis) position in 2D Cartesian space.")
     private String row;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "column", name = "Column", description = "Vertical (x-axis) position in 2D Cartesian space.")
+    @ImportFieldMetadata(id = "column", name = Columns.COLUMN, description = "Vertical (x-axis) position in 2D Cartesian space.")
     private String column;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "treatmentFactors", name = "Treatment Factors", description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
+    @ImportFieldMetadata(id = "treatmentFactors", name = Columns.TREATMENT_FACTORS, description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
     private String treatmentFactors;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "obsUnitID", name = "Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
+    @ImportFieldMetadata(id = "obsUnitID", name = Columns.OBS_UNIT_ID, description = "A database generated unique identifier for experimental observation units")
     private String obsUnitID;
 
     public BrAPITrial constructBrAPITrial(Program program, User user, boolean commit, String referenceSource, UUID id, String expSeqValue) {
@@ -347,6 +347,26 @@ public class ExperimentObservation implements BrAPIImport {
         reference.setReferenceSource(String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()));
         reference.setReferenceID(uuid.toString());
         refs.add(reference);
+    }
+
+    public static final class Columns {
+        public static final String GERMPLASM_NAME = "Germplasm Name";
+        public static final String GERMPLASM_GID = "Germplasm GID";
+        public static final String TEST_CHECK = "Test (T) or Check (C)";
+        public static final String EXP_TITLE = "Exp Title";
+        public static final String EXP_DESCRIPTION = "Exp Description";
+        public static final String EXP_UNIT = "Exp Unit";
+        public static final String EXP_TYPE = "Exp Type";
+        public static final String ENV = "Env";
+        public static final String ENV_LOCATION = "Env Location";
+        public static final String ENV_YEAR = "Env Year";
+        public static final String EXP_UNIT_ID = "Exp Unit ID";
+        public static final String REP_NUM = "Exp Replicate #";
+        public static final String BLOCK_NUM = "Exp Block #";
+        public static final String ROW = "Row";
+        public static final String COLUMN = "Column";
+        public static final String TREATMENT_FACTORS = "Treatment Factors";
+        public static final String OBS_UNIT_ID = "ObsUnitID";
     }
 
 }

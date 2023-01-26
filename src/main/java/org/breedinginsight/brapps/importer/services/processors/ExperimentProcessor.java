@@ -43,6 +43,7 @@ import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -80,10 +81,17 @@ import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPER
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.\n" +
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
             "for each experiment unit).";
+    private static final String MIDNIGHT = "T00:00:00-00:00";
+    private static final String TIMESTAMP_PREFIX = "TS:";
+    private static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
+    private static final String COMMA_DELIMITER = ",";
+    private static final String BLANK_FIELD_EXPERIMENT = "Field is blank when creating a new experiment";
+    private static final String BLANK_FIELD_ENV = "Field is blank when creating a new environment";
+    private static final String BLANK_FIELD_OBS = "Field is blank when creating new observations";
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -186,7 +194,7 @@ public class ExperimentProcessor implements Processor {
             Table data,
             Program program,
             User user,
-            boolean commit) throws ValidatorException, MissingRequiredInfoException {
+            boolean commit) throws ValidatorException, MissingRequiredInfoException, ApiException {
 
         ValidationErrors validationErrors = new ValidationErrors();
 
@@ -196,33 +204,33 @@ public class ExperimentProcessor implements Processor {
         List<Column<?>> timestampCols = new ArrayList<>();
         for (Column<?> dynamicCol : dynamicCols) {
             //Distinguish between phenotype and timestamp columns
-            if (dynamicCol.name().startsWith("TS:")) {
+            if (dynamicCol.name().startsWith(TIMESTAMP_PREFIX)) {
                 timestampCols.add(dynamicCol);
             } else {
                 phenotypeCols.add(dynamicCol);
             }
         }
 
-        validateObservationAndTimestampColumns(program.getId(), phenotypeCols, timestampCols, validationErrors);
+        List<Trait> referencedTraits = verifyTraits(program.getId(), phenotypeCols, timestampCols, validationErrors);
 
         //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
         for (Column<?> tsColumn : timestampCols) {
-            timeStampColByPheno.put(tsColumn.name().replaceFirst("^TS:\\s*", ""), tsColumn);
+            timeStampColByPheno.put(tsColumn.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), tsColumn);
         }
 
         // add "New" pending data to the BrapiData objects
         initNewBrapiData(importRows, phenotypeCols, program, user, commit);
 
-        prepareDataForValidation(importRows, phenotypeCols, mappedBrAPIImport, validationErrors);
+        prepareDataForValidation(importRows, phenotypeCols, mappedBrAPIImport);
 
-        validateFields(importRows, validationErrors);
+        validateFields(importRows, validationErrors, mappedBrAPIImport, referencedTraits, program, phenotypeCols);
 
         if (validationErrors.hasErrors()) {
             throw new ValidatorException(validationErrors);
         }
 
         // Construct our response object
-        return getStatisticsMap(importRows);
+        return generateStatisticsMap(importRows);
     }
 
     @Override
@@ -294,11 +302,11 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private void prepareDataForValidation(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Map<Integer, PendingImport> mappedBrAPIImport, ValidationErrors validationErrors) throws MissingRequiredInfoException {
-        for (int i = 0; i < importRows.size(); i++) {
-            ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
+    private void prepareDataForValidation(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Map<Integer, PendingImport> mappedBrAPIImport) throws MissingRequiredInfoException {
+        for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
+            ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
-            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
+            PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(rowNum, new PendingImport());
             mappedImportRow.setTrial(this.trialByNameNoScope.get(importRow.getExpTitle()));
             mappedImportRow.setLocation(this.locationByName.get(importRow.getEnvLocation()));
             mappedImportRow.setStudy(this.studyByNameNoScope.get(importRow.getEnv()));
@@ -315,21 +323,11 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
             mappedImportRow.setGermplasm(germplasmPIO);
 
-            if (StringUtils.isNotBlank(importRow.getGid())) { // if GID is blank, don't bother to check if it is valid.
-                validateGermplasm(importRow, validationErrors, i, germplasmPIO);
-            }
-
-            //Check if existing environment. If so, ObsUnitId must be assigned
-            if ((mappedImportRow.getStudy().getState() == ImportObjectState.EXISTING)
-                    && (StringUtils.isBlank(importRow.getObsUnitID()))) {
-                throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
-            }
-
-            mappedBrAPIImport.put(i, mappedImportRow);
+            mappedBrAPIImport.put(rowNum, mappedImportRow);
         }
     }
 
-    private void validateObservationAndTimestampColumns(UUID programId, List<Column<?>> phenotypeCols, List<Column<?>> timestampCols, ValidationErrors validationErrors) {
+    private List<Trait> verifyTraits(UUID programId, List<Column<?>> phenotypeCols, List<Column<?>> timestampCols, ValidationErrors validationErrors) {
         Set<String> varNames = phenotypeCols.stream()
                                             .map(Column::name)
                                             .collect(Collectors.toSet());
@@ -350,38 +348,19 @@ public class ExperimentProcessor implements Processor {
                                                .collect(Collectors.toList());
             //TODO convert this to a ValidationError
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                                          "Ontology term(s) not found: " + String.join(", ", differences));
-        }
-
-        // Check that each ts column corresponds to a phenotype column
-        List<String> unmatchedTimestamps = tsNames.stream()
-                                                  .filter(e -> !(varNames.contains(e.replaceFirst("^TS:\\s*", ""))))
-                                                  .collect(Collectors.toList());
-        if (unmatchedTimestamps.size() > 0) {
-            //TODO convert this to a ValidationError
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                                          "Timestamp column(s) lack corresponding phenotype column(s): " + String.join(", ", unmatchedTimestamps));
-        }
-
-        // Perform ontology validations on each observation value in phenotype column
-        Map<String, Trait> colVarMap = filteredTraits.stream()
-                                                     .collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
-
-        for (Column<?> column : phenotypeCols) {
-            for (int i = 0; i < column.size(); i++) {
-                String value = column.getString(i);
-                String colName = column.name();
-                validateObservationValue(colVarMap.get(colName), value, colName, validationErrors, i);
+                                          "Ontology term(s) not found: " + String.join(COMMA_DELIMITER, differences));
+        } else {
+            // Check that each ts column corresponds to a phenotype column
+            List<String> unmatchedTimestamps = tsNames.stream()
+                                                      .filter(e -> !(varNames.contains(e.replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY))))
+                                                      .collect(Collectors.toList());
+            if (unmatchedTimestamps.size() > 0) {
+                //TODO convert this to a ValidationError
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                                              "Timestamp column(s) lack corresponding phenotype column(s): " + String.join(COMMA_DELIMITER, unmatchedTimestamps));
             }
-        }
 
-        //Timestamp validation
-        for (Column<?> column : timestampCols) {
-            for (int i = 0; i < column.size(); i++) {
-                String value = column.getString(i);
-                String colName = column.name();
-                validateTimeStampValue(value, colName, validationErrors, i);
-            }
+            return filteredTraits;
         }
     }
 
@@ -419,8 +398,8 @@ public class ExperimentProcessor implements Processor {
         }
         Supplier<BigInteger> envNextVal = () -> dsl.nextval(envSequenceName.toLowerCase());
 
-        for (int i = 0; i < importRows.size(); i++) {
-            ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
+        for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
+            ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
             PendingImportObject<BrAPITrial> trialPIO = fetchOrCreateTrialPIO(program, user, commit, importRow, expNextVal);
 
@@ -449,17 +428,16 @@ public class ExperimentProcessor implements Processor {
             for (Column<?> column : phenotypeCols) {
                 //If associated timestamp column, add
                 String dateTimeValue = null;
-                if (timeStampColByPheno.get(column.name()) != null) {
-                    dateTimeValue = timeStampColByPheno.get(column.name())
-                                                       .getString(i);
+                if (timeStampColByPheno.containsKey(column.name())) {
+                    dateTimeValue = timeStampColByPheno.get(column.name()).getString(rowNum);
                     //If no timestamp, set to midnight
                     if (!dateTimeValue.isBlank() && !validDateTimeValue(dateTimeValue)) {
-                        dateTimeValue += "T00:00:00-00:00";
+                        dateTimeValue += MIDNIGHT;
                     }
                 }
                 //column.name() gets phenotype name
                 String seasonDbId = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
-                fetchOrCreateObservationPIO(importRow, column.name(), column.getString(i), dateTimeValue, commit, seasonDbId, obsUnitPIO);
+                fetchOrCreateObservationPIO(importRow, column.name(), column.getString(rowNum), dateTimeValue, commit, seasonDbId, obsUnitPIO);
             }
         }
     }
@@ -483,100 +461,166 @@ public class ExperimentProcessor implements Processor {
         return DigestUtils.sha256Hex(concat);
     }
 
-    private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors) {
-        HashSet<String> uniqueStudyAndObsUnit = new HashSet<>();
-        for (int i = 0; i < importRows.size(); i++) {
-            ExperimentObservation importRow = (ExperimentObservation) importRows.get(i);
-            validateConditionallyRequired(validationErrors, i, importRow);
-            validateUniqueObsUnits(validationErrors, uniqueStudyAndObsUnit, i, importRow);
+    private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
+                                            List<Column<?>> phenotypeCols) throws MissingRequiredInfoException, ApiException {
+        //fetching any existing observations for any OUs in the import
+        Map<String, BrAPIObservation> existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
+        Map<String, Trait> colVarMap = referencedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
+
+        Set<String> uniqueStudyAndObsUnit = new HashSet<>();
+        for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
+            ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
+            PendingImport mappedImportRow = mappedBrAPIImport.get(rowNum);
+
+            if (StringUtils.isNotBlank(importRow.getGid())) { // if GID is blank, don't bother to check if it is valid.
+                validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
+            }
+
+            //Check if existing environment. If so, ObsUnitId must be assigned
+            if ((mappedImportRow.getStudy().getState() == ImportObjectState.EXISTING)
+                    && (StringUtils.isBlank(importRow.getObsUnitID()))) {
+                throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
+            }
+
+            validateConditionallyRequired(validationErrors, rowNum, importRow);
+            validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
+            validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, existingObsByObsHash);
         }
         return validationErrors;
     }
 
+    private void validateObservationUnits(ValidationErrors validationErrors, Set<String> uniqueStudyAndObsUnit, int rowNum, ExperimentObservation importRow) {
+        validateUniqueObsUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
+
+        String key = createObservationUnitKey(importRow);
+        PendingImportObject<BrAPIObservationUnit> ouPIO = observationUnitByNameNoScope.get(key);
+        if(ouPIO.getState() == ImportObjectState.NEW && StringUtils.isNotBlank(importRow.getObsUnitID())) {
+            addRowError(Columns.OBS_UNIT_ID, "Could not find observation unit by ObsUnitDBID", validationErrors, rowNum);
+        }
+    }
+
+    private Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits, Program program) throws ApiException {
+        Set<String> ouDbIds = new HashSet<>();
+        Set<String> variableDbIds = new HashSet<>();
+        Map<String, Trait> variableNameByDbId = new HashMap<>();
+        Map<String, BrAPIObservationUnit> ouNameByDbId = new HashMap<>();
+        Map<String, String> studyNameByDbId = studyByNameNoScope.values()
+                                                                .stream()
+                                                                .map(PendingImportObject::getBrAPIObject)
+                                                                .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, BrAPIStudy::getStudyName));
+
+        observationUnitByNameNoScope.values().forEach(ou -> {
+            if(StringUtils.isNotBlank(ou.getBrAPIObject().getObservationUnitDbId())) {
+                ouDbIds.add(ou.getBrAPIObject().getObservationUnitDbId());
+            }
+            ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), ou.getBrAPIObject());
+        });
+
+        for (Trait referencedTrait : referencedTraits) {
+            variableDbIds.add(referencedTrait.getObservationVariableDbId());
+            variableNameByDbId.put(referencedTrait.getObservationVariableDbId(), referencedTrait);
+        }
+
+        List<BrAPIObservation> existingObservations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, variableDbIds, program);
+
+        return existingObservations.stream()
+                                   .map(obs -> {
+                                       String studyName = studyNameByDbId.get(obs.getStudyDbId());
+                                       String variableName = variableNameByDbId.get(obs.getObservationVariableDbId()).getObservationVariableName();
+                                       String ouName = ouNameByDbId.get(obs.getObservationUnitDbId()).getObservationUnitName();
+
+                                       String key = getObservationHash(createObservationUnitKey(studyName, ouName), variableName, studyName);
+
+                                       return Map.entry(key, obs);
+                                   })
+                                   .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
+    private void validateObservations(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow, List<Column<?>> phenotypeCols, Map<String, Trait> colVarMap, Map<String, BrAPIObservation> existingObservations) {
+        phenotypeCols.forEach(phenoCol -> {
+            if(existingObservations.containsKey(getImportObservationHash(importRow, phenoCol.name()))) {
+                addRowError(
+                        phenoCol.name(),
+                        String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", importRow.getObsUnitID(), phenoCol.name()),
+                        validationErrors, rowNum
+                );
+            } else {
+                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
+
+                //Timestamp validation
+                if(timeStampColByPheno.containsKey(phenoCol.name())) {
+                    Column<?> timeStampCol = timeStampColByPheno.get(phenoCol.name());
+                    validateTimeStampValue(timeStampCol.getString(rowNum), timeStampCol.name(), validationErrors, rowNum);
+                }
+            }
+        });
+    }
+
     /**
-     * Validate that the the observation unit is unique within a study.
+     * Validate that the observation unit is unique within a study.
      * <br>
      * SIDE EFFECTS:  validationErrors and uniqueStudyAndObsUnit can be modified.
      *
      * @param validationErrors      can be modified as a side effect.
      * @param uniqueStudyAndObsUnit can be modified as a side effect.
-     * @param i                     counter that is always two less the file row being validated
+     * @param rowNum                     counter that is always two less the file row being validated
      * @param importRow             the data row being validated
      */
     private void validateUniqueObsUnits(
             ValidationErrors validationErrors,
-            HashSet<String> uniqueStudyAndObsUnit,
-            int i,
+            Set<String> uniqueStudyAndObsUnit,
+            int rowNum,
             ExperimentObservation importRow) {
         String envIdPlusStudyId = createObservationUnitKey(importRow);
         if (uniqueStudyAndObsUnit.contains(envIdPlusStudyId)) {
             String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
-            this.addRowError("Exp Unit ID", errorMessage, validationErrors, i);
+            this.addRowError(Columns.EXP_UNIT_ID, errorMessage, validationErrors, rowNum);
         } else {
             uniqueStudyAndObsUnit.add(envIdPlusStudyId);
         }
     }
 
-    private void validateConditionallyRequired(ValidationErrors validationErrors, int i, ExperimentObservation importRow) {
-        String experimentTitle = importRow.getExpTitle();
-        String obsUnitID = importRow.getObsUnitID();
-        if (StringUtils.isBlank(obsUnitID)) {
-            validateRequiredCell(
-                    experimentTitle,
-                    "Exp Title",
-                    "Field is blank", validationErrors, i
-            );
-        }
-
-        ImportObjectState expState = this.trialByNameNoScope.get(experimentTitle)
+    private void validateConditionallyRequired(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow) {
+        ImportObjectState expState = this.trialByNameNoScope.get(importRow.getExpTitle())
                                                             .getState();
-        boolean isExperimentNew = (expState == ImportObjectState.NEW);
+        ImportObjectState envState = this.studyByNameNoScope.get(importRow.getEnv()).getState();
 
-        if (isExperimentNew) {
-            String errorMessage = "Field is blank when creating a new experiment";
-            validateRequiredCell(importRow.getGid(),
-                                 "GID",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getExpUnit(),
-                                 "Exp Unit",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getExpType(),
-                                 "Exp Type",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getEnv(),
-                                 "Env",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getEnvLocation(),
-                                 "Env Location",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getEnvYear(),
-                                 "Env Year",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getExpUnitId(),
-                                 "Exp Unit ID",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getExpReplicateNo(),
-                                 "Exp Replicate #",
-                                 errorMessage, validationErrors, i);
-            validateRequiredCell(importRow.getExpBlockNo(),
-                                 "Exp Block #",
-                                 errorMessage, validationErrors, i);
+        String errorMessage = BLANK_FIELD_EXPERIMENT;
+        if (expState == ImportObjectState.EXISTING && envState == ImportObjectState.NEW) {
+            errorMessage = BLANK_FIELD_ENV;
+        } else if(expState == ImportObjectState.EXISTING && envState == ImportObjectState.EXISTING) {
+            errorMessage = BLANK_FIELD_OBS;
+        }
+
+        if(expState == ImportObjectState.NEW || envState == ImportObjectState.NEW) {
+            validateRequiredCell(importRow.getGid(), Columns.GERMPLASM_GID, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getExpTitle(),Columns.EXP_TITLE,errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getExpUnit(), Columns.EXP_UNIT, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getExpType(), Columns.EXP_TYPE, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getEnv(), Columns.ENV, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getEnvLocation(), Columns.ENV_LOCATION, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getEnvYear(), Columns.ENV_YEAR, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getExpUnitId(), Columns.EXP_UNIT_ID, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getExpReplicateNo(), Columns.REP_NUM, errorMessage, validationErrors, rowNum);
+            validateRequiredCell(importRow.getExpBlockNo(), Columns.BLOCK_NUM, errorMessage, validationErrors, rowNum);
+
+            if(StringUtils.isNotBlank(importRow.getObsUnitID())) {
+                addRowError(Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
+            }
+        } else {
+            validateRequiredCell(importRow.getObsUnitID(), Columns.OBS_UNIT_ID, errorMessage, validationErrors, rowNum);
         }
     }
 
-    private void validateRequiredCell(String value, String columnHeader, String errorMessage, ValidationErrors validationErrors, int i) {
+    private void validateRequiredCell(String value, String columnHeader, String errorMessage, ValidationErrors validationErrors, int rowNum) {
         if (StringUtils.isBlank(value)) {
-            addRowError(
-                    columnHeader,
-                    errorMessage,
-                    validationErrors, i
-            );
+            addRowError(columnHeader, errorMessage, validationErrors, rowNum);
         }
     }
 
-    private void addRowError(String field, String errorMessage, ValidationErrors validationErrors, int i) {
+    private void addRowError(String field, String errorMessage, ValidationErrors validationErrors, int rowNum) {
         ValidationError ve = new ValidationError(field, errorMessage, HttpStatus.UNPROCESSABLE_ENTITY);
-        validationErrors.addError(i + 2, ve);  // +2 instead of +1 to account for the column header row.
+        validationErrors.addError(rowNum + 2, ve);  // +2 instead of +1 to account for the column header row.
     }
 
     private void addIfNotNull(HashSet<String> set, String setValue) {
@@ -585,7 +629,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private Map<String, ImportPreviewStatistics> getStatisticsMap(List<BrAPIImport> importRows) {
+    private Map<String, ImportPreviewStatistics> generateStatisticsMap(List<BrAPIImport> importRows) {
         // Data for stats.
         HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
         HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
@@ -629,14 +673,10 @@ public class ExperimentProcessor implements Processor {
         );
     }
 
-    private void validateGermplasm(ExperimentObservation importRow, ValidationErrors validationErrors, int i, PendingImportObject<BrAPIGermplasm> germplasmPIO) {
+    private void validateGermplasm(ExperimentObservation importRow, ValidationErrors validationErrors, int rowNum, PendingImportObject<BrAPIGermplasm> germplasmPIO) {
         // error if GID is not blank but GID does not already exist
         if (StringUtils.isNotBlank(importRow.getGid()) && germplasmPIO == null) {
-            addRowError(
-                    "GID",
-                    "A non-existing GID",
-                    validationErrors, i
-            );
+            addRowError(Columns.GERMPLASM_GID, "A non-existing GID", validationErrors, rowNum);
         }
     }
 
@@ -761,7 +801,7 @@ public class ExperimentProcessor implements Processor {
 
         // Update ObservationVariable DbIds
         List<Trait> traits = getTraitList(program);
-        Map<String, Trait> traitMap = traits.stream().collect(Collectors.toMap(TraitEntity::getObservationVariableName, trait -> trait));
+        Map<String, Trait> traitMap = traits.stream().collect(Collectors.toMap(TraitEntity::getObservationVariableName, Function.identity()));
 
         for (PendingImportObject<BrAPIObservation> observation : this.observationByHash.values()) {
             String observationVariableName = observation.getBrAPIObject().getObservationVariableName();
@@ -913,119 +953,45 @@ public class ExperimentProcessor implements Processor {
         return resultGermplasm;
     }
 
-    private Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
-        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> initializeObservationUnits(Program program, List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIObservationUnit>> ret = new HashMap<>();
 
-        List<BrAPIGermplasm> existingGermplasms;
-        if(observationUnitByNameNoScope.size() > 0) {
-            Set<String> germplasmDbIds = observationUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
-            try {
-                existingGermplasms = brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId());
-            } catch (ApiException e) {
-                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
+        Map<String, ExperimentObservation> rowByObsUnitId = new HashMap<>();
+        experimentImportRows.forEach(row -> {
+            if (StringUtils.isNotBlank(row.getObsUnitID())) {
+                if(rowByObsUnitId.containsKey(row.getObsUnitID())) {
+                    throw new IllegalStateException("ObsUnitId is repeated: " + row.getObsUnitID());
+                } else {
+                    rowByObsUnitId.put(row.getObsUnitID(), row);
+                }
             }
-        } else {
-            List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
-                                                                   .map(ExperimentObservation::getGid)
-                                                                   .distinct()
-                                                                   .collect(Collectors.toList());
-
-            try {
-                existingGermplasms = this.getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId());
-            } catch (ApiException e) {
-                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        }
-
-        existingGermplasms.forEach(existingGermplasm -> existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm)));
-        return existingGermplasmByGID;
-    }
-
-    private Map<String, PendingImportObject<BrAPIStudy>> initializeStudyByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
-        Map<String, PendingImportObject<BrAPIStudy>> studyByName = new HashMap<>();
-        if (this.trialByNameNoScope.size() != 1) {
-            return studyByName;
-        }
-
-        List<BrAPIStudy> existingStudies;
-        if(observationUnitByNameNoScope.size() > 0) {
-            List<String> studyDbIds = observationUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getStudyDbId()).collect(Collectors.toList());
-            try {
-                existingStudies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program);
-            } catch (ApiException e) {
-                log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-
-            if(existingStudies.size() < studyDbIds.size()) {
-                throw new IllegalStateException("Did not find all of the studies for the requested list of studyDbIds");
-            }
-        } else {
-            //TODO rethink this somewhat...should there be support for both fetching studies from existing OUs and new OUs?
-            ExperimentObservation experimentObservation = experimentImportRows.get(0);
-
-            PendingImportObject<BrAPITrial> trial = this.trialByNameNoScope.get(experimentObservation.getExpTitle());
-
-            UUID experimentId = trial.getId();
-
-
-            try {
-                existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
-            } catch (ApiException e) {
-                log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        }
-
-        existingStudies.forEach(existingStudy -> processAndCacheStudy(existingStudy, program, studyByName));
-        return studyByName;
-    }
-
-    private void processAndCacheStudy(BrAPIStudy existingStudy, Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
-        //Swap season DbId with year String
-        String seasonId = existingStudy.getSeasons().get(0);
-        existingStudy.setSeasons(List.of(this.seasonDbIdToYear(seasonId, program.getId())));
-
-        existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
-        studyByName.put(
-                existingStudy.getStudyName(),
-                new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
-    }
-
-    private Map<String, PendingImportObject<BrAPILocation>> initializeUniqueLocationNames(Program program, List<ExperimentObservation> experimentImportRows) {
-        Map<String, PendingImportObject<BrAPILocation>> locationByName = new HashMap<>();
-
-        List<BrAPILocation> existingLocations;
-        if(studyByNameNoScope.size() > 0) {
-            Set<String> locationDbIds = studyByNameNoScope.values().stream().map(study -> study.getBrAPIObject().getLocationDbId()).collect(Collectors.toSet());
-            try {
-            existingLocations = brAPILocationDAO.getLocationsByDbId(locationDbIds, program.getId());
-            } catch (ApiException e) {
-                log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        } else {
-            List<String> uniqueLocationNames = experimentImportRows.stream()
-                                                                   .map(ExperimentObservation::getEnvLocation)
-                                                                   .distinct()
-                                                                   .filter(Objects::nonNull)
-                                                                   .collect(Collectors.toList());
-
-
-            try {
-                existingLocations = brAPILocationDAO.getLocationsByName(uniqueLocationNames, program.getId());
-            } catch (ApiException e) {
-                log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        }
-
-        existingLocations.forEach(existingLocation -> {
-            locationByName.put(existingLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation));
         });
-        return locationByName;
+
+        try {
+            List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
+
+            String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
+            if (existingObsUnits.size() == rowByObsUnitId.size()) {
+                existingObsUnits.forEach(brAPIObservationUnit -> {
+                    Optional<BrAPIExternalReference> idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource);
+                    if (idRef.isPresent()) {
+                        ExperimentObservation row = rowByObsUnitId.get(idRef.get().getReferenceID());
+                        row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
+                        ret.put(createObservationUnitKey(row),
+                                new PendingImportObject<>(ImportObjectState.EXISTING,
+                                                          brAPIObservationUnit,
+                                                          UUID.fromString(idRef.get().getReferenceID())));
+                    } else {
+                        throw new InternalServerException("An ObservationUnit ID was not found in any of the external references");
+                    }
+                });
+            }
+
+            return ret;
+        } catch (ApiException e) {
+            log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
     }
 
     private Map<String, PendingImportObject<BrAPITrial>> initializeTrialByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
@@ -1035,7 +1001,7 @@ public class ExperimentProcessor implements Processor {
         initializeTrialsForExistingObservationUnits(program, experimentImportRows, trialByName);
 
         List<String> uniqueTrialNames = experimentImportRows.stream()
-                                                            .filter(row -> StringUtils.isNotBlank(row.getObsUnitID()))
+                                                            .filter(row -> StringUtils.isBlank(row.getObsUnitID()))
                                                             .map(experimentImport -> Utilities.appendProgramKey(experimentImport.getExpTitle(), programKey, null))
                                                             .distinct()
                                                             .filter(Objects::nonNull)
@@ -1050,6 +1016,105 @@ public class ExperimentProcessor implements Processor {
         }
 
         return trialByName;
+    }
+
+    private Map<String, PendingImportObject<BrAPIStudy>> initializeStudyByNameNoScope(Program program, List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIStudy>> studyByName = new HashMap<>();
+        if (this.trialByNameNoScope.size() != 1) {
+            return studyByName;
+        }
+
+        List<BrAPIStudy> existingStudies;
+        Optional<String> expTitle = experimentImportRows.stream().filter(row -> StringUtils.isBlank(row.getObsUnitID())).map(ExperimentObservation::getExpTitle).findFirst();
+        if(expTitle.isEmpty()) {
+            expTitle = trialByNameNoScope.keySet().stream().findFirst();
+        }
+        PendingImportObject<BrAPITrial> trial = this.trialByNameNoScope.get(expTitle.get());
+        UUID experimentId = trial.getId();
+
+        try {
+            existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
+        } catch (ApiException e) {
+            log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        existingStudies.forEach(existingStudy -> processAndCacheStudy(existingStudy, program, studyByName));
+        return studyByName;
+    }
+
+    private Map<String, PendingImportObject<BrAPILocation>> initializeUniqueLocationNames(Program program, List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPILocation>> locationByName = new HashMap<>();
+
+        List<BrAPILocation> existingLocations = new ArrayList<>();
+        if(studyByNameNoScope.size() > 0) {
+            Set<String> locationDbIds = studyByNameNoScope.values().stream().map(study -> study.getBrAPIObject().getLocationDbId()).collect(Collectors.toSet());
+            try {
+                existingLocations.addAll(brAPILocationDAO.getLocationsByDbId(locationDbIds, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
+        List<String> uniqueLocationNames = experimentImportRows.stream()
+                                                               .filter(experimentObservation -> StringUtils.isNotBlank(experimentObservation.getObsUnitID()))
+                                                               .map(ExperimentObservation::getEnvLocation)
+                                                               .distinct()
+                                                               .filter(Objects::nonNull)
+                                                               .collect(Collectors.toList());
+
+        try {
+            existingLocations.addAll(brAPILocationDAO.getLocationsByName(uniqueLocationNames, program.getId()));
+        } catch (ApiException e) {
+            log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        existingLocations.forEach(existingLocation -> locationByName.put(existingLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation)));
+        return locationByName;
+    }
+
+    private Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+
+        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
+        if(observationUnitByNameNoScope.size() > 0) {
+            Set<String> germplasmDbIds = observationUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
+            try {
+                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
+        List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
+                                                               .filter(experimentObservation -> StringUtils.isNotBlank(experimentObservation.getObsUnitID()))
+                                                               .map(ExperimentObservation::getGid)
+                                                               .distinct()
+                                                               .collect(Collectors.toList());
+
+        try {
+            existingGermplasms.addAll(this.getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId()));
+        } catch (ApiException e) {
+            log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        existingGermplasms.forEach(existingGermplasm -> existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm)));
+        return existingGermplasmByGID;
+    }
+
+    private void processAndCacheStudy(BrAPIStudy existingStudy, Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
+        //Swap season DbId with year String
+        String seasonId = existingStudy.getSeasons().get(0);
+        existingStudy.setSeasons(List.of(this.seasonDbIdToYear(seasonId, program.getId())));
+
+        existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
+        studyByName.put(
+                existingStudy.getStudyName(),
+                new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
     }
 
     private void initializeTrialsForExistingObservationUnits(Program program, List<ExperimentObservation> experimentImportRows, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
@@ -1089,7 +1154,7 @@ public class ExperimentProcessor implements Processor {
                 } else {
                     List<String> missingIds = new ArrayList<>(trialDbIds);
                     missingIds.removeAll(trials.stream().map(BrAPITrial::getTrialDbId).collect(Collectors.toList()));
-                    throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(",", missingIds));
+                    throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
                 }
             } catch (ApiException e) {
                 log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
@@ -1112,7 +1177,7 @@ public class ExperimentProcessor implements Processor {
         } else {
             List<String> missingIds = new ArrayList<>(trialDbIds);
             missingIds.removeAll(studies.stream().map(BrAPIStudy::getStudyDbId).collect(Collectors.toList()));
-            throw new IllegalStateException("Study not found for studyDbId(s): " + String.join(",", missingIds));
+            throw new IllegalStateException("Study not found for studyDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
         }
 
         return trialDbIds;
@@ -1131,56 +1196,6 @@ public class ExperimentProcessor implements Processor {
         trialByNameNoScope.put(
                 existingTrial.getTrialName(),
                 new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial, experimentId));
-    }
-
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> initializeObservationUnits(Program program, List<ExperimentObservation> experimentImportRows) {
-        Map<String, PendingImportObject<BrAPIObservationUnit>> ret = new HashMap<>();
-
-        Map<String, ExperimentObservation> rowByObsUnitId = new HashMap<>();
-        experimentImportRows.forEach(row -> {
-            if (StringUtils.isNotBlank(row.getObsUnitID())) {
-                if(rowByObsUnitId.containsKey(row.getObsUnitID())) {
-                    throw new IllegalStateException("ObsUnitId is repeated: " + row.getObsUnitID());
-                } else {
-                    rowByObsUnitId.put(row.getObsUnitID(), row);
-                }
-            }
-        });
-
-        try {
-            List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
-
-            String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
-            if (existingObsUnits.size() != rowByObsUnitId.size()) {
-                if(existingObsUnits.size() > rowByObsUnitId.size()) {
-                    //in theory this shouldn't happen, but doesn't hurt to catch it in case
-                    throw new IllegalStateException("Too many observation units were found (potential OU with duplicate ObsUnitId)");
-                } else {
-                    List<String> missingIds = new ArrayList<>(rowByObsUnitId.keySet());
-                    missingIds.removeAll(existingObsUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList()));
-                    throw new IllegalStateException("Could not find observation units for ObsUnitId(s): " + String.join(",", missingIds));
-                }
-            } else {
-                existingObsUnits.forEach(brAPIObservationUnit -> {
-                    Optional<BrAPIExternalReference> idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource);
-                    if (idRef.isPresent()) {
-                        ExperimentObservation row = rowByObsUnitId.get(idRef.get().getReferenceID());
-                        row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
-                        ret.put(createObservationUnitKey(row),
-                                new PendingImportObject<>(ImportObjectState.EXISTING,
-                                                          brAPIObservationUnit,
-                                                          UUID.fromString(idRef.get().getReferenceID())));
-                    } else {
-                        throw new InternalServerException("An ObservationUnit ID was not found in any of the external references");
-                    }
-                });
-            }
-
-            return ret;
-        } catch (ApiException e) {
-            log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new InternalServerException(e.toString(), e);
-        }
     }
 
     private void validateTimeStampValue(String value,
