@@ -27,7 +27,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
@@ -143,7 +143,7 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod, User user) {
+    private BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
@@ -163,8 +163,8 @@ public class Germplasm implements BrAPIObject {
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());
         if (additionalInfos != null) {
             additionalInfos.stream()
-                    .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
-                    .forEach(additionalInfo -> germplasm.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
+                           .filter(additionalInfo -> additionalInfo.getAdditionalInfoValue() != null)
+                           .forEach(additionalInfo -> germplasm.putAdditionalInfoItem(additionalInfo.getAdditionalInfoName(), additionalInfo.getAdditionalInfoValue()));
         }
 
         // Seed Source
@@ -183,8 +183,8 @@ public class Germplasm implements BrAPIObject {
         germplasm.externalReferences(new ArrayList<>());
         if (externalReferences != null) {
             List<BrAPIExternalReference> brAPIExternalReferences = externalReferences.stream()
-                    .map(externalReference -> externalReference.constructBrAPIExternalReference())
-                    .collect(Collectors.toList());
+                                                                                     .map(externalReference -> externalReference.constructBrAPIExternalReference())
+                                                                                     .collect(Collectors.toList());
             if (uidExternalReference != null) {
                 brAPIExternalReferences.add(uidExternalReference);
             }
@@ -203,9 +203,9 @@ public class Germplasm implements BrAPIObject {
         List<BrAPIGermplasmSynonyms> brapiSynonyms = new ArrayList<>();
         if (synonyms != null) {
             List<String> synonyms = Arrays.asList(blobSynonyms.split(";")).stream()
-                    .map(synonym -> synonym.strip())
-                    .distinct()
-                    .collect(Collectors.toList());
+                                          .map(synonym -> synonym.strip())
+                                          .distinct()
+                                          .collect(Collectors.toList());
             // Create synonym
             for (String synonym: synonyms) {
                 BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
@@ -246,7 +246,7 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
+    public BrAPIGermplasm constructBrAPIGermplasm(Program program, ProgramBreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user);
         if (commit) {
             setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);

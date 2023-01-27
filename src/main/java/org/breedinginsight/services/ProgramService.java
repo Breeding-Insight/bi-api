@@ -25,6 +25,7 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
+import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
@@ -55,6 +56,7 @@ public class ProgramService {
     private DSLContext dsl;
     private SecurityService securityService;
     private BrAPIClientProvider brAPIClientProvider;
+    private BreedingMethodDAO breedingMethodDAO;
 
     private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
     private static final String PROGRAM_KEY_IN_USE = "PROGRAM_KEY_IN_USE";
@@ -66,7 +68,8 @@ public class ProgramService {
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
-                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService, BrAPIClientProvider brAPIClientProvider) {
+                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService, BrAPIClientProvider brAPIClientProvider,
+                          BreedingMethodDAO breedingMethodDAO) {
         this.dao = dao;
         this.programOntologyDAO = programOntologyDAO;
         this.programObservationLevelDAO = programObservationLevelDAO;
@@ -74,6 +77,7 @@ public class ProgramService {
         this.dsl = dsl;
         this.securityService = securityService;
         this.brAPIClientProvider = brAPIClientProvider;
+        this.breedingMethodDAO = breedingMethodDAO;
     }
 
     public Optional<Program> getById(UUID programId) {
@@ -192,6 +196,8 @@ public class ProgramService {
                     .updatedBy(actingUser.getId())
                     .build();
             programOntologyDAO.insert(programOntologyEntity);
+
+            breedingMethodDAO.enableAllSystemMethods(createdProgram.getId(), actingUser.getId());
 
             // Add program to brapi service
             dao.createProgramBrAPI(createdProgram);
