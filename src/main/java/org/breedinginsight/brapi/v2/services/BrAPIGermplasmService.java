@@ -135,8 +135,12 @@ public class BrAPIGermplasmService {
 
             if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
                 Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
-                row.put("Female Parent GID", Integer.parseInt(germPedigree.femaleParent));
-                if (!germPedigree.maleParent.isEmpty()) row.put("Male Parent GID", Integer.parseInt(germPedigree.maleParent));
+                if (!germPedigree.maleParent.isEmpty()) {
+                    row.put("Male Parent GID", Integer.parseInt(germPedigree.maleParent));
+                }
+                if (!germPedigree.femaleParent.isEmpty()) {
+                    row.put("Female Parent GID", Integer.parseInt(germPedigree.femaleParent));
+                }
             }
 
             // Synonyms
