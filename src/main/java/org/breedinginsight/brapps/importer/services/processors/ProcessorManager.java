@@ -27,7 +27,9 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -40,9 +42,9 @@ import java.util.Map;
 public class ProcessorManager {
 
     private List<Processor> processors;
-    private Map<Integer, PendingImport> mappedBrAPIImport;
-    private ImportStatusService statusService;
-    private Map<String, ImportPreviewStatistics> statistics = new HashMap<>();
+    private final Map<Integer, PendingImport> mappedBrAPIImport;
+    private final ImportStatusService statusService;
+    private final Map<String, ImportPreviewStatistics> statistics = new HashMap<>();
 
     @Inject
     public ProcessorManager(ImportStatusService statusService) {
@@ -51,16 +53,15 @@ public class ProcessorManager {
         this.statusService = statusService;
     }
 
-    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException {
+    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Table data, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException, MissingRequiredInfoException {
 
         this.processors = processors;
-        statusService.setUpload(upload);
 
         // check existing brapi objects and map data for each registered type
         for (Processor processor : processors) {
-            statusService.updateMessage("Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
+            statusService.updateMessage(upload, "Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             processor.getExistingBrapiData(importRows, program);
-            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, program, user, commit);
+            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, data, program, user, commit);
             statistics.putAll(stats);
         }
 
@@ -68,15 +69,16 @@ public class ProcessorManager {
         response.setStatistics(statistics);
         List<PendingImport> mappedBrAPIImportList = new ArrayList<>(mappedBrAPIImport.values());
         response.setRows(mappedBrAPIImportList);
+        response.setDynamicColumnNames(upload.getDynamicColumnNamesList());
 
-        statusService.updateMappedData(response, "Finished mapping data to brapi objects");
+        statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
 
         if (!commit) {
-            statusService.updateOk();
+            statusService.updateOk(upload);
             return response;
         } else {
             validateProcessorDependencies();
-            postBrapiData(program);
+            postBrapiData(program, upload);
         }
 
         return response;
@@ -93,7 +95,7 @@ public class ProcessorManager {
         }
     }
 
-    private void postBrapiData(Program program) throws ValidatorException {
+    private void postBrapiData(Program program, ImportUpload upload) throws ValidatorException {
 
         // get total number of new brapi objects to create
         long totalObjects = 0;
@@ -101,14 +103,14 @@ public class ProcessorManager {
             totalObjects += stats.getNewObjectCount();
         }
 
-        statusService.startUpload(totalObjects, "Starting upload to brapi service");
+        statusService.startUpload(upload, totalObjects, "Starting upload to brapi service");
 
         for (Processor processor : processors) {
-            statusService.updateMessage("Creating new " + processor.getName().toLowerCase() + " objects in brapi service");
-            processor.postBrapiData(mappedBrAPIImport, program, statusService.getUpload());
+            statusService.updateMessage(upload, "Creating new " + processor.getName().toLowerCase() + " objects in brapi service");
+            processor.postBrapiData(mappedBrAPIImport, program, upload);
         }
 
-        statusService.finishUpload("Completed upload to brapi service");
+        statusService.finishUpload(upload, "Completed upload to brapi service");
     }
 
 }

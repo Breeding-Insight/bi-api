@@ -67,17 +67,17 @@ import java.util.stream.Collectors;
 @Singleton
 public class FileImportService {
 
-    private ProgramUserService programUserService;
-    private ProgramService programService;
-    private UserService userService;
-    private MimeTypeParser mimeTypeParser;
-    private ImportMappingDAO importMappingDAO;
-    private ObjectMapper objectMapper;
-    private MappingManager mappingManager;
-    private ImportConfigManager configManager;
-    private ImportDAO importDAO;
-    private DSLContext dsl;
-    private ImportMappingProgramDAO importMappingProgramDAO;
+    private final ProgramUserService programUserService;
+    private final ProgramService programService;
+    private final UserService userService;
+    private final MimeTypeParser mimeTypeParser;
+    private final ImportMappingDAO importMappingDAO;
+    private final ObjectMapper objectMapper;
+    private final MappingManager mappingManager;
+    private final ImportConfigManager configManager;
+    private final ImportDAO importDAO;
+    private final DSLContext dsl;
+    private final ImportMappingProgramDAO importMappingProgramDAO;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
@@ -104,7 +104,7 @@ public class FileImportService {
         Saves the file for the mapping record
      */
     public ImportMapping createMapping(UUID programId, AuthenticatedUser actingUser, CompletedFileUpload file) throws
-            DoesNotExistException, AuthorizationException, UnsupportedTypeException {
+            DoesNotExistException, AuthorizationException, UnsupportedTypeException, HttpStatusException {
 
         Program program = validateRequest(programId, actingUser);
 
@@ -299,6 +299,7 @@ public class FileImportService {
             newUpload.setUserId(actingUser.getId());
             newUpload.setCreatedBy(actingUser.getId());
             newUpload.setUpdatedBy(actingUser.getId());
+            newUpload = setDynamicColumns(newUpload, data, importMapping);
 
             // Create a progress object
             ImportProgress importProgress = new ImportProgress();
@@ -397,6 +398,26 @@ public class FileImportService {
         return importResponse;
     }
 
+    /**
+     * If mapping has experiment structure, retrieve dynamic columns
+     * Experiment and germplasm mapping presently have different structures
+     * @param newUpload
+     * @param data
+     * @param importMapping
+     * @return updated newUpload with dynamic columns set
+     */
+    public ImportUpload setDynamicColumns(ImportUpload newUpload, Table data, ImportMapping importMapping) {
+        if (importMapping.getMappingConfig().get(0).getValue() != null) {
+            List<String> mappingCols = importMapping.getMappingConfig().stream().map(field -> field.getValue().getFileFieldName()).collect(Collectors.toList());
+            List<String> dynamicCols = data.columnNames().stream()
+                    .filter(column -> !mappingCols.contains(column)).collect(Collectors.toList());
+            newUpload.setDynamicColumnNames(dynamicCols);
+        } else {
+            newUpload.setDynamicColumnNames(new ArrayList<>());
+        }
+        return newUpload;
+    }
+
     private void processFile(List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
                                    ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
                                    AuthenticatedUser actingUser) {
@@ -425,7 +446,14 @@ public class FileImportService {
                 progress.setMessage(e.getMessage());
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
-            } catch (ValidatorException e) {
+            } catch (MissingRequiredInfoException e) {
+                log.error(e.getMessage(), e);
+                ImportProgress progress = upload.getProgress();
+                progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
+                progress.setMessage(e.getMessage());
+                progress.setUpdatedBy(actingUser.getId());
+                importDAO.update(upload);
+            }catch (ValidatorException e) {
                 log.info("Validation errors", e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
@@ -523,7 +551,7 @@ public class FileImportService {
         return importMappings;
     }
 
-    public List<ImportMapping> getSystemMappingByName(AuthenticatedUser actingUser, String name) {
+    public List<ImportMapping> getSystemMappingByName(String name) {
         List<ImportMapping> importMappings = importMappingDAO.getSystemMappingByName(name);
         return importMappings;
     }

@@ -17,12 +17,12 @@
 
 package org.breedinginsight.services;
 
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.text.WordUtils;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -137,7 +137,7 @@ public class TraitService {
             throw new HttpStatusException(HttpStatus.NOT_FOUND, "traitId does not exist");
         }
 
-        List<BrAPIObservation> observations = traitDAO.getObservationsForTrait(traitId);
+        List<BrAPIObservation> observations = traitDAO.getObservationsForTrait(traitId, programId);
         return Editable.builder().editable(observations.isEmpty()).build();
     }
 
@@ -217,6 +217,7 @@ public class TraitService {
                             .createdBy(actingUser.getId())
                             .updatedBy(actingUser.getId())
                             .active(true)
+                            .termType(trait.getTermType())
                             .build();
                     traitDAO.insert(jooqTrait);
                     trait.setId(jooqTrait.getId());
@@ -242,11 +243,11 @@ public class TraitService {
                 if (matchingLevels.size() == 0) {
                     // If doesn't exist, save it without an id. We will create it later
                     ProgramObservationLevel programObservationLevel = new ProgramObservationLevel();
-                    programObservationLevel.setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    programObservationLevel.setName(WordUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
                     trait.setProgramObservationLevel(programObservationLevel);
                 } else {
                     ProgramObservationLevel dbLevel = matchingLevels.get(0);
-                    trait.getProgramObservationLevel().setName(StringUtils.capitalize(trait.getProgramObservationLevel().getName().toLowerCase()));
+                    trait.getProgramObservationLevel().setName(dbLevel.getName());
                     trait.getProgramObservationLevel().setId(dbLevel.getId());
                 }
             }
@@ -380,7 +381,7 @@ public class TraitService {
                 .map(trait -> trait.getId())
                 .collect(Collectors.toList());
 
-        if (!traitDAO.getObservationsForTraits(ids).isEmpty()) {
+        if (!traitDAO.getObservationsForTraits(ids, program.getId()).isEmpty()) {
             throw new HttpStatusException(HttpStatus.METHOD_NOT_ALLOWED, "Observations exist for trait, cannot edit");
         }
 
@@ -416,6 +417,7 @@ public class TraitService {
                     existingTraitEntity.setObservationVariableName(updatedTrait.getObservationVariableName());
                     existingTraitEntity.setProgramObservationLevelId(updatedTrait.getProgramObservationLevel().getId());
                     existingTraitEntity.setUpdatedBy(user.getId());
+                    existingTraitEntity.setTermType(updatedTrait.getTermType());
                     traitDAO.update(existingTraitEntity);
 
                     // Update in brapi

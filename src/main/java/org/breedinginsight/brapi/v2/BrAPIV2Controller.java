@@ -27,21 +27,20 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIServerInfo;
-import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
-import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
-import org.breedinginsight.brapi.v2.model.response.mappers.ListQueryMapper;
+import org.breedinginsight.brapi.v2.model.request.query.ListQuery;
+import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
@@ -93,10 +92,24 @@ public class BrAPIV2Controller {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse getLists(@PathVariable("programId") UUID programId, HttpRequest<String> request,
-                                 @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid BrapiQuery queryParams
+                                 @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
     ) throws DoesNotExistException, ApiException {
-        List<BrAPIListSummary> brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-        return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams);
+        List<BrAPIListSummary> brapiLists;
+
+        if (queryParams.getListType() == null) {
+            // TODO: in future return all list types but for now just return germplasm
+            brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
+        } else {
+            // TODO: return appropriate lists by type, only germplasm currently
+            switch(queryParams.getListType()) {
+                case "germplasm":
+                default:
+                    brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
+            }
+        }
+
+        SearchRequest searchRequest = queryParams.constructSearchRequest();
+        return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")

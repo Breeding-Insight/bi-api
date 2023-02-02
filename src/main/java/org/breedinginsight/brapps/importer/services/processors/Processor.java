@@ -23,7 +23,9 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import java.util.List;
 import java.util.Map;
@@ -43,13 +45,15 @@ public interface Processor {
      * Return stats on number of new & existing objects
      * @param importRows
      * @param mappedBrAPIImport
+     * @param data
      * @param program
      * @return
      * @throws ValidatorException
      */
     Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                                                 Map<Integer, PendingImport> mappedBrAPIImport,
-                                                 Program program, User user, boolean commit) throws ValidatorException, ApiException;
+                                                 Map<Integer, PendingImport> mappedBrAPIImport, Table data,
+                                                 Program program, User user, boolean commit)
+            throws ValidatorException, MissingRequiredInfoException;
 
     /**
      * Given mapped brapi import with updates from prior dependencies, check if have everything needed

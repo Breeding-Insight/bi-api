@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -34,6 +35,7 @@ import org.breedinginsight.model.User;
 import org.jooq.Record;
 import tech.tablesaw.api.Table;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -69,6 +71,15 @@ public class ImportUpload extends ImporterImportEntity {
         progress.setInProgress((long) inProgress);
     }
 
+    public void setDynamicColumnNames(List<String> dynamicColumnNames) {
+        super.setDynamicColumnNames(dynamicColumnNames.toArray(new String[0]));
+    }
+
+    @JsonIgnore
+    public List<String> getDynamicColumnNamesList(){
+        return Arrays.asList(super.getDynamicColumnNames());
+    }
+
     public static ImportUpload parseSQLRecord(Record record) {
 
         return ImportUpload.uploadBuilder()
@@ -85,6 +96,7 @@ public class ImportUpload extends ImporterImportEntity {
                 .updatedAt(record.getValue(IMPORTER_IMPORT.UPDATED_AT))
                 .createdBy(record.getValue(IMPORTER_IMPORT.CREATED_BY))
                 .updatedBy(record.getValue(IMPORTER_IMPORT.UPDATED_BY))
+                .dynamicColumnNames(record.getValue(IMPORTER_IMPORT.DYNAMIC_COLUMN_NAMES))
                 .build();
     }
 }

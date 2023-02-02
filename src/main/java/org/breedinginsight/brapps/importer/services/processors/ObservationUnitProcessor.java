@@ -35,6 +35,7 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -88,7 +89,8 @@ public class ObservationUnitProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-            Map<Integer,PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
+                                                        Map<Integer,PendingImport> mappedBrAPIImport, Table data,
+                                                        Program program, User user, boolean commit) {
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);

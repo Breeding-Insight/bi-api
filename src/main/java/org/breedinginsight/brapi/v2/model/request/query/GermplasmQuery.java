@@ -13,10 +13,12 @@ import java.util.List;
 @Getter
 @Introspected
 public class GermplasmQuery extends BrapiQuery {
+    private String importEntryNumber;
     private String accessionNumber;
     private String defaultDisplayName;
     private String breedingMethod;
     private String seedSource;
+    private String pedigree;
     private String femaleParentGID;
     private String maleParentGID;
     private String createdDate;
@@ -25,6 +27,9 @@ public class GermplasmQuery extends BrapiQuery {
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
+        if (!StringUtils.isBlank(getImportEntryNumber())) {
+            filters.add(constructFilterRequest("importEntryNumber", getImportEntryNumber()));
+        }
         if (!StringUtils.isBlank(getAccessionNumber())) {
             filters.add(constructFilterRequest("accessionNumber", getAccessionNumber()));
         }
@@ -36,6 +41,9 @@ public class GermplasmQuery extends BrapiQuery {
         }
         if (!StringUtils.isBlank(getSeedSource())) {
             filters.add(constructFilterRequest("seedSource", getSeedSource()));
+        }
+        if (!StringUtils.isBlank(getPedigree())) {
+            filters.add(constructFilterRequest("pedigree", getPedigree()));
         }
         if (!StringUtils.isBlank(getFemaleParentGID())) {
             filters.add(constructFilterRequest("femaleParentGID", getFemaleParentGID()));

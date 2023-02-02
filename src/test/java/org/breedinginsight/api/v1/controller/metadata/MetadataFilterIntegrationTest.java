@@ -91,11 +91,6 @@ public class MetadataFilterIntegrationTest extends DatabaseTest {
         dsl.execute(fp.get("InsertSystemRoleAdmin"), otherTestUser.getId().toString());
     }
 
-    @AfterAll
-    public void finish() {
-        super.stopContainers();
-    }
-
     @Test
     public void getSingleResponseNoMetadataSuccess() {
 

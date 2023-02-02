@@ -19,12 +19,14 @@ import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
@@ -74,11 +76,6 @@ public class GermplasmTemplateMap extends BrAPITest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
-
-    @AfterAll
-    public void finish() {
-        super.stopContainers();
-    }
 
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
@@ -180,7 +177,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsString(), "Wrong entry number");
+            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString(), "Wrong entry number");
         }
 
         // Check the germplasm list
@@ -217,7 +214,7 @@ public class GermplasmTemplateMap extends BrAPITest {
             assertEquals(fileData.getString(i, "Name"), germplasm.get("germplasmName").getAsString());
             JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
             // Created Date (not present)
-            assertTrue(!additionalInfo.has("createdDate"), "createdDate is present, but should not be");
+            assertTrue(!additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is present, but should not be");
             // Accession Number (not present)
             assertTrue(!germplasm.has("accessionNumber"), "accessionNumber is present, but should not be");
             // Pedigree (display names)
@@ -280,7 +277,7 @@ public class GermplasmTemplateMap extends BrAPITest {
             assertEquals(expectedGermplasmName, germplasm.get("germplasmName").getAsString());
             // Created Date
             JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
-            assertTrue(additionalInfo.has("createdDate"), "createdDate is missing");
+            assertTrue(additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is missing");
             // Accession Number
             assertTrue(germplasm.has("accessionNumber"), "accessionNumber missing");
             // Pedigree (germplasm names)
@@ -354,7 +351,7 @@ public class GermplasmTemplateMap extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void NoFemaleParentBlankPedigreeStringSuccess() {
+    public void OnlyMaleParentPreviewSuccess() {
         File file = new File("src/test/resources/files/germplasm_import/no_female_parent_blank_pedigree.csv");
 
         Flowable<HttpResponse<String>> call = uploadDataFile(file, "NoFemaleParentList", null, true);
@@ -369,7 +366,8 @@ public class GermplasmTemplateMap extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
-            assertTrue(!germplasm.has("pedigree"), "Pedigree string is populated, but should be empty");
+            assertTrue(germplasm.has("pedigree"), "Pedigree string should be populated, but is empty");
+            assertTrue(germplasm.get("pedigree").getAsString().substring(1).length() > 0, "Male pedigree string should be populated, but is empty");
         }
     }
 
@@ -609,7 +607,7 @@ public class GermplasmTemplateMap extends BrAPITest {
         for (int i = 0; i < previewRows.size(); i++) {
             JsonObject germplasm = previewRows.get(i).getAsJsonObject().getAsJsonObject("germplasm").getAsJsonObject("brAPIObject");
             germplasmNames.add(germplasm.get("germplasmName").getAsString());
-            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get("importEntryNumber").getAsString(), "Wrong entry number");
+            assertEquals(Integer.toString(i+1), germplasm.getAsJsonObject("additionalInfo").get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString(), "Wrong entry number");
         }
 
         // Check the germplasm list
@@ -742,16 +740,16 @@ public class GermplasmTemplateMap extends BrAPITest {
         assertEquals(fileData.getString(i, "Name"), germplasm.get("defaultDisplayName").getAsString(), "Wrong display name");
         // Entry Number
         JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
-        assertEquals(fileData.getString(i, "Entry No"), additionalInfo.get("importEntryNumber").getAsString(), "Wrong entry number");
+        assertEquals(fileData.getString(i, "Entry No"), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString(), "Wrong entry number");
         // Created By User ID
-        assertEquals(testUser.getId().toString(), additionalInfo.getAsJsonObject("createdBy").get("userId").getAsString(), "Wrong createdBy userId");
+        assertEquals(testUser.getId().toString(), additionalInfo.getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).get(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID).getAsString(), "Wrong createdBy userId");
         // Created by User name
-        assertEquals(testUser.getName(), additionalInfo.getAsJsonObject("createdBy").get("userName").getAsString(), "Wrong createdBy userId");
+        assertEquals(testUser.getName(), additionalInfo.getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).get(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME).getAsString(), "Wrong createdBy userId");
         // Breeding Method
         String breedingMethodName = fileData.getString(i, "Breeding Method");
-        BreedingMethodEntity breedingMethod = breedingMethodDAO.findByNameOrAbbreviation(breedingMethodName).get(0);
-        assertEquals(breedingMethod.getId().toString(), additionalInfo.get("breedingMethodId").getAsString(), "Wrong Breeding Method ID");
-        assertEquals(breedingMethod.getName(), additionalInfo.get("breedingMethod").getAsString(), "Wrong Breeding Method name");
+        ProgramBreedingMethodEntity breedingMethod = breedingMethodDAO.findByNameOrAbbreviation(breedingMethodName, validProgram.getId()).get(0);
+        assertEquals(breedingMethod.getId().toString(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString(), "Wrong Breeding Method ID");
+        assertEquals(breedingMethod.getName(), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString(), "Wrong Breeding Method name");
         // Seed source
         assertEquals(fileData.getString(i, "Source"), germplasm.get("seedSource").getAsString(), "Wrong seed source");
         // External Reference (user specified)

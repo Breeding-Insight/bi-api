@@ -36,11 +36,6 @@ public class UserRequestTest extends DatabaseTest {
     @Inject
     private Validator validator;
 
-    @AfterAll
-    public void finish() {
-        super.stopContainers();
-    }
-
     @Test
     void validRequest() {
         UserRequest request = new UserRequest();
