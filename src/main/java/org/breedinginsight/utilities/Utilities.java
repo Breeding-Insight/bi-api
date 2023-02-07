@@ -60,7 +60,7 @@ public class Utilities {
      * @return the formatted string
      */
     public static String appendProgramKey(String original, String programKey, String additionalKeyData) {
-        if(StringUtils.isNotEmpty(additionalKeyData)) {
+        if(StringUtils.isNotBlank(additionalKeyData)) {
             return String.format("%s [%s-%s]", original, programKey, additionalKeyData);
         } else {
             return String.format("%s [%s]", original, programKey);
@@ -80,7 +80,7 @@ public class Utilities {
      * @return
      */
     public static String removeProgramKey(String original, String programKey, String additionalKeyData) {
-        if(StringUtils.isNotEmpty(additionalKeyData)) {
+        if(StringUtils.isNotBlank(additionalKeyData)) {
             String keyValue = String.format(" [%s-%s]", programKey, additionalKeyData);
             return original.replace(keyValue, "");
         } else {

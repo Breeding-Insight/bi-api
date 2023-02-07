@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 
 public enum BrAPIConstants {
     SYSTEM_DEFAULT("System Default"),
-    REPLICATE( "replicate"),
+    REPLICATE( "rep"),
     BLOCK( "block");
 
     private String value;

@@ -102,4 +102,16 @@ public class BrAPIObservationUnitDAO {
                                    api::searchObservationunitsSearchResultsDbIdGet,
                                    observationUnitSearchRequest);
     }
+
+    public List<BrAPIObservationUnit> getObservationUnitsForStudyDbId(String studyDbId, Program program) throws ApiException {
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
+        observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
+                                                                 .getProgramDbId()));
+        observationUnitSearchRequest.studyDbIds(List.of(studyDbId));
+
+        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
+        return brAPIDAOUtil.search(api::searchObservationunitsPost,
+                                   api::searchObservationunitsSearchResultsDbIdGet,
+                                   observationUnitSearchRequest);
+    }
 }

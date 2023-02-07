@@ -20,6 +20,7 @@ package org.breedinginsight.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
@@ -35,9 +36,7 @@ import org.jooq.JSONB;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Singleton
@@ -68,7 +67,7 @@ public class ProgramLocationService {
         this.dsl = dsl;
     }
 
-    public List<ProgramLocation> getByProgramId(UUID programId) throws DoesNotExistException {
+    public List<ProgramLocation> getByProgramId(UUID programId) throws DoesNotExistException, ApiException {
 
         if (!programService.exists(programId)) {
             throw new DoesNotExistException("Program id does not exist");
@@ -77,9 +76,8 @@ public class ProgramLocationService {
         return programLocationDao.getByProgramId(programId);
     }
 
-    public Optional<ProgramLocation> getById(UUID programId, UUID locationId) {
-
-        return programLocationDao.getById(programId, locationId);
+    public Optional<ProgramLocation> getById(UUID programId, UUID locationId) throws ApiException {
+        return programLocationDao.getById(programId, locationId, false);
     }
 
     private UUID validateCountryId(ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException {
@@ -195,6 +193,20 @@ public class ProgramLocationService {
         return true;
     }
 
+    public List<ProgramLocation> create(AuthenticatedUser actingUser, UUID programId, List<ProgramLocationRequest> newLocations) throws MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
+        // check if programId exists
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program id does not exist");
+        }
+
+        List<ProgramLocation> ret = new ArrayList<>();
+        for(ProgramLocationRequest newLoc : newLocations) {
+            ret.add(createLocation(actingUser, programId, newLoc));
+        }
+
+        return ret;
+    }
+
     public ProgramLocation create(AuthenticatedUser actingUser,
                                   UUID programId,
                                   ProgramLocationRequest programLocationRequest)
@@ -205,6 +217,10 @@ public class ProgramLocationService {
             throw new DoesNotExistException("Program id does not exist");
         }
 
+        return createLocation(actingUser, programId, programLocationRequest);
+    }
+
+    private ProgramLocation createLocation(AuthenticatedUser actingUser, UUID programId, ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException, MissingRequiredInfoException {
         // validate fields
         UUID countryId = validateCountryId(programLocationRequest);
         UUID environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
@@ -214,22 +230,22 @@ public class ProgramLocationService {
 
         // parse and create the program location object
         PlaceEntity placeEntity = PlaceEntity.builder()
-                .programId(programId)
-                .name(programLocationRequest.getName())
-                .countryId(countryId)
-                .environmentTypeId(environmentTypeId)
-                .accessibilityId(accessibilityId)
-                .topographyId(topographyId)
-                .abbreviation(programLocationRequest.getAbbreviation())
-                .coordinates(coordinates != null ? JSONB.valueOf(coordinates) : null)
-                .coordinateUncertainty(programLocationRequest.getCoordinateUncertainty())
-                .coordinateDescription(programLocationRequest.getCoordinateDescription())
-                .slope(programLocationRequest.getSlope())
-                .exposure(programLocationRequest.getExposure())
-                .documentationUrl(programLocationRequest.getDocumentationUrl())
-                .createdBy(actingUser.getId())
-                .updatedBy(actingUser.getId())
-                .build();
+                                             .programId(programId)
+                                             .name(programLocationRequest.getName())
+                                             .countryId(countryId)
+                                             .environmentTypeId(environmentTypeId)
+                                             .accessibilityId(accessibilityId)
+                                             .topographyId(topographyId)
+                                             .abbreviation(programLocationRequest.getAbbreviation())
+                                             .coordinates(coordinates != null ? JSONB.valueOf(coordinates) : null)
+                                             .coordinateUncertainty(programLocationRequest.getCoordinateUncertainty())
+                                             .coordinateDescription(programLocationRequest.getCoordinateDescription())
+                                             .slope(programLocationRequest.getSlope())
+                                             .exposure(programLocationRequest.getExposure())
+                                             .documentationUrl(programLocationRequest.getDocumentationUrl())
+                                             .createdBy(actingUser.getId())
+                                             .updatedBy(actingUser.getId())
+                                             .build();
 
 
         ProgramLocation location = null;
@@ -237,7 +253,7 @@ public class ProgramLocationService {
         //  This is warped in a transaction so if the BrAPI save call fails, the BI database insert is rolled back.
         location = dsl.transactionResult(configuration -> {
             programLocationDao.insert(placeEntity);
-            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId()).get();
+            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId(), false).get();
 
             // Add location to brapi service
             programLocationDao.createProgramLocationBrAPI(progLocation);
@@ -285,7 +301,7 @@ public class ProgramLocationService {
         //  This is warped in a transaction so if the BrAPI update post fails, the BI database update is rolled back.
         ProgramLocation location = dsl.transactionResult(configuration -> {
             programLocationDao.update(placeEntity);
-            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId()).get();
+            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId(), false).get();
 
             // Update location in brapi service
             programLocationDao.updateProgramLocationBrAPI(progLocation);
@@ -320,5 +336,13 @@ public class ProgramLocationService {
         }
 
         programLocationDao.delete(placeEntity);
+    }
+
+    public List<ProgramLocation> getLocationsByDbId(Collection<String> locationDbIds, UUID programId) throws ApiException {
+        return programLocationDao.getByDbIds(locationDbIds, programId);
+    }
+
+    public List<ProgramLocation> getLocationsByName(List<String> names, UUID programId) throws ApiException {
+        return programLocationDao.getByNames(names, programId);
     }
 }

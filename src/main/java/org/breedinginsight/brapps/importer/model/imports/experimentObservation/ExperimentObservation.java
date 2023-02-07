@@ -24,12 +24,12 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.model.base.Observation;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 
@@ -111,7 +111,7 @@ public class ExperimentObservation implements BrAPIImport {
     private String treatmentFactors;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "obsUnitID", name = Columns.OBS_UNIT_ID, description = "A database generated unique identifier for experimental observation units")
+    @ImportFieldMetadata(id = "ObsUnitID", name = Columns.OBS_UNIT_ID, description = "A database generated unique identifier for experimental observation units")
     private String obsUnitID;
 
     public BrAPITrial constructBrAPITrial(Program program, User user, boolean commit, String referenceSource, UUID id, String expSeqValue) {
@@ -152,9 +152,9 @@ public class ExperimentObservation implements BrAPIImport {
 
     }
 
-    public BrAPILocation constructBrAPILocation() {
-        BrAPILocation location = new BrAPILocation();
-        location.setLocationName(getEnvLocation());
+    public ProgramLocation constructProgramLocation() {
+        ProgramLocation location = new ProgramLocation();
+        location.setName(getEnvLocation());
         return location;
     }
 
@@ -191,10 +191,8 @@ public class ExperimentObservation implements BrAPIImport {
         design.setPUI(designType);
         design.setDescription(designType);
         study.setExperimentalDesign(design);
-        String envSequenceValue = null;
         if (commit) {
-            envSequenceValue = envNextVal.get().toString();
-            study.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envSequenceValue);
+            study.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envNextVal.get().toString());
         }
         return study;
     }
@@ -244,10 +242,10 @@ public class ExperimentObservation implements BrAPIImport {
 
         // Block number
         if (getExpBlockNo() != null) {
-            BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName(BrAPIConstants.BLOCK.getValue());
-            repLvl.setLevelCode(getExpBlockNo());
-            levelRelationships.add(repLvl);
+            BrAPIObservationUnitLevelRelationship blockLvl = new BrAPIObservationUnitLevelRelationship();
+            blockLvl.setLevelName(BrAPIConstants.BLOCK.getValue());
+            blockLvl.setLevelCode(getExpBlockNo());
+            levelRelationships.add(blockLvl);
         }
         position.setObservationLevelRelationships(levelRelationships);
 
@@ -265,7 +263,7 @@ public class ExperimentObservation implements BrAPIImport {
         }
         if (getColumn() != null) {
             position.setPositionCoordinateY(getColumn());
-            position.setPositionCoordinateYType(BrAPIPositionCoordinateTypeEnum.GRID_ROW);
+            position.setPositionCoordinateYType(BrAPIPositionCoordinateTypeEnum.GRID_COL);
         }
         observationUnit.setObservationUnitPosition(position);
 
@@ -337,7 +335,7 @@ public class ExperimentObservation implements BrAPIImport {
 
     private List<BrAPIExternalReference> getObsUnitExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId);
     }
 
 
@@ -352,7 +350,7 @@ public class ExperimentObservation implements BrAPIImport {
     public static final class Columns {
         public static final String GERMPLASM_NAME = "Germplasm Name";
         public static final String GERMPLASM_GID = "Germplasm GID";
-        public static final String TEST_CHECK = "Test (T) or Check (C)";
+        public static final String TEST_CHECK = "Test (T) or Check (C )";
         public static final String EXP_TITLE = "Exp Title";
         public static final String EXP_DESCRIPTION = "Exp Description";
         public static final String EXP_UNIT = "Exp Unit";

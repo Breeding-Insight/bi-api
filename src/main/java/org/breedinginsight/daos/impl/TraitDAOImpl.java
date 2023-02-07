@@ -29,6 +29,7 @@ import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
+import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
@@ -442,10 +443,8 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
         ApiResponse<BrAPIObservationVariableListResponse> createdVariables = null;
         try {
-            List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
-            for (ObservationVariablesApi variablesAPI: variablesAPIS){
-                createdVariables = variablesAPI.variablesPost(brApiVariables);
-            }
+            ObservationVariablesApi variablesAPI = new ObservationVariablesApi(programDAO.getCoreClient(program.getId()));
+            createdVariables = variablesAPI.variablesPost(brApiVariables);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);

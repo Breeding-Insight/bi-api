@@ -283,7 +283,7 @@ public class BrAPIGermplasmDAO {
         return Optional.ofNullable(germplasm);
     }
 
-    public List<BrAPIGermplasm> getGermplasmsByDBID(Set<String> germplasmDbIds, UUID programId) throws ApiException {
+    public List<BrAPIGermplasm> getGermplasmsByDBID(Collection<String> germplasmDbIds, UUID programId) throws ApiException {
         Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
         //key is UUID, want to filter by DBID
         List<BrAPIGermplasm> germplasm = new ArrayList<>();

@@ -24,6 +24,7 @@ import org.breedinginsight.brapps.importer.model.config.ImportFieldMetadata;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldType;
 import org.breedinginsight.brapps.importer.model.config.ImportFieldTypeEnum;
 import org.breedinginsight.brapps.importer.model.config.ImportMappingRequired;
+import org.breedinginsight.model.ProgramLocation;
 
 @Getter
 @Setter
@@ -36,9 +37,9 @@ public class Location implements BrAPIObject {
     @ImportFieldMetadata(id="locationName", name="Location Name", description = "The name of the location.")
     private String locationName;
 
-    public BrAPILocation constructBrAPILocation() {
-        BrAPILocation location = new BrAPILocation();
-        location.setLocationName(getLocationName());
+    public ProgramLocation constructLocation() {
+        ProgramLocation location = new ProgramLocation();
+        location.setName(getLocationName());
         return location;
     }
 

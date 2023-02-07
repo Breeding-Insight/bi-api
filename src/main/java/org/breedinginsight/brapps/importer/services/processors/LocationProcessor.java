@@ -18,8 +18,11 @@ package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPILocation;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.brapps.importer.daos.BrAPILocationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Location;
@@ -29,8 +32,11 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
@@ -41,16 +47,17 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Prototype
+@Slf4j
 public class LocationProcessor implements Processor {
 
     private static final String NAME = "Location";
 
-    private BrAPILocationDAO brAPILocationDAO;
-    private Map<String, PendingImportObject<BrAPILocation>> locationByName = new HashMap<>();
+    private ProgramLocationService locationService;
+    private Map<String, PendingImportObject<ProgramLocation>> locationByName = new HashMap<>();
 
     @Inject
-    public LocationProcessor(BrAPILocationDAO brAPILocationDAO) {
-        this.brAPILocationDAO = brAPILocationDAO;
+    public LocationProcessor(ProgramLocationService locationService) {
+        this.locationService = locationService;
     }
 
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
@@ -59,12 +66,12 @@ public class LocationProcessor implements Processor {
                 .map(locationImport -> locationImport.getLocation().getLocationName())
                 .distinct()
                 .collect(Collectors.toList());
-        List<BrAPILocation> existingLocations;
+        List<ProgramLocation> existingLocations;
 
         try {
-            existingLocations = brAPILocationDAO.getLocationsByName(uniqueLocationNames, program.getId());
+            existingLocations = locationService.getLocationsByName(uniqueLocationNames, program.getId());
             existingLocations.forEach(existingLocation -> {
-                locationByName.put(existingLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation));
+                locationByName.put(existingLocation.getName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation));
             });
         } catch (ApiException e) {
             // We shouldn't get an error back from our services. If we do, nothing the user can do about it
@@ -84,9 +91,9 @@ public class LocationProcessor implements Processor {
 
             Location location = brapiImport.getLocation();
 
-            BrAPILocation brapiLocation = location.constructBrAPILocation();
+            ProgramLocation brapiLocation = location.constructLocation();
             if (!locationByName.containsKey(location.getLocationName())) {
-                locationByName.put(brapiLocation.getLocationName(), new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
+                locationByName.put(brapiLocation.getName(), new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
                 mappedImportRow.setLocation(new PendingImportObject<>(ImportObjectState.NEW, brapiLocation));
             }
             mappedImportRow.setLocation(locationByName.get(location.getLocationName()));
@@ -108,18 +115,25 @@ public class LocationProcessor implements Processor {
 
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
-        List<BrAPILocation> locations = ProcessorData.getNewObjects(locationByName);
+        List<ProgramLocationRequest> locations = ProcessorData.getNewObjects(this.locationByName)
+                                                                 .stream()
+                                                                 .map(location -> ProgramLocationRequest.builder()
+                                                                                                        .name(location.getName())
+                                                                                                        .build())
+                                                                 .collect(Collectors.toList());
 
-        List<BrAPILocation> createdLocations = new ArrayList<>();
+        AuthenticatedUser actingUser = new AuthenticatedUser(upload.getUpdatedByUser().getName(), new ArrayList<>(), upload.getUpdatedByUser().getId(), new ArrayList<>());
+        List<ProgramLocation> createdLocations = new ArrayList<>();
         try {
-            createdLocations.addAll(brAPILocationDAO.createBrAPILocations(locations, program.getId(), upload));
-        } catch (ApiException e) {
-            throw new InternalServerException(e.toString(), e);
+            createdLocations.addAll(locationService.create(actingUser, program.getId(), locations));
+        } catch (Exception e) {
+            log.error("Error saving location import", e);
+            throw new InternalServerException(e.getMessage(), e);
         }
 
         // Update our records
         createdLocations.forEach(location -> {
-            PendingImportObject<BrAPILocation> preview = locationByName.get(location.getLocationName());
+            PendingImportObject<ProgramLocation> preview = locationByName.get(location.getName());
             preview.setBrAPIObject(location);
         });
     }
