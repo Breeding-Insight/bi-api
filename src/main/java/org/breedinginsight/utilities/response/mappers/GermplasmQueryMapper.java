@@ -2,6 +2,7 @@ package org.breedinginsight.utilities.response.mappers;
 
 import com.google.gson.JsonObject;
 import lombok.Getter;
+import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.brapi.v1.model.ObservationVariable;
@@ -24,10 +25,24 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
 
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
-                Map.entry("importEntryNumber", (germplasm) ->
-                        germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER) ?
-                        germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString() :
-                        null),
+                Map.entry("importEntryNumber", (germplasm) ->{
+                    String entryNumber = null;
+                        if (germplasm.getAdditionalInfo() != null) {
+                            // if additionalInfo contains the importEntryNumber key then return the value
+                            if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER)) {
+                                entryNumber = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString();
+                            }
+
+                            // if additionalInfo has both listEntryNumbers and listId keys then return the entry number
+                            // mapped to the listId
+                            if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS)
+                                && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID)) {
+                                String listId = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID).getAsString();
+                                entryNumber = germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS).get(listId).getAsString();
+                            }
+                        }
+                    return entryNumber;
+                }),
                 Map.entry("accessionNumber", BrAPIGermplasm::getAccessionNumber),
                 Map.entry("defaultDisplayName", BrAPIGermplasm::getDefaultDisplayName),
                 Map.entry("breedingMethod", (germplasm) ->

@@ -166,14 +166,21 @@ public class BrAPIGermplasmService {
         return processedData;
     }
 
-    public List<BrAPIGermplasm> getGermplasmByList(UUID programId, String listId) throws ApiException {
+    public List<BrAPIGermplasm> getGermplasmByList(UUID programId, String listDbId) throws ApiException {
         // get list germplasm names
-        BrAPIListsSingleResponse listResponse = brAPIListDAO.getListById(listId, programId);
+        BrAPIListsSingleResponse listResponse = brAPIListDAO.getListById(listDbId, programId);
         if(Objects.nonNull(listResponse) && Objects.nonNull(listResponse.getResult())) {
-            List<String> germplasmNames = listResponse.getResult().getData();
+
+            // get the list ID stored in the list external references
+            UUID listId = getGermplasmListId(listResponse.getResult());
 
             // get list BrAPI germplasm variables
-            return germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+            List<String> germplasmNames = listResponse.getResult().getData();
+            List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
+
+            // set the list ID in the germplasm additional info
+             germplasm.forEach(g -> g.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ID, listId));
+            return germplasm;
         } else throw new ApiException();
     }
     public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
