@@ -11,13 +11,10 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
-import org.breedinginsight.brapps.importer.model.base.ExternalReference;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
@@ -115,7 +112,7 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public List<Map<String, Object>> processData(List<BrAPIGermplasm> germplasm, UUID germplasmListId){
+    public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, UUID germplasmListId){
         List<Map<String, Object>> processedData =  new ArrayList<>();
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
@@ -127,7 +124,7 @@ public class BrAPIGermplasmService {
             row.put("Source", source);
 
             // Use the entry number in the list map if generated
-            if(germplasmListId.compareTo(new UUID(0,0)) == 0) {
+            if(new UUID(0,0).compareTo(germplasmListId) == 0) {
                 row.put("Entry No", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsInt());
             } else {
                 row.put("Entry No", germplasmEntry.getAdditionalInfo()
@@ -206,7 +203,7 @@ public class BrAPIGermplasmService {
         String fileName = createFileName(listData, listName);
         StreamedFile downloadFile;
         //Convert list data to List<Map<String, Object>> data to pass into file writer
-        List<Map<String, Object>> processedData =  processData(germplasm, germplasmListId);
+        List<Map<String, Object>> processedData =  processListData(germplasm, germplasmListId);
 
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
