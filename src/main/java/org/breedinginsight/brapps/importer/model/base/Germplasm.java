@@ -27,6 +27,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -148,7 +149,7 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(BreedingMethodEntity breedingMethod, User user, UUID listId) {
+    public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
@@ -253,7 +254,7 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(Program program, BreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, UUID listId) {
+    public BrAPIGermplasm constructBrAPIGermplasm(Program program, ProgramBreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, UUID listId) {
         BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user, listId);
         if (commit) {
             setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
