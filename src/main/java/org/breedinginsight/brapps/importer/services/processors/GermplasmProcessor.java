@@ -38,7 +38,7 @@ import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
+import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -252,7 +252,7 @@ public class GermplasmProcessor implements Processor {
                     if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
                         breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
                     } else {
-                        List<BreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod());
+                        List<ProgramBreedingMethodEntity> breedingMethodResults = breedingMethodDAO.findByNameOrAbbreviation(germplasm.getBreedingMethod(), program.getId());
                         if (breedingMethodResults.size() > 0) {
                             breedingMethods.put(germplasm.getBreedingMethod(), breedingMethodResults.get(0));
                             breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
