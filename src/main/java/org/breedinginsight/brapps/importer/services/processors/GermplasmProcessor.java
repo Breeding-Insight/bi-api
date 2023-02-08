@@ -230,7 +230,7 @@ public class GermplasmProcessor implements Processor {
 
         // All rows are considered new germplasm, we don't check for duplicates
         newGermplasmList = new ArrayList<>();
-        Map<String, BreedingMethodEntity> breedingMethods = new HashMap<>();
+        Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();
         Boolean nullEntryNotFound = false;
         List<String> badBreedingMethods = new ArrayList<>();
         Map<String, Integer> entryNumberCounts = new HashMap<>();
@@ -247,7 +247,7 @@ public class GermplasmProcessor implements Processor {
             if (germplasm != null && germplasm.getGermplasmName() != null) {
 
                 // Get the breeding method database object
-                BreedingMethodEntity breedingMethod = null;
+                ProgramBreedingMethodEntity breedingMethod = null;
                 if (germplasm.getBreedingMethod() != null) {
                     if (breedingMethods.containsKey(germplasm.getBreedingMethod())) {
                         breedingMethod = breedingMethods.get(germplasm.getBreedingMethod());
