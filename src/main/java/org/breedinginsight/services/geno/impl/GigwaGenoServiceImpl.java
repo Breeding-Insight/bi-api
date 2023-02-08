@@ -26,6 +26,8 @@ import org.brapi.client.v2.modules.genotype.CallsApi;
 import org.brapi.client.v2.modules.genotype.SamplesApi;
 import org.brapi.client.v2.modules.genotype.VariantsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.brapi.v2.model.geno.BrAPICall;
@@ -417,11 +419,32 @@ public class GigwaGenoServiceImpl implements GenoService {
         ApiResponse<BrAPITrialListResponse> brAPITrialListResponseApiResponse = trialsApi.trialsGet(new TrialQueryParams().externalReferenceID(experimentId.toString())
                                                                                                                           .externalReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS)));
 
-        if(brAPITrialListResponseApiResponse.getBody().getResult().getData() != null && brAPITrialListResponseApiResponse.getBody().getResult().getData().size() == 1) {
+        BrAPITrial brAPITrial = null;
+        if(brAPITrialListResponseApiResponse.getBody().getResult().getData() != null) {
+            if (brAPITrialListResponseApiResponse.getBody().getResult().getData().size() == 1) {
+                brAPITrial = brAPITrialListResponseApiResponse.getBody().getResult().getData().get(0);
+            } else {
+                String trialReferenceSource = String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS.getName());
+                for (BrAPITrial trial : brAPITrialListResponseApiResponse.getBody().getResult().getData()) {
+                    if (trial.getExternalReferences() != null) {
+                        Optional<BrAPIExternalReference> xref = trial.getExternalReferences()
+                                                                     .stream()
+                                                                     .filter(externalReference -> externalReference.getReferenceSource().equals(trialReferenceSource))
+                                                                     .findFirst();
+                        if (xref.isPresent() && xref.get().getReferenceID().equals(experimentId.toString())) {
+                            brAPITrial = trial;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if(brAPITrial != null) {
             ObservationUnitsApi observationUnitsApi = brAPIEndpointProvider.get(phenoBrAPIClient, ObservationUnitsApi.class);
 
             BrAPIObservationUnitSearchRequest searchRequest = new BrAPIObservationUnitSearchRequest();
-            searchRequest.addTrialDbIdsItem(brAPITrialListResponseApiResponse.getBody().getResult().getData().get(0).getTrialDbId());
+            searchRequest.addTrialDbIdsItem(brAPITrial.getTrialDbId());
 
             return brAPIDAOUtil.search(observationUnitsApi::searchObservationunitsPost, observationUnitsApi::searchObservationunitsSearchResultsDbIdGet, searchRequest);
         } else {
