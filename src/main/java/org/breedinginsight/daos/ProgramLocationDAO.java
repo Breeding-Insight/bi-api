@@ -143,7 +143,7 @@ public class ProgramLocationDAO extends PlaceDao {
             locationIds.add(location.getId());
         }
 
-        if(fetchBrAPIObject) {
+        if(fetchBrAPIObject && !resultLocations.isEmpty()) {
             List<BrAPILocation> brAPILocations = getBrapiLocations(locationIds, resultLocations.values().stream().findFirst().get().getProgramId());
 
             if (brAPILocations.size() != resultLocations.size()) {

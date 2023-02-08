@@ -516,23 +516,23 @@ public class ExperimentProcessor implements Processor {
     private Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits, Program program) throws ApiException {
         Set<String> ouDbIds = new HashSet<>();
         Set<String> variableDbIds = new HashSet<>();
-        Map<String, Trait> variableNameByDbId = new HashMap<>();
-        Map<String, BrAPIObservationUnit> ouNameByDbId = new HashMap<>();
+        Map<String, String> variableNameByDbId = new HashMap<>();
+        Map<String, String> ouNameByDbId = new HashMap<>();
         Map<String, String> studyNameByDbId = studyByNameNoScope.values()
                                                                 .stream()
                                                                 .map(PendingImportObject::getBrAPIObject)
-                                                                .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, BrAPIStudy::getStudyName));
+                                                                .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
 
         observationUnitByNameNoScope.values().forEach(ou -> {
             if(StringUtils.isNotBlank(ou.getBrAPIObject().getObservationUnitDbId())) {
                 ouDbIds.add(ou.getBrAPIObject().getObservationUnitDbId());
             }
-            ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), ou.getBrAPIObject());
+            ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getBrAPIObject().getObservationUnitName(), program.getKey()));
         });
 
         for (Trait referencedTrait : referencedTraits) {
             variableDbIds.add(referencedTrait.getObservationVariableDbId());
-            variableNameByDbId.put(referencedTrait.getObservationVariableDbId(), referencedTrait);
+            variableNameByDbId.put(referencedTrait.getObservationVariableDbId(), referencedTrait.getObservationVariableName());
         }
 
         List<BrAPIObservation> existingObservations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, variableDbIds, program);
@@ -540,8 +540,8 @@ public class ExperimentProcessor implements Processor {
         return existingObservations.stream()
                                    .map(obs -> {
                                        String studyName = studyNameByDbId.get(obs.getStudyDbId());
-                                       String variableName = variableNameByDbId.get(obs.getObservationVariableDbId()).getObservationVariableName();
-                                       String ouName = ouNameByDbId.get(obs.getObservationUnitDbId()).getObservationUnitName();
+                                       String variableName = variableNameByDbId.get(obs.getObservationVariableDbId());
+                                       String ouName = ouNameByDbId.get(obs.getObservationUnitDbId());
 
                                        String key = getObservationHash(createObservationUnitKey(studyName, ouName), variableName, studyName);
 
@@ -746,6 +746,8 @@ public class ExperimentProcessor implements Processor {
                 newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
             }
 
+            newObservation.setStudyDbId(this.studyByNameNoScope.get(importRow.getEnv()).getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
+
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
             this.observationByHash.put(key, pio);
         }
@@ -765,8 +767,10 @@ public class ExperimentProcessor implements Processor {
 
             if (commit) {
                 String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
-                String seasonID = this.yearToSeasonDbId(year, program.getId());
-                newStudy.setSeasons(Collections.singletonList(seasonID));
+                if(StringUtils.isNotBlank(year)) {
+                    String seasonID = this.yearToSeasonDbId(year, program.getId());
+                    newStudy.setSeasons(Collections.singletonList(seasonID));
+                }
             }
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
@@ -850,7 +854,7 @@ public class ExperimentProcessor implements Processor {
                                                             .getAdditionalInfo()
                                                             .get(BrAPIAdditionalInfoFields.STUDY_NAME)
                                                             .getAsString()
-                                                            .equals(obsUnit.getStudyName())
+                                                            .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getStudyName(), programKey))
                                                       && Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getBrAPIObject().getObservationUnitName(), programKey)
                                                                   .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(obsUnit.getObservationUnitName(), programKey))
                               )
