@@ -169,7 +169,7 @@ public class ProgramLocationDAO extends PlaceDao {
         return new ArrayList<>(resultLocations.values());
     }
 
-    public void createProgramLocationBrAPI(ProgramLocation location) {
+    public void createProgramLocationBrAPI(ProgramLocation location, Program program) {
 
         BrAPIExternalReference locationIdRef = new BrAPIExternalReference()
                                                                          .referenceID(location.getId().toString())
@@ -192,7 +192,7 @@ public class ProgramLocationDAO extends PlaceDao {
                                                    .externalReferences(List.of(locationIdRef, programIdRef))
                                                    //.instituteAddress() do not keep this in our model
                                                    //.instituteName() do not keep this in our model
-                                                   .locationName(location.getName())
+                                                   .locationName(Utilities.appendProgramKey(location.getName(), program.getKey()))
                                                    //.locationType() do not keep this in our model
                                                    //.siteStatus() do not keep this in our model
                                                    .slope(location.getSlope() != null ? location.getSlope().toPlainString() : null)
@@ -207,13 +207,13 @@ public class ProgramLocationDAO extends PlaceDao {
                 location.setLocationDbId(brapiResponse.getBody().getResult().getData().get(0).getLocationDbId());
             }
         } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            log.error(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
     }
 
-    public void updateProgramLocationBrAPI(ProgramLocation location) {
+    public void updateProgramLocationBrAPI(ProgramLocation location, Program program) {
 
         try {
             List<BrAPILocation> brApiLocations = getBrapiLocations(List.of(location.getId()), location.getProgramId());
@@ -237,7 +237,7 @@ public class ProgramLocationDAO extends PlaceDao {
             brApiLocation.setExposure(location.getExposure());
             //brApiLocation.setInstituteAddress(); do not keep this in our model
             //brApiLocation.setInstituteName(); do not keep this in our model
-            brApiLocation.setLocationName(location.getName());
+            brApiLocation.setLocationName(Utilities.appendProgramKey(location.getName(), program.getKey()));
             //brApiLocation.setLocationType(); do not keep this in our model
             //brApiLocation.setSiteStatus(); do not keep this in our model
             brApiLocation.setSlope(location.getSlope() != null ? location.getSlope().toPlainString() : null);

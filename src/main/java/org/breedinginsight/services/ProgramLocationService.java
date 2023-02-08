@@ -25,6 +25,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
 import org.breedinginsight.daos.ProgramLocationDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
@@ -195,13 +196,11 @@ public class ProgramLocationService {
 
     public List<ProgramLocation> create(AuthenticatedUser actingUser, UUID programId, List<ProgramLocationRequest> newLocations) throws MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
         // check if programId exists
-        if (!programService.exists(programId)) {
-            throw new DoesNotExistException("Program id does not exist");
-        }
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
 
         List<ProgramLocation> ret = new ArrayList<>();
         for(ProgramLocationRequest newLoc : newLocations) {
-            ret.add(createLocation(actingUser, programId, newLoc));
+            ret.add(createLocation(actingUser, program, newLoc));
         }
 
         return ret;
@@ -213,20 +212,19 @@ public class ProgramLocationService {
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
         // check if programId exists
-        if (!programService.exists(programId)) {
-            throw new DoesNotExistException("Program id does not exist");
-        }
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
 
-        return createLocation(actingUser, programId, programLocationRequest);
+        return createLocation(actingUser, program, programLocationRequest);
     }
 
-    private ProgramLocation createLocation(AuthenticatedUser actingUser, UUID programId, ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException, MissingRequiredInfoException {
+    private ProgramLocation createLocation(AuthenticatedUser actingUser, Program program, ProgramLocationRequest programLocationRequest) throws UnprocessableEntityException, MissingRequiredInfoException, DoesNotExistException {
         // validate fields
         UUID countryId = validateCountryId(programLocationRequest);
         UUID environmentTypeId = validateEnvironmentTypeId(programLocationRequest);
         UUID accessibilityId = validateAccessibilityId(programLocationRequest);
         UUID topographyId = validateTopographyId(programLocationRequest);
         String coordinates = validateCoordinates(programLocationRequest);
+        UUID programId = program.getId();
 
         // parse and create the program location object
         PlaceEntity placeEntity = PlaceEntity.builder()
@@ -248,15 +246,14 @@ public class ProgramLocationService {
                                              .build();
 
 
-        ProgramLocation location = null;
         // Insert and update
         //  This is warped in a transaction so if the BrAPI save call fails, the BI database insert is rolled back.
-        location = dsl.transactionResult(configuration -> {
+        ProgramLocation location = dsl.transactionResult(configuration -> {
             programLocationDao.insert(placeEntity);
             ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId(), false).get();
 
             // Add location to brapi service
-            programLocationDao.createProgramLocationBrAPI(progLocation);
+            programLocationDao.createProgramLocationBrAPI(progLocation, program);
 
             return progLocation;
         });
@@ -269,9 +266,7 @@ public class ProgramLocationService {
                                   ProgramLocationRequest programLocationRequest)
             throws DoesNotExistException, MissingRequiredInfoException, UnprocessableEntityException {
 
-        if (!programService.exists(programId)) {
-            throw new DoesNotExistException("Program id does not exist");
-        }
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
 
         PlaceEntity placeEntity = programLocationDao.fetchOneById(locationId);
         if (placeEntity == null || (!placeEntity.getProgramId().equals(programId))){
@@ -304,7 +299,7 @@ public class ProgramLocationService {
             ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId(), false).get();
 
             // Update location in brapi service
-            programLocationDao.updateProgramLocationBrAPI(progLocation);
+            programLocationDao.updateProgramLocationBrAPI(progLocation, program);
             return progLocation;
         });
         return location;
