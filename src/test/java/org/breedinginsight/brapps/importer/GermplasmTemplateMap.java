@@ -743,7 +743,6 @@ public class GermplasmTemplateMap extends BrAPITest {
         // Entry Number
         gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(fileData.getString(i, "Entry No"), entryNumber, "Wrong entry number"));
         JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
-        assertEquals(fileData.getString(i, "Entry No"), additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER).getAsString(), "Wrong entry number");
         // Created By User ID
         assertEquals(testUser.getId().toString(), additionalInfo.getAsJsonObject(BrAPIAdditionalInfoFields.CREATED_BY).get(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID).getAsString(), "Wrong createdBy userId");
         // Created by User name
