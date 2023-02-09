@@ -592,8 +592,8 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals(expected.get(Columns.EXP_TYPE), trial.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         assertEquals(expected.get(Columns.EXP_TYPE), study.getStudyType());
         assertEquals(expected.get(Columns.ENV), Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
-        assertEquals(expected.get(Columns.ENV_LOCATION), study.getLocationName());
-        assertEquals(expected.get(Columns.ENV_LOCATION), location.getName());
+        assertEquals(expected.get(Columns.ENV_LOCATION), Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
+        assertEquals(expected.get(Columns.ENV_LOCATION), Utilities.removeProgramKey(location.getName(), program.getKey()));
         assertEquals(expected.get(Columns.ENV_YEAR), season.getSeasonName());
         assertEquals(expected.get(Columns.EXP_UNIT_ID), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
