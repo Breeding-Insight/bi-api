@@ -27,6 +27,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -131,11 +132,16 @@ public class Germplasm implements BrAPIObject {
         brapiList.setListName(constructGermplasmListName(listName, program));
         brapiList.setListDescription(this.listDescription);
         brapiList.listType(BrAPIListTypes.GERMPLASM);
-        // Set external reference
-        BrAPIExternalReference reference = new BrAPIExternalReference();
-        reference.setReferenceSource(String.format("%s/programs", referenceSource));
-        reference.setReferenceID(program.getId().toString());
-        brapiList.setExternalReferences(List.of(reference));
+
+        // Set external references
+        BrAPIExternalReference programReference = new BrAPIExternalReference();
+        programReference.setReferenceSource(String.format("%s/programs", referenceSource));
+        programReference.setReferenceID(program.getId().toString());
+        BrAPIExternalReference listReference = new BrAPIExternalReference();
+        listReference.setReferenceSource(String.format("%s/lists", referenceSource));
+        listReference.setReferenceID(UUID.randomUUID().toString());
+        brapiList.setExternalReferences(List.of(programReference, listReference));
+
         return brapiList;
     }
 
@@ -143,13 +149,12 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
-    private BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user) {
+    public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo);
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
@@ -158,6 +163,9 @@ public class Germplasm implements BrAPIObject {
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId().toString());
         createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
+        Map<UUID, String> listEntryNumbers = new HashMap<>();
+        listEntryNumbers.put(listId, entryNo);
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS, listEntryNumbers);
         //TODO: Need to check that the acquisition date it in date format
         //brAPIGermplasm.setAcquisitionDate(pedigreeImport.getGermplasm().getAcquisitionDate());
         germplasm.setCountryOfOriginCode(getCountryOfOrigin());
@@ -246,8 +254,8 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public BrAPIGermplasm constructBrAPIGermplasm(Program program, ProgramBreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal) {
-        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user);
+    public BrAPIGermplasm constructBrAPIGermplasm(Program program, ProgramBreedingMethodEntity breedingMethod, User user, boolean commit, String referenceSource, Supplier<BigInteger> nextVal, UUID listId) {
+        BrAPIGermplasm germplasm = constructBrAPIGermplasm(breedingMethod, user, listId);
         if (commit) {
             setBrAPIGermplasmCommitFields(germplasm, program.getKey(), referenceSource, nextVal);
         }

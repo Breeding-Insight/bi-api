@@ -18,6 +18,8 @@
 package org.breedinginsight.brapi.v2.constants;
 
 public final class BrAPIAdditionalInfoFields {
+    public static final String GERMPLASM_LIST_ENTRY_NUMBERS = "listEntryNumbers";
+    public static final String GERMPLASM_LIST_ID = "listId";
     public static final String GERMPLASM_RAW_PEDIGREE = "rawPedigree";
     public static final String GERMPLASM_PEDIGREE_BY_NAME = "pedigreeByName";
     public static final String GERMPLASM_PEDIGREE_BY_UUID = "pedigreeByUUID";
