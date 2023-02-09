@@ -111,7 +111,7 @@ public class ResponseUtilsIntegrationTest extends BrAPITest {
             newLocations.add(ProgramLocationRequest.builder()
                                                       .name("place"+i)
                                                       .abbreviation("abbrev"+i)
-                    .slope(new BigDecimal(((Math.random()*10)%2 == 0 ? "" : "-")+Math.random()*10.0))
+                    .slope(new BigDecimal(((Math.random()*10)%2 == 0 ? "" : "-")+Math.random()*20.0))
                                                       .build());
         }
         for(int i = 25; i < 31; i++) {
@@ -121,6 +121,7 @@ public class ResponseUtilsIntegrationTest extends BrAPITest {
         }
         AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
 
+        //accessing the private method to bypass the fetch of a program from the db/brapi (which fails bc the program isn't in the brapi server)
         Method createLocationMethod = locationService.getClass()
                                                .getDeclaredMethod("createLocation", AuthenticatedUser.class, Program.class, ProgramLocationRequest.class);
         createLocationMethod.setAccessible(true);
