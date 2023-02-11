@@ -210,7 +210,7 @@ public class GigwaGenoServiceImpl implements GenoService {
                     }
                 });
             }
-        } catch (InstantiationException | IOException e) {
+        } catch (IOException e) {
             progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
             progress.setMessage("An error occurred while trying to validate sample information");
             importDAO.updateProgress(progress);
@@ -223,7 +223,45 @@ public class GigwaGenoServiceImpl implements GenoService {
         return response;
     }
 
-    private boolean validateSamples(Program program, UUID experimentId, byte[] fileContents, ImportUpload upload, String gigwaAuthToken) throws DoesNotExistException, ApiException, InstantiationException {
+    @Override
+    public GermplasmGenotype retrieveGenotypeData(UUID programId, BrAPIGermplasm germplasm) throws DoesNotExistException, AuthorizationException, ApiException {
+        log.debug("fetching genotypes for " + germplasm.getGermplasmName());
+        Program program = getProgram(programId);
+        BrAPIClient brAPIClient = programDAO.getCoreClient(programId);
+        brAPIClient.setBasePath(gigwaHost + GIGWA_BRAPI_BASE_PATH);
+        Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
+        if(authorizationToken instanceof OAuth) {
+            ((OAuth)authorizationToken).setAccessToken(getAuthToken());
+        }
+
+        BrAPIClient brapiPhenoClient = programDAO.getPhenoClient(programId);
+
+        if(verifyProgramExists(brAPIClient, program)) {
+            List<BrAPIObservationUnit> germplasmOUs = fetchObservationUnits(brapiPhenoClient, germplasm);
+
+            List<BrAPISample> germplasmSamples = fetchSamples(brAPIClient, program, germplasmOUs);
+
+            List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, germplasmSamples);
+
+            List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
+
+            List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
+
+            return GermplasmGenotype.builder()
+                                    .germplasm(germplasm)
+                                    .calls(calls.stream()
+                                                .collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
+                                    .callSets(callSets.stream()
+                                                      .collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+                                    .variants(variants.stream()
+                                                      .collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
+                                    .build();
+        } else {
+            return new GermplasmGenotype();
+        }
+    }
+
+    private boolean validateSamples(Program program, UUID experimentId, byte[] fileContents, ImportUpload upload, String gigwaAuthToken) throws DoesNotExistException, ApiException {
         log.debug("Validating samples in submitted VCF file for experiment: " + experimentId);
 
         BrAPIClient brAPIClient = programDAO.getCoreClient(program.getId());
@@ -339,56 +377,14 @@ public class GigwaGenoServiceImpl implements GenoService {
         return true;
     }
 
-    @Override
-    public GermplasmGenotype retrieveGenotypeData(UUID programId, BrAPIGermplasm germplasm) throws DoesNotExistException, AuthorizationException, ApiException {
-        log.debug("fetching genotypes for " + germplasm.getGermplasmName());
-        Program program = getProgram(programId);
-        BrAPIClient brAPIClient = programDAO.getCoreClient(programId);
-        brAPIClient.setBasePath(gigwaHost + GIGWA_BRAPI_BASE_PATH);
-        Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
-        if(authorizationToken instanceof OAuth) {
-            ((OAuth)authorizationToken).setAccessToken(getAuthToken());
-        }
-
-        BrAPIClient brapiPhenoClient = programDAO.getPhenoClient(programId);
-
-        try {
-            if(verifyProgramExists(brAPIClient, program)) {
-                List<BrAPIObservationUnit> germplasmOUs = fetchObservationUnits(brapiPhenoClient, germplasm);
-
-                List<BrAPISample> germplasmSamples = fetchSamples(brAPIClient, program, germplasmOUs);
-
-                List<BrAPICallSet> callSets = fetchCallsets(brAPIClient, germplasmSamples);
-
-                List<BrAPICall> calls = fetchCalls(brAPIClient, callSets);
-
-                List<BrAPIVariant> variants = fetchVariants(brAPIClient, calls);
-
-                return GermplasmGenotype.builder()
-                                        .germplasm(germplasm)
-                                        .calls(calls.stream()
-                                                    .collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
-                                        .callSets(callSets.stream()
-                                                          .collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
-                                        .variants(variants.stream()
-                                                          .collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
-                                        .build();
-            } else {
-                return new GermplasmGenotype();
-            }
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private boolean verifyProgramExists(BrAPIClient genoBrAPIClient, Program program) throws ApiException, InstantiationException {
+    private boolean verifyProgramExists(BrAPIClient genoBrAPIClient, Program program) throws ApiException {
         ProgramsApi programsApi = brAPIEndpointProvider.get(genoBrAPIClient, ProgramsApi.class);
         ApiResponse<BrAPIProgramListResponse> brAPIProgramListResponseApiResponse = programsApi.programsGet(new ProgramQueryParams().programDbId(program.getKey()));
 
         return brAPIProgramListResponseApiResponse.getBody().getResult().getData().size() == 1;
     }
 
-    private List<BrAPISample> fetchSamples(BrAPIClient genoBrAPIClient, Program program, List<BrAPIObservationUnit> observationUnits) throws ApiException, InstantiationException {
+    private List<BrAPISample> fetchSamples(BrAPIClient genoBrAPIClient, Program program, List<BrAPIObservationUnit> observationUnits) throws ApiException {
         log.debug("fetching samples for OUs");
         if(observationUnits.isEmpty()) {
             log.debug("No OUs were supplied, returning");
@@ -404,7 +400,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         return brAPIDAOUtil.search(samplesApi::searchSamplesPost, samplesApi::searchSamplesSearchResultsDbIdGet, sampleSearchRequest);
     }
 
-    private List<BrAPIObservationUnit> fetchObservationUnits(BrAPIClient phenoBrAPIClient, BrAPIGermplasm germplasm) throws ApiException, InstantiationException {
+    private List<BrAPIObservationUnit> fetchObservationUnits(BrAPIClient phenoBrAPIClient, BrAPIGermplasm germplasm) throws ApiException {
         ObservationUnitsApi observationUnitsApi = brAPIEndpointProvider.get(phenoBrAPIClient, ObservationUnitsApi.class);
 
         BrAPIObservationUnitSearchRequest searchRequest = new BrAPIObservationUnitSearchRequest();
@@ -413,7 +409,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         return brAPIDAOUtil.search(observationUnitsApi::searchObservationunitsPost, observationUnitsApi::searchObservationunitsSearchResultsDbIdGet, searchRequest);
     }
 
-    private List<BrAPIObservationUnit> fetchObservationUnits(BrAPIClient phenoBrAPIClient, UUID experimentId) throws ApiException, DoesNotExistException, InstantiationException {
+    private List<BrAPIObservationUnit> fetchObservationUnits(BrAPIClient phenoBrAPIClient, UUID experimentId) throws ApiException, DoesNotExistException {
         log.debug("fetching observationUnits for experiment: " + experimentId);
         TrialsApi trialsApi = brAPIEndpointProvider.get(phenoBrAPIClient, TrialsApi.class);
         ApiResponse<BrAPITrialListResponse> brAPITrialListResponseApiResponse = trialsApi.trialsGet(new TrialQueryParams().externalReferenceID(experimentId.toString())
@@ -452,7 +448,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         }
     }
 
-    private List<BrAPICallSet> fetchCallsets(BrAPIClient genoBrAPIClient, List<BrAPISample> germplasmSamples) throws ApiException, InstantiationException {
+    private List<BrAPICallSet> fetchCallsets(BrAPIClient genoBrAPIClient, List<BrAPISample> germplasmSamples) throws ApiException {
         log.debug("fetching callsets for samples");
         if(germplasmSamples.isEmpty()) {
             log.debug("No samples were supplied, returning");
@@ -467,7 +463,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         return brAPIDAOUtil.search(callSetsApi::searchCallsetsPost, callSetsApi::searchCallsetsSearchResultsDbIdGet, searchRequest);
     }
 
-    private List<BrAPICall> fetchCalls(BrAPIClient genoBrAPIClient, List<BrAPICallSet> callSets) throws ApiException, InstantiationException {
+    private List<BrAPICall> fetchCalls(BrAPIClient genoBrAPIClient, List<BrAPICallSet> callSets) throws ApiException {
         log.debug("fetching calls for callsets");
         if(callSets.isEmpty()) {
             log.debug("No callsets were supplied, returning");
@@ -481,7 +477,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         return brAPIDAOUtil.searchWithToken(callsApi::searchCallsPost, callsApi::searchCallsSearchResultsDbIdGet, searchRequest); //breaking bc this uses a pageToken instead of page#
     }
 
-    private List<BrAPIVariant> fetchVariants(BrAPIClient genoBrAPIClient, List<BrAPICall> calls) throws ApiException, InstantiationException {
+    private List<BrAPIVariant> fetchVariants(BrAPIClient genoBrAPIClient, List<BrAPICall> calls) throws ApiException {
         log.debug("fetching variants for calls");
         if(calls.isEmpty()) {
             log.debug("No calls were supplied, returning");
