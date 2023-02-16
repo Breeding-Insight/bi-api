@@ -128,4 +128,17 @@ public class Utilities {
         }
         return externalReferences.stream().filter(externalReference -> externalReference.getReferenceSource().equals(source)).findFirst();
     }
+
+    /**
+     * For a list of items, if the list has only one item, return that item, otherwise return an empty {@link Optional}
+     * @param items {@link List} of items
+     * @return Optional of type T or empty Optional
+     */
+    public static <T> Optional<T> getSingleOptional(List<T> items) {
+        if(items.size() == 1) {
+            return Optional.of(items.get(0));
+        } else {
+            return Optional.empty();
+        }
+    }
 }

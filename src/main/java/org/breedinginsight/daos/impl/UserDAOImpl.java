@@ -64,11 +64,7 @@ public class UserDAOImpl extends BiUserDao implements UserDAO {
         List<ProgramUser> programUsers = programUserDAO.getProgramUsersByUserId(id);
         List<User> users = parseRecords(records, programUsers);
 
-        if (users.size() > 0){
-            return Optional.of(users.get(0));
-        } else {
-            return Optional.empty();
-        }
+        return Utilities.getSingleOptional(users);
     }
 
     public Optional<User> getUserByOrcId(String orcid) {
@@ -78,11 +74,7 @@ public class UserDAOImpl extends BiUserDao implements UserDAO {
         List<ProgramUser> programUsers = programUserDAO.getProgramUsersByOrcid(orcid);
         List<User> users = parseRecords(records, programUsers);
 
-        if (users.size() > 0){
-            return Optional.of(users.get(0));
-        } else {
-            return Optional.empty();
-        }
+        return Utilities.getSingleOptional(users);
     }
 
     private SelectOnConditionStep<Record> getUsersQuery(){

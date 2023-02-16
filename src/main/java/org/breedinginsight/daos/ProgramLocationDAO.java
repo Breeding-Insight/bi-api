@@ -91,11 +91,7 @@ public class ProgramLocationDAO extends PlaceDao {
     public Optional<ProgramLocation> getById(UUID programId, UUID locationId, boolean full) throws ApiException {
         List<ProgramLocation> locations = getByIds(programId, List.of(locationId), full);
 
-        if (locations.size() > 0){
-            return Optional.of(locations.get(0));
-        } else {
-            return Optional.empty();
-        }
+        return Utilities.getSingleOptional(locations);
     }
 
 
@@ -148,22 +144,18 @@ public class ProgramLocationDAO extends PlaceDao {
 
             if (brAPILocations.size() != resultLocations.size()) {
                 throw new IllegalStateException("Did not find BrAPI Location objects for each location");
-            } else {
-                brAPILocations.forEach(brapiLocation -> {
-                    Optional<BrAPIExternalReference> externalReference = Utilities.getExternalReference(brapiLocation.getExternalReferences(), referenceSource);
-                    if (externalReference.isPresent()) {
-                        ProgramLocation location = resultLocations.get(UUID.fromString(externalReference.get()
-                                                                                                        .getReferenceID()));
-                        if (location != null) {
-                            location.setLocationDbId(brapiLocation.getLocationDbId());
-                        } else {
-                            throw new IllegalStateException("Did not find BrAPI Location for location: " + location.getId());
-                        }
-                    } else {
-                        throw new IllegalStateException("No externalReference for brapilocation: " + brapiLocation.getLocationDbId());
-                    }
-                });
             }
+
+            brAPILocations.forEach(brapiLocation -> {
+                BrAPIExternalReference externalReference = Utilities.getExternalReference(brapiLocation.getExternalReferences(), referenceSource)
+                                                                    .orElseThrow(() -> new IllegalStateException("No externalReference for BrAPI Location: " + brapiLocation.getLocationDbId()));
+
+                ProgramLocation location = resultLocations.get(UUID.fromString(externalReference.getReferenceID()));
+                if(location == null) {
+                    throw new IllegalStateException("Did not find BrAPI Location for location: " + location.getId());
+                }
+                location.setLocationDbId(brapiLocation.getLocationDbId());
+            });
         }
 
         return new ArrayList<>(resultLocations.values());
@@ -302,12 +294,9 @@ public class ProgramLocationDAO extends PlaceDao {
 
         Map<UUID, BrAPILocation> brapiLocationById = new HashMap<>();
         searchResult.forEach(brAPILocation -> {
-            Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(brAPILocation.getExternalReferences(), referenceSource);
-            if(xref.isPresent()) {
-                brapiLocationById.put(UUID.fromString(xref.get().getReferenceID()), brAPILocation);
-            } else {
-                throw new IllegalStateException(String.format("Location (by dbid): %s does not have any external references", brAPILocation.getLocationDbId()));
-            }
+            BrAPIExternalReference xref = Utilities.getExternalReference(brAPILocation.getExternalReferences(), referenceSource)
+                                                   .orElseThrow(() -> new IllegalStateException(String.format("Location (by dbid): %s does not have any external references", brAPILocation.getLocationDbId())));
+            brapiLocationById.put(UUID.fromString(xref.getReferenceID()), brAPILocation);
         });
 
         List<Record> records = getProgramLocationsQuery()
@@ -316,12 +305,12 @@ public class ProgramLocationDAO extends PlaceDao {
         List<ProgramLocation> programLocations = parseRecords(records, false);
         if(programLocations.size() != brapiLocationById.size()) {
             throw new IllegalStateException("Didn't find all locations by id");
-        } else {
-            programLocations.forEach(location -> {
-                BrAPILocation brAPILocation = brapiLocationById.get(location.getId());
-                location.setLocationDbId(brAPILocation.getLocationDbId());
-            });
         }
+
+        programLocations.forEach(location -> {
+            BrAPILocation brAPILocation = brapiLocationById.get(location.getId());
+            location.setLocationDbId(brAPILocation.getLocationDbId());
+        });
 
         return programLocations;
     }

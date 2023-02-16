@@ -53,11 +53,7 @@ public class BrAPIStudyDAO {
 
     public Optional<BrAPIStudy> getStudyByName(String studyName, Program program) throws ApiException {
         List<BrAPIStudy> studies = getStudiesByName(List.of(studyName), program);
-        if(studies.size() == 1) {
-            return Optional.of(studies.get(0));
-        } else {
-            return Optional.empty();
-        }
+        return Utilities.getSingleOptional(studies);
     }
     public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();

@@ -363,19 +363,19 @@ public class ExperimentProcessor implements Processor {
             //TODO convert this to a ValidationError
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
                                           "Ontology term(s) not found: " + String.join(COMMA_DELIMITER, differences));
-        } else {
-            // Check that each ts column corresponds to a phenotype column
-            List<String> unmatchedTimestamps = tsNames.stream()
-                                                      .filter(e -> !(varNames.contains(e.replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY))))
-                                                      .collect(Collectors.toList());
-            if (unmatchedTimestamps.size() > 0) {
-                //TODO convert this to a ValidationError
-                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                                              "Timestamp column(s) lack corresponding phenotype column(s): " + String.join(COMMA_DELIMITER, unmatchedTimestamps));
-            }
-
-            return filteredTraits;
         }
+
+        // Check that each ts column corresponds to a phenotype column
+        List<String> unmatchedTimestamps = tsNames.stream()
+                                                  .filter(e -> !(varNames.contains(e.replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY))))
+                                                  .collect(Collectors.toList());
+        if (unmatchedTimestamps.size() > 0) {
+            //TODO convert this to a ValidationError
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                                          "Timestamp column(s) lack corresponding phenotype column(s): " + String.join(COMMA_DELIMITER, unmatchedTimestamps));
+        }
+
+        return filteredTraits;
     }
 
     private List<Trait> fetchFileTraits(UUID programId, Collection<String> varNames) {
@@ -697,9 +697,9 @@ public class ExperimentProcessor implements Processor {
     private PendingImportObject<BrAPIGermplasm> getGidPOI(ExperimentObservation importRow) {
         if (this.existingGermplasmByGID.containsKey(importRow.getGid())) {
             return existingGermplasmByGID.get(importRow.getGid());
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) {
@@ -830,14 +830,12 @@ public class ExperimentProcessor implements Processor {
     }
 
     private List<Trait> getTraitList(Program program) {
-        List<Trait> traits = null;
         try {
-            traits = ontologyService.getTraitsByProgramId(program.getId(), true);
+            return ontologyService.getTraitsByProgramId(program.getId(), true);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
             throw new InternalServerException(e.toString(), e);
         }
-        return traits;
     }
 
     // Update each ovservation's observationUnit DbId, study DbId, and germplasm DbId
@@ -975,9 +973,8 @@ public class ExperimentProcessor implements Processor {
             if (StringUtils.isNotBlank(row.getObsUnitID())) {
                 if(rowByObsUnitId.containsKey(row.getObsUnitID())) {
                     throw new IllegalStateException("ObsUnitId is repeated: " + row.getObsUnitID());
-                } else {
-                    rowByObsUnitId.put(row.getObsUnitID(), row);
                 }
+                rowByObsUnitId.put(row.getObsUnitID(), row);
             }
         });
 
@@ -987,17 +984,14 @@ public class ExperimentProcessor implements Processor {
             String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
             if (existingObsUnits.size() == rowByObsUnitId.size()) {
                 existingObsUnits.forEach(brAPIObservationUnit -> {
-                    Optional<BrAPIExternalReference> idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource);
-                    if (idRef.isPresent()) {
-                        ExperimentObservation row = rowByObsUnitId.get(idRef.get().getReferenceID());
-                        row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
-                        ret.put(createObservationUnitKey(row),
-                                new PendingImportObject<>(ImportObjectState.EXISTING,
-                                                          brAPIObservationUnit,
-                                                          UUID.fromString(idRef.get().getReferenceID())));
-                    } else {
-                        throw new InternalServerException("An ObservationUnit ID was not found in any of the external references");
-                    }
+                    BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
+                                                            .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
+                    ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceID());
+                    row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
+                    ret.put(createObservationUnitKey(row),
+                            new PendingImportObject<>(ImportObjectState.EXISTING,
+                                                      brAPIObservationUnit,
+                                                      UUID.fromString(idRef.getReferenceID())));
                 });
             }
 
@@ -1123,11 +1117,9 @@ public class ExperimentProcessor implements Processor {
         }
 
         existingGermplasms.forEach(existingGermplasm -> {
-            Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE));
-            if(xref.isEmpty()) {
-                throw new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId());
-            }
-            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.get().getReferenceID())));
+            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
+                                                   .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
+            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceID())));
         });
         return existingGermplasmByGID;
     }
@@ -1139,13 +1131,11 @@ public class ExperimentProcessor implements Processor {
 
         existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
 
-        Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()));
-        if(xref.isEmpty()) {
-            throw new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId());
-        }
+        BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
+                                               .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
         studyByName.put(
                 existingStudy.getStudyName(),
-                new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy, UUID.fromString(xref.get().getReferenceID())));
+                new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy, UUID.fromString(xref.getReferenceID())));
     }
 
     private void initializeTrialsForExistingObservationUnits(Program program, List<ExperimentObservation> experimentImportRows, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
@@ -1156,14 +1146,14 @@ public class ExperimentProcessor implements Processor {
             observationUnitByNameNoScope.values()
                                         .forEach(pio -> {
                                             BrAPIObservationUnit existingOu = pio.getBrAPIObject();
-                                            if (StringUtils.isNotBlank(existingOu.getTrialDbId()) || StringUtils.isNotBlank(existingOu.getStudyDbId())) {
-                                                if (StringUtils.isNotBlank(existingOu.getTrialDbId())) {
-                                                    trialDbIds.add(existingOu.getTrialDbId());
-                                                } else {
-                                                    studyDbIds.add(existingOu.getStudyDbId());
-                                                }
-                                            } else {
+                                            if (StringUtils.isBlank(existingOu.getTrialDbId()) && StringUtils.isBlank(existingOu.getStudyDbId())) {
                                                 throw new IllegalStateException("TrialDbId and StudyDbId are not set for an existing ObservationUnit");
+                                            }
+
+                                            if (StringUtils.isNotBlank(existingOu.getTrialDbId())) {
+                                                trialDbIds.add(existingOu.getTrialDbId());
+                                            } else {
+                                                studyDbIds.add(existingOu.getStudyDbId());
                                             }
                                         });
 
@@ -1179,14 +1169,14 @@ public class ExperimentProcessor implements Processor {
 
             try {
                 List<BrAPITrial> trials = brapiTrialDAO.getTrialsByDbIds(trialDbIds, program);
-                if (trials.size() == trialDbIds.size()) {
-                    String trialRefSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName());
-                    trials.forEach(trial -> processAndCacheTrial(trial, program, trialRefSource, trialByName));
-                } else {
+                if (trials.size() != trialDbIds.size()) {
                     List<String> missingIds = new ArrayList<>(trialDbIds);
                     missingIds.removeAll(trials.stream().map(BrAPITrial::getTrialDbId).collect(Collectors.toList()));
                     throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
                 }
+
+                String trialRefSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName());
+                trials.forEach(trial -> processAndCacheTrial(trial, program, trialRefSource, trialByName));
             } catch (ApiException e) {
                 log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
@@ -1197,19 +1187,17 @@ public class ExperimentProcessor implements Processor {
     private Set<String> fetchTrialDbidsForStudies(Set<String> studyDbIds, Program program) throws ApiException {
         Set<String> trialDbIds = new HashSet<>();
         List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program);
-        if(studies.size() == studyDbIds.size()) {
-            studies.forEach(study -> {
-                if (StringUtils.isNotBlank(study.getTrialDbId())) {
-                    trialDbIds.add(study.getTrialDbId());
-                } else {
-                    throw new IllegalStateException("TrialDbId is not set for an existing Study: " + study.getStudyDbId());
-                }
-            });
-        } else {
+        if(studies.size() != studyDbIds.size()) {
             List<String> missingIds = new ArrayList<>(trialDbIds);
             missingIds.removeAll(studies.stream().map(BrAPIStudy::getStudyDbId).collect(Collectors.toList()));
             throw new IllegalStateException("Study not found for studyDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
         }
+        studies.forEach(study -> {
+            if (StringUtils.isBlank(study.getTrialDbId())) {
+                throw new IllegalStateException("TrialDbId is not set for an existing Study: " + study.getStudyDbId());
+            }
+            trialDbIds.add(study.getTrialDbId());
+        });
 
         return trialDbIds;
     }
@@ -1218,11 +1206,9 @@ public class ExperimentProcessor implements Processor {
         existingTrial.setTrialName(Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()));
 
         //get TrialId from existingTrial
-        Optional<BrAPIExternalReference> experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), trialRefSource);
-        if (experimentIDRef.isEmpty()) {
-            throw new InternalServerException("An Experiment ID was not found in any of the external references");
-        }
-        UUID experimentId = UUID.fromString(experimentIDRef.get().getReferenceID());
+        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), trialRefSource)
+                                                          .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
+        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceID());
 
         trialByNameNoScope.put(
                 existingTrial.getTrialName(),
@@ -1384,7 +1370,7 @@ public class ExperimentProcessor implements Processor {
         try {
             season = this.brAPISeasonDAO.getSeasonById(seasonDbId, programId);
         } catch (ApiException e) {
-            log.error(e.getResponseBody(), e);
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
         }
         Integer yearInt = (season == null) ? null : season.getYear();
         return (yearInt == null) ? "" : yearInt.toString();

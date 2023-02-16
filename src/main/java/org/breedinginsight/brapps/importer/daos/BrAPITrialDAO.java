@@ -85,12 +85,7 @@ public class BrAPITrialDAO {
         trialSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
         trialSearch.externalReferenceIDs(List.of(programId.toString()));
 
-        Optional<Program> optionalProgram = programService.getById(programId);
-        if (!optionalProgram.isPresent())
-        {
-            throw new DoesNotExistException("Program id does not exist");
-        }
-        Program program = optionalProgram.get();
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
 
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
@@ -120,11 +115,8 @@ public class BrAPITrialDAO {
 
     public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
         List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
-        if(trials.size() == 1) {
-            return Optional.of(trials.get(0));
-        } else {
-            return Optional.empty();
-        }
+
+        return Utilities.getSingleOptional(trials);
     }
 
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {

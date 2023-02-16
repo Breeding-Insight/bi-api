@@ -203,12 +203,9 @@ public class GermplasmController {
                 metadata.setPagination(pagination);
                 response = new BrAPIGermplasmPedigreeResponse();
             } else {
-                Optional<BrAPIGermplasm> germplasmOptional = germplasmService.getGermplasmByDBID(programId, germplasmId);
-                if(germplasmOptional.isEmpty()) {
-                    throw new DoesNotExistException("DBID for this germplasm does not exist");
-                }
+                BrAPIGermplasm germplasm = germplasmService.getGermplasmByDBID(programId, germplasmId)
+                                                                             .orElseThrow(() -> new DoesNotExistException("DBID for this germplasm does not exist"));
 
-                BrAPIGermplasm germplasm = germplasmOptional.get();
                 //Forward the pedigree call to the backing BrAPI system of the program passing the germplasmDbId that came in the request
                 GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
                 ApiResponse<BrAPIGermplasmPedigreeResponse> pedigreeResponse = api.germplasmGermplasmDbIdPedigreeGet(germplasmId, notation, includeSiblings);
@@ -308,8 +305,11 @@ public class GermplasmController {
                 }
                 return HttpResponse.ok(progenyResponse.getBody());
             }
-        } catch (InternalServerException | ApiException e) {
-            log.info(e.getMessage(), e);
+        } catch (InternalServerException e) {
+            log.error(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving pedigree node");
         }
     }
