@@ -1,4 +1,4 @@
-name: Versioning (develop)
+name: Versioning bi-api (develop)
 
 on:
   push:
