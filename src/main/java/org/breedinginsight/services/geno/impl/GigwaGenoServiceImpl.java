@@ -206,7 +206,8 @@ public class GigwaGenoServiceImpl implements GenoService {
                 executor.execute(() -> {
                     try {
                         processSubmission(gigwaAuthToken, program, experimentId, fileContents, uploadedFile.getFilename(), upload, progress);
-                    } catch (Exception ignored) {
+                    } catch (Exception e) {
+                        log.error(e.getMessage(), e);
                     }
                 });
             }
