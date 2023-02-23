@@ -10,7 +10,6 @@ import io.micronaut.context.event.BeanCreatedEventListener;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.multipart.CompletedFileUpload;
-import io.micronaut.http.multipart.PartData;
 import io.micronaut.inject.qualifiers.Qualifiers;
 import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
@@ -89,7 +88,6 @@ import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -98,7 +96,7 @@ import static org.mockito.Mockito.*;
 @MicronautTest(rebuildContext = true)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
+public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     @Inject
     private ProgramDAO programDAO;
@@ -115,7 +113,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     private BrAPIClientProvider brAPIClientProvider;
 
     @Inject
-    private GigwaGenoServiceImpl gigwaGenoStorageService;
+    private GigwaGenotypeServiceImpl gigwaGenoStorageService;
 
     @Inject
     private UserDAO userDAO;
@@ -133,7 +131,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     private ObjectMapper objectMapper;
 
     @Inject
-    @Named("geno")
+    @Named("genotype")
     private SimpleStorageService storageService;
 
     @Inject
@@ -197,7 +195,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @MockBean(SimpleStorageService.class)
-    @Named("geno")
+    @Named("genotype")
     SimpleStorageService simpleStorageService() {
         return spy(new DefaultSimpleStorageService(bucketName, s3Client, presigner));
     }
@@ -213,7 +211,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
     private LocalStackContainer localStackContainer;
 
-    public GigwaGenoServiceImplIntegrationTest() {
+    public GigwaGenotypeServiceImplIntegrationTest() {
         super();
         mongo = new GenericContainer<>("mongo:4.2.21")
                 .withNetwork(super.getNetwork())
@@ -280,7 +278,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
             return conf;
         }, false);
 
-        storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("geno"));
+        storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("genotype"));
         storageService.createBucket();
     }
 
@@ -549,7 +547,7 @@ public class GigwaGenoServiceImplIntegrationTest extends DatabaseTest {
 
         System.out.println("======================   program ID: " + program.getId() + " ===============");
         System.out.println("===================   experiment ID: " + expId + " ===============");
-        return gigwaGenoStorageService.submitGenoData(user.getId(), programId, expId, new TestFileUpload("src/test/resources/files/geno/"+file, MediaType.of("application/vcard")));
+        return gigwaGenoStorageService.submitGenotypeData(user.getId(), programId, expId, new TestFileUpload("src/test/resources/files/geno/"+file, MediaType.of("application/vcard")));
     }
 
     private class TestFileUpload implements CompletedFileUpload {

@@ -56,7 +56,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.geno.GenoService;
+import org.breedinginsight.services.geno.GenotypeService;
 import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -79,7 +79,7 @@ import java.util.stream.Collectors;
 
 @Singleton
 @Slf4j
-public class GigwaGenoServiceImpl implements GenoService {
+public class GigwaGenotypeServiceImpl implements GenotypeService {
     private static final String AUTHORIZATION = "Authorization";
     private static final String BEARER = "Bearer ";
     private static final String GIGWA_REST_BASE_PATH = "gigwa/rest/";
@@ -113,20 +113,20 @@ public class GigwaGenoServiceImpl implements GenoService {
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public GigwaGenoServiceImpl(@Property(name = "gigwa.host") String gigwaHost,
-                                @Property(name = "gigwa.username") String username,
-                                @Property(name = "gigwa.password") String password,
-                                @Property(name = "brapi.server.reference-source") String referenceSource,
-                                ProgramDAO programDAO,
-                                UserDAO userDAO,
-                                ImportDAO importDAO,
-                                ImportMappingDAO importMappingDAO,
-                                @Named("geno") SimpleStorageService storageService,
-                                S3Client s3Client,
-                                DSLContext dsl,
-                                MimeTypeParser mimeTypeParser,
-                                BrAPIDAOUtil brAPIDAOUtil,
-                                BrAPIEndpointProvider brAPIEndpointProvider) {
+    public GigwaGenotypeServiceImpl(@Property(name = "gigwa.host") String gigwaHost,
+                                    @Property(name = "gigwa.username") String username,
+                                    @Property(name = "gigwa.password") String password,
+                                    @Property(name = "brapi.server.reference-source") String referenceSource,
+                                    ProgramDAO programDAO,
+                                    UserDAO userDAO,
+                                    ImportDAO importDAO,
+                                    ImportMappingDAO importMappingDAO,
+                                    @Named("genotype") SimpleStorageService storageService,
+                                    S3Client s3Client,
+                                    DSLContext dsl,
+                                    MimeTypeParser mimeTypeParser,
+                                    BrAPIDAOUtil brAPIDAOUtil,
+                                    BrAPIEndpointProvider brAPIEndpointProvider) {
         this.gigwaHost = gigwaHost.endsWith("/") ? gigwaHost : gigwaHost + "/";
         this.username = username;
         this.password = password;
@@ -145,7 +145,7 @@ public class GigwaGenoServiceImpl implements GenoService {
     }
 
     @Override
-    public ImportResponse submitGenoData(UUID userId, UUID programId, UUID experimentId, CompletedFileUpload uploadedFile) throws DoesNotExistException, AuthorizationException, ApiException {
+    public ImportResponse submitGenotypeData(UUID userId, UUID programId, UUID experimentId, CompletedFileUpload uploadedFile) throws DoesNotExistException, AuthorizationException, ApiException {
         Program program = getProgram(programId);
 
         User user = userDAO.getUser(userId)
@@ -300,7 +300,6 @@ public class GigwaGenoServiceImpl implements GenoService {
         if(headerParts.length >= 8) {
             validHeader = validateVcfHeader(headerParts);
             if(validHeader) {
-                validHeader = true;
                 int sampleStart = 8;
 
                 if(headerParts[8].equals("FORMAT")) {
@@ -502,7 +501,7 @@ public class GigwaGenoServiceImpl implements GenoService {
         try {
             progress.setMessage("Uploading file");
             importDAO.updateProgress(progress);
-            uploadedFileResult = uploadGenoData(program.getId(), experimentId, upload.getId(), fileContents, filename);
+            uploadedFileResult = uploadGenotypeData(program.getId(), experimentId, upload.getId(), fileContents, filename);
             log.debug("file saved to: " + uploadedFileResult.getLeft());
         } catch (Exception e) {
             progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
@@ -546,7 +545,7 @@ public class GigwaGenoServiceImpl implements GenoService {
                     progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                     progress.setMessage("An error occurred saving the genotypic data");
                     importDAO.updateProgress(progress);
-                    throw new ApiException("Gigwa had an error saving the geno data");
+                    throw new ApiException("Gigwa had an error saving the genotype data");
                 }
                 AtomicReference<String> error = new AtomicReference<>();
                 if (response.code() == 200) {
@@ -573,7 +572,7 @@ public class GigwaGenoServiceImpl implements GenoService {
                     progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                     progress.setMessage("An error occurred saving the genotypic data: " + errorVal);
                     importDAO.updateProgress(progress);
-                    throw new ApiException("Gigwa had an error saving the geno data: " + errorVal);
+                    throw new ApiException("Gigwa had an error saving the genotype data: " + errorVal);
                 } else if (!completed) {
                     try {
                         Thread.sleep(1000);
@@ -622,15 +621,15 @@ public class GigwaGenoServiceImpl implements GenoService {
                 progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                 progress.setMessage("An error occurred saving the genotypic data");
                 importDAO.updateProgress(progress);
-                throw new InternalServerException("Unknown error saving geno data to gigwa");
+                throw new InternalServerException("Unknown error saving genotype data to gigwa");
             } else {
                 return response.body().string();
             }
         }
     }
 
-    private Pair<String, Long> uploadGenoData(UUID programId, UUID experimentId, UUID uploadId, byte[] fileContents, String filename) throws IOException, MimeTypeException {
-        log.debug("saving geno data to S3");
+    private Pair<String, Long> uploadGenotypeData(UUID programId, UUID experimentId, UUID uploadId, byte[] fileContents, String filename) throws IOException, MimeTypeException {
+        log.debug("saving genotype data to S3");
 
         if(!storageService.listBucketNames().contains(storageService.getDefaultBucketName())) {
             log.debug("bucket doesn't exist, creating it");

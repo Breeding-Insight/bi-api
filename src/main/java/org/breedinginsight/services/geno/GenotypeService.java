@@ -10,8 +10,8 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import java.util.UUID;
 
-public interface GenoService {
-    ImportResponse submitGenoData(UUID userId, UUID programId, UUID experimentId, CompletedFileUpload uploadedFile) throws DoesNotExistException, AuthorizationException, ApiException;
+public interface GenotypeService {
+    ImportResponse submitGenotypeData(UUID userId, UUID programId, UUID experimentId, CompletedFileUpload uploadedFile) throws DoesNotExistException, AuthorizationException, ApiException;
 
     GermplasmGenotype retrieveGenotypeData(UUID programId, BrAPIGermplasm germplasm) throws DoesNotExistException, AuthorizationException, ApiException;
 }

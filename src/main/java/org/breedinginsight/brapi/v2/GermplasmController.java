@@ -39,7 +39,7 @@ import org.breedinginsight.model.GermplasmGenotype;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.AuthorizationException;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.geno.GenoService;
+import org.breedinginsight.services.geno.GenotypeService;
 import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
@@ -59,13 +59,13 @@ public class GermplasmController {
     private final ProgramDAO programDAO;
     private final BrAPIGermplasmDAO germplasmDAO;
 
-    private final GenoService genoService;
+    private final GenotypeService genoService;
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
 
     @Inject
-    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenoService genoService, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenotypeService genoService, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
         this.programDAO = programDAO;
