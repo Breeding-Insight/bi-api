@@ -84,7 +84,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     private static final String AUTHORIZATION = "Authorization";
     private static final String X_FORWARDED_SERVER = "X-Forwarded-Server";
     private static final String BEARER = "Bearer ";
-    private static final String GIGWA_REST_BASE_PATH = "gigwa/rest/";
+    private static final String GIGWA_REST_BASE_PATH = "gigwa/rest";
     private static final String GIGWA_BRAPI_BASE_PATH = GIGWA_REST_BASE_PATH + BrapiVersion.BRAPI_V2;
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");
@@ -252,12 +252,9 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
             return GermplasmGenotype.builder()
                                     .germplasm(germplasm)
-                                    .calls(calls.stream()
-                                                .collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
-                                    .callSets(callSets.stream()
-                                                      .collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
-                                    .variants(variants.stream()
-                                                      .collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
+                                    .calls(calls.stream().collect(Collectors.groupingBy(BrAPICall::getCallSetDbId)))
+                                    .callSets(callSets.stream().collect(Collectors.toMap(BrAPICallSet::getCallSetDbId, callset -> callset)))
+                                    .variants(variants.stream().collect(Collectors.toMap(BrAPIVariant::getVariantDbId, variant -> variant)))
                                     .build();
         } else {
             return new GermplasmGenotype();
@@ -717,7 +714,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
     }
 
     private String buildPath(String requestPath) {
-        return gigwaHost + GIGWA_REST_BASE_PATH + requestPath;
+        return gigwaHost + GIGWA_REST_BASE_PATH + "/" + requestPath;
     }
 
     private Program getProgram(UUID programId) throws DoesNotExistException {

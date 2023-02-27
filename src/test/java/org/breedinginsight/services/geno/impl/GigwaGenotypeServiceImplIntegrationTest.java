@@ -164,7 +164,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     @Property(name = "brapi.server.reference-source")
     private String referenceSource;
 
-    @Property(name = "aws.s3.buckets.geno.bucket")
+    @Property(name = "aws.s3.buckets.genotype.bucket")
     private String bucketName;
 
     @MockBean(ProgramDAO.class)
@@ -265,7 +265,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         properties.put("aws.region", localStackContainer.getRegion());
         properties.put("aws.accessKeyId", localStackContainer.getAccessKey());
         properties.put("aws.secretKey", localStackContainer.getSecretKey());
-        properties.put("aws.s3.buckets.geno.bucket", "test");
+        properties.put("aws.s3.buckets.genotype.bucket", "test");
         properties.put("aws.s3.endpoint", String.valueOf(localStackContainer.getEndpointOverride(LocalStackContainer.Service.S3)));
 
         return properties;

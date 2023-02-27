@@ -103,7 +103,7 @@ public class DatabaseTest implements TestPropertyProvider {
 
         properties.put("aws.accessKeyId", "test");
         properties.put("aws.secretKey", "test");
-        properties.put("aws.s3.buckets.geno.bucket", "test");
+        properties.put("aws.s3.buckets.genotype.bucket", "test");
 
         return properties;
     }

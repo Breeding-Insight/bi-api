@@ -193,5 +193,5 @@ aws:
     region: ${aws.region}
     endpoint: ${AWS_S3_ENDPOINT:`https://s3.us-east-1.amazonaws.com`}
     buckets:
-      geno:
+      genotype:
         bucket: ${AWS_GENO_BUCKET}
