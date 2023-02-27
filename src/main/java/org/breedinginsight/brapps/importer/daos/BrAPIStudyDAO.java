@@ -78,7 +78,7 @@ public class BrAPIStudyDAO {
     }
 
     public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), StudiesApi.class);
         return brAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
     }
 

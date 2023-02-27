@@ -41,6 +41,7 @@ import org.brapi.v2.model.geno.request.BrAPIVariantsSearchRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
+import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
@@ -81,9 +82,10 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GigwaGenotypeServiceImpl implements GenotypeService {
     private static final String AUTHORIZATION = "Authorization";
+    private static final String X_FORWARDED_SERVER = "X-Forwarded-Server";
     private static final String BEARER = "Bearer ";
     private static final String GIGWA_REST_BASE_PATH = "gigwa/rest/";
-    private static final String GIGWA_BRAPI_BASE_PATH = GIGWA_REST_BASE_PATH + "brapi/v2";
+    private static final String GIGWA_BRAPI_BASE_PATH = GIGWA_REST_BASE_PATH + BrapiVersion.BRAPI_V2;
 
     private static final MediaType MEDIA_TYPE_JSON = MediaType.parse("application/json");
 
@@ -420,7 +422,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
             if (brAPITrialListResponseApiResponse.getBody().getResult().getData().size() == 1) {
                 brAPITrial = brAPITrialListResponseApiResponse.getBody().getResult().getData().get(0);
             } else {
-                String trialReferenceSource = String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS.getName());
+                String trialReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS);
                 for (BrAPITrial trial : brAPITrialListResponseApiResponse.getBody().getResult().getData()) {
                     if (trial.getExternalReferences() != null) {
                         Optional<BrAPIExternalReference> xref = trial.getExternalReferences()
@@ -602,15 +604,14 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
                             .newBuilder()
                             .addQueryParameter("module", program.getKey())
                             .addQueryParameter("project", experimentId.toString())
-                            .addQueryParameter("run",
-                                               LocalDateTime.now()
-                                                            .toString())
+                            .addQueryParameter("run", LocalDateTime.now().toString())
                             .addQueryParameter("dataFile1", fileUrl)
 
 //                            .addQueryParameter("ploidy", "4") //TODO CHANGE THIS!!  it's only for the hackathon!!!!
 
                             .build())
                 .header(AUTHORIZATION, BEARER + gigwaAuthToken)
+                .header(X_FORWARDED_SERVER, referenceSource)
                 .post(RequestBody.create("", MediaType.parse("text/plain")))
                 .build();
 

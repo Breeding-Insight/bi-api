@@ -7,7 +7,8 @@ public enum ExternalReferenceSource {
     PROGRAMS("programs"),
     TRIALS("trials"),
     STUDIES("studies"),
-    OBSERVATION_UNITS("observationunits");
+    OBSERVATION_UNITS("observationunits"),
+    LISTS("lists");
 
     private String name;
 

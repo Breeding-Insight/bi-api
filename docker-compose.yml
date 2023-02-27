@@ -131,6 +131,7 @@ services:
       MONGO_INITDB_ROOT_USERNAME: ${GIGWA_MONGO_USER:-mongo}
       MONGO_INITDB_ROOT_PASSWORD: ${GIGWA_MONGO_PASSWORD:-mongo}
       HOST_LOCALE: "${LANG}"
+      GIGWA.serversAllowedToImport: ${BRAPI_REFERENCE_SOURCE}
     networks:
       backend:
     volumes:

@@ -15,10 +15,13 @@ import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MimeTypeException;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.auth.Authentication;
+import org.brapi.client.v2.auth.OAuth;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.core.ProgramQueryParams;
 import org.brapi.client.v2.model.queryParams.core.StudyQueryParams;
@@ -223,6 +226,8 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 .withCommand("--profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet");
         mongo.start();
 
+        String gigwaAllowedServer = StringUtils.isNotBlank(System.getenv("BRAPI_REFERENCE_SOURCE")) ? System.getenv("BRAPI_REFERENCE_SOURCE") : "breedinginsight.org";
+
         gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("gigwa")
@@ -232,6 +237,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 .withEnv("MONGO_PORT", "27017")
                 .withEnv("MONGO_INITDB_ROOT_USERNAME", "mongo")
                 .withEnv("MONGO_INITDB_ROOT_PASSWORD", "mongo")
+                .withEnv("GIGWA.serversAllowedToImport", gigwaAllowedServer)
                 .waitingFor(
                         Wait.forHttp("/gigwa")
                             .forStatusCode(200)
@@ -290,7 +296,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @Test
-    public void testUpload() throws ApiException {
+    public void testUpload() throws ApiException, AuthorizationException {
         UUID programId = UUID.fromString("360766b8-480b-4b0a-862c-7eaa651dda28");
         String programKey = "TEST";
         UUID expId = UUID.randomUUID();
@@ -300,6 +306,10 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         assertTrue(storageService.exists(storageService.getDefaultBucketName(), programId + "/" + expId + "/" + importId + ".vcf"), "File was not uploaded to s3");
 
         BrAPIClient brAPIClient = new BrAPIClient(gigwaHost + "gigwa/rest/brapi/v2");
+        Authentication authorizationToken = brAPIClient.getAuthentication("AuthorizationToken");
+        if(authorizationToken instanceof OAuth) {
+            ((OAuth)authorizationToken).setAccessToken(gigwaGenoStorageService.getAuthToken());
+        }
 
         ProgramsApi programsApi = new ProgramsApi(brAPIClient);
         try {
