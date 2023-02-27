@@ -385,7 +385,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         String programKey = "TESTSUBMITVALID";
         UUID expId = UUID.randomUUID();
 
-        //TODO setup mocks for OUs
         Scanner sc = new Scanner(new FileInputStream("src/test/resources/files/geno/sample.vcf"), "UTF-8");
         String[] headerParts = null;
         boolean foundHeader = false;
