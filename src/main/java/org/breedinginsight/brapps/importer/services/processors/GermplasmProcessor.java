@@ -253,9 +253,11 @@ public class GermplasmProcessor implements Processor {
 
             //todo double check what dbgermplasmbyaccessionNo actually getting
             //TODO maybe make separate method for cleanliness
-            if (germplasm != null && germplasm.getGermplasmName() != null) {
+            if (germplasm != null) {
                 //Fetch and update existing germplasm
                 BrAPIGermplasm existingGermplasm;
+
+                // Have GID so updating an existing germplasm record
                 if (germplasm.getAccessionNumber() != null) {
                     if (dbGermplasmByAccessionNo.containsKey(germplasm.getAccessionNumber()) ) {
                         existingGermplasm = dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber());
@@ -264,6 +266,17 @@ public class GermplasmProcessor implements Processor {
                         validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
                         continue;
                     }
+
+                    // Has an existing pedigree so add error and skip
+                    if (!StringUtils.isBlank(existingGermplasm.getPedigree())) {
+                        ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
+                        validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
+                        continue;
+                    }
+
+
+
+                    /*
                     if (germplasm.getFemaleParentDBID() != null || germplasm.getFemaleParentEntryNo() != null) {
                         if (germplasm.getFemaleParentDBID() == null && germplasm.getFemaleParentEntryNo() == null) {
                             //todo handle later cause gonna get weird in mixed file with posting order
@@ -273,11 +286,18 @@ public class GermplasmProcessor implements Processor {
                             continue;
                         }
                     }
+                    */
+
+                    // Append synonyms to germplasm that don't already exist
+                    // Synonym comparison is based on name and type
                     if (germplasm.getSynonyms() != null) {
+                        Set<BrAPIGermplasmSynonyms> existingSynonyms = new HashSet<>(existingGermplasm.getSynonyms());
                         for (String synonym: germplasm.getSynonyms().split(";")){
-                            BrAPIGermplasmSynonyms newSynonym = new BrAPIGermplasmSynonyms();
-                            newSynonym.setSynonym(synonym);
-                            existingGermplasm.addSynonymsItem(newSynonym);
+                            BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
+                            brapiSynonym.setSynonym(synonym);
+                            if (!existingSynonyms.contains(brapiSynonym)) {
+                                existingGermplasm.addSynonymsItem(brapiSynonym);
+                            }
                         }
                     }
 
