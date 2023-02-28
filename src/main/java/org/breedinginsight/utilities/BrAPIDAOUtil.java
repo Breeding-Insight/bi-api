@@ -190,11 +190,17 @@ public class BrAPIDAOUtil {
                     progressUpdateMethod.accept(upload);
                 }
                 ApiResponse response = postMethod.apply(postChunk);
-                if (response.getBody() == null) throw new ApiException("Response is missing body");
+                if (response.getBody() == null) {
+                    throw new ApiException("Response is missing body", response.getStatusCode(), response.getHeaders(), null);
+                }
                 BrAPIResponse body = (BrAPIResponse) response.getBody();
-                if (body.getResult() == null) throw new ApiException("Response body is missing result");
+                if (body.getResult() == null) {
+                    throw new ApiException("Response body is missing result", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
+                }
                 BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
-                if (result.getData() == null) throw new ApiException("Response result is missing data");
+                if (result.getData() == null) {
+                    throw new ApiException("Response result is missing data", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
+                }
                 List<T> data = result.getData();
                 // TODO: Maybe move this outside of the loop
                 if (data.size() != postChunk.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");

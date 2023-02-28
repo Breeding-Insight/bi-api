@@ -62,7 +62,7 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getMissingScaleDataTypeMsg() {
-        return new ValidationError("scale.dataType", "Missing scale data type", HttpStatus.BAD_REQUEST);
+        return new ValidationError("scale.dataType", "Missing scale class", HttpStatus.BAD_REQUEST);
     }
 
     @Override

@@ -106,10 +106,10 @@ public class GermplasmController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIGermplasm>>>> getGermplasmListRecords(
         @PathVariable("programId") UUID programId,
-        @PathVariable("listDbId") String listId,
+        @PathVariable("listDbId") String listDbId,
         @QueryValue @QueryValid(using = GermplasmQueryMapper.class) @Valid GermplasmQuery queryParams) {
         try {
-            List<BrAPIGermplasm> germplasm = germplasmService.getGermplasmByList(programId, listId);
+            List<BrAPIGermplasm> germplasm = germplasmService.getGermplasmByList(programId, listDbId);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
         } catch (Exception e) {

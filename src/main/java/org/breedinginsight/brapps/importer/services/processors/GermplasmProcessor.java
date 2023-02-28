@@ -335,7 +335,9 @@ public class GermplasmProcessor implements Processor {
                 entryNumberCounts.put(germplasm.getEntryNo(),
                                       entryNumberCounts.containsKey(germplasm.getEntryNo()) ? entryNumberCounts.get(germplasm.getEntryNo()) + 1 : 1);
 
-                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal);
+                UUID importListId = brAPIGermplasmService.getGermplasmListId(importList);
+
+                BrAPIGermplasm newGermplasm = germplasm.constructBrAPIGermplasm(program, breedingMethod, user, commit, BRAPI_REFERENCE_SOURCE, nextVal, importListId);
 
                 newGermplasmList.add(newGermplasm);
                 // Assign status of the germplasm
