@@ -520,6 +520,7 @@ public class ExperimentProcessor implements Processor {
         Map<String, String> ouNameByDbId = new HashMap<>();
         Map<String, String> studyNameByDbId = studyByNameNoScope.values()
                                                                 .stream()
+                                                                .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
                                                                 .map(PendingImportObject::getBrAPIObject)
                                                                 .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
 

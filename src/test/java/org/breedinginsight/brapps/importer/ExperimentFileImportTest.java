@@ -211,6 +211,72 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
+    public void importNewExpMultiNewEnvNoObsSuccess() {
+        Program program = createProgram("New Exp and Multi New Env", "MULENV", "MULENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+        Map<String, Object> firstEnv = new HashMap<>();
+        firstEnv.put(Columns.GERMPLASM_GID, "1");
+        firstEnv.put(Columns.TEST_CHECK, "T");
+        firstEnv.put(Columns.EXP_TITLE, "Test Exp");
+        firstEnv.put(Columns.EXP_DESCRIPTION, "Test Description");
+        firstEnv.put(Columns.EXP_UNIT, "Plot");
+        firstEnv.put(Columns.EXP_TYPE, "Phenotyping");
+        firstEnv.put(Columns.ENV, "Test Env A");
+        firstEnv.put(Columns.ENV_LOCATION, "Location A");
+        firstEnv.put(Columns.ENV_YEAR, "2023");
+        firstEnv.put(Columns.EXP_UNIT_ID, "a-1");
+        firstEnv.put(Columns.REP_NUM, "1");
+        firstEnv.put(Columns.BLOCK_NUM, "1");
+        firstEnv.put(Columns.ROW, "1");
+        firstEnv.put(Columns.COLUMN, "1");
+        firstEnv.put(Columns.TREATMENT_FACTORS, "Test treatment factors");
+
+        Map<String, Object> secondEnv = new HashMap<>();
+        secondEnv.put(Columns.GERMPLASM_GID, "1");
+        secondEnv.put(Columns.TEST_CHECK, "T");
+        secondEnv.put(Columns.EXP_TITLE, "Test Exp");
+        secondEnv.put(Columns.EXP_DESCRIPTION, "Test Description");
+        secondEnv.put(Columns.EXP_UNIT, "Plot");
+        secondEnv.put(Columns.EXP_TYPE, "Phenotyping");
+        secondEnv.put(Columns.ENV, "Test Env B");
+        secondEnv.put(Columns.ENV_LOCATION, "Location B");
+        secondEnv.put(Columns.ENV_YEAR, "2023");
+        secondEnv.put(Columns.EXP_UNIT_ID, "b-1");
+        secondEnv.put(Columns.REP_NUM, "1");
+        secondEnv.put(Columns.BLOCK_NUM, "1");
+        secondEnv.put(Columns.ROW, "1");
+        secondEnv.put(Columns.COLUMN, "1");
+        secondEnv.put(Columns.TREATMENT_FACTORS, "Test treatment factors");
+
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(writeDataToFile(List.of(firstEnv, secondEnv), null), null, true, client, program, mappingId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(2, previewRows.size());
+        JsonObject firstRow = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("NEW", firstRow.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("NEW", firstRow.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", firstRow.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("NEW", firstRow.getAsJsonObject("observationUnit").get("state").getAsString());
+        assertRowSaved(firstEnv, program, null);
+
+        JsonObject secondRow = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("NEW", secondRow.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("NEW", secondRow.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", secondRow.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("NEW", secondRow.getAsJsonObject("observationUnit").get("state").getAsString());
+        assertRowSaved(secondEnv, program, null);
+    }
+
+    @Test
+    @SneakyThrows
     public void importNewEnvExistingExpNoObsSuccess() {
         Program program = createProgram("New Env Existing Exp", "NEWENV", "NEWENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
