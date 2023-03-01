@@ -72,7 +72,7 @@
         <jvm.options>-Xmx1024m -XX:MaxPermSize=256m --enable-preview</jvm.options>
 
         <jooq.version>3.16.3</jooq.version>
-        <postgres.version>42.3.2</postgres.version>
+        <postgres.version>42.3.8</postgres.version>
         <logback.version>1.2.10</logback.version>
         <lombok.version>1.18.22</lombok.version>
         <gson.version>2.8.9</gson.version>
