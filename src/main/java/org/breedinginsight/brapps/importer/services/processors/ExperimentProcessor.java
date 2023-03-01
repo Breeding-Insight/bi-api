@@ -799,7 +799,10 @@ public class ExperimentProcessor implements Processor {
     private void updateStudyDbId(BrAPIStudy study, String programKey) {
         this.observationUnitByNameNoScope.values().stream()
                 .filter(obsUnit -> obsUnit.getBrAPIObject().getStudyName().equals( Utilities.removeProgramKeyAndUnknownAdditionalData( study.getStudyName(), programKey ) ))
-                .forEach(obsUnit -> obsUnit.getBrAPIObject().setStudyDbId(study.getStudyDbId()));
+                .forEach(obsUnit -> {
+                    obsUnit.getBrAPIObject().setStudyDbId(study.getStudyDbId());
+                    obsUnit.getBrAPIObject().setTrialDbId(study.getTrialDbId());
+                });
     }
 
     private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
@@ -1135,6 +1138,6 @@ public class ExperimentProcessor implements Processor {
     }
 
     private boolean isTrialRefSource(BrAPIExternalReference brAPIExternalReference) {
-        return brAPIExternalReference.getReferenceSource().equals( String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()) );
+        return brAPIExternalReference.getReferenceSource().equals( Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS));
     }
 }

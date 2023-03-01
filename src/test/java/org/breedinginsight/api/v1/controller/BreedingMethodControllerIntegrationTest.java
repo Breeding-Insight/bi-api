@@ -21,6 +21,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.breedinginsight.daos.ProgramDAO;
@@ -28,6 +29,7 @@ import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -379,7 +381,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
         LocalDateTime now = LocalDateTime.now();
         String accessionNum = String.valueOf((int)(Math.random()*100));
         BrAPIExternalReference programRef = new BrAPIExternalReference();
-        programRef.setReferenceSource(String.format("%s/programs", referenceSource));
+        programRef.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
         programRef.setReferenceID(program.getId().toString());
         BrAPIExternalReference germIdRef = new BrAPIExternalReference();
         germIdRef.setReferenceSource(referenceSource);
@@ -451,7 +453,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
         LocalDateTime now = LocalDateTime.now();
         String accessionNum = String.valueOf((int)(Math.random()*100));
         BrAPIExternalReference programRef = new BrAPIExternalReference();
-        programRef.setReferenceSource(String.format("%s/programs", referenceSource));
+        programRef.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
         programRef.setReferenceID(program.getId().toString());
         BrAPIExternalReference germIdRef = new BrAPIExternalReference();
         germIdRef.setReferenceSource(referenceSource);
@@ -527,7 +529,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
         LocalDateTime now = LocalDateTime.now();
         String accessionNum = String.valueOf((int)(Math.random()*100));
         BrAPIExternalReference programRef = new BrAPIExternalReference();
-        programRef.setReferenceSource(String.format("%s/programs", referenceSource));
+        programRef.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
         programRef.setReferenceID(program.getId().toString());
         BrAPIExternalReference germIdRef = new BrAPIExternalReference();
         germIdRef.setReferenceSource(referenceSource);

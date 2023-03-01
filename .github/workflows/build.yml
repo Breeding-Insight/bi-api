@@ -59,3 +59,4 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           OAUTH_CLIENT_ID: 123abc
           OAUTH_CLIENT_SECRET: asdfljkhalkbaldsfjasdfi238497098asdf
+          BRAPI_REFERENCE_SOURCE: breedinginsight.org

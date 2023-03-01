@@ -19,6 +19,7 @@ import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.parsers.germplasm.GermplasmFileColumns;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.FileUtil;
@@ -58,7 +59,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
         cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider);
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider, new BrAPIEndpointProvider());
         programService = mock(ProgramService.class);
 
         Field externalReferenceSource = BrAPIGermplasmDAO.class.getDeclaredField("referenceSource");

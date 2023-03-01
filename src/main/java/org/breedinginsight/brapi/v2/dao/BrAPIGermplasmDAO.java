@@ -35,10 +35,12 @@ import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -66,12 +68,15 @@ public class BrAPIGermplasmDAO {
 
     private final ProgramCache<BrAPIGermplasm> programGermplasmCache;
 
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
+
     @Inject
-    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramCacheProvider programCacheProvider) {
+    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramCacheProvider programCacheProvider, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.programGermplasmCache = programCacheProvider.getProgramCache(this::fetchProgramGermplasm, BrAPIGermplasm.class);
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     @Scheduled(initialDelay = "2s")
@@ -125,7 +130,7 @@ public class BrAPIGermplasmDAO {
      * @throws ApiException
      */
     private Map<String, BrAPIGermplasm> fetchProgramGermplasm(UUID programId) throws ApiException {
-        GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
         // Get the program key
         List<Program> programs = programDAO.get(programId);
         if (programs.size() != 1) {
@@ -136,7 +141,7 @@ public class BrAPIGermplasmDAO {
         // Set query params and make call
         BrAPIGermplasmSearchRequest germplasmSearch = new BrAPIGermplasmSearchRequest();
         germplasmSearch.externalReferenceIDs(List.of(programId.toString()));
-        germplasmSearch.externalReferenceSources(List.of(String.format("%s/programs", referenceSource)));
+        germplasmSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
         return processGermplasmForDisplay(brAPIDAOUtil.search(
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
@@ -235,7 +240,7 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
-        GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
+        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
         var program = programDAO.fetchOneById(programId);
         try {
             Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {

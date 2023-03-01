@@ -31,6 +31,7 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class Job {
+    private String id;
     private int statuscode;
     private String statusMessage;
     private String jobType;

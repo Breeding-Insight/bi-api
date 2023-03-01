@@ -97,6 +97,14 @@ public class DatabaseTest implements TestPropertyProvider {
 
         properties.put("micronaut.http.client.read-timeout", "1m");
 
+        properties.put("gigwa.host", "http://gigwa:8080/");
+        properties.put("gigwa.username", "gigwadmin");
+        properties.put("gigwa.password", "nimda");
+
+        properties.put("aws.accessKeyId", "test");
+        properties.put("aws.secretKey", "test");
+        properties.put("aws.s3.buckets.genotype.bucket", "test");
+
         return properties;
     }
 

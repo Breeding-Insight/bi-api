@@ -26,11 +26,13 @@ import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.utilities.Utilities;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 import org.jooq.DSLContext;
@@ -70,7 +72,7 @@ public class V0_5_31__Migrate_brapi_germplasm extends BaseJavaMigration {
             GermplasmApi api = new GermplasmApi(client);
 
             GermplasmQueryParams queryParams = new GermplasmQueryParams();
-            String programReferenceSource = String.format("%s/programs", referenceSource);
+            String programReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
             queryParams.externalReferenceSource(programReferenceSource);
             queryParams.externalReferenceID(program.getId().toString());
             queryParams.page(0);
