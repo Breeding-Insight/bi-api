@@ -38,7 +38,7 @@ import java.sql.Statement;
 import java.util.*;
 
 @Slf4j
-public class V1_0_12__Update_BrAPI_Locations_XRefs extends BaseJavaMigration {
+public class V1_0_13__Update_BrAPI_Locations_XRefs extends BaseJavaMigration {
 
     final private String DEFAULT_URL_KEY = "default-url";
     final private String BRAPI_REFERENCE_SOURCE_KEY = "brapi-reference-source";
