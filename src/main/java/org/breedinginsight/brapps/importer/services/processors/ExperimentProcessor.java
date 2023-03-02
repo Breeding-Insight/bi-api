@@ -316,7 +316,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private void prepareDataForValidation(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Map<Integer, PendingImport> mappedBrAPIImport) throws MissingRequiredInfoException {
+    private void prepareDataForValidation(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Map<Integer, PendingImport> mappedBrAPIImport) {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
@@ -1007,7 +1007,7 @@ public class ExperimentProcessor implements Processor {
         Map<String, PendingImportObject<BrAPITrial>> trialByName = new HashMap<>();
         String programKey = program.getKey();
 
-        initializeTrialsForExistingObservationUnits(program, experimentImportRows, trialByName);
+        initializeTrialsForExistingObservationUnits(program, trialByName);
 
         List<String> uniqueTrialNames = experimentImportRows.stream()
                                                             .filter(row -> StringUtils.isBlank(row.getObsUnitID()))
@@ -1139,7 +1139,7 @@ public class ExperimentProcessor implements Processor {
                 new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy, UUID.fromString(xref.getReferenceID())));
     }
 
-    private void initializeTrialsForExistingObservationUnits(Program program, List<ExperimentObservation> experimentImportRows, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
+    private void initializeTrialsForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
         if(observationUnitByNameNoScope.size() > 0) {
             Set<String> trialDbIds = new HashSet<>();
             Set<String> studyDbIds = new HashSet<>();

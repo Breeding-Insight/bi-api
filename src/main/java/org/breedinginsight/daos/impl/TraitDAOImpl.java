@@ -29,7 +29,6 @@ import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.VariableQueryParams;
-import org.brapi.client.v2.modules.core.LocationsApi;
 import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.*;
@@ -40,7 +39,6 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
-import org.breedinginsight.dao.db.tables.records.TraitRecord;
 import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.TraitDAO;
@@ -63,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
 import static org.jooq.impl.DSL.lower;
 
 @Singleton

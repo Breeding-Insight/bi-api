@@ -20,10 +20,8 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPILocation;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
-import org.breedinginsight.brapps.importer.daos.BrAPILocationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Location;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -36,7 +34,6 @@ import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.ValidatorException;
-import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;

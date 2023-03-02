@@ -99,10 +99,7 @@ public class BrAPIStudyDAO {
 
     public Optional<BrAPIStudy> getStudyByDbId(String studyDbId, Program program) throws ApiException {
         List<BrAPIStudy> studies = getStudiesByStudyDbId(List.of(studyDbId), program);
-        if(studies.size() == 1) {
-            return Optional.of(studies.get(0));
-        } else {
-            return Optional.empty();
-        }
+
+        return Utilities.getSingleOptional(studies);
     }
 }

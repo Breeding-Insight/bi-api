@@ -248,16 +248,15 @@ public class ProgramLocationService {
 
         // Insert and update
         //  This is warped in a transaction so if the BrAPI save call fails, the BI database insert is rolled back.
-        ProgramLocation location = dsl.transactionResult(configuration -> {
+        return dsl.transactionResult(configuration -> {
             programLocationDao.insert(placeEntity);
-            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId(), false).get();
+            ProgramLocation progLocation = programLocationDao.getById(programId, placeEntity.getId(), false).orElseThrow(() -> new IllegalStateException("Location appears to not have been created"));
 
             // Add location to brapi service
             programLocationDao.createProgramLocationBrAPI(progLocation, program);
 
             return progLocation;
         });
-        return location;
     }
 
     public ProgramLocation update(AuthenticatedUser actingUser,
