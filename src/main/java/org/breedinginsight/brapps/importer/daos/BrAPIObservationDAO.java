@@ -54,6 +54,9 @@ public class BrAPIObservationDAO {
     }
 
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
+        if(studyNames.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
         observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
@@ -67,12 +70,15 @@ public class BrAPIObservationDAO {
     }
 
     public List<BrAPIObservation> getObservationsByObservationUnitsAndVariables(Collection<String> ouDbIds, Collection<String> variableDbIds, Program program) throws ApiException {
+        if(ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
         observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationSearchRequest.setObservationUnitDbIds(new ArrayList<>(ouDbIds));
         observationSearchRequest.setObservationVariableDbIds(new ArrayList<>(variableDbIds));
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(program.getId()));
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
         return brAPIDAOUtil.search(
                 api::searchObservationsPost,
                 (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),

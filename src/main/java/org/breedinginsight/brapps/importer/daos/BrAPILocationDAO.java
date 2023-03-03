@@ -47,6 +47,9 @@ public class BrAPILocationDAO {
     }
 
     public List<BrAPILocation> getLocationsByName(List<String> locationNames, UUID programId) throws ApiException {
+        if(locationNames.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
@@ -65,10 +68,14 @@ public class BrAPILocationDAO {
     }
 
     public List<BrAPILocation> getLocationsByDbId(Collection<String> locationDbIds, UUID programId) throws ApiException {
+        if(locationDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
         locationSearchRequest.setLocationDbIds(new ArrayList<>(locationDbIds));
         //TODO: Locations don't connect to programs. How to get locations for the program?
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
+        LocationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
         return brAPIDAOUtil.search(
                 api::searchLocationsPost,
                 api::searchLocationsSearchResultsDbIdGet,

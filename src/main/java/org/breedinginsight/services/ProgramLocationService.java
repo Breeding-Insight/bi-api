@@ -337,6 +337,6 @@ public class ProgramLocationService {
     }
 
     public List<ProgramLocation> getLocationsByName(List<String> names, UUID programId) throws ApiException {
-        return programLocationDao.getByNames(names, programId);
+        return programLocationDao.getByNames(names, programId, true);
     }
 }

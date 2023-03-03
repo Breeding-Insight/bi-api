@@ -31,6 +31,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.validation.constraints.NotNull;
 import java.util.*;
 
 @Singleton
@@ -56,6 +57,10 @@ public class BrAPIStudyDAO {
         return Utilities.getSingleOptional(studies);
     }
     public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
+        if(studyNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
@@ -67,7 +72,7 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> getStudiesByExperimentID(UUID experimentID, Program program ) throws ApiException {
+    public List<BrAPIStudy> getStudiesByExperimentID(@NotNull UUID experimentID, Program program ) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.addExternalReferenceIDsItem(experimentID.toString());
@@ -86,10 +91,14 @@ public class BrAPIStudyDAO {
     }
 
     public List<BrAPIStudy> getStudiesByStudyDbId(Collection<String> studyDbIds, Program program) throws ApiException {
+        if(studyDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyDbIds(new ArrayList<>(studyDbIds));
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,

@@ -37,6 +37,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.model.*;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
@@ -62,9 +63,10 @@ public class ProgramLocationDAO extends PlaceDao {
     private final BrAPIDAOUtil brAPIDAOUtil;
 
     private final ProgramDAO programDAO;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public ProgramLocationDAO(Configuration config, DSLContext dsl, @Property(name = "brapi.server.reference-source") String referenceSource, BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO) {
+    public ProgramLocationDAO(Configuration config, DSLContext dsl, @Property(name = "brapi.server.reference-source") String referenceSource, BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
         super(config);
         this.dsl = dsl;
         this.gson = new GsonBuilder()
@@ -73,6 +75,7 @@ public class ProgramLocationDAO extends PlaceDao {
         this.referenceSource = referenceSource;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.programDAO = programDAO;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     // get all active locations by program id
@@ -98,7 +101,8 @@ public class ProgramLocationDAO extends PlaceDao {
 
     public List<ProgramLocation> getByIds(UUID programId, Collection<UUID> locationIds, boolean full) throws ApiException {
         List<Record> records = getProgramLocationsQuery()
-                .where(PLACE.ID.in(locationIds).and(PLACE.PROGRAM_ID.eq(programId)))
+                .where(PLACE.ID.in(locationIds))
+                .and(PLACE.PROGRAM_ID.eq(programId))
                 .fetch();
 
         return parseRecords(records, full);
@@ -193,7 +197,7 @@ public class ProgramLocationDAO extends PlaceDao {
         // POST locations to each brapi service
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
         try {
-            LocationsApi locationsAPI = new LocationsApi(programDAO.getCoreClient(location.getProgramId()));
+            LocationsApi locationsAPI = brAPIEndpointProvider.get(programDAO.getCoreClient(location.getProgramId()), LocationsApi.class);
             ApiResponse<BrAPILocationListResponse> brapiResponse = locationsAPI.locationsPost(List.of(brApiLocation));
             if(brapiResponse.getBody().getResult().getData().size() == 1) {
                 location.setLocationDbId(brapiResponse.getBody().getResult().getData().get(0).getLocationDbId());
@@ -235,7 +239,7 @@ public class ProgramLocationDAO extends PlaceDao {
             brApiLocation.setSlope(location.getSlope() != null ? location.getSlope().toPlainString() : null);
             brApiLocation.setTopography(location.getTopography() != null ? location.getTopography().getName() : null);
 
-            LocationsApi locationsAPI = new LocationsApi(programDAO.getCoreClient(location.getProgramId()));
+            LocationsApi locationsAPI = brAPIEndpointProvider.get(programDAO.getCoreClient(location.getProgramId()), LocationsApi.class);
             locationsAPI.locationsLocationDbIdPut(brApiLocation.getLocationDbId(), brApiLocation);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
@@ -244,13 +248,17 @@ public class ProgramLocationDAO extends PlaceDao {
     }
 
     private List<BrAPILocation> getBrapiLocations(List<UUID> locationIds, UUID programId) throws ApiException {
+        if(locationIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPILocationSearchRequest searchRequest = new BrAPILocationSearchRequest()
                 .externalReferenceIDs(locationIds.stream().map(UUID::toString).collect(Collectors.toList()))
                 .externalReferenceSources(List.of(referenceSource));
 
         // Location goes in all of the clients
         // TODO: If there is a failure, roll back all before the failure.
-        LocationsApi locationsAPI = new LocationsApi(programDAO.getCoreClient(programId));
+        LocationsApi locationsAPI = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
 
         // Get existing brapi location
         return brAPIDAOUtil.search(locationsAPI::searchLocationsPost, locationsAPI::searchLocationsSearchResultsDbIdGet, searchRequest);
@@ -270,6 +278,10 @@ public class ProgramLocationDAO extends PlaceDao {
 
 
     public List<ProgramLocation> getByDbIds(Collection<String> locationDbIds, UUID programId) throws ApiException {
+        if(locationDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPILocationSearchRequest searchRequest = new BrAPILocationSearchRequest()
                 .locationDbIds(new ArrayList<>(locationDbIds))
                 .externalReferenceIDs(List.of(programId.toString()))
@@ -278,18 +290,21 @@ public class ProgramLocationDAO extends PlaceDao {
         return getProgramLocationsByBrAPISearch(programId, searchRequest);
     }
 
-    public List<ProgramLocation> getByNames(List<String> names, UUID programId) throws ApiException {
-        BrAPILocationSearchRequest searchRequest = new BrAPILocationSearchRequest()
-                .locationNames(new ArrayList<>(names))
-                .externalReferenceIDs(List.of(programId.toString()))
-                .externalReferenceSources(List.of(String.format("%s/%s", referenceSource, ExternalReferenceSource.PROGRAMS.getName())));
+    public List<ProgramLocation> getByNames(List<String> names, UUID programId, boolean full) throws ApiException {
+        if(names.isEmpty()) {
+            return Collections.emptyList();
+        }
 
-        return getProgramLocationsByBrAPISearch(programId, searchRequest);
+        List<Record> records = getProgramLocationsQuery().where(PLACE.NAME.in(names))
+                                                         .and(PLACE.PROGRAM_ID.eq(programId))
+                                                         .fetch();
+
+        return parseRecords(records, full);
     }
 
     @NotNull
     private List<ProgramLocation> getProgramLocationsByBrAPISearch(UUID programId, BrAPILocationSearchRequest searchRequest) throws ApiException {
-        LocationsApi locationsAPI = new LocationsApi(programDAO.getCoreClient(programId));
+        LocationsApi locationsAPI = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
         List<BrAPILocation> searchResult = brAPIDAOUtil.search(locationsAPI::searchLocationsPost, locationsAPI::searchLocationsSearchResultsDbIdGet, searchRequest);
 
         Map<UUID, BrAPILocation> brapiLocationById = new HashMap<>();

@@ -57,6 +57,10 @@ public class BrAPITrialDAO {
     }
 
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
+        if(trialNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
@@ -120,10 +124,14 @@ public class BrAPITrialDAO {
     }
 
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
+        if(trialDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialDbIds(new ArrayList<>(trialDbIds));
-        TrialsApi api = new TrialsApi(programDAO.getCoreClient(program.getId()));
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
         return brAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,

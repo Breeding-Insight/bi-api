@@ -31,6 +31,7 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.validation.constraints.NotNull;
 import java.util.*;
 
 @Singleton
@@ -74,6 +75,10 @@ public class BrAPIObservationUnitDAO {
      */
 
     public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
+        if(observationUnitNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationUnitSearchRequest.observationUnitNames(observationUnitNames);
@@ -91,25 +96,29 @@ public class BrAPIObservationUnitDAO {
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsById(Collection<String> observationUnitExternalIds, Program program) throws ApiException {
+        if(observationUnitExternalIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
                                                                  .getProgramDbId()));
         observationUnitSearchRequest.externalReferenceIDs(new ArrayList<>(observationUnitExternalIds));
         observationUnitSearchRequest.externalReferenceSources(List.of(String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName())));
 
-        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
+        ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
         return brAPIDAOUtil.search(api::searchObservationunitsPost,
                                    api::searchObservationunitsSearchResultsDbIdGet,
                                    observationUnitSearchRequest);
     }
 
-    public List<BrAPIObservationUnit> getObservationUnitsForStudyDbId(String studyDbId, Program program) throws ApiException {
+    public List<BrAPIObservationUnit> getObservationUnitsForStudyDbId(@NotNull String studyDbId, Program program) throws ApiException {
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
                                                                  .getProgramDbId()));
         observationUnitSearchRequest.studyDbIds(List.of(studyDbId));
 
-        ObservationUnitsApi api = new ObservationUnitsApi(programDAO.getCoreClient(program.getId()));
+        ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
         return brAPIDAOUtil.search(api::searchObservationunitsPost,
                                    api::searchObservationunitsSearchResultsDbIdGet,
                                    observationUnitSearchRequest);

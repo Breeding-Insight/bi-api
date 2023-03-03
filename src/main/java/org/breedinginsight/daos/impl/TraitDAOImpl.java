@@ -311,7 +311,9 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     @Override
     public List<BrAPIObservationVariable> searchVariables(List<String> variableIds, UUID programId) {
 
-        if (variableIds == null || variableIds.size() == 0) return new ArrayList<>();
+        if (variableIds == null || variableIds.size() == 0) {
+            return Collections.emptyList();
+        }
         try {
             BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
                     .externalReferenceIDs(variableIds);
@@ -440,7 +442,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
         ApiResponse<BrAPIObservationVariableListResponse> createdVariables = null;
         try {
-            ObservationVariablesApi variablesAPI = new ObservationVariablesApi(programDAO.getCoreClient(program.getId()));
+            ObservationVariablesApi variablesAPI = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationVariablesApi.class);
             createdVariables = variablesAPI.variablesPost(brApiVariables);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));

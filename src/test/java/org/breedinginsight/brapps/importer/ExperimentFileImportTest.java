@@ -593,6 +593,74 @@ public class ExperimentFileImportTest extends BrAPITest {
         uploadAndVerifyFailure(program, writeDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName());
     }
 
+    /*
+    Scenario:
+    - an experiment was created with observations
+    - a new experiment is created after the first experiment
+    - verify the second experiment gets created successfully
+     */
+    @Test
+    @SneakyThrows
+    public void importSecondExpAfterFirstExpWithObs() {
+        List<Trait> traits = createTraits(1);
+        Program program = createProgram("New Exp After First", "NEAF", "NEAF", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExpA = new HashMap<>();
+        newExpA.put(Columns.GERMPLASM_GID, "1");
+        newExpA.put(Columns.TEST_CHECK, "T");
+        newExpA.put(Columns.EXP_TITLE, "Test Exp A");
+        newExpA.put(Columns.EXP_UNIT, "Plot");
+        newExpA.put(Columns.EXP_TYPE, "Phenotyping");
+        newExpA.put(Columns.ENV, "New Env");
+        newExpA.put(Columns.ENV_LOCATION, "Location A");
+        newExpA.put(Columns.ENV_YEAR, "2023");
+        newExpA.put(Columns.EXP_UNIT_ID, "a-1");
+        newExpA.put(Columns.REP_NUM, "1");
+        newExpA.put(Columns.BLOCK_NUM, "1");
+        newExpA.put(Columns.ROW, "1");
+        newExpA.put(Columns.COLUMN, "1");
+        newExpA.put(traits.get(0).getObservationVariableName(), "1");
+
+        JsonObject resultA = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExpA), traits), null, true, client, program, mappingId);
+
+        JsonArray previewRowsA = resultA.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRowsA.size());
+        JsonObject rowA = previewRowsA.get(0).getAsJsonObject();
+
+        assertEquals("NEW", rowA.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("NEW", rowA.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", rowA.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("NEW", rowA.getAsJsonObject("observationUnit").get("state").getAsString());
+        assertRowSaved(newExpA, program, traits);
+
+        Map<String, Object> newExpB = new HashMap<>();
+        newExpB.put(Columns.GERMPLASM_GID, "1");
+        newExpB.put(Columns.TEST_CHECK, "T");
+        newExpB.put(Columns.EXP_TITLE, "Test Exp B");
+        newExpB.put(Columns.EXP_UNIT, "Plot");
+        newExpB.put(Columns.EXP_TYPE, "Phenotyping");
+        newExpB.put(Columns.ENV, "New Env");
+        newExpB.put(Columns.ENV_LOCATION, "Location A");
+        newExpB.put(Columns.ENV_YEAR, "2023");
+        newExpB.put(Columns.EXP_UNIT_ID, "a-1");
+        newExpB.put(Columns.REP_NUM, "1");
+        newExpB.put(Columns.BLOCK_NUM, "1");
+        newExpB.put(Columns.ROW, "1");
+        newExpB.put(Columns.COLUMN, "1");
+        newExpB.put(traits.get(0).getObservationVariableName(), "1");
+
+        JsonObject resultB = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExpB), traits), null, true, client, program, mappingId);
+
+        JsonArray previewRowsB = resultB.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRowsB.size());
+        JsonObject rowB = previewRowsB.get(0).getAsJsonObject();
+
+        assertEquals("NEW", rowB.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("EXISTING", rowB.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", rowB.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("NEW", rowB.getAsJsonObject("observationUnit").get("state").getAsString());
+        assertRowSaved(newExpB, program, traits);
+    }
+
     private Map<String, Object> assertRowSaved(Map<String, Object> expected, Program program, List<Trait> traits) throws ApiException {
         Map<String, Object> ret = new HashMap<>();
 
