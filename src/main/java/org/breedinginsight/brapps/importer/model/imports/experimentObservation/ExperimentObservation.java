@@ -293,7 +293,7 @@ public class ExperimentObservation implements BrAPIImport {
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.STUDY_NAME, getEnv());
         }
         observation.setObservationVariableName(variableName);
-        observation.setObservationDbId(obsUnit.getObservationUnitDbId());
+        observation.setObservationUnitDbId(obsUnit.getObservationUnitDbId());
         observation.setObservationUnitName(obsUnit.getObservationUnitName());
         observation.setValue(value);
 
