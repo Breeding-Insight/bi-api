@@ -36,6 +36,7 @@ public class TraitsQuery extends QueryParams {
     private String methodDescription;
     private String methodClass;
     private String methodFormula;
+    private String methodHandle;
     private String scaleName;
     private String scaleClass;
     private String scaleDecimalPlaces;
@@ -81,6 +82,9 @@ public class TraitsQuery extends QueryParams {
         }
         if (!StringUtils.isBlank(getMethodFormula())) {
             filters.add(constructFilterRequest("methodFormula", getMethodFormula()));
+        }
+        if (!StringUtils.isBlank(getMethodHandle())) {
+            filters.add(constructFilterRequest("methodHandle", getMethodHandle()));
         }
         if (!StringUtils.isBlank(getScaleName())) {
             filters.add(constructFilterRequest("scaleName", getScaleName()));
