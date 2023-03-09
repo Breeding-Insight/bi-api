@@ -31,6 +31,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -43,14 +44,21 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 @Slf4j
 public class BrAPIDAOUtil {
 
-    @Property(name = "brapi.search.wait-time")
-    private int searchWaitTime;
-    @Property(name = "brapi.read-timeout")
-    private Duration searchTimeout;
-    @Property(name = "brapi.page-size")
-    private int pageSize;
-    @Property(name = "brapi.post-group-size")
-    private int postGroupSize;
+    private final int searchWaitTime;
+    private final Duration searchTimeout;
+    private final int pageSize;
+    private final int postGroupSize;
+
+    @Inject
+    public BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
+                        @Property(name = "brapi.read-timeout") Duration searchTimeout,
+                        @Property(name = "brapi.page-size") int pageSize,
+                        @Property(name = "brapi.post-group-size") int postGroupSize) {
+        this.searchWaitTime = searchWaitTime;
+        this.searchTimeout = searchTimeout;
+        this.pageSize = pageSize;
+        this.postGroupSize = postGroupSize;
+    }
 
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                                                                Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
@@ -280,7 +288,9 @@ public class BrAPIDAOUtil {
                 }
                 List<T> data = result.getData();
                 // TODO: Maybe move this outside of the loop
-                if (data.size() != postChunk.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");
+                if (data.size() != postChunk.size()) {
+                    throw new ApiException("Number of brapi objects returned does not equal number sent");
+                }
                 listResult.addAll(data);
                 finished += data.size();
                 currentRightBorder += postGroupSize;

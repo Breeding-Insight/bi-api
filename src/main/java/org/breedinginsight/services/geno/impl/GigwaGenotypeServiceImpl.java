@@ -387,7 +387,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("fetching samples for OUs");
         if(observationUnits.isEmpty()) {
             log.debug("No OUs were supplied, returning");
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         SamplesApi samplesApi = brAPIEndpointProvider.get(genoBrAPIClient, SamplesApi.class);
@@ -451,7 +451,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("fetching callsets for samples");
         if(germplasmSamples.isEmpty()) {
             log.debug("No samples were supplied, returning");
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
 
         CallSetsApi callSetsApi = brAPIEndpointProvider.get(genoBrAPIClient, CallSetsApi.class);
@@ -466,7 +466,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("fetching calls for callsets");
         if(callSets.isEmpty()) {
             log.debug("No callsets were supplied, returning");
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
         CallsApi callsApi = brAPIEndpointProvider.get(genoBrAPIClient, CallsApi.class);
 
@@ -480,7 +480,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         log.debug("fetching variants for calls");
         if(calls.isEmpty()) {
             log.debug("No calls were supplied, returning");
-            return new ArrayList<>();
+            return Collections.emptyList();
         }
         List<String> variantIds = calls.stream()
                                        .map(BrAPICall::getVariantDbId)

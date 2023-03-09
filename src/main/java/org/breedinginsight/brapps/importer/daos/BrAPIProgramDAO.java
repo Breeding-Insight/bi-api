@@ -26,6 +26,7 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -61,10 +62,6 @@ public class BrAPIProgramDAO {
         }
 
         List<BrAPIProgram> programs = programsResponse.getBody().getResult().getData();
-        if (programs.size() == 1) {
-            return Optional.of(programs.get(0));
-        } else {
-            return Optional.empty();
-        }
+        return Utilities.getSingleOptional(programs);
     }
 }

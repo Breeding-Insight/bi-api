@@ -21,7 +21,9 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -42,6 +44,10 @@ public class BrAPIListDAO {
     }
 
     public List<BrAPIListSummary> getListByName(List<String> listNames, UUID programId) throws ApiException {
+        if(listNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIListSearchRequest listSearch = new BrAPIListSearchRequest();
         listSearch.listNames(listNames);
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
@@ -58,7 +64,7 @@ public class BrAPIListDAO {
         return response.getBody();
     }
 
-    public List<BrAPIListSummary> getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+    public List<BrAPIListSummary> getListByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
         BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest()
                 .externalReferenceIDs(List.of(externalReferenceId.toString()))
                 .externalReferenceSources(List.of(externalReferenceSource))

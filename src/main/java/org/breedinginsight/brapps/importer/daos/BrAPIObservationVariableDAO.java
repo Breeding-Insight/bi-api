@@ -26,6 +26,7 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,6 +45,10 @@ public class BrAPIObservationVariableDAO {
     }
 
     public List<BrAPIObservationVariable> getVariableByName(List<String> variableNames, UUID programId) throws ApiException {
+        if(variableNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIObservationVariableSearchRequest variableSearch = new BrAPIObservationVariableSearchRequest();
         variableSearch.observationVariableNames(variableNames);
         ObservationVariablesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class);

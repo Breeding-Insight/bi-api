@@ -62,7 +62,7 @@ public class TrialProcessor implements Processor {
         List<BrAPITrial> existingTrials;
 
         try {
-            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
+            existingTrials = brapiTrialDAO.getTrialsByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
                 trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
             });
@@ -114,7 +114,7 @@ public class TrialProcessor implements Processor {
 
         List<BrAPITrial> createdTrials = new ArrayList<>();
         try {
-            createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));
+            createdTrials.addAll(brapiTrialDAO.createBrAPITrials(trials, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }

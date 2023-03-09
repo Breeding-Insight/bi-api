@@ -92,7 +92,6 @@ public class GermplasmProcessor implements Processor {
 
     @Inject
     public GermplasmProcessor(BrAPIGermplasmService brAPIGermplasmService, DSLContext dsl, BreedingMethodDAO breedingMethodDAO, BrAPIListDAO brAPIListDAO) {
-        this.brAPIGermplasmService = brAPIGermplasmService;
         this.dsl = dsl;
         this.breedingMethodDAO = breedingMethodDAO;
         this.brAPIListDAO = brAPIListDAO;

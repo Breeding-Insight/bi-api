@@ -33,6 +33,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
@@ -67,7 +68,7 @@ public class StudyProcessor implements Processor {
         List<BrAPIStudy> existingStudies;
 
         try {
-            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
+            existingStudies = brAPIStudyDAO.getStudiesByName(uniqueStudyNames, program);
             existingStudies.forEach(existingStudy -> {
                 studyByName.put(existingStudy.getStudyName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
             });
@@ -127,7 +128,7 @@ public class StudyProcessor implements Processor {
         // POST Study
         List<BrAPIStudy> createdStudies = new ArrayList<>();
         try {
-            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
+            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudies(studies, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
@@ -158,9 +159,9 @@ public class StudyProcessor implements Processor {
                 .forEach(this::updateTrialDbId);
     }
 
-    private void updateLocationDbId(BrAPILocation location) {
+    private void updateLocationDbId(ProgramLocation location) {
         this.studyByName.values().stream()
-                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getLocationName()))
+                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getName()))
                 .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
     }
 

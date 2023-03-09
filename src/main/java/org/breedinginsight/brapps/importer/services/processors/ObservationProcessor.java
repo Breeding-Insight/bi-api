@@ -192,7 +192,7 @@ public class ObservationProcessor implements Processor {
 
         List<BrAPIObservation> createdObservations = new ArrayList<>();
         try {
-            createdObservations.addAll(brAPIObservationDAO.createBrAPIObservation(observations, program.getId(), upload));
+            createdObservations.addAll(brAPIObservationDAO.createBrAPIObservations(observations, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }

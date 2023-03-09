@@ -36,8 +36,8 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
@@ -76,6 +76,9 @@ public class ObservationDAO {
 
     // search by ObservationVariableDbIds
     public List<BrAPIObservation> getObservationsByVariableDbIds(List<String> observationVariableDbIds, UUID programId) {
+        if(observationVariableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
@@ -95,6 +98,9 @@ public class ObservationDAO {
     }
 
     public List<BrAPIObservation> getObservationsByVariableAndBrAPIProgram(String brapiProgramId, UUID programId, List<String> observationVariableDbIds) {
+        if(observationVariableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()

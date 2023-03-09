@@ -273,15 +273,22 @@ public class BrAPIGermplasmDAO {
         return germplasm;
     }
 
-    public BrAPIGermplasm getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException, DoesNotExistException {
+    public Optional<BrAPIGermplasm> getGermplasmByDBID(String germplasmDbId, UUID programId) throws ApiException {
         Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
         //key is UUID, want to filter by DBID
         BrAPIGermplasm germplasm = null;
         if (cache != null) {
             germplasm = cache.values().stream().filter(x -> x.getGermplasmDbId().equals(germplasmDbId)).collect(Collectors.toList()).get(0);
         }
-        if (germplasm == null) {
-            throw new DoesNotExistException("DBID for this germplasm does not exist");
+        return Optional.ofNullable(germplasm);
+    }
+
+    public List<BrAPIGermplasm> getGermplasmsByDBID(Collection<String> germplasmDbIds, UUID programId) throws ApiException {
+        Map<String, BrAPIGermplasm> cache = programGermplasmCache.get(programId);
+        //key is UUID, want to filter by DBID
+        List<BrAPIGermplasm> germplasm = new ArrayList<>();
+        if (cache != null) {
+            germplasm = cache.values().stream().filter(x -> germplasmDbIds.contains(x.getGermplasmDbId())).collect(Collectors.toList());
         }
         return germplasm;
     }

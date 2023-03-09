@@ -39,7 +39,6 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
-import org.breedinginsight.dao.db.tables.records.TraitRecord;
 import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.TraitDAO;
@@ -62,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.breedinginsight.dao.db.Tables.*;
-import static org.breedinginsight.services.brapi.BrAPIClientType.PHENO;
 import static org.jooq.impl.DSL.lower;
 
 @Singleton
@@ -313,7 +311,9 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     @Override
     public List<BrAPIObservationVariable> searchVariables(List<String> variableIds, UUID programId) {
 
-        if (variableIds == null || variableIds.size() == 0) return new ArrayList<>();
+        if (variableIds == null || variableIds.size() == 0) {
+            return Collections.emptyList();
+        }
         try {
             BrAPIObservationVariableSearchRequest request = new BrAPIObservationVariableSearchRequest()
                     .externalReferenceIDs(variableIds);
@@ -442,10 +442,8 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
         // TODO: If there is a failure after the first brapi service, roll back all before the failure.
         ApiResponse<BrAPIObservationVariableListResponse> createdVariables = null;
         try {
-            List<ObservationVariablesApi> variablesAPIS = brAPIProvider.getAllUniqueVariablesAPI();
-            for (ObservationVariablesApi variablesAPI: variablesAPIS){
-                createdVariables = variablesAPI.variablesPost(brApiVariables);
-            }
+            ObservationVariablesApi variablesAPI = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationVariablesApi.class);
+            createdVariables = variablesAPI.variablesPost(brApiVariables);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);

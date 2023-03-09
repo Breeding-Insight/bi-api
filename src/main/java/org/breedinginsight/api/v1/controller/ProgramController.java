@@ -24,6 +24,7 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
@@ -37,6 +38,7 @@ import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.ProgramObservationLevelService;
 import org.breedinginsight.services.exceptions.*;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.mappers.ProgramLocationQueryMapper;
 import org.breedinginsight.utilities.response.mappers.ProgramQueryMapper;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -302,6 +304,9 @@ public class ProgramController {
         } catch (DoesNotExistException e){
             log.info(e.getMessage());
             return HttpResponse.notFound();
+        } catch (ApiException e) {
+            log.error("Error fetching program locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError();
         }
     }
 
@@ -318,8 +323,11 @@ public class ProgramController {
             return ResponseUtils.getQueryResponse(programLocations, programLocationQueryMapper, searchRequest, queryParams);
 
         } catch (DoesNotExistException e){
-            log.info(e.getMessage());
+            log.error(e.getMessage(), e);
             return HttpResponse.notFound();
+        } catch (ApiException e) {
+            log.error("Error fetching program locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError();
         }
 
     }
@@ -332,7 +340,13 @@ public class ProgramController {
     public HttpResponse<Response<ProgramLocation>> getProgramLocations(@PathVariable UUID programId,
                                                                        @PathVariable UUID locationId) {
 
-        Optional<ProgramLocation> programLocation = programLocationService.getById(programId, locationId);
+        Optional<ProgramLocation> programLocation = null;
+        try {
+            programLocation = programLocationService.getById(programId, locationId);
+        } catch (ApiException e) {
+            log.error("Error fetching program location: " + Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError();
+        }
 
         if(programLocation.isPresent()) {
             Response<ProgramLocation> response = new Response(programLocation.get());

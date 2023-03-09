@@ -95,6 +95,21 @@ public class ProgramService {
         return Optional.of(program);
     }
 
+    public Optional<Program> getByKey(String programKey) {
+
+        List<Program> programs = dao.getProgramByKey(programKey);
+
+        if (programs.size() <= 0) {
+            return Optional.empty();
+        }
+
+        Program program = programs.get(0);
+        BrAPIProgram brapiProgram = dao.getProgramBrAPI(program);
+        program.setBrAPIProperties(brapiProgram);
+
+        return Optional.of(program);
+    }
+
     public List<Program> getAll(AuthenticatedUser actingUser){
         /* Get all of the programs the user has access to */
         List<UUID> enrolledProgramIds = securityService.getEnrolledProgramIds(actingUser);
