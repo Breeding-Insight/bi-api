@@ -17,8 +17,10 @@
 package org.breedinginsight.api.v1.controller;
 
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.Controller;
 import io.micronaut.http.annotation.Get;
+import io.micronaut.http.annotation.Produces;
 import io.micronaut.http.annotation.QueryValue;
 import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.security.annotation.Secured;
@@ -26,13 +28,17 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
+import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.ApiToken;
+import org.breedinginsight.model.User;
 import org.breedinginsight.services.TokenService;
 
 import javax.inject.Inject;
 import javax.validation.constraints.NotBlank;
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -41,10 +47,13 @@ public class TokenController {
     private SecurityService securityService;
     private TokenService tokenService;
 
+    private UserDAO userDAO;
+
     @Inject
-    public TokenController(SecurityService securityService, TokenService tokenService) {
+    public TokenController(SecurityService securityService, TokenService tokenService, UserDAO userDAO) {
         this.securityService = securityService;
         this.tokenService = tokenService;
+        this.userDAO = userDAO;
     }
 
     @Get("/api-token")
@@ -69,6 +78,20 @@ public class TokenController {
             return HttpResponse.serverError();
         }
 
+    }
+
+    @Get("/dev-token")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse devToken() {
+
+        User user = userDAO.getUserByOrcId("0000-0003-0437-8310").get();
+        List<String> systemRoles = user.getSystemRoles().stream()
+                .map(systemRole -> systemRole.getDomain().toUpperCase()).collect(Collectors.toList());
+        AuthenticatedUser actingUser = new AuthenticatedUser(user.getName(),
+                systemRoles, user.getId(), user.getProgramRoles());
+
+        return HttpResponse.ok(tokenService.generateApiToken(actingUser));
     }
 
 }

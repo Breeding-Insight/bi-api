@@ -234,14 +234,23 @@ public class BrAPIGermplasmDAO {
         return programGermplasmMap;
     }
 
-    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
+    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, List<BrAPIGermplasm> putBrAPIGermplasmList,
+                                                     UUID programId, ImportUpload upload) throws ApiException {
         GermplasmApi api = new GermplasmApi(programDAO.getCoreClient(programId));
         var program = programDAO.fetchOneById(programId);
+        Callable<Map<String, BrAPIGermplasm>> postFunction;
         try {
-            Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
-                List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(brAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
-                return processGermplasmForDisplay(postResponse, program.getKey());
-            };
+            if (!postBrAPIGermplasmList.isEmpty()) {
+                postFunction = () -> {
+                    List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
+                    return processGermplasmForDisplay(postResponse, program.getKey());
+                };
+            } else {
+                postFunction = () -> {
+                    List<BrAPIGermplasm> postResponse = brAPIDAOUtil.putGermplasm(putBrAPIGermplasmList, api);
+                    return processGermplasmForDisplay(postResponse, program.getKey());
+                };
+            }
             return programGermplasmCache.post(programId, postFunction);
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);

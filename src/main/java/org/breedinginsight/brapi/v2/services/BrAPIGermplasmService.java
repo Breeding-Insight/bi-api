@@ -287,8 +287,9 @@ public class BrAPIGermplasmService {
         return listName.replace(appendedKey, "");
     }
 
-    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> brAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
-        return germplasmDAO.importBrAPIGermplasm(brAPIGermplasmList, programId, upload);
+    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, List<BrAPIGermplasm> putBrAPIGermplasmList,
+                                                     UUID programId, ImportUpload upload) throws ApiException {
+        return germplasmDAO.importBrAPIGermplasm(postBrAPIGermplasmList, putBrAPIGermplasmList, programId, upload);
     }
 
     public List<BrAPIGermplasm> getRawGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID programId) throws ApiException {

@@ -27,7 +27,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.*;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
 import javax.inject.Singleton;
@@ -167,6 +170,28 @@ public class BrAPIDAOUtil {
         return responseResult != null ? responseResult.getData() :
                 new ArrayList<>();
     }
+
+    // TODO: write generic put code
+    public <T> List<T> put(List<T> brapiObjects,
+                           ImportUpload upload,
+                           Function<List<T>, ApiResponse> putMethod,
+                           Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
+
+        return new ArrayList<>();
+    }
+
+    // TODO: temporary until generic code is written
+    public List<BrAPIGermplasm> putGermplasm(List<BrAPIGermplasm> germplasmList, GermplasmApi api) throws ApiException {
+        List<BrAPIGermplasm> listResult = new ArrayList<>();
+
+        for (BrAPIGermplasm germplasm : germplasmList) {
+            ApiResponse<BrAPIGermplasmSingleResponse> response = api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm);
+            listResult.add(response.getBody().getResult());
+        }
+
+        return listResult;
+    }
+
 
     public <T> List<T> post(List<T> brapiObjects,
                                    ImportUpload upload,
