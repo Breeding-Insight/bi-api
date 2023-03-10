@@ -134,6 +134,8 @@ services:
       GIGWA.serversAllowedToImport: ${BRAPI_REFERENCE_SOURCE}
     networks:
       backend:
+        aliases:
+          - gigwa
     volumes:
       - type: volume
         source: gigwa_data
@@ -154,6 +156,8 @@ services:
         target: /data/db
     networks:
       backend:
+        aliases:
+          - gigwa_db
   localstack:
     container_name: "localstack"
     image: localstack/localstack

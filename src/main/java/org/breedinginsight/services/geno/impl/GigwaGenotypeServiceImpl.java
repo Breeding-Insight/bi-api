@@ -470,10 +470,15 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
         }
         CallsApi callsApi = brAPIEndpointProvider.get(genoBrAPIClient, CallsApi.class);
 
-        BrAPICallsSearchRequest searchRequest = new BrAPICallsSearchRequest();
-        searchRequest.setCallSetDbIds(callSets.stream().map(BrAPICallSet::getCallSetDbId).collect(Collectors.toList()));
+        List<BrAPICall> calls = new ArrayList<>();
+        for(BrAPICallSet callSet : callSets) {
+            BrAPICallsSearchRequest searchRequest = new BrAPICallsSearchRequest();
+            searchRequest.setCallSetDbIds(List.of(callSet.getCallSetDbId()));
 
-        return brAPIDAOUtil.searchWithToken(callsApi::searchCallsPost, callsApi::searchCallsSearchResultsDbIdGet, searchRequest); //breaking bc this uses a pageToken instead of page#
+            calls.addAll(brAPIDAOUtil.searchWithToken(callsApi::searchCallsPost, callsApi::searchCallsSearchResultsDbIdGet, searchRequest)); //breaking bc this uses a pageToken instead of page#
+        }
+
+        return calls;
     }
 
     private List<BrAPIVariant> fetchVariants(BrAPIClient genoBrAPIClient, List<BrAPICall> calls) throws ApiException {
