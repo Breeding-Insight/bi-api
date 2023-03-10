@@ -48,6 +48,9 @@ public class TraitQueryMapper extends AbstractQueryMapper {
                         trait -> trait.getMethod() != null ? trait.getMethod().getMethodClass() : null),
                 Map.entry("methodFormula",
                         trait -> trait.getMethod() != null ? trait.getMethod().getFormula() : null),
+                Map.entry("methodHandle",
+                        trait -> trait.getMethod() != null ?
+                                trait.getMethod().getDescription() + " " + trait.getMethod().getMethodClass() : null ),
                 Map.entry("scaleName",
                         trait -> trait.getScale() != null ? trait.getScale().getScaleName() : null),
                 Map.entry("scaleClass",
