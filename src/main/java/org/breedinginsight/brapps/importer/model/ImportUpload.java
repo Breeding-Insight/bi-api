@@ -72,7 +72,9 @@ public class ImportUpload extends ImporterImportEntity {
     }
 
     public void setDynamicColumnNames(List<String> dynamicColumnNames) {
-        super.setDynamicColumnNames(dynamicColumnNames.toArray(new String[0]));
+        if(dynamicColumnNames != null) {
+            super.setDynamicColumnNames(dynamicColumnNames.toArray(new String[0]));
+        }
     }
 
     @JsonIgnore

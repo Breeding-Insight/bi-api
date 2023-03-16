@@ -16,6 +16,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Pedigree;
@@ -27,6 +28,7 @@ import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -71,12 +73,8 @@ public class BrAPIGermplasmService {
         }
     }
 
-    public BrAPIGermplasm getGermplasmByDBID(UUID programId, String germplasmId) throws DoesNotExistException {
-        try {
-            return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
+    public Optional<BrAPIGermplasm> getGermplasmByDBID(UUID programId, String germplasmId) throws ApiException {
+        return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
     }
 
     public List<BrAPIListSummary> getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
@@ -89,7 +87,7 @@ public class BrAPIGermplasmService {
         if(optionalProgram.isPresent()) {
             Program program = optionalProgram.get();
 
-            List<BrAPIListSummary> germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, referenceSource + "/programs", programId);
+            List<BrAPIListSummary> germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS), programId);
 
             for (BrAPIListSummary germplasmList: germplasmLists) {
                 String listName = germplasmList.getListName();

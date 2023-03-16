@@ -49,8 +49,9 @@ import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
-import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
+import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.mockito.stubbing.Answer;
@@ -109,13 +110,27 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
     private TraitDao traitDao;
     @Inject
     private UserDAO userDAO;
+    @Inject
+    private Configuration config;
 
     @Inject
     private BrAPIProvider brAPIProvider;
 
+    @Inject
+    private BrAPIEndpointProvider brAPIEndpointProvider;
+
+    @Property(name = "brapi.server.core-url")
+    private String defaultBrAPICoreUrl;
+    @Property(name = "brapi.server.pheno-url")
+    private String defaultBrAPIPhenoUrl;
+    @Property(name = "brapi.server.geno-url")
+    private String defaultBrAPIGenoUrl;
+    @Property(name = "brapi.server.reference-source")
+    private String referenceSource;
+
     @MockBean(ProgramDAO.class)
     ProgramDAO programDAO() {
-        return spy(new ProgramDAOImpl(programDao, dsl, brAPIProvider, brAPIClientProvider, Duration.of(10, ChronoUnit.MINUTES)));
+        return spy(new ProgramDAOImpl(config, dsl, brAPIProvider, brAPIClientProvider, brAPIEndpointProvider, defaultBrAPICoreUrl, defaultBrAPIPhenoUrl, defaultBrAPIGenoUrl, referenceSource, Duration.of(10, ChronoUnit.MINUTES)));
     }
 
     @Inject

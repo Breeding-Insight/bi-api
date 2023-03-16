@@ -28,6 +28,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.model.Program;
@@ -140,10 +141,10 @@ public class Germplasm implements BrAPIObject {
 
         // Set external references
         BrAPIExternalReference programReference = new BrAPIExternalReference();
-        programReference.setReferenceSource(String.format("%s/programs", referenceSource));
+        programReference.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
         programReference.setReferenceID(program.getId().toString());
         BrAPIExternalReference listReference = new BrAPIExternalReference();
-        listReference.setReferenceSource(String.format("%s/lists", referenceSource));
+        listReference.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.LISTS));
         listReference.setReferenceID(UUID.randomUUID().toString());
         brapiList.setExternalReferences(List.of(programReference, listReference));
 
@@ -314,7 +315,7 @@ public class Germplasm implements BrAPIObject {
 
         // Set program id in external references
         BrAPIExternalReference newReference = new BrAPIExternalReference();
-        newReference.setReferenceSource(String.format("%s/programs", referenceSource));
+        newReference.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
         newReference.setReferenceID(program.getId().toString());
         germplasm.getExternalReferences().add(newReference);
 

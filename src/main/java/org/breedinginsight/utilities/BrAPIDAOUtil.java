@@ -24,6 +24,7 @@ import io.reactivex.functions.Function;
 import io.reactivex.functions.Function3;
 import io.reactivex.functions.Function4;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -33,6 +34,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -45,14 +47,22 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 @Slf4j
 public class BrAPIDAOUtil {
 
-    @Property(name = "brapi.search.wait-time")
-    private int searchWaitTime;
-    @Property(name = "brapi.read-timeout")
-    private Duration searchTimeout;
-    @Property(name = "brapi.page-size")
-    private int pageSize;
-    @Property(name = "brapi.post-group-size")
-    private int postGroupSize;
+    private final int searchWaitTime;
+    private final Duration searchTimeout;
+    private final int pageSize;
+    private final int postGroupSize;
+
+    @Inject
+    public BrAPIDAOUtil(@Property(name = "brapi.search.wait-time") int searchWaitTime,
+                        @Property(name = "brapi.read-timeout") Duration searchTimeout,
+                        @Property(name = "brapi.page-size") int pageSize,
+                        @Property(name = "brapi.post-group-size") int postGroupSize) {
+        this.searchWaitTime = searchWaitTime;
+        this.searchTimeout = searchTimeout;
+        this.pageSize = pageSize;
+        this.postGroupSize = postGroupSize;
+    }
+
     public <T, U extends BrAPISearchRequestParametersPaging, V> List<V> search(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
                                                                                Function3<String, Integer, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
                                                                                U searchBody
@@ -85,6 +95,7 @@ public class BrAPIDAOUtil {
             /*  NOTE: may want to check for additional pages depending on whether BrAPI standard specifies how
                 pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
                 changed or updated
+             */
                 if(hasMorePages(listResponse)) {
                     int currentPage = listResponse.getMetadata().getPagination().getCurrentPage() + 1;
                     int totalPages = listResponse.getMetadata().getPagination().getTotalPages();
@@ -99,7 +110,6 @@ public class BrAPIDAOUtil {
                         currentPage++;
                     }
                 }
-            */
             } else {
                 // Hit the get endpoint until we get a response
                 Integer accruedWait = 0;
@@ -128,6 +138,101 @@ public class BrAPIDAOUtil {
                                 }
 
                                 currentPage++;
+                            }
+                        }
+                    } else {
+                        // Wait a bit before we call again
+                        Thread.sleep(searchWaitTime);
+                        accruedWait += searchWaitTime;
+                        if (accruedWait >= searchTimeout.toMillis()) {
+                            throw new ApiException("Search response timeout");
+                        }
+                    }
+                }
+            }
+
+            return listResult;
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        } catch (Exception e) {
+            log.debug("error", e);
+            throw new InternalServerException(e.toString(), e);
+        }
+    }
+
+    public <T, U extends BrAPISearchRequestParametersTokenPaging, V> List<V> searchWithToken(Function<U, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchMethod,
+                                                                               Function3<String, String, Integer, ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>>> searchGetMethod,
+                                                                               U searchBody
+    ) throws ApiException {
+        try {
+            List<V> listResult = new ArrayList<>();
+            //NOTE: Because of the way Breedbase implements BrAPI searches, the page size is initially set to an
+            //arbitrary, large value to ensure that in the event that a 202 response is returned, the searchDbId
+            //stored will refer to all records of the BrAPI variable.
+            searchBody.pageSize(pageSize);
+            ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> response = searchMethod.apply(searchBody);
+            if (response.getBody().getLeft().isPresent()) {
+                BrAPIResponse listResponse = (BrAPIResponse) response.getBody().getLeft().get();
+                listResult = getListResult(response);
+
+            /*  NOTE: may want to check for additional pages depending on whether BrAPI standard specifies how
+                pagination params are handled for POST search endpoints or the corresponding endpoints in Breedbase are
+                changed or updated
+            */
+                if(listResponse.getMetadata().getPagination() instanceof BrAPITokenPagination) {
+                    String nextPageToken = ((BrAPITokenPagination) listResponse.getMetadata()
+                                                                               .getPagination()).getNextPageToken();
+                    while (StringUtils.isNotBlank(nextPageToken)) {
+                        searchBody.setPageToken(nextPageToken);
+                        response = searchMethod.apply(searchBody);
+                        if (response.getBody()
+                                    .getLeft()
+                                    .isPresent()) {
+                            listResult.addAll(getListResult(response));
+                            listResponse = (BrAPIResponse) response.getBody().getLeft().get();
+                            nextPageToken = ((BrAPITokenPagination) listResponse.getMetadata()
+                                                                                .getPagination()).getNextPageToken();
+                        } else {
+                            nextPageToken = null;
+                        }
+                    }
+                } else if(listResponse.getMetadata().getPagination() instanceof BrAPIIndexPagination) {
+                    if(hasMorePages(listResponse)) {
+                        int currentPage = listResponse.getMetadata().getPagination().getCurrentPage() + 1;
+                        int totalPages = listResponse.getMetadata().getPagination().getTotalPages();
+
+                        while (currentPage < totalPages) {
+                            searchBody.setPage(currentPage);
+                            response = searchMethod.apply(searchBody);
+                            if (response.getBody().getLeft().isPresent()) {
+                                listResult.addAll(getListResult(response));
+                            }
+
+                            currentPage++;
+                        }
+                    }
+                }
+            } else {
+                // Hit the get endpoint until we get a response
+                Integer accruedWait = 0;
+                Boolean searchFinished = false;
+                while (!searchFinished) {
+                    BrAPIAcceptedSearchResponse searchResult = response.getBody().getRight().get();
+                    String nextPageToken = ((BrAPITokenPagination) searchResult.getMetadata().getPagination()).getNextPageToken();
+
+                    ApiResponse<Pair<Optional<T>, Optional<BrAPIAcceptedSearchResponse>>> searchGetResponse = searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), nextPageToken, pageSize);
+                    if (searchGetResponse.getBody().getLeft().isPresent()) {
+                        searchFinished = true;
+                        BrAPIResponse listResponse = (BrAPIResponse) searchGetResponse.getBody().getLeft().get();
+                        listResult = getListResult(searchGetResponse);
+
+                        nextPageToken = ((BrAPITokenPagination) listResponse.getMetadata().getPagination()).getNextPageToken();
+                        while (StringUtils.isNotBlank(nextPageToken)) {
+                            searchGetResponse = searchGetMethod.apply(searchResult.getResult().getSearchResultsDbId(), nextPageToken, pageSize);
+                            if (searchGetResponse.getBody().getLeft().isPresent()) {
+                                listResult.addAll(getListResult(searchGetResponse));
+                                nextPageToken = ((BrAPITokenPagination) listResponse.getMetadata().getPagination()).getNextPageToken();
                             }
                         }
                     } else {
@@ -215,7 +320,9 @@ public class BrAPIDAOUtil {
                 }
                 List<T> data = result.getData();
                 // TODO: Maybe move this outside of the loop
-                if (data.size() != postChunk.size()) throw new ApiException("Number of brapi objects returned does not equal number sent");
+                if (data.size() != postChunk.size()) {
+                    throw new ApiException("Number of brapi objects returned does not equal number sent");
+                }
                 listResult.addAll(data);
                 finished += data.size();
                 currentRightBorder += postGroupSize;

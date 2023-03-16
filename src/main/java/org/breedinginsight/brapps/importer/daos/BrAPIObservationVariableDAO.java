@@ -21,10 +21,12 @@ import org.brapi.client.v2.modules.phenotype.ObservationVariablesApi;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.request.BrAPIObservationVariableSearchRequest;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,17 +35,23 @@ public class BrAPIObservationVariableDAO {
 
     private ProgramDAO programDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIObservationVariableDAO(ProgramDAO programDAO, BrAPIDAOUtil brAPIDAOUtil) {
+    public BrAPIObservationVariableDAO(ProgramDAO programDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPIObservationVariable> getVariableByName(List<String> variableNames, UUID programId) throws ApiException {
+        if(variableNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIObservationVariableSearchRequest variableSearch = new BrAPIObservationVariableSearchRequest();
         variableSearch.observationVariableNames(variableNames);
-        ObservationVariablesApi api = new ObservationVariablesApi(programDAO.getCoreClient(programId));
+        ObservationVariablesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationVariablesApi.class);
         return brAPIDAOUtil.search(
                 api::searchVariablesPost,
                 api::searchVariablesSearchResultsDbIdGet,

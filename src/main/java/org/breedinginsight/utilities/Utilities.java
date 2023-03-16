@@ -19,7 +19,9 @@ package org.breedinginsight.utilities;
 
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,7 +60,7 @@ public class Utilities {
      * @return the formatted string
      */
     public static String appendProgramKey(String original, String programKey, String additionalKeyData) {
-        if(StringUtils.isNotEmpty(additionalKeyData)) {
+        if(StringUtils.isNotBlank(additionalKeyData)) {
             return String.format("%s [%s-%s]", original, programKey, additionalKeyData);
         } else {
             return String.format("%s [%s]", original, programKey);
@@ -78,7 +80,7 @@ public class Utilities {
      * @return
      */
     public static String removeProgramKey(String original, String programKey, String additionalKeyData) {
-        if(StringUtils.isNotEmpty(additionalKeyData)) {
+        if(StringUtils.isNotBlank(additionalKeyData)) {
             String keyValue = String.format(" [%s-%s]", programKey, additionalKeyData);
             return original.replace(keyValue, "");
         } else {
@@ -114,5 +116,29 @@ public class Utilities {
                                                          .append("code: ")
                                                          .append(e.getCode())
                                                          .toString();
+    }
+
+    public static String generateReferenceSource(String referenceSourceBase, ExternalReferenceSource referenceSource) {
+        return String.format("%s/%s",referenceSourceBase, referenceSource.getName());
+    }
+
+    public static Optional<BrAPIExternalReference> getExternalReference(List<BrAPIExternalReference> externalReferences, String source) {
+        if(externalReferences == null) {
+            return Optional.empty();
+        }
+        return externalReferences.stream().filter(externalReference -> externalReference.getReferenceSource().equals(source)).findFirst();
+    }
+
+    /**
+     * For a list of items, if the list has only one item, return that item, otherwise return an empty {@link Optional}
+     * @param items {@link List} of items
+     * @return Optional of type T or empty Optional
+     */
+    public static <T> Optional<T> getSingleOptional(List<T> items) {
+        if(items.size() == 1) {
+            return Optional.of(items.get(0));
+        } else {
+            return Optional.empty();
+        }
     }
 }

@@ -29,14 +29,15 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
@@ -47,11 +48,13 @@ import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 public class ObservationDAO {
     private final BrAPIDAOUtil brAPIDAOUtil;
     private ProgramDAO programDAO;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public ObservationDAO(BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO) {
+    public ObservationDAO(BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.programDAO = programDAO;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId, UUID programId) {
@@ -61,7 +64,7 @@ public class ObservationDAO {
                 .observationVariableDbId(observationVariableDbId);
         try {
             BrAPIClient client = programDAO.getCoreClient(programId);
-            ObservationsApi api = new ObservationsApi(client);
+            ObservationsApi api = brAPIEndpointProvider.get(client, ObservationsApi.class);
             brapiObservations = api.observationsGet(observationsRequest);
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
@@ -73,13 +76,16 @@ public class ObservationDAO {
 
     // search by ObservationVariableDbIds
     public List<BrAPIObservation> getObservationsByVariableDbIds(List<String> observationVariableDbIds, UUID programId) {
+        if(observationVariableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
                     .observationVariableDbIds(observationVariableDbIds);
 
             BrAPIClient client = programDAO.getCoreClient(programId);
-            ObservationsApi api = new ObservationsApi(client);
+            ObservationsApi api = brAPIEndpointProvider.get(client, ObservationsApi.class);
             return brAPIDAOUtil.search(
                     api::searchObservationsPost,
                     api::searchObservationsSearchResultsDbIdGet,
@@ -92,6 +98,9 @@ public class ObservationDAO {
     }
 
     public List<BrAPIObservation> getObservationsByVariableAndBrAPIProgram(String brapiProgramId, UUID programId, List<String> observationVariableDbIds) {
+        if(observationVariableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
@@ -99,7 +108,7 @@ public class ObservationDAO {
                     .programDbIds(List.of(brapiProgramId));
 
             BrAPIClient client = programDAO.getCoreClient(programId);
-            ObservationsApi api = new ObservationsApi(client);
+            ObservationsApi api = brAPIEndpointProvider.get(client, ObservationsApi.class);
             return brAPIDAOUtil.search(
                     api::searchObservationsPost,
                     api::searchObservationsSearchResultsDbIdGet,

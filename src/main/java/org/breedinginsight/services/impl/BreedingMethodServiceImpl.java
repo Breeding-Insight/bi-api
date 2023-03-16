@@ -49,7 +49,11 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         //TODO retest with new germplasm after updating the DAO to return the correct ID for a method
         germplasmService.getGermplasm(programId).forEach(germplasm -> {
             UUID id = UUID.fromString(germplasm.getBreedingMethodDbId());
-            inUse.put(id, programMethods.get(id));
+            if(programMethods.containsKey(id)) {
+                inUse.put(id, programMethods.get(id));
+            } else {
+                throw new IllegalStateException("Could not find breeding method by id: " + id);
+            }
         });
 
         return new ArrayList<>(inUse.values());
@@ -81,7 +85,7 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
     @Override
     public void enableSystemMethods(List<UUID> systemBreedingMethods, UUID programId, UUID userId) throws ApiException, BadRequestException {
         List<ProgramBreedingMethodEntity> inUseMethods = fetchBreedingMethodsInUse(programId);
-        if(!systemBreedingMethods.containsAll(inUseMethods.stream().map(method -> method.getId()).collect(Collectors.toList()))) {
+        if(!systemBreedingMethods.containsAll(inUseMethods.stream().filter(method -> method.getProgramId() == null).map(method -> method.getId()).collect(Collectors.toList()))) {
             throw new BadRequestException("Breeding method is not allowed to be edited");
         }
 

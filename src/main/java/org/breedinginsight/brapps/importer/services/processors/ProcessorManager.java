@@ -59,6 +59,7 @@ public class ProcessorManager {
 
         // check existing brapi objects and map data for each registered type
         for (Processor processor : processors) {
+            log.debug("Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             statusService.updateMessage(upload, "Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             processor.getExistingBrapiData(importRows, program);
             Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, data, program, user, commit);
@@ -71,6 +72,7 @@ public class ProcessorManager {
         response.setRows(mappedBrAPIImportList);
         response.setDynamicColumnNames(upload.getDynamicColumnNamesList());
 
+        log.debug("Finished mapping data to brapi objects");
         statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
 
         if (!commit) {
@@ -103,13 +105,16 @@ public class ProcessorManager {
             totalObjects += stats.getNewObjectCount();
         }
 
+        log.debug("Starting upload to brapi service");
         statusService.startUpload(upload, totalObjects, "Starting upload to brapi service");
 
         for (Processor processor : processors) {
+            log.debug("Creating new " + processor.getName().toLowerCase() + " objects in brapi service");
             statusService.updateMessage(upload, "Creating new " + processor.getName().toLowerCase() + " objects in brapi service");
             processor.postBrapiData(mappedBrAPIImport, program, upload);
         }
 
+        log.debug("Completed upload to brapi service");
         statusService.finishUpload(upload, "Completed upload to brapi service");
     }
 

@@ -179,3 +179,19 @@ redisson:
     ssl-enable-endpoint-identification: ${REDIS_SSL:false}
   threads: 16
   netty-threads: 32
+
+gigwa:
+  host: ${GIGWA_HOST}
+  username: ${GIGWA_USER}
+  password: ${GIGWA_PASSWORD}
+
+aws:
+  region: ${AWS_REGION:`us-east-1`}
+  accessKeyId: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_KEY}
+  s3:
+    region: ${aws.region}
+    endpoint: ${AWS_S3_ENDPOINT:`https://s3.us-east-1.amazonaws.com`}
+    buckets:
+      genotype:
+        bucket: ${AWS_GENO_BUCKET}

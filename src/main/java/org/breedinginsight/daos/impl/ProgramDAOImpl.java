@@ -42,6 +42,7 @@ import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.brapi.BrAPIClientProvider;
 import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.*;
@@ -60,32 +61,38 @@ import static org.breedinginsight.dao.db.Tables.*;
 
 @Slf4j
 @Singleton
-public class ProgramDAOImpl extends AbstractDAO<ProgramRecord, ProgramEntity, UUID> implements ProgramDAO {
+public class ProgramDAOImpl extends ProgramDao implements ProgramDAO {
 
-    @Property(name = "brapi.server.core-url")
     private String defaultBrAPICoreUrl;
-    @Property(name = "brapi.server.pheno-url")
     private String defaultBrAPIPhenoUrl;
-    @Property(name = "brapi.server.geno-url")
     private String defaultBrAPIGenoUrl;
-
+    private String referenceSource;
 
     private DSLContext dsl;
     private BrAPIProvider brAPIProvider;
     private BrAPIClientProvider brAPIClientProvider;
-    @Property(name = "brapi.server.reference-source")
-    private String referenceSource;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
+
     private Duration requestTimeout;
 
     private final static String SYSTEM_DEFAULT = BrAPIConstants.SYSTEM_DEFAULT.getValue();
 
     @Inject
-    public ProgramDAOImpl(ProgramDao programDao, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider,
-                      @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout) {
-        super(programDao);
+    public ProgramDAOImpl(Configuration config, DSLContext dsl, BrAPIProvider brAPIProvider, BrAPIClientProvider brAPIClientProvider, BrAPIEndpointProvider brAPIEndpointProvider,
+                          @Property(name = "brapi.server.core-url") String defaultBrAPICoreUrl,
+                          @Property(name = "brapi.server.pheno-url") String defaultBrAPIPhenoUrl,
+                          @Property(name = "brapi.server.geno-url") String defaultBrAPIGenoUrl,
+                          @Property(name = "brapi.server.reference-source") String referenceSource,
+                          @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout) {
+        super(config);
         this.dsl = dsl;
         this.brAPIProvider = brAPIProvider;
         this.brAPIClientProvider = brAPIClientProvider;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
+        this.defaultBrAPICoreUrl = defaultBrAPICoreUrl;
+        this.defaultBrAPIPhenoUrl = defaultBrAPIPhenoUrl;
+        this.defaultBrAPIGenoUrl = defaultBrAPIGenoUrl;
+        this.referenceSource = referenceSource;
         this.requestTimeout = requestTimeout;
     }
 
@@ -280,7 +287,7 @@ public class ProgramDAOImpl extends AbstractDAO<ProgramRecord, ProgramEntity, UU
                 .externalReferenceSource(referenceSource);
 
         BrAPIClient client = getCoreClient(program.getId());
-        ProgramsApi programsApi = new ProgramsApi(client);
+        ProgramsApi programsApi = brAPIEndpointProvider.get(client, ProgramsApi.class);
         // Get existing brapi program
         ApiResponse<BrAPIProgramListResponse> brApiPrograms;
         try {

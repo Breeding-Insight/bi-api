@@ -225,6 +225,8 @@ public class GermplasmProcessor implements Processor {
                                                         Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                         Program program, User user, boolean commit) throws ValidatorException {
 
+        log.debug("Processing germplasm import");
+
         // Method for generating accession number
         String germplasmSequenceName = program.getGermplasmSequence();
         if (germplasmSequenceName == null) {
@@ -251,6 +253,7 @@ public class GermplasmProcessor implements Processor {
         List<String> userProvidedEntryNumbers = new ArrayList<>();
         ValidationErrors validationErrors = new ValidationErrors();
         for (int i = 0; i < importRows.size(); i++) {
+            log.debug("processing germplasm row: " + (i+1));
             BrAPIImport brapiImport = importRows.get(i);
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(i, new PendingImport());
 
@@ -534,6 +537,7 @@ public class GermplasmProcessor implements Processor {
 
     public void constructPedigreeString(List<BrAPIImport> importRows, Map<Integer, PendingImport> mappedBrAPIImport, Boolean commit) {
 
+        log.debug("constructing pedigree strings");
         // Construct pedigree
         // DBID (Acession number) takes precedence over Entry No
         for (int i = 0; i < importRows.size(); i++) {

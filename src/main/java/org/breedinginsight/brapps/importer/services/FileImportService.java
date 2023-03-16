@@ -28,6 +28,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.tika.mime.MediaType;
 import org.brapi.client.v2.JSON;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingProgramDAO;
@@ -51,6 +52,7 @@ import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.services.parsers.MimeTypeParser;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.utilities.FileUtil;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import tech.tablesaw.api.Table;
@@ -141,7 +143,7 @@ public class FileImportService {
 
         MediaType mediaType;
         try {
-            mediaType = mimeTypeParser.getMimeType(file);
+            mediaType = mimeTypeParser.getMediaType(file);
         } catch (IOException e){
             throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Could not determine file type");
         }
@@ -328,9 +330,8 @@ public class FileImportService {
         User user = userService.getById(actingUser.getId()).get();
 
         // Find the import
-        Optional<ImportUpload> uploadOptional = importDAO.getUploadById(uploadId);
-        if (uploadOptional.isEmpty()) throw new DoesNotExistException("Upload with that id does not exist");
-        ImportUpload upload = uploadOptional.get();
+        ImportUpload upload = importDAO.getUploadById(uploadId)
+                                       .orElseThrow(() -> new DoesNotExistException("Upload with that id does not exist"));
 
         if (upload.getProgress() != null && upload.getProgress().getStatuscode().equals((short) HttpStatus.ACCEPTED.getCode())) {
             // Another action is in process for this import, throw an error
@@ -343,13 +344,11 @@ public class FileImportService {
         }
 
         // Get mapping
-        Optional<ImportMapping> mappingConfigOptional = importMappingDAO.getMapping(upload.getImporterMappingId());
-        if (mappingConfigOptional.isEmpty()) throw new DoesNotExistException("Cannot find mapping config associated with upload.");
-        ImportMapping mappingConfig = mappingConfigOptional.get();
+        ImportMapping mappingConfig = importMappingDAO.getMapping(upload.getImporterMappingId())
+                                                      .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
 
-        Optional<BrAPIImportService> optionalImportService = configManager.getImportServiceById(mappingConfig.getImportTypeId());
-        if (optionalImportService.isEmpty()) throw new DoesNotExistException("Config with that id does not exist");
-        BrAPIImportService importService = optionalImportService.get();
+        BrAPIImportService importService = configManager.getImportServiceById(mappingConfig.getImportTypeId())
+                                                        .orElseThrow(() -> new DoesNotExistException("Config with that id does not exist"));
         // TODO: maybe return brapiimport from configmanager
 
         // Get our data
@@ -463,7 +462,11 @@ public class FileImportService {
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             } catch (Exception e) {
-                log.error(e.getMessage(), e);
+                if(e instanceof ApiException) {
+                    log.error("Error making BrAPI call: " + Utilities.generateApiExceptionLogMessage((ApiException) e), e);
+                } else {
+                    log.error(e.getMessage(), e);
+                }
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.INTERNAL_SERVER_ERROR.getCode());
                 // TODO: Probably don't want to return this message. But do it for now

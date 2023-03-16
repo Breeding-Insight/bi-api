@@ -45,6 +45,7 @@ public class ProgramLocation extends PlaceEntity {
     private Accessibility accessibility;
     private EnvironmentType environmentType;
     private Topography topography;
+    private String locationDbId;
 
     private User createdByUser;
     private User updatedByUser;

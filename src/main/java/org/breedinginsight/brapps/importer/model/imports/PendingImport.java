@@ -28,6 +28,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.model.ProgramLocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class PendingImport {
 
     private PendingImportObject<BrAPIGermplasm> germplasm;
     private PendingImportObject<BrAPITrial> trial;
-    private PendingImportObject<BrAPILocation> location;
+    private PendingImportObject<ProgramLocation> location;
     private PendingImportObject<BrAPIStudy> study;
     private PendingImportObject<BrAPIObservationUnit> observationUnit;
     private List<PendingImportObject<BrAPIObservation>> observations = new ArrayList<>();
