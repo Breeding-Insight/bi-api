@@ -180,19 +180,6 @@ public class BrAPIDAOUtil {
         return new ArrayList<>();
     }
 
-    // TODO: temporary until generic code is written
-    public List<BrAPIGermplasm> putGermplasm(List<BrAPIGermplasm> germplasmList, GermplasmApi api) throws ApiException {
-        List<BrAPIGermplasm> listResult = new ArrayList<>();
-
-        for (BrAPIGermplasm germplasm : germplasmList) {
-            ApiResponse<BrAPIGermplasmSingleResponse> response = api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm);
-            listResult.add(response.getBody().getResult());
-        }
-
-        return listResult;
-    }
-
-
     public <T> List<T> post(List<T> brapiObjects,
                                    ImportUpload upload,
                                    Function<List<T>, ApiResponse> postMethod,

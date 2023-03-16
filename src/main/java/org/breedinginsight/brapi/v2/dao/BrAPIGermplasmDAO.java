@@ -32,6 +32,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
+import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -247,7 +248,7 @@ public class BrAPIGermplasmDAO {
                 };
             } else {
                 postFunction = () -> {
-                    List<BrAPIGermplasm> postResponse = brAPIDAOUtil.putGermplasm(putBrAPIGermplasmList, api);
+                    List<BrAPIGermplasm> postResponse = putGermplasm(putBrAPIGermplasmList, api);
                     return processGermplasmForDisplay(postResponse, program.getKey());
                 };
             }
@@ -288,5 +289,18 @@ public class BrAPIGermplasmDAO {
             throw new DoesNotExistException("DBID for this germplasm does not exist");
         }
         return germplasm;
+    }
+
+    public List<BrAPIGermplasm> putGermplasm(List<BrAPIGermplasm> germplasmList, GermplasmApi api) throws ApiException {
+        List<BrAPIGermplasm> listResult = new ArrayList<>();
+
+        // TODO: temporary until generic BrAPIDAOUtil code is written
+        // generic code should handle importer progress updates
+        for (BrAPIGermplasm germplasm : germplasmList) {
+            ApiResponse<BrAPIGermplasmSingleResponse> response = api.germplasmGermplasmDbIdPut(germplasm.getGermplasmDbId(), germplasm);
+            listResult.add(response.getBody().getResult());
+        }
+
+        return listResult;
     }
 }

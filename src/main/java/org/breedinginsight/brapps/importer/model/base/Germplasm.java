@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -152,6 +153,49 @@ public class Germplasm implements BrAPIObject {
     public static String constructGermplasmListName(String listName, Program program) {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
+
+    public void updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit) {
+
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, getMaleParentEntryNo());
+
+        // Append synonyms to germplasm that don't already exist
+        // Synonym comparison is based on name and type
+        if (synonyms != null) {
+            Set<BrAPIGermplasmSynonyms> existingSynonyms = new HashSet<>(germplasm.getSynonyms());
+            for (String synonym: synonyms.split(";")){
+                BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
+                brapiSynonym.setSynonym(synonym);
+                if (!existingSynonyms.contains(brapiSynonym)) {
+                    germplasm.addSynonymsItem(brapiSynonym);
+                }
+            }
+        }
+
+        // Add germplasm to the new list
+        JsonObject listEntryNumbers = germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS);
+        listEntryNumbers.addProperty(listId.toString(), entryNo);
+
+        // TODO: figure out why clear this out: brapi-server
+        germplasm.setBreedingMethodDbId(null);
+
+        if (commit) {
+            setUpdateCommitFields(germplasm, program.getKey());
+        }
+    }
+
+
+    public void setUpdateCommitFields(BrAPIGermplasm germplasm, String programKey) {
+        // Update our synonyms to <Synonym> [<program key>-<accessionNumber>]
+        if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
+            for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
+                synonym.setSynonym(Utilities.appendProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber()));
+            }
+        }
+    }
+
 
     public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();

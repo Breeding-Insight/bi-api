@@ -295,27 +295,9 @@ public class GermplasmProcessor implements Processor {
                         continue;
                     }
 
-                    // Append synonyms to germplasm that don't already exist
-                    // Synonym comparison is based on name and type
-                    if (germplasm.getSynonyms() != null) {
-                        Set<BrAPIGermplasmSynonyms> existingSynonyms = new HashSet<>(existingGermplasm.getSynonyms());
-                        for (String synonym: germplasm.getSynonyms().split(";")){
-                            BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
-                            brapiSynonym.setSynonym(synonym);
-                            if (!existingSynonyms.contains(brapiSynonym)) {
-                                existingGermplasm.addSynonymsItem(brapiSynonym);
-                            }
-                        }
-                    }
-
                     validatePedigree(germplasm, i+2, validationErrors);
 
-                    // Add germplasm to the new list
-                    JsonObject listEntryNumbers = existingGermplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS);
-                    listEntryNumbers.addProperty(importListId.toString(), germplasm.getEntryNo());
-
-                    // TODO: figure out why clear this out
-                    existingGermplasm.setBreedingMethodDbId(null);
+                    germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit);
 
                     updatedGermplasmList.add(existingGermplasm);
                     mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
@@ -608,10 +590,20 @@ public class GermplasmProcessor implements Processor {
                     }
                 }
             }
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
-            //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("femaleParentUnknown", femaleParentUnknown);
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("maleParentUnknown", maleParentUnknown);
+
+            // only update brapi object for new germplasm or update with no previous pedigree
+            BrAPIGermplasm brapiGermplasm = mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject();
+
+            Optional<BrAPIGermplasm> existingPedigree = existingGermplasms.stream()
+                    .filter(g -> g.equals(brapiGermplasm) && StringUtils.isBlank(g.getPedigree()))
+                    .findFirst();
+
+            if (existingPedigree.isEmpty()) {
+                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
+                //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
+                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("femaleParentUnknown", femaleParentUnknown);
+                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("maleParentUnknown", maleParentUnknown);
+            }
         }
     }
 }
