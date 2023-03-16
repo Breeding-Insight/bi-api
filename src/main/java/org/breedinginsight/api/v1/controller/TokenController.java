@@ -45,10 +45,9 @@ public class TokenController {
     private UserDAO userDAO;
 
     @Inject
-    public TokenController(SecurityService securityService, TokenService tokenService, UserDAO userDAO) {
+    public TokenController(SecurityService securityService, TokenService tokenService) {
         this.securityService = securityService;
         this.tokenService = tokenService;
-        this.userDAO = userDAO;
     }
 
     @Get("/api-token")
