@@ -71,7 +71,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
-import org.mockito.invocation.InvocationOnMock;
 import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.localstack.LocalStackContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
@@ -194,7 +193,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     @MockBean(BrAPIDAOUtil.class)
     BrAPIDAOUtil brAPIDAOUtil() {
-        return mock(BrAPIDAOUtil.class);
+        return spy(new BrAPIDAOUtil(1000, Duration.of(10, ChronoUnit.MINUTES), 1000, 100));
     }
 
     @MockBean(SimpleStorageService.class)
@@ -272,7 +271,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     }
 
     @BeforeAll
-    public void setup() {
+    public void setup() throws IllegalAccessException, NoSuchFieldException {
         applicationContext.registerSingleton((BeanCreatedEventListener<SimpleStorageServiceConfiguration>) event -> {
             SimpleStorageServiceConfiguration conf = event.getBean();
             if (conf.getEndpoint() != null) {
@@ -365,8 +364,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
             }
         }).when(brAPIDAOUtil)
           .search(any(Function.class), any(Function3.class), any());
-
-        doAnswer(InvocationOnMock::callRealMethod).when(brAPIDAOUtil).searchWithToken(any(Function.class), any(Function3.class), any());
 
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getCoreClient(any(UUID.class));
         doReturn(new BrAPIClient("", 300000)).when(programDAO).getPhenoClient(any(UUID.class));

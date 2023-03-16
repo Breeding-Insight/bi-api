@@ -29,7 +29,9 @@ import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.BrAPIPagination;
 import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -142,6 +144,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
                                                  (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+                                         .registerTypeAdapter(BrAPIPagination.class, new PaginationTypeAdapter())
                                          .create();
 
     @BeforeAll

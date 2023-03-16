@@ -59,6 +59,7 @@ import java.util.UUID;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
+@Secured(SecurityRule.IS_AUTHENTICATED)
 public class ProgramController {
 
     private ProgramService programService;
@@ -87,7 +88,6 @@ public class ProgramController {
 
     @Get("/programs{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<Program>>> getPrograms(
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams) {
 
@@ -97,7 +97,6 @@ public class ProgramController {
 
     @Post("/programs/search{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
-    @Secured(SecurityRule.IS_ANONYMOUS)
     public HttpResponse<Response<DataResponse<Program>>> postProgramsSearch(
             @QueryValue @QueryValid(using = ProgramQueryMapper.class) @Valid QueryParams queryParams,
             @Body @SearchValid(using = ProgramQueryMapper.class) SearchRequest searchRequest) {
