@@ -400,7 +400,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
                 .externalReferences(List.of(programRef, germIdRef))
                 .accessionNumber(accessionNum);
 
-        assertDoesNotThrow(() -> germplasmService.importBrAPIGermplasm(List.of(germplasm), program.getId(), null));
+        assertDoesNotThrow(() -> germplasmService.importBrAPIGermplasm(List.of(germplasm), new ArrayList<>(), program.getId(), null));
 
         String germplasmUrl = String.format("/programs/%s/brapi/v2/germplasm", program.getId());
         Flowable<HttpResponse<String>> germplasmCall = client.exchange(
@@ -472,7 +472,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
                 .externalReferences(List.of(programRef, germIdRef))
                 .accessionNumber(accessionNum);
 
-        assertDoesNotThrow(() -> germplasmService.importBrAPIGermplasm(List.of(germplasm), program.getId(), null));
+        assertDoesNotThrow(() -> germplasmService.importBrAPIGermplasm(List.of(germplasm), new ArrayList<>(), program.getId(), null));
 
         String deleteUrl = String.format("/programs/%s/breeding-methods/%s", program.getId(), createdMethod.getId());
         Flowable<HttpResponse<String>> deleteCall = client.exchange(
@@ -548,7 +548,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
                 .externalReferences(List.of(programRef, germIdRef))
                 .accessionNumber(accessionNum);
 
-        assertDoesNotThrow(() -> germplasmService.importBrAPIGermplasm(List.of(germplasm), program.getId(), null));
+        assertDoesNotThrow(() -> germplasmService.importBrAPIGermplasm(List.of(germplasm), new ArrayList<>(), program.getId(), null));
 
         Flowable<HttpResponse<String>> enableCallRemove = client.exchange(
                 PUT(enableUrl, List.of()).cookie(new NettyCookie("phylo-token", "test-registered-user"))
