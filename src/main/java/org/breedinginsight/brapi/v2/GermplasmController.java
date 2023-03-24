@@ -100,6 +100,13 @@ public class GermplasmController {
         try {
             log.debug("fetching germ for program: " + programId);
 
+            // If the date format of query params was sent (as a query param itself), update the mapper.
+            String paramDateFormat = queryParams.getQueryParamDateFormat();
+            if (paramDateFormat != null)
+            {
+                germplasmQueryMapper.setQueryParamDateFormat(paramDateFormat);
+            }
+
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);

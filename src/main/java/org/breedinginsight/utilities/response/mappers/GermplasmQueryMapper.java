@@ -1,15 +1,16 @@
 package org.breedinginsight.utilities.response.mappers;
 
-import com.google.gson.JsonObject;
 import lombok.Getter;
-import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import lombok.Setter;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
-import org.breedinginsight.brapi.v1.model.ObservationVariable;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
+import org.breedinginsight.brapi.v2.constants.GermplasmQueryDefaults;
+
 
 import javax.inject.Singleton;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -22,6 +23,11 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
     private final SortOrder defaultSortOrder = SortOrder.ASC;
 
     private final Map<String, Function<BrAPIGermplasm, ?>> fields;
+
+    // The formatting to apply before filtering DateTime values.
+    // Note: this does not change the format of DateTime values returned by the API, it only affects filtering.
+    @Setter
+    private String queryParamDateFormat = "yyyy-MM-dd";
 
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
@@ -62,10 +68,18 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                         germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) ?
                                 germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsString() :
                                 null),
-                Map.entry("createdDate", (germplasm) ->
-                        germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE) ?
-                                germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString() :
-                                null),
+                Map.entry("createdDate", (germplasm) ->{
+                    String createdDate = null;
+                    if (germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE)) {
+                        // Get the createdDate string value in its raw form.
+                        String createdDateUnformatted = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString();
+                        // Format the createdDate for filtering with the queryParamDateFormat string.
+                        createdDate = LocalDateTime
+                                .parse(createdDateUnformatted, DateTimeFormatter.ofPattern(GermplasmQueryDefaults.DEFAULT_DATETIME_FORMAT))
+                                .format(DateTimeFormatter.ofPattern(queryParamDateFormat));
+                    }
+                    return createdDate;
+                }),
                 Map.entry("createdByUserName", (germplasm) ->
                             germplasm.getAdditionalInfo() != null
                                 && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_BY)
