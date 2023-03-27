@@ -71,11 +71,11 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                 Map.entry("createdDate", (germplasm) ->{
                     String createdDate = null;
                     if (germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE)) {
-                        // Get the createdDate string value in its raw form.
-                        String createdDateUnformatted = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString();
+                        // Get the createdDate string value as it is returned by the BrAPI service.
+                        String unformattedCreatedDate = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString();
                         // Format the createdDate with createdDateDisplayFormat before filtering.
                         createdDate = LocalDateTime
-                                .parse(createdDateUnformatted, DateTimeFormatter.ofPattern(GermplasmQueryDefaults.DEFAULT_DATETIME_FORMAT))
+                                .parse(unformattedCreatedDate, DateTimeFormatter.ofPattern(GermplasmQueryDefaults.DEFAULT_DATETIME_FORMAT))
                                 .format(DateTimeFormatter.ofPattern(createdDateDisplayFormat));
                     }
                     return createdDate;
