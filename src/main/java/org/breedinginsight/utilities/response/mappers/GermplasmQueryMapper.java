@@ -24,10 +24,10 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
 
     private final Map<String, Function<BrAPIGermplasm, ?>> fields;
 
-    // The formatting to apply before filtering DateTime values.
-    // Note: this does not change the format of DateTime values returned by the API, it only affects filtering.
+    // The formatting to apply before filtering on createdDate.
+    // Note: this does not change the DateTime format returned by the API, it only affects filtering.
     @Setter
-    private String queryParamDateFormat = "yyyy-MM-dd";
+    private String createdDateDisplayFormat = "yyyy-MM-dd";
 
     public GermplasmQueryMapper() {
         fields = Map.ofEntries(
@@ -73,10 +73,10 @@ public class GermplasmQueryMapper extends AbstractQueryMapper {
                     if (germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CREATED_DATE)) {
                         // Get the createdDate string value in its raw form.
                         String createdDateUnformatted = germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CREATED_DATE).getAsString();
-                        // Format the createdDate for filtering with the queryParamDateFormat string.
+                        // Format the createdDate with createdDateDisplayFormat before filtering.
                         createdDate = LocalDateTime
                                 .parse(createdDateUnformatted, DateTimeFormatter.ofPattern(GermplasmQueryDefaults.DEFAULT_DATETIME_FORMAT))
-                                .format(DateTimeFormatter.ofPattern(queryParamDateFormat));
+                                .format(DateTimeFormatter.ofPattern(createdDateDisplayFormat));
                     }
                     return createdDate;
                 }),
