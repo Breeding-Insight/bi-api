@@ -189,6 +189,11 @@ public class Germplasm implements BrAPIObject {
 
 
     public void setUpdateCommitFields(BrAPIGermplasm germplasm, String programKey) {
+
+        // Set germplasm name to <Name> [<program key>-<accessionNumber>]
+        String name = Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), programKey, germplasm.getAccessionNumber());
+        germplasm.setGermplasmName(name);
+
         // Update our synonyms to <Synonym> [<program key>-<accessionNumber>]
         if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
             for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {

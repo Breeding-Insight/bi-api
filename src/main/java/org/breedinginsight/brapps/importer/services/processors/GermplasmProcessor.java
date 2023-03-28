@@ -376,22 +376,12 @@ public class GermplasmProcessor implements Processor {
         return getStatisticsMap(importRows);
     }
 
-    private void processUpdatedGermplasm() {
-
-    }
-
     private Map<String, ImportPreviewStatistics> getStatisticsMap(List<BrAPIImport> importRows) {
 
         ImportPreviewStatistics germplasmStats = ImportPreviewStatistics.builder()
                 .newObjectCount(newGermplasmList.size())
                 .ignoredObjectCount(germplasmByAccessionNumber.size())
                 .build();
-
-        /*
-        .newObjectCount(ProcessorData.getNumNewObjects(observationByHash))
-                .ignoredObjectCount(ProcessorData.getNumExistingObjects(observationByHash))
-         */
-
 
         //Modified logic here to check for female parent dbid or entry no, removed check for male due to assumption that shouldn't have only male parent
         int newObjectCount = newGermplasmList.stream().filter(newGermplasm -> newGermplasm != null).collect(Collectors.toList()).size();
