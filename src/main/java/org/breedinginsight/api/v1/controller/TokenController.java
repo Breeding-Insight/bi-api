@@ -26,7 +26,6 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
-import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.services.TokenService;
 
@@ -41,8 +40,6 @@ public class TokenController {
 
     private SecurityService securityService;
     private TokenService tokenService;
-
-    private UserDAO userDAO;
 
     @Inject
     public TokenController(SecurityService securityService, TokenService tokenService) {
@@ -73,5 +70,4 @@ public class TokenController {
         }
 
     }
-
 }
