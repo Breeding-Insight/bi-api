@@ -33,8 +33,13 @@ import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
+
 @Slf4j
 public class FileUtil {
+    public static final String EXCEL_DATA_SHEET_NAME = "Data";
+    // For backward compatibility
+    private static final String OLD_GERMPLASM_EXCEL_DATA_SHEET_NAME = "Germplasm Import";
+    private static final String OLD_EXPERIMENT_EXCEL_DATA_SHEET_NAME = "Experiment Data";
 
     public static Table parseTableFromExcel(InputStream inputStream, Integer headerRowIndex) throws ParsingException {
 
@@ -46,10 +51,15 @@ public class FileUtil {
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
 
-        List<Sheet> sheets = new ArrayList<>();
-        workbook.sheetIterator().forEachRemaining(sheets::add);
-        //TODO: Gets the last sheet for now, do we want to allow them to specify which sheet to use?
-        Sheet sheet = workbook.getSheetAt(sheets.size() - 1);
+        Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
+
+        //For backward compatibility allow old sheet names
+        if( sheet == null){ sheet = workbook.getSheet(OLD_GERMPLASM_EXCEL_DATA_SHEET_NAME); }
+        if( sheet == null){ sheet = workbook.getSheet(OLD_EXPERIMENT_EXCEL_DATA_SHEET_NAME); }
+
+        if (sheet == null) {
+            throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
+        }
         Iterator<Row> rowIterator = sheet.rowIterator();
 
         // Get into format tablesaw can use

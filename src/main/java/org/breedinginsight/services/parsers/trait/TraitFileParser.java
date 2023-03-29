@@ -58,7 +58,7 @@ public class TraitFileParser {
 
     private static final String LIST_DELIMITER = ";";
     private static final String CATEGORY_DELIMITER = "=";
-    private static final String EXCEL_DATA_SHEET_NAME = "Template";
+    private static final String EXCEL_DATA_SHEET_NAME = "Data";
 
     private static final String TRAIT_STATUS_ACTIVE = "active";
     private static final String TRAIT_STATUS_ARCHIVED = "archived";
