@@ -59,6 +59,8 @@ public class TraitFileParser {
     private static final String LIST_DELIMITER = ";";
     private static final String CATEGORY_DELIMITER = "=";
     private static final String EXCEL_DATA_SHEET_NAME = "Data";
+    private static final String OLD_EXCEL_DATA_SHEET_NAME = "Template";
+
 
     private static final String TRAIT_STATUS_ACTIVE = "active";
     private static final String TRAIT_STATUS_ARCHIVED = "archived";
@@ -82,8 +84,14 @@ public class TraitFileParser {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
-
+        // TODO accept a "Template" sheet
         Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
+
+        // accept the old sheet name ("template") for backwards compatability
+        if (sheet == null){
+            sheet = workbook.getSheet(OLD_EXCEL_DATA_SHEET_NAME);
+        }
+
         if (sheet == null) {
             throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
         }
