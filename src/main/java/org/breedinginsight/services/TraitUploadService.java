@@ -116,7 +116,7 @@ public class TraitUploadService {
                 traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
-                throw new HttpStatusException( HttpStatus.BAD_REQUEST, String.format("Error(s) detected in file, %s.  %s.", file.getFilename(), e.getMessage()) );
+                throw new HttpStatusException( HttpStatus.BAD_REQUEST, String.format("Error(s) detected in file, %s.  %s. Import cannot proceed.", file.getFilename(), e.getMessage()) );
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");

@@ -84,7 +84,6 @@ public class TraitFileParser {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
-        // TODO accept a "Template" sheet
         Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
 
         // accept the old sheet name ("template") for backwards compatability
