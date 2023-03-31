@@ -100,7 +100,7 @@ public class GermplasmController {
         try {
             log.debug("fetching germ for program: " + programId);
 
-            // If the display format of createdDate was sent as a query param, then update the mapper.
+            // If the display format of createdDate was sent as a query param, then update the query mapper.
             String createdDateFormatParam = queryParams.getCreatedDateDisplayFormat();
             if (createdDateFormatParam != null)
             {
