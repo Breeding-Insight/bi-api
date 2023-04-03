@@ -330,8 +330,7 @@ public class FileImportService {
         User user = userService.getById(actingUser.getId()).get();
 
         // Find the import
-        ImportUpload upload = impopwd
-        rtDAO.getUploadById(uploadId)
+        ImportUpload upload = importDAO.getUploadById(uploadId)
                                        .orElseThrow(() -> new DoesNotExistException("Upload with that id does not exist"));
 
         if (upload.getProgress() != null && upload.getProgress().getStatuscode().equals((short) HttpStatus.ACCEPTED.getCode())) {
