@@ -102,8 +102,7 @@ public class GermplasmController {
 
             // If the display format of createdDate was sent as a query param, then update the query mapper.
             String createdDateFormatParam = queryParams.getCreatedDateDisplayFormat();
-            if (createdDateFormatParam != null)
-            {
+            if (createdDateFormatParam != null) {
                 germplasmQueryMapper.setCreatedDateDisplayFormat(createdDateFormatParam);
             }
 
@@ -113,6 +112,9 @@ public class GermplasmController {
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+        } catch (IllegalArgumentException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
         }
     }
 

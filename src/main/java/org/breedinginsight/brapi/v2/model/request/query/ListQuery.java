@@ -21,6 +21,8 @@ public class ListQuery extends BrapiQuery {
     private String size;
     private String dateCreated;
     private String ownerName;
+    // This is a meta-parameter, it describes the display format of the dateCreated parameter.
+    private String dateCreatedDisplayFormat;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
