@@ -2,8 +2,6 @@ package org.breedinginsight.brapi.v2.model.request.query;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
@@ -21,8 +19,8 @@ public class ListQuery extends BrapiQuery {
     private String size;
     private String dateCreated;
     private String ownerName;
-    // This is a meta-parameter, it describes the display format of the dateCreated parameter.
-    private String dateCreatedDisplayFormat;
+    // This is a meta-parameter, it describes the display format of any date fields.
+    private String dateDisplayFormat;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();

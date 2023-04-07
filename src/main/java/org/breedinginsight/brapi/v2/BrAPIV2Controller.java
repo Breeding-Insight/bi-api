@@ -38,7 +38,6 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.model.request.query.ListQuery;
 import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
@@ -97,10 +96,10 @@ public class BrAPIV2Controller {
         try {
             List<BrAPIListSummary> brapiLists;
 
-            // If the display format of dateCreated was sent as a query param, then update the query mapper.
-            String dateCreatedFormatParam = queryParams.getDateCreatedDisplayFormat();
-            if (dateCreatedFormatParam != null) {
-                listQueryMapper.setDateCreatedDisplayFormat(dateCreatedFormatParam);
+            // If the date display format was sent as a query param, then update the query mapper.
+            String dateFormatParam = queryParams.getDateDisplayFormat();
+            if (dateFormatParam != null) {
+                listQueryMapper.setDateDisplayFormat(dateFormatParam);
             }
 
             if (queryParams.getListType() == null) {

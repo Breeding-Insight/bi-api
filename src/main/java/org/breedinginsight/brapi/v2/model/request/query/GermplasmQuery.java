@@ -24,8 +24,8 @@ public class GermplasmQuery extends BrapiQuery {
     private String createdDate;
     private String createdByUserName;
     private String synonym;
-    // This is a meta-parameter, it describes the display format of the createdDate parameter.
-    private String createdDateDisplayFormat;
+    // This is a meta-parameter, it describes the display format of any date fields.
+    private String dateDisplayFormat;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();

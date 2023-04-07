@@ -3,8 +3,6 @@ package org.breedinginsight.utilities.response.mappers;
 import lombok.Getter;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.BrAPITrial;
-import org.breedinginsight.utilities.response.mappers.AbstractQueryMapper;
 
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
@@ -21,7 +19,7 @@ public class ListQueryMapper extends AbstractQueryMapper {
     // The formatting to apply before filtering on dateCreated.
     // Note: this does not change the DateTime format returned by the API, it only affects filtering.
     @Setter
-    private String dateCreatedDisplayFormat = "yyyy-MM-dd";
+    private String dateDisplayFormat = "yyyy-MM-dd";
 
     public ListQueryMapper() {
         fields = Map.ofEntries(
@@ -33,7 +31,7 @@ public class ListQueryMapper extends AbstractQueryMapper {
                     OffsetDateTime unformattedDateCreated = listSummary.getDateCreated();
                     if (unformattedDateCreated != null)
                     {
-                        dateCreated = unformattedDateCreated.format(DateTimeFormatter.ofPattern(dateCreatedDisplayFormat));
+                        dateCreated = unformattedDateCreated.format(DateTimeFormatter.ofPattern(dateDisplayFormat));
                     }
                     return dateCreated;
                 }),
