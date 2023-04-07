@@ -895,7 +895,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
             germplasm.forEach(germ -> germ.getExternalReferences().add(newReference));
 
-            germplasmDAO.importBrAPIGermplasm(germplasm, new ArrayList<>(), program.getId(), null);
+            germplasmDAO.createBrAPIGermplasm(germplasm, program.getId(), null);
         }
 
         if(traits != null && !traits.isEmpty()) {
