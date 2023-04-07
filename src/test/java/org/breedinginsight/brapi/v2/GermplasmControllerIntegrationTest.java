@@ -241,6 +241,29 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
+    public void getAllGermplasmByListSuccess() {
+        String programId = validProgram.getId().toString();
+        String germplasmListDbId = fetchGermplasmListDbId(programId);
+
+        // Build the endpoint to get germplasm by germplasm list.
+        String endpoint = String.format("/programs/%s/germplasm/lists/%s/records", programId, germplasmListDbId);
+
+        // Get germplasm by list.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(endpoint).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(data.size(), 3, "Wrong number of germplasm were returned");
+    }
+
+    @Test
+    @SneakyThrows
     public void filterGermplasmNameSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
@@ -343,5 +366,25 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         }
         searchRequest.setFilters(filters);
         return searchRequest;
+    }
+
+    public String fetchGermplasmListDbId(String programId) {
+        // Get all lists for a program with listType=germplasm.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists?listType=germplasm", programId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertTrue(data.size() > 0);
+
+        // Return the listDbId for a germplasm list.
+        return data.get(0).getAsJsonObject().get("listDbId").getAsString();
     }
 }
