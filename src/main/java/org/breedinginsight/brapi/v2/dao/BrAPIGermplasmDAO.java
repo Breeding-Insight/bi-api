@@ -25,13 +25,11 @@ import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.client.v2.model.queryParams.germplasm.GermplasmQueryParams;
 import org.brapi.client.v2.modules.germplasm.GermplasmApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
-import org.brapi.v2.model.germ.response.BrAPIGermplasmListResponse;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
@@ -240,17 +238,29 @@ public class BrAPIGermplasmDAO {
         return programGermplasmMap;
     }
 
-    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, List<BrAPIGermplasm> putBrAPIGermplasmList, UUID programId, ImportUpload upload) throws ApiException {
+    public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, UUID programId, ImportUpload upload) {
         GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
         var program = programDAO.fetchOneById(programId);
-        Callable<Map<String, BrAPIGermplasm>> postFunction;
+        Callable<Map<String, BrAPIGermplasm>> postFunction = null;
         try {
             if (!postBrAPIGermplasmList.isEmpty()) {
                 postFunction = () -> {
                     List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
                     return processGermplasmForDisplay(postResponse, program.getKey());
                 };
-            } else {
+            }
+            return programGermplasmCache.post(programId, postFunction);
+        } catch (Exception e) {
+            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        }
+    }
+
+    public List<BrAPIGermplasm> updateBrAPIGermplasm(List<BrAPIGermplasm> putBrAPIGermplasmList, UUID programId, ImportUpload upload) {
+        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
+        var program = programDAO.fetchOneById(programId);
+        Callable<Map<String, BrAPIGermplasm>> postFunction = null;
+        try {
+            if (!putBrAPIGermplasmList.isEmpty()) {
                 postFunction = () -> {
                     List<BrAPIGermplasm> postResponse = putGermplasm(putBrAPIGermplasmList, api);
                     return processGermplasmForDisplay(postResponse, program.getKey());
