@@ -242,8 +242,7 @@ public class GermplasmProcessor implements Processor {
             Germplasm germplasm = importRows.get(0).getGermplasm();
             importList = germplasm.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
         }
-
-        // All rows are considered new germplasm, we don't check for duplicates //todo except now we do oops
+        
         newGermplasmList = new ArrayList<>();
         updatedGermplasmList = new ArrayList<>();
         Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();
