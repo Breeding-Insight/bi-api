@@ -470,22 +470,14 @@ public class GermplasmProcessor implements Processor {
         List<BrAPIGermplasm> createdGermplasm = new ArrayList<>();
 
         if (!newGermplasmList.isEmpty()) {
-            try {
-                for (List<BrAPIGermplasm> postGroup: postOrder){
-                    createdGermplasm.addAll(brAPIGermplasmService.importBrAPIGermplasm(postGroup, new ArrayList<>(), program.getId(), upload));
-                }
-            } catch (ApiException e) {
-                throw new InternalServerException(e.toString(), e);
+            for (List<BrAPIGermplasm> postGroup: postOrder){
+                createdGermplasm.addAll(brAPIGermplasmService.createBrAPIGermplasm(postGroup, program.getId(), upload));
             }
         }
 
         // PUT germplasm
         if (!updatedGermplasmList.isEmpty()) {
-            try {
-                brAPIGermplasmService.importBrAPIGermplasm(new ArrayList<>(), updatedGermplasmList, program.getId(), upload);
-            } catch (ApiException e) {
-                throw new InternalServerException(e.toString(), e);
-            }
+            brAPIGermplasmService.updateBrAPIGermplasm(updatedGermplasmList, program.getId(), upload);
         }
 
         // Create list
