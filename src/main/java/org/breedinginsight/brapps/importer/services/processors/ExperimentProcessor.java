@@ -29,6 +29,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
@@ -103,6 +104,7 @@ public class ExperimentProcessor implements Processor {
     private final BrAPIObservationDAO brAPIObservationDAO;
     private final BrAPISeasonDAO brAPISeasonDAO;
     private final BrAPIGermplasmDAO brAPIGermplasmDAO;
+    private final BrAPIListDAO brAPIListDAO;
     private final OntologyService ontologyService;
     private final FileMappingUtil fileMappingUtil;
 
@@ -117,6 +119,7 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<ProgramLocation>> locationByName = null;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
+    private Map<String, PendingImportObject<BrAPIListDetails>> dataSetOvbsVars = null;
     //  It is assumed that there are no preexisting Observation Units for the given environment (so this will not be
     // initialized by getExistingBrapiData() )
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
@@ -138,7 +141,7 @@ public class ExperimentProcessor implements Processor {
                                BrAPIObservationDAO brAPIObservationDAO,
                                BrAPISeasonDAO brAPISeasonDAO,
                                BrAPIGermplasmDAO brAPIGermplasmDAO,
-                               OntologyService ontologyService,
+                               BrAPIListDAO brAPIListDAO, OntologyService ontologyService,
                                FileMappingUtil fileMappingUtil) {
         this.dsl = dsl;
         this.brapiTrialDAO = brapiTrialDAO;
@@ -148,6 +151,7 @@ public class ExperimentProcessor implements Processor {
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
+        this.brAPIListDAO = brAPIListDAO;
         this.ontologyService = ontologyService;
         this.fileMappingUtil = fileMappingUtil;
     }
@@ -174,6 +178,7 @@ public class ExperimentProcessor implements Processor {
         this.trialByNameNoScope = initializeTrialByNameNoScope(program, experimentImportRows);
         this.studyByNameNoScope = initializeStudyByNameNoScope(program, experimentImportRows);
         this.locationByName = initializeUniqueLocationNames(program, experimentImportRows);
+        this.dataSetOvbsVars = initializeDatasetObsVars(program, experimentImportRows);
         this.existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
     }
 
@@ -1090,7 +1095,10 @@ public class ExperimentProcessor implements Processor {
         existingLocations.forEach(existingLocation -> locationByName.put(existingLocation.getName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation, existingLocation.getId())));
         return locationByName;
     }
-
+    private Map<String, PendingImportObject<BrAPIListDetails>> initializeDatasetObsVars(Program program, List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIListDetails>> existingDatasetObsVars = new HashMap<>();
+        return existingDatasetObsVars;
+    }
     private Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
 
