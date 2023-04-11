@@ -100,12 +100,21 @@ public class GermplasmController {
         try {
             log.debug("fetching germ for program: " + programId);
 
+            // If the date display format was sent as a query param, then update the query mapper.
+            String dateFormatParam = queryParams.getDateDisplayFormat();
+            if (dateFormatParam != null) {
+                germplasmQueryMapper.setDateDisplayFormat(dateFormatParam);
+            }
+
             List<BrAPIGermplasm> germplasm = germplasmService.getGermplasm(programId);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
             return ResponseUtils.getBrapiQueryResponse(germplasm, germplasmQueryMapper, queryParams, searchRequest);
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving germplasm");
+        } catch (IllegalArgumentException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
         }
     }
 

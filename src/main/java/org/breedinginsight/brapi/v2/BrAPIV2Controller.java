@@ -38,7 +38,6 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
 import org.breedinginsight.brapi.v2.model.request.query.ListQuery;
 import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
@@ -94,22 +93,34 @@ public class BrAPIV2Controller {
     public HttpResponse getLists(@PathVariable("programId") UUID programId, HttpRequest<String> request,
                                  @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
     ) throws DoesNotExistException, ApiException {
-        List<BrAPIListSummary> brapiLists;
+        try {
+            List<BrAPIListSummary> brapiLists;
 
-        if (queryParams.getListType() == null) {
-            // TODO: in future return all list types but for now just return germplasm
-            brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-        } else {
-            // TODO: return appropriate lists by type, only germplasm currently
-            switch(queryParams.getListType()) {
-                case "germplasm":
-                default:
-                    brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
+            // If the date display format was sent as a query param, then update the query mapper.
+            String dateFormatParam = queryParams.getDateDisplayFormat();
+            if (dateFormatParam != null) {
+                listQueryMapper.setDateDisplayFormat(dateFormatParam);
             }
-        }
 
-        SearchRequest searchRequest = queryParams.constructSearchRequest();
-        return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
+            if (queryParams.getListType() == null) {
+                // TODO: in future return all list types but for now just return germplasm
+                brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
+            } else {
+                // TODO: return appropriate lists by type, only germplasm currently
+                switch (queryParams.getListType()) {
+                    case "germplasm":
+                    default:
+                        brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
+                }
+            }
+
+            SearchRequest searchRequest = queryParams.constructSearchRequest();
+            return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
+
+        } catch (IllegalArgumentException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
+        }
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
