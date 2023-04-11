@@ -242,7 +242,7 @@ public class GermplasmProcessor implements Processor {
             Germplasm germplasm = importRows.get(0).getGermplasm();
             importList = germplasm.constructBrAPIList(program, BRAPI_REFERENCE_SOURCE);
         }
-        
+
         newGermplasmList = new ArrayList<>();
         updatedGermplasmList = new ArrayList<>();
         Map<String, ProgramBreedingMethodEntity> breedingMethods = new HashMap<>();

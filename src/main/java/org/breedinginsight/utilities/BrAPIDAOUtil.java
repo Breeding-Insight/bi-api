@@ -281,8 +281,7 @@ public class BrAPIDAOUtil {
                            ImportUpload upload,
                            Function<List<T>, ApiResponse> putMethod,
                            Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
-
-        return new ArrayList<>();
+        throw new UnsupportedOperationException();
     }
 
     public <T> List<T> post(List<T> brapiObjects,
