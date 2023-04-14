@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -202,6 +203,21 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
+    public boolean pedigreesEqual(BrAPIGermplasm brAPIGermplasm) {
+        JsonElement femaleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID);
+        String brapiFemaleGid = femaleGid != null ? femaleGid.getAsString() : null;
+        JsonElement maleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID);
+        String brapiMaleGid = maleGid != null ? maleGid.getAsString() : null;
+        JsonElement femaleEntryNo = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO);
+        String brapiFemaleEntryNo = femaleEntryNo != null ? femaleEntryNo.getAsString() : null;
+        JsonElement maleEntryNo = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO);
+        String brapiMaleEntryNo = maleEntryNo != null ? maleEntryNo.getAsString() : null;
+
+        return ((getFemaleParentDBID() == null && brapiFemaleGid == null) || (getFemaleParentDBID() != null && getFemaleParentDBID().equals(brapiFemaleGid))) &&
+               ((getMaleParentDBID() == null && brapiMaleGid == null) || (getMaleParentDBID() != null && getMaleParentDBID().equals(brapiMaleGid))) &&
+               ((getFemaleParentEntryNo() == null && brapiFemaleEntryNo == null) || (getFemaleParentEntryNo() != null && getFemaleParentEntryNo().equals(brapiFemaleEntryNo))) &&
+               ((getMaleParentEntryNo() == null && brapiMaleEntryNo == null) || (getMaleParentEntryNo() != null && getMaleParentEntryNo().equals(brapiMaleEntryNo)));
+    }
 
     public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();

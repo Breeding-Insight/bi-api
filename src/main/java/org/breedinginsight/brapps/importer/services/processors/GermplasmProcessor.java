@@ -287,11 +287,13 @@ public class GermplasmProcessor implements Processor {
                         continue;
                     }
 
-                    // Has an existing pedigree so add error and skip
-                    // no pedigree on second import, don't change existing
-                    // if there is pedigree & previously not, upgrade pedigree
-                    // if previous pedigree & different pedigree, validation error
-                    if (!StringUtils.isBlank(existingGermplasm.getPedigree())) {
+                    // Error conditions:
+                    // has existing pedigree and file pedigree is different
+                    // Valid conditions:
+                    // no existing pedigree and file different pedigree (not blank though, will fail other validations)
+                    // existing pedigree and file pedigree same
+
+                    if (!StringUtils.isBlank(existingGermplasm.getPedigree()) && !germplasm.pedigreesEqual(existingGermplasm) ) {
                         ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
                         validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
                         continue;
