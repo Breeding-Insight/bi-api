@@ -1,2 +1,2 @@
-Name,BREEDING METHOD,SOURCE,fEmAlE pArEnT gId,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
-Germ A,ANE,the shire,,,1,,,ABC-123,
+GID,Name,BREEDING METHOD,SOURCE,fEmAlE pArEnT gId,Male Parent GID,Entry No,Female Parent Entry No,Male Parent Entry No,External UID,Synonyms
+,Germ A,ANE,the shire,,,1,,,ABC-123,

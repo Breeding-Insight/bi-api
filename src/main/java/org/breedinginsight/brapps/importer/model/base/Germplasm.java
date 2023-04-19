@@ -17,6 +17,8 @@
 
 package org.breedinginsight.brapps.importer.model.base;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -109,6 +111,10 @@ public class Germplasm implements BrAPIObject {
     @ImportFieldMetadata(id="collection", name="Family Name", description = "The name of the family this germplasm is a part of.")
     private String collection;
 
+    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id="germplasmAccessionNumber", name="Accession Number", description = "The accession number of the germplasm if germplasm is being re-imported with updated synonyms/parents.")
+    private String accessionNumber;
+
     // Removed for now, need to add to breedbase
     /*@ImportType(type=ImportFieldType.LIST, clazz=GermplasmAttribute.class)
     private List<GermplasmAttribute> germplasmAttributes;*/
@@ -150,12 +156,78 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
+    public void updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit) {
+
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, getMaleParentEntryNo());
+
+        // Append synonyms to germplasm that don't already exist
+        // Synonym comparison is based on name and type
+        if (synonyms != null) {
+            Set<BrAPIGermplasmSynonyms> existingSynonyms = new HashSet<>(germplasm.getSynonyms());
+            for (String synonym: synonyms.split(";")){
+                BrAPIGermplasmSynonyms brapiSynonym = new BrAPIGermplasmSynonyms();
+                brapiSynonym.setSynonym(synonym);
+                if (!existingSynonyms.contains(brapiSynonym)) {
+                    germplasm.addSynonymsItem(brapiSynonym);
+                }
+            }
+        }
+
+        // Add germplasm to the new list
+        JsonObject listEntryNumbers = germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS);
+        listEntryNumbers.addProperty(listId.toString(), entryNo);
+
+        // TODO: figure out why clear this out: brapi-server
+        germplasm.setBreedingMethodDbId(null);
+
+        if (commit) {
+            setUpdateCommitFields(germplasm, program.getKey());
+        }
+    }
+
+
+    public void setUpdateCommitFields(BrAPIGermplasm germplasm, String programKey) {
+
+        // Set germplasm name to <Name> [<program key>-<accessionNumber>]
+        String name = Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), programKey, germplasm.getAccessionNumber());
+        germplasm.setGermplasmName(name);
+
+        // Update our synonyms to <Synonym> [<program key>-<accessionNumber>]
+        if (germplasm.getSynonyms() != null && !germplasm.getSynonyms().isEmpty()) {
+            for (BrAPIGermplasmSynonyms synonym: germplasm.getSynonyms()) {
+                synonym.setSynonym(Utilities.appendProgramKey(synonym.getSynonym(), programKey, germplasm.getAccessionNumber()));
+            }
+        }
+    }
+
+    public boolean pedigreesEqual(BrAPIGermplasm brAPIGermplasm) {
+        JsonElement femaleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID);
+        String brapiFemaleGid = femaleGid != null ? femaleGid.getAsString() : null;
+        JsonElement maleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID);
+        String brapiMaleGid = maleGid != null ? maleGid.getAsString() : null;
+        JsonElement femaleEntryNo = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO);
+        String brapiFemaleEntryNo = femaleEntryNo != null ? femaleEntryNo.getAsString() : null;
+        JsonElement maleEntryNo = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO);
+        String brapiMaleEntryNo = maleEntryNo != null ? maleEntryNo.getAsString() : null;
+
+        return ((getFemaleParentDBID() == null && brapiFemaleGid == null) || (getFemaleParentDBID() != null && getFemaleParentDBID().equals(brapiFemaleGid))) &&
+               ((getMaleParentDBID() == null && brapiMaleGid == null) || (getMaleParentDBID() != null && getMaleParentDBID().equals(brapiMaleGid))) &&
+               ((getFemaleParentEntryNo() == null && brapiFemaleEntryNo == null) || (getFemaleParentEntryNo() != null && getFemaleParentEntryNo().equals(brapiFemaleEntryNo))) &&
+               ((getMaleParentEntryNo() == null && brapiMaleEntryNo == null) || (getMaleParentEntryNo() != null && getMaleParentEntryNo().equals(brapiMaleEntryNo)));
+    }
+
     public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {
         BrAPIGermplasm germplasm = new BrAPIGermplasm();
         germplasm.setGermplasmName(getGermplasmName());
         germplasm.setDefaultDisplayName(getGermplasmName());
         germplasm.setGermplasmPUI(getGermplasmPUI());
         germplasm.setCollection(getCollection());
+        germplasm.setGermplasmDbId(getAccessionNumber());
+        //TODO: maybe remove germplasm import entry number
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo);
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
         germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());

@@ -106,6 +106,7 @@ public class ExperimentProcessor implements Processor {
     private final OntologyService ontologyService;
     private final FileMappingUtil fileMappingUtil;
 
+
     // used to make the yearsToSeasonDbId() function more efficient
     private final Map<String, String> yearToSeasonDbIdCache = new HashMap<>();
     // used to make the seasonDbIdtoYear() function more efficient
