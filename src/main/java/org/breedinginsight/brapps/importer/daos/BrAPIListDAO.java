@@ -12,6 +12,8 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
+import org.brapi.v2.model.core.response.BrAPIListsListResponse;
+import org.brapi.v2.model.core.response.BrAPIListsListResponseResult;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -98,10 +100,10 @@ public class BrAPIListDAO {
         return filteredLists;
     }
 
-    public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
+    public List<BrAPIListSummary> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
-        ApiResponse response;
+        ApiResponse<BrAPIListsListResponse> response;
         try {
             response = api.listsPost(brapiLists);
         } catch (ApiException e) {
@@ -109,11 +111,11 @@ public class BrAPIListDAO {
             throw e;
         }
         if(response != null) {
-            BrAPIResponse body = (BrAPIResponse) response.getBody();
+            BrAPIResponse<BrAPIListsListResponseResult> body = response.getBody();
             if (body == null) {
                 throw new ApiException("Response is missing body");
             }
-            BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
+            BrAPIResponseResult<BrAPIListSummary> result = body.getResult();
             if (result == null) {
                 throw new ApiException("Response body is missing result");
             }
