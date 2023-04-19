@@ -45,5 +45,9 @@ public class ProcessorData {
                 .map(preview -> preview.getBrAPIObject())
                 .collect(Collectors.toList());
     }
-
+    static <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName) {
+        return objectsByName.entrySet().stream()
+                .collect(Collectors
+                        .toMap(entry -> entry.getValue().getId().toString(), entry -> entry.getValue().getDiff()));
+    }
 }
