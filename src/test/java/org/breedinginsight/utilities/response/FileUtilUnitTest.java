@@ -80,7 +80,7 @@ public class FileUtilUnitTest {
         row.put("Test C", "C");
         data.add(row);
 
-        InputStream inputStream = ExcelWriter.writeToInputStream("SheetName", columns, data, FileType.XLSX);
+        InputStream inputStream = ExcelWriter.writeToInputStream("Data", columns, data, FileType.XLSX);
         Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
 
         assertEquals(1, resultTable.rowCount(), "Wrong number of rows were exported");
