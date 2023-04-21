@@ -357,7 +357,7 @@ public class BrAPIDAOUtil {
                 List<T> data = result.getData();
 
             return data.get(0);
-            
+
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw e;

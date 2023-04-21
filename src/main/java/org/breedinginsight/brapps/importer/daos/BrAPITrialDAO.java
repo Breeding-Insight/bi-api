@@ -79,7 +79,7 @@ public class BrAPITrialDAO {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
         return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
     }
-    public List<BrAPITrial> updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) {
+    public BrAPITrial updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
         return brAPIDAOUtil.put(trialDbId, trial, api::trialsTrialDbIdPut);
     }
