@@ -21,6 +21,9 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.core.response.BrAPIListResponse;
+import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -76,7 +79,10 @@ public class BrAPITrialDAO {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
         return brAPIDAOUtil.post(brAPITrialList, upload, api::trialsPost, importDAO::update);
     }
-
+    public List<BrAPITrial> updateBrAPITrial(String trialDbId, BrAPITrial trial, UUID programId) {
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
+        return brAPIDAOUtil.put(trialDbId, trial, api::trialsTrialDbIdPut);
+    }
     /**
      * Fetch formatted trials/experiments for this program
      * @param programId

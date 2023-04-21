@@ -250,6 +250,8 @@ public class ExperimentProcessor implements Processor {
         log.debug("starting post of experiment data to BrAPI server");
 
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(this.trialByNameNoScope);
+        Map<String, BrAPITrial> trialDiffById = ProcessorData.getMutationsByObjectId(trialByNameNoScope);
+
         List<ProgramLocationRequest> newLocations = ProcessorData.getNewObjects(this.locationByName)
                                                                  .stream()
                                                                  .map(location -> ProgramLocationRequest.builder()
@@ -286,6 +288,7 @@ public class ExperimentProcessor implements Processor {
                                        .getBrAPIObject()
                                        .setTrialDbId(createdTrial.getTrialDbId());
             }
+
 
             List<BrAPIListSummary> createdDatasets = new ArrayList<>(brAPIListDAO.createBrAPILists(newDatasetRequests, program.getId(), upload));
             createdDatasets.forEach(summary -> {
@@ -816,7 +819,10 @@ public class ExperimentProcessor implements Processor {
         PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
         String name = String.format("Observation Dataset [%s-%s]",
                 program.getKey(),
-                trialPIO.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER));
+                trialPIO.getBrAPIObject()
+                        .getAdditionalInfo()
+                        .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
+                        .getAsString());
         if (obsVarDatasetByName.containsKey(name)) {
             pio = obsVarDatasetByName.get(name);
         } else {
@@ -828,9 +834,10 @@ public class ExperimentProcessor implements Processor {
                     program,
                     trialPIO.getBrAPIObject().getTrialDbId());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
-            trialPIO.setBrAPIObject(trialPIO
-                    .getBrAPIObject()
-                    .putAdditionalInfoItem("observationDatasetId", id.toString()));
+            if (trialPIO.getDiff() == null) {
+                trialPIO.setDiff(new BrAPITrial());
+            }
+            trialPIO.getDiff().putAdditionalInfoItem("observationDatasetId", id.toString());
         }
         addObsVarsToDatasetDetails(pio, referencedTraits);
         obsVarDatasetByName.put(name, pio);

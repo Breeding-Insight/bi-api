@@ -39,4 +39,8 @@ public class PendingImportObject<T> {
     public PendingImportObject(ImportObjectState state, T brAPIObject) {
         this(state, brAPIObject, UUID.randomUUID());
     }
+
+    public Boolean hasDiff() {
+        return this.getDiff() != null;
+    }
 }

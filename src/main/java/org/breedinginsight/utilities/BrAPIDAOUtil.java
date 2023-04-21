@@ -19,10 +19,7 @@ package org.breedinginsight.utilities;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.reactivex.functions.Consumer;
-import io.reactivex.functions.Function;
-import io.reactivex.functions.Function3;
-import io.reactivex.functions.Function4;
+import io.reactivex.functions.*;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -341,8 +338,37 @@ public class BrAPIDAOUtil {
         }
     }
 
+    public <T> T put(String dbId,
+                           T brapiObject,
+                            BiFunction<String, T, ApiResponse> putMethod) throws ApiException {
+        try {
+                ApiResponse response = putMethod.apply(dbId, brapiObject);
+                if (response.getBody() == null) {
+                    throw new ApiException("Response is missing body", response.getStatusCode(), response.getHeaders(), null);
+                }
+                BrAPIResponse body = (BrAPIResponse) response.getBody();
+                if (body.getResult() == null) {
+                    throw new ApiException("Response body is missing result", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
+                }
+                BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
+                if (result.getData() == null) {
+                    throw new ApiException("Response result is missing data", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
+                }
+                List<T> data = result.getData();
+
+            return data.get(0);
+            
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        } catch (Exception e) {
+            throw new InternalServerException(e.toString(), e);
+        }
+    }
+
     public <T> List<T> post(List<T> brapiObjects,
                                    Function<List<T>, ApiResponse> postMethod) throws ApiException {
         return post(brapiObjects, null, postMethod, null);
     }
+
 }

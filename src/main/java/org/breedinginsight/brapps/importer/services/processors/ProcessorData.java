@@ -47,7 +47,7 @@ public class ProcessorData {
     }
     static <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName) {
         return objectsByName.entrySet().stream()
-                .filter(entry -> ImportObjectState.MUTATED == entry.getValue().getState())
+                .filter(entry -> entry.getValue().hasDiff())
                 .collect(Collectors
                         .toMap(entry -> entry.getValue().getId().toString(), entry -> entry.getValue().getDiff()));
     }
