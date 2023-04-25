@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import io.reactivex.functions.Function;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
@@ -45,11 +46,17 @@ public class ProcessorData {
                 .map(preview -> preview.getBrAPIObject())
                 .collect(Collectors.toList());
     }
-    static <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName) {
+    static <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName, Function<T, String> dbIdFilter) {
         return objectsByName.entrySet().stream()
                 .filter(entry -> ImportObjectState.MUTATED == entry.getValue().getState())
                 .collect(Collectors
-                        .toMap(entry -> entry.getValue().getId().toString(),
+                        .toMap(entry -> {
+                                    try {
+                                        return dbIdFilter.apply(entry.getValue().getBrAPIObject());
+                                    } catch (Exception e) {
+                                        throw new RuntimeException(e);
+                                    }
+                                },
                                 entry -> entry.getValue().getBrAPIObject()));
     }
 }

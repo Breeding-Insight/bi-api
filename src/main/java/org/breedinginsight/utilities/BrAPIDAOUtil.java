@@ -350,13 +350,7 @@ public class BrAPIDAOUtil {
                 if (body.getResult() == null) {
                     throw new ApiException("Response body is missing result", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
                 }
-                BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
-                if (result.getData() == null) {
-                    throw new ApiException("Response result is missing data", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
-                }
-                List<T> data = result.getData();
-
-            return data.get(0);
+                return (T) body.getResult();
 
         } catch (ApiException e) {
             log.warn(Utilities.generateApiExceptionLogMessage(e));

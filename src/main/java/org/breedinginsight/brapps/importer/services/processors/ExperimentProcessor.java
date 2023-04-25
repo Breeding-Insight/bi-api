@@ -250,7 +250,8 @@ public class ExperimentProcessor implements Processor {
         log.debug("starting post of experiment data to BrAPI server");
 
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(this.trialByNameNoScope);
-        Map<String, BrAPITrial> mutatedTrialsById = ProcessorData.getMutationsByObjectId(trialByNameNoScope);
+        Map<String, BrAPITrial> mutatedTrialsById = ProcessorData
+                .getMutationsByObjectId(trialByNameNoScope, trial -> trial.getTrialDbId());
 
         List<ProgramLocationRequest> newLocations = ProcessorData.getNewObjects(this.locationByName)
                                                                  .stream()
@@ -265,10 +266,12 @@ public class ExperimentProcessor implements Processor {
             request.setListName(details.getListName());
             request.setListType(details.getListType());
             request.setExternalReferences(details.getExternalReferences());
+            request.setAdditionalInfo(details.getAdditionalInfo());
             request.data(details.getData());
             return request;
         }).collect(Collectors.toList());
-        Map<String, BrAPIListDetails> datasetNewDataById = ProcessorData.getMutationsByObjectId(obsVarDatasetByName);
+        Map<String, BrAPIListDetails> datasetNewDataById = ProcessorData
+                .getMutationsByObjectId(obsVarDatasetByName, listDetails -> listDetails.getListDbId());
 
         List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
         // filter out observations with no 'value' so they will not be saved
@@ -353,7 +356,12 @@ public class ExperimentProcessor implements Processor {
 
         datasetNewDataById.forEach((id, dataset) -> {
             try {
-                brAPIListDAO.updateBrAPIList(id, dataset.getData(), program.getId());
+                List<String> existingObsVarIds = brAPIListDAO.getListById(id, program.getId()).getResult().getData();
+                List<String> newObsVarIds = dataset
+                        .getData()
+                        .stream()
+                        .filter(obsVarId -> !existingObsVarIds.contains(obsVarId)).collect(Collectors.toList());
+                brAPIListDAO.updateBrAPIList(id, newObsVarIds, program.getId());
             } catch (ApiException e) {
                 log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException("Error saving experiment import", e);
@@ -839,10 +847,12 @@ public class ExperimentProcessor implements Processor {
                     id,
                     BRAPI_REFERENCE_SOURCE,
                     program,
-                    trialPIO.getBrAPIObject().getTrialDbId());
+                    trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
             trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
-            trialPIO.setState(ImportObjectState.MUTATED);
+            if (ImportObjectState.EXISTING == trialPIO.getState()) {
+                trialPIO.setState(ImportObjectState.MUTATED);
+            }
         }
         addObsVarsToDatasetDetails(pio, referencedTraits);
         obsVarDatasetByName.put(name, pio);
@@ -1177,10 +1187,11 @@ public class ExperimentProcessor implements Processor {
         return locationByName;
     }
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetByName(Program program, List<ExperimentObservation> experimentImportRows) {
-        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetsByName = new HashMap<>();
+        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
 
         PendingImportObject<BrAPITrial> trialPIO = getTrialPIO(experimentImportRows);
-        if (trialPIO.getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+
+        if (trialPIO != null && trialPIO.getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
             String datasetId = trialPIO.getBrAPIObject()
                     .getAdditionalInfo()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
@@ -1203,7 +1214,7 @@ public class ExperimentProcessor implements Processor {
             throw new InternalServerException(e.toString(), e);
           }
         }
-        return obsVarDatasetsByName;
+        return obsVarDatasetByName;
     }
 
     private PendingImportObject<BrAPITrial> getTrialPIO(List<ExperimentObservation> experimentImportRows) {
@@ -1337,7 +1348,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     private void processAndCacheTrial(BrAPITrial existingTrial, Program program, String trialRefSource, Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
-        existingTrial.setTrialName(Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()));
+        //existingTrial.setTrialName(Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()));
 
         //get TrialId from existingTrial
         BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), trialRefSource)
@@ -1345,7 +1356,7 @@ public class ExperimentProcessor implements Processor {
         UUID experimentId = UUID.fromString(experimentIDRef.getReferenceID());
 
         trialByNameNoScope.put(
-                existingTrial.getTrialName(),
+                Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()),
                 new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial, experimentId));
     }
 
