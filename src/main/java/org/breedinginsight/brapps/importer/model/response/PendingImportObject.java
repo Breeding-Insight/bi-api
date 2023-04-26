@@ -28,7 +28,6 @@ public class PendingImportObject<T> {
     private ImportObjectState state;
     @NonNull
     private T brAPIObject;
-    private T diff;
     private UUID id;
 
     public PendingImportObject(ImportObjectState state, T brAPIObject, UUID id) {
@@ -40,7 +39,4 @@ public class PendingImportObject<T> {
         this(state, brAPIObject, UUID.randomUUID());
     }
 
-    public Boolean hasDiff() {
-        return this.getDiff() != null;
-    }
 }
