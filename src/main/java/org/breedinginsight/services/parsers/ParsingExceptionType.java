@@ -25,6 +25,7 @@ public enum ParsingExceptionType {
     DUPLICATE_COLUMN_NAMES("Found duplicate column names"),
     MISSING_EXPECTED_COLUMNS("Missing expected columns"),
     ERROR_READING_FILE("Error reading file"),
+    MISSING_COLUMN_HEADER("Found data in column with no header"),
     MISSING_SHEET( String.format("Worksheet titled '%s' is missing", FileUtil.EXCEL_DATA_SHEET_NAME) ),
     EMPTY_ROW("Empty row"),
     INVALID_TRAIT_STATUS("Invalid trait status value"),
