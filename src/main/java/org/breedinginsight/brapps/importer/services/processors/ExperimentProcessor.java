@@ -361,7 +361,10 @@ public class ExperimentProcessor implements Processor {
                         .getData()
                         .stream()
                         .filter(obsVarId -> !existingObsVarIds.contains(obsVarId)).collect(Collectors.toList());
-                brAPIListDAO.updateBrAPIList(id, newObsVarIds, program.getId());
+                List<String> obsVarIds = new ArrayList<>(existingObsVarIds);
+                obsVarIds.addAll(newObsVarIds);
+                dataset.setData(obsVarIds);
+                brAPIListDAO.updateBrAPIList(id, dataset, program.getId());
             } catch (ApiException e) {
                 log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException("Error saving experiment import", e);

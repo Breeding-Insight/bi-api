@@ -97,19 +97,32 @@ public class BrAPIListDAO {
         }
         return filteredLists;
     }
-    public List<String> updateBrAPIList(String brAPIListDbId, List<String> data, UUID programId) throws ApiException {
+    public List<String> updateBrAPIList(String brAPIListDbId, BrAPIListDetails mutatedList, UUID programId) throws ApiException {
         ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        BrAPIListNewRequest request = new BrAPIListNewRequest();
+        request.setAdditionalInfo(mutatedList.getAdditionalInfo());
+        request.setDateCreated(mutatedList.getDateCreated());
+        request.setDateModified(mutatedList.getDateModified());
+        request.setExternalReferences(mutatedList.getExternalReferences());
+        request.setListDescription(mutatedList.getListDescription());
+        request.setListName(mutatedList.getListName());
+        request.setListOwnerName(mutatedList.getListOwnerName());
+        request.setListOwnerPersonDbId(mutatedList.getListOwnerPersonDbId());
+        request.setListSize(mutatedList.getListSize());
+        request.setListSource(mutatedList.getListSource());
+        request.setListType(mutatedList.getListType());
+        request.setData(mutatedList.getData());
 
         // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
-        ApiResponse<BrAPIListResponse> response;
+        ApiResponse<BrAPIListsSingleResponse> response;
         try {
-            response = api.listsListDbIdItemsPost(brAPIListDbId, data);
+            response = api.listsListDbIdPut(brAPIListDbId, request);
         } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            log.error(Utilities.generateApiExceptionLogMessage(e));
             throw e;
         }
         if(response != null) {
-            BrAPIListResponse body = response.getBody();
+            BrAPIListsSingleResponse body = response.getBody();
             if (body == null) {
                 throw new ApiException("Response is missing body");
             }
