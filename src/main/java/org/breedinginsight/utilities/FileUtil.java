@@ -32,7 +32,6 @@ import tech.tablesaw.io.json.JsonReadOptions;
 import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -114,7 +113,7 @@ public class FileUtil {
                 for (String value : column.asList()) {
                     if (!value.isBlank())
                     {
-                        throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_HEADER);
+                        throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAME);
                     }
                 }
                 // Silently drop columns with neither headers nor data, user likely doesn't know they exist.
@@ -199,7 +198,7 @@ public class FileUtil {
                 }
                 else {
                     // If data in column with no header, throw parsing exception, user likely wants to add header.
-                    throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_HEADER);
+                    throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAME);
                 }
             }
             ++columnIndex;

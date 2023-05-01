@@ -81,7 +81,7 @@ public class TraitFileParserUnitTest {
         InputStream inputStream = new FileInputStream(file);
 
         ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
-        assertEquals(ParsingExceptionType.MISSING_COLUMN_NAMES, e.getType(), "Wrong type");
+        assertEquals(ParsingExceptionType.MISSING_COLUMN_NAMES_ROW, e.getType(), "Wrong type");
     }
 
     @Test

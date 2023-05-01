@@ -46,7 +46,7 @@ public class ExcelParser {
         Row columnNames = sheet.getRow(EXCEL_COLUMN_NAMES_ROW);
 
         if (columnNames == null) {
-            throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAMES);
+            throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAMES_ROW);
         }
 
         Map<Integer, String> indexColNameMap = new HashMap<>();
