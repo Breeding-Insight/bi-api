@@ -186,7 +186,7 @@ public class FileUtil {
 
     /** Removes columns with an empty or null header and no data from a table. */
     public static Table removeNullColumns(Table table) throws ParsingException {
-        ArrayList<Column> toRemove = new ArrayList<>();
+        ArrayList<Column> columnsToRemove = new ArrayList<>();
         int columnIndex = 0;
         for (Column column : table.columns()) {
             // Empty/null column headers are replaced with a placeholder by tablesaw, e.g. "C23" for the 23rd column.
@@ -195,7 +195,7 @@ public class FileUtil {
             if (column.name().equals(placeholderName)) {
                 if (column.countMissing() == column.size()) {
                     // Silently drop columns with neither headers nor data, user likely doesn't know they exist.
-                    toRemove.add(column);
+                    columnsToRemove.add(column);
                 }
                 else {
                     // If data in column with no header, throw parsing exception, user likely wants to add header.
@@ -205,7 +205,7 @@ public class FileUtil {
             ++columnIndex;
         }
 
-        table.removeColumns(toRemove.toArray(Column[]::new));
+        table.removeColumns(columnsToRemove.toArray(Column[]::new));
 
         return table;
     }
