@@ -353,7 +353,7 @@ public class BrAPIDAOUtil {
                 return (T) body.getResult();
 
         } catch (ApiException e) {
-            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            log.error(Utilities.generateApiExceptionLogMessage(e));
             throw e;
         } catch (Exception e) {
             throw new InternalServerException(e.toString(), e);

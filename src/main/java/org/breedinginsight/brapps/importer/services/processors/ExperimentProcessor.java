@@ -29,7 +29,6 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
@@ -487,7 +486,7 @@ public class ExperimentProcessor implements Processor {
             }
 
             if (commit) {
-                fetchOrCreateDatasetPIO(expSeqValue, importRow, program, referencedTraits);
+                fetchOrCreateDatasetPIO(importRow, program, referencedTraits);
             }
 
             fetchOrCreateLocationPIO(importRow);
@@ -832,7 +831,7 @@ public class ExperimentProcessor implements Processor {
             }
         });
     }
-    private PendingImportObject<BrAPIListDetails> fetchOrCreateDatasetPIO(String expSeqValue, ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
+    private PendingImportObject<BrAPIListDetails> fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
         PendingImportObject<BrAPIListDetails> pio;
         PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
         String name = String.format("Observation Dataset [%s-%s]",
@@ -856,9 +855,9 @@ public class ExperimentProcessor implements Processor {
             if (ImportObjectState.EXISTING == trialPIO.getState()) {
                 trialPIO.setState(ImportObjectState.MUTATED);
             }
+            obsVarDatasetByName.put(name, pio);
         }
         addObsVarsToDatasetDetails(pio, referencedTraits);
-        obsVarDatasetByName.put(name, pio);
         return pio;
     }
 
@@ -1205,7 +1204,7 @@ public class ExperimentProcessor implements Processor {
                     program.getId(),
                     String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
                     UUID.fromString(datasetId));
-            if (existingDatasets.isEmpty() || existingDatasets == null) {
+            if (existingDatasets == null || existingDatasets.isEmpty()) {
               throw new InternalServerException("existing dataset summary not returned from brapi server");
             }
             BrAPIListDetails dataSetDetails = brAPIListDAO
