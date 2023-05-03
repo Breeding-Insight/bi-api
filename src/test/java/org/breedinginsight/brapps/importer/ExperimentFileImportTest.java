@@ -68,7 +68,10 @@ import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.junit.platform.commons.util.StringUtils;
+import org.opentest4j.AssertionFailedError;
 
 import javax.inject.Inject;
 import java.io.ByteArrayOutputStream;
@@ -77,6 +80,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -329,10 +334,11 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertRowSaved(newEnv, program, null);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void verifyMissingDataThrowsError() {
-        Program program = createProgram("Missing Req Cols", "MISS", "MISS", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+    public void verifyMissingDataThrowsError(boolean commit) {
+        Program program = createProgram("Missing Req Cols "+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
 
         Map<String, Object> base = new HashMap<>();
         base.put(Columns.GERMPLASM_GID, "1");
@@ -349,43 +355,43 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         Map<String, Object> noGID = new HashMap<>(base);
         noGID.remove(Columns.GERMPLASM_GID);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noGID), null), Columns.GERMPLASM_GID);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noGID), null), Columns.GERMPLASM_GID, commit);
 
         Map<String, Object> noExpTitle = new HashMap<>(base);
         noExpTitle.remove(Columns.EXP_TITLE);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpTitle), null), Columns.EXP_TITLE);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpTitle), null), Columns.EXP_TITLE, commit);
 
         Map<String, Object> noExpUnit = new HashMap<>(base);
         noExpUnit.remove(Columns.EXP_UNIT);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpUnit), null), Columns.EXP_UNIT);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpUnit), null), Columns.EXP_UNIT, commit);
 
         Map<String, Object> noExpType = new HashMap<>(base);
         noExpType.remove(Columns.EXP_TYPE);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpType), null), Columns.EXP_TYPE);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpType), null), Columns.EXP_TYPE, commit);
 
         Map<String, Object> noEnv = new HashMap<>(base);
         noEnv.remove(Columns.ENV);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noEnv), null), Columns.ENV);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noEnv), null), Columns.ENV, commit);
 
         Map<String, Object> noEnvLoc = new HashMap<>(base);
         noEnvLoc.remove(Columns.ENV_LOCATION);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noEnvLoc), null), Columns.ENV_LOCATION);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noEnvLoc), null), Columns.ENV_LOCATION, commit);
 
         Map<String, Object> noExpUnitId = new HashMap<>(base);
         noExpUnitId.remove(Columns.EXP_UNIT_ID);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpUnitId), null), Columns.EXP_UNIT_ID);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpUnitId), null), Columns.EXP_UNIT_ID, commit);
 
         Map<String, Object> noExpRep = new HashMap<>(base);
         noExpRep.remove(Columns.REP_NUM);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpRep), null), Columns.REP_NUM);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpRep), null), Columns.REP_NUM, commit);
 
         Map<String, Object> noExpBlock = new HashMap<>(base);
         noExpBlock.remove(Columns.BLOCK_NUM);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpBlock), null), Columns.BLOCK_NUM);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noExpBlock), null), Columns.BLOCK_NUM, commit);
 
         Map<String, Object> noEnvYear = new HashMap<>(base);
         noEnvYear.remove(Columns.ENV_YEAR);
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(noEnvYear), null), Columns.ENV_YEAR);
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(noEnvYear), null), Columns.ENV_YEAR, commit);
     }
 
     @Test
@@ -424,11 +430,88 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertRowSaved(newExp, program, traits);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void importNewExpWithObs() {
+    public void verifyDiffYearSameEnvThrowsError(boolean commit) {
+        Program program = createProgram("Diff Years "+(commit ? "C" : "P"), "YEARS"+(commit ? "C" : "P"), "YEARS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(2), null);
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> row = new HashMap<>();
+        row.put(Columns.GERMPLASM_GID, "1");
+        row.put(Columns.TEST_CHECK, "T");
+        row.put(Columns.EXP_TITLE, "Different Years");
+        row.put(Columns.EXP_UNIT, "Plot");
+        row.put(Columns.EXP_TYPE, "Phenotyping");
+        row.put(Columns.ENV, "Diff Year");
+        row.put(Columns.ENV_LOCATION, "Location A");
+        row.put(Columns.ENV_YEAR, "2023");
+        row.put(Columns.EXP_UNIT_ID, "a-1");
+        row.put(Columns.REP_NUM, "1");
+        row.put(Columns.BLOCK_NUM, "1");
+        rows.add(row);
+
+        row = new HashMap<>();
+        row.put(Columns.GERMPLASM_GID, "2");
+        row.put(Columns.TEST_CHECK, "T");
+        row.put(Columns.EXP_TITLE, "Different Years");
+        row.put(Columns.EXP_UNIT, "Plot");
+        row.put(Columns.EXP_TYPE, "Phenotyping");
+        row.put(Columns.ENV, "Diff Year");
+        row.put(Columns.ENV_LOCATION, "Location A");
+        row.put(Columns.ENV_YEAR, "2022");
+        row.put(Columns.EXP_UNIT_ID, "a-2");
+        row.put(Columns.REP_NUM, "1");
+        row.put(Columns.BLOCK_NUM, "2");
+        rows.add(row);
+
+        uploadAndVerifyFailure(program, writeDataToFile(rows, null), Columns.ENV_YEAR, commit);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void verifyDiffLocSameEnvThrowsError(boolean commit) {
+        Program program = createProgram("Diff Locations "+(commit ? "C" : "P"), "LOCS"+(commit ? "C" : "P"), "LOCS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(2), null);
+
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> row = new HashMap<>();
+        row.put(Columns.GERMPLASM_GID, "1");
+        row.put(Columns.TEST_CHECK, "T");
+        row.put(Columns.EXP_TITLE, "Different Years");
+        row.put(Columns.EXP_UNIT, "Plot");
+        row.put(Columns.EXP_TYPE, "Phenotyping");
+        row.put(Columns.ENV, "Diff Year");
+        row.put(Columns.ENV_LOCATION, "Location A");
+        row.put(Columns.ENV_YEAR, "2023");
+        row.put(Columns.EXP_UNIT_ID, "a-1");
+        row.put(Columns.REP_NUM, "1");
+        row.put(Columns.BLOCK_NUM, "1");
+        rows.add(row);
+
+        row = new HashMap<>();
+        row.put(Columns.GERMPLASM_GID, "2");
+        row.put(Columns.TEST_CHECK, "T");
+        row.put(Columns.EXP_TITLE, "Different Years");
+        row.put(Columns.EXP_UNIT, "Plot");
+        row.put(Columns.EXP_TYPE, "Phenotyping");
+        row.put(Columns.ENV, "Diff Year");
+        row.put(Columns.ENV_LOCATION, "Location B");
+        row.put(Columns.ENV_YEAR, "2023");
+        row.put(Columns.EXP_UNIT_ID, "a-2");
+        row.put(Columns.REP_NUM, "1");
+        row.put(Columns.BLOCK_NUM, "2");
+        rows.add(row);
+
+        uploadAndVerifyFailure(program, writeDataToFile(rows, null), Columns.ENV_LOCATION, commit);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void importNewExpWithObs(boolean commit) {
         List<Trait> traits = createTraits(1);
-        Program program = createProgram("New Exp with Observations", "EXPOBS", "EXPOBS", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("New Exp with Observations "+(commit ? "C" : "P"), "NEXOB"+(commit ? "C" : "P"), "NEXOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -445,7 +528,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.COLUMN, "1");
         newExp.put(traits.get(0).getObservationVariableName(), "1");
 
-        JsonObject result = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
+        JsonObject result = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, commit, client, program, mappingId);
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
@@ -455,14 +538,20 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals("NEW", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("observationUnit").get("state").getAsString());
-        assertRowSaved(newExp, program, traits);
+
+        if(commit) {
+            assertRowSaved(newExp, program, traits);
+        } else {
+            assertValidPreviewRow(newExp, row, program, traits);
+        }
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void verifyFailureImportNewExpWithInvalidObs() {
+    public void verifyFailureImportNewExpWithInvalidObs(boolean commit) {
         List<Trait> traits = createTraits(1);
-        Program program = createProgram("Invalid Observations", "INVOBS", "INVOBS", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("Invalid Observations "+(commit ? "C" : "P"), "INVOB"+(commit ? "C" : "P"), "INVOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -479,13 +568,14 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.COLUMN, "1");
         newExp.put(traits.get(0).getObservationVariableName(), "Red");
 
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(newExp), traits), traits.get(0).getObservationVariableName());
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(newExp), traits), traits.get(0).getObservationVariableName(), commit);
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void verifyFailureNewOuExistingEnv() {
-        Program program = createProgram("New OU Exising Env", "FAILOU", "FAILOU", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+    public void verifyFailureNewOuExistingEnv(boolean commit) {
+        Program program = createProgram("New OU Exising Env "+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -508,7 +598,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newOU.put(Columns.ROW, "1");
         newOU.put(Columns.COLUMN, "2");
 
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(writeDataToFile(List.of(newOU), null), null, true, client, program, mappingId);
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(writeDataToFile(List.of(newOU), null), null, commit, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
 
@@ -585,11 +675,13 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertRowSaved(newObsVar, program, traits);
     }
 
-    @Test
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void importNewObsExisingOu() {
+    public void importNewObsExisingOu(boolean commit) {
         List<Trait> traits = createTraits(1);
-        Program program = createProgram("New Obs Existing OU", "OUOBS", "OUOBS", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("New Obs Existing OU "+(commit ? "C" : "P"), "OUOBS"+(commit ? "C" : "P"), "OUOBS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -633,7 +725,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceID());
         newObservation.put(traits.get(0).getObservationVariableName(), "1");
 
-        JsonObject result = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newObservation), traits), null, true, client, program, mappingId);
+        JsonObject result = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newObservation), traits), null, commit, client, program, mappingId);
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
@@ -643,14 +735,19 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
-        assertRowSaved(newObservation, program, traits);
+        if(commit) {
+            assertRowSaved(newObservation, program, traits);
+        } else {
+            assertValidPreviewRow(newObservation, row, program, traits);
+        }
     }
 
-    @Test
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void verifyFailureImportNewObsExisingOuWithExistingObs() {
+    public void verifyFailureImportNewObsExisingOuWithExistingObs(boolean commit) {
         List<Trait> traits = createTraits(1);
-        Program program = createProgram("New Obs Existing Obs", "EXOBS", "EXOBS", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("New Obs Existing Obs "+(commit ? "C" : "P"), "FEXOB"+(commit ? "C" : "P"), "FEXOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -695,7 +792,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceID());
         newObservation.put(traits.get(0).getObservationVariableName(), "2");
 
-        uploadAndVerifyFailure(program, writeDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName());
+        uploadAndVerifyFailure(program, writeDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit);
     }
 
     /*
@@ -885,7 +982,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         return ret;
     }
 
-    private Map<String, Object> assertValidPreviewRow(Map<String, Object> expected, JsonObject actual, Program program, List<Trait> traits) {
+    private Map<String, Object> assertValidPreviewRow(Map<String, Object> expected, JsonObject actual, Program program, List<Trait> traits) throws ApiException {
         Map<String, Object> ret = new HashMap<>();
 
         assertNotNull(actual.get("trial"));
@@ -911,7 +1008,11 @@ public class ExperimentFileImportTest extends BrAPITest {
         List<BrAPIObservation> observations = null;
         if(traits != null) {
             assertNotNull(actual.get("observations"));
-            observations = gson.fromJson(actual.get("observations"), new TypeToken<List<BrAPIObservation>>(){}.getType());
+            observations = StreamSupport.stream(actual.getAsJsonArray("observations")
+                                                      .spliterator(), false)
+                                        .map(obs -> gson.fromJson(obs.getAsJsonObject()
+                                                                     .getAsJsonObject("brAPIObject"), BrAPIObservation.class))
+                                        .collect(Collectors.toList());
             ret.put("observations", observations);
         }
 
@@ -932,10 +1033,21 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals(expected.get(Columns.EXP_TYPE), trial.getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         assertEquals(expected.get(Columns.EXP_TYPE), study.getStudyType());
         assertEquals(expected.get(Columns.ENV), Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
-        assertEquals(expected.get(Columns.ENV_LOCATION), study.getLocationName());
-        assertEquals(expected.get(Columns.ENV_LOCATION), location.getName());
-        //TODO figure out how to get the actual season value
-//        assertEquals(expected.getInt(Columns.ENV_YEAR), Integer.parseInt(study.getSeasons().get(0)));
+        assertEquals(expected.get(Columns.ENV_LOCATION), Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
+        assertEquals(expected.get(Columns.ENV_LOCATION), Utilities.removeProgramKey(location.getName(), program.getKey()));
+
+        /*
+            added this try block because the year can come back as either the seasonDbId
+            or the actual year value depending on if the test is appending data to an existing experiment/environment
+            or creating a new environment as part of the upload
+         */
+        try {
+            assertEquals(expected.get(Columns.ENV_YEAR), study.getSeasons().get(0));
+        } catch (AssertionFailedError error) {
+            String expectedYearId = yearToSeasonDbId((String)expected.get(Columns.ENV_YEAR), program.getId());
+            assertEquals(expectedYearId, study.getSeasons().get(0));
+        }
+
         assertEquals(expected.get(Columns.EXP_UNIT_ID), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
         BrAPIObservationUnitLevelRelationship rep = null;
@@ -975,6 +1087,20 @@ public class ExperimentFileImportTest extends BrAPITest {
         }
 
         return ret;
+    }
+
+    private String yearToSeasonDbId(String year, UUID programId) throws ApiException {
+        List<BrAPISeason> seasons = this.seasonDAO.getSeasonsByYear(year, programId);
+
+        for (BrAPISeason season : seasons) {
+            if (null == season.getSeasonName() || season.getSeasonName()
+                                                        .isBlank() || season.getSeasonName()
+                                                                            .equals(year)) {
+                return season.getSeasonDbId();
+            }
+        }
+
+        return null;
     }
 
     private Program createProgram(String name, String abbv, String key, String referenceSource, List<BrAPIGermplasm> germplasm, List<Trait> traits) throws ApiException, DoesNotExistException, ValidatorException, BadRequestException {
@@ -1074,7 +1200,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         return traits;
     }
 
-    private JsonObject uploadAndVerifyFailure(Program program, File file, String expectedColumnError) throws InterruptedException, IOException {
+    private JsonObject uploadAndVerifyFailure(Program program, File file, String expectedColumnError, boolean commit) throws InterruptedException, IOException {
         Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, null, true, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
