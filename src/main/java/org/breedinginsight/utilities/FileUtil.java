@@ -25,13 +25,13 @@ import org.breedinginsight.services.parsers.ParsingExceptionType;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.columns.Column;
 import tech.tablesaw.io.csv.CsvReadOptions;
 import tech.tablesaw.io.json.JsonReadOptions;
 
 import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -106,6 +106,19 @@ public class FileUtil {
         while (headerIterator.hasNext()) {
             Cell cell = headerIterator.next();
             StringColumn column = StringColumn.create(formatter.formatCellValue(cell), columns.get(formatter.formatCellValue(cell)));
+            // Drop columns with no data, throw exception if column has data but no header.
+            if (cell.getCellType() == CellType.BLANK)
+            {
+                // If data in column with no header, throw parsing exception, user likely wants to add header.
+                for (String value : column.asList()) {
+                    if (!value.isBlank())
+                    {
+                        throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAME);
+                    }
+                }
+                // Silently drop columns with neither headers nor data, user likely doesn't know they exist.
+                continue;
+            }
             if (!colNames.add(column.name())) {
                 throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
             }
@@ -127,7 +140,7 @@ public class FileUtil {
                             .columnTypesToDetect(acceptedTypes)
                             .separator(',')
             );
-            return removeNullRows(df);
+            return removeNullColumns(removeNullRows(df));
         } catch (IOException e) {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
@@ -152,10 +165,11 @@ public class FileUtil {
         List<Integer> allNullRows = new ArrayList<>();
         // Find all null rows
         table.stream().forEach(row -> {
-            Boolean allNull = true;
+            boolean allNull = true;
             for (String columnName: row.columnNames()) {
                 if (row.getObject(columnName) != null && !row.getObject(columnName).toString().isEmpty()) {
                     allNull = false;
+                    break;
                 }
             }
             if (allNull) {
@@ -166,6 +180,32 @@ public class FileUtil {
         if (allNullRows.size() > 0) {
             table = table.dropRows(allNullRows.stream().mapToInt(i->i).toArray());
         }
+        return table;
+    }
+
+    /** Removes columns with an empty or null header and no data from a table. */
+    public static Table removeNullColumns(Table table) throws ParsingException {
+        ArrayList<Column> columnsToRemove = new ArrayList<>();
+        int columnIndex = 0;
+        for (Column column : table.columns()) {
+            // Empty/null column headers are replaced with a placeholder by tablesaw, e.g. "C23" for the 23rd column.
+            // See https://github.com/jtablesaw/tablesaw/blob/42ca803e1a5fff1d4a01f5a3deabc38ced783125/core/src/main/java/tech/tablesaw/io/FileReader.java#L101.
+            String placeholderName = String.format("C%d", columnIndex);
+            if (column.name().equals(placeholderName)) {
+                if (column.countMissing() == column.size()) {
+                    // Silently drop columns with neither headers nor data, user likely doesn't know they exist.
+                    columnsToRemove.add(column);
+                }
+                else {
+                    // If data in column with no header, throw parsing exception, user likely wants to add header.
+                    throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAME);
+                }
+            }
+            ++columnIndex;
+        }
+
+        table.removeColumns(columnsToRemove.toArray(Column[]::new));
+
         return table;
     }
 }

@@ -41,7 +41,6 @@ public class FileUtilUnitTest {
         assertEquals(2, resultTable.rowCount(), "Wrong number of rows were parsed");
     }
 
-
     @Test
     @SneakyThrows
     void parseCsvNoRemoveSomeNullRows() {
@@ -58,6 +57,26 @@ public class FileUtilUnitTest {
         InputStream inputStream = new FileInputStream(file);
         Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
         assertEquals(5, resultTable.rowCount(), "Wrong number of rows were parsed");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseCsvRemoveAllNullColumns() {
+        // Columns with no header and no data should be silently dropped.
+        File file = new File("src/test/resources/files/fileutil/file_all_null_columns.csv");
+        InputStream inputStream = new FileInputStream(file);
+        Table resultTable = FileUtil.parseTableFromCsv(inputStream);
+        assertEquals(21, resultTable.columnCount(), "Wrong number of columns were parsed");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseExcelRemoveAllNullColumns() {
+        // Columns with no header and no data should be silently dropped.
+        File file = new File("src/test/resources/files/fileutil/file_all_null_columns.xls");
+        InputStream inputStream = new FileInputStream(file);
+        Table resultTable = FileUtil.parseTableFromExcel(inputStream, 0);
+        assertEquals(21, resultTable.columnCount(), "Wrong number of columns were parsed");
     }
 
     @Test
