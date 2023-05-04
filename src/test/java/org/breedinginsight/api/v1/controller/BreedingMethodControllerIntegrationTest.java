@@ -33,7 +33,6 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
-import org.junit.Ignore;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
@@ -161,7 +160,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
                                                                           .collect(Collectors.toList())));
     }
 
-    @Ignore //BI-1779 - Removing the ability to choose predefined methods for a program until we make the germplasm import template dynamically generated
+    @Disabled //BI-1779 - Removing the ability to choose predefined methods for a program until we make the germplasm import template dynamically generated
     @Test
     public void enableSystemMethods() {
         Program program = createProgram("enableProgramBM", "EBM", "ENBM");
@@ -500,7 +499,7 @@ public class BreedingMethodControllerIntegrationTest extends BrAPITest {
         assertThat(programMethods.stream().map(ProgramBreedingMethodEntity::getId).collect(Collectors.toList()), hasItem(createdMethod.getId()));
     }
 
-    @Ignore //BI-1779 - Removing the ability to choose predefined methods for a program until we make the germplasm import template dynamically generated
+    @Disabled //BI-1779 - Removing the ability to choose predefined methods for a program until we make the germplasm import template dynamically generated
     @Test
     public void tryDisableSystemMethodInUse() {
         Program program = createProgram("tryDeleteSystemBM", "TDSBM", "TRDSBM");
