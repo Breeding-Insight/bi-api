@@ -818,10 +818,10 @@ public class ExperimentProcessor implements Processor {
         }
         return pio;
     }
-    private void addObsVarsToDatasetDetails(PendingImportObject<BrAPIListDetails> pio, List<Trait> referencedTraits) {
+    private void addObsVarsToDatasetDetails(PendingImportObject<BrAPIListDetails> pio, List<Trait> referencedTraits, Program program) {
         BrAPIListDetails details = pio.getBrAPIObject();
         referencedTraits.forEach(trait -> {
-            String id = trait.getObservationVariableDbId().toString();
+            String id = Utilities.appendProgramKey(trait.getObservationVariableName(), program.getKey());
             if (!details.getData().contains(id) && ImportObjectState.EXISTING != pio.getState()) {
                 details.getData().add(id);
             }
@@ -857,7 +857,7 @@ public class ExperimentProcessor implements Processor {
             }
             obsVarDatasetByName.put(name, pio);
         }
-        addObsVarsToDatasetDetails(pio, referencedTraits);
+        addObsVarsToDatasetDetails(pio, referencedTraits, program);
         return pio;
     }
 

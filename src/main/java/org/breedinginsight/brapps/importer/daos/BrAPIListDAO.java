@@ -124,14 +124,14 @@ public class BrAPIListDAO {
         if(response != null) {
             BrAPIListsSingleResponse body = response.getBody();
             if (body == null) {
-                throw new ApiException("Response is missing body");
+                throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
             }
             BrAPIListDetails result = body.getResult();
             if (result == null) {
-                throw new ApiException("Response body is missing result");
+                throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
             }
             if (result.getData() == null) {
-                throw new ApiException("Response result is missing data");
+                throw new ApiException("Response result is missing data", 0, response.getHeaders(), response.getBody().toString());
             }
             return result.getData();
         }
@@ -152,14 +152,14 @@ public class BrAPIListDAO {
         if(response != null) {
             BrAPIResponse<BrAPIListsListResponseResult> body = response.getBody();
             if (body == null) {
-                throw new ApiException("Response is missing body");
+                throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
             }
             BrAPIResponseResult<BrAPIListSummary> result = body.getResult();
             if (result == null) {
-                throw new ApiException("Response body is missing result");
+                throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
             }
             if (result.getData() == null) {
-                throw new ApiException("Response result is missing data");
+                throw new ApiException("Response result is missing data", 0, response.getHeaders(), response.getBody().toString());
             }
             return result.getData();
         }
