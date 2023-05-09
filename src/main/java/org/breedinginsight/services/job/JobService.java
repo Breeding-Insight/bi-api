@@ -46,10 +46,7 @@ public class JobService {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        List<Job> jobs = new ArrayList<>();
-        jobs.addAll(getProgramImports(programId));
-
-        return jobs;
+        return new ArrayList<>(getProgramImports(programId));
     }
 
     @SneakyThrows
