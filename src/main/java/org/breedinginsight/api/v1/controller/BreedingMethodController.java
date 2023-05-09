@@ -135,7 +135,9 @@ public class BreedingMethodController {
     }
 
     @Put("programs/{programId}/breeding-methods/enable")
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+// BI-1779 - Removing the ability to choose predefined methods for a program until we make the germplasm import template dynamically generated
+//    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @Secured(SecurityRule.DENY_ALL)
     public HttpResponse enableSystemBreedingMethods(@PathVariable UUID programId, @Body List<UUID> systemBreedingMethodIds) throws ApiException, BadRequestException {
         log.debug("enabling system breeding methods for program: "+programId);
 
