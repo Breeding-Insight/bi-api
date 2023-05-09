@@ -503,10 +503,6 @@ public class GermplasmProcessor implements Processor {
                 entry.getValue().getGermplasm().setBrAPIObject(createdGermplasmMap.get(germplasmName));
             }
         }
-
-
-
-
     }
 
     private void updateDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport) {

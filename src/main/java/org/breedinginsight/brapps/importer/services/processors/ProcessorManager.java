@@ -114,6 +114,9 @@ public class ProcessorManager {
             processor.postBrapiData(mappedBrAPIImport, program, upload);
         }
 
+        // Update progress to reflect final finished and inProgress counts.
+        upload.updateProgress(Math.toIntExact(totalObjects), 0);
+
         log.debug("Completed upload to brapi service");
         statusService.finishUpload(upload, "Completed upload to brapi service");
     }
