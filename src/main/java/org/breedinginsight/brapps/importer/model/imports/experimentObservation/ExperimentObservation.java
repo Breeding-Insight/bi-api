@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
@@ -197,6 +198,23 @@ public class ExperimentObservation implements BrAPIImport {
         return study;
     }
 
+    public BrAPIListDetails constructDatasetDetails(
+            String name,
+            UUID datasetId,
+            String referenceSourceBase,
+            Program program, String trialId) {
+        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
+        dataSetDetails.setListName(name);
+        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
+        dataSetDetails.setData(new ArrayList<>());
+        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+        addReference(refs, program.getId(), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
+        addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
+        addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
+        dataSetDetails.setExternalReferences(refs);
+        return dataSetDetails;
+    }
     public BrAPIObservationUnit constructBrAPIObservationUnit(
             Program program,
             String seqVal,
@@ -340,8 +358,7 @@ public class ExperimentObservation implements BrAPIImport {
 
 
     private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, ExternalReferenceSource refSourceName) {
-        BrAPIExternalReference reference;
-        reference = new BrAPIExternalReference();
+        BrAPIExternalReference reference = new BrAPIExternalReference();
         reference.setReferenceSource(String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()));
         reference.setReferenceID(uuid.toString());
         refs.add(reference);
