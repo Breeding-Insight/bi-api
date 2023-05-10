@@ -1139,17 +1139,20 @@ public class ExperimentProcessor implements Processor {
         }
 
         List<BrAPIStudy> existingStudies;
-        PendingImportObject<BrAPITrial> trial = getTrialPIO(experimentImportRows);
-        UUID experimentId = trial.getId();
+        Optional<PendingImportObject<BrAPITrial>> trial = getTrialPIO(experimentImportRows);
 
         try {
+            if (trial.isEmpty()) {
+                // TODO: throw ValidatorException and return 422
+            }
+            UUID experimentId = trial.get().getId();
             existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
+            existingStudies.forEach(existingStudy -> processAndCacheStudy(existingStudy, program, studyByName));
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
         }
 
-        existingStudies.forEach(existingStudy -> processAndCacheStudy(existingStudy, program, studyByName));
         return studyByName;
     }
 
@@ -1191,10 +1194,10 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetByName(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
 
-        PendingImportObject<BrAPITrial> trialPIO = getTrialPIO(experimentImportRows);
+        Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows);
 
-        if (trialPIO != null && trialPIO.getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String datasetId = trialPIO.getBrAPIObject()
+        if (trialPIO.isPresent() && trialPIO.get().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+            String datasetId = trialPIO.get().getBrAPIObject()
                     .getAdditionalInfo()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
                     .getAsString();
@@ -1219,15 +1222,20 @@ public class ExperimentProcessor implements Processor {
         return obsVarDatasetByName;
     }
 
-    private PendingImportObject<BrAPITrial> getTrialPIO(List<ExperimentObservation> experimentImportRows) {
+    private Optional<PendingImportObject<BrAPITrial>> getTrialPIO(List<ExperimentObservation> experimentImportRows) {
         Optional<String> expTitle = experimentImportRows.stream()
-                .filter(row -> StringUtils.isBlank(row.getObsUnitID()))
+                .filter(row -> StringUtils.isBlank(row.getObsUnitID()) && StringUtils.isNotBlank(row.getExpTitle()))
                 .map(ExperimentObservation::getExpTitle)
                 .findFirst();
+
+        if (expTitle.isEmpty() && trialByNameNoScope.keySet().stream().findFirst().isEmpty()) {
+            return Optional.empty();
+        }
         if(expTitle.isEmpty()) {
             expTitle = trialByNameNoScope.keySet().stream().findFirst();
         }
-        return this.trialByNameNoScope.get(expTitle.get());
+
+        return Optional.ofNullable(this.trialByNameNoScope.get(expTitle.get()));
     }
     private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Program program, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
         BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
@@ -1350,7 +1358,6 @@ public class ExperimentProcessor implements Processor {
     }
 
     private void processAndCacheTrial(BrAPITrial existingTrial, Program program, String trialRefSource, Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
-        //existingTrial.setTrialName(Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()));
 
         //get TrialId from existingTrial
         BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), trialRefSource)

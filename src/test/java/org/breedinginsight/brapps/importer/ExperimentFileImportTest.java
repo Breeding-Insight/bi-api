@@ -392,7 +392,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @SneakyThrows
     public void importNewExpWithObsVar() {
         List<Trait> traits = createTraits(1);
-        Program program = createProgram("New Exp with Observations", "EXPVAR", "EXPVAR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("New Exp with Observations Vars", "EXPVRR", "EXPVRR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -416,8 +416,8 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonObject row = previewRows.get(0).getAsJsonObject();
 
         assertEquals("NEW", row.getAsJsonObject("trial").get("state").getAsString());
-        assertTrue(row.getAsJsonObject("trial").get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
-        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
+        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
         assertEquals("NEW", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("observationUnit").get("state").getAsString());
@@ -577,8 +577,8 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonObject row = previewRows.get(0).getAsJsonObject();
 
         assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
-        assertTrue(row.getAsJsonObject("trial").get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
-        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
+        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
         assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
@@ -809,7 +809,12 @@ public class ExperimentFileImportTest extends BrAPITest {
         List<BrAPIObservation> observations = null;
         if(traits != null) {
             observations = observationDAO.getObservationsByStudyName(List.of(study.getStudyName()), program);
-            assertFalse(observations.isEmpty());
+            if (expected.get(traits.get(0).getObservationVariableName()) == null) {
+                assertTrue(observations.isEmpty());
+            } else {
+                assertFalse(observations.isEmpty());
+            }
+
 
             ret.put("observations", observations);
         }
@@ -866,10 +871,15 @@ public class ExperimentFileImportTest extends BrAPITest {
             List<String> actualVariableObservation = new ArrayList<>();
             observations.forEach(observation -> actualVariableObservation.add(String.format("%s:%s", Utilities.removeProgramKey(observation.getObservationVariableName(), program.getKey()), observation.getValue())));
             for(Trait trait : traits) {
-                expectedVariableObservation.add(String.format("%s:%s", trait.getObservationVariableName(), expected.get(trait.getObservationVariableName())));
+                if (expected.get(trait.getObservationVariableName()) != null) {
+                    expectedVariableObservation.add(String.format("%s:%s", trait.getObservationVariableName(), expected.get(trait.getObservationVariableName())));
+                }
             }
-
-            assertThat("Missing Variable:Observation combo", actualVariableObservation, containsInAnyOrder(expectedVariableObservation.toArray()));
+            if (actualVariableObservation.isEmpty()) {
+                assertTrue(expectedVariableObservation.isEmpty());
+            } else {
+                assertThat("Missing Variable:Observation combo", actualVariableObservation, containsInAnyOrder(expectedVariableObservation.toArray()));
+            }
         }
 
         return ret;
