@@ -91,6 +91,8 @@ public class ExperimentProcessor implements Processor {
     private static final String BLANK_FIELD_EXPERIMENT = "Field is blank when creating a new experiment";
     private static final String BLANK_FIELD_ENV = "Field is blank when creating a new environment";
     private static final String BLANK_FIELD_OBS = "Field is blank when creating new observations";
+    private static final String ENV_LOCATION_MISMATCH = "All locations must be the same for a given environment";
+    private static final String ENV_YEAR_MISMATCH = "All years must be the same for a given environment";
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -228,7 +230,7 @@ public class ExperimentProcessor implements Processor {
 
         prepareDataForValidation(importRows, phenotypeCols, mappedBrAPIImport);
 
-        validateFields(importRows, validationErrors, mappedBrAPIImport, referencedTraits, program, phenotypeCols);
+        validateFields(importRows, validationErrors, mappedBrAPIImport, referencedTraits, program, phenotypeCols, commit);
 
         if (validationErrors.hasErrors()) {
             throw new ValidatorException(validationErrors);
@@ -540,7 +542,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
-                                            List<Column<?>> phenotypeCols) throws MissingRequiredInfoException, ApiException {
+                                            List<Column<?>> phenotypeCols, boolean commit) throws MissingRequiredInfoException, ApiException {
         //fetching any existing observations for any OUs in the import
         Map<String, BrAPIObservation> existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
         Map<String, Trait> colVarMap = referencedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
@@ -560,7 +562,7 @@ public class ExperimentProcessor implements Processor {
                 throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
             }
 
-            validateConditionallyRequired(validationErrors, rowNum, importRow);
+            validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
             validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, existingObsByObsHash);
         }
@@ -659,7 +661,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private void validateConditionallyRequired(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow) {
+    private void validateConditionallyRequired(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow, Program program, boolean commit) {
         ImportObjectState expState = this.trialByNameNoScope.get(importRow.getExpTitle())
                                                             .getState();
         ImportObjectState envState = this.studyByNameNoScope.get(importRow.getEnv()).getState();
@@ -677,8 +679,21 @@ public class ExperimentProcessor implements Processor {
             validateRequiredCell(importRow.getExpUnit(), Columns.EXP_UNIT, errorMessage, validationErrors, rowNum);
             validateRequiredCell(importRow.getExpType(), Columns.EXP_TYPE, errorMessage, validationErrors, rowNum);
             validateRequiredCell(importRow.getEnv(), Columns.ENV, errorMessage, validationErrors, rowNum);
-            validateRequiredCell(importRow.getEnvLocation(), Columns.ENV_LOCATION, errorMessage, validationErrors, rowNum);
-            validateRequiredCell(importRow.getEnvYear(), Columns.ENV_YEAR, errorMessage, validationErrors, rowNum);
+            if(validateRequiredCell(importRow.getEnvLocation(), Columns.ENV_LOCATION, errorMessage, validationErrors, rowNum)) {
+                if(!Utilities.removeProgramKeyAndUnknownAdditionalData(this.studyByNameNoScope.get(importRow.getEnv()).getBrAPIObject().getLocationName(), program.getKey()).equals(importRow.getEnvLocation())) {
+                    addRowError(Columns.ENV_LOCATION, ENV_LOCATION_MISMATCH, validationErrors, rowNum);
+                }
+            }
+            if(validateRequiredCell(importRow.getEnvYear(), Columns.ENV_YEAR, errorMessage, validationErrors, rowNum)) {
+                String studyYear = this.studyByNameNoScope.get(importRow.getEnv()).getBrAPIObject().getSeasons().get(0);
+                String rowYear = importRow.getEnvYear();
+                if(commit) {
+                    rowYear = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
+                }
+                if(!studyYear.equals(rowYear)) {
+                    addRowError(Columns.ENV_YEAR, ENV_YEAR_MISMATCH, validationErrors, rowNum);
+                }
+            }
             validateRequiredCell(importRow.getExpUnitId(), Columns.EXP_UNIT_ID, errorMessage, validationErrors, rowNum);
             validateRequiredCell(importRow.getExpReplicateNo(), Columns.REP_NUM, errorMessage, validationErrors, rowNum);
             validateRequiredCell(importRow.getExpBlockNo(), Columns.BLOCK_NUM, errorMessage, validationErrors, rowNum);
@@ -691,10 +706,12 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private void validateRequiredCell(String value, String columnHeader, String errorMessage, ValidationErrors validationErrors, int rowNum) {
+    private boolean validateRequiredCell(String value, String columnHeader, String errorMessage, ValidationErrors validationErrors, int rowNum) {
         if (StringUtils.isBlank(value)) {
             addRowError(columnHeader, errorMessage, validationErrors, rowNum);
+            return false;
         }
+        return true;
     }
 
     private void addRowError(String field, String errorMessage, ValidationErrors validationErrors, int rowNum) {
@@ -1091,15 +1108,20 @@ public class ExperimentProcessor implements Processor {
             String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
             if (existingObsUnits.size() == rowByObsUnitId.size()) {
                 existingObsUnits.forEach(brAPIObservationUnit -> {
+                    processAndCacheObservationUnit(brAPIObservationUnit, refSource, program, ret, rowByObsUnitId);
+
                     BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
                                                             .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
+
                     ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceID());
-                    row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
-                    ret.put(createObservationUnitKey(row),
-                            new PendingImportObject<>(ImportObjectState.EXISTING,
-                                                      brAPIObservationUnit,
-                                                      UUID.fromString(idRef.getReferenceID())));
+                    row.setExpTitle(Utilities.removeProgramKey(brAPIObservationUnit.getTrialName(), program.getKey()));
+                    row.setEnv(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getStudyName(), program.getKey()));
+                    row.setEnvLocation(Utilities.removeProgramKey(brAPIObservationUnit.getLocationName(), program.getKey()));
                 });
+            } else {
+                List<String> missingIds = new ArrayList<>(rowByObsUnitId.keySet());
+                missingIds.removeAll(existingObsUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList()));
+                throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(COMMA_DELIMITER, missingIds));
             }
 
             return ret;
@@ -1138,6 +1160,13 @@ public class ExperimentProcessor implements Processor {
             return studyByName;
         }
 
+        try {
+            initializeStudiesForExistingObservationUnits(program, studyByName);
+        } catch (ApiException e) {
+            log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
         List<BrAPIStudy> existingStudies;
         Optional<PendingImportObject<BrAPITrial>> trial = getTrialPIO(experimentImportRows);
 
@@ -1154,6 +1183,29 @@ public class ExperimentProcessor implements Processor {
         }
 
         return studyByName;
+    }
+
+    private void initializeStudiesForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) throws ApiException {
+        Set<String> studyDbIds = this.observationUnitByNameNoScope.values()
+                                                               .stream()
+                                                               .map(pio -> pio.getBrAPIObject()
+                                                                              .getStudyDbId())
+                                                               .collect(Collectors.toSet());
+
+        List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
+        studies.forEach(study -> {
+            processAndCacheStudy(study, program, studyByName);
+        });
+    }
+
+    private List<BrAPIStudy> fetchStudiesByDbId(Set<String> studyDbIds, Program program) throws ApiException {
+        List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program);
+        if(studies.size() != studyDbIds.size()) {
+            List<String> missingIds = new ArrayList<>(studyDbIds);
+            missingIds.removeAll(studies.stream().map(BrAPIStudy::getStudyDbId).collect(Collectors.toList()));
+            throw new IllegalStateException("Study not found for studyDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
+        }
+        return studies;
     }
 
     private Map<String, PendingImportObject<ProgramLocation>> initializeUniqueLocationNames(Program program, List<ExperimentObservation> experimentImportRows) {
@@ -1279,17 +1331,24 @@ public class ExperimentProcessor implements Processor {
         return existingGermplasmByGID;
     }
 
+    private void processAndCacheObservationUnit(BrAPIObservationUnit brAPIObservationUnit, String refSource, Program program, Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByName,
+                                                Map<String, ExperimentObservation> rowByObsUnitId) {
+        BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
+                                                .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
+
+        ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceID());
+        row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
+        observationUnitByName.put(createObservationUnitKey(row),
+                new PendingImportObject<>(ImportObjectState.EXISTING,
+                                          brAPIObservationUnit,
+                                          UUID.fromString(idRef.getReferenceID())));
+    }
+
     private void processAndCacheStudy(BrAPIStudy existingStudy, Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
-        //Swap season DbId with year String
-        String seasonId = existingStudy.getSeasons().get(0);
-        existingStudy.setSeasons(List.of(this.seasonDbIdToYear(seasonId, program.getId())));
-
-        existingStudy.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()));
-
         BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
                                                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
         studyByName.put(
-                existingStudy.getStudyName(),
+                Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()),
                 new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy, UUID.fromString(xref.getReferenceID())));
     }
 
@@ -1341,12 +1400,7 @@ public class ExperimentProcessor implements Processor {
 
     private Set<String> fetchTrialDbidsForStudies(Set<String> studyDbIds, Program program) throws ApiException {
         Set<String> trialDbIds = new HashSet<>();
-        List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program);
-        if(studies.size() != studyDbIds.size()) {
-            List<String> missingIds = new ArrayList<>(trialDbIds);
-            missingIds.removeAll(studies.stream().map(BrAPIStudy::getStudyDbId).collect(Collectors.toList()));
-            throw new IllegalStateException("Study not found for studyDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
-        }
+        List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
         studies.forEach(study -> {
             if (StringUtils.isBlank(study.getTrialDbId())) {
                 throw new IllegalStateException("TrialDbId is not set for an existing Study: " + study.getStudyDbId());

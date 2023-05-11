@@ -80,13 +80,13 @@ public class Utilities {
      * @return
      */
     public static String removeProgramKey(String original, String programKey, String additionalKeyData) {
+        String keyValue;
         if(StringUtils.isNotBlank(additionalKeyData)) {
-            String keyValue = String.format(" [%s-%s]", programKey, additionalKeyData);
-            return original.replace(keyValue, "");
+            keyValue = String.format(" [%s-%s]", programKey, additionalKeyData);
         } else {
-            String keyValue = String.format(" [%s]", programKey);
-            return original.replace(keyValue, "");
+            keyValue = String.format(" [%s]", programKey);
         }
+        return original.replace(keyValue, "");
     }
 
     /**
