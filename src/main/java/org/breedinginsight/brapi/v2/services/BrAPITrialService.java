@@ -5,6 +5,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -31,5 +32,30 @@ public class BrAPITrialService {
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
         return trialDAO.getTrials(programId);
+    }
+
+    public BrAPITrial getTrialByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
+        try {
+            return trialDAO.getTrialByDbId(programId,trialId).get();
+        } catch (ApiException e) {
+            throw new InternalServerException(e.getMessage(), e);
+        }
+    }
+
+    public HashMap<String, Object> getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
+        HashMap<String, Object> trialData = new HashMap<>(3);
+        try {
+            trialData.put("trialData", trialDAO.getTrialByDbId(programId,trialId).get());
+            if( stats ){
+                int environmentsCount = 1; // For now this is hardcoded to 1, because we are only supporting one environment per experiment
+                //TODO this should not be hardcoded
+                int germplasmCount = 6;
+                trialData.put("environmentsCount", environmentsCount);
+                trialData.put("germplasmCount", germplasmCount);
+            }
+            return trialData;
+        } catch (ApiException e) {
+            throw new InternalServerException(e.getMessage(), e);
+        }
     }
 }

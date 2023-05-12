@@ -9,6 +9,7 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -24,6 +25,7 @@ import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,6 +58,27 @@ public class ExperimentController {
         } catch (ApiException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving experiments");
+        } catch (DoesNotExistException e) {
+            log.info(e.getMessage(), e);
+            return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/trials/{trialId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<Response<HashMap<String, Object>>> getExperimentById(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("trialId") UUID trialId,
+            @QueryValue(defaultValue = "false") Boolean stats){
+        try {
+            String logMsg = "fetching trial id:" +  trialId +" for program: " + programId;
+            if(stats){
+                logMsg += " with stats";
+            }
+            log.debug(logMsg);
+            Response<HashMap<String, Object>> response = new Response(experimentService.getTrialDataByUUID(programId, trialId, stats));
+            return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.NOT_FOUND, e.getMessage());

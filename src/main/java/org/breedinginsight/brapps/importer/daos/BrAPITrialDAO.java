@@ -33,6 +33,7 @@ import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
+import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -40,6 +41,8 @@ import java.util.*;
 
 @Singleton
 public class BrAPITrialDAO {
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
@@ -67,6 +70,19 @@ public class BrAPITrialDAO {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
+        );
+    }
+
+    private List<BrAPITrial> getTrialsByExRef(String referenceSource, String referenceId, Program program) throws ApiException {
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        trialSearch.externalReferenceSources(List.of(referenceSource));
+        trialSearch.externalReferenceIDs(List.of(referenceId));
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
         return brAPIDAOUtil.search(
                 api::searchTrialsPost,
@@ -123,8 +139,10 @@ public class BrAPITrialDAO {
         return displayExperiments;
     }
 
-    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
-        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
+    public Optional<BrAPITrial> getTrialByDbId(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
+        String refSoure = Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS);
+        List<BrAPITrial> trials = getTrialsByExRef(refSoure, trialDbId.toString(), program);
 
         return Utilities.getSingleOptional(trials);
     }
