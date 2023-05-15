@@ -328,8 +328,7 @@ public class BrAPIDAOUtil {
             }
 
             if (upload != null) {
-                // TODO: consider possible race condition?
-                // Increment finished count and reset inProgress count to 0.
+                // Set finished count, reset inProgress count to 0.
                 upload.updateProgress(finished, 0);
                 progressUpdateMethod.accept(upload);
             }
