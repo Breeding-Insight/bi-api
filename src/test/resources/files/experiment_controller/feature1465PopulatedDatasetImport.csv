@@ -1,0 +1,3 @@
+﻿Germplasm Name,Germplasm GID,Test (T) or Check (C ),Exp Title,Exp Description,Exp Unit,Exp Type,Env,Env Location,Env Year,Exp Unit ID,Exp Replicate #,Exp Block #,Row,Column,Treatment Factors,ObsUnitID,ObsVar1
+,1,,exp,,plant,trial,env1,here,2022,1,1,2,,,,,1
+,1,,exp,,plant,trial,env2,here,2022,1,1,2,,,,,2
