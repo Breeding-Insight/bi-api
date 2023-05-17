@@ -1,38 +1,68 @@
 package org.breedinginsight.brapi.v2;
 
 import com.google.gson.*;
+import com.ibm.icu.text.UFormat;
 import io.kowalski.fannypack.FannyPack;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
+import io.micronaut.http.client.netty.FullNettyClientHttpResponse;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
+import lombok.SneakyThrows;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbookFactory;
+import org.apache.xmlbeans.impl.xb.ltgfmt.TestsDocument;
+import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapps.importer.ImportTestUtils;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
+import org.breedinginsight.services.OntologyService;
+import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.services.writers.CSVWriter;
+import org.breedinginsight.utilities.FileUtil;
+import org.jooq.ContentType;
 import org.jooq.DSLContext;
+import org.jooq.tools.csv.CSVReader;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import tech.tablesaw.api.Row;
+import tech.tablesaw.api.StringColumn;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
-import java.io.File;
+import javax.validation.constraints.AssertTrue;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
@@ -44,11 +74,17 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     private FannyPack securityFp;
     private FannyPack brapiFp;
+    private FannyPack fp;
     private FannyPack brapiObservationFp;
     private Program program;
-    private String germplasmImportId;
+    private ImportTestUtils importTestUtils;
+    private String mappingId;
+    private List<Column> columns = new ArrayList<>();
+    private List<Trait> traits;
     private final String GERMPLASM_LIST_NAME = "Program Germplasm List";
     private final String GERMPLASM_LIST_DESC = "Program Germplasm List";
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
     @Inject
     private DSLContext dsl;
     @Inject
@@ -57,6 +93,10 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private UserDAO userDAO;
     @Inject
     private SpeciesDAO speciesDAO;
+    @Inject
+    private OntologyService ontologyService;
+    @Inject
+    private BrAPIGermplasmDAO germplasmDAO;
 
     @Inject
     @Client("/${micronaut.bi.api.version}")
@@ -68,6 +108,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     @BeforeAll
     void setup() throws Exception {
+        fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
+        importTestUtils = new ImportTestUtils();
         securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
         brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
         //brapiObservationFp = FannyPack.fill("src/test/resources/sql/brapi/BrAPIOntologyControllerIntegrationTest.sql");
@@ -87,442 +129,328 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         // Test Program
         ProgramRequest programRequest = ProgramRequest.builder()
                 .name("Test Program")
+                .abbreviation("Test")
+                .documentationUrl("localhost:8080")
+                .objective("To test things")
                 .species(speciesRequest)
                 .key("TEST")
                 .build();
         program = TestUtils.insertAndFetchTestProgram(gson, client, programRequest);
 
-        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId().toString());
+        dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), program.getId());
+        dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
-        // Add trait to program
-        addTrait(program);
+        // Get experiment import map
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/import/mappings?importName=ExperimentsTemplateMap")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        mappingId = JsonParser.parseString(response.body()).getAsJsonObject()
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(0).getAsJsonObject().get("id").getAsString();
+
+        // Add traits to program
+        traits = createTraits(1);
+        AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
+        try {
+            ontologyService.createTraits(program.getId(), traits, user, false);
+        } catch (ValidatorException e) {
+            System.err.println(e.getErrors());
+            throw e;
+        }
 
         // Add germplasm to program
-        addGermplasm(program);
+        List<BrAPIGermplasm> germplasm = createGermplasm(1);
+        BrAPIExternalReference newReference = new BrAPIExternalReference();
+        newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
+        newReference.setReferenceID(program.getId().toString());
 
-        // Add experiemnts to program
-        addExperiments(program);
+        germplasm.forEach(germ -> germ.getExternalReferences().add(newReference));
+
+        germplasmDAO.createBrAPIGermplasm(germplasm, program.getId(), null);
     }
 
-    private void addExperiments(Program program) throws InterruptedException {
-        // Get experiment system import
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/import/mappings?importName=experimenttemplatemap").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-        HttpResponse<String> response = call.blockingFirst();
-        germplasmImportId = JsonParser.parseString(response.body()).getAsJsonObject()
-                .getAsJsonObject("result")
-                .getAsJsonArray("data")
-                .get(0).getAsJsonObject().get("id").getAsString();
+    private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
+        File file = File.createTempFile("test", ".csv");
 
-        // Insert program germplasm
-        File file = new File("src/test/resources/files/experiment_controller/germplasm_import.csv");
-        Map<String, String> germplasmListInfo = Map.ofEntries(
-                Map.entry("germplasmListName", GERMPLASM_LIST_NAME),
-                Map.entry("germplasmListDescription", GERMPLASM_LIST_DESC)
-        );
-        TestUtils.uploadDataFile(client, program.getId(), germplasmImportId, germplasmListInfo, file);
-    }
+        columns.add(Column.builder().value(ExperimentObservation.Columns.GERMPLASM_NAME).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.GERMPLASM_GID).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.TEST_CHECK).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TITLE).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_DESCRIPTION).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TYPE).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_LOCATION).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_YEAR).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.REP_NUM).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.BLOCK_NUM).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ROW).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.COLUMN).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
 
-    private void addGermplasm(Program program) throws InterruptedException {
-        // Get germplasm system import
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/import/mappings?importName=germplasmtemplatemap").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-        HttpResponse<String> response = call.blockingFirst();
-        germplasmImportId = JsonParser.parseString(response.body()).getAsJsonObject()
-                .getAsJsonObject("result")
-                .getAsJsonArray("data")
-                .get(0).getAsJsonObject().get("id").getAsString();
-
-        // Insert program germplasm
-        File file = new File("src/test/resources/files/experiment_controller/germplasm_import.csv");
-        Map<String, String> germplasmListInfo = Map.ofEntries(
-                Map.entry("germplasmListName", GERMPLASM_LIST_NAME),
-                Map.entry("germplasmListDescription", GERMPLASM_LIST_DESC)
-        );
-        TestUtils.uploadDataFile(client, program.getId(), germplasmImportId, germplasmListInfo, file);
-    }
-    private void addTrait(Program program) {
-
-        // Add a trait
-        Trait trait = new Trait();
-        trait.setTraitDescription("trait 1 description");
-        trait.setEntity("entity1");
-        trait.setObservationVariableName("ObsVar1");
-        trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("plant").build());
-        Scale scale1 = new Scale();
-        scale1.setScaleName("Test Scale");
-        scale1.setDataType(DataType.TEXT);
-        Method method1 = new Method();
-        trait.setScale(scale1);
-        trait.setMethod(method1);
-        trait.setTraitClass("Pheno trait");
-        trait.setAttribute("leaf length");
-        trait.setMainAbbreviation("abbrev1");
-        trait.setSynonyms(List.of("test1", "test2"));
-        trait.getMethod().setMethodClass("Estimation");
-        trait.getMethod().setDescription("A method");
-
-        List<Trait> traits = List.of(trait);
-
-        // Call endpoint
-        TestUtils.insertTestTraits(gson, client, program, traits);
-    }
-
-    @Test
-    @Order(1)
-    void getAllProgramsNoSharedPrograms() {
-        String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        assertEquals(3, data.size(), "Wrong number of programs returned");
-
-        // Check all are not shared and are inactive
-        for (JsonElement element: data) {
-            JsonObject program = element.getAsJsonObject();
-
-            assertFalse(program.get("shared").getAsBoolean(), "Shared should have been false");
-            assertNull(program.get("accepted"), "Accepted should have been false");
-            assertNull(program.get("editable"), "Editable should have been false");
+        if(traits != null) {
+            traits.forEach(trait -> {
+                columns.add(Column.builder().value(trait.getObservationVariableName()).dataType(Column.ColumnDataType.STRING).build());
+            });
         }
+
+        ByteArrayOutputStream byteArrayOutputStream = CSVWriter.writeToCSV(columns, data);
+        FileOutputStream fos = new FileOutputStream(file);
+        fos.write(byteArrayOutputStream.toByteArray());
+
+        return file;
     }
 
-    @Test
-    @Order(2)
-    void addSharedPrograms() {
+    private Map<String, Object> makeExpImportRow(String environment) {
+        Map<String, Object> row = new HashMap<>();
+        row.put(ExperimentObservation.Columns.GERMPLASM_GID, "1");
+        row.put(ExperimentObservation.Columns.TEST_CHECK, "T");
+        row.put(ExperimentObservation.Columns.EXP_TITLE, "Test Exp");
+        row.put(ExperimentObservation.Columns.EXP_UNIT, "Plot");
+        row.put(ExperimentObservation.Columns.EXP_TYPE, "Phenotyping");
+        row.put(ExperimentObservation.Columns.ENV, environment);
+        row.put(ExperimentObservation.Columns.ENV_LOCATION, "Location A");
+        row.put(ExperimentObservation.Columns.ENV_YEAR, "2023");
+        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, "a-1");
+        row.put(ExperimentObservation.Columns.REP_NUM, "1");
+        row.put(ExperimentObservation.Columns.BLOCK_NUM, "1");
+        row.put(ExperimentObservation.Columns.ROW, "1");
+        row.put(ExperimentObservation.Columns.COLUMN, "1");
+        return row;
+    }
 
-        String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
-        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
-        requests.add(new SharedOntologyProgramRequest(otherProgram.getId(), otherProgram.getName()));
-        requests.add(new SharedOntologyProgramRequest(thirdProgram.getId(), thirdProgram.getName()));
-        String json = gson.toJson(requests);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST(url, json)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        assertEquals(2, data.size(), "Wrong number of programs returned");
-
-        // Check all are not shared and are inactive
-        for (JsonElement element: data) {
-            JsonObject program = element.getAsJsonObject();
-
-            assertTrue(program.get("shared").getAsBoolean(), "Shared should have been true");
-            assertFalse(program.get("accepted").getAsBoolean(), "Accepted should have been false");
-            assertTrue(program.get("editable").getAsBoolean(), "Editable should have been true");
+    private List<Trait> createTraits(int numToCreate) {
+        List<Trait> traits = new ArrayList<>();
+        for (int i = 0; i < numToCreate; i++) {
+            String varName = "tt_test_" + (i + 1);
+            traits.add(Trait.builder()
+                    .observationVariableName(varName)
+                    .entity("Plant " + i)
+                    .attribute("height " + i)
+                    .traitDescription("test")
+                    .programObservationLevel(ProgramObservationLevel.builder().name("Plot").build())
+                    .scale(Scale.builder()
+                            .scaleName("test scale")
+                            .dataType(DataType.NUMERICAL)
+                            .validValueMin(0)
+                            .validValueMax(100)
+                            .build())
+                    .method(Method.builder()
+                            .description("test method")
+                            .methodClass("test method")
+                            .build())
+                    .build());
         }
+
+        return traits;
     }
 
-    @Test
-    @Order(3)
-    void subscribeOntologyProgramHasTraitsError() {
-        String url = String.format("/programs/%s/ontology/subscribe/%s", thirdProgram.getId(), mainProgram.getId());
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT(url, "")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-    }
-
-    @Test
-    @Order(3)
-    void subscribeOntologySuccess() {
-        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                PUT(url, "")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-    }
-
-    @Test
-    @Order(4)
-    void getSubscribedOntologyOptions() {
-
-        String url = String.format("/programs/%s/ontology/subscribe", otherProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        assertEquals(1, data.size(), "Wrong number of programs returned");
-
-        // Check all are not shared and are inactive
-        for (JsonElement element: data) {
-            JsonObject program = element.getAsJsonObject();
-
-            assertTrue(program.get("subscribed").getAsBoolean());
-            assertTrue(program.get("editable").getAsBoolean());
+    private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
+        List<BrAPIGermplasm> germplasm = new ArrayList<>();
+        for (int i = 0; i < numToCreate; i++) {
+            String gid = ""+(i+1);
+            BrAPIGermplasm testGermplasm = new BrAPIGermplasm();
+            testGermplasm.setGermplasmName(String.format("Germplasm %s [TEST-%s]", gid, gid));
+            testGermplasm.setSeedSource("Wild");
+            testGermplasm.setAccessionNumber(gid);
+            testGermplasm.setDefaultDisplayName(String.format("Germplasm %s", gid));
+            JsonObject additionalInfo = new JsonObject();
+            additionalInfo.addProperty("importEntryNumber", gid);
+            additionalInfo.addProperty("breedingMethod", "Allopolyploid");
+            testGermplasm.setAdditionalInfo(additionalInfo);
+            List<BrAPIExternalReference> externalRef = new ArrayList<>();
+            BrAPIExternalReference testReference = new BrAPIExternalReference();
+            testReference.setReferenceSource(BRAPI_REFERENCE_SOURCE);
+            testReference.setReferenceID(UUID.randomUUID().toString());
+            externalRef.add(testReference);
+            testGermplasm.setExternalReferences(externalRef);
+            germplasm.add(testGermplasm);
         }
+
+        return germplasm;
     }
 
-    @Test
-    @Order(4)
-    void getAllProgramsSharedPrograms() {
-        String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
+    private void checkXLSDownload(Map<String, Object> dataRow, Map<String, Object> emptyRow, HSSFWorkbook workbook) {
+        HSSFSheet experimentData = workbook.getSheet("Experiment Data");
+        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
+        // All columns included
+        // All environments included
+        // All data included
+        // Observation units populated
 
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
+    }
 
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        assertEquals(3, data.size(), "Wrong number of programs returned");
+    private void checkXLSXDownload(List<Map<String, Object>> importRows, XSSFWorkbook workbook) {
+        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
+        // All columns included
+        // All environments included
+        // All data included
+        // Observation units populated
 
-        // Check all are not shared and are inactive
-        for (JsonElement element: data) {
-            JsonObject program = element.getAsJsonObject();
+    }
 
-            if (program.get("programId").getAsString().equals(fourthProgram.getId().toString())) {
-                assertFalse(program.get("shared").getAsBoolean());
-            } else {
-                assertTrue(program.get("shared").getAsBoolean(), "Shared should have been true");
-                assertTrue(program.get("editable").getAsBoolean(), "Editable should have been false");
-                if (program.get("programId").getAsString().equals(otherProgram.getId().toString())) {
-                    assertTrue(program.get("accepted").getAsBoolean());
-                } else {
-                    assertFalse(program.get("accepted").getAsBoolean());
-                }
+    private void checkCSVDownload(List<Map<String, Object>> importRows, CSVReader reader) {
+        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
+        // All columns included
+        // All environments included
+        // All data included
+        // Observation units populated
+
+    }
+    private void checkDownloadTable(String requestedEnv, List<Map<String, Object>> importRows, Table table) {
+        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
+        List<Map<String, Object>> requestedImportRows;
+
+        // All columns included
+        assertEquals(columns.size(), table.columnCount());
+
+        if (requestedEnv == null) {
+            requestedImportRows = importRows;
+
+            // All environments downloaded
+            importRows.stream()
+                    .map(row -> row.get(ExperimentObservation.Columns.ENV).toString())
+                    .distinct()
+                    .collect(Collectors.toList())
+                    .forEach(envName -> {
+                        assertTrue(table.stringColumn("Env").contains(envName));
+                    });
+
+        } else {
+
+            // Only requested environment downloaded
+            requestedImportRows = importRows.stream().filter(row -> {
+                return row.get("Env").toString().equals(requestedEnv);
+            }).collect(Collectors.toList());
+
+            assertEquals(1, table.stringColumn("Env").countUnique());
+            assertTrue(table.stringColumn("Env").contains(requestedEnv));
+
+        }
+
+        // All requested import data included in download
+        List<Map<String, Object>> matchingImportRows = requestedImportRows.stream().filter(importRow -> {
+            for (Row downloadRow : table) {
+                if (isMatchedRow(importRow, downloadRow)) {
+                    return true;
+                };
             }
+            return false;
+        }).collect(Collectors.toList());
+        assertEquals(requestedImportRows.size(),matchingImportRows.size());
+
+        // Observation units populated
+        assertEquals(0, table.column("ObsUnitID").countMissing());
+        assertEquals(importRows.size(), table.column("ObsUnitID").countUnique());
+    }
+
+    private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {
+        return importRow.entrySet().stream().filter(e -> {
+            String header = e.getKey();
+            List<Column> importColumns = columns.stream().filter(col -> {return col.getValue() == header;}).collect(Collectors.toList());
+            if (importColumns.isEmpty() || importColumns.size() > 1) {
+                return false;
+            }
+
+            if (importColumns.get(0).getDataType() == Column.ColumnDataType.STRING) {
+                return downloadRow.getString(e.getKey().toString()) == e.getValue();
+            }
+
+            if (importColumns.get(0).getDataType() == Column.ColumnDataType.INTEGER) {
+                return downloadRow.getInt(e.getKey().toString()) == Integer.parseInt(e.getValue().toString()) ;
+            }
+            return false;
+        }).collect(Collectors.toList()).size() == importRow.size();
+    }
+
+   /*
+   Tests
+    - export empty dataset, single environment, csv format
+    - export empty dataset, single environment, xls format
+    - export empty dataset, single environment, xlsx format
+    - export populated dataset, single environment, csv format
+    - export populated dataset, single environment, xls format
+    - export populated dataset, single environment, xlsx format
+    - export empty dataset, multiple environment, csv format
+    - export empty dataset, multiple environment, xls format
+    - export empty dataset, multiple environment, xlsx format
+    - export populated dataset, multiple environment, csv format
+    - export populated dataset, multiple environment, xls format
+    - export populated dataset, multiple environment, xlsx format
+   */
+
+    @ParameterizedTest
+    @CsvSource(value = {"true,,XLSX", "false,,CSV", "true,Env1,CSV", "false,Env1,CSV",
+            "true,,XLS", "false,,XLS", "true,Env1,XLS", "false,Env1,XLS",
+            "true,,XLSX", "false,,XLSX", "true,Env1,XLSX", "false,Env1,XLSX",})
+    @SneakyThrows
+    void downloadDatasets(boolean hasEmptyObs, String requestedEnv, String extension) {
+        // Make test experiment import
+        List<Map<String, Object>> rows = new ArrayList<>();
+        Map<String, Object> row1 = makeExpImportRow("Env1");
+        Map<String, Object> row2 = makeExpImportRow("Env2");
+
+        // Add test observation data
+        for (int i = 0; i < traits.size(); i++) {
+            row1.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+            if (!hasEmptyObs) {
+                row2.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+            }
+        };
+
+        rows.add(row1);
+        rows.add(row2);
+
+        // Import test experiment, environments, and any observations
+        JsonObject importResult = importTestUtils.uploadAndFetch(writeDataToFile(rows, traits), null, true, client, program, mappingId);
+        String experimentId = importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("trial").getAsJsonObject()
+                .get("id").getAsString();
+
+
+        // Download test experiment
+        String envParam = "all=true";
+        if (requestedEnv != null) {
+            envParam = "env=" + requestedEnv;
         }
-    }
-
-    @Test
-    @Order(4)
-    void getOnlySharedPrograms() {
-        String url = String.format("/programs/%s/ontology/shared/programs?shared=true", mainProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        Flowable<HttpResponse<byte[]>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/export?%s&fileExtension=%s",program.getId().toString(), experimentId, envParam, extension))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
+        HttpResponse<byte[]> response = call.blockingFirst();
 
-        HttpResponse<String> response = call.blockingFirst();
+        // Assert 200 response
         assertEquals(HttpStatus.OK, response.getStatus());
 
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-        JsonArray data = result.getAsJsonArray("data");
-        assertEquals(2, data.size(), "Wrong number of programs returned");
+        // Assert file format fidelity
+        Map<String, String> mediaTypeByExtension = new HashMap<>();
+        mediaTypeByExtension.put("CSV", "text/csv");
+        mediaTypeByExtension.put("XLS","application/vnd.ms.excel");
+        mediaTypeByExtension.put("XLSX", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        String downloadMediaType = response.getHeaders().getContentType().orElseThrow(Exception::new);
+        assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
 
-        // Check all are not shared and are inactive
-        for (JsonElement element: data) {
-            JsonObject program = element.getAsJsonObject();
-
-            assertTrue(program.get("shared").getAsBoolean(), "Shared should have been true");
+        // Assert import/export fidelity and presence of observation units in export
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(response.body());
+        Table download = Table.create();
+        if (extension.equals("CSV")) {
+            download = FileUtil.parseTableFromCsv(bodyStream);
         }
-    }
-
-    @Test
-    @Order(4)
-    void shareOntologySubscribedToOtherProgram() {
-        // Cannot share ontology if you are using a shared ontology
-        String url = String.format("/programs/%s/ontology/shared/programs", otherProgram.getId());
-        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
-        requests.add(new SharedOntologyProgramRequest(fourthProgram.getId(), fourthProgram.getName()));
-        String json = gson.toJson(requests);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST(url, json)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-    }
-
-    @Test
-    @Order(4)
-    void revokeOntologyUneditable() {
-        // Ontology cannot be revoke if shared program has accepted and has observations
-        super.getBrapiDsl().execute(brapiObservationFp.get("AddObservations"), otherProgram.getId().toString());
-
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), otherProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-
-        super.getBrapiDsl().execute(brapiObservationFp.get("DeleteObservations"));
-    }
-
-    @Test
-    @Order(4)
-    void unsubscribeOntologyUneditableError() {
-        super.getBrapiDsl().execute(brapiObservationFp.get("AddObservations"), otherProgram.getId().toString());
-
-        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-
-        super.getBrapiDsl().execute(brapiObservationFp.get("DeleteObservations"));
-    }
-
-    @Test
-    @Order(5)
-    void unsubscribeOntologySuccess() {
-
-        String url = String.format("/programs/%s/ontology/subscribe/%s", otherProgram.getId(), mainProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url, "").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-    }
-
-    @Test
-    @Order(5)
-    void revokeOntologySuccess() {
-
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), thirdProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-    }
-
-    @Test
-    void shareSelfError() {
-        // Test that program cannot share with themselves
-
-        String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
-        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
-        requests.add(new SharedOntologyProgramRequest(mainProgram.getId(), mainProgram.getName()));
-        String json = gson.toJson(requests);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST(url, json)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-    }
-
-    @Test
-    void revokeOntologyProgramNotExist() {
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", UUID.randomUUID(), otherProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
-    }
-
-    @Test
-    void revokeOntologySharedProgramNotExist() {
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), UUID.randomUUID());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
-    }
-
-    @Test
-    void revokeOntologySharedProgramNotShared() {
-        String url = String.format("/programs/%s/ontology/shared/programs/%s", mainProgram.getId(), fourthProgram.getId());
-        Flowable<HttpResponse<String>> call = client.exchange(
-                DELETE(url).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
-    }
-
-    @Test
-    void shareOntologyProgramNotExist() {
-
-        String url = String.format("/programs/%s/ontology/shared/programs", mainProgram.getId());
-        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
-        requests.add(new SharedOntologyProgramRequest(UUID.randomUUID(), "I don't exist"));
-        String json = gson.toJson(requests);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST(url, json)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-    }
-
-    @Test
-    void shareOntologySharedProgramNotExist() {
-
-        String url = String.format("/programs/%s/ontology/shared/programs", UUID.randomUUID());
-        List<SharedOntologyProgramRequest> requests = new ArrayList<>();
-        requests.add(new SharedOntologyProgramRequest(otherProgram.getId(), otherProgram.getName()));
-        String json = gson.toJson(requests);
-
-        Flowable<HttpResponse<String>> call = client.exchange(
-                POST(url, json)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+        if (extension.equals("XLS") || extension.equals("XLSX")) {
+            Workbook book = WorkbookFactory.create(bodyStream);
+            XSSFWorkbook workbook = new XSSFWorkbook(bodyStream);
+            //new XSSFWorkbook(new ByteArrayInputStream(((FullNettyClientHttpResponse) response).bodyBytes))
+            download = FileUtil.parseTableFromExcel(bodyStream, 0);
+        }
+        checkDownloadTable(requestedEnv, rows, download);
     }
 }

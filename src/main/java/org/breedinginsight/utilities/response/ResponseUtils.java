@@ -19,7 +19,9 @@ package org.breedinginsight.utilities.response;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.server.types.files.StreamedFile;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
@@ -84,6 +86,16 @@ public class ResponseUtils {
     public static <T> HttpResponse<Response<T>> getSingleResponse(Object data) {
         Metadata metadata = constructMetadata(new Metadata(), new Pagination(1,1,1,1));
         return HttpResponse.ok(new Response(metadata, data));
+    }
+
+    // File download
+    public static HttpResponse<StreamedFile> getExportResponse() {
+        return processExportResponse();
+    }
+
+    private static HttpResponse<StreamedFile> processExportResponse() {
+        HttpResponse response = HttpResponse.status(HttpStatus.OK).contentType(MediaType.forFilename("download.xlsx"));
+        return response;
     }
 
     private static <T> HttpResponse<Response<DataResponse<T>>> processSearchResponse(
