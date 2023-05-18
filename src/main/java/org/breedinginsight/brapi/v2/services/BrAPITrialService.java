@@ -11,8 +11,10 @@ import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
+import org.breedinginsight.brapps.importer.model.base.AdditionalInfo;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.model.Column;
@@ -28,6 +30,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -117,10 +120,15 @@ public class BrAPITrialService {
         try {
             List<BrAPITrial> trials = trialDAO.getTrialsByExperimentIds(List.of(experimentId), programId);
             if (trials.isEmpty()) {
-                throw new DoesNotExistException("Trial does not exist");
+                throw new DoesNotExistException("Experiment not found");
             }
-
-            dataset = observationDAO.getObservationsByTrialDbId(List.of(experimentId.toString()), programId);
+            BrAPITrial datasetTrial = trials.stream().filter(trial -> {
+                String id = trial
+                        .getAdditionalInfo()
+                        .getAsJsonObject(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
+                return id != null;
+            }).findAny().orElseThrow(() -> new DoesNotExistException("Experiment dataset not found"));
+            dataset = observationDAO.getObservationsByTrialDbId(List.of(datasetTrial.getTrialDbId()), programId);
         } catch (ApiException e) {
             log.error("Error fetching BrAPI observations: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
