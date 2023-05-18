@@ -8,6 +8,7 @@ public enum ExternalReferenceSource {
     TRIALS("trials"),
     STUDIES("studies"),
     OBSERVATION_UNITS("observationunits"),
+    DATASET("dataset"),
     LISTS("lists");
 
     private String name;

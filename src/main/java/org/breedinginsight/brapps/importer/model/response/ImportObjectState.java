@@ -19,5 +19,6 @@ package org.breedinginsight.brapps.importer.model.response;
 
 public enum ImportObjectState {
     NEW,
-    EXISTING
+    EXISTING,
+    MUTATED
 }

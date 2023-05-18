@@ -40,6 +40,7 @@ import org.jooq.DSLContext;
 
 import java.io.File;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,6 +51,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * To use, instantiate a new instance of this class, then use it like a regular static utility class
  */
 public class ImportTestUtils {
+
+    Pattern UUID_REGEX = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     public Program insertAndFetchTestProgram(ProgramRequest programRequest, RxHttpClient client, Gson gson) {
 
