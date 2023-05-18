@@ -52,7 +52,9 @@ public class ImportStatusService {
         importDAO.update(upload);
     }
 
-    public void finishUpload(ImportUpload upload, String message) {
+    public void finishUpload(ImportUpload upload, long numberObjects, String message) {
+        // Update progress to reflect final finished and inProgress counts.
+        upload.updateProgress(Math.toIntExact(numberObjects), 0);
         upload.getProgress().setMessage(message);
         upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
         importDAO.update(upload);

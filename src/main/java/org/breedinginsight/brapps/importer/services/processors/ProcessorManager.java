@@ -115,7 +115,7 @@ public class ProcessorManager {
         }
 
         log.debug("Completed upload to brapi service");
-        statusService.finishUpload(upload, "Completed upload to brapi service");
+        statusService.finishUpload(upload, totalObjects, "Completed upload to brapi service");
     }
 
 }

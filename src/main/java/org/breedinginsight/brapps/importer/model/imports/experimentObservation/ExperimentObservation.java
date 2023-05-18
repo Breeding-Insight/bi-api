@@ -68,7 +68,7 @@ public class ExperimentObservation implements BrAPIImport {
     private String expDescription;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "expUnit", name = Columns.EXP_UNIT, description = "experiment unit  (Examples: plots, plant, tanks, hives, etc.)")
+    @ImportFieldMetadata(id = "expUnit", name = Columns.EXP_UNIT, description = "Experiment unit  (Examples: plots, plant, tanks, hives, etc.)")
     private String expUnit;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)

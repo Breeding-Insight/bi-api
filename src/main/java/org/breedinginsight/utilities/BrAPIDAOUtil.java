@@ -325,7 +325,8 @@ public class BrAPIDAOUtil {
             }
 
             if (upload != null) {
-                upload.updateProgress(listResult.size(), 0);
+                // Set finished count, reset inProgress count to 0.
+                upload.updateProgress(finished, 0);
                 progressUpdateMethod.accept(upload);
             }
 
