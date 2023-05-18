@@ -34,6 +34,7 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Singleton
 public class BrAPITrialDAO {
@@ -162,6 +163,24 @@ public class BrAPITrialDAO {
                 trialSearch
         );
     }
+
+    public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> trialExperimentIds, UUID programId) throws ApiException {
+        if(trialExperimentIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(programId.toString()));
+        trialSearch.externalReferenceSources(List.of(ExternalReferenceSource.TRIALS.getName()));
+        trialSearch.externalReferenceIDs(trialExperimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
+        );
+    }
+
 }
 
 

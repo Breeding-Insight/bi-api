@@ -11,6 +11,7 @@ import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.breedinginsight.brapps.importer.daos.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -21,6 +22,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -33,11 +35,16 @@ public class BrAPITrialService {
 
     private final BrAPITrialDAO trialDAO;
     private final BrAPIObservationUnitDAO ouDAO;
+    private final BrAPIObservationDAO observationDAO;
+    private final ProgramService programService;
 
     @Inject
-    public BrAPITrialService( BrAPITrialDAO trialDAO,BrAPIObservationUnitDAO ouDAO) {
+    public BrAPITrialService(ProgramService programService, BrAPITrialDAO trialDAO, BrAPIObservationUnitDAO ouDAO, BrAPIObservationDAO observationDAO) {
+        this.programService = programService;
         this.trialDAO = trialDAO;
         this.ouDAO = ouDAO;
+        this.observationDAO = observationDAO;
+
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
@@ -105,8 +112,22 @@ public class BrAPITrialService {
 
         return row;
     }
-    public List<BrAPIObservation> getDataset() {
+    public List<BrAPIObservation> getDataset(UUID programId, UUID experimentId, UUID datasetId) throws ApiException, DoesNotExistException {
         List<BrAPIObservation> dataset = new ArrayList<>();
+        try {
+            List<BrAPITrial> trials = trialDAO.getTrialsByExperimentIds(List.of(experimentId), programId);
+            if (trials.isEmpty()) {
+                throw new DoesNotExistException("Trial does not exist");
+            }
+
+            dataset = observationDAO.getObservationsByTrialDbId(List.of(experimentId.toString()), programId);
+        } catch (ApiException e) {
+            log.error("Error fetching BrAPI observations: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        } catch (DoesNotExistException e) {
+            log.error("Trial does not exist", e);
+            throw new DoesNotExistException(e.getMessage());
+        }
         return dataset;
     }
 }

@@ -69,6 +69,22 @@ public class BrAPIObservationDAO {
         );
     }
 
+    public List<BrAPIObservation> getObservationsByTrialDbId(List<String> trialDbIds, UUID programId) throws ApiException {
+        if(trialDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
+        observationSearchRequest.setProgramDbIds(List.of(programId.toString()));
+        observationSearchRequest.setTrialDbIds(new ArrayList<>(trialDbIds));
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchObservationsPost,
+                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(programId, searchResultsDbId, page, pageSize),
+                observationSearchRequest
+        );
+    }
+
     public List<BrAPIObservation> getObservationsByObservationUnitsAndVariables(Collection<String> ouDbIds, Collection<String> variableDbIds, Program program) throws ApiException {
         if(ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
             return Collections.emptyList();

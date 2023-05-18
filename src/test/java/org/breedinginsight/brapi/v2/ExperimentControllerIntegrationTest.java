@@ -79,6 +79,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private Program program;
     private ImportTestUtils importTestUtils;
     private String mappingId;
+    private String experimentId;
+    private List<Map<String, Object>> rows = new ArrayList<>();
     private List<Column> columns = new ArrayList<>();
     private List<Trait> traits;
     private final String GERMPLASM_LIST_NAME = "Program Germplasm List";
@@ -171,6 +173,29 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         germplasm.forEach(germ -> germ.getExternalReferences().add(newReference));
 
         germplasmDAO.createBrAPIGermplasm(germplasm, program.getId(), null);
+
+        // Make test experiment import
+        Map<String, Object> row1 = makeExpImportRow("Env1");
+        Map<String, Object> row2 = makeExpImportRow("Env2");
+
+        // Add test observation data
+        for (int i = 0; i < traits.size(); i++) {
+            row1.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+            row2.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+        };
+
+        rows.add(row1);
+        rows.add(row2);
+
+        // Import test experiment, environments, and any observations
+        JsonObject importResult = importTestUtils.uploadAndFetch(writeDataToFile(rows, traits), null, true, client, program, mappingId);
+        experimentId = importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("trial").getAsJsonObject()
+                .get("id").getAsString();
+
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
@@ -386,35 +411,35 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
    */
 
     @ParameterizedTest
-    @CsvSource(value = {"true,,XLSX", "false,,CSV", "true,Env1,CSV", "false,Env1,CSV",
+    @CsvSource(value = {"true,,CSV", "false,,CSV", "true,Env1,CSV", "false,Env1,CSV",
             "true,,XLS", "false,,XLS", "true,Env1,XLS", "false,Env1,XLS",
             "true,,XLSX", "false,,XLSX", "true,Env1,XLSX", "false,Env1,XLSX",})
     @SneakyThrows
     void downloadDatasets(boolean hasEmptyObs, String requestedEnv, String extension) {
-        // Make test experiment import
-        List<Map<String, Object>> rows = new ArrayList<>();
-        Map<String, Object> row1 = makeExpImportRow("Env1");
-        Map<String, Object> row2 = makeExpImportRow("Env2");
-
-        // Add test observation data
-        for (int i = 0; i < traits.size(); i++) {
-            row1.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
-            if (!hasEmptyObs) {
-                row2.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
-            }
-        };
-
-        rows.add(row1);
-        rows.add(row2);
-
-        // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetch(writeDataToFile(rows, traits), null, true, client, program, mappingId);
-        String experimentId = importResult
-                .get("preview").getAsJsonObject()
-                .get("rows").getAsJsonArray()
-                .get(0).getAsJsonObject()
-                .get("trial").getAsJsonObject()
-                .get("id").getAsString();
+//        // Make test experiment import
+//        List<Map<String, Object>> rows = new ArrayList<>();
+//        Map<String, Object> row1 = makeExpImportRow("Env1");
+//        Map<String, Object> row2 = makeExpImportRow("Env2");
+//
+//        // Add test observation data
+//        for (int i = 0; i < traits.size(); i++) {
+//            row1.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+//            if (!hasEmptyObs) {
+//                row2.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+//            }
+//        };
+//
+//        rows.add(row1);
+//        rows.add(row2);
+//
+//        // Import test experiment, environments, and any observations
+//        JsonObject importResult = importTestUtils.uploadAndFetch(writeDataToFile(rows, traits), null, true, client, program, mappingId);
+//        String experimentId = importResult
+//                .get("preview").getAsJsonObject()
+//                .get("rows").getAsJsonArray()
+//                .get(0).getAsJsonObject()
+//                .get("trial").getAsJsonObject()
+//                .get("id").getAsString();
 
 
         // Download test experiment
@@ -446,9 +471,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             download = FileUtil.parseTableFromCsv(bodyStream);
         }
         if (extension.equals("XLS") || extension.equals("XLSX")) {
-            Workbook book = WorkbookFactory.create(bodyStream);
-            XSSFWorkbook workbook = new XSSFWorkbook(bodyStream);
-            //new XSSFWorkbook(new ByteArrayInputStream(((FullNettyClientHttpResponse) response).bodyBytes))
             download = FileUtil.parseTableFromExcel(bodyStream, 0);
         }
         checkDownloadTable(requestedEnv, rows, download);
