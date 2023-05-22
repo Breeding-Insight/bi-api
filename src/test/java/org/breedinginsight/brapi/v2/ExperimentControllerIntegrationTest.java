@@ -23,6 +23,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xssf.usermodel.XSSFWorkbookFactory;
 import org.apache.xmlbeans.impl.xb.ltgfmt.TestsDocument;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
@@ -155,7 +156,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject().get("id").getAsString();
 
         // Add traits to program
-        traits = createTraits(1);
+        traits = createTraits(2);
         AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
         try {
             ontologyService.createTraits(program.getId(), traits, user, false);
@@ -195,7 +196,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject()
                 .get("trial").getAsJsonObject()
                 .get("id").getAsString();
-
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {

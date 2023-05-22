@@ -11,6 +11,8 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -18,9 +20,14 @@ import org.breedinginsight.api.model.v1.response.DataResponse;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
+import org.breedinginsight.brapps.importer.model.base.ObservationVariable;
+import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
@@ -35,14 +42,17 @@ import java.util.UUID;
 @Controller
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class ExperimentController {
-
+    private final ProgramDAO programDAO;
     private final BrAPITrialService experimentService;
     private final ExperimentQueryMapper experimentQueryMapper;
+    private final ProgramService programService;
 
     @Inject
-    public ExperimentController(BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper) {
+    public ExperimentController(ProgramDAO programDAO, BrAPITrialService experimentService, ExperimentQueryMapper experimentQueryMapper, ProgramService programService) {
+        this.programDAO = programDAO;
         this.experimentService = experimentService;
         this.experimentQueryMapper = experimentQueryMapper;
+        this.programService = programService;
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/trials{?queryParams*}")
@@ -91,10 +101,14 @@ public class ExperimentController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
-            @QueryValue Object queryParams) {
+            @QueryValue ExperimentExportQuery queryParams) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
-            DownloadFile datasetFile = experimentService.exportObservations(programId, experimentId, queryParams);
+            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+            BrAPITrial experiment = experimentService.getExperiment(program, experimentId);
+            //List<BrAPIObservationVariable> obsVars = experimentService.getDatasetObsVars(experiment, program);
+            //List<BrAPIObservation> dataset = experimentService.getObservationDataset(program, experimentId);
+            DownloadFile datasetFile = experimentService.exportObservations(program, experimentId, queryParams);
             HttpResponse<StreamedFile> datasetExport = HttpResponse.ok(datasetFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName() + ".xlsx");
             return datasetExport;
         } catch (Exception e) {

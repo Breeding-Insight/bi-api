@@ -164,16 +164,17 @@ public class BrAPITrialDAO {
         );
     }
 
-    public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> trialExperimentIds, UUID programId) throws ApiException {
-        if(trialExperimentIds.isEmpty()) {
+    public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException {
+        if(experimentIds.isEmpty()) {
             return Collections.emptyList();
         }
 
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
-        trialSearch.programDbIds(List.of(programId.toString()));
-        trialSearch.externalReferenceSources(List.of(ExternalReferenceSource.TRIALS.getName()));
-        trialSearch.externalReferenceIDs(trialExperimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
-        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        //trialSearch.trialDbIds(experimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
+        trialSearch.externalReferenceSources(List.of(referenceSource + "/" + ExternalReferenceSource.TRIALS.getName()));
+        trialSearch.externalReferenceIDs(experimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
         return brAPIDAOUtil.search(
                 api::searchTrialsPost,
                 api::searchTrialsSearchResultsDbIdGet,
