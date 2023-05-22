@@ -26,7 +26,9 @@ import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
@@ -43,16 +45,18 @@ public class BrAPIObservationUnitDAO {
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
+    private ProgramService programService;
 
     private final String referenceSource;
 
     @Inject
-    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, @Property(name = "brapi.server.reference-source") String referenceSource) {
+    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, ProgramService programService, @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
+        this.programService = programService;
     }
 
     /*
@@ -115,12 +119,25 @@ public class BrAPIObservationUnitDAO {
     public List<BrAPIObservationUnit> getObservationUnitsForStudyDbId(@NotNull String studyDbId, Program program) throws ApiException {
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
         observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
-                                                                 .getProgramDbId()));
+                .getProgramDbId()));
         observationUnitSearchRequest.studyDbIds(List.of(studyDbId));
 
         ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
         return brAPIDAOUtil.search(api::searchObservationunitsPost,
-                                   api::searchObservationunitsSearchResultsDbIdGet,
-                                   observationUnitSearchRequest);
+                api::searchObservationunitsSearchResultsDbIdGet,
+                observationUnitSearchRequest);
+    }
+    public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException, DoesNotExistException {
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
+
+        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
+        observationUnitSearchRequest.programDbIds(List.of(program.getBrapiProgram()
+                .getProgramDbId()));
+        observationUnitSearchRequest.trialDbIds(List.of(trialDbId));
+
+        ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
+        return brAPIDAOUtil.search(api::searchObservationunitsPost,
+                api::searchObservationunitsSearchResultsDbIdGet,
+                observationUnitSearchRequest);
     }
 }
