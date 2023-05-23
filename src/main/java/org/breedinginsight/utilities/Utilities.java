@@ -72,6 +72,17 @@ public class Utilities {
     }
 
     /**
+     * Remove unknown program key from a string. Returns a new value instead of altering original string.
+     *
+     * @param original - The string with a [program key]
+     * @return - the original string without the [program key]
+     */
+    public static String removeUnknownProgramKey(String original) {
+        return original.replaceAll("\\[.*\\]", "").trim();
+    }
+
+
+    /**
      * Remove program key from a string. Returns a new value instead of altering original string.
      *
      * @param original

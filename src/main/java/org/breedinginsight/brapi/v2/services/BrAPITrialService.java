@@ -8,6 +8,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -34,6 +35,8 @@ public class BrAPITrialService {
         HashMap<String, Object> trialData = new HashMap<>(3);
         try {
             BrAPITrial trial = trialDAO.getTrialByDbId(programId,trialId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
+            //Remove the [program key] from the trial name
+            trial.setTrialName( Utilities.removeUnknownProgramKey( trial.getTrialName()) );
             trialData.put("trialData", trial);
             if( stats ){
                 int environmentsCount = 1; // For now this is hardcoded to 1, because we are only supporting one environment per experiment
