@@ -48,11 +48,11 @@ public class BrAPITrialService {
     public HashMap<String, Object> getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
         HashMap<String, Object> trialData = new HashMap<>(3);
         try {
-            trialData.put("trialData", trialDAO.getTrialByDbId(programId,trialId).get());
+            BrAPITrial trial = trialDAO.getTrialByDbId(programId,trialId).get();
+            trialData.put("trialData", trial);
             if( stats ){
                 int environmentsCount = 1; // For now this is hardcoded to 1, because we are only supporting one environment per experiment
-                //TODO this should not be hardcoded
-                long germplasmCount = countGermplasms(programId, trialId);
+                long germplasmCount = countGermplasms(programId, trial.getTrialDbId());
                 trialData.put("environmentsCount", environmentsCount);
                 trialData.put("germplasmCount", germplasmCount);
             }
@@ -62,15 +62,8 @@ public class BrAPITrialService {
         }
     }
 
-    private long countGermplasms(UUID programId, UUID trialId) throws ApiException, DoesNotExistException{
-//        trialId= UUID.fromString("1bfbf7c3-8394-45ab-9021-21f9affadaeb");
-        BrAPITrial brAPItrial = trialDAO.getTrialByDbId(programId,trialId).get();
-        List<BrAPIObservationUnit> obUnits = ouDAO.getObservationUnitsForTrialDbId(programId, brAPItrial.getTrialDbId());
-log.info(",.,.,,.,.,.trait ID,.,.,.,.,.,,,");
-        log.info(brAPItrial.getTrialDbId());
-        log.info(".......gems.......");
-        obUnits.stream().map(ou->ou.getGermplasmDbId()).forEach(s->log.info(s));
-
+    private long countGermplasms(UUID programId, String trialDbId) throws ApiException, DoesNotExistException{
+        List<BrAPIObservationUnit> obUnits = ouDAO.getObservationUnitsForTrialDbId(programId, trialDbId);
         return obUnits.stream().map(ou->ou.getGermplasmDbId()).distinct().count();
     }
 }
