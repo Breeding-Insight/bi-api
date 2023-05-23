@@ -1,6 +1,5 @@
 package org.breedinginsight.brapi.v2.services;
 
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import lombok.extern.slf4j.Slf4j;
@@ -8,7 +7,6 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
-import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
@@ -19,16 +17,11 @@ import java.util.*;
 @Singleton
 public class BrAPITrialService {
 
-    @Property(name = "brapi.server.reference-source")
-    private String referenceSource;
-
     private final BrAPITrialDAO trialDAO;
     private final BrAPIObservationUnitDAO ouDAO;
-    private final ProgramService programService;
 
     @Inject
-    public BrAPITrialService(ProgramService programService, BrAPITrialDAO trialDAO,BrAPIObservationUnitDAO ouDAO) {
-        this.programService = programService;
+    public BrAPITrialService( BrAPITrialDAO trialDAO,BrAPIObservationUnitDAO ouDAO) {
         this.trialDAO = trialDAO;
         this.ouDAO = ouDAO;
     }
@@ -37,22 +30,14 @@ public class BrAPITrialService {
         return trialDAO.getTrials(programId);
     }
 
-    public BrAPITrial getTrialByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
-        try {
-            return trialDAO.getTrialByDbId(programId,trialId).get();
-        } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
-    }
-
     public HashMap<String, Object> getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
         HashMap<String, Object> trialData = new HashMap<>(3);
         try {
-            BrAPITrial trial = trialDAO.getTrialByDbId(programId,trialId).get();
+            BrAPITrial trial = trialDAO.getTrialByDbId(programId,trialId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
             trialData.put("trialData", trial);
             if( stats ){
                 int environmentsCount = 1; // For now this is hardcoded to 1, because we are only supporting one environment per experiment
-                long germplasmCount = countGermplasms(programId, trial.getTrialDbId());
+                long germplasmCount = countGermplasm(programId, trial.getTrialDbId());
                 trialData.put("environmentsCount", environmentsCount);
                 trialData.put("germplasmCount", germplasmCount);
             }
@@ -62,8 +47,8 @@ public class BrAPITrialService {
         }
     }
 
-    private long countGermplasms(UUID programId, String trialDbId) throws ApiException, DoesNotExistException{
+    private long countGermplasm(UUID programId, String trialDbId) throws ApiException, DoesNotExistException{
         List<BrAPIObservationUnit> obUnits = ouDAO.getObservationUnitsForTrialDbId(programId, trialDbId);
-        return obUnits.stream().map(ou->ou.getGermplasmDbId()).distinct().count();
+        return obUnits.stream().map(BrAPIObservationUnit::getGermplasmDbId).distinct().count();
     }
 }

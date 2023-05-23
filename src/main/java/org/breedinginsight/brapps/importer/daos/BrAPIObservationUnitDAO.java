@@ -38,14 +38,11 @@ import java.util.*;
 
 @Singleton
 public class BrAPIObservationUnitDAO {
-
-    public static String OU_ID_REFERENCE_SOURCE = "ou_id";
-
-    private ProgramDAO programDAO;
-    private ImportDAO importDAO;
+    private final ProgramDAO programDAO;
+    private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-    private ProgramService programService;
+    private final ProgramService programService;
 
     private final String referenceSource;
 
@@ -58,25 +55,6 @@ public class BrAPIObservationUnitDAO {
         this.referenceSource = referenceSource;
         this.programService = programService;
     }
-
-    /*
-    public List<BrAPIObservationUnit> getObservationUnitsByNameAndStudyName(List<Pair<String, String>> nameStudyPairs, BrAPIProgram brAPIProgram) throws ApiException {
-
-        List<String> observationUnitNames = nameStudyPairs.stream().map(Pair::getLeft).collect(Collectors.toList());
-        BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
-        observationUnitSearchRequest.setObservationUnitNames(new ArrayList<>(observationUnitNames));
-        observationUnitSearchRequest.setProgramDbIds(List.of(brAPIProgram.getProgramDbId()));
-        ObservationUnitsApi api = brAPIProvider.getObservationUnitApi(BrAPIClientType.CORE);
-        List<BrAPIObservationUnit> observationUnits = BrAPIDAOUtil.search(
-                api::searchObservationunitsPost,
-                api::searchObservationunitsSearchResultsDbIdGet,
-                observationUnitSearchRequest
-        );
-
-        // TODO: Select for study as well
-        return observationUnits;
-    }
-     */
 
     public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
         if(observationUnitNames.isEmpty()) {

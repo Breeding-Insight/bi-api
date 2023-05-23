@@ -76,7 +76,7 @@ public class ExperimentController {
                 logMsg += " with stats";
             }
             log.debug(logMsg);
-            Response<HashMap<String, Object>> response = new Response(experimentService.getTrialDataByUUID(programId, trialId, stats));
+            Response<HashMap<String, Object>> response = new Response<>(experimentService.getTrialDataByUUID(programId, trialId, stats));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage(), e);

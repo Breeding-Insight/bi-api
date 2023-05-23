@@ -21,9 +21,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.core.response.BrAPIListResponse;
-import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -33,7 +30,6 @@ import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
-import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -44,10 +40,10 @@ public class BrAPITrialDAO {
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
-    private ProgramDAO programDAO;
-    private ImportDAO importDAO;
+    private final ProgramDAO programDAO;
+    private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private ProgramService programService;
+    private final ProgramService programService;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     private final String referenceSource;
