@@ -27,11 +27,11 @@ import java.util.stream.Collectors;
 public enum ExperimentFileColumns {
 
     GERMPLASM_NAME(ExperimentObservation.Columns.GERMPLASM_NAME, Column.ColumnDataType.STRING),
-    GERMPLASM_GID(ExperimentObservation.Columns.GERMPLASM_GID, Column.ColumnDataType.INTEGER),
+    GERMPLASM_GID(ExperimentObservation.Columns.GERMPLASM_GID, Column.ColumnDataType.STRING),
     TEST_CHECK(ExperimentObservation.Columns.TEST_CHECK, Column.ColumnDataType.STRING),
     EXP_TITLE(ExperimentObservation.Columns.EXP_TITLE, Column.ColumnDataType.STRING),
     EXP_DESCRIPTION(ExperimentObservation.Columns.EXP_DESCRIPTION, Column.ColumnDataType.STRING),
-    EXP_UNIT(ExperimentObservation.Columns.EXP_UNIT, Column.ColumnDataType.INTEGER),
+    EXP_UNIT(ExperimentObservation.Columns.EXP_UNIT, Column.ColumnDataType.STRING),
     EXP_TYPE(ExperimentObservation.Columns.EXP_TYPE, Column.ColumnDataType.STRING),
     ENV(ExperimentObservation.Columns.ENV, Column.ColumnDataType.STRING),
     ENV_LOCATION(ExperimentObservation.Columns.ENV_LOCATION, Column.ColumnDataType.STRING),
@@ -39,8 +39,8 @@ public enum ExperimentFileColumns {
     EXP_UNIT_ID(ExperimentObservation.Columns.EXP_UNIT_ID, Column.ColumnDataType.STRING),
     REP_NUM(ExperimentObservation.Columns.REP_NUM, Column.ColumnDataType.INTEGER),
     BLOCK_NUM(ExperimentObservation.Columns.BLOCK_NUM, Column.ColumnDataType.INTEGER),
-    ROW(ExperimentObservation.Columns.ROW, Column.ColumnDataType.INTEGER),
-    COLUMN(ExperimentObservation.Columns.COLUMN, Column.ColumnDataType.INTEGER),
+    ROW(ExperimentObservation.Columns.ROW, Column.ColumnDataType.DOUBLE),
+    COLUMN(ExperimentObservation.Columns.COLUMN, Column.ColumnDataType.DOUBLE),
     TREATMENT_FACTORS(ExperimentObservation.Columns.TREATMENT_FACTORS, Column.ColumnDataType.STRING),
     OBS_UNIT_ID(ExperimentObservation.Columns.OBS_UNIT_ID, Column.ColumnDataType.STRING);
 

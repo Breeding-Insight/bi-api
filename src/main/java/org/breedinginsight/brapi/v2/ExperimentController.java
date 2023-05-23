@@ -24,6 +24,7 @@ import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.model.base.ObservationVariable;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
@@ -99,18 +100,30 @@ public class ExperimentController {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @Produces({"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
             @QueryValue ExperimentExportQuery queryParams) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-            BrAPITrial experiment = experimentService.getExperiment(program, experimentId);
-            //List<BrAPIObservationVariable> obsVars = experimentService.getDatasetObsVars(experiment, program);
-            //List<BrAPIObservation> dataset = experimentService.getObservationDataset(program, experimentId);
+            //BrAPITrial experiment = experimentService.getExperiment(program, experimentId);
             DownloadFile datasetFile = experimentService.exportObservations(program, experimentId, queryParams);
-            HttpResponse<StreamedFile> datasetExport = HttpResponse.ok(datasetFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName() + ".xlsx");
-            return datasetExport;
+            FileType type = FileType.XLSX;
+            if (queryParams.getFileExtension().equals(FileType.CSV.getName())) {
+                type = FileType.CSV;
+            }
+            if (queryParams.getFileExtension().equals(FileType.XLS.getName())) {
+                type = FileType.XLS;
+            }
+
+            HttpResponse<StreamedFile> response = HttpResponse
+                    .status(HttpStatus.OK)
+                    .contentType(type.getMimeType())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName())
+                    .body(datasetFile.getStreamedFile());
+            //HttpResponse<StreamedFile> datasetExport = HttpResponse.ok(datasetFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName());
+            return response;
         } catch (Exception e) {
             log.info(e.getMessage(), e);
             e.printStackTrace();

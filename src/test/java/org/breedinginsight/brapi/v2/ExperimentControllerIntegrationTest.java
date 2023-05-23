@@ -448,7 +448,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             envParam = "env=" + requestedEnv;
         }
         Flowable<HttpResponse<byte[]>> call = client.exchange(
-                GET(String.format("/programs/%s/experiments/%s/export?%s&fileExtension=%s",program.getId().toString(), experimentId, envParam, extension))
+                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=true&%s&fileExtension=%s",program.getId().toString(), experimentId, envParam, extension))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
         HttpResponse<byte[]> response = call.blockingFirst();
