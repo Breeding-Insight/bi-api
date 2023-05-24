@@ -135,7 +135,7 @@ public class BrAPITrialDAO {
         return displayExperiments;
     }
 
-    public Optional<BrAPITrial> getTrialByDbId(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
+    public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
         Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
         String refSoure = Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS);
         List<BrAPITrial> trials = getTrialsByExRef(refSoure, trialDbId.toString(), program);
@@ -143,6 +143,10 @@ public class BrAPITrialDAO {
         return Utilities.getSingleOptional(trials);
     }
 
+    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
+        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
+        return Utilities.getSingleOptional(trials);
+    }
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();

@@ -66,7 +66,7 @@ public class ExperimentController {
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/trials/{trialId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<Response<HashMap<String, Object>>> getExperimentById(
+    public HttpResponse<Response<BrAPITrial>> getExperimentById(
             @PathVariable("programId") UUID programId,
             @PathVariable("trialId") UUID trialId,
             @QueryValue(defaultValue = "false") Boolean stats){
@@ -76,7 +76,7 @@ public class ExperimentController {
                 logMsg += " with stats";
             }
             log.debug(logMsg);
-            Response<HashMap<String, Object>> response = new Response<>(experimentService.getTrialDataByUUID(programId, trialId, stats));
+            Response<BrAPITrial> response = new Response<>(experimentService.getTrialDataByUUID(programId, trialId, stats));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage(), e);

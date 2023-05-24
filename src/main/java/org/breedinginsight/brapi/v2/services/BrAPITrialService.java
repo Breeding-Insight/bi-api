@@ -31,20 +31,18 @@ public class BrAPITrialService {
         return trialDAO.getTrials(programId);
     }
 
-    public HashMap<String, Object> getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
-        HashMap<String, Object> trialData = new HashMap<>(3);
+    public BrAPITrial getTrialDataByUUID(UUID programId, UUID trialId, boolean stats) throws DoesNotExistException {
         try {
-            BrAPITrial trial = trialDAO.getTrialByDbId(programId,trialId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
+            BrAPITrial trial = trialDAO.getTrialById(programId,trialId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
             //Remove the [program key] from the trial name
             trial.setTrialName( Utilities.removeUnknownProgramKey( trial.getTrialName()) );
-            trialData.put("trialData", trial);
             if( stats ){
                 int environmentsCount = 1; // For now this is hardcoded to 1, because we are only supporting one environment per experiment
                 long germplasmCount = countGermplasm(programId, trial.getTrialDbId());
-                trialData.put("environmentsCount", environmentsCount);
-                trialData.put("germplasmCount", germplasmCount);
+                trial.putAdditionalInfoItem("environmentsCount", environmentsCount);
+                trial.putAdditionalInfoItem("germplasmCount", germplasmCount);
             }
-            return trialData;
+            return trial;
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
