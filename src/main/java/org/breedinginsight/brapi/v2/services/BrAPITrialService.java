@@ -161,6 +161,16 @@ public class BrAPITrialService {
             Program program,
             boolean includeTimestamp,
             List<BrAPIObservationVariable> obsVars) throws ApiException, DoesNotExistException {
+        // cache studies belonging to dataset
+        Map<String, BrAPIStudy> studyByDbId = new HashMap<>();
+        for (BrAPIObservation obs: dataset) {
+            if (studyByDbId.get(obs.getStudyDbId()) == null) {
+                BrAPIStudy study = studyDAO.getStudyByDbId(obs.getStudyDbId(), program)
+                        .orElseThrow(() -> new DoesNotExistException("Study not returned from BrAPI Service"));
+                studyByDbId.put(obs.getStudyDbId(), study);
+            }
+        }
+
         for (BrAPIObservation obs: dataset) {
 
             // get ouId
@@ -190,8 +200,7 @@ public class BrAPITrialService {
                 HashMap<String, Object> row = new HashMap<>();
                 BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByDBID(obs.getGermplasmDbId(), program.getId())
                         .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
-                BrAPIStudy study = studyDAO.getStudyByDbId(obs.getStudyDbId(), program)
-                        .orElseThrow(() -> new DoesNotExistException("Study not returned from BrAPI Service"));
+                BrAPIStudy study = studyByDbId.get(obs.getStudyDbId());
                 row.put(ExperimentObservation.Columns.GERMPLASM_NAME, obs.getGermplasmName());
                 row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
                 row.put(ExperimentObservation.Columns.TEST_CHECK, ou.getObservationUnitPosition().getEntryType().toString());
@@ -286,14 +295,9 @@ public class BrAPITrialService {
             UUID experimentId,
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException, ParsingException {
         // process params
-        boolean includeTimestamps = params.getIncludeTimestamps().equals("true");
-        FileType fileType = FileType.XLSX;
-        if (params.getFileExtension().toLowerCase().equals(FileType.CSV.getName())) {
-            fileType = FileType.CSV;
-        }
-        if (params.getFileExtension().toLowerCase().equals(FileType.XLS.getName())) {
-            fileType = FileType.XLS;
-        }
+        //boolean includeTimestamps = params.getIncludeTimestamps().equals("true");
+
+        FileType fileType = params.getFileExtension();
 
         // get BrAPI observations for requested environments
         List<BrAPIObservation> dataset = getObservationDataset(program, experimentId);
@@ -311,14 +315,14 @@ public class BrAPITrialService {
                     .getAdditionalInfo().getAsJsonObject()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
             obsVars = getDatasetObsVars(obsDatasetId, program);
-            columns = addObsVarColumns(columns, obsVars, includeTimestamps, program);
+            columns = addObsVarColumns(columns, obsVars, params.isIncludeTimestamps(), program);
         }
 
         StreamedFile downloadFile;
         List<Map<String, Object>> experimentObservationRecords = new ArrayList<>();
 
 
-        experimentObservationRecords = addBrAPIObsToRecords(experimentObservationRecords, dataset, experiment, program, includeTimestamps, obsVars);
+        experimentObservationRecords = addBrAPIObsToRecords(experimentObservationRecords, dataset, experiment, program, params.isIncludeTimestamps(), obsVars);
 
         if (fileType.equals(FileType.CSV)){
             downloadFile = CSVWriter.writeToDownload(columns, experimentObservationRecords, fileType);

@@ -15,10 +15,10 @@ import java.util.List;
 @Getter
 @Introspected
 public class ExperimentExportQuery {
-    private String fileExtension;
+    private FileType fileExtension;
     private String dataset;
     private String environments;
     @NotNull
-    private String includeTimestamps;
+    private boolean includeTimestamps;
 
 }
