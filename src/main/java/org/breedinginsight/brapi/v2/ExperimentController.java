@@ -106,12 +106,12 @@ public class ExperimentController {
     @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
-            @QueryValue ExperimentExportQuery queryParams) {
+            @QueryValue @Valid ExperimentExportQuery queryParams) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
             DownloadFile datasetFile = experimentService.exportObservations(program, experimentId, queryParams);
-            //Table table = FileUtil.parseTableFromCsv(datasetFile.getStreamedFile().getInputStream());
+            Table table = FileUtil.parseTableFromCsv(datasetFile.getStreamedFile().getInputStream());
             HttpResponse<StreamedFile> response = HttpResponse
                     .ok(datasetFile.getStreamedFile())
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName());

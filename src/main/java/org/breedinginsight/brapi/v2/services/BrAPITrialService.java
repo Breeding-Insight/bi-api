@@ -155,12 +155,14 @@ public class BrAPITrialService {
         }
     }
     private List<Map<String, Object>> addBrAPIObsToRecords(
-            List<Map<String, Object>> maps,
             List<BrAPIObservation> dataset,
             BrAPITrial experiment,
             Program program,
             boolean includeTimestamp,
             List<BrAPIObservationVariable> obsVars) throws ApiException, DoesNotExistException {
+        // lookup table for export rows by OU id
+        Map<String, Map<String, Object>> rowByOUId = new HashMap<>();
+
         // cache studies belonging to dataset
         Map<String, BrAPIStudy> studyByDbId = new HashMap<>();
         for (BrAPIObservation obs: dataset) {
@@ -189,11 +191,8 @@ public class BrAPITrialService {
             String ouId = ouXref.getReferenceID();
 
             // if there is a row with that ouId then just add the obs var data and timestamp to the row
-            Optional<Map<String, Object>> existingRow = maps.stream()
-                    .filter(row -> ouId.equals(row.get(ExperimentObservation.Columns.OBS_UNIT_ID)))
-                    .findAny();
-            if (existingRow.isPresent()) {
-                addObsVarDataToRow(existingRow.get(), obs, includeTimestamp, obsVars, program);
+            if (rowByOUId.get(ouId) != null) {
+                addObsVarDataToRow(rowByOUId.get(ouId), obs, includeTimestamp, obsVars, program);
             } else {
 
                 // otherwise, make a new row
@@ -201,7 +200,7 @@ public class BrAPITrialService {
                 BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByDBID(obs.getGermplasmDbId(), program.getId())
                         .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
                 BrAPIStudy study = studyByDbId.get(obs.getStudyDbId());
-                row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(obs.getGermplasmName(), program.getKey()));
+                row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(obs.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
                 row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
                 row.put(ExperimentObservation.Columns.TEST_CHECK, ou.getObservationUnitPosition().getEntryType().toString());
                 row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
@@ -209,9 +208,9 @@ public class BrAPITrialService {
                 row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
                 row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
                 row.put(ExperimentObservation.Columns.ENV, obs.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.STUDY_NAME).getAsString());
-                row.put(ExperimentObservation.Columns.ENV_LOCATION, study.getLocationName());
+                row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
                 row.put(ExperimentObservation.Columns.ENV_YEAR, obs.getSeason().getYear());
-                row.put(ExperimentObservation.Columns.EXP_UNIT_ID, obs.getObservationUnitName());
+                row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKey(obs.getObservationUnitName(), program.getKey()));
 
                 // get replicate number
                 Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
@@ -244,10 +243,12 @@ public class BrAPITrialService {
 
                 row.put(ExperimentObservation.Columns.OBS_UNIT_ID, ouId);
                 addObsVarDataToRow(row, obs, includeTimestamp, obsVars, program);
-                maps.add(row);
+                rowByOUId.put(ouId, row);
             }
         }
-        return maps;
+
+        // return a list of export rows
+        return rowByOUId.entrySet().stream().map(entry -> entry.getValue()).collect(Collectors.toList());
     }
 
     private List<Column> addObsVarColumns(
@@ -319,10 +320,8 @@ public class BrAPITrialService {
         }
 
         StreamedFile downloadFile;
-        List<Map<String, Object>> experimentObservationRecords = new ArrayList<>();
 
-
-        experimentObservationRecords = addBrAPIObsToRecords(experimentObservationRecords, dataset, experiment, program, params.isIncludeTimestamps(), obsVars);
+        List<Map<String, Object>> experimentObservationRecords = addBrAPIObsToRecords(dataset, experiment, program, params.isIncludeTimestamps(), obsVars);
 
         if (fileType.equals(FileType.CSV)){
             downloadFile = CSVWriter.writeToDownload(columns, experimentObservationRecords, fileType);
