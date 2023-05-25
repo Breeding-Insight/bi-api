@@ -201,10 +201,10 @@ public class BrAPITrialService {
                 BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByDBID(obs.getGermplasmDbId(), program.getId())
                         .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
                 BrAPIStudy study = studyByDbId.get(obs.getStudyDbId());
-                row.put(ExperimentObservation.Columns.GERMPLASM_NAME, obs.getGermplasmName());
+                row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(obs.getGermplasmName(), program.getKey()));
                 row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
                 row.put(ExperimentObservation.Columns.TEST_CHECK, ou.getObservationUnitPosition().getEntryType().toString());
-                row.put(ExperimentObservation.Columns.EXP_TITLE, experiment.getTrialName());
+                row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
                 row.put(ExperimentObservation.Columns.EXP_DESCRIPTION, experiment.getTrialDescription());
                 row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
                 row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
@@ -279,7 +279,7 @@ public class BrAPITrialService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
         return String.format("%s_Observation Dataset [%s-%s]_%s_%s",
-                experiment.getTrialName(),
+                Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
                 program.getKey(),
                 experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString(),
                 envName,
