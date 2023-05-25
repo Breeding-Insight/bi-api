@@ -32,6 +32,9 @@ import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
+import org.breedinginsight.utilities.FileUtil;
+import org.breedinginsight.utilities.Utilities;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
@@ -107,22 +110,11 @@ public class ExperimentController {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-            //BrAPITrial experiment = experimentService.getExperiment(program, experimentId);
             DownloadFile datasetFile = experimentService.exportObservations(program, experimentId, queryParams);
-            FileType type = FileType.XLSX;
-            if (queryParams.getFileExtension().equals(FileType.CSV.getName())) {
-                type = FileType.CSV;
-            }
-            if (queryParams.getFileExtension().equals(FileType.XLS.getName())) {
-                type = FileType.XLS;
-            }
-
+            Table table = FileUtil.parseTableFromCsv(datasetFile.getStreamedFile().getInputStream());
             HttpResponse<StreamedFile> response = HttpResponse
-                    .status(HttpStatus.OK)
-                    .contentType(type.getMimeType())
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName())
-                    .body(datasetFile.getStreamedFile());
-            //HttpResponse<StreamedFile> datasetExport = HttpResponse.ok(datasetFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName());
+                    .ok(datasetFile.getStreamedFile())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName());
             return response;
         } catch (Exception e) {
             log.info(e.getMessage(), e);

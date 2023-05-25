@@ -32,13 +32,17 @@ import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
+import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.Utilities;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -125,23 +129,29 @@ public class BrAPITrialService {
         return experiments.get(0);
     }
 
-    private void addObsVarDataToRow(Map<String, Object> row, BrAPIObservation obs, boolean includeTimestamp, List<BrAPIObservationVariable> obsVars) {
+    private void addObsVarDataToRow(
+            Map<String, Object> row,
+            BrAPIObservation obs,
+            boolean includeTimestamp,
+            List<BrAPIObservationVariable> obsVars,
+            Program program) {
         // get observation variable for BrAPI observation
         BrAPIObservationVariable var = obsVars.stream()
                 .filter(obsVar -> obs.getObservationVariableName().equals(obsVar.getObservationVariableName()))
                 .collect(Collectors.toList()).get(0);
 
+        String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
         if (var.getScale().getDataType().equals(BrAPITraitDataType.ORDINAL)) {
-            row.put(obs.getObservationVariableName(), Integer.parseInt(obs.getValue()));
+            row.put(varName, Integer.parseInt(obs.getValue()));
         } else if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
                 var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
-            row.put(obs.getObservationVariableName(), Double.parseDouble(obs.getValue()));
+            row.put(varName, Double.parseDouble(obs.getValue()));
         } else {
-            row.put(obs.getObservationVariableName(), obs.getValue());
+            row.put(varName, obs.getValue());
         }
 
         if (includeTimestamp) {
-            row.put(String.format("TS:%s",obs.getObservationVariableName()), obs.getObservationTimeStamp());
+            row.put(String.format("TS:%s",varName), obs.getObservationTimeStamp());
         }
     }
     private List<Map<String, Object>> addBrAPIObsToRecords(
@@ -173,7 +183,7 @@ public class BrAPITrialService {
                     .filter(row -> ouId.equals(row.get(ExperimentObservation.Columns.OBS_UNIT_ID)))
                     .findAny();
             if (existingRow.isPresent()) {
-                addObsVarDataToRow(existingRow.get(), obs, includeTimestamp, obsVars);
+                addObsVarDataToRow(existingRow.get(), obs, includeTimestamp, obsVars, program);
             } else {
 
                 // otherwise, make a new row
@@ -219,17 +229,23 @@ public class BrAPITrialService {
 
                 if (ou.getTreatments() != null && !ou.getTreatments().isEmpty()) {
                     row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, ou.getTreatments().get(0).getFactor().toString());
+                } else {
+                    row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, null);
                 }
 
                 row.put(ExperimentObservation.Columns.OBS_UNIT_ID, ouId);
-                addObsVarDataToRow(row, obs, includeTimestamp, obsVars);
+                addObsVarDataToRow(row, obs, includeTimestamp, obsVars, program);
                 maps.add(row);
             }
         }
         return maps;
     }
 
-    private List<Column> addObsVarColumns(List<Column> columns, List<BrAPIObservationVariable> obsVars, boolean includeTimestamps) {
+    private List<Column> addObsVarColumns(
+            List<Column> columns,
+            List<BrAPIObservationVariable> obsVars,
+            boolean includeTimestamps,
+            Program program) {
         for (BrAPIObservationVariable var: obsVars) {
             Column obsVarColumn = new Column();
             obsVarColumn.setDataType(Column.ColumnDataType.STRING);
@@ -240,10 +256,11 @@ public class BrAPITrialService {
                     var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
                 obsVarColumn.setDataType(Column.ColumnDataType.DOUBLE);
             }
-            obsVarColumn.setValue(var.getObservationVariableName());
+            String varName = Utilities.removeProgramKey(var.getObservationVariableName(), program.getKey());
+            obsVarColumn.setValue(varName);
             columns.add(obsVarColumn);
             if (includeTimestamps) {
-                columns.add(new Column(String.format("TS:%s",var.getObservationVariableName()),Column.ColumnDataType.STRING));
+                columns.add(new Column(String.format("TS:%s",varName),Column.ColumnDataType.STRING));
             }
         }
         return columns;
@@ -267,14 +284,14 @@ public class BrAPITrialService {
     public DownloadFile exportObservations(
             Program program,
             UUID experimentId,
-            ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException {
+            ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException, ParsingException {
         // process params
         boolean includeTimestamps = params.getIncludeTimestamps().equals("true");
         FileType fileType = FileType.XLSX;
-        if (params.getFileExtension().equals(FileType.CSV.getName())) {
+        if (params.getFileExtension().toLowerCase().equals(FileType.CSV.getName())) {
             fileType = FileType.CSV;
         }
-        if (params.getFileExtension().equals(FileType.XLS.getName())) {
+        if (params.getFileExtension().toLowerCase().equals(FileType.XLS.getName())) {
             fileType = FileType.XLS;
         }
 
@@ -294,7 +311,7 @@ public class BrAPITrialService {
                     .getAdditionalInfo().getAsJsonObject()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
             obsVars = getDatasetObsVars(obsDatasetId, program);
-            columns = addObsVarColumns(columns, obsVars, includeTimestamps);
+            columns = addObsVarColumns(columns, obsVars, includeTimestamps, program);
         }
 
         StreamedFile downloadFile;
@@ -303,13 +320,15 @@ public class BrAPITrialService {
 
         experimentObservationRecords = addBrAPIObsToRecords(experimentObservationRecords, dataset, experiment, program, includeTimestamps, obsVars);
 
-        if (params.getFileExtension().equals(FileType.CSV)){
+        if (fileType.equals(FileType.CSV)){
             downloadFile = CSVWriter.writeToDownload(columns, experimentObservationRecords, fileType);
         } else {
             downloadFile = ExcelWriter.writeToDownload("Dataset Export", columns, experimentObservationRecords, fileType);
         }
 
-        String fileName = makeFileName(experiment, program, params.getEnvironments()) + fileType.getExtension();
+        // Table table = FileUtil.parseTableFromCsv(downloadFile.getInputStream());
+        String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
+        String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
         return new DownloadFile(fileName, downloadFile);
     }
 
@@ -342,13 +361,11 @@ public class BrAPITrialService {
                 throw new DoesNotExistException("Experiment not found");
             }
             BrAPITrial datasetTrial = trials.stream().filter(trial -> {
-                String id = trial
+                return trial
                         .getAdditionalInfo()
                         .getAsJsonObject()
-                        .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
-                        .getAsString();
-                return id != null;
-            }).findAny().orElseThrow(() -> new DoesNotExistException("Experiment dataset not found"));
+                        .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) != null;
+            }).findFirst().orElseThrow(() -> new DoesNotExistException("Experiment dataset not found"));
             dataset = observationDAO.getObservationsByTrialDbId(List.of(datasetTrial.getTrialDbId()), program);
         } catch (ApiException e) {
             log.error("Error fetching BrAPI observations: " + Utilities.generateApiExceptionLogMessage(e), e);

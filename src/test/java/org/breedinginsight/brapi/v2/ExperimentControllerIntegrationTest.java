@@ -27,6 +27,7 @@ import org.brapi.v2.model.core.BrAPIProgram;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPITrait;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -36,6 +37,7 @@ import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
@@ -181,8 +183,10 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         // Add test observation data
         for (int i = 0; i < traits.size(); i++) {
-            row1.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
-            row2.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
+            Double val1 = Math.random();
+            Double val2 = Math.random();
+            row1.put(traits.get(i).getObservationVariableName(), val1);
+            row2.put(traits.get(i).getObservationVariableName(), val2);
         };
 
         rows.add(row1);
@@ -300,40 +304,20 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         return germplasm;
     }
-
-    private void checkXLSDownload(Map<String, Object> dataRow, Map<String, Object> emptyRow, HSSFWorkbook workbook) {
-        HSSFSheet experimentData = workbook.getSheet("Experiment Data");
-        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
-        // All columns included
-        // All environments included
-        // All data included
-        // Observation units populated
-
-    }
-
-    private void checkXLSXDownload(List<Map<String, Object>> importRows, XSSFWorkbook workbook) {
-        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
-        // All columns included
-        // All environments included
-        // All data included
-        // Observation units populated
-
-    }
-
-    private void checkCSVDownload(List<Map<String, Object>> importRows, CSVReader reader) {
-        // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
-        // All columns included
-        // All environments included
-        // All data included
-        // Observation units populated
-
-    }
-    private void checkDownloadTable(String requestedEnv, List<Map<String, Object>> importRows, Table table) {
+    private void checkDownloadTable(
+            String requestedEnv,
+            List<Map<String, Object>> importRows,
+            Table table,
+            boolean includeTimestamps) {
         // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
         List<Map<String, Object>> requestedImportRows;
 
         // All columns included
-        assertEquals(columns.size(), table.columnCount());
+        Integer expectedColNumber = columns.size();
+        if (includeTimestamps) {
+            expectedColNumber += traits.size();
+        }
+        assertEquals(expectedColNumber, table.columnCount());
 
         if (requestedEnv == null) {
             requestedImportRows = importRows;
@@ -360,6 +344,19 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
 
         // All requested import data included in download
+        // update columns with traitName to use "traitName [progrmKey]"
+        /*
+        List<String> traitNames = traits.stream().map(trait -> trait.getObservationVariableName()).collect(Collectors.toList());
+        for (Map<String, Object> row: requestedImportRows) {
+            row.entrySet().stream().forEach(column -> {
+                if (traitNames.contains(column.getKey())) {
+
+                }
+            });
+        }
+
+         */
+
         List<Map<String, Object>> matchingImportRows = requestedImportRows.stream().filter(importRow -> {
             for (Row downloadRow : table) {
                 if (isMatchedRow(importRow, downloadRow)) {
@@ -378,18 +375,20 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {
         return importRow.entrySet().stream().filter(e -> {
             String header = e.getKey();
-            List<Column> importColumns = columns.stream().filter(col -> {return col.getValue() == header;}).collect(Collectors.toList());
+            List<Column> importColumns = columns.stream().filter(col -> {return header.equals(col.getValue());}).collect(Collectors.toList());
             if (importColumns.isEmpty() || importColumns.size() > 1) {
                 return false;
             }
-
-            if (importColumns.get(0).getDataType() == Column.ColumnDataType.STRING) {
-                return downloadRow.getString(e.getKey().toString()) == e.getValue();
+            if (downloadRow.getColumnType(e.getKey()).equals(Column.ColumnDataType.STRING)) {
+                return downloadRow.getString(e.getKey()).equals(e.getValue());
+            }
+            if (downloadRow.getColumnType(e.getKey()).equals(Column.ColumnDataType.INTEGER)) {
+                return downloadRow.getInt(e.getKey()) == Integer.parseInt(e.getValue().toString());
+            }
+            if (downloadRow.getColumnType(e.getKey()).equals(Column.ColumnDataType.DOUBLE)) {
+                return downloadRow.getDouble(e.getKey()) == Double.parseDouble(e.getValue().toString());
             }
 
-            if (importColumns.get(0).getDataType() == Column.ColumnDataType.INTEGER) {
-                return downloadRow.getInt(e.getKey().toString()) == Integer.parseInt(e.getValue().toString()) ;
-            }
             return false;
         }).collect(Collectors.toList()).size() == importRow.size();
     }
@@ -411,44 +410,22 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
    */
 
     @ParameterizedTest
-    @CsvSource(value = {"true,,CSV", "false,,CSV", "true,Env1,CSV", "false,Env1,CSV",
-            "true,,XLS", "false,,XLS", "true,Env1,XLS", "false,Env1,XLS",
-            "true,,XLSX", "false,,XLSX", "true,Env1,XLSX", "false,Env1,XLSX",})
+    @CsvSource(value = {"true,true,,CSV", "true,false,,CSV", "true,true,Env1,CSV", "true,false,Env1,CSV",
+            "false,true,,CSV", "false,false,,CSV", "false,true,Env1,CSV", "false,false,Env1,CSV",
+            "true,true,,XLS", "true,false,,XLS", "true,true,Env1,XLS", "true,false,Env1,XLS",
+            "false,true,,XLS", "false,false,,XLS", "false,true,Env1,XLS", "false,false,Env1,XLS",
+            "true,true,,XLSX", "true,false,,XLSX", "true,true,Env1,XLSX", "true,false,Env1,XLSX",
+            "false,true,,XLSX", "false,false,,XLSX", "false,true,Env1,XLSX", "false,false,Env1,XLSX",})
     @SneakyThrows
-    void downloadDatasets(boolean hasEmptyObs, String requestedEnv, String extension) {
-//        // Make test experiment import
-//        List<Map<String, Object>> rows = new ArrayList<>();
-//        Map<String, Object> row1 = makeExpImportRow("Env1");
-//        Map<String, Object> row2 = makeExpImportRow("Env2");
-//
-//        // Add test observation data
-//        for (int i = 0; i < traits.size(); i++) {
-//            row1.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
-//            if (!hasEmptyObs) {
-//                row2.put(traits.get(i).getObservationVariableName(), Integer.toString(i));
-//            }
-//        };
-//
-//        rows.add(row1);
-//        rows.add(row2);
-//
-//        // Import test experiment, environments, and any observations
-//        JsonObject importResult = importTestUtils.uploadAndFetch(writeDataToFile(rows, traits), null, true, client, program, mappingId);
-//        String experimentId = importResult
-//                .get("preview").getAsJsonObject()
-//                .get("rows").getAsJsonArray()
-//                .get(0).getAsJsonObject()
-//                .get("trial").getAsJsonObject()
-//                .get("id").getAsString();
-
-
+    void downloadDatasets(boolean includeTimestamps, boolean hasEmptyObs, String requestedEnv, String extension) {
         // Download test experiment
         String envParam = "all=true";
         if (requestedEnv != null) {
-            envParam = "env=" + requestedEnv;
+            envParam = "environments=" + requestedEnv;
         }
         Flowable<HttpResponse<byte[]>> call = client.exchange(
-                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=true&%s&fileExtension=%s",program.getId().toString(), experimentId, envParam, extension))
+                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
+                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
         HttpResponse<byte[]> response = call.blockingFirst();
@@ -458,9 +435,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         // Assert file format fidelity
         Map<String, String> mediaTypeByExtension = new HashMap<>();
-        mediaTypeByExtension.put("CSV", "text/csv");
-        mediaTypeByExtension.put("XLS","application/vnd.ms.excel");
-        mediaTypeByExtension.put("XLSX", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        mediaTypeByExtension.put("CSV", FileType.CSV.getMimeType());
+        mediaTypeByExtension.put("XLS", FileType.XLS.getMimeType());
+        mediaTypeByExtension.put("XLSX", FileType.XLSX.getMimeType());
         String downloadMediaType = response.getHeaders().getContentType().orElseThrow(Exception::new);
         assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
 
@@ -473,6 +450,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         if (extension.equals("XLS") || extension.equals("XLSX")) {
             download = FileUtil.parseTableFromExcel(bodyStream, 0);
         }
-        checkDownloadTable(requestedEnv, rows, download);
+        checkDownloadTable(requestedEnv, rows, download, includeTimestamps);
     }
 }
