@@ -138,14 +138,14 @@ public class BrAPIGermplasmService {
                 }
             }
 
-            if ((germplasmEntry.getPedigree() != null) && (!germplasmEntry.getPedigree().isEmpty())) {
-                Pedigree germPedigree = Pedigree.parsePedigreeString(germplasmEntry.getPedigree());
-                if (!germPedigree.maleParent.isEmpty()) {
-                    row.put("Male Parent GID", Integer.parseInt(germPedigree.maleParent));
-                }
-                if (!germPedigree.femaleParent.isEmpty()) {
-                    row.put("Female Parent GID", Integer.parseInt(germPedigree.femaleParent));
-                }
+            if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) != null) {
+                row.put("Male Parent GID", germplasmEntry.getAdditionalInfo()
+                        .get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsInt());
+            }
+
+            if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) != null) {
+                row.put("Female Parent GID", germplasmEntry.getAdditionalInfo()
+                        .get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsInt());
             }
 
             // Synonyms
