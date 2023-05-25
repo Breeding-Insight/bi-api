@@ -111,7 +111,7 @@ public class ExperimentController {
         try {
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
             DownloadFile datasetFile = experimentService.exportObservations(program, experimentId, queryParams);
-            Table table = FileUtil.parseTableFromCsv(datasetFile.getStreamedFile().getInputStream());
+            //Table table = FileUtil.parseTableFromCsv(datasetFile.getStreamedFile().getInputStream());
             HttpResponse<StreamedFile> response = HttpResponse
                     .ok(datasetFile.getStreamedFile())
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName());

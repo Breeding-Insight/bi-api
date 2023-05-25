@@ -295,7 +295,7 @@ public class BrAPITrialService {
             UUID experimentId,
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException, ParsingException {
         // process params
-        //boolean includeTimestamps = params.getIncludeTimestamps().equals("true");
+
 
         FileType fileType = params.getFileExtension();
 
@@ -330,7 +330,6 @@ public class BrAPITrialService {
             downloadFile = ExcelWriter.writeToDownload("Dataset Export", columns, experimentObservationRecords, fileType);
         }
 
-        // Table table = FileUtil.parseTableFromCsv(downloadFile.getInputStream());
         String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
         String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
         return new DownloadFile(fileName, downloadFile);
