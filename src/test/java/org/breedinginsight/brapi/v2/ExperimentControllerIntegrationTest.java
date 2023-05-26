@@ -55,6 +55,7 @@ import org.jooq.tools.csv.CSVReader;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
@@ -357,14 +358,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
          */
 
-        List<Map<String, Object>> matchingImportRows = requestedImportRows.stream().filter(importRow -> {
-            for (Row downloadRow : table) {
-                if (isMatchedRow(importRow, downloadRow)) {
-                    return true;
-                };
+        List<Map<String, Object>> matchingImportRows = new ArrayList<>();
+
+        for (int rowNum = 0; rowNum < requestedImportRows.size(); rowNum++) {
+            Row downloadRow = table.row(rowNum);
+            if(isMatchedRow(requestedImportRows.get(rowNum), downloadRow)) {
+                matchingImportRows.add(requestedImportRows.get(rowNum));
             }
-            return false;
-        }).collect(Collectors.toList());
+        }
         assertEquals(requestedImportRows.size(),matchingImportRows.size());
 
         // Observation units populated
@@ -373,24 +374,39 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {
+        System.out.println("Validating row: " + downloadRow.getRowNumber());
         return importRow.entrySet().stream().filter(e -> {
             String header = e.getKey();
             List<Column> importColumns = columns.stream().filter(col -> {return header.equals(col.getValue());}).collect(Collectors.toList());
-            if (importColumns.isEmpty() || importColumns.size() > 1) {
+            if (importColumns.size() != 1) {
                 return false;
             }
-            if (downloadRow.getColumnType(e.getKey()).equals(Column.ColumnDataType.STRING)) {
-                return downloadRow.getString(e.getKey()).equals(e.getValue());
-            }
-            if (downloadRow.getColumnType(e.getKey()).equals(Column.ColumnDataType.INTEGER)) {
-                return downloadRow.getInt(e.getKey()) == Integer.parseInt(e.getValue().toString());
-            }
-            if (downloadRow.getColumnType(e.getKey()).equals(Column.ColumnDataType.DOUBLE)) {
-                return downloadRow.getDouble(e.getKey()) == Double.parseDouble(e.getValue().toString());
-            }
+            Object expectedVal = null;
+            Object downloadedVal = null;
+            boolean doCompare = false;
 
-            return false;
-        }).collect(Collectors.toList()).size() == importRow.size();
+            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.STRING)) {
+                expectedVal = e.getValue();
+                downloadedVal = downloadRow.getString(e.getKey());
+                doCompare = true;
+            }
+            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.INTEGER)) {
+                expectedVal = Integer.parseInt(e.getValue().toString());
+                downloadedVal = downloadRow.getInt(e.getKey());
+                doCompare = true;
+            }
+            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.DOUBLE)) {
+                expectedVal = Double.parseDouble(e.getValue().toString());
+                downloadedVal = downloadRow.getDouble(e.getKey());
+                doCompare = true;
+            }
+            System.out.println("Column: "+e.getKey()+", Expected: '"+ expectedVal +"', Received: '" + downloadedVal+"'");
+            if(doCompare) {
+                return expectedVal.equals(downloadedVal);
+            } else {
+                return false;
+            }
+        }).count() == importRow.size();
     }
 
    /*
