@@ -186,7 +186,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             Double val1 = Math.random();
             Double val2 = Math.random();
             row1.put(traits.get(i).getObservationVariableName(), val1);
-            row2.put(traits.get(i).getObservationVariableName(), val2);
+            //row2.put(traits.get(i).getObservationVariableName(), val2);
         };
 
         rows.add(row1);

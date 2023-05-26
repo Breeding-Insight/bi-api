@@ -250,6 +250,65 @@ public class BrAPITrialService {
         // return a list of export rows
         return rowByOUId.entrySet().stream().map(entry -> entry.getValue()).collect(Collectors.toList());
     }
+/*
+    private Map<String, Object> createExportRow(
+            BrAPITrial experiment,
+            Program program,
+            BrAPIObservationUnit ou,
+            Map<String, BrAPIStudy> studyByDbId) throws ApiException, DoesNotExistException {
+        HashMap<String, Object> row = new HashMap<>();
+        BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByDBID(ou.getGermplasmDbId(), program.getId())
+                .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
+        BrAPIStudy study = studyByDbId.get(ou.getStudyDbId());
+        study.getSeasons().isEmpty() ? null : study.getSeasons().get(0)
+        row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(ou.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
+        row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
+        row.put(ExperimentObservation.Columns.TEST_CHECK, ou.getObservationUnitPosition().getEntryType().toString());
+        row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
+        row.put(ExperimentObservation.Columns.EXP_DESCRIPTION, experiment.getTrialDescription());
+        row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+        row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
+        row.put(ExperimentObservation.Columns.ENV, study.getStudyName());
+        row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
+        row.put(ExperimentObservation.Columns.ENV_YEAR, study.getSeasons()  obs.getSeason().getYear());
+        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKey(ou.getObservationUnitName(), program.getKey()));
+
+        // get replicate number
+        Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(level -> BrAPIConstants.REPLICATE.getValue().equals(level.getLevelName()))
+                .findFirst();
+        if (repLevel.isPresent()) {
+            row.put(ExperimentObservation.Columns.REP_NUM, Integer.parseInt(repLevel.get().getLevelCode()));
+        }
+
+        //get block number
+        Optional<BrAPIObservationUnitLevelRelationship> blockLevel = ou.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(level -> BrAPIConstants.BLOCK.getValue().equals(level.getLevelName()))
+                .findFirst();
+        if (blockLevel.isPresent()) {
+            row.put(ExperimentObservation.Columns.BLOCK_NUM, Integer.parseInt(blockLevel.get().getLevelCode()));
+        }
+
+        if (ou.getObservationUnitPosition() != null) {
+            row.put(ExperimentObservation.Columns.ROW, Double.parseDouble(ou.getObservationUnitPosition().getPositionCoordinateX()));
+            row.put(ExperimentObservation.Columns.COLUMN, Double.parseDouble(ou.getObservationUnitPosition().getPositionCoordinateY()));
+        }
+
+        if (ou.getTreatments() != null && !ou.getTreatments().isEmpty()) {
+            row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, ou.getTreatments().get(0).getFactor().toString());
+        } else {
+            row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, null);
+        }
+
+        row.put(ExperimentObservation.Columns.OBS_UNIT_ID, ouId);
+        addObsVarDataToRow(row, obs, includeTimestamp, obsVars, program);
+
+        return row;
+    }
+
+ */
 
     private List<Column> addObsVarColumns(
             List<Column> columns,
@@ -295,10 +354,9 @@ public class BrAPITrialService {
             Program program,
             UUID experimentId,
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException, ParsingException {
-        // process params
-
-
         FileType fileType = params.getFileExtension();
+
+        List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
 
         // get BrAPI observations for requested environments
         List<BrAPIObservation> dataset = getObservationDataset(program, experimentId);
