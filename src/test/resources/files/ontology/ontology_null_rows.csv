@@ -1,4 +1,4 @@
-﻿Name,Full Name,Term Type,Description,Synonyms,Status,Tags,Trait Entity,Trait Attribute,Method Description,Method Class,Method Formula,Scale Class,Units,Scale Decimal Places,Scale Lower Limit,Scale Upper Limit,Scale Categories
+Name,Full Name,Term Type,Description,Synonyms,Status,Tags,Trait Entity,Trait Attribute,Method Description,Method Class,Method Formula,Scale Class,Units,Scale Decimal Places,Scale Lower Limit,Scale Upper Limit,Scale Categories
 Pheno 1,,,Pheno 1,,,,Pheno,1,,Measurement,,Numerical,cm,,,,
 Pheno 2,,,Pheno 2,,,,Pheno,2,,Measurement,,Numerical,ug/ml,,,,
 Pheno 3,,,Pheno 3,,,,Pheno,3,,Observation,,Date,,,,,
