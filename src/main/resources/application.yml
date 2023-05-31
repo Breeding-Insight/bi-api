@@ -160,7 +160,7 @@ brapi:
     pheno-url: ${brapi.server.default-url}
     geno-url: ${brapi.server.default-url}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
-  read-timeout: 10m
+  read-timeout: ${BRAPI_READ_TIMEOUT:10m}
   page-size: 1000
   search:
     wait-time: 1000
