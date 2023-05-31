@@ -135,7 +135,15 @@ public class BrAPITrialService {
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException, ParsingException {
         FileType fileType = params.getFileExtension();
 
+        // get selected environments for the experiment
+        // get the OUs for the selected studies
+        // make export columns including columns for requested dataset obsvars and timestamps if requested
+        // make export rows from any observations
+        // make export rows for OUs without observations
+
         List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
+
+
 
         // get BrAPI observations for requested environments
         List<BrAPIObservation> dataset = getObservationDataset(program, experimentId);
@@ -171,31 +179,6 @@ public class BrAPITrialService {
         return new DownloadFile(fileName, downloadFile);
     }
 
-    private void addObsVarDataToRow(
-            Map<String, Object> row,
-            BrAPIObservation obs,
-            boolean includeTimestamp,
-            List<BrAPIObservationVariable> obsVars,
-            Program program) {
-        // get observation variable for BrAPI observation
-        BrAPIObservationVariable var = obsVars.stream()
-                .filter(obsVar -> obs.getObservationVariableName().equals(obsVar.getObservationVariableName()))
-                .collect(Collectors.toList()).get(0);
-
-        String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
-        if (var.getScale().getDataType().equals(BrAPITraitDataType.ORDINAL)) {
-            row.put(varName, Integer.parseInt(obs.getValue()));
-        } else if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
-                var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
-            row.put(varName, Double.parseDouble(obs.getValue()));
-        } else {
-            row.put(varName, obs.getValue());
-        }
-
-        if (includeTimestamp) {
-            row.put(String.format("TS:%s",varName), obs.getObservationTimeStamp());
-        }
-    }
     private List<Map<String, Object>> addBrAPIObsToRecords(
             List<BrAPIObservation> dataset,
             BrAPITrial experiment,
@@ -291,6 +274,53 @@ public class BrAPITrialService {
 
         // return a list of export rows
         return rowByOUId.entrySet().stream().map(entry -> entry.getValue()).collect(Collectors.toList());
+    }
+
+    private void addObsVarDataToRow(
+            Map<String, Object> row,
+            BrAPIObservation obs,
+            boolean includeTimestamp,
+            List<BrAPIObservationVariable> obsVars,
+            Program program) {
+        // get observation variable for BrAPI observation
+        BrAPIObservationVariable var = obsVars.stream()
+                .filter(obsVar -> obs.getObservationVariableName().equals(obsVar.getObservationVariableName()))
+                .collect(Collectors.toList()).get(0);
+
+        String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
+        if (var.getScale().getDataType().equals(BrAPITraitDataType.ORDINAL)) {
+            row.put(varName, Integer.parseInt(obs.getValue()));
+        } else if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
+                var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
+            row.put(varName, Double.parseDouble(obs.getValue()));
+        } else {
+            row.put(varName, obs.getValue());
+        }
+
+        if (includeTimestamp) {
+            row.put(String.format("TS:%s",varName), obs.getObservationTimeStamp());
+        }
+    }
+
+    public List<BrAPIObservationVariable> getDatasetObsVars(String datasetId, Program program) throws ApiException, DoesNotExistException {
+        List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
+                BrAPIListTypes.OBSERVATIONVARIABLES,
+                program.getId(),
+                String.format("%s/%s", referenceSource, ExternalReferenceSource.DATASET.getName()),
+                UUID.fromString(datasetId));
+        if (lists == null || lists.isEmpty()) {
+            throw new DoesNotExistException("Dataset observation variables list not returned from BrAPI service");
+        }
+        String listDbId = lists.get(0).getListDbId();
+        BrAPIListsSingleResponse list = listDAO.getListById(listDbId, program.getId());
+        List<String> obsVarNames = list.getResult().getData();
+        List<BrAPIObservationVariable> obsVars = obsVarDAO.getVariableByName(obsVarNames, program.getId());
+        return obsVars;
+    }
+
+    public BrAPITrial getExperiment(Program program, UUID experimentId) throws ApiException {
+        List<BrAPITrial> experiments = trialDAO.getTrialsByExperimentIds(List.of(experimentId), program);
+        return experiments.get(0);
     }
 
     private Map<String, Object> createExportRow(
