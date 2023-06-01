@@ -138,14 +138,27 @@ public class BrAPIGermplasmService {
                 }
             }
 
+            // Try getting parentGID otherwise look for unknownParent flag
             if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) != null) {
                 row.put("Male Parent GID", germplasmEntry.getAdditionalInfo()
                         .get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsInt());
+            } else if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) != null) {
+                if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
+                    row.put("Male Parent GID", 0);
+                }
+            } else {
+                log.error("Male Parent missing expected value");
             }
 
             if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) != null) {
                 row.put("Female Parent GID", germplasmEntry.getAdditionalInfo()
                         .get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsInt());
+            } else if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) != null) {
+                if (germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
+                    row.put("Female Parent GID", 0);
+                }
+            } else {
+                log.error("Female Parent missing expected value");
             }
 
             // Synonyms
