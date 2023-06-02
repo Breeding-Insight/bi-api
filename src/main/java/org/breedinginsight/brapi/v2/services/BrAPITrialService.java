@@ -386,7 +386,8 @@ public class BrAPITrialService {
         // make export row from BrAPI objects
         row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(ou.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
-        row.put(ExperimentObservation.Columns.TEST_CHECK, ou.getObservationUnitPosition().getEntryType().toString());
+        String testCheck = ou.getObservationUnitPosition().getEntryType() != null ? ou.getObservationUnitPosition().getEntryType().toString() : null;
+        row.put(ExperimentObservation.Columns.TEST_CHECK, testCheck);
         row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
         row.put(ExperimentObservation.Columns.EXP_DESCRIPTION, experiment.getTrialDescription());
         row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
@@ -413,7 +414,8 @@ public class BrAPITrialService {
         if (blockLevel.isPresent()) {
             row.put(ExperimentObservation.Columns.BLOCK_NUM, Integer.parseInt(blockLevel.get().getLevelCode()));
         }
-        if (ou.getObservationUnitPosition() != null) {
+        if (ou.getObservationUnitPosition() != null && ou.getObservationUnitPosition().getPositionCoordinateX() != null &&
+                ou.getObservationUnitPosition().getPositionCoordinateY() != null) {
             row.put(ExperimentObservation.Columns.ROW, Double.parseDouble(ou.getObservationUnitPosition().getPositionCoordinateX()));
             row.put(ExperimentObservation.Columns.COLUMN, Double.parseDouble(ou.getObservationUnitPosition().getPositionCoordinateY()));
         }
