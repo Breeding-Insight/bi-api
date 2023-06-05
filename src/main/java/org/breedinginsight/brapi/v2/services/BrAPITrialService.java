@@ -15,6 +15,7 @@ import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
+import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.*;
@@ -61,6 +62,7 @@ public class BrAPITrialService {
     private final BrAPIListDAO listDAO;
     private final BrAPIObservationVariableDAO obsVarDAO;
     private final BrAPIStudyDAO studyDAO;
+    private final BrAPISeasonDAO seasonDAO;
     private final BrAPIObservationUnitDAO ouDAO;
     private final BrAPIGermplasmDAO germplasmDAO;
 
@@ -72,6 +74,7 @@ public class BrAPITrialService {
                              BrAPIListDAO listDAO,
                              BrAPIObservationVariableDAO obsVarDAO,
                              BrAPIStudyDAO studyDAO,
+                             BrAPISeasonDAO seasonDAO,
                              BrAPIObservationUnitDAO ouDAO,
                              BrAPIGermplasmDAO germplasmDAO) {
         this.programService = programService;
@@ -81,6 +84,7 @@ public class BrAPITrialService {
         this.listDAO = listDAO;
         this.obsVarDAO = obsVarDAO;
         this.studyDAO = studyDAO;
+        this.seasonDAO = seasonDAO;
         this.ouDAO = ouDAO;
         this.germplasmDAO = germplasmDAO;
     }
@@ -170,14 +174,14 @@ public class BrAPITrialService {
         // make export columns including columns for requested dataset obsvars and timestamps if requested
         List<Column> columns = ExperimentFileColumns.getOrderedColumns();
         BrAPITrial experiment = getExperiment(program, experimentId);
-        if ((StringUtils.isBlank(params.getDataset()) || "observations".equals(params.getDataset())) &&
+        if ((StringUtils.isBlank(params.getDataset()) || "observations".equalsIgnoreCase(params.getDataset())) &&
                 experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) != null) {
             String obsDatasetId = experiment
                     .getAdditionalInfo().getAsJsonObject()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
             isDataset = true;
             obsVars = getDatasetObsVars(obsDatasetId, program);
-            columns = addObsVarColumns(columns, obsVars, params.isIncludeTimestamps(), program);
+            addObsVarColumns(columns, obsVars, params.isIncludeTimestamps(), program);
 
         }
 
@@ -188,7 +192,7 @@ public class BrAPITrialService {
         if (!requestedEnvNames.isEmpty()) {
             dataset = filterDatasetByEnvironment(dataset, requestedEnvNames);
         }
-        rowByOUId = addBrAPIObsToRecords(dataset, experiment, program, rowByOUId, params.isIncludeTimestamps(), obsVars);
+        addBrAPIObsToRecords(dataset, experiment, program, rowByOUId, params.isIncludeTimestamps(), obsVars);
 
         // make export rows for OUs without observations
         if (rowByOUId.size() < ous.size()) {
@@ -261,15 +265,21 @@ public class BrAPITrialService {
                 BrAPIStudy study = studyByDbId.get(obs.getStudyDbId());
                 row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(obs.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
                 row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
-                row.put(ExperimentObservation.Columns.TEST_CHECK, ou.getObservationUnitPosition().getEntryType().toString());
+
+                // use only the capitalized first character of the entry type for test/check
+                BrAPIEntryTypeEnum entryType = ou.getObservationUnitPosition().getEntryType();
+                String testCheck = entryType != null ? String.valueOf(Character.toUpperCase(entryType.toString().charAt(0))) : null;
+                row.put(ExperimentObservation.Columns.TEST_CHECK, testCheck);
                 row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
                 row.put(ExperimentObservation.Columns.EXP_DESCRIPTION, experiment.getTrialDescription());
                 row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
                 row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
-                row.put(ExperimentObservation.Columns.ENV, obs.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.STUDY_NAME).getAsString());
+                String keyedEnvName = obs.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.STUDY_NAME).getAsString();
+                String envName = Utilities.removeProgramKeyAndUnknownAdditionalData(keyedEnvName, program.getKey());
+                row.put(ExperimentObservation.Columns.ENV, envName);
                 row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
                 row.put(ExperimentObservation.Columns.ENV_YEAR, obs.getSeason().getYear());
-                row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKey(obs.getObservationUnitName(), program.getKey()));
+                row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(obs.getObservationUnitName(), program.getKey()));
 
                 // get replicate number
                 Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
@@ -386,16 +396,20 @@ public class BrAPITrialService {
         // make export row from BrAPI objects
         row.put(ExperimentObservation.Columns.GERMPLASM_NAME, Utilities.removeProgramKey(ou.getGermplasmName(), program.getKey(), germplasm.getAccessionNumber()));
         row.put(ExperimentObservation.Columns.GERMPLASM_GID, germplasm.getAccessionNumber());
-        String testCheck = ou.getObservationUnitPosition().getEntryType() != null ? ou.getObservationUnitPosition().getEntryType().toString() : null;
+
+        // use only the capitalized first character of the entry type for test/check
+        BrAPIEntryTypeEnum entryType = ou.getObservationUnitPosition().getEntryType();
+        String testCheck = entryType != null ? String.valueOf(Character.toUpperCase(entryType.toString().charAt(0))) : null;
         row.put(ExperimentObservation.Columns.TEST_CHECK, testCheck);
         row.put(ExperimentObservation.Columns.EXP_TITLE, Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()));
         row.put(ExperimentObservation.Columns.EXP_DESCRIPTION, experiment.getTrialDescription());
         row.put(ExperimentObservation.Columns.EXP_UNIT, ou.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
         row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
-        row.put(ExperimentObservation.Columns.ENV, study.getStudyName());
+        row.put(ExperimentObservation.Columns.ENV, Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
         row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
-        row.put(ExperimentObservation.Columns.ENV_YEAR, study.getSeasons().get(0));
-        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKey(ou.getObservationUnitName(), program.getKey()));
+        BrAPISeason season = seasonDAO.getSeasonById(study.getSeasons().get(0), program.getId());
+        row.put(ExperimentObservation.Columns.ENV_YEAR, season.getYear());
+        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
 
         // get replicate number
         Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()

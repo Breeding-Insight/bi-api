@@ -184,8 +184,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         // Add test observation data
         for (int i = 0; i < traits.size(); i++) {
-            Double val1 = Math.random();
-            Double val2 = Math.random();
+            Random random = new Random();
+
+            // TODO: test for sending obs data as double
+            // Double val1 = Math.random();
+            // Double val2 = Math.random();
+
+            Float val1 = random.nextFloat();
+            Float val2 = random.nextFloat();
             row1.put(traits.get(i).getObservationVariableName(), val1);
             //row2.put(traits.get(i).getObservationVariableName(), val2);
         };
@@ -309,7 +315,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             String requestedEnv,
             List<Map<String, Object>> importRows,
             Table table,
-            boolean includeTimestamps) {
+            boolean includeTimestamps,
+            String extension) {
         // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
         List<Map<String, Object>> requestedImportRows;
 
@@ -344,37 +351,41 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         }
 
-        // All requested import data included in download
-        // update columns with traitName to use "traitName [progrmKey]"
-        /*
-        List<String> traitNames = traits.stream().map(trait -> trait.getObservationVariableName()).collect(Collectors.toList());
-        for (Map<String, Object> row: requestedImportRows) {
-            row.entrySet().stream().forEach(column -> {
-                if (traitNames.contains(column.getKey())) {
-
-                }
-            });
-        }
-
-         */
-
         List<Map<String, Object>> matchingImportRows = new ArrayList<>();
+        Optional<Map<String, Object>> matchingImportRow;
 
         for (int rowNum = 0; rowNum < requestedImportRows.size(); rowNum++) {
             Row downloadRow = table.row(rowNum);
-            if(isMatchedRow(requestedImportRows.get(rowNum), downloadRow)) {
-                matchingImportRows.add(requestedImportRows.get(rowNum));
+
+            // sort order is not guaranteed to be th same as import, so find import row for corresponding export row
+            // by first matching environment and GID
+            matchingImportRow = requestedImportRows.stream().filter(row -> {
+                String gid = ExperimentObservation.Columns.GERMPLASM_GID;
+                String env = ExperimentObservation.Columns.ENV;
+                if (extension.equalsIgnoreCase(FileType.CSV.getName())) {
+                    return Integer.parseInt(row.get(gid).toString()) == downloadRow.getInt(gid) &&
+                            row.get(env).equals(downloadRow.getString(env));
+                } else {
+                    return row.get(gid).equals(downloadRow.getString(gid)) && row.get(env).equals(downloadRow.getString(env));
+                }
+            }).findAny();
+            assertTrue(matchingImportRow.isPresent());
+
+            // then check the rest of the fields match
+            if (isMatchedRow(matchingImportRow.get(), downloadRow)) {
+                matchingImportRows.add(matchingImportRow.get());
             }
         }
         assertEquals(requestedImportRows.size(),matchingImportRows.size());
 
         // Observation units populated
         assertEquals(0, table.column("ObsUnitID").countMissing());
-        assertEquals(importRows.size(), table.column("ObsUnitID").countUnique());
+        assertEquals(requestedImportRows.size(), table.column("ObsUnitID").countUnique());
     }
 
     private boolean isMatchedRow(Map<String, Object> importRow, Row downloadRow) {
         System.out.println("Validating row: " + downloadRow.getRowNumber());
+        System.out.println("import columns: " + importRow.size());
         return importRow.entrySet().stream().filter(e -> {
             String header = e.getKey();
             List<Column> importColumns = columns.stream().filter(col -> {return header.equals(col.getValue());}).collect(Collectors.toList());
@@ -386,7 +397,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             boolean doCompare = false;
 
             if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.STRING)) {
-                expectedVal = e.getValue();
+                expectedVal = e.getValue().toString();
                 downloadedVal = downloadRow.getString(e.getKey());
                 doCompare = true;
             }
@@ -400,8 +411,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 downloadedVal = downloadRow.getDouble(e.getKey());
                 doCompare = true;
             }
+            if (downloadRow.getColumnType(e.getKey()).equals(ColumnType.FLOAT)) {
+                expectedVal = e.getValue();
+                downloadedVal = downloadRow.getFloat(e.getKey());
+                doCompare = true;
+            }
             System.out.println("Column: "+e.getKey()+", Expected: '"+ expectedVal +"', Received: '" + downloadedVal+"'");
             if(doCompare) {
+                assertEquals(expectedVal, downloadedVal);
                 return expectedVal.equals(downloadedVal);
             } else {
                 return false;
@@ -466,6 +483,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         if (extension.equals("XLS") || extension.equals("XLSX")) {
             download = FileUtil.parseTableFromExcel(bodyStream, 0);
         }
-        checkDownloadTable(requestedEnv, rows, download, includeTimestamps);
+        checkDownloadTable(requestedEnv, rows, download, includeTimestamps, extension);
     }
 }
