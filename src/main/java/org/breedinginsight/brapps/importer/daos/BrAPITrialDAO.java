@@ -21,9 +21,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPITrialSearchRequest;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.core.response.BrAPIListResponse;
-import org.brapi.v2.model.core.response.BrAPITrialSingleResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -40,11 +37,13 @@ import java.util.*;
 
 @Singleton
 public class BrAPITrialDAO {
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
 
-    private ProgramDAO programDAO;
-    private ImportDAO importDAO;
+    private final ProgramDAO programDAO;
+    private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private ProgramService programService;
+    private final ProgramService programService;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     private final String referenceSource;
@@ -67,6 +66,19 @@ public class BrAPITrialDAO {
         BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
         trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         trialSearch.trialNames(trialNames);
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
+        );
+    }
+
+    private List<BrAPITrial> getTrialsByExRef(String referenceSource, String referenceId, Program program) throws ApiException {
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        trialSearch.externalReferenceSources(List.of(referenceSource));
+        trialSearch.externalReferenceIDs(List.of(referenceId));
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
         return brAPIDAOUtil.search(
                 api::searchTrialsPost,
@@ -123,12 +135,18 @@ public class BrAPITrialDAO {
         return displayExperiments;
     }
 
-    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
-        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
+    public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
+        String refSoure = Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS);
+        List<BrAPITrial> trials = getTrialsByExRef(refSoure, trialDbId.toString(), program);
 
         return Utilities.getSingleOptional(trials);
     }
 
+    public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
+        List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
+        return Utilities.getSingleOptional(trials);
+    }
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();
