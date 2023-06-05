@@ -1,7 +1,6 @@
 package org.breedinginsight.brapi.v2;
 
 import com.google.gson.*;
-import com.ibm.icu.text.UFormat;
 import io.kowalski.fannypack.FannyPack;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
@@ -9,30 +8,16 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.http.client.exceptions.HttpClientResponseException;
-import io.micronaut.http.client.netty.FullNettyClientHttpResponse;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
-import org.apache.poi.hssf.usermodel.HSSFSheet;
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbookFactory;
-import org.apache.xmlbeans.impl.xb.ltgfmt.TestsDocument;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPIProgram;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.BrAPITrait;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
-import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
@@ -41,33 +26,26 @@ import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
-import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.utilities.FileUtil;
-import org.jooq.ContentType;
 import org.jooq.DSLContext;
-import org.jooq.tools.csv.CSVReader;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.Row;
-import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
-
 import javax.inject.Inject;
-import javax.validation.constraints.AssertTrue;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -76,25 +54,16 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ExperimentControllerIntegrationTest extends BrAPITest {
 
-    private FannyPack securityFp;
-    private FannyPack brapiFp;
-    private FannyPack fp;
-    private FannyPack brapiObservationFp;
     private Program program;
-    private ImportTestUtils importTestUtils;
-    private String mappingId;
     private String experimentId;
-    private List<Map<String, Object>> rows = new ArrayList<>();
-    private List<Column> columns = new ArrayList<>();
+    private final List<Map<String, Object>> rows = new ArrayList<>();
+    private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
     private List<Trait> traits;
-    private final String GERMPLASM_LIST_NAME = "Program Germplasm List";
-    private final String GERMPLASM_LIST_DESC = "Program Germplasm List";
+
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
     @Inject
     private DSLContext dsl;
-    @Inject
-    private ProgramDAO programDAO;
     @Inject
     private UserDAO userDAO;
     @Inject
@@ -108,20 +77,19 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
-    private Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
+    private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
     @BeforeAll
     void setup() throws Exception {
-        fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
-        importTestUtils = new ImportTestUtils();
-        securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
-        brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
-        //brapiObservationFp = FannyPack.fill("src/test/resources/sql/brapi/BrAPIOntologyControllerIntegrationTest.sql");
+        FannyPack fp = FannyPack.fill("src/test/resources/sql/ImportControllerIntegrationTest.sql");
+        ImportTestUtils importTestUtils = new ImportTestUtils();
+        FannyPack securityFp = FannyPack.fill("src/test/resources/sql/ProgramSecuredAnnotationRuleIntegrationTest.sql");
+        FannyPack brapiFp = FannyPack.fill("src/test/resources/sql/brapi/species.sql");
 
         // Test User
-        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
+        User testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).orElseThrow(Exception::new);
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         // Species
@@ -153,7 +121,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
         HttpResponse<String> response = call.blockingFirst();
-        mappingId = JsonParser.parseString(response.body()).getAsJsonObject()
+        String mappingId = JsonParser.parseString(Objects.requireNonNull(response.body())).getAsJsonObject()
                 .getAsJsonObject("result")
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
@@ -183,24 +151,28 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         Map<String, Object> row2 = makeExpImportRow("Env2");
 
         // Add test observation data
-        for (int i = 0; i < traits.size(); i++) {
+        for (Trait trait : traits) {
             Random random = new Random();
 
-            // TODO: test for sending obs data as double
+            // TODO: test for sending obs data as double.
+            //  A float is returned from the backend instead of double. there is a separate card to fix this.
             // Double val1 = Math.random();
-            // Double val2 = Math.random();
 
             Float val1 = random.nextFloat();
-            Float val2 = random.nextFloat();
-            row1.put(traits.get(i).getObservationVariableName(), val1);
-            //row2.put(traits.get(i).getObservationVariableName(), val2);
-        };
+            row1.put(trait.getObservationVariableName(), val1);
+        }
 
         rows.add(row1);
         rows.add(row2);
 
         // Import test experiment, environments, and any observations
-        JsonObject importResult = importTestUtils.uploadAndFetch(writeDataToFile(rows, traits), null, true, client, program, mappingId);
+        JsonObject importResult = importTestUtils.uploadAndFetch(
+                writeDataToFile(rows, traits),
+                null,
+                true,
+                client,
+                program,
+                mappingId);
         experimentId = importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
@@ -209,33 +181,74 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get("id").getAsString();
     }
 
+    /*
+   Tests
+    - export empty dataset, single environment, csv format
+    - export empty dataset, single environment, xls format
+    - export empty dataset, single environment, xlsx format
+    - export populated dataset, single environment, csv format
+    - export populated dataset, single environment, xls format
+    - export populated dataset, single environment, xlsx format
+    - export empty dataset, multiple environment, csv format
+    - export empty dataset, multiple environment, xls format
+    - export empty dataset, multiple environment, xlsx format
+    - export populated dataset, multiple environment, csv format
+    - export populated dataset, multiple environment, xls format
+    - export populated dataset, multiple environment, xlsx format
+   */
+    @ParameterizedTest
+    @CsvSource(value = {"true,,CSV", "true,Env1,CSV",
+            "false,,CSV", "false,Env1,CSV",
+            "true,,XLS", "true,Env1,XLS",
+            "false,,XLS", "false,Env1,XLS",
+            "true,,XLSX", "true,Env1,XLSX",
+            "false,,XLSX", "false,Env1,XLSX",})
+    @SneakyThrows
+    void downloadDatasets(boolean includeTimestamps, String requestedEnv, String extension) {
+        // Download test experiment
+        String envParam = "all=true";
+        if (requestedEnv != null) {
+            envParam = "environments=" + requestedEnv;
+        }
+        Flowable<HttpResponse<byte[]>> call = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
+                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+        HttpResponse<byte[]> response = call.blockingFirst();
+
+        // Assert 200 response
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        // Assert file format fidelity
+        Map<String, String> mediaTypeByExtension = new HashMap<>();
+        mediaTypeByExtension.put("CSV", FileType.CSV.getMimeType());
+        mediaTypeByExtension.put("XLS", FileType.XLS.getMimeType());
+        mediaTypeByExtension.put("XLSX", FileType.XLSX.getMimeType());
+        String downloadMediaType = response.getHeaders().getContentType().orElseThrow(Exception::new);
+        assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
+
+        // Assert import/export fidelity and presence of observation units in export
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(response.body()));
+        Table download = Table.create();
+        if (extension.equals("CSV")) {
+            download = FileUtil.parseTableFromCsv(bodyStream);
+        }
+        if (extension.equals("XLS") || extension.equals("XLSX")) {
+            download = FileUtil.parseTableFromExcel(bodyStream, 0);
+        }
+        checkDownloadTable(requestedEnv, rows, download, includeTimestamps, extension);
+    }
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
         File file = File.createTempFile("test", ".csv");
 
-        columns.add(Column.builder().value(ExperimentObservation.Columns.GERMPLASM_NAME).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.GERMPLASM_GID).dataType(Column.ColumnDataType.INTEGER).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.TEST_CHECK).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TITLE).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_DESCRIPTION).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TYPE).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_LOCATION).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_YEAR).dataType(Column.ColumnDataType.INTEGER).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.REP_NUM).dataType(Column.ColumnDataType.INTEGER).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.BLOCK_NUM).dataType(Column.ColumnDataType.INTEGER).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.ROW).dataType(Column.ColumnDataType.INTEGER).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.COLUMN).dataType(Column.ColumnDataType.INTEGER).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
-        columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
-
         if(traits != null) {
-            traits.forEach(trait -> {
-                columns.add(Column.builder().value(trait.getObservationVariableName()).dataType(Column.ColumnDataType.STRING).build());
-            });
+            traits.forEach(trait -> columns.add(
+                    Column.builder()
+                            .value(trait.getObservationVariableName())
+                            .dataType(Column.ColumnDataType.STRING)
+                            .build()));
         }
-
         ByteArrayOutputStream byteArrayOutputStream = CSVWriter.writeToCSV(columns, data);
         FileOutputStream fos = new FileOutputStream(file);
         fos.write(byteArrayOutputStream.toByteArray());
@@ -335,16 +348,14 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                     .map(row -> row.get(ExperimentObservation.Columns.ENV).toString())
                     .distinct()
                     .collect(Collectors.toList())
-                    .forEach(envName -> {
-                        assertTrue(table.stringColumn("Env").contains(envName));
-                    });
+                    .forEach(envName -> assertTrue(table.stringColumn("Env").contains(envName)));
 
         } else {
 
             // Only requested environment downloaded
-            requestedImportRows = importRows.stream().filter(row -> {
-                return row.get("Env").toString().equals(requestedEnv);
-            }).collect(Collectors.toList());
+            requestedImportRows = importRows
+                    .stream()
+                    .filter(row -> row.get("Env").toString().equals(requestedEnv)).collect(Collectors.toList());
 
             assertEquals(1, table.stringColumn("Env").countUnique());
             assertTrue(table.stringColumn("Env").contains(requestedEnv));
@@ -388,7 +399,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         System.out.println("import columns: " + importRow.size());
         return importRow.entrySet().stream().filter(e -> {
             String header = e.getKey();
-            List<Column> importColumns = columns.stream().filter(col -> {return header.equals(col.getValue());}).collect(Collectors.toList());
+            List<Column> importColumns = columns
+                    .stream()
+                    .filter(col -> header.equals(col.getValue())).collect(Collectors.toList());
             if (importColumns.size() != 1) {
                 return false;
             }
@@ -424,65 +437,5 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 return false;
             }
         }).count() == importRow.size();
-    }
-
-   /*
-   Tests
-    - export empty dataset, single environment, csv format
-    - export empty dataset, single environment, xls format
-    - export empty dataset, single environment, xlsx format
-    - export populated dataset, single environment, csv format
-    - export populated dataset, single environment, xls format
-    - export populated dataset, single environment, xlsx format
-    - export empty dataset, multiple environment, csv format
-    - export empty dataset, multiple environment, xls format
-    - export empty dataset, multiple environment, xlsx format
-    - export populated dataset, multiple environment, csv format
-    - export populated dataset, multiple environment, xls format
-    - export populated dataset, multiple environment, xlsx format
-   */
-
-    @ParameterizedTest
-    @CsvSource(value = {"true,true,,CSV", "true,false,,CSV", "true,true,Env1,CSV", "true,false,Env1,CSV",
-            "false,true,,CSV", "false,false,,CSV", "false,true,Env1,CSV", "false,false,Env1,CSV",
-            "true,true,,XLS", "true,false,,XLS", "true,true,Env1,XLS", "true,false,Env1,XLS",
-            "false,true,,XLS", "false,false,,XLS", "false,true,Env1,XLS", "false,false,Env1,XLS",
-            "true,true,,XLSX", "true,false,,XLSX", "true,true,Env1,XLSX", "true,false,Env1,XLSX",
-            "false,true,,XLSX", "false,false,,XLSX", "false,true,Env1,XLSX", "false,false,Env1,XLSX",})
-    @SneakyThrows
-    void downloadDatasets(boolean includeTimestamps, boolean hasEmptyObs, String requestedEnv, String extension) {
-        // Download test experiment
-        String envParam = "all=true";
-        if (requestedEnv != null) {
-            envParam = "environments=" + requestedEnv;
-        }
-        Flowable<HttpResponse<byte[]>> call = client.exchange(
-                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
-                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension))
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
-        );
-        HttpResponse<byte[]> response = call.blockingFirst();
-
-        // Assert 200 response
-        assertEquals(HttpStatus.OK, response.getStatus());
-
-        // Assert file format fidelity
-        Map<String, String> mediaTypeByExtension = new HashMap<>();
-        mediaTypeByExtension.put("CSV", FileType.CSV.getMimeType());
-        mediaTypeByExtension.put("XLS", FileType.XLS.getMimeType());
-        mediaTypeByExtension.put("XLSX", FileType.XLSX.getMimeType());
-        String downloadMediaType = response.getHeaders().getContentType().orElseThrow(Exception::new);
-        assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
-
-        // Assert import/export fidelity and presence of observation units in export
-        ByteArrayInputStream bodyStream = new ByteArrayInputStream(response.body());
-        Table download = Table.create();
-        if (extension.equals("CSV")) {
-            download = FileUtil.parseTableFromCsv(bodyStream);
-        }
-        if (extension.equals("XLS") || extension.equals("XLSX")) {
-            download = FileUtil.parseTableFromExcel(bodyStream, 0);
-        }
-        checkDownloadTable(requestedEnv, rows, download, includeTimestamps, extension);
     }
 }
