@@ -284,20 +284,19 @@ public class ExperimentProcessor implements Processor {
         AuthenticatedUser actingUser = new AuthenticatedUser(upload.getUpdatedByUser().getName(), new ArrayList<>(), upload.getUpdatedByUser().getId(), new ArrayList<>());
 
         try {
+            List<BrAPIListSummary> createdDatasets = new ArrayList<>(brAPIListDAO.createBrAPILists(newDatasetRequests, program.getId(), upload));
+            createdDatasets.forEach(summary -> {
+                obsVarDatasetByName.get(summary.getListName()).getBrAPIObject().setListDbId(summary.getListDbId());
+            });
+
             List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrials(newTrials, program.getId(), upload));
             // set the DbId to the for each newly created trial
             for (BrAPITrial createdTrial : createdTrials) {
                 String createdTrialName = Utilities.removeProgramKey(createdTrial.getTrialName(), program.getKey());
                 this.trialByNameNoScope.get(createdTrialName)
-                                       .getBrAPIObject()
-                                       .setTrialDbId(createdTrial.getTrialDbId());
+                        .getBrAPIObject()
+                        .setTrialDbId(createdTrial.getTrialDbId());
             }
-
-
-            List<BrAPIListSummary> createdDatasets = new ArrayList<>(brAPIListDAO.createBrAPILists(newDatasetRequests, program.getId(), upload));
-            createdDatasets.forEach(summary -> {
-                obsVarDatasetByName.get(summary.getListName()).getBrAPIObject().setListDbId(summary.getListDbId());
-            });
 
             List<ProgramLocation> createdLocations = new ArrayList<>(locationService.create(actingUser, program.getId(), newLocations));
             // set the DbId to the for each newly created trial

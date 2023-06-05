@@ -584,8 +584,8 @@ public class GermplasmProcessor implements Processor {
             if (existingPedigree.isEmpty()) {
                 mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
                 //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
-                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("femaleParentUnknown", femaleParentUnknown);
-                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem("maleParentUnknown", maleParentUnknown);
+                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN, femaleParentUnknown);
+                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN, maleParentUnknown);
             }
         }
     }
