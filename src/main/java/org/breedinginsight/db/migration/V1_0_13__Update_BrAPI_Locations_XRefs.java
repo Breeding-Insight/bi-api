@@ -92,7 +92,7 @@ public class V1_0_13__Update_BrAPI_Locations_XRefs extends BaseJavaMigration {
     private List<ProgramLocation> getAllLocations(Context context) throws SQLException {
         List<ProgramLocation> locations = new ArrayList<>();
         try (Statement select = context.getConnection().createStatement()) {
-            try (ResultSet rows = select.executeQuery("SELECT * FROM place")) {
+            try (ResultSet rows = select.executeQuery("SELECT * FROM place where program_id in (SELECT id FROM program where active = true)")) {
                 while (rows.next()) {
                     ProgramLocation location = new ProgramLocation();
                     location.setId(UUID.fromString(rows.getString("id")));
