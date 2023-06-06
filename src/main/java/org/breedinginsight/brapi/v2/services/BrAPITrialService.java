@@ -159,6 +159,7 @@ public class BrAPITrialService {
         } catch (ApiException err) {
             log.error("Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
+            err.printStackTrace();
         }
 
         // make export columns including columns for requested dataset obsvars and timestamps if requested
