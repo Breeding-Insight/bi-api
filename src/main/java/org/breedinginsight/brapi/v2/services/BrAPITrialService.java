@@ -1,22 +1,11 @@
 package org.breedinginsight.brapi.v2.services;
-
-import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.BrAPIListTypes;
-import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
-import org.breedinginsight.services.ProgramService;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.Utilities;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -48,19 +37,19 @@ import java.util.stream.Collectors;
 @Slf4j
 @Singleton
 public class BrAPITrialService {
- private final ProgramService programService;
+    @Property(name = "brapi.server.reference-source")
+    private String referenceSource;
     private final BrAPITrialDAO trialDAO;
-    private final BrAPIObservationUnitDAO ouDAO;
     private final BrAPIObservationDAO observationDAO;
     private final BrAPIListDAO listDAO;
     private final BrAPIObservationVariableDAO obsVarDAO;
     private final BrAPIStudyDAO studyDAO;
     private final BrAPISeasonDAO seasonDAO;
+    private final BrAPIObservationUnitDAO ouDAO;
     private final BrAPIGermplasmDAO germplasmDAO;
 
     @Inject
-    public BrAPITrialService(ProgramService programService,
-                             BrAPITrialDAO trialDAO,
+    public BrAPITrialService(BrAPITrialDAO trialDAO,
                              BrAPIObservationDAO observationDAO,
                              BrAPIListDAO listDAO,
                              BrAPIObservationVariableDAO obsVarDAO,
@@ -69,7 +58,6 @@ public class BrAPITrialService {
                              BrAPIObservationUnitDAO ouDAO,
                              BrAPIGermplasmDAO germplasmDAO) {
 
-        this.programService = programService;
         this.trialDAO = trialDAO;
         this.observationDAO = observationDAO;
         this.listDAO = listDAO;
@@ -104,25 +92,6 @@ public class BrAPITrialService {
     private long countGermplasm(UUID programId, String trialDbId) throws ApiException, DoesNotExistException{
         List<BrAPIObservationUnit> obUnits = ouDAO.getObservationUnitsForTrialDbId(programId, trialDbId);
         return obUnits.stream().map(BrAPIObservationUnit::getGermplasmDbId).distinct().count();
-    public List<BrAPIObservationVariable> getDatasetObsVars(String datasetId, Program program) throws ApiException, DoesNotExistException {
-        List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
-                BrAPIListTypes.OBSERVATIONVARIABLES,
-                program.getId(),
-                String.format("%s/%s", referenceSource, ExternalReferenceSource.DATASET.getName()),
-                UUID.fromString(datasetId));
-        if (lists == null || lists.isEmpty()) {
-            throw new DoesNotExistException("Dataset observation variables list not returned from BrAPI service");
-        }
-        String listDbId = lists.get(0).getListDbId();
-        BrAPIListsSingleResponse list = listDAO.getListById(listDbId, program.getId());
-        List<String> obsVarNames = list.getResult().getData();
-        List<BrAPIObservationVariable> obsVars = obsVarDAO.getVariableByName(obsVarNames, program.getId());
-        return obsVars;
-    }
-
-    public BrAPITrial getExperiment(Program program, UUID experimentId) throws ApiException {
-        List<BrAPITrial> experiments = trialDAO.getTrialsByExperimentIds(List.of(experimentId), program);
-        return experiments.get(0);
     }
 
     public DownloadFile exportObservations(
