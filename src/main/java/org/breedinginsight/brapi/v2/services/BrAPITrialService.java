@@ -37,8 +37,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Singleton
 public class BrAPITrialService {
-    @Property(name = "brapi.server.reference-source")
-    private String referenceSource;
+    private final String referenceSource;
     private final BrAPITrialDAO trialDAO;
     private final BrAPIObservationDAO observationDAO;
     private final BrAPIListDAO listDAO;
@@ -49,7 +48,8 @@ public class BrAPITrialService {
     private final BrAPIGermplasmDAO germplasmDAO;
 
     @Inject
-    public BrAPITrialService(BrAPITrialDAO trialDAO,
+    public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
+                             BrAPITrialDAO trialDAO,
                              BrAPIObservationDAO observationDAO,
                              BrAPIListDAO listDAO,
                              BrAPIObservationVariableDAO obsVarDAO,
@@ -58,6 +58,7 @@ public class BrAPITrialService {
                              BrAPIObservationUnitDAO ouDAO,
                              BrAPIGermplasmDAO germplasmDAO) {
 
+        this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
         this.observationDAO = observationDAO;
         this.listDAO = listDAO;
@@ -104,31 +105,31 @@ public class BrAPITrialService {
         List<BrAPIObservationVariable> obsVars = new ArrayList<>();
         Map<String, Map<String, Object>> rowByOUId = new HashMap<>();
         Map<String, BrAPIStudy> studyByDbId = new HashMap<>();
-        List<String> requestedEnvNames = StringUtils.isNotBlank(params.getEnvironments()) ?
+        List<String> requestedEnvIds = StringUtils.isNotBlank(params.getEnvironments()) ?
                 new ArrayList<>(Arrays.asList(params.getEnvironments().split(","))) : new ArrayList<>();
         FileType fileType = params.getFileExtension();
 
         // get requested environments for the experiment
         List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
-        if (!requestedEnvNames.isEmpty()) {
+        if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
                     .stream()
-                    .filter(study -> requestedEnvNames.contains(
-                            Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey())))
+                    .filter(study -> requestedEnvIds.contains(getStudyId(study)))
                     .collect(Collectors.toList());
         }
         expStudies.forEach(study -> studyByDbId.putIfAbsent(study.getStudyDbId(), study));
 
         // get the OUs for the requested environments
         List<BrAPIObservationUnit> ous = new ArrayList<>();
+        Map<String, BrAPIObservationUnit> ouByOUDbId = new HashMap<>();
         try {
             for (BrAPIStudy study: expStudies) {
                 ous.addAll(ouDAO.getObservationUnitsForStudyDbId(study.getStudyDbId(), program));
+                ous.forEach(ou -> ouByOUDbId.put(ou.getObservationUnitDbId(), ou));
             }
         } catch (ApiException err) {
             log.error("Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
-            err.printStackTrace();
         }
 
         // make export columns including columns for requested dataset obsvars and timestamps if requested
@@ -149,10 +150,19 @@ public class BrAPITrialService {
         if (isDataset) {
             dataset = observationDAO.getObservationsByTrialDbId(List.of(experiment.getTrialDbId()), program);
         }
-        if (!requestedEnvNames.isEmpty()) {
-            dataset = filterDatasetByEnvironment(dataset, requestedEnvNames);
+        if (!requestedEnvIds.isEmpty()) {
+            dataset = filterDatasetByEnvironment(dataset, requestedEnvIds, studyByDbId);
         }
-        addBrAPIObsToRecords(dataset, experiment, program, ous, studyByDbId, rowByOUId, params.isIncludeTimestamps(), obsVars);
+        addBrAPIObsToRecords(
+                dataset,
+                experiment,
+                program,
+                ouByOUDbId,
+                studyByDbId,
+                rowByOUId,
+                params.isIncludeTimestamps(),
+                obsVars
+        );
 
         // make export rows for OUs without observations
         if (rowByOUId.size() < ous.size()) {
@@ -169,7 +179,7 @@ public class BrAPITrialService {
         if (fileType.equals(FileType.CSV)){
             downloadFile = CSVWriter.writeToDownload(columns, exportRows, fileType);
         } else {
-            downloadFile = ExcelWriter.writeToDownload("Dataset Export", columns, exportRows, fileType);
+            downloadFile = ExcelWriter.writeToDownload("Experiment Data", columns, exportRows, fileType);
         }
 
         String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
@@ -181,26 +191,30 @@ public class BrAPITrialService {
             List<BrAPIObservation> dataset,
             BrAPITrial experiment,
             Program program,
-            List<BrAPIObservationUnit> ous,
+            Map<String, BrAPIObservationUnit> ouByOUDbId,
             Map<String, BrAPIStudy> studyByDbId,
             Map<String, Map<String, Object>> rowByOUId,
             boolean includeTimestamp,
             List<BrAPIObservationVariable> obsVars) throws ApiException, DoesNotExistException {
+        Map<String, BrAPIObservationVariable> varByDbId = new HashMap<>();
+        obsVars.forEach(var -> varByDbId.put(var.getObservationVariableDbId(), var));
         for (BrAPIObservation obs: dataset) {
-            BrAPIObservationUnit ou = ous.stream()
-                    .filter(unit -> obs.getObservationUnitDbId().equals(unit.getObservationUnitDbId()))
-                    .findAny()
-                    .orElseThrow(RuntimeException::new);
+
+            // get observation unit for observation
+            BrAPIObservationUnit ou = ouByOUDbId.get(obs.getObservationUnitDbId());
             String ouId = getOUId(ou);
+
+            // get observation variable for BrAPI observation
+            BrAPIObservationVariable var = varByDbId.get(obs.getObservationVariableDbId());
 
             // if there is a row with that ouId then just add the obs var data and timestamp to the row
             if (rowByOUId.get(ouId) != null) {
-                addObsVarDataToRow(rowByOUId.get(ouId), obs, includeTimestamp, obsVars, program);
+                addObsVarDataToRow(rowByOUId.get(ouId), obs, includeTimestamp, var, program);
             } else {
 
                 // otherwise make a new row
                 Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId);
-                addObsVarDataToRow(row, obs, includeTimestamp, obsVars, program);
+                addObsVarDataToRow(row, obs, includeTimestamp, var, program);
                 rowByOUId.put(ouId, row);
             }
         }
@@ -214,17 +228,20 @@ public class BrAPITrialService {
         return ouXref.getReferenceID();
     }
 
+    private String getStudyId(BrAPIStudy study) {
+        BrAPIExternalReference studyXref = Utilities.getExternalReference(
+                        study.getExternalReferences(),
+                        String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES.getName()))
+                .orElseThrow(() -> new RuntimeException("study id not found"));
+        return studyXref.getReferenceID();
+    }
+
     private void addObsVarDataToRow(
             Map<String, Object> row,
             BrAPIObservation obs,
             boolean includeTimestamp,
-            List<BrAPIObservationVariable> obsVars,
+            BrAPIObservationVariable var,
             Program program) {
-        // get observation variable for BrAPI observation
-        BrAPIObservationVariable var = obsVars.stream()
-                .filter(obsVar -> obs.getObservationVariableName().equals(obsVar.getObservationVariableName()))
-                .collect(Collectors.toList()).get(0);
-
         String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
         if (var.getScale().getDataType().equals(BrAPITraitDataType.ORDINAL)) {
             row.put(varName, Integer.parseInt(obs.getValue()));
@@ -257,6 +274,10 @@ public class BrAPITrialService {
 
     public BrAPITrial getExperiment(Program program, UUID experimentId) throws ApiException {
         List<BrAPITrial> experiments = trialDAO.getTrialsByExperimentIds(List.of(experimentId), program);
+        if (experiments.isEmpty()) {
+            throw new RuntimeException("A trial with given experiment id was not returned");
+        }
+
         return experiments.get(0);
     }
 
@@ -335,9 +356,6 @@ public class BrAPITrialService {
         for (BrAPIObservationVariable var: obsVars) {
             Column obsVarColumn = new Column();
             obsVarColumn.setDataType(Column.ColumnDataType.STRING);
-            if (var.getScale().getDataType().equals(BrAPITraitDataType.ORDINAL)) {
-                obsVarColumn.setDataType(Column.ColumnDataType.INTEGER);
-            }
             if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
                     var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
                 obsVarColumn.setDataType(Column.ColumnDataType.DOUBLE);
@@ -361,10 +379,14 @@ public class BrAPITrialService {
                 envName,
                 timestamp);
     }
-    private List<BrAPIObservation> filterDatasetByEnvironment(List<BrAPIObservation> dataset, List<String> envNames) {
-            return dataset.stream().filter(obs -> envNames.contains(
-                    obs.getAdditionalInfo().getAsJsonObject()
-                            .get(BrAPIAdditionalInfoFields.STUDY_NAME).getAsString())).collect(Collectors.toList());
+    private List<BrAPIObservation> filterDatasetByEnvironment(
+            List<BrAPIObservation> dataset,
+            List<String> envIds,
+            Map<String, BrAPIStudy> studyByDbId) {
+            return dataset
+                    .stream()
+                    .filter(obs -> envIds.contains(getStudyId(studyByDbId.get(obs.getStudyDbId()))))
+                    .collect(Collectors.toList());
     }
 
 }

@@ -56,6 +56,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
     private Program program;
     private String experimentId;
+    private List<String> envIds = new ArrayList<>();
     private final List<Map<String, Object>> rows = new ArrayList<>();
     private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
     private List<Trait> traits;
@@ -179,6 +180,16 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject()
                 .get("trial").getAsJsonObject()
                 .get("id").getAsString();
+        envIds.add(importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(0).getAsJsonObject()
+                .get("study").getAsJsonObject()
+                .get("brAPIObject").getAsJsonObject()
+                .get("externalReferences").getAsJsonArray()
+                .get(2).getAsJsonObject()
+                .get("referenceID").getAsString()
+        );
     }
 
     /*
@@ -197,18 +208,18 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     - export populated dataset, multiple environment, xlsx format
    */
     @ParameterizedTest
-    @CsvSource(value = {"true,,CSV", "true,Env1,CSV",
-            "false,,CSV", "false,Env1,CSV",
-            "true,,XLS", "true,Env1,XLS",
-            "false,,XLS", "false,Env1,XLS",
-            "true,,XLSX", "true,Env1,XLSX",
-            "false,,XLSX", "false,Env1,XLSX",})
+    @CsvSource(value = {"true,false,CSV", "true,true,CSV",
+            "false,false,CSV", "false,true,CSV",
+            "true,false,XLS", "true,true,XLS",
+            "false,false,XLS", "false,true,XLS",
+            "true,false,XLSX", "true,true,XLSX",
+            "false,false,XLSX", "false,true,XLSX",})
     @SneakyThrows
-    void downloadDatasets(boolean includeTimestamps, String requestedEnv, String extension) {
+    void downloadDatasets(boolean includeTimestamps, boolean requestEnv, String extension) {
         // Download test experiment
         String envParam = "all=true";
-        if (requestedEnv != null) {
-            envParam = "environments=" + requestedEnv;
+        if (requestEnv) {
+            envParam = "environments=" + String.join(",", envIds);
         }
         Flowable<HttpResponse<byte[]>> call = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
@@ -237,7 +248,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         if (extension.equals("XLS") || extension.equals("XLSX")) {
             download = FileUtil.parseTableFromExcel(bodyStream, 0);
         }
-        checkDownloadTable(requestedEnv, rows, download, includeTimestamps, extension);
+        checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension);
     }
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
         File file = File.createTempFile("test", ".csv");
@@ -325,13 +336,13 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         return germplasm;
     }
     private void checkDownloadTable(
-            String requestedEnv,
+            boolean requestEnv,
             List<Map<String, Object>> importRows,
             Table table,
             boolean includeTimestamps,
             String extension) {
         // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
-        List<Map<String, Object>> requestedImportRows;
+        List<Map<String, Object>> requestedImportRows = importRows;
 
         // All columns included
         Integer expectedColNumber = columns.size();
@@ -340,8 +351,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         }
         assertEquals(expectedColNumber, table.columnCount());
 
-        if (requestedEnv == null) {
-            requestedImportRows = importRows;
+        if (!requestEnv) {
 
             // All environments downloaded
             importRows.stream()
@@ -355,11 +365,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             // Only requested environment downloaded
             requestedImportRows = importRows
                     .stream()
-                    .filter(row -> row.get("Env").toString().equals(requestedEnv)).collect(Collectors.toList());
-
+                    .filter(row -> row.get("Env").toString().equals("Env1")).collect(Collectors.toList());
             assertEquals(1, table.stringColumn("Env").countUnique());
-            assertTrue(table.stringColumn("Env").contains(requestedEnv));
-
+            assertTrue(table.stringColumn("Env").contains("Env1"));
         }
 
         List<Map<String, Object>> matchingImportRows = new ArrayList<>();
@@ -380,7 +388,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                     return row.get(gid).equals(downloadRow.getString(gid)) && row.get(env).equals(downloadRow.getString(env));
                 }
             }).findAny();
-            assertTrue(matchingImportRow.isPresent());
+            assertTrue(matchingImportRow.isPresent() && !matchingImportRow.get().isEmpty());
 
             // then check the rest of the fields match
             if (isMatchedRow(matchingImportRow.get(), downloadRow)) {
