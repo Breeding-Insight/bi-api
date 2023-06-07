@@ -161,6 +161,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
             Float val1 = random.nextFloat();
             row1.put(trait.getObservationVariableName(), val1);
+            // row1.put("TS:" + trait.getObservationVariableName(), "2023-06-07T20:47:23-0400");
         }
 
         rows.add(row1);
@@ -255,10 +256,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         if(traits != null) {
             traits.forEach(trait -> columns.add(
-                    Column.builder()
-                            .value(trait.getObservationVariableName())
-                            .dataType(Column.ColumnDataType.STRING)
-                            .build()));
+                        Column.builder()
+                                .value(trait.getObservationVariableName())
+                                .dataType(Column.ColumnDataType.STRING)
+                                .build())
+            );
         }
         ByteArrayOutputStream byteArrayOutputStream = CSVWriter.writeToCSV(columns, data);
         FileOutputStream fos = new FileOutputStream(file);

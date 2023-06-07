@@ -88,16 +88,6 @@ public class ResponseUtils {
         return HttpResponse.ok(new Response(metadata, data));
     }
 
-    // File download
-    public static HttpResponse<StreamedFile> getExportResponse() {
-        return processExportResponse();
-    }
-
-    private static HttpResponse<StreamedFile> processExportResponse() {
-        HttpResponse response = HttpResponse.status(HttpStatus.OK).contentType(MediaType.forFilename("download.xlsx"));
-        return response;
-    }
-
     private static <T> HttpResponse<Response<DataResponse<T>>> processSearchResponse(
             List data, SearchRequest searchRequest, QueryParams queryParams, AbstractQueryMapper mapper, Metadata metadata) {
 

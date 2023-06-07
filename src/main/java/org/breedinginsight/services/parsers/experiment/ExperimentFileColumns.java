@@ -39,8 +39,8 @@ public enum ExperimentFileColumns {
     EXP_UNIT_ID(ExperimentObservation.Columns.EXP_UNIT_ID, Column.ColumnDataType.STRING),
     REP_NUM(ExperimentObservation.Columns.REP_NUM, Column.ColumnDataType.INTEGER),
     BLOCK_NUM(ExperimentObservation.Columns.BLOCK_NUM, Column.ColumnDataType.INTEGER),
-    ROW(ExperimentObservation.Columns.ROW, Column.ColumnDataType.DOUBLE),
-    COLUMN(ExperimentObservation.Columns.COLUMN, Column.ColumnDataType.DOUBLE),
+    ROW(ExperimentObservation.Columns.ROW, Column.ColumnDataType.STRING),
+    COLUMN(ExperimentObservation.Columns.COLUMN, Column.ColumnDataType.STRING),
     TREATMENT_FACTORS(ExperimentObservation.Columns.TREATMENT_FACTORS, Column.ColumnDataType.STRING),
     OBS_UNIT_ID(ExperimentObservation.Columns.OBS_UNIT_ID, Column.ColumnDataType.STRING);
 

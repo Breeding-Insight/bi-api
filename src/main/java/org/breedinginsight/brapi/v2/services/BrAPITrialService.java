@@ -132,8 +132,10 @@ public class BrAPITrialService {
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
 
-        // make export columns including columns for requested dataset obsvars and timestamps if requested
+        // make columns present in all exports
         List<Column> columns = ExperimentFileColumns.getOrderedColumns();
+
+        // add columns for requested dataset obsvars and timestamps
         BrAPITrial experiment = getExperiment(program, experimentId);
         if ((StringUtils.isBlank(params.getDataset()) || "observations".equalsIgnoreCase(params.getDataset())) &&
                 experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) != null) {
@@ -142,6 +144,8 @@ public class BrAPITrialService {
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
             isDataset = true;
             obsVars = getDatasetObsVars(obsDatasetId, program);
+
+            // make additional columns in the export for each obs variable and obs variable timestamp
             addObsVarColumns(columns, obsVars, params.isIncludeTimestamps(), program);
 
         }
@@ -253,7 +257,7 @@ public class BrAPITrialService {
         }
 
         if (includeTimestamp) {
-            row.put(String.format("TS:%s",varName), obs.getObservationTimeStamp());
+            row.put(String.format("TS:%s",varName), obs.getObservationTimeStamp().toString());
         }
     }
 
@@ -333,8 +337,8 @@ public class BrAPITrialService {
                 row.put(ExperimentObservation.Columns.BLOCK_NUM, Integer.parseInt(brAPIObservationUnitLevelRelationship.getLevelCode())));
         if (ou.getObservationUnitPosition() != null && ou.getObservationUnitPosition().getPositionCoordinateX() != null &&
                 ou.getObservationUnitPosition().getPositionCoordinateY() != null) {
-            row.put(ExperimentObservation.Columns.ROW, Double.parseDouble(ou.getObservationUnitPosition().getPositionCoordinateX()));
-            row.put(ExperimentObservation.Columns.COLUMN, Double.parseDouble(ou.getObservationUnitPosition().getPositionCoordinateY()));
+            row.put(ExperimentObservation.Columns.ROW, ou.getObservationUnitPosition().getPositionCoordinateX());
+            row.put(ExperimentObservation.Columns.COLUMN, ou.getObservationUnitPosition().getPositionCoordinateY());
         }
         if (ou.getTreatments() != null && !ou.getTreatments().isEmpty()) {
             row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, ou.getTreatments().get(0).getFactor());
