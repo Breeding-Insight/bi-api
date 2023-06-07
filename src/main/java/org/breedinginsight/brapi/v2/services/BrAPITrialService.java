@@ -257,7 +257,8 @@ public class BrAPITrialService {
         }
 
         if (includeTimestamp) {
-            row.put(String.format("TS:%s",varName), obs.getObservationTimeStamp().toString());
+            String stamp = obs.getObservationTimeStamp() == null ? "" : obs.getObservationTimeStamp().toString();
+            row.put(String.format("TS:%s",varName), stamp);
         }
     }
 

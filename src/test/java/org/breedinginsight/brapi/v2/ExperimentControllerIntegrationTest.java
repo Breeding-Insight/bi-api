@@ -161,7 +161,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
             Float val1 = random.nextFloat();
             row1.put(trait.getObservationVariableName(), val1);
-            // row1.put("TS:" + trait.getObservationVariableName(), "2023-06-07T20:47:23-0400");
         }
 
         rows.add(row1);
