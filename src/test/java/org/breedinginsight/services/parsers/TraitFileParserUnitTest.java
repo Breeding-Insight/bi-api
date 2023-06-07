@@ -334,4 +334,33 @@ public class TraitFileParserUnitTest {
         assertEquals(3, traits.size(), "number of traits different than expected");
     }
 
+    @Test
+    @SneakyThrows
+    void parseCsvNullRowsSuccess() {
+        File file = new File("src/test/resources/files/ontology/ontology_null_rows.csv");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseCsv(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsNullRowsSuccess() {
+        File file = new File("src/test/resources/files/ontology/ontology_null_rows.xls");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsxNullRowsSuccess() {
+        File file = new File("src/test/resources/files/ontology/ontology_null_rows.xlsx");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
 }
