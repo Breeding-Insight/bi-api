@@ -124,8 +124,9 @@ public class BrAPITrialService {
         Map<String, BrAPIObservationUnit> ouByOUDbId = new HashMap<>();
         try {
             for (BrAPIStudy study: expStudies) {
-                ous.addAll(ouDAO.getObservationUnitsForStudyDbId(study.getStudyDbId(), program));
-                ous.forEach(ou -> ouByOUDbId.put(ou.getObservationUnitDbId(), ou));
+                List<BrAPIObservationUnit> studyOUs = ouDAO.getObservationUnitsForStudyDbId(study.getStudyDbId(), program);
+                studyOUs.forEach(ou -> ouByOUDbId.put(ou.getObservationUnitDbId(), ou));
+                ous.addAll(studyOUs);
             }
         } catch (ApiException err) {
             log.error("Error fetching observation units for a study by its DbId" +
@@ -247,9 +248,7 @@ public class BrAPITrialService {
             BrAPIObservationVariable var,
             Program program) {
         String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
-        if (var.getScale().getDataType().equals(BrAPITraitDataType.ORDINAL)) {
-            row.put(varName, Integer.parseInt(obs.getValue()));
-        } else if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
+        if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
                 var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
             row.put(varName, Double.parseDouble(obs.getValue()));
         } else {
