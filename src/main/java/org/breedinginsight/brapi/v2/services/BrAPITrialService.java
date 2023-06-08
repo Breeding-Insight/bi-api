@@ -158,6 +158,8 @@ public class BrAPITrialService {
         if (!requestedEnvIds.isEmpty()) {
             dataset = filterDatasetByEnvironment(dataset, requestedEnvIds, studyByDbId);
         }
+
+        // update rowByOUId
         addBrAPIObsToRecords(
                 dataset,
                 experiment,
