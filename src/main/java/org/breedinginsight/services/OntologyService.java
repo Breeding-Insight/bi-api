@@ -51,15 +51,42 @@ public class OntologyService {
         // Get program with that id
         Program program = getProgram(programId);
 
+        // Get any programs targeted for sharing by this program
         List<SharedOntology> formattedPrograms = getSharedProgramsFormatted(program);
         Set<UUID> sharedProgramIds = formattedPrograms.stream().map(SharedOntology::getProgramId).collect(Collectors.toSet());
 
-        // Add other programs
+        // Add other sharable programs
         if (!sharedOnly) {
             // TODO: Test if localhost vs localhost/brapi/v2 makes a difference
             List<Program> matchingPrograms = getMatchingPrograms(program);
+
+            // Collect the ids of any matching programs that are either sharing-sources or
+            // sharing-targets that have accepted
+            Set<UUID> shareSourceIds = new HashSet<>();
+            Set<UUID> shareTargetIds = new HashSet<>();
+            for (Program candidate: matchingPrograms) {
+                List<SharedOntology> shareTargetsFormatted = getSharedProgramsFormatted(candidate);
+                if (!shareTargetsFormatted.isEmpty()) {
+
+                    // The program is sharing its ontology, so collect its id as a source
+                    shareSourceIds.add(candidate.getId());
+
+                    // Collect the ids of target-programs that have accepted
+                    shareTargetIds.addAll(shareTargetsFormatted
+                            .stream()
+                            .filter(SharedOntology::getAccepted)
+                            .map(SharedOntology::getProgramId)
+                            .collect(Collectors.toSet())
+                    );
+                }
+            }
+
+            Set<UUID> unsharableIds = new HashSet<>();
+            unsharableIds.addAll(sharedProgramIds);
+            unsharableIds.addAll(shareSourceIds);
+            unsharableIds.addAll(shareTargetIds);
             formattedPrograms.addAll(matchingPrograms.stream()
-                    .filter(matchingProgram -> !sharedProgramIds.contains(matchingProgram.getId()))
+                    .filter(matchingProgram -> !unsharableIds.contains(matchingProgram.getId()))
                     .map(matchingProgram -> formatResponse(matchingProgram))
                     .collect(Collectors.toList()));
         }
