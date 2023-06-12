@@ -20,6 +20,7 @@ import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.core.TrialsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -110,7 +111,7 @@ public class BrAPITrialDAO {
             BrAPIExternalReference xref = experiment
                     .getExternalReferences()
                     .stream()
-                    .filter(reference -> referenceSource.equals(reference.getReferenceSource()))
+                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS).equalsIgnoreCase(reference.getReferenceSource()))
                     .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
             experimentById.put(xref.getReferenceID(), experiment);
         }
