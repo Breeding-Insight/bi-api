@@ -117,6 +117,7 @@ public class BrAPITrialDAO {
         return experimentById;
     }
 
+    /*
     public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
         if(trialNames.isEmpty()) {
             return Collections.emptyList();
@@ -131,6 +132,19 @@ public class BrAPITrialDAO {
                 api::searchTrialsSearchResultsDbIdGet,
                 trialSearch
         );
+    }*/
+    public List<BrAPITrial> getTrialsByName(List<String> trialNames, Program program) throws ApiException {
+        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
+        List<BrAPITrial> trials = new ArrayList<>();
+        if (cache != null) {
+            trials.addAll(cache
+                    .values()
+                    .stream()
+                    .filter(t -> trialNames.contains(t.getTrialName()))
+                    .collect(Collectors.toList()));
+        }
+
+        return trials;
     }
 
     private List<BrAPITrial> getTrialsByExRef(String referenceSource, String referenceId, Program program) throws ApiException {
