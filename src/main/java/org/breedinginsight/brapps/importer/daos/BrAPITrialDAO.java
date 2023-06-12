@@ -276,6 +276,22 @@ public class BrAPITrialDAO {
         List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
         return Utilities.getSingleOptional(trials);
     }
+
+    public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
+        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
+        List<BrAPITrial> trials = new ArrayList<>();
+        if (cache != null) {
+            trials.addAll(cache
+                    .values()
+                    .stream()
+                    .filter(t -> trialDbIds.contains(t.getTrialDbId()))
+                    .collect(Collectors.toList()));
+        }
+
+        return trials;
+    }
+
+    /*
     public List<BrAPITrial> getTrialsByDbIds(Collection<String> trialDbIds, Program program) throws ApiException {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();
@@ -290,26 +306,7 @@ public class BrAPITrialDAO {
                 api::searchTrialsSearchResultsDbIdGet,
                 trialSearch
         );
-    }
-
-    public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException {
-        if(experimentIds.isEmpty()) {
-            return Collections.emptyList();
-        }
-
-        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
-        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
-        //trialSearch.trialDbIds(experimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
-        trialSearch.externalReferenceSources(List.of(referenceSource + "/" + ExternalReferenceSource.TRIALS.getName()));
-        trialSearch.externalReferenceIDs(experimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
-        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
-        return brAPIDAOUtil.search(
-                api::searchTrialsPost,
-                api::searchTrialsSearchResultsDbIdGet,
-                trialSearch
-        );
-    }
-
+    }*/
 }
 
 
