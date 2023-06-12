@@ -230,12 +230,33 @@ public class BrAPITrialDAO {
     }
 
     public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
+        Program program = programService
+                .getById(programId)
+                .orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
+        Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
+        BrAPITrial trial = null;
+        if (cache != null) {
+            List<BrAPITrial> trials = cache
+                    .values()
+                    .stream()
+                    .filter(t -> t.getTrialDbId().equals(trialDbId))
+                    .collect(Collectors.toList());
+            if (trials.isEmpty()) {
+                throw new DoesNotExistException("trial does not exist for given dbId");
+            }
+            trial = trials.get(0);
+        }
+
+        return Optional.ofNullable(trial);
+    }
+    /*
+    public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
         Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
         String refSoure = Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS);
         List<BrAPITrial> trials = getTrialsByExRef(refSoure, trialDbId.toString(), program);
 
         return Utilities.getSingleOptional(trials);
-    }
+    }*/
 
     public Optional<BrAPITrial> getTrialByDbId(String trialDbId, Program program) throws ApiException {
         List<BrAPITrial> trials = getTrialsByDbIds(List.of(trialDbId), program);
