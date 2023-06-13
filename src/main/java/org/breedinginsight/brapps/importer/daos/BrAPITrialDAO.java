@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.daos;
 import io.micronaut.context.annotation.Context;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.scheduling.annotation.Scheduled;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -69,6 +70,7 @@ public class BrAPITrialDAO {
         this.referenceSource = referenceSource;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
+
 
     @PostConstruct
     public void setup() {
