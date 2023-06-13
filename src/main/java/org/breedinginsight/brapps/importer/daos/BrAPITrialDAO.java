@@ -104,7 +104,7 @@ public class BrAPITrialDAO {
                 trialSearch
         );
 
-        return experimentById(programExperiments);
+        return experimentById(processExperimentsForDisplay(programExperiments, program.getKey()));
     }
 
     private Map<String, BrAPITrial> experimentById(List<BrAPITrial> trials) {
@@ -201,23 +201,13 @@ public class BrAPITrialDAO {
         return new ArrayList<>(programExperimentCache.get(programId).values());
     }
 
-    //Removes program key from trial name and adds dataset information
+    //Removes program key from trial name
     private List<BrAPITrial> processExperimentsForDisplay(
             List<BrAPITrial> trials,
-            String programKey,
-            UUID programId,
-            boolean metadata) throws ApiException {
+            String programKey) throws ApiException {
         List<BrAPITrial> displayExperiments = new ArrayList<>();
         for (BrAPITrial trial: trials) {
             trial.setTrialName(Utilities.removeProgramKey(trial.getTrialName(), programKey, ""));
-            List<String> datasets = new ArrayList<>();
-
-            if (metadata) {
-                //todo presumably BI-1193 replace dummy value with list of datasets once datasets implemented
-                datasets.add("Observation Dataset");
-                trial.putAdditionalInfoItem("datasets", datasets);
-            }
-
             displayExperiments.add(trial);
         }
         return displayExperiments;
@@ -227,7 +217,7 @@ public class BrAPITrialDAO {
         Map<String, BrAPITrial> cache = programExperimentCache.get(programId);
         BrAPITrial trial = null;
         if (cache != null) {
-            trial = cache.get(trialId);
+            trial = cache.get(trialId.toString());
         }
 
         return Optional.ofNullable(trial);
