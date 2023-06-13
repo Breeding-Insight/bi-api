@@ -240,6 +240,8 @@ public class BrAPITrialService {
     }
 
     private String getStudyId(BrAPIStudy study) {
+        // HACK: avoid null reference exceptions.
+        if (study == null) return null;
         BrAPIExternalReference studyXref = Utilities.getExternalReference(
                         study.getExternalReferences(),
                         String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES.getName()))

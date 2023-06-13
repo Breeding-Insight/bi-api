@@ -29,8 +29,12 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.util.List;
-import java.util.UUID;
+import java.io.*;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Controller
@@ -91,17 +95,72 @@ public class ExperimentController {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})
+    @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
             @QueryValue @Valid ExperimentExportQuery queryParams) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
+            DownloadFile downloadFile;
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-            DownloadFile datasetFile = experimentService.exportObservations(program, experimentId, queryParams);
+
+            // If multiple files are requested, make multiple requests!
+            List<DownloadFile> datasetFiles = new LinkedList<>();
+            if (queryParams.getEnvironments() != null && queryParams.getEnvironments().split(",").length > 1) {
+                String[] environments = queryParams.getEnvironments().split(",");
+                for (String env : environments) {
+                    // Overwrite queryParams environments to just current env.
+                    queryParams.setEnvironments(env);
+                    // Get file for env.
+                    DownloadFile file = experimentService.exportObservations(program, experimentId, queryParams);
+                    // Add to file list.
+                    datasetFiles.add(file);
+                }
+            } else {
+                datasetFiles.add(experimentService.exportObservations(program, experimentId, queryParams));
+            }
+
+            // TODO: zip if more than 1 file.
+            if (datasetFiles.size() > 1)
+            {
+                // Build zip file name. <exp-title_<export-timestamp>.zip
+                BrAPITrial experiment = experimentService.getExperiment(program, experimentId);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+                String timestamp = formatter.format(OffsetDateTime.now());
+                String filename = String.format("%s_%s.zip", experiment.getTrialName(), timestamp);
+
+                PipedInputStream in = new PipedInputStream();
+                final PipedOutputStream out = new PipedOutputStream(in);
+                new Thread(() -> {
+                    try {
+                        ZipOutputStream zipStream = new ZipOutputStream(out);
+                        for (DownloadFile datasetFile : datasetFiles) {
+
+                            ZipEntry entry = new ZipEntry(datasetFile.getFileName());
+                            zipStream.putNextEntry(entry);
+                            // Write datasetFile to zip.
+                            zipStream.write(datasetFile.getStreamedFile().getInputStream().readAllBytes());
+                            zipStream.closeEntry();
+
+                        }
+                        zipStream.close();
+                        out.close();
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).start();
+
+                StreamedFile sf = new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
+                downloadFile = new DownloadFile(filename, sf);
+            }
+            else {
+                // There's only one file, download without zipping.
+                downloadFile = datasetFiles.get(0);
+            }
+
             HttpResponse<StreamedFile> response = HttpResponse
-                    .ok(datasetFile.getStreamedFile())
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + datasetFile.getFileName());
+                    .ok(downloadFile.getStreamedFile())
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + downloadFile.getFileName());
             return response;
         } catch (Exception e) {
             log.info(e.getMessage(), e);
