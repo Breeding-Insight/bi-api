@@ -18,13 +18,16 @@
 package org.breedinginsight.brapps.importer.services;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.reactivex.functions.Function;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.mapping.MappingField;
+import org.breedinginsight.model.Trait;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
@@ -40,6 +43,7 @@ public class FileMappingUtil {
 
     public static final String EXPERIMENT_TEMPLATE_NAME = "ExperimentsTemplateMap";
     private FileImportService fileImportService;
+
 
     @Inject
     public FileMappingUtil(FileImportService fileImportService) {
@@ -77,27 +81,23 @@ public class FileMappingUtil {
 
         return targetIndexList;
     }
-    public List<Column<?>> getDynamicColumns(Table data, String templateName) {
-        List<ImportMapping> result = fileImportService.getSystemMappingByName(templateName);
 
-        if (result.isEmpty()) {
-            throw new InternalServerException("System mapping does not exist");
+    public <T> List<T> sortByField(List<String> sortedFields, List<T> unsortedItems, Function<T, String> fieldGetter) {
+        HashMap<String, Integer> sortOrder = new HashMap<>();
+        for (int i = 0; i < sortedFields.size(); i++) {
+            sortOrder.put(sortedFields.get(i), i);
         }
 
-        ImportMapping mapping = result.get(0);
-        List<MappingField> config = mapping.getMappingConfig();
-        List<String> columnNames = new ArrayList<>();
-
-        for (MappingField field : config) {
-            if (field.getValue() != null) {
-                columnNames.add(field.getValue().getFileFieldName());
+        unsortedItems.sort((i1, i2) -> {
+            try {
+                String field1 = fieldGetter.apply(i1);
+                String field2 = fieldGetter.apply(i2);
+                return Integer.compare(sortOrder.get(field1), sortOrder.get(field2));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-        }
+        });
 
-        List<String> differences = data.columnNames().stream()
-                .filter(col -> !columnNames.contains(col))
-                .collect(Collectors.toList());
-
-        return data.columns(differences.toArray(String[]::new));
+        return unsortedItems;
     }
 }

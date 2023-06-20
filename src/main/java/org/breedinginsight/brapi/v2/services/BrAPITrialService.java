@@ -17,6 +17,7 @@ import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
@@ -46,6 +47,7 @@ public class BrAPITrialService {
     private final BrAPISeasonDAO seasonDAO;
     private final BrAPIObservationUnitDAO ouDAO;
     private final BrAPIGermplasmDAO germplasmDAO;
+    private final FileMappingUtil fileMappingUtil;
 
     @Inject
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -56,7 +58,8 @@ public class BrAPITrialService {
                              BrAPIStudyDAO studyDAO,
                              BrAPISeasonDAO seasonDAO,
                              BrAPIObservationUnitDAO ouDAO,
-                             BrAPIGermplasmDAO germplasmDAO) {
+                             BrAPIGermplasmDAO germplasmDAO,
+                             FileMappingUtil fileMappingUtil) {
 
         this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
@@ -67,6 +70,7 @@ public class BrAPITrialService {
         this.seasonDAO = seasonDAO;
         this.ouDAO = ouDAO;
         this.germplasmDAO = germplasmDAO;
+        this.fileMappingUtil = fileMappingUtil;
     }
 
     public List<BrAPITrial> getExperiments(UUID programId) throws ApiException, DoesNotExistException {
@@ -275,7 +279,10 @@ public class BrAPITrialService {
         String listDbId = lists.get(0).getListDbId();
         BrAPIListsSingleResponse list = listDAO.getListById(listDbId, program.getId());
         List<String> obsVarNames = list.getResult().getData();
-        return obsVarDAO.getVariableByName(obsVarNames, program.getId());
+        List<BrAPIObservationVariable> obsVars = obsVarDAO.getVariableByName(obsVarNames, program.getId());
+
+        // sort the obsVars to match the order stored in the dataset list
+        return fileMappingUtil.sortByField(obsVarNames, obsVars, BrAPIObservationVariable::getObservationVariableName);
     }
 
     public BrAPITrial getExperiment(Program program, UUID experimentId) throws ApiException {

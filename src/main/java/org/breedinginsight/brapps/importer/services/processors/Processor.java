@@ -43,6 +43,8 @@ public interface Processor {
     /**
      * Update mappedBrAPIImport mapping with PendingImport data for brapi object based on new and existing objects.
      * Return stats on number of new & existing objects
+     *
+     * @param upload
      * @param importRows
      * @param mappedBrAPIImport
      * @param data
@@ -50,7 +52,7 @@ public interface Processor {
      * @return
      * @throws ValidatorException
      */
-    Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+    Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
                                                  Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                  Program program, User user, boolean commit)
             throws ValidatorException, MissingRequiredInfoException, ApiException;
