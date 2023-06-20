@@ -17,26 +17,19 @@
 
 package org.breedinginsight.brapps.importer.services;
 
-import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Function;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
-import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
-import org.breedinginsight.brapps.importer.daos.*;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
-import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
-import org.breedinginsight.brapps.importer.model.mapping.MappingField;
-import org.breedinginsight.model.Trait;
-import org.jooq.DSLContext;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
-import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Singleton
 public class FileMappingUtil {

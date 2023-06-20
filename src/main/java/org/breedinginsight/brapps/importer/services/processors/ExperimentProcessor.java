@@ -207,8 +207,6 @@ public class ExperimentProcessor implements Processor {
         ValidationErrors validationErrors = new ValidationErrors();
 
         // Get dynamic phenotype columns for processing
-        //List<Column<?>> dynamicCols = fileMappingUtil.getDynamicColumns(upload, data);
-
         List<Column<?>> dynamicCols = data.columns(upload.getDynamicColumnNames());
         List<Column<?>> phenotypeCols = new ArrayList<>();
         List<Column<?>> timestampCols = new ArrayList<>();
