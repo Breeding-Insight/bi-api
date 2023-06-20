@@ -103,7 +103,10 @@ public class ExperimentController {
         try {
             DownloadFile downloadFile;
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-
+            // TODO: if a list of environmentIds are sent, return multiple files (zipped),
+            //       else if a single environmentId is sent, return single file (CSV/Excel),
+            //       else (if no environmentIds are sent), return a single file (CSV/Excel) including all Environments.
+            
             // If multiple files are requested, make multiple requests!
             List<DownloadFile> datasetFiles = new LinkedList<>();
             if (queryParams.getEnvironments() != null && queryParams.getEnvironments().split(",").length > 1) {

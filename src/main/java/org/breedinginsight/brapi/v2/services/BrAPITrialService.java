@@ -193,6 +193,7 @@ public class BrAPITrialService {
             downloadFile = ExcelWriter.writeToDownload("Experiment Data", columns, exportRows, fileType);
         }
 
+        // TODO: Get environment name for filename rather than UUID.
         String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
         String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
         return new DownloadFile(fileName, downloadFile);
