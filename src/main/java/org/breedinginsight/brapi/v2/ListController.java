@@ -95,7 +95,7 @@ public class ListController {
             }
             List<BrAPIListSummary> brapiLists = listService.getListSummariesByTypeAndXref(type, source, id, program);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
-            
+
             return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
 
         } catch (IllegalArgumentException e) {
