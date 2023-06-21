@@ -101,65 +101,12 @@ public class ExperimentController {
             @QueryValue @Valid ExperimentExportQuery queryParams) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
-            DownloadFile downloadFile;
             Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+
             // TODO: if a list of environmentIds are sent, return multiple files (zipped),
             //       else if a single environmentId is sent, return single file (CSV/Excel),
             //       else (if no environmentIds are sent), return a single file (CSV/Excel) including all Environments.
-            
-            // If multiple files are requested, make multiple requests!
-            List<DownloadFile> datasetFiles = new LinkedList<>();
-            if (queryParams.getEnvironments() != null && queryParams.getEnvironments().split(",").length > 1) {
-                String[] environments = queryParams.getEnvironments().split(",");
-                for (String env : environments) {
-                    // Overwrite queryParams environments to just current env.
-                    queryParams.setEnvironments(env);
-                    // Get file for env.
-                    DownloadFile file = experimentService.exportObservations(program, experimentId, queryParams);
-                    // Add to file list.
-                    datasetFiles.add(file);
-                }
-            } else {
-                datasetFiles.add(experimentService.exportObservations(program, experimentId, queryParams));
-            }
-
-            // TODO: zip if more than 1 file.
-            if (datasetFiles.size() > 1)
-            {
-                // Build zip file name. <exp-title_<export-timestamp>.zip
-                BrAPITrial experiment = experimentService.getExperiment(program, experimentId);
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
-                String timestamp = formatter.format(OffsetDateTime.now());
-                String filename = String.format("%s_%s.zip", experiment.getTrialName(), timestamp);
-
-                PipedInputStream in = new PipedInputStream();
-                final PipedOutputStream out = new PipedOutputStream(in);
-                new Thread(() -> {
-                    try {
-                        ZipOutputStream zipStream = new ZipOutputStream(out);
-                        for (DownloadFile datasetFile : datasetFiles) {
-
-                            ZipEntry entry = new ZipEntry(datasetFile.getFileName());
-                            zipStream.putNextEntry(entry);
-                            // Write datasetFile to zip.
-                            zipStream.write(datasetFile.getStreamedFile().getInputStream().readAllBytes());
-                            zipStream.closeEntry();
-
-                        }
-                        zipStream.close();
-                        out.close();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }).start();
-
-                StreamedFile sf = new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
-                downloadFile = new DownloadFile(filename, sf);
-            }
-            else {
-                // There's only one file, download without zipping.
-                downloadFile = datasetFiles.get(0);
-            }
+            DownloadFile downloadFile = experimentService.exportObservations(program, experimentId, queryParams);
 
             HttpResponse<StreamedFile> response = HttpResponse
                     .ok(downloadFile.getStreamedFile())
