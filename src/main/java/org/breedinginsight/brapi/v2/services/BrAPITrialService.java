@@ -267,6 +267,25 @@ public class BrAPITrialService {
         }
     }
 
+    public List<BrAPIObservationVariable> getListDetailsByTypeAndXref(
+            BrAPIListTypes type,
+            ExternalReferenceSource xrefObject,
+            String xrefId,
+            Program program) throws ApiException, DoesNotExistException {
+        List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
+                type,
+                program.getId(),
+                String.format("%s/%s", referenceSource, xrefObject.getName()),
+                UUID.fromString(xrefId));
+        if (lists == null || lists.isEmpty()) {
+            throw new DoesNotExistException("Dataset observation variables list not returned from BrAPI service");
+        }
+        String listDbId = lists.get(0).getListDbId();
+        BrAPIListsSingleResponse list = listDAO.getListById(listDbId, program.getId());
+        List<String> obsVarNames = list.getResult().getData();
+        return obsVarDAO.getVariableByName(obsVarNames, program.getId());
+    }
+
     public List<BrAPIObservationVariable> getDatasetObsVars(String datasetId, Program program) throws ApiException, DoesNotExistException {
         List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
                 BrAPIListTypes.OBSERVATIONVARIABLES,

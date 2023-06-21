@@ -86,43 +86,6 @@ public class BrAPIV2Controller {
         return new BrAPIServerInfoResponse().result(serverInfo);
     }
 
-    //@Get(BrapiVersion.BRAPI_V2 + "/lists")
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists{?queryParams*}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse getLists(@PathVariable("programId") UUID programId, HttpRequest<String> request,
-                                 @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
-    ) throws DoesNotExistException, ApiException {
-        try {
-            List<BrAPIListSummary> brapiLists;
-
-            // If the date display format was sent as a query param, then update the query mapper.
-            String dateFormatParam = queryParams.getDateDisplayFormat();
-            if (dateFormatParam != null) {
-                listQueryMapper.setDateDisplayFormat(dateFormatParam);
-            }
-
-            if (queryParams.getListType() == null) {
-                // TODO: in future return all list types but for now just return germplasm
-                brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-            } else {
-                // TODO: return appropriate lists by type, only germplasm currently
-                switch (queryParams.getListType()) {
-                    case "germplasm":
-                    default:
-                        brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-                }
-            }
-
-            SearchRequest searchRequest = queryParams.constructSearchRequest();
-            return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
-
-        } catch (IllegalArgumentException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
-        }
-    }
-
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})

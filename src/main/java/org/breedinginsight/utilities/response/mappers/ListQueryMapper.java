@@ -3,6 +3,7 @@ package org.breedinginsight.utilities.response.mappers;
 import lombok.Getter;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;

@@ -2,9 +2,11 @@ package org.breedinginsight.brapi.v2.model.request.query;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
+import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.jooq.tools.StringUtils;
 
 import java.util.ArrayList;
@@ -13,11 +15,11 @@ import java.util.List;
 @Getter
 @Introspected
 public class ListQuery extends BrapiQuery {
-    private String listType;
+    private BrAPIListTypes listType;
     private String name;
     private String description;
     private String size;
-    private String externalReferenceSource;
+    private ExternalReferenceSource externalReferenceSource;
     private String externalReferenceId;
     private String dateCreated;
     private String ownerName;
@@ -26,8 +28,8 @@ public class ListQuery extends BrapiQuery {
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
-        if (!StringUtils.isBlank(getListType())) {
-            filters.add(constructFilterRequest("type", getListType()));
+        if (getListType() != null) {
+            filters.add(constructFilterRequest("type", getListType().name()));
         }
         if (!StringUtils.isBlank(getName())) {
             filters.add(constructFilterRequest("name", getName()));
@@ -38,8 +40,8 @@ public class ListQuery extends BrapiQuery {
         if (!StringUtils.isBlank(getSize())) {
             filters.add(constructFilterRequest("size", getSize()));
         }
-        if (!StringUtils.isBlank(getExternalReferenceSource())) {
-            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource()));
+        if (getExternalReferenceSource() != null) {
+            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource().getName()));
         }
         if (!StringUtils.isBlank(getExternalReferenceId())) {
             filters.add(constructFilterRequest("externalReferenceId", getExternalReferenceId()));

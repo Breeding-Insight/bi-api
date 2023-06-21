@@ -27,6 +27,7 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -34,6 +35,10 @@ import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.model.request.query.ListQuery;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
+import org.breedinginsight.brapi.v2.services.BrAPIListService;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ListQueryMapper;
@@ -48,12 +53,16 @@ import java.util.UUID;
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class ListController {
 
+    private final ProgramService programService;
+    private final BrAPIListService listService;
     private final BrAPIGermplasmService germplasmService;
     private final ListQueryMapper listQueryMapper;
 
     @Inject
-    public ListController(BrAPIGermplasmService germplasmService,
+    public ListController(ProgramService programService, BrAPIListService listService, BrAPIGermplasmService germplasmService,
                           ListQueryMapper listQueryMapper) {
+        this.programService = programService;
+        this.listService = listService;
         this.germplasmService = germplasmService;
         this.listQueryMapper = listQueryMapper;
     }
@@ -67,32 +76,33 @@ public class ListController {
                                  @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
     ) throws DoesNotExistException, ApiException {
         try {
-            List<BrAPIListSummary> brapiLists;
+            Program program = programService
+                    .getById(programId)
+                    .orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+
+            // get germplasm lists by default
+            BrAPIListTypes type = queryParams.getListType() == null ?
+                    BrAPIListTypes.GERMPLASM : queryParams.getListType();
+            ExternalReferenceSource source = queryParams.getExternalReferenceSource() == null ?
+                    ExternalReferenceSource.PROGRAMS : queryParams.getExternalReferenceSource();
+            UUID id = queryParams.getExternalReferenceId() == null || queryParams.getExternalReferenceId().isBlank() ?
+                    programId : UUID.fromString(queryParams.getExternalReferenceId());
 
             // If the date display format was sent as a query param, then update the query mapper.
             String dateFormatParam = queryParams.getDateDisplayFormat();
             if (dateFormatParam != null) {
                 listQueryMapper.setDateDisplayFormat(dateFormatParam);
             }
-
-            if (queryParams.getListType() == null) {
-                // TODO: in future return all list types but for now just return germplasm
-                brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-            } else {
-                // TODO: return appropriate lists by type, only germplasm currently
-                switch (queryParams.getListType()) {
-                    case "germplasm":
-                    default:
-                        brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-                }
-            }
-
+            List<BrAPIListSummary> brapiLists = listService.getListSummariesByTypeAndXref(type, source, id, program);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
+            
             return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);
 
         } catch (IllegalArgumentException e) {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
     }
 }
