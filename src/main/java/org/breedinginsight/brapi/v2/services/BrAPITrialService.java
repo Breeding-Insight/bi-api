@@ -206,11 +206,11 @@ public class BrAPITrialService {
         List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
-        Set<String> datasetOUDbIds = data.stream().map(BrAPIObservation::getObservationUnitDbId).collect(Collectors.toSet());
-        List<BrAPIObservationUnit> datasetOUs = expOUs.stream().filter(unit -> datasetOUDbIds.contains(unit.getObservationUnitDbId())).collect(Collectors.toList());
-        Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
+        //Set<String> datasetOUDbIds = data.stream().map(BrAPIObservation::getObservationUnitDbId).collect(Collectors.toSet());
+        //List<BrAPIObservationUnit> datasetOUs = expOUs.stream().filter(unit -> datasetOUDbIds.contains(unit.getObservationUnitDbId())).collect(Collectors.toList());
+        Dataset dataset = new Dataset(experimentId.toString(), data, expOUs, datasetObsVars);
         if (stats) {
-            Integer ouCount = datasetOUs.size();
+            Integer ouCount = expOUs.size();
             Integer obsVarCount = datasetObsVars.size();
             Integer obsCount = ouCount * obsVarCount;
             Integer obsDataCount = data.size();
