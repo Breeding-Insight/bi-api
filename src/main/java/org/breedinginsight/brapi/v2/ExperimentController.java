@@ -111,7 +111,7 @@ public class ExperimentController {
         }
     }
 
-    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats=[true|false]}")
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     @Produces(MediaType.APPLICATION_JSON)
     public HttpResponse<Response<Dataset>> getDatasetData(

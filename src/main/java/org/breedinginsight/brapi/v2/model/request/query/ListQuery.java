@@ -15,7 +15,7 @@ import java.util.List;
 @Getter
 @Introspected
 public class ListQuery extends BrapiQuery {
-    private BrAPIListTypes listType;
+    private String listType;
     private String name;
     private String description;
     private String size;
@@ -29,7 +29,7 @@ public class ListQuery extends BrapiQuery {
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
         if (getListType() != null) {
-            filters.add(constructFilterRequest("type", getListType().name()));
+            filters.add(constructFilterRequest("type", getListType()));
         }
         if (!StringUtils.isBlank(getName())) {
             filters.add(constructFilterRequest("name", getName()));

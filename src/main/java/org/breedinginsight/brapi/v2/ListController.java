@@ -67,12 +67,11 @@ public class ListController {
         this.listQueryMapper = listQueryMapper;
     }
 
-
     //@Get(BrapiVersion.BRAPI_V2 + "/lists")
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse getLists(@PathVariable("programId") UUID programId, HttpRequest<String> request,
+    public HttpResponse getLists(@PathVariable("programId") UUID programId,
                                  @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
     ) throws DoesNotExistException, ApiException {
         try {
@@ -81,8 +80,12 @@ public class ListController {
                     .orElseThrow(() -> new DoesNotExistException("Program does not exist"));
 
             // get germplasm lists by default
-            BrAPIListTypes type = queryParams.getListType() == null ?
-                    BrAPIListTypes.GERMPLASM : queryParams.getListType();
+//            BrAPIListTypes type = queryParams.getListType() == null || BrAPIListTypes.fromValue(queryParams.getListType()) == null ?
+//            BrAPIListTypes.GERMPLASM : BrAPIListTypes.fromValue(queryParams.getListType());
+            BrAPIListTypes type = BrAPIListTypes.fromValue(queryParams.getListType());
+            if (type == null) {
+                type = BrAPIListTypes.GERMPLASM;
+            }
             ExternalReferenceSource source = queryParams.getExternalReferenceSource() == null ?
                     ExternalReferenceSource.PROGRAMS : queryParams.getExternalReferenceSource();
             UUID id = queryParams.getExternalReferenceId() == null || queryParams.getExternalReferenceId().isBlank() ?

@@ -201,6 +201,8 @@ public class BrAPITrialService {
 
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
         BrAPITrial experiment = this.getExperiment(program, experimentId);
+
+        //
         List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId());
         List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
         List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
