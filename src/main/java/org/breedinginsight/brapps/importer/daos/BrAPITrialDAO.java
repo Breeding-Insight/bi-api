@@ -62,7 +62,7 @@ public class BrAPITrialDAO {
 
     @Inject
     public BrAPITrialDAO(ProgramCacheProvider programCacheProvider, ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramService programService, @Property(name = "brapi.server.reference-source") String referenceSource, BrAPIEndpointProvider brAPIEndpointProvider) {
-        this.programExperimentCache = programCacheProvider.getProgramCache(this::fetchProgramExperiment, BrAPITrial.class);
+        this.programExperimentCache = programCacheProvider.getProgramCache(this::fetchProgramExperiments, BrAPITrial.class);
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
@@ -82,7 +82,7 @@ public class BrAPITrialDAO {
         }
     }
 
-    private Map<String, BrAPITrial> fetchProgramExperiment(UUID programId) throws ApiException {
+    private Map<String, BrAPITrial> fetchProgramExperiments(UUID programId) throws ApiException {
         TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), TrialsApi.class);
 
         // Get the program
@@ -124,6 +124,8 @@ public class BrAPITrialDAO {
         Map<String, BrAPITrial> cache = programExperimentCache.get(program.getId());
         List<BrAPITrial> trials = new ArrayList<>();
         if (cache != null) {
+
+            // TODO: replace with more performant cache search, e.g. RediSearch
             trials.addAll(cache
                     .values()
                     .stream()
