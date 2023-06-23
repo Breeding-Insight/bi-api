@@ -243,6 +243,21 @@ public class BrAPITrialDAO {
 
         return trials;
     }
+    public List<BrAPITrial> getTrialsByExperimentIds(Collection<UUID> experimentIds, Program program) throws ApiException {
+        if(experimentIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        BrAPITrialSearchRequest trialSearch = new BrAPITrialSearchRequest();
+        trialSearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        trialSearch.externalReferenceSources(List.of(referenceSource + "/" + ExternalReferenceSource.TRIALS.getName()));
+        trialSearch.externalReferenceIDs(experimentIds.stream().map(id -> id.toString()).collect(Collectors.toList()));
+        TrialsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), TrialsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchTrialsPost,
+                api::searchTrialsSearchResultsDbIdGet,
+                trialSearch
+        );
+    }
 }
 
 
