@@ -202,14 +202,13 @@ public class BrAPITrialService {
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
         BrAPITrial experiment = this.getExperiment(program, experimentId);
 
-        //
+        // TODO: Once BI-1831 is complete and OUs in a dataset can be identified using the datasetId stored as a xref
+        // the expOUs needs to be replaced with datasetOUs, as was done with datasetObsVars
         List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId());
         List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
         List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
-        //Set<String> datasetOUDbIds = data.stream().map(BrAPIObservation::getObservationUnitDbId).collect(Collectors.toSet());
-        //List<BrAPIObservationUnit> datasetOUs = expOUs.stream().filter(unit -> datasetOUDbIds.contains(unit.getObservationUnitDbId())).collect(Collectors.toList());
         Dataset dataset = new Dataset(experimentId.toString(), data, expOUs, datasetObsVars);
         if (stats) {
             Integer ouCount = expOUs.size();
@@ -294,25 +293,6 @@ public class BrAPITrialService {
             String stamp = obs.getObservationTimeStamp() == null ? "" : obs.getObservationTimeStamp().toString();
             row.put(String.format("TS:%s",varName), stamp);
         }
-    }
-
-    public List<BrAPIObservationVariable> getListDetailsByTypeAndXref(
-            BrAPIListTypes type,
-            ExternalReferenceSource xrefObject,
-            String xrefId,
-            Program program) throws ApiException, DoesNotExistException {
-        List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
-                type,
-                program.getId(),
-                String.format("%s/%s", referenceSource, xrefObject.getName()),
-                UUID.fromString(xrefId));
-        if (lists == null || lists.isEmpty()) {
-            throw new DoesNotExistException("Dataset observation variables list not returned from BrAPI service");
-        }
-        String listDbId = lists.get(0).getListDbId();
-        BrAPIListsSingleResponse list = listDAO.getListById(listDbId, program.getId());
-        List<String> obsVarNames = list.getResult().getData();
-        return obsVarDAO.getVariableByName(obsVarNames, program.getId());
     }
 
     public List<BrAPIObservationVariable> getDatasetObsVars(String datasetId, Program program) throws ApiException, DoesNotExistException {

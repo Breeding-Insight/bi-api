@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapi.v2;
 
-import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -31,10 +30,11 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
+import org.breedinginsight.api.model.v1.response.DataResponse;
+import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.model.request.query.ListQuery;
-import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapi.v2.services.BrAPIListService;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
@@ -55,15 +55,13 @@ public class ListController {
 
     private final ProgramService programService;
     private final BrAPIListService listService;
-    private final BrAPIGermplasmService germplasmService;
     private final ListQueryMapper listQueryMapper;
 
     @Inject
-    public ListController(ProgramService programService, BrAPIListService listService, BrAPIGermplasmService germplasmService,
+    public ListController(ProgramService programService, BrAPIListService listService,
                           ListQueryMapper listQueryMapper) {
         this.programService = programService;
         this.listService = listService;
-        this.germplasmService = germplasmService;
         this.listQueryMapper = listQueryMapper;
     }
 
@@ -71,8 +69,9 @@ public class ListController {
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse getLists(@PathVariable("programId") UUID programId,
-                                 @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
+    public HttpResponse<Response<DataResponse<Object>>> getLists(
+            @PathVariable("programId") UUID programId,
+            @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid ListQuery queryParams
     ) throws DoesNotExistException, ApiException {
         try {
             Program program = programService
@@ -80,8 +79,6 @@ public class ListController {
                     .orElseThrow(() -> new DoesNotExistException("Program does not exist"));
 
             // get germplasm lists by default
-//            BrAPIListTypes type = queryParams.getListType() == null || BrAPIListTypes.fromValue(queryParams.getListType()) == null ?
-//            BrAPIListTypes.GERMPLASM : BrAPIListTypes.fromValue(queryParams.getListType());
             BrAPIListTypes type = BrAPIListTypes.fromValue(queryParams.getListType());
             if (type == null) {
                 type = BrAPIListTypes.GERMPLASM;
