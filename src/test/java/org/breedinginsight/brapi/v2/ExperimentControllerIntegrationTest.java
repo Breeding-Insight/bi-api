@@ -180,10 +180,22 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject()
                 .get("trial").getAsJsonObject()
                 .get("id").getAsString();
+        // Add first environmentId.
         envIds.add(importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
                 .get(0).getAsJsonObject()
+                .get("study").getAsJsonObject()
+                .get("brAPIObject").getAsJsonObject()
+                .get("externalReferences").getAsJsonArray()
+                .get(2).getAsJsonObject()
+                .get("referenceID").getAsString()
+        );
+        // Add second environmentId.
+        envIds.add(importResult
+                .get("preview").getAsJsonObject()
+                .get("rows").getAsJsonArray()
+                .get(1).getAsJsonObject()
                 .get("study").getAsJsonObject()
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
@@ -208,18 +220,31 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     - export populated dataset, multiple environment, xlsx format
    */
     @ParameterizedTest
-    @CsvSource(value = {"true,false,CSV", "true,true,CSV",
-            "false,false,CSV", "false,true,CSV",
-            "true,false,XLS", "true,true,XLS",
-            "false,false,XLS", "false,true,XLS",
-            "true,false,XLSX", "true,true,XLSX",
-            "false,false,XLSX", "false,true,XLSX",})
+    @CsvSource(value = {"true,false,CSV,1", "true,true,CSV,1",
+            "false,false,CSV,1", "false,true,CSV,1",
+            "true,false,XLS,1", "true,true,XLS,1",
+            "false,false,XLS,1", "false,true,XLS,1",
+            "true,false,XLSX,1", "true,true,XLSX,1",
+            "false,false,XLSX,1", "false,true,XLSX,1",
+            "true,false,CSV,2", "true,true,CSV,2",
+            "false,false,CSV,2", "false,true,CSV,2",
+            "true,false,XLS,2", "true,true,XLS,2",
+            "false,false,XLS,2", "false,true,XLS,2",
+            "true,false,XLSX,2", "true,true,XLSX,2",
+            "false,false,XLSX,2", "false,true,XLSX,2",})
     @SneakyThrows
-    void downloadDatasets(boolean includeTimestamps, boolean requestEnv, String extension) {
+    void downloadDatasets(boolean includeTimestamps, boolean requestEnv, String extension, int numberOfEnvs) {
+        // TODO: move to setup and cleanup (?) methods.
+        // Temporary directory to extract zip into, test will clean up after use.
+        String tempDir = "./zip_temp_dir/";
+        // If more than 1 envId is sent as a query param, a zip file is expected response.
+        boolean zipExpected = requestEnv && (numberOfEnvs > 1);
         // Download test experiment
         String envParam = "all=true";
         if (requestEnv) {
-            envParam = "environments=" + String.join(",", envIds);
+            // Build environment query param with 1 or all envIds.
+            String envs = numberOfEnvs == 1 ? envIds.get(0) : String.join(",", envIds);
+            envParam = "environments=" + envs;
         }
         Flowable<HttpResponse<byte[]>> call = client.exchange(
                 GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
@@ -231,25 +256,53 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         // Assert 200 response
         assertEquals(HttpStatus.OK, response.getStatus());
 
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(response.body()));
+
         // Assert file format fidelity
         Map<String, String> mediaTypeByExtension = new HashMap<>();
         mediaTypeByExtension.put("CSV", FileType.CSV.getMimeType());
         mediaTypeByExtension.put("XLS", FileType.XLS.getMimeType());
         mediaTypeByExtension.put("XLSX", FileType.XLSX.getMimeType());
+        mediaTypeByExtension.put("ZIP", FileType.ZIP.getMimeType());
         String downloadMediaType = response.getHeaders().getContentType().orElseThrow(Exception::new);
-        assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
+        // If zip is expected, check that it is indeed a zip file, then unzip and check each file.
+        if (zipExpected) {
+            assertEquals(FileType.ZIP.getMimeType(), downloadMediaType);
+            // Unzip into tempDir.
+            TestUtils.unzipFile(bodyStream, tempDir);
 
-        // Assert import/export fidelity and presence of observation units in export
-        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(response.body()));
-        Table download = Table.create();
-        if (extension.equals("CSV")) {
-            download = FileUtil.parseTableFromCsv(bodyStream);
+            for (File file : Objects.requireNonNull(new File(tempDir).listFiles())) {
+                FileInputStream fileStream = new FileInputStream(file);
+                // TODO: potentially check each file's extension?
+                // TODO: DRY.
+                // Assert import/export fidelity and presence of observation units in export
+                Table download = Table.create();
+                if (extension.equals("CSV")) {
+                    download = FileUtil.parseTableFromCsv(fileStream);
+                }
+                if (extension.equals("XLS") || extension.equals("XLSX")) {
+                    download = FileUtil.parseTableFromExcel(fileStream, 0);
+                }
+                // TODO: fix this method - it's expecting all data in one file.
+                checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension);
+            }
         }
-        if (extension.equals("XLS") || extension.equals("XLSX")) {
-            download = FileUtil.parseTableFromExcel(bodyStream, 0);
+        else {
+            assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
+            // TODO: DRY.
+            // Assert import/export fidelity and presence of observation units in export
+            Table download = Table.create();
+            if (extension.equals("CSV")) {
+                download = FileUtil.parseTableFromCsv(bodyStream);
+            }
+            if (extension.equals("XLS") || extension.equals("XLSX")) {
+                download = FileUtil.parseTableFromExcel(bodyStream, 0);
+            }
+            checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension);
         }
-        checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension);
+
     }
+
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
         File file = File.createTempFile("test", ".csv");
 
