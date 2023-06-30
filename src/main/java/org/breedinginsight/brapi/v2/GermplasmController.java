@@ -278,7 +278,7 @@ public class GermplasmController {
                 returnNode.setGermplasmName("Unknown [-0]");
                 ArrayList<BrAPIProgenyNodeProgeny> progeny = new ArrayList<>();
                 BrAPIProgenyNodeProgeny singleProgeny = new BrAPIProgenyNodeProgeny();
-                singleProgeny.setGermplasmDbId(germplasmId.split("-")[0]);
+                singleProgeny.setGermplasmDbId(germplasmId.split("-[FM]-Unknown")[0]);
                 singleProgeny.setGermplasmName("Name"); //does not seem necessary, preferable to avoid longer id string/making more endpoint calls
                 if (germplasmId.endsWith("F-Unknown")) {
                     singleProgeny.setParentType(BrAPIParentType.FEMALE);
