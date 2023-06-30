@@ -21,7 +21,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
@@ -80,7 +79,7 @@ public class StudyProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+    public Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
                                                         Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                         Program program, User user, boolean commit) {
 

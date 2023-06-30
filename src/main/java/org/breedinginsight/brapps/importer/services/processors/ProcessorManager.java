@@ -62,7 +62,7 @@ public class ProcessorManager {
             log.debug("Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             statusService.updateMessage(upload, "Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             processor.getExistingBrapiData(importRows, program);
-            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, data, program, user, commit);
+            Map<String, ImportPreviewStatistics> stats = processor.process(upload, importRows, mappedBrAPIImport, data, program, user, commit);
             statistics.putAll(stats);
         }
 

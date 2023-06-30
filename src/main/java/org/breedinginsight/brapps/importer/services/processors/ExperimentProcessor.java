@@ -195,6 +195,7 @@ public class ExperimentProcessor implements Processor {
      */
     @Override
     public Map<String, ImportPreviewStatistics> process(
+            ImportUpload upload,
             List<BrAPIImport> importRows,
             Map<Integer, PendingImport> mappedBrAPIImport,
             Table data,
@@ -206,7 +207,7 @@ public class ExperimentProcessor implements Processor {
         ValidationErrors validationErrors = new ValidationErrors();
 
         // Get dynamic phenotype columns for processing
-        List<Column<?>> dynamicCols = fileMappingUtil.getDynamicColumns(data, EXPERIMENT_TEMPLATE_NAME);
+        List<Column<?>> dynamicCols = data.columns(upload.getDynamicColumnNames());
         List<Column<?>> phenotypeCols = new ArrayList<>();
         List<Column<?>> timestampCols = new ArrayList<>();
         for (Column<?> dynamicCol : dynamicCols) {
@@ -436,7 +437,9 @@ public class ExperimentProcessor implements Processor {
                                           "Timestamp column(s) lack corresponding phenotype column(s): " + String.join(COMMA_DELIMITER, unmatchedTimestamps));
         }
 
-        return filteredTraits;
+        // sort the verified traits to match the order of the trait columns
+        List<String> phenotypeColNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
+        return fileMappingUtil.sortByField(phenotypeColNames, filteredTraits, TraitEntity::getObservationVariableName);
     }
 
     private List<Trait> fetchFileTraits(UUID programId, Collection<String> varNames) {
