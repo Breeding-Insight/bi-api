@@ -90,7 +90,7 @@ public class ExperimentController {
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/export{?queryParams*}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/zip"})
+    @Produces(value={"text/csv", "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"})
     public HttpResponse<StreamedFile> datasetExport(
             @PathVariable("programId") UUID programId, @PathVariable("experimentId") UUID experimentId,
             @QueryValue @Valid ExperimentExportQuery queryParams) {

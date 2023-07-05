@@ -271,7 +271,7 @@ public class BrAPITrialService {
                 throw new RuntimeException(e);
             }
         }).start();
-
+        // NOTE: Micronaut doesn't define application/zip in MediaType, use application/octet-stream.
         return new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
     }
 
