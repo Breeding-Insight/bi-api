@@ -29,12 +29,7 @@ import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 import javax.inject.Inject;
 import javax.validation.Valid;
-import java.io.*;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Controller
