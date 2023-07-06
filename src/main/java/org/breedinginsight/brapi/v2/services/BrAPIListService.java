@@ -3,6 +3,7 @@ package org.breedinginsight.brapi.v2.services;
 import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
@@ -16,7 +17,9 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Singleton
@@ -37,19 +40,26 @@ public class BrAPIListService {
 
     public List<BrAPIListSummary> getListSummariesByTypeAndXref(
             BrAPIListTypes type,
-            ExternalReferenceSource xrefSource,
-            UUID xrefId,
+            String xrefSource,
+            String xrefId,
             Program program) throws ApiException, DoesNotExistException, ClassNotFoundException {
         List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
                 type,
                 program.getId(),
-                String.format("%s/%s", referenceSource, xrefSource.getName()),
-                xrefId);
-        if (lists == null || lists.isEmpty()) {
+                String.format("%s/%s", referenceSource, xrefSource),
+                UUID.fromString(xrefId));
+        if (lists == null) {
             throw new DoesNotExistException("list not returned from BrAPI service");
         }
 
-        for (BrAPIListSummary list: lists) {
+        List<BrAPIListSummary> programLists = lists.stream().filter(list -> {
+            Optional<BrAPIExternalReference> programXrefOptional = Utilities.getExternalReference(list.getExternalReferences(),Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
+            if (programXrefOptional.isEmpty() || !programXrefOptional.get().getReferenceID().equals(program.getId())) {
+                return false;
+            }
+            return true;
+        }).collect(Collectors.toList());
+        for (BrAPIListSummary list: programLists) {
 
             // remove the program key from the list name
             list.setListName(Utilities.removeProgramKeyAndUnknownAdditionalData(list.getListName(), program.getKey()));
@@ -72,6 +82,6 @@ public class BrAPIListService {
 
         }
 
-        return lists;
+        return programLists;
     }
 }

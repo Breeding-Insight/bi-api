@@ -83,8 +83,8 @@ public class ListController {
             if (type == null) {
                 type = BrAPIListTypes.GERMPLASM;
             }
-            ExternalReferenceSource source = queryParams.getExternalReferenceSource() == null ?
-                    ExternalReferenceSource.PROGRAMS : queryParams.getExternalReferenceSource();
+            String source = queryParams.getExternalReferenceSource() == null ?
+                    ExternalReferenceSource.PROGRAMS.getName() : queryParams.getExternalReferenceSource();
             UUID id = queryParams.getExternalReferenceId() == null || queryParams.getExternalReferenceId().isBlank() ?
                     programId : UUID.fromString(queryParams.getExternalReferenceId());
 
@@ -93,7 +93,7 @@ public class ListController {
             if (dateFormatParam != null) {
                 listQueryMapper.setDateDisplayFormat(dateFormatParam);
             }
-            List<BrAPIListSummary> brapiLists = listService.getListSummariesByTypeAndXref(type, source, id, program);
+            List<BrAPIListSummary> brapiLists = listService.getListSummariesByTypeAndXref(type, source, id.toString(), program);
             SearchRequest searchRequest = queryParams.constructSearchRequest();
 
             return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams, searchRequest);

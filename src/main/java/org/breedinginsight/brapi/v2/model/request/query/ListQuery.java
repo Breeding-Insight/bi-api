@@ -18,7 +18,7 @@ public class ListQuery extends BrapiQuery {
     private String name;
     private String description;
     private String size;
-    private ExternalReferenceSource externalReferenceSource;
+    private String externalReferenceSource;
     private String externalReferenceId;
     private String dateCreated;
     private String ownerName;
@@ -40,7 +40,7 @@ public class ListQuery extends BrapiQuery {
             filters.add(constructFilterRequest("size", getSize()));
         }
         if (getExternalReferenceSource() != null) {
-            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource().getName()));
+            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource()));
         }
         if (!StringUtils.isBlank(getExternalReferenceId())) {
             filters.add(constructFilterRequest("externalReferenceId", getExternalReferenceId()));
