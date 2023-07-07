@@ -59,7 +59,8 @@ public class BrAPITrialDAO {
     private final ProgramService programService;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final String referenceSource;
-
+    @Property(name = "micronaut.bi.api.run-scheduled-tasks")
+    private boolean runScheduledTasks;
     @Inject
     public BrAPITrialDAO(ProgramCacheProvider programCacheProvider, ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramService programService, @Property(name = "brapi.server.reference-source") String referenceSource, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programExperimentCache = programCacheProvider.getProgramCache(this::fetchProgramExperiments, BrAPITrial.class);
@@ -72,8 +73,12 @@ public class BrAPITrialDAO {
     }
 
 
-    @PostConstruct
+    @Scheduled(initialDelay = "2s")
     public void setup() {
+        if(!runScheduledTasks) {
+            return;
+        }
+
         // Populate the experiment cache for all programs on startup
         log.debug("populating experiment cache");
         List<Program> programs = programDAO.getActive();
