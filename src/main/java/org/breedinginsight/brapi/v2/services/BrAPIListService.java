@@ -54,7 +54,7 @@ public class BrAPIListService {
 
         List<BrAPIListSummary> programLists = lists.stream().filter(list -> {
             Optional<BrAPIExternalReference> programXrefOptional = Utilities.getExternalReference(list.getExternalReferences(),Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
-            if (programXrefOptional.isEmpty() || !programXrefOptional.get().getReferenceID().equals(program.getId())) {
+            if (programXrefOptional.isEmpty() || !programXrefOptional.get().getReferenceID().equals(program.getId().toString())) {
                 return false;
             }
             return true;
