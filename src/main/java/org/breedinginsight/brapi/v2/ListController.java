@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -56,13 +57,16 @@ public class ListController {
     private final ProgramService programService;
     private final BrAPIListService listService;
     private final ListQueryMapper listQueryMapper;
+    private final String referenceSource;
 
     @Inject
     public ListController(ProgramService programService, BrAPIListService listService,
-                          ListQueryMapper listQueryMapper) {
+                          ListQueryMapper listQueryMapper,
+                          @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.programService = programService;
         this.listService = listService;
         this.listQueryMapper = listQueryMapper;
+        this.referenceSource = referenceSource;
     }
 
     //@Get(BrapiVersion.BRAPI_V2 + "/lists")
@@ -84,7 +88,8 @@ public class ListController {
                 type = BrAPIListTypes.GERMPLASM;
             }
             String source = queryParams.getExternalReferenceSource() == null ?
-                    ExternalReferenceSource.PROGRAMS.getName() : queryParams.getExternalReferenceSource();
+                    String.format("%s/%s", referenceSource, ExternalReferenceSource.PROGRAMS.getName()) :
+                    queryParams.getExternalReferenceSource();
             UUID id = queryParams.getExternalReferenceId() == null || queryParams.getExternalReferenceId().isBlank() ?
                     programId : UUID.fromString(queryParams.getExternalReferenceId());
 

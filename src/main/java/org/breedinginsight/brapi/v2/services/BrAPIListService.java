@@ -46,7 +46,7 @@ public class BrAPIListService {
         List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
                 type,
                 program.getId(),
-                String.format("%s/%s", referenceSource, xrefSource),
+                xrefSource,
                 UUID.fromString(xrefId));
         if (lists == null) {
             throw new DoesNotExistException("list not returned from BrAPI service");
@@ -54,10 +54,7 @@ public class BrAPIListService {
 
         List<BrAPIListSummary> programLists = lists.stream().filter(list -> {
             Optional<BrAPIExternalReference> programXrefOptional = Utilities.getExternalReference(list.getExternalReferences(),Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS));
-            if (programXrefOptional.isEmpty() || !programXrefOptional.get().getReferenceID().equals(program.getId().toString())) {
-                return false;
-            }
-            return true;
+            return programXrefOptional.isPresent() && programXrefOptional.get().getReferenceID().equals(program.getId().toString());
         }).collect(Collectors.toList());
         for (BrAPIListSummary list: programLists) {
 
