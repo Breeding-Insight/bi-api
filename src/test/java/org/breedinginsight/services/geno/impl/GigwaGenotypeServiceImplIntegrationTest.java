@@ -43,6 +43,7 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponseResult;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
+import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.brapps.importer.daos.impl.ImportMappingDAOImpl;
@@ -54,6 +55,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.daos.impl.ProgramDAOImpl;
 import org.breedinginsight.daos.impl.UserDAOImpl;
 import org.breedinginsight.model.BrAPIConstants;
@@ -150,6 +152,8 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     @Inject
     private BrAPIEndpointProvider brAPIEndpointProvider;
+    @Inject
+    private ProgramCacheProvider cacheProvider;
 
     @Property(name = "gigwa.host")
     private String gigwaHost;
@@ -186,10 +190,22 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         return mock(ImportDAO.class);
     }
 
+
+    @MockBean(BrAPITrialDAOImpl.class)
+    BrAPITrialDAO trialDAO() {
+        return mock(BrAPITrialDAOImpl.class);
+    }
+
+/*
     @MockBean(BrAPITrialDAO.class)
     BrAPITrialDAO trialDAO() {
-        return mock(BrAPITrialDAO.class);
+        return spy(new BrAPITrialDAO(cacheProvider, programDAO, importDAO, brAPIDAOUtil, mock(ProgramService.class),referenceSource , brAPIEndpointProvider, false));
     }
+
+ */
+
+
+
 
     @MockBean(BrAPIDAOUtil.class)
     BrAPIDAOUtil brAPIDAOUtil() {
@@ -230,7 +246,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("gigwa")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withImagePullPolicy(PullPolicy.alwaysPull())
                 .withExposedPorts(8080)
                 .withEnv("MONGO_IP", "gigwa_db")
                 .withEnv("MONGO_PORT", "27017")
@@ -285,6 +301,9 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("genotype"));
         storageService.createBucket();
+        //cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
+        //trialDAO = new BrAPITrialDAO(cacheProvider, programDAO, importDAO, brAPIDAOUtil, mock(ProgramService.class),System.getenv("BRAPI_REFERENCE_SOURCE") , new BrAPIEndpointProvider());
+        //trialDAO = Mockito.spy(new BrAPITrialDAO(cacheProvider, programDAO, importDAO, brAPIDAOUtil, mock(ProgramService.class),referenceSource , new BrAPIEndpointProvider()));
     }
 
     @AfterAll
@@ -353,6 +372,8 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         BrAPITrial trial = new BrAPITrial().externalReferences(List.of(new BrAPIExternalReference().referenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
                                                                                                    .referenceID(UUID.randomUUID()
                                                                                                                     .toString())));
+
+
         doReturn(List.of(trial)).when(trialDAO).getTrials(any(UUID.class));
 
         doAnswer(invocation -> {
