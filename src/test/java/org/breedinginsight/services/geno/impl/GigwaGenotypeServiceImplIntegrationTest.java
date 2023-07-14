@@ -43,9 +43,9 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponseResult;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
-import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
+import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapps.importer.daos.impl.ImportMappingDAOImpl;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -55,7 +55,6 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.ImporterImportEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.daos.impl.ProgramDAOImpl;
 import org.breedinginsight.daos.impl.UserDAOImpl;
 import org.breedinginsight.model.BrAPIConstants;
@@ -152,8 +151,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     @Inject
     private BrAPIEndpointProvider brAPIEndpointProvider;
-    @Inject
-    private ProgramCacheProvider cacheProvider;
 
     @Property(name = "gigwa.host")
     private String gigwaHost;
@@ -195,16 +192,6 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
     BrAPITrialDAO trialDAO() {
         return mock(BrAPITrialDAOImpl.class);
     }
-
-/*
-    @MockBean(BrAPITrialDAO.class)
-    BrAPITrialDAO trialDAO() {
-        return spy(new BrAPITrialDAO(cacheProvider, programDAO, importDAO, brAPIDAOUtil, mock(ProgramService.class),referenceSource , brAPIEndpointProvider, false));
-    }
-
- */
-
-
 
 
     @MockBean(BrAPIDAOUtil.class)
@@ -301,10 +288,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("genotype"));
         storageService.createBucket();
-        //cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
-        //trialDAO = new BrAPITrialDAO(cacheProvider, programDAO, importDAO, brAPIDAOUtil, mock(ProgramService.class),System.getenv("BRAPI_REFERENCE_SOURCE") , new BrAPIEndpointProvider());
-        //trialDAO = Mockito.spy(new BrAPITrialDAO(cacheProvider, programDAO, importDAO, brAPIDAOUtil, mock(ProgramService.class),referenceSource , new BrAPIEndpointProvider()));
-    }
+     }
 
     @AfterAll
     public void teardown() {
