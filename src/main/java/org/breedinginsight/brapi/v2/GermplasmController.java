@@ -72,6 +72,7 @@ public class GermplasmController {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
+    // TODO: remove or update. I don't think this is used, and it doesn't properly support BrAPI request body.
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
