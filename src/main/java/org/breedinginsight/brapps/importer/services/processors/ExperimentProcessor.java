@@ -1141,7 +1141,7 @@ public class ExperimentProcessor implements Processor {
 
         List<String> uniqueTrialNames = experimentImportRows.stream()
                                                             .filter(row -> StringUtils.isBlank(row.getObsUnitID()))
-                                                            .map(experimentImport -> Utilities.appendProgramKey(experimentImport.getExpTitle(), programKey))
+                                                            .map(ExperimentObservation::getExpTitle)
                                                             .distinct()
                                                             .collect(Collectors.toList());
         try {
