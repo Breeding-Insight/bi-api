@@ -22,7 +22,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -43,14 +42,6 @@ public class BrAPIStudyService {
     public List<BrAPIStudy> getStudies(UUID programId) throws ApiException {
         try {
             return studyDAO.getStudies(programId);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
-    }
-
-    public BrAPIStudy getStudyByUUID(UUID programId, String studyId) throws DoesNotExistException {
-        try {
-            return studyDAO.getStudyByUUID(studyId, programId);
         } catch (ApiException e) {
             throw new InternalServerException(e.getMessage(), e);
         }
