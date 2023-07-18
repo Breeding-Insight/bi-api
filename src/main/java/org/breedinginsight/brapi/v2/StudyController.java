@@ -65,24 +65,4 @@ public class StudyController {
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
         }
     }
-
-    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/studies/{studyId}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<Response<BrAPIStudy>> getSingleStudy(
-            @PathVariable("programId") UUID programId,
-            @PathVariable("studyId") String studyId) {
-        try {
-            log.debug("fetching study id:" +  studyId +" for program: " + programId);
-            Response<BrAPIStudy> response = new Response(studyService.getStudyByUUID(programId, studyId));
-            return HttpResponse.ok(response);
-        } catch (InternalServerException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "Error retrieving study");
-        } catch (DoesNotExistException e) {
-            log.info(e.getMessage(), e);
-            return HttpResponse.status(HttpStatus.NOT_FOUND, "Study not found");
-        }
-    }
-
 }
