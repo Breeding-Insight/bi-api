@@ -20,7 +20,6 @@ package org.breedinginsight.utilities;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 
 import java.util.List;
@@ -151,5 +150,40 @@ public class Utilities {
         } else {
             return Optional.empty();
         }
+    }
+
+    /**
+     * For a possibly unsafe file name, return a new String that is safe across platforms.
+     * @param name a possibly unsafe file name
+     * @return a portable file name
+     */
+    public static String makePortableFilename(String name) {
+        StringBuilder sb = new StringBuilder();
+        char c;
+        char last_appended = '_';
+        int i = 0;
+        while (i < name.length()) {
+            c = name.charAt(i);
+            if (isSafeChar(c)) {
+                sb.append(c);
+                last_appended = c;
+            }
+            else {
+                // Replace illegal chars with '_', but prevent repeat underscores.
+                if (last_appended != '_') {
+                    sb.append('_');
+                    last_appended = '_';
+                }
+            }
+            ++i;
+        }
+
+        return sb.toString();
+    }
+
+    private static boolean isSafeChar(char c) {
+        // Check if c is in the portable filename character set.
+        // See https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282
+        return Character.isLetterOrDigit(c) || c == '-' || c == '_' || c == '.';
     }
 }

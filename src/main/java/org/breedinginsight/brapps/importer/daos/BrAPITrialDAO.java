@@ -38,15 +38,11 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class BrAPITrialDAO {
-    @Property(name = "brapi.server.reference-source")
-    private String BRAPI_REFERENCE_SOURCE;
-
     private final ProgramDAO programDAO;
     private final ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final ProgramService programService;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-
     private final String referenceSource;
 
     @Inject
@@ -138,7 +134,7 @@ public class BrAPITrialDAO {
 
     public Optional<BrAPITrial> getTrialById(UUID programId, UUID trialDbId) throws ApiException, DoesNotExistException {
         Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
-        String refSoure = Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS);
+        String refSoure = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS);
         List<BrAPITrial> trials = getTrialsByExRef(refSoure, trialDbId.toString(), program);
 
         return Utilities.getSingleOptional(trials);

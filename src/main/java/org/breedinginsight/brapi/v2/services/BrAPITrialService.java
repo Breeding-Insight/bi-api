@@ -1,4 +1,5 @@
 package org.breedinginsight.brapi.v2.services;
+
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -28,6 +29,7 @@ import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.utilities.Utilities;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
@@ -226,7 +228,7 @@ public class BrAPITrialService {
             else {
                 // Zip, as there are multiple files.
                 StreamedFile zipFile = zipFiles(files);
-                downloadFile = new DownloadFile(makeZipFileName(experiment), zipFile);
+                downloadFile = new DownloadFile(makeZipFileName(experiment, program), zipFile);
             }
         } else {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
@@ -465,22 +467,26 @@ public class BrAPITrialService {
         }
     }
     private String makeFileName(BrAPITrial experiment, Program program, String envName) {
-        // <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        // <exp-title>_Observation Dataset_<environment>_<export-timestamp>
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
-        return String.format("%s_Observation Dataset [%s-%s]_%s_%s",
+        String unsafeName = String.format("%s_Observation Dataset_%s_%s",
                 Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
-                program.getKey(),
-                experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString(),
-                envName,
+                Utilities.removeProgramKeyAndUnknownAdditionalData(envName, program.getKey()),
                 timestamp);
+        // Make file name safe for all platforms.
+        return Utilities.makePortableFilename(unsafeName);
     }
 
-    private String makeZipFileName(BrAPITrial experiment) {
+    private String makeZipFileName(BrAPITrial experiment, Program program) {
         // <exp-title_<export-timestamp>.zip
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
-        return String.format("%s_%s.zip", experiment.getTrialName(), timestamp);
+        String unsafeName = String.format("%s_%s.zip",
+                Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
+                timestamp);
+        // Make file name safe for all platforms.
+        return Utilities.makePortableFilename(unsafeName);
     }
 
     private List<BrAPIObservation> filterDatasetByEnvironment(
