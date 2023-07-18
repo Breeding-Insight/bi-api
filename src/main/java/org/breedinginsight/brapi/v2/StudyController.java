@@ -46,7 +46,7 @@ public class StudyController {
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/studies{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<Response<DataResponse<List<BrAPIStudy>>>> getStudy(
+    public HttpResponse<Response<DataResponse<List<BrAPIStudy>>>> getStudies(
             @PathVariable("programId") UUID programId,
             @QueryValue @QueryValid(using = StudyQueryMapper.class) @Valid StudyQuery queryParams) {
         try {
