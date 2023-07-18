@@ -36,8 +36,14 @@ public class StudyQueryMapper extends AbstractQueryMapper {
 
     public StudyQueryMapper() {
         fields = Map.ofEntries(
-                Map.entry("studyName", BrAPIStudy::getStudyName),
-                Map.entry("trialDbId", BrAPIStudy::getTrialDbId)
+                Map.entry("studyType", BrAPIStudy::getStudyType),
+                Map.entry("locationDbId", BrAPIStudy::getLocationDbId),
+                Map.entry("studyCode", BrAPIStudy::getStudyCode),
+                Map.entry("studyPUI", BrAPIStudy::getStudyPUI),
+                Map.entry("commonCropName", BrAPIStudy::getCommonCropName),
+                Map.entry("trialDbId", BrAPIStudy::getTrialDbId),
+                Map.entry("studyDbId", BrAPIStudy::getStudyDbId),
+                Map.entry("studyName", BrAPIStudy::getStudyName)
         );
     }
 
