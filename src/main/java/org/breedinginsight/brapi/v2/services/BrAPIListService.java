@@ -6,6 +6,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
+import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
@@ -16,6 +17,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -43,11 +45,17 @@ public class BrAPIListService {
             String xrefSource,
             String xrefId,
             Program program) throws ApiException, DoesNotExistException, ClassNotFoundException {
-        List<BrAPIListSummary> lists = listDAO.getListByTypeAndExternalRef(
-                type,
-                program.getId(),
-                xrefSource,
-                UUID.fromString(xrefId));
+        BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest();
+        if (type != null) {
+            searchRequest.listType(type);
+        }
+        if (xrefSource != null && !xrefSource.isEmpty()) {
+            searchRequest.externalReferenceSources(List.of(xrefSource));
+        }
+        if (xrefId != null && !xrefId.isEmpty()) {
+            searchRequest.externalReferenceIDs(List.of(xrefId));
+        }
+        List<BrAPIListSummary> lists = listDAO.getListBySearch(searchRequest, program.getId());
         if (lists == null) {
             throw new DoesNotExistException("list not returned from BrAPI service");
         }
