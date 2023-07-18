@@ -290,6 +290,9 @@ public class ExperimentObservation implements BrAPIImport {
             BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
             treatment.setFactor(getTreatmentFactors());
             observationUnit.setTreatments(List.of(treatment));
+
+            // Store treatments in additionalinfo as well for temporary BreedBase workaround
+            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, List.of(treatment));
         }
 
         if (getObsUnitID() != null) {
