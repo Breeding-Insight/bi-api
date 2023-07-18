@@ -21,6 +21,7 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
+import org.breedinginsight.model.Dataset;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -108,9 +109,26 @@ public class ExperimentController {
             HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
             return response;
         }
-
-
     }
 
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset/{datasetId}{?stats}")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<Dataset>> getDatasetData(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId,
+            @PathVariable("datasetId") UUID datasetId,
+            @QueryValue(defaultValue = "false") Boolean stats) {
+        String downloadErrorMessage = "An error occurred while fetching the dataset. Contact the development team at bidevteam@cornell.edu.";
+        try {
+            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+            Response<Dataset> response = new Response(experimentService.getDatasetData(program, experimentId, datasetId, stats));
+            return HttpResponse.ok(response);
+        } catch (Exception e) {
+            log.info(e.getMessage(), e);
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
+        }
+    }
 
 }

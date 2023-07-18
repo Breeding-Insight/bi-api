@@ -3,12 +3,17 @@ package org.breedinginsight.utilities.response.mappers;
 import lombok.Getter;
 import lombok.Setter;
 import org.brapi.v2.model.core.BrAPIListSummary;
+import org.breedinginsight.brapps.importer.model.base.ExternalReference;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Getter
 @Singleton
@@ -36,7 +41,21 @@ public class ListQueryMapper extends AbstractQueryMapper {
                     return dateCreated;
                 }),
                 Map.entry("ownerName", BrAPIListSummary::getListOwnerName),
-                Map.entry("type", BrAPIListSummary::getListType)
+                Map.entry("type", BrAPIListSummary::getListType),
+                Map.entry("externalReferenceSource", (summary) -> {
+                    return summary
+                            .getExternalReferences()
+                            .stream()
+                            .map(xref -> xref.getReferenceSource())
+                            .collect(Collectors.toList());
+                }),
+                Map.entry("externalReferenceId", (summary) -> {
+                    return summary
+                            .getExternalReferences()
+                            .stream()
+                            .map(xref -> xref.getReferenceID())
+                            .collect(Collectors.toList());
+                })
         );
     }
 
