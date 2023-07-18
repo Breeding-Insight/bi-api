@@ -618,7 +618,8 @@ public class ExperimentProcessor implements Processor {
 
     private void validateObservations(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow, List<Column<?>> phenotypeCols, Map<String, Trait> colVarMap, Map<String, BrAPIObservation> existingObservations) {
         phenotypeCols.forEach(phenoCol -> {
-            if(existingObservations.containsKey(getImportObservationHash(importRow, phenoCol.name()))) {
+            var importHash = getImportObservationHash(importRow, phenoCol.name());
+            if(existingObservations.containsKey(importHash) && StringUtils.isNotBlank(phenoCol.getString(rowNum)) && !existingObservations.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
                 addRowError(
                         phenoCol.name(),
                         String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", importRow.getObsUnitID(), phenoCol.name()),
