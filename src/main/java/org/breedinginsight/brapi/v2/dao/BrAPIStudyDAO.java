@@ -163,36 +163,4 @@ public class BrAPIStudyDAO {
         return programStudyMap;
     }
 
-    public BrAPIStudy getStudyByUUID(String studyId, UUID programId) throws ApiException, DoesNotExistException {
-        Map<String, BrAPIStudy> cache = programStudyCache.get(programId);
-        BrAPIStudy study = null;
-        if (cache != null) {
-            study = cache.get(studyId);
-        }
-        if (study == null) {
-            throw new DoesNotExistException("UUID for this study does not exist");
-        }
-        return study;
-    }
-
-    public Optional<BrAPIStudy> getStudyByDBID(String studyDbId, UUID programId) throws ApiException {
-        Map<String, BrAPIStudy> cache = programStudyCache.get(programId);
-        //key is UUID, want to filter by DBID
-        BrAPIStudy study = null;
-        if (cache != null) {
-            study = cache.values().stream().filter(x -> x.getStudyDbId().equals(studyDbId)).collect(Collectors.toList()).get(0);
-        }
-        return Optional.ofNullable(study);
-    }
-
-    public List<BrAPIStudy> getStudiesByDBID(Collection<String> studyDbIds, UUID programId) throws ApiException {
-        Map<String, BrAPIStudy> cache = programStudyCache.get(programId);
-        //key is UUID, want to filter by DBID
-        List<BrAPIStudy> studies = new ArrayList<>();
-        if (cache != null) {
-            studies = cache.values().stream().filter(x -> studyDbIds.contains(x.getStudyDbId())).collect(Collectors.toList());
-        }
-        return studies;
-    }
-
 }
