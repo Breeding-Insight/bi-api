@@ -24,6 +24,7 @@ import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
@@ -275,6 +276,33 @@ public class BrAPITrialService {
         }).start();
         // NOTE: Micronaut doesn't define application/zip in MediaType, use application/octet-stream.
         return new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
+    }
+
+    public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
+        BrAPITrial experiment = this.getExperiment(program, experimentId);
+
+        // TODO: Once BI-1831 is complete and OUs in a dataset can be identified using the datasetId stored as a xref
+        // the expOUs needs to be replaced with datasetOUs, as was done with datasetObsVars
+        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId());
+        List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
+        List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
+        List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
+        List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
+        Dataset dataset = new Dataset(experimentId.toString(), data, expOUs, datasetObsVars);
+        if (stats) {
+            Integer ouCount = expOUs.size();
+            Integer obsVarCount = datasetObsVars.size();
+            Integer obsCount = ouCount * obsVarCount;
+            Integer obsDataCount = data.size();
+            Integer emptyDataCount = obsCount - obsDataCount;
+            dataset = dataset.setStat(Dataset.DatasetStat.OBSERVATION_UNITS, ouCount)
+                    .setStat(Dataset.DatasetStat.PHENOTYPES, obsVarCount)
+                    .setStat(Dataset.DatasetStat.OBSERVATIONS, obsCount)
+                    .setStat(Dataset.DatasetStat.OBSERVATIONS_WITH_DATA, obsDataCount)
+                    .setStat(Dataset.DatasetStat.OBSERVATIONS_WITHOUT_DATA, emptyDataCount);
+        }
+
+        return dataset;
     }
 
     private void addBrAPIObsToRecords(

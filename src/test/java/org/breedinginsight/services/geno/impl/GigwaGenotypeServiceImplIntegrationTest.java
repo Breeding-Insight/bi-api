@@ -45,6 +45,7 @@ import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
+import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapps.importer.daos.impl.ImportMappingDAOImpl;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
@@ -186,10 +187,12 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         return mock(ImportDAO.class);
     }
 
-    @MockBean(BrAPITrialDAO.class)
+
+    @MockBean(BrAPITrialDAOImpl.class)
     BrAPITrialDAO trialDAO() {
-        return mock(BrAPITrialDAO.class);
+        return mock(BrAPITrialDAOImpl.class);
     }
+
 
     @MockBean(BrAPIDAOUtil.class)
     BrAPIDAOUtil brAPIDAOUtil() {
@@ -230,7 +233,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         gigwa = new GenericContainer<>("breedinginsight/gigwa:develop")
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("gigwa")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
+                .withImagePullPolicy(PullPolicy.alwaysPull())
                 .withExposedPorts(8080)
                 .withEnv("MONGO_IP", "gigwa_db")
                 .withEnv("MONGO_PORT", "27017")
@@ -285,7 +288,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
         storageService = applicationContext.getBean(SimpleStorageService.class, Qualifiers.byName("genotype"));
         storageService.createBucket();
-    }
+     }
 
     @AfterAll
     public void teardown() {
@@ -353,6 +356,8 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         BrAPITrial trial = new BrAPITrial().externalReferences(List.of(new BrAPIExternalReference().referenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
                                                                                                    .referenceID(UUID.randomUUID()
                                                                                                                     .toString())));
+
+
         doReturn(List.of(trial)).when(trialDAO).getTrials(any(UUID.class));
 
         doAnswer(invocation -> {
