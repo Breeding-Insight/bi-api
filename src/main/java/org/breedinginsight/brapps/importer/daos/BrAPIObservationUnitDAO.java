@@ -25,7 +25,6 @@ import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
-import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationTreatment;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
@@ -44,7 +43,6 @@ import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
 import java.lang.reflect.Type;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Singleton
 public class BrAPIObservationUnitDAO {
@@ -81,8 +79,12 @@ public class BrAPIObservationUnitDAO {
         return searchObservationUnitsAndProcess(observationUnitSearchRequest, program.getId());
     }
 
+    /**
+     * Create observation units, mutates brAPIObservationUnitList
+     */
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException {
         ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationUnitsApi.class);
+        preprocessObservationUnits(brAPIObservationUnitList);
         List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
         processObservationUnits(ous);
         return ous;
@@ -148,6 +150,16 @@ public class BrAPIObservationUnitDAO {
                     List<BrAPIObservationTreatment> treatments = gson.fromJson(treatmentsElement, treatmentlistType);
                     ou.setTreatments(treatments);
                 }
+            }
+        }
+    }
+
+    private void preprocessObservationUnits(List<BrAPIObservationUnit> brapiObservationUnits) {
+        // add treatments to additional info
+        for (BrAPIObservationUnit obsUnit : brapiObservationUnits) {
+            List<BrAPIObservationTreatment> treatments = obsUnit.getTreatments();
+            if (treatments != null) {
+                obsUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, treatments);
             }
         }
     }
