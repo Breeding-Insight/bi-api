@@ -388,9 +388,8 @@ public class ExperimentProcessor implements Processor {
             mappedImportRow.setObservationUnit(this.observationUnitByNameNoScope.get(createObservationUnitKey(importRow)));
 
             // loop over phenotype column observation data for current row
+            List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
             for (Column<?> column : phenotypeCols) {
-                List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
-
                 // if value was blank won't be entry in map for this observation
                 observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
             }
@@ -516,7 +515,7 @@ public class ExperimentProcessor implements Processor {
                 }
                 //column.name() gets phenotype name
                 String seasonDbId = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
-                fetchOrCreateObservationPIO(importRow, column.name(), column.getString(rowNum), dateTimeValue, commit, seasonDbId, obsUnitPIO);
+                fetchOrCreateObservationPIO(program, user, importRow, column.name(), column.getString(rowNum), dateTimeValue, commit, seasonDbId, obsUnitPIO);
             }
         }
     }
@@ -625,6 +624,11 @@ public class ExperimentProcessor implements Processor {
                         String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", importRow.getObsUnitID(), phenoCol.name()),
                         validationErrors, rowNum
                 );
+            } else if(existingObservations.containsKey(importHash) && (StringUtils.isBlank(phenoCol.getString(rowNum)) || existingObservations.get(importHash).getValue().equals(phenoCol.getString(rowNum)))) {
+                BrAPIObservation existingObs = existingObservations.get(importHash);
+                existingObs.setObservationVariableName(phenoCol.name());
+                observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
+                observationByHash.get(importHash).setBrAPIObject(existingObs);
             } else {
                 validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
 
@@ -809,7 +813,9 @@ public class ExperimentProcessor implements Processor {
     }
 
 
-    private PendingImportObject<BrAPIObservation> fetchOrCreateObservationPIO(ExperimentObservation importRow,
+    private PendingImportObject<BrAPIObservation> fetchOrCreateObservationPIO(Program program,
+                                                                              User user,
+                                                                              ExperimentObservation importRow,
                                                                               String variableName,
                                                                               String value,
                                                                               String timeStampValue,
@@ -821,7 +827,12 @@ public class ExperimentProcessor implements Processor {
         if (this.observationByHash.containsKey(key)) {
             pio = observationByHash.get(key);
         } else {
-            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName, seasonDbId, obsUnitPIO.getBrAPIObject());
+            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
+            UUID trialID = trialPIO.getId();
+            PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
+            UUID studyID = studyPIO.getId();
+            UUID id = UUID.randomUUID();
+            BrAPIObservation newObservation = importRow.constructBrAPIObservation(value, variableName, seasonDbId, obsUnitPIO.getBrAPIObject(), commit, program, user, BRAPI_REFERENCE_SOURCE, trialID, studyID, obsUnitPIO.getId(), id);
             //NOTE: Can't parse invalid timestamp value, so have to skip if invalid.
             // Validation error should be thrown for offending value, but that doesn't happen until later downstream
             if (timeStampValue != null && !timeStampValue.isBlank() && (validDateValue(timeStampValue) || validDateTimeValue(timeStampValue))) {
