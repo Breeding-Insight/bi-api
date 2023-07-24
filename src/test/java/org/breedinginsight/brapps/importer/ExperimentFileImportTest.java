@@ -863,6 +863,158 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertRowSaved(newExpB, program, traits);
     }
 
+    /*
+    Scenario:
+    - an experiment was created with observations
+    - do a second upload with additional observations for the experiment
+    - verify the second set of observations get uploaded successfully
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void importNewObsAfterFirstExpWithObs(boolean commit) {
+        List<Trait> traits = createTraits(2);
+        Program program = createProgram("Exp with additional Uploads "+(commit ? "C" : "P"), "EXAU"+(commit ? "C" : "P"), "EXAU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), "1");
+
+        importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
+
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
+
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        Map<String, Object> newObservation = new HashMap<>();
+        newObservation.put(Columns.GERMPLASM_GID, "1");
+        newObservation.put(Columns.TEST_CHECK, "T");
+        newObservation.put(Columns.EXP_TITLE, "Test Exp");
+        newObservation.put(Columns.EXP_UNIT, "Plot");
+        newObservation.put(Columns.EXP_TYPE, "Phenotyping");
+        newObservation.put(Columns.ENV, "New Env");
+        newObservation.put(Columns.ENV_LOCATION, "Location A");
+        newObservation.put(Columns.ENV_YEAR, "2023");
+        newObservation.put(Columns.EXP_UNIT_ID, "a-1");
+        newObservation.put(Columns.REP_NUM, "1");
+        newObservation.put(Columns.BLOCK_NUM, "1");
+        newObservation.put(Columns.ROW, "1");
+        newObservation.put(Columns.COLUMN, "1");
+        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceID());
+        newObservation.put(traits.get(0).getObservationVariableName(), "1");
+        newObservation.put(traits.get(1).getObservationVariableName(), "2");
+
+        JsonObject result = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newObservation), traits), null, commit, client, program, mappingId);
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
+        if(commit) {
+            assertRowSaved(newObservation, program, traits);
+        } else {
+            assertValidPreviewRow(newObservation, row, program, traits);
+        }
+    }
+
+    /*
+    Scenario:
+    - an experiment was created with observations
+    - do a second upload with additional observations for the experiment.  Make sure the original observations are blank values
+    - verify the second set of observations get uploaded successfully
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void importNewObsAfterFirstExpWithObs_blank(boolean commit) {
+        List<Trait> traits = createTraits(2);
+        Program program = createProgram("Exp with additional Uploads (blank) "+(commit ? "C" : "P"), "EXAUB"+(commit ? "C" : "P"), "EXAUB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), "1");
+
+        importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
+
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
+
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        assertRowSaved(newExp, program, traits);
+
+        Map<String, Object> newObservation = new HashMap<>();
+        newObservation.put(Columns.GERMPLASM_GID, "1");
+        newObservation.put(Columns.TEST_CHECK, "T");
+        newObservation.put(Columns.EXP_TITLE, "Test Exp");
+        newObservation.put(Columns.EXP_UNIT, "Plot");
+        newObservation.put(Columns.EXP_TYPE, "Phenotyping");
+        newObservation.put(Columns.ENV, "New Env");
+        newObservation.put(Columns.ENV_LOCATION, "Location A");
+        newObservation.put(Columns.ENV_YEAR, "2023");
+        newObservation.put(Columns.EXP_UNIT_ID, "a-1");
+        newObservation.put(Columns.REP_NUM, "1");
+        newObservation.put(Columns.BLOCK_NUM, "1");
+        newObservation.put(Columns.ROW, "1");
+        newObservation.put(Columns.COLUMN, "1");
+        newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceID());
+        newObservation.put(traits.get(0).getObservationVariableName(), "");
+        newObservation.put(traits.get(1).getObservationVariableName(), "2");
+
+        JsonObject result = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newObservation), traits), null, commit, client, program, mappingId);
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
+
+        newObservation.put(traits.get(0).getObservationVariableName(), "1");
+        if(commit) {
+            assertRowSaved(newObservation, program, traits);
+        } else {
+            assertValidPreviewRow(newObservation, row, program, traits);
+        }
+    }
+
     private Map<String, Object> assertRowSaved(Map<String, Object> expected, Program program, List<Trait> traits) throws ApiException {
         Map<String, Object> ret = new HashMap<>();
 
