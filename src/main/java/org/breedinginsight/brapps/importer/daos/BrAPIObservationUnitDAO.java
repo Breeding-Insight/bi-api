@@ -54,8 +54,8 @@ public class BrAPIObservationUnitDAO {
 
     private final String referenceSource;
 
-    private Gson gson = new JSON().getGson();
-    private Type treatmentlistType = new TypeToken<ArrayList<BrAPIObservationTreatment>>(){}.getType();
+    private final Gson gson = new JSON().getGson();
+    private final Type treatmentlistType = new TypeToken<ArrayList<BrAPIObservationTreatment>>(){}.getType();
 
     @Inject
     public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, ProgramService programService, @Property(name = "brapi.server.reference-source") String referenceSource) {
