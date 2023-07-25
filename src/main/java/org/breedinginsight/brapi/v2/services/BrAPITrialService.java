@@ -32,6 +32,7 @@ import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -99,6 +100,8 @@ public class BrAPITrialService {
             Program program,
             UUID experimentId,
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException {
+        String logHash = UUID.randomUUID().toString();
+        log.debug(logHash + ": exporting experiment: "+experimentId+", params: " + params);
         StreamedFile downloadFile;
         boolean isDataset = false;
         List<BrAPIObservation> dataset = new ArrayList<>();
@@ -110,6 +113,7 @@ public class BrAPITrialService {
         FileType fileType = params.getFileExtension();
 
         // get requested environments for the experiment
+        log.debug(logHash + ": fetching environments for export");
         List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
         if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
@@ -120,6 +124,7 @@ public class BrAPITrialService {
         expStudies.forEach(study -> studyByDbId.putIfAbsent(study.getStudyDbId(), study));
 
         // get the OUs for the requested environments
+        log.debug(logHash + ": fetching OUs for export");
         List<BrAPIObservationUnit> ous = new ArrayList<>();
         Map<String, BrAPIObservationUnit> ouByOUDbId = new HashMap<>();
         try {
@@ -129,7 +134,7 @@ public class BrAPITrialService {
                 ous.addAll(studyOUs);
             }
         } catch (ApiException err) {
-            log.error("Error fetching observation units for a study by its DbId" +
+            log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
 
@@ -137,6 +142,7 @@ public class BrAPITrialService {
         List<Column> columns = ExperimentFileColumns.getOrderedColumns();
 
         // add columns for requested dataset obsvars and timestamps
+        log.debug(logHash + ": fetching experiment for export");
         BrAPITrial experiment = getExperiment(program, experimentId);
         if ((StringUtils.isBlank(params.getDataset()) || "observations".equalsIgnoreCase(params.getDataset())) &&
                 experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) != null) {
@@ -144,6 +150,7 @@ public class BrAPITrialService {
                     .getAdditionalInfo().getAsJsonObject()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
             isDataset = true;
+            log.debug(logHash + ": fetching dataset observation variables for export");
             obsVars = getDatasetObsVars(obsDatasetId, program);
 
             // make additional columns in the export for each obs variable and obs variable timestamp
@@ -153,12 +160,19 @@ public class BrAPITrialService {
 
         // make export rows from any observations
         if (isDataset) {
+            log.debug(logHash + ": fetching observations for export");
             dataset = observationDAO.getObservationsByTrialDbId(List.of(experiment.getTrialDbId()), program);
         }
         if (!requestedEnvIds.isEmpty()) {
+            log.debug(logHash + ": filtering observations to only requested environments for export");
             dataset = filterDatasetByEnvironment(dataset, requestedEnvIds, studyByDbId);
         }
 
+        log.debug(logHash + ": fetching program's germplasm for export");
+        List<BrAPIGermplasm> programGermplasm = germplasmDAO.getGermplasmsByDBID(ouByOUDbId.values().stream().map(BrAPIObservationUnit::getGermplasmDbId).collect(Collectors.toList()), program.getId());
+        Map<String, BrAPIGermplasm> programGermplasmByDbId = programGermplasm.stream().collect(Collectors.toMap(BrAPIGermplasm::getGermplasmDbId, Function.identity()));
+
+        log.debug(logHash + ": populating rows for export");
         // update rowByOUId
         addBrAPIObsToRecords(
                 dataset,
@@ -168,7 +182,8 @@ public class BrAPITrialService {
                 studyByDbId,
                 rowByOUId,
                 params.isIncludeTimestamps(),
-                obsVars
+                obsVars,
+                programGermplasmByDbId
         );
 
         // make export rows for OUs without observations
@@ -176,11 +191,12 @@ public class BrAPITrialService {
             for (BrAPIObservationUnit ou: ous) {
                 String ouId = getOUId(ou);
                 if (!rowByOUId.containsKey(ouId)) {
-                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId));
+                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId));
                 }
             }
         }
 
+        log.debug(logHash + ": writing data to file for export");
         // write export data to requested file format
         List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
         if (fileType.equals(FileType.CSV)){
@@ -191,7 +207,10 @@ public class BrAPITrialService {
 
         String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
         String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
-        return new DownloadFile(fileName, downloadFile);
+        DownloadFile retFile = new DownloadFile(fileName, downloadFile);
+
+        log.debug(logHash + ": completed export of experiment: " + experimentId + ", params: " + params);
+        return retFile;
     }
 
     private void addBrAPIObsToRecords(
@@ -202,7 +221,8 @@ public class BrAPITrialService {
             Map<String, BrAPIStudy> studyByDbId,
             Map<String, Map<String, Object>> rowByOUId,
             boolean includeTimestamp,
-            List<BrAPIObservationVariable> obsVars) throws ApiException, DoesNotExistException {
+            List<BrAPIObservationVariable> obsVars,
+            Map<String, BrAPIGermplasm> programGermplasmByDbId) throws ApiException, DoesNotExistException {
         Map<String, BrAPIObservationVariable> varByDbId = new HashMap<>();
         obsVars.forEach(var -> varByDbId.put(var.getObservationVariableDbId(), var));
         for (BrAPIObservation obs: dataset) {
@@ -220,7 +240,7 @@ public class BrAPITrialService {
             } else {
 
                 // otherwise make a new row
-                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId);
+                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId);
                 addObsVarDataToRow(row, obs, includeTimestamp, var, program);
                 rowByOUId.put(ouId, row);
             }
@@ -291,7 +311,8 @@ public class BrAPITrialService {
             BrAPITrial experiment,
             Program program,
             BrAPIObservationUnit ou,
-            Map<String, BrAPIStudy> studyByDbId) throws ApiException, DoesNotExistException {
+            Map<String, BrAPIStudy> studyByDbId,
+            Map<String, BrAPIGermplasm> programGermplasmByDbId) throws ApiException, DoesNotExistException {
         HashMap<String, Object> row = new HashMap<>();
 
         // get OU id, germplasm, and study
@@ -300,7 +321,7 @@ public class BrAPITrialService {
                         String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName()))
                 .orElseThrow(() -> new RuntimeException("observation unit id not found"));
         String ouId = ouXref.getReferenceID();
-        BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByDBID(ou.getGermplasmDbId(), program.getId())
+        BrAPIGermplasm germplasm = Optional.ofNullable(programGermplasmByDbId.get(ou.getGermplasmDbId()))
                 .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
         BrAPIStudy study = studyByDbId.get(ou.getStudyDbId());
 
