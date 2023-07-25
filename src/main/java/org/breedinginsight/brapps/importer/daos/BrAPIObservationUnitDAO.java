@@ -141,7 +141,7 @@ public class BrAPIObservationUnitDAO {
 
     private void processObservationUnits(List<BrAPIObservationUnit> brapiObservationUnits) {
 
-        // if has treatments in additionalInfo but not treatments property, copy to treatments property
+        // if has treatments in additionalInfo, copy to treatments property
         for (BrAPIObservationUnit ou : brapiObservationUnits) {
             JsonObject additionalInfo = ou.getAdditionalInfo();
             if (additionalInfo != null) {
