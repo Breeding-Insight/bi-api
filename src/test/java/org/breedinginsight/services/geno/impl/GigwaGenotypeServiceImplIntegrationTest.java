@@ -247,7 +247,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         gigwa.start();
 
         localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack")
-                                                                     .withTag("latest"))
+                                                                     .withTag("2.2.0"))
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("localstack")
