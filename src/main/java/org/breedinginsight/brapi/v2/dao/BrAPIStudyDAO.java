@@ -34,7 +34,6 @@ import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
@@ -127,10 +126,8 @@ public class BrAPIStudyDAO {
     private Map<String,BrAPIStudy> processStudyForDisplay(List<BrAPIStudy> programStudy, String programKey) {
         // Process the study
         Map<String, BrAPIStudy> programStudyMap = new HashMap<>();
-        log.trace("processing germ for display: " + programStudy);
-        Map<String, BrAPIStudy> programStudyByFullName = new HashMap<>();
+        log.trace("processing study for display: " + programStudy);
         for (BrAPIStudy study: programStudy) {
-            programStudyByFullName.put(study.getStudyName(), study);
             // Remove program key from studyName, trialName and locationName.
             if (study.getStudyName() != null) {
                 // Study name is appended with program key and experiment sequence number, need to remove.

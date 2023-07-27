@@ -32,7 +32,7 @@ public class StudyQueryMapper extends AbstractQueryMapper {
 
     private final String defaultSortField = "studyName";
     private final SortOrder defaultSortOrder = SortOrder.ASC;
-    private Map<String, Function<BrAPIStudy, ?>> fields;
+    private final Map<String, Function<BrAPIStudy, ?>> fields;
 
     public StudyQueryMapper() {
         fields = Map.ofEntries(
