@@ -270,8 +270,17 @@ public class BrAPITrialService {
             BrAPIObservationVariable var,
             Program program) {
         String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
-        if (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
-                var.getScale().getDataType().equals(BrAPITraitDataType.DURATION)) {
+
+        //  Non-null Scale DataType expected, in case of exceptions: log and treat value as string.
+        boolean isScaleOrDataTypeNull = var == null || var.getScale() == null || var.getScale().getDataType() == null;
+        if (isScaleOrDataTypeNull)
+        {
+            log.warn("Observation Variable Scale DataType is null for programId:" + program.getId() + " variable:" + varName);
+        }
+
+        if (!isScaleOrDataTypeNull &&
+                (var.getScale().getDataType().equals(BrAPITraitDataType.NUMERICAL) ||
+                        var.getScale().getDataType().equals(BrAPITraitDataType.DURATION))) {
             row.put(varName, Double.parseDouble(obs.getValue()));
         } else {
             row.put(varName, obs.getValue());
