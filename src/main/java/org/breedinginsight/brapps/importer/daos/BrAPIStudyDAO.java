@@ -40,6 +40,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
 import java.util.*;
+import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -152,7 +153,37 @@ public class BrAPIStudyDAO {
 
     public List<BrAPIStudy> createBrAPIStudies(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
         StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), StudiesApi.class);
-        return brAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
+        List<BrAPIStudy> createdStudies = new ArrayList<>();
+        try {
+            if (!brAPIStudyList.isEmpty()) {
+                Callable<Map<String, BrAPIStudy>> postCallback = () -> {
+                    List<BrAPIStudy> postedStudies = brAPIDAOUtil
+                            .post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
+                    return studyById(postedStudies);
+                };
+                createdStudies.addAll(programStudyCache.post(programId, postCallback));
+            }
+
+            return createdStudies;
+        } catch (Exception e) {
+            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * @return Map - Key = BI external reference ID, Value = BrAPIStudy
+     * */
+    private Map<String, BrAPIStudy> studyById(List<BrAPIStudy> studies) {
+        Map<String, BrAPIStudy> studyById = new HashMap<>();
+        for (BrAPIStudy study: studies) {
+            BrAPIExternalReference xref = study
+                    .getExternalReferences()
+                    .stream()
+                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES).equalsIgnoreCase(reference.getReferenceSource()))
+                    .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
+            studyById.put(xref.getReferenceID(), study);
+        }
+        return studyById;
     }
 
     public List<BrAPIStudy> getStudiesByStudyDbId(Collection<String> studyDbIds, Program program) throws ApiException {
