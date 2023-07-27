@@ -5,7 +5,6 @@ import lombok.Getter;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.jooq.tools.StringUtils;
 
 import java.util.ArrayList;
@@ -39,7 +38,7 @@ public class ListQuery extends BrapiQuery {
         if (!StringUtils.isBlank(getSize())) {
             filters.add(constructFilterRequest("size", getSize()));
         }
-        if (getExternalReferenceSource() != null) {
+        if (!StringUtils.isBlank(getExternalReferenceSource())) {
             filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource()));
         }
         if (!StringUtils.isBlank(getExternalReferenceId())) {
