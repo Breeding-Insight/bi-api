@@ -159,7 +159,7 @@ public class BrAPIStudyDAO {
                 Callable<Map<String, BrAPIStudy>> postCallback = () -> {
                     List<BrAPIStudy> postedStudies = brAPIDAOUtil
                             .post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
-                    return studyById(postedStudies);
+                    return environmentById(postedStudies);
                 };
                 createdStudies.addAll(programStudyCache.post(programId, postCallback));
             }
@@ -173,17 +173,17 @@ public class BrAPIStudyDAO {
     /**
      * @return Map - Key = BI external reference ID, Value = BrAPIStudy
      * */
-    private Map<String, BrAPIStudy> studyById(List<BrAPIStudy> studies) {
-        Map<String, BrAPIStudy> studyById = new HashMap<>();
-        for (BrAPIStudy study: studies) {
-            BrAPIExternalReference xref = study
+    private Map<String, BrAPIStudy> environmentById(List<BrAPIStudy> studies) {
+        Map<String, BrAPIStudy> environmentById = new HashMap<>();
+        for (BrAPIStudy environment: studies) {
+            BrAPIExternalReference xref = environment
                     .getExternalReferences()
                     .stream()
                     .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES).equalsIgnoreCase(reference.getReferenceSource()))
                     .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            studyById.put(xref.getReferenceID(), study);
+            environmentById.put(xref.getReferenceID(), environment);
         }
-        return studyById;
+        return environmentById;
     }
 
     public List<BrAPIStudy> getStudiesByStudyDbId(Collection<String> studyDbIds, Program program) throws ApiException {
