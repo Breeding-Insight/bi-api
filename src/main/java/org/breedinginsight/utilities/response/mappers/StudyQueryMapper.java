@@ -18,17 +18,19 @@
 package org.breedinginsight.utilities.response.mappers;
 
 import lombok.Getter;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 
 import javax.inject.Singleton;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 
 @Getter
 @Singleton
-public class StudyQueryMapper extends AbstractQueryMapper {
+public class StudyQueryMapper extends AbstractQueryMapper<BrAPIStudy> {
 
     private final String defaultSortField = "studyName";
     private final SortOrder defaultSortOrder = SortOrder.ASC;
@@ -43,7 +45,17 @@ public class StudyQueryMapper extends AbstractQueryMapper {
                 Map.entry("commonCropName", BrAPIStudy::getCommonCropName),
                 Map.entry("trialDbId", BrAPIStudy::getTrialDbId),
                 Map.entry("studyDbId", BrAPIStudy::getStudyDbId),
-                Map.entry("studyName", BrAPIStudy::getStudyName)
+                Map.entry("studyName", BrAPIStudy::getStudyName),
+                Map.entry("externalReferenceSource", (study) -> study
+                        .getExternalReferences()
+                        .stream()
+                        .map(BrAPIExternalReference::getReferenceSource)
+                        .collect(Collectors.toList())),
+                Map.entry("externalReferenceId", (study) -> study
+                        .getExternalReferences()
+                        .stream()
+                        .map(BrAPIExternalReference::getReferenceID)
+                        .collect(Collectors.toList()))
         );
     }
 

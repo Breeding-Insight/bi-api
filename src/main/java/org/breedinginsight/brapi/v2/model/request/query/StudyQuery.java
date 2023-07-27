@@ -21,6 +21,8 @@ public class StudyQuery extends BrapiQuery {
     private String trialDbId;
     private String studyDbId;
     private String studyName;
+    private String externalReferenceSource;
+    private String externalReferenceId;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
@@ -47,6 +49,12 @@ public class StudyQuery extends BrapiQuery {
         }
         if (!StringUtils.isBlank(getStudyName())) {
             filters.add(constructFilterRequest("studyName", getStudyName()));
+        }
+        if (!StringUtils.isBlank(getExternalReferenceSource())) {
+            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource()));
+        }
+        if (!StringUtils.isBlank(getExternalReferenceId())) {
+            filters.add(constructFilterRequest("externalReferenceId", getExternalReferenceId()));
         }
         return new SearchRequest(filters);
     }
