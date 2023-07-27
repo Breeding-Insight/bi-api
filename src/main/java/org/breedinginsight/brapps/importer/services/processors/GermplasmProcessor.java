@@ -16,9 +16,6 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -30,7 +27,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -221,7 +217,7 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+    public Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
                                                         Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                         Program program, User user, boolean commit) throws ValidatorException {
 

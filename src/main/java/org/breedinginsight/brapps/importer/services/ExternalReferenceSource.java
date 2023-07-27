@@ -14,7 +14,7 @@ public enum ExternalReferenceSource {
 
     private String name;
 
-    ExternalReferenceSource(String name) {
+    private ExternalReferenceSource(String name) {
         this.name = name;
     }
 }

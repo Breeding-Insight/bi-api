@@ -304,7 +304,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.ROW, "1");
         newExp.put(Columns.COLUMN, "1");
 
-        importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
+        JsonObject expResult = importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
 
         Map<String, Object> newEnv = new HashMap<>();
         newEnv.put(Columns.GERMPLASM_GID, "1");
@@ -634,7 +634,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
 
-        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
         assertTrue(trialIdXref.isPresent());
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
@@ -699,7 +699,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
 
-        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
         assertTrue(trialIdXref.isPresent());
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
@@ -766,7 +766,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
 
-        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
         assertTrue(trialIdXref.isPresent());
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
@@ -893,7 +893,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
 
-        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
         assertTrue(trialIdXref.isPresent());
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
@@ -967,7 +967,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         importTestUtils.uploadAndFetch(writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
 
-        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)newExp.get(Columns.EXP_TITLE), program.getKey())), program).get(0);
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
         assertTrue(trialIdXref.isPresent());
         BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceID()), program).get(0);
@@ -1018,7 +1018,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     private Map<String, Object> assertRowSaved(Map<String, Object> expected, Program program, List<Trait> traits) throws ApiException {
         Map<String, Object> ret = new HashMap<>();
 
-        List<BrAPITrial> trials = brAPITrialDAO.getTrialsByName(List.of(Utilities.appendProgramKey((String)expected.get(Columns.EXP_TITLE), program.getKey())), program);
+        List<BrAPITrial> trials = brAPITrialDAO.getTrialsByName(List.of((String)expected.get(Columns.EXP_TITLE)), program);
         assertFalse(trials.isEmpty());
         BrAPITrial trial = trials.get(0);
         Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(trial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
