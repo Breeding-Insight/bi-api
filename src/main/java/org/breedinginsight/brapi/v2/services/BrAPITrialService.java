@@ -1,5 +1,7 @@
 package org.breedinginsight.brapi.v2.services;
+
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +30,18 @@ import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.utilities.Utilities;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 @Slf4j
 @Singleton
@@ -104,15 +111,22 @@ public class BrAPITrialService {
             Program program,
             UUID experimentId,
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException {
-        StreamedFile downloadFile;
+        DownloadFile downloadFile;
         boolean isDataset = false;
         List<BrAPIObservation> dataset = new ArrayList<>();
         List<BrAPIObservationVariable> obsVars = new ArrayList<>();
         Map<String, Map<String, Object>> rowByOUId = new HashMap<>();
         Map<String, BrAPIStudy> studyByDbId = new HashMap<>();
+        Map<String, String> studyDbIdByOUId = new HashMap<>();
         List<String> requestedEnvIds = StringUtils.isNotBlank(params.getEnvironments()) ?
                 new ArrayList<>(Arrays.asList(params.getEnvironments().split(","))) : new ArrayList<>();
         FileType fileType = params.getFileExtension();
+
+        // make columns present in all exports
+        List<Column> columns = ExperimentFileColumns.getOrderedColumns();
+
+        // add columns for requested dataset obsvars and timestamps
+        BrAPITrial experiment = getExperiment(program, experimentId);
 
         // get requested environments for the experiment
         List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
@@ -138,11 +152,6 @@ public class BrAPITrialService {
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
 
-        // make columns present in all exports
-        List<Column> columns = ExperimentFileColumns.getOrderedColumns();
-
-        // add columns for requested dataset obsvars and timestamps
-        BrAPITrial experiment = getExperiment(program, experimentId);
         if ((StringUtils.isBlank(params.getDataset()) || "observations".equalsIgnoreCase(params.getDataset())) &&
                 experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) != null) {
             String obsDatasetId = experiment
@@ -164,7 +173,7 @@ public class BrAPITrialService {
             dataset = filterDatasetByEnvironment(dataset, requestedEnvIds, studyByDbId);
         }
 
-        // update rowByOUId
+        // Update rowByOUId and studyDbIdByOUId.
         addBrAPIObsToRecords(
                 dataset,
                 experiment,
@@ -173,30 +182,100 @@ public class BrAPITrialService {
                 studyByDbId,
                 rowByOUId,
                 params.isIncludeTimestamps(),
-                obsVars
+                obsVars,
+                studyDbIdByOUId
         );
+
 
         // make export rows for OUs without observations
         if (rowByOUId.size() < ous.size()) {
             for (BrAPIObservationUnit ou: ous) {
                 String ouId = getOUId(ou);
+                // Map Observation Unit to the Study it belongs to.
+                studyDbIdByOUId.put(ouId, ou.getStudyDbId());
                 if (!rowByOUId.containsKey(ouId)) {
                     rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId));
                 }
             }
         }
 
-        // write export data to requested file format
-        List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
-        if (fileType.equals(FileType.CSV)){
-            downloadFile = CSVWriter.writeToDownload(columns, exportRows, fileType);
+        // If one or more envs requested, create a separate file for each env, then zip if there are multiple.
+        if (!requestedEnvIds.isEmpty()) {
+            // This will hold a list of rows for each study, each list will become a separate file.
+            Map<String, List<Map<String, Object>>> rowsByStudyId = new HashMap<>();
+
+            for (Map<String, Object> row: rowByOUId.values()) {
+                String studyId = studyDbIdByOUId.get((String)row.get(ExperimentObservation.Columns.OBS_UNIT_ID));
+                // Initialize key with empty list if it is not present.
+                if (!rowsByStudyId.containsKey(studyId))
+                {
+                    rowsByStudyId.put(studyId, new ArrayList<Map<String, Object>>());
+                }
+                // Add row to appropriate list in rowsByStudyId.
+                rowsByStudyId.get(studyId).add(row);
+            }
+            List<DownloadFile> files = new ArrayList<>();
+            // Generate a file for each study.
+            for (Map.Entry<String, List<Map<String, Object>>> entry: rowsByStudyId.entrySet()) {
+                StreamedFile streamedFile = writeToStreamedFile(columns, entry.getValue(), fileType, "Experiment Data");
+                String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName()) + fileType.getExtension();
+                // Add to file list.
+                files.add(new DownloadFile(name, streamedFile));
+            }
+            if (files.size() == 1) {
+                // Don't zip, as there is a single file.
+                downloadFile = files.get(0);
+            }
+            else {
+                // Zip, as there are multiple files.
+                StreamedFile zipFile = zipFiles(files);
+                downloadFile = new DownloadFile(makeZipFileName(experiment, program), zipFile);
+            }
         } else {
-            downloadFile = ExcelWriter.writeToDownload("Experiment Data", columns, exportRows, fileType);
+            List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
+            // write export data to requested file format
+            StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, "Experiment Data");
+            // Set filename.
+            String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
+            String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
+            downloadFile = new DownloadFile(fileName, streamedFile);
         }
 
-        String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
-        String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
-        return new DownloadFile(fileName, downloadFile);
+        return downloadFile;
+    }
+
+    private StreamedFile writeToStreamedFile(List<Column> columns, List<Map<String, Object>> data, FileType extension, String sheetName) throws IOException {
+        if (extension.equals(FileType.CSV)){
+            return CSVWriter.writeToDownload(columns, data, extension);
+        } else {
+            return ExcelWriter.writeToDownload(sheetName, columns, data, extension);
+        }
+    }
+
+    private StreamedFile zipFiles(List<DownloadFile> files) throws IOException {
+        PipedInputStream in = new PipedInputStream();
+        final PipedOutputStream out = new PipedOutputStream(in);
+        new Thread(() -> {
+            try {
+                ZipOutputStream zipStream = new ZipOutputStream(out);
+                // Add each file to zip.
+                for (DownloadFile datasetFile : files) {
+
+                    ZipEntry entry = new ZipEntry(datasetFile.getFileName());
+                    zipStream.putNextEntry(entry);
+                    // Write datasetFile to zip.
+                    zipStream.write(datasetFile.getStreamedFile().getInputStream().readAllBytes());
+                    zipStream.closeEntry();
+
+                }
+                zipStream.close();
+                out.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+        // NOTE: Micronaut doesn't define application/zip in MediaType, use application/octet-stream.
+        return new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
     }
 
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
@@ -234,7 +313,8 @@ public class BrAPITrialService {
             Map<String, BrAPIStudy> studyByDbId,
             Map<String, Map<String, Object>> rowByOUId,
             boolean includeTimestamp,
-            List<BrAPIObservationVariable> obsVars) throws ApiException, DoesNotExistException {
+            List<BrAPIObservationVariable> obsVars,
+            Map<String, String> studyDbIdByOUId) throws ApiException, DoesNotExistException {
         Map<String, BrAPIObservationVariable> varByDbId = new HashMap<>();
         obsVars.forEach(var -> varByDbId.put(var.getObservationVariableDbId(), var));
         for (BrAPIObservation obs: dataset) {
@@ -256,6 +336,9 @@ public class BrAPITrialService {
                 addObsVarDataToRow(row, obs, includeTimestamp, var, program);
                 rowByOUId.put(ouId, row);
             }
+
+            // Map Observation Unit to the Study it belongs to.
+            studyDbIdByOUId.put(ouId, ou.getStudyDbId());
         }
     }
 
@@ -268,6 +351,8 @@ public class BrAPITrialService {
     }
 
     private String getStudyId(BrAPIStudy study) {
+        // HACK: avoid null reference exceptions.
+        if (study == null) return null;
         BrAPIExternalReference studyXref = Utilities.getExternalReference(
                         study.getExternalReferences(),
                         String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES.getName()))
@@ -410,24 +495,36 @@ public class BrAPITrialService {
         }
     }
     private String makeFileName(BrAPITrial experiment, Program program, String envName) {
-        // <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        // <exp-title>_Observation Dataset_<environment>_<export-timestamp>
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
-        return String.format("%s_Observation Dataset [%s-%s]_%s_%s",
+        String unsafeName = String.format("%s_Observation Dataset_%s_%s",
                 Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
-                program.getKey(),
-                experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString(),
-                envName,
+                Utilities.removeProgramKeyAndUnknownAdditionalData(envName, program.getKey()),
                 timestamp);
+        // Make file name safe for all platforms.
+        return Utilities.makePortableFilename(unsafeName);
     }
+
+    private String makeZipFileName(BrAPITrial experiment, Program program) {
+        // <exp-title_<export-timestamp>.zip
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        String unsafeName = String.format("%s_%s.zip",
+                Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
+                timestamp);
+        // Make file name safe for all platforms.
+        return Utilities.makePortableFilename(unsafeName);
+    }
+
     private List<BrAPIObservation> filterDatasetByEnvironment(
             List<BrAPIObservation> dataset,
             List<String> envIds,
             Map<String, BrAPIStudy> studyByDbId) {
-            return dataset
-                    .stream()
-                    .filter(obs -> envIds.contains(getStudyId(studyByDbId.get(obs.getStudyDbId()))))
-                    .collect(Collectors.toList());
+        return dataset
+                .stream()
+                .filter(obs -> envIds.contains(getStudyId(studyByDbId.get(obs.getStudyDbId()))))
+                .collect(Collectors.toList());
     }
 
 }

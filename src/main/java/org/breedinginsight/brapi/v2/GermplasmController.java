@@ -72,6 +72,7 @@ public class GermplasmController {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
+    // TODO: expand to fully support BrAPI request body.
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/search/germplasm{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
