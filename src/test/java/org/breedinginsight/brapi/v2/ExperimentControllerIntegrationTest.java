@@ -307,6 +307,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             String varName = "tt_test_" + (i + 1);
             traits.add(Trait.builder()
                     .observationVariableName(varName)
+                    .fullName(varName)
                     .entity("Plant " + i)
                     .attribute("height " + i)
                     .traitDescription("test")

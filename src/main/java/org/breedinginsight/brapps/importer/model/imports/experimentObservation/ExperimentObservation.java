@@ -36,6 +36,7 @@ import org.breedinginsight.utilities.Utilities;
 
 import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
@@ -303,8 +304,15 @@ public class ExperimentObservation implements BrAPIImport {
             String value,
             String variableName,
             String seasonDbId,
-            BrAPIObservationUnit obsUnit
-    ) {
+            BrAPIObservationUnit obsUnit,
+            boolean commit,
+            Program program,
+            User user,
+            String referenceSource,
+            UUID trialID,
+            UUID studyID,
+            UUID obsUnitID,
+            UUID id) {
         BrAPIObservation observation = new BrAPIObservation();
         observation.setGermplasmName(getGermplasmName());
         if (getEnv() != null) {
@@ -320,11 +328,21 @@ public class ExperimentObservation implements BrAPIImport {
         season.setSeasonDbId(seasonDbId);
         observation.setSeason(season);
 
+        if(commit) {
+            Map<String, Object> createdBy = new HashMap<>();
+            createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId());
+            createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.now()));
+
+            observation.setExternalReferences(getObservationExternalReferences(program, referenceSource, trialID, studyID, obsUnitID, id));
+        }
+
         return observation;
     }
 
     private List<BrAPIExternalReference> getBrAPIExternalReferences(
-            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId, UUID observationId) {
         List<BrAPIExternalReference> refs = new ArrayList<>();
 
         addReference(refs, program.getId(), referenceSourceBaseName, ExternalReferenceSource.PROGRAMS);
@@ -337,23 +355,31 @@ public class ExperimentObservation implements BrAPIImport {
         if (obsUnitId != null) {
             addReference(refs, obsUnitId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATION_UNITS);
         }
+        if (observationId != null) {
+            addReference(refs, observationId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATIONS);
+        }
 
         return refs;
     }
 
     private List<BrAPIExternalReference> getTrialExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null, null);
     }
 
     private List<BrAPIExternalReference> getStudyExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null, null);
     }
 
     private List<BrAPIExternalReference> getObsUnitExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId, null);
+    }
+
+    private List<BrAPIExternalReference> getObservationExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId, UUID observationId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId, observationId);
     }
 
 
