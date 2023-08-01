@@ -283,7 +283,7 @@ public class BrAPITrialService {
 
         // TODO: Once BI-1831 is complete and OUs in a dataset can be identified using the datasetId stored as a xref
         // the expOUs needs to be replaced with datasetOUs, as was done with datasetObsVars
-        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId());
+        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId(), true);
         List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
         List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
