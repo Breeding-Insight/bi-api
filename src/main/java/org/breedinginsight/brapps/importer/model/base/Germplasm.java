@@ -22,6 +22,7 @@ import com.google.gson.JsonObject;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
@@ -156,12 +157,22 @@ public class Germplasm implements BrAPIObject {
         return String.format("%s [%s-germplasm]", listName, program.getKey());
     }
 
-    public void updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit) {
+    public void updateBrAPIGermplasm(BrAPIGermplasm germplasm, Program program, UUID listId, boolean commit, boolean updatePedigree) {
 
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
-        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, getMaleParentEntryNo());
+        if (updatePedigree) {
+            if (!StringUtils.isBlank(getFemaleParentDBID())) {
+                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, getFemaleParentDBID());
+            }
+            if (!StringUtils.isBlank(getMaleParentDBID())) {
+                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, getMaleParentDBID());
+            }
+            if (!StringUtils.isBlank(getFemaleParentEntryNo())) {
+                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO, getFemaleParentEntryNo());
+            }
+            if (!StringUtils.isBlank(getMaleParentEntryNo())) {
+                germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO, getMaleParentEntryNo());
+            }
+        }
 
         // Append synonyms to germplasm that don't already exist
         // Synonym comparison is based on name and type
@@ -208,15 +219,16 @@ public class Germplasm implements BrAPIObject {
         String brapiFemaleGid = femaleGid != null ? femaleGid.getAsString() : null;
         JsonElement maleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID);
         String brapiMaleGid = maleGid != null ? maleGid.getAsString() : null;
-        JsonElement femaleEntryNo = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_ENTRY_NO);
-        String brapiFemaleEntryNo = femaleEntryNo != null ? femaleEntryNo.getAsString() : null;
-        JsonElement maleEntryNo = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_ENTRY_NO);
-        String brapiMaleEntryNo = maleEntryNo != null ? maleEntryNo.getAsString() : null;
 
-        return ((getFemaleParentDBID() == null && brapiFemaleGid == null) || (getFemaleParentDBID() != null && getFemaleParentDBID().equals(brapiFemaleGid))) &&
-               ((getMaleParentDBID() == null && brapiMaleGid == null) || (getMaleParentDBID() != null && getMaleParentDBID().equals(brapiMaleGid))) &&
-               ((getFemaleParentEntryNo() == null && brapiFemaleEntryNo == null) || (getFemaleParentEntryNo() != null && getFemaleParentEntryNo().equals(brapiFemaleEntryNo))) &&
-               ((getMaleParentEntryNo() == null && brapiMaleEntryNo == null) || (getMaleParentEntryNo() != null && getMaleParentEntryNo().equals(brapiMaleEntryNo)));
+        return ((StringUtils.isBlank(getFemaleParentDBID()) && StringUtils.isBlank(brapiFemaleGid)) || (getFemaleParentDBID() != null && getFemaleParentDBID().equals(brapiFemaleGid))) &&
+               ((StringUtils.isBlank(getMaleParentDBID()) && StringUtils.isBlank(brapiMaleGid)) || (getMaleParentDBID() != null && getMaleParentDBID().equals(brapiMaleGid)));
+    }
+
+    public boolean pedigreeEmpty() {
+        return StringUtils.isBlank(getFemaleParentDBID()) &&
+               StringUtils.isBlank(getMaleParentDBID()) &&
+               StringUtils.isBlank(getFemaleParentEntryNo()) &&
+               StringUtils.isBlank(getMaleParentEntryNo());
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {

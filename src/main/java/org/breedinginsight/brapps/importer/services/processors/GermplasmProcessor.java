@@ -279,7 +279,7 @@ public class GermplasmProcessor implements Processor {
 
                 // Have GID so updating an existing germplasm record
                 if (germplasm.getAccessionNumber() != null) {
-                    if (dbGermplasmByAccessionNo.containsKey(germplasm.getAccessionNumber()) ) {
+                    if (dbGermplasmByAccessionNo.containsKey(germplasm.getAccessionNumber())) {
                         existingGermplasm = dbGermplasmByAccessionNo.get(germplasm.getAccessionNumber());
                     } else {
                         ValidationError ve = new ValidationError("GID", missingGID, HttpStatus.NOT_FOUND);
@@ -287,25 +287,35 @@ public class GermplasmProcessor implements Processor {
                         continue;
                     }
 
-                    // Error conditions:
-                    // has existing pedigree and file pedigree is different
-                    // Valid conditions:
-                    // no existing pedigree and file different pedigree (not blank though, will fail other validations)
-                    // existing pedigree and file pedigree same
+                    // Update conditions:
+                    // no existing pedigree and file has different pedigree and not empty
+                    boolean updatePedigree = StringUtils.isBlank(existingGermplasm.getPedigree()) &&
+                                             !germplasm.pedigreesEqual(existingGermplasm) &&
+                                             !germplasm.pedigreeEmpty();
 
-                    if (!StringUtils.isBlank(existingGermplasm.getPedigree()) && !germplasm.pedigreesEqual(existingGermplasm) ) {
+                    // Error conditions:
+                    // has existing pedigree and file pedigree is different and not empty
+                    // Valid conditions:
+                    // no existing pedigree and file different pedigree
+                    // existing pedigree and file pedigree same
+                    // existing pedigree and file pedigree empty
+                    if (!StringUtils.isBlank(existingGermplasm.getPedigree()) &&
+                        !germplasm.pedigreesEqual(existingGermplasm) &&
+                        !germplasm.pedigreeEmpty()) {
                         ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
                         validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
                         continue;
                     }
 
-                    validatePedigree(germplasm, i+2, validationErrors);
+                    // only validate if updating pedigree
+                    if (updatePedigree) {
+                        validatePedigree(germplasm, i+2, validationErrors);
+                    }
 
-                    germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit);
+                    germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit, updatePedigree);
 
                     updatedGermplasmList.add(existingGermplasm);
                     mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
-
                     importList.addDataItem(existingGermplasm.getGermplasmName());
 
                 } else {
