@@ -214,11 +214,11 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public boolean pedigreesEqual(BrAPIGermplasm brAPIGermplasm) {
+    public boolean pedigreesEqualGidOnly(BrAPIGermplasm brAPIGermplasm) {
         JsonElement femaleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID);
-        String brapiFemaleGid = femaleGid != null ? femaleGid.getAsString() : null;
+        String brapiFemaleGid = femaleGid != null && !femaleGid.isJsonNull() ? femaleGid.getAsString() : null;
         JsonElement maleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID);
-        String brapiMaleGid = maleGid != null ? maleGid.getAsString() : null;
+        String brapiMaleGid = maleGid != null && !maleGid.isJsonNull() ? maleGid.getAsString() : null;
 
         return ((StringUtils.isBlank(getFemaleParentDBID()) && StringUtils.isBlank(brapiFemaleGid)) || (getFemaleParentDBID() != null && getFemaleParentDBID().equals(brapiFemaleGid))) &&
                ((StringUtils.isBlank(getMaleParentDBID()) && StringUtils.isBlank(brapiMaleGid)) || (getMaleParentDBID() != null && getMaleParentDBID().equals(brapiMaleGid)));

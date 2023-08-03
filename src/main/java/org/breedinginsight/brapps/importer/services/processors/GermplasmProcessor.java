@@ -289,9 +289,7 @@ public class GermplasmProcessor implements Processor {
 
                     // Update conditions:
                     // no existing pedigree and file has different pedigree and not empty
-                    boolean updatePedigree = StringUtils.isBlank(existingGermplasm.getPedigree()) &&
-                                             !germplasm.pedigreesEqual(existingGermplasm) &&
-                                             !germplasm.pedigreeEmpty();
+                    boolean updatePedigree = updatePedigree(existingGermplasm, germplasm);
 
                     // Error conditions:
                     // has existing pedigree and file pedigree is different and not empty
@@ -300,7 +298,7 @@ public class GermplasmProcessor implements Processor {
                     // existing pedigree and file pedigree same
                     // existing pedigree and file pedigree empty
                     if (!StringUtils.isBlank(existingGermplasm.getPedigree()) &&
-                        !germplasm.pedigreesEqual(existingGermplasm) &&
+                        !germplasm.pedigreesEqualGidOnly(existingGermplasm) &&
                         !germplasm.pedigreeEmpty()) {
                         ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
                         validationErrors.addError(i+2, ve );  // +2 instead of +1 to account for the column header row.
@@ -385,6 +383,21 @@ public class GermplasmProcessor implements Processor {
 
         // Construct our response object
         return getStatisticsMap(importRows);
+    }
+
+    private boolean updatePedigree(BrAPIGermplasm existingGermplasm, Germplasm germplasm) {
+        // Update conditions:
+        // no existing pedigree and file has different pedigree and not empty
+        return StringUtils.isBlank(existingGermplasm.getPedigree()) &&
+               !germplasm.pedigreesEqualGidOnly(existingGermplasm) &&
+               !germplasm.pedigreeEmpty();
+    }
+
+    private boolean updatePedigreeNoEqualsCheck(BrAPIGermplasm existingGermplasm, Germplasm germplasm) {
+
+
+        return StringUtils.isBlank(existingGermplasm.getPedigree()) &&
+               !germplasm.pedigreeEmpty();
     }
 
     private Map<String, ImportPreviewStatistics> getStatisticsMap(List<BrAPIImport> importRows) {
@@ -584,14 +597,16 @@ public class GermplasmProcessor implements Processor {
                 }
             }
 
-            // only update brapi object for new germplasm or update with no previous pedigree
+            // only update pedigree with the following conditions:
+            // - new germplasm & pedigree is not empty
+            // - existing pedigree & existing pedigree is blank & new pedigree is different & not empty
             BrAPIGermplasm brapiGermplasm = mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject();
 
-            Optional<BrAPIGermplasm> existingPedigree = existingGermplasms.stream()
-                    .filter(g -> g.equals(brapiGermplasm) && StringUtils.isBlank(g.getPedigree()))
-                    .findFirst();
+            // no existing pedigree and pedigree not empty
+            // pedigrees will be equal at this point from prior processing code if being updated so don't check that
+            boolean updatePedigree = updatePedigreeNoEqualsCheck(brapiGermplasm, germplasm);
 
-            if (existingPedigree.isEmpty()) {
+            if (updatePedigree) {
                 mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
                 //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
                 mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN, femaleParentUnknown);
