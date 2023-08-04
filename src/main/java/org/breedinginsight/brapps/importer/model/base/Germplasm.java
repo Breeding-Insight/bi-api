@@ -31,7 +31,6 @@ import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
@@ -189,7 +188,12 @@ public class Germplasm implements BrAPIObject {
 
         // Add germplasm to the new list
         JsonObject listEntryNumbers = germplasm.getAdditionalInfo().getAsJsonObject(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS);
+        if(listEntryNumbers == null) {
+            listEntryNumbers = new JsonObject();
+            germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_LIST_ENTRY_NUMBERS, listEntryNumbers);
+        }
         listEntryNumbers.addProperty(listId.toString(), entryNo);
+        germplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_IMPORT_ENTRY_NUMBER, entryNo); //so the preview UI shows correctly
 
         // TODO: figure out why clear this out: brapi-server
         germplasm.setBreedingMethodDbId(null);
@@ -220,15 +224,15 @@ public class Germplasm implements BrAPIObject {
         JsonElement maleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID);
         String brapiMaleGid = maleGid != null && !maleGid.isJsonNull() ? maleGid.getAsString() : null;
 
-        return ((StringUtils.isBlank(getFemaleParentDBID()) && StringUtils.isBlank(brapiFemaleGid)) || (getFemaleParentDBID() != null && getFemaleParentDBID().equals(brapiFemaleGid))) &&
-               ((StringUtils.isBlank(getMaleParentDBID()) && StringUtils.isBlank(brapiMaleGid)) || (getMaleParentDBID() != null && getMaleParentDBID().equals(brapiMaleGid)));
+        return (StringUtils.isAllBlank(getFemaleParentDBID(), brapiFemaleGid) || StringUtils.equals(getFemaleParentDBID(), brapiFemaleGid))
+                && (StringUtils.isAllBlank(getMaleParentDBID(), brapiMaleGid) || StringUtils.equals(getMaleParentDBID(), brapiMaleGid));
     }
 
-    public boolean pedigreeEmpty() {
-        return StringUtils.isBlank(getFemaleParentDBID()) &&
-               StringUtils.isBlank(getMaleParentDBID()) &&
-               StringUtils.isBlank(getFemaleParentEntryNo()) &&
-               StringUtils.isBlank(getMaleParentEntryNo());
+    public boolean pedigreeExists() {
+        return StringUtils.isNotBlank(getFemaleParentDBID()) ||
+                StringUtils.isNotBlank(getMaleParentDBID()) ||
+                StringUtils.isNotBlank(getFemaleParentEntryNo()) ||
+                StringUtils.isNotBlank(getMaleParentEntryNo());
     }
 
     public BrAPIGermplasm constructBrAPIGermplasm(ProgramBreedingMethodEntity breedingMethod, User user, UUID listId) {
