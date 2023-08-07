@@ -363,11 +363,12 @@ public class GermplasmProcessor implements Processor {
 
     private boolean processExistingGermplasm(Germplasm germplasm, ValidationErrors validationErrors, List<BrAPIImport> importRows, Program program, UUID importListId, boolean commit, PendingImport mappedImportRow, int rowIndex) {
         BrAPIGermplasm existingGermplasm;
-        if (germplasmByAccessionNumber.containsKey(germplasm.getAccessionNumber())) {
-            existingGermplasm = germplasmByAccessionNumber.get(germplasm.getAccessionNumber()).getBrAPIObject();
+        String gid = germplasm.getAccessionNumber();
+        if (germplasmByAccessionNumber.containsKey(gid)) {
+            existingGermplasm = germplasmByAccessionNumber.get(gid).getBrAPIObject();
         } else {
             //should be caught in getExistingBrapiData
-            ValidationError ve = new ValidationError("GID", missingGID, HttpStatus.NOT_FOUND);
+            ValidationError ve = new ValidationError("GID", String.format(missingGID, gid), HttpStatus.NOT_FOUND);
             validationErrors.addError(rowIndex+2, ve );  // +2 instead of +1 to account for the column header row.
             return false;
         }
