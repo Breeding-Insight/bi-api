@@ -417,8 +417,10 @@ public class GermplasmProcessor implements Processor {
         return StringUtils.isNotBlank(germplasm.getPedigree())
                 || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID)
                 || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID)
-                || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN)
-                || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN);
+                || (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) &&
+                    germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean())
+                || (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) &&
+                    germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean());
     }
 
     /**
