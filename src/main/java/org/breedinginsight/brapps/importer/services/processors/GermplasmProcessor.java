@@ -286,9 +286,10 @@ public class GermplasmProcessor implements Processor {
             //TODO maybe make separate method for cleanliness
             // Have GID so updating an existing germplasm record
             if (germplasm.getAccessionNumber() != null) {
-                if(!processExistingGermplasm(germplasm, validationErrors, importRows, program, importListId, commit, mappedImportRow, i)) {
-                    continue;
-                }
+                processExistingGermplasm(germplasm, validationErrors, importRows, program, importListId, commit, mappedImportRow, i);
+                //if(!processExistingGermplasm(germplasm, validationErrors, importRows, program, importListId, commit, mappedImportRow, i)) {
+                //    continue;
+                //}
 
             } else {
                 processNewGermplasm(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, importListId, commit, mappedImportRow, i, user, nextVal);
@@ -388,17 +389,18 @@ public class GermplasmProcessor implements Processor {
                 validationErrors.addError(rowIndex + 2, ve);  // +2 instead of +1 to account for the column header row.
                 return false;
             }
-        } else {
-            if(germplasm.pedigreeExists()) {
-                validatePedigree(germplasm, rowIndex + 2, validationErrors);
-            }
-
-            germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit, true);
-
-            updatedGermplasmList.add(existingGermplasm);
-            mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.MUTATED, existingGermplasm));
-            importList.addDataItem(existingGermplasm.getGermplasmName());
         }
+
+        if(germplasm.pedigreeExists()) {
+            validatePedigree(germplasm, rowIndex + 2, validationErrors);
+        }
+
+        germplasm.updateBrAPIGermplasm(existingGermplasm, program, importListId, commit, true);
+
+        updatedGermplasmList.add(existingGermplasm);
+        mappedImportRow.setGermplasm(new PendingImportObject<>(ImportObjectState.MUTATED, existingGermplasm));
+        importList.addDataItem(existingGermplasm.getGermplasmName());
+
 
         return true;
     }
