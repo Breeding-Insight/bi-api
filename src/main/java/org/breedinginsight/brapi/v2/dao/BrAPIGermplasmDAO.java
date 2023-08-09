@@ -264,7 +264,7 @@ public class BrAPIGermplasmDAO {
                 return pedigree.substring(2);
             }
         }
-        return "";
+        return pedigree;
     }
 
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, UUID programId, ImportUpload upload) {
