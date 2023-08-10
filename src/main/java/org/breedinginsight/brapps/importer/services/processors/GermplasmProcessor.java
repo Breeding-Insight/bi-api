@@ -288,10 +288,6 @@ public class GermplasmProcessor implements Processor {
             // Have GID so updating an existing germplasm record
             if (germplasm.getAccessionNumber() != null) {
                 processExistingGermplasm(germplasm, validationErrors, importRows, program, importListId, commit, mappedImportRow, i);
-                //if(!processExistingGermplasm(germplasm, validationErrors, importRows, program, importListId, commit, mappedImportRow, i)) {
-                //    continue;
-                //}
-
             } else {
                 processNewGermplasm(germplasm, validationErrors, breedingMethods, badBreedingMethods, program, importListId, commit, mappedImportRow, i, user, nextVal);
             }
@@ -381,9 +377,6 @@ public class GermplasmProcessor implements Processor {
         // no existing pedigree and file different pedigree
         // existing pedigree and file pedigree same
         // existing pedigree and file pedigree empty
-//                    if (!StringUtils.isBlank(existingGermplasm.getPedigree()) &&
-//                        !germplasm.pedigreesEqualGidOnly(existingGermplasm) &&
-//                        !germplasm.pedigreeEmpty()) {
         if(hasPedigree(existingGermplasm) && germplasm.pedigreeExists()) {
             if(!arePedigreesEqual(existingGermplasm, germplasm, importRows)) {
                 ValidationError ve = new ValidationError("Pedigree", pedigreeAlreadyExists, HttpStatus.UNPROCESSABLE_ENTITY);
@@ -729,8 +722,6 @@ public class GermplasmProcessor implements Processor {
                     if (maleParent != null) {
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParent.getAccessionNumber());
                     }
-
-                    //brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, pedigreeString);
                 }
             }
         }
