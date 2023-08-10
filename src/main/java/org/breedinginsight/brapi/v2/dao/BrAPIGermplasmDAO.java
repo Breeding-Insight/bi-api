@@ -291,8 +291,10 @@ public class BrAPIGermplasmDAO {
         try {
             if (!putBrAPIGermplasmList.isEmpty()) {
                 postFunction = () -> {
-                    List<BrAPIGermplasm> postResponse = putGermplasm(putBrAPIGermplasmList, api);
-                    return processGermplasmForDisplay(postResponse, program.getKey());
+                    putGermplasm(putBrAPIGermplasmList, api);
+                    // Need all program germplasm for processGermplasmForDisplay parents pedigree
+                    List<BrAPIGermplasm> germplasm = getRawGermplasm(programId);
+                    return processGermplasmForDisplay(germplasm, program.getKey());
                 };
             }
             return programGermplasmCache.post(programId, postFunction);

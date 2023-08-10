@@ -24,6 +24,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -406,19 +407,17 @@ public class GermplasmProcessor implements Processor {
     }
 
     private boolean canUpdatePedigree(BrAPIGermplasm existingGermplasm, Germplasm germplasm) {
-        // Update conditions:
-        // no existing pedigree and file has different pedigree and not empty
-//        return StringUtils.isBlank(existingGermplasm.getPedigree()) &&
-//                !germplasm.pedigreeEmpty() &&
-//                !germplasm.pedigreesEqualGidOnly(existingGermplasm); //seems unnecessary
+        return !hasPedigreeString(existingGermplasm) && germplasm.pedigreeExists();
+    }
 
-        return !hasPedigree(existingGermplasm) && germplasm.pedigreeExists();
+    private boolean hasPedigreeString(BrAPIGermplasm germplasm) {
+        return StringUtils.isNotBlank(germplasm.getPedigree());
     }
 
     private boolean hasPedigree(BrAPIGermplasm germplasm) {
         return StringUtils.isNotBlank(germplasm.getPedigree())
                 || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID)
-                || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID)
+                || germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID)
                 || (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) &&
                     germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean())
                 || (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) &&
@@ -706,21 +705,33 @@ public class GermplasmProcessor implements Processor {
                 }
             }
 
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
-            //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN, femaleParentUnknown);
-            mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN, maleParentUnknown);
+            BrAPIGermplasm brAPIGermplasm = mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject();
 
-            if(commit) {
-                if (femaleParentFound) {
-                    mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParent.getAccessionNumber());
+            // only allow this when not committing so that display name version can be shown in preview
+            if (!commit) {
+                brAPIGermplasm.setPedigree(brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString());
+            }
+
+            // no existing pedigree and pedigree not empty
+            // pedigrees will be equal at this point from prior processing code if being updated so don't check that
+            if (canUpdatePedigree(brAPIGermplasm, germplasm)) {
+
+                brAPIGermplasm.setPedigree(pedigreeString.length() > 0 ? pedigreeString.toString() : null);
+                //Simpler to just always add boolean, but consider for logic that previous imported values won't have that additional info value
+                brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN, femaleParentUnknown);
+                brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN, maleParentUnknown);
+
+                if (commit) {
+                    if (femaleParentFound) {
+                        brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParent.getAccessionNumber());
+                    }
+
+                    if (maleParent != null) {
+                        brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParent.getAccessionNumber());
+                    }
+
+                    //brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, pedigreeString);
                 }
-
-                if (maleParent != null) {
-                    mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParent.getAccessionNumber());
-                }
-
-                mappedBrAPIImport.get(i).getGermplasm().getBrAPIObject().putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, pedigreeString);
             }
         }
     }
