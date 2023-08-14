@@ -38,6 +38,7 @@ import org.breedinginsight.services.exceptions.*;
 import javax.annotation.Nullable;
 import javax.inject.Inject;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 @Slf4j
@@ -95,6 +96,10 @@ public class UploadController {
             AuthenticatedUser actingUser = securityService.getUser();
             Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, mapping);
             Response<ImportResponse> response = new Response(result.getRight());
+            // TODO: remove - debug only.
+            if (!mapping && Objects.equals(response.result.getProgress().getFinished(), response.result.getProgress().getTotal())) {
+                return HttpResponse.notFound();
+            }
             if (result.getLeft().equals(HttpStatus.ACCEPTED)) {
                 return HttpResponse.ok(response).status(result.getLeft());
             } else {

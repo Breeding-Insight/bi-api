@@ -142,6 +142,7 @@ public class ProgramCache<R> {
                 log.debug("cache miss, populating");
                 populate(key);
                 //block until any updates are done
+                // TODO: figure out why this is blocking for so long and what to do about it.
                 semaphore.acquire();
                 log.debug("Cache loading done!!!!");
             } catch(Exception e){
