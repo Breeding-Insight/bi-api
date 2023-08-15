@@ -702,7 +702,10 @@ public class GermplasmProcessor implements Processor {
 
             // only allow this when not committing so that display name version can be shown in preview
             if (!commit) {
-                brAPIGermplasm.setPedigree(brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString());
+                if (brAPIGermplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME)) {
+                    brAPIGermplasm.setPedigree(brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME).getAsString());
+                }
+
             }
 
             // no existing pedigree and pedigree not empty
