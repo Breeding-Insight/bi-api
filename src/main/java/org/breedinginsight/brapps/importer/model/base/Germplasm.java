@@ -218,16 +218,6 @@ public class Germplasm implements BrAPIObject {
         }
     }
 
-    public boolean pedigreesEqualGidOnly(BrAPIGermplasm brAPIGermplasm) {
-        JsonElement femaleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID);
-        String brapiFemaleGid = femaleGid != null && !femaleGid.isJsonNull() ? femaleGid.getAsString() : null;
-        JsonElement maleGid = brAPIGermplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID);
-        String brapiMaleGid = maleGid != null && !maleGid.isJsonNull() ? maleGid.getAsString() : null;
-
-        return (StringUtils.isAllBlank(getFemaleParentDBID(), brapiFemaleGid) || StringUtils.equals(getFemaleParentDBID(), brapiFemaleGid))
-                && (StringUtils.isAllBlank(getMaleParentDBID(), brapiMaleGid) || StringUtils.equals(getMaleParentDBID(), brapiMaleGid));
-    }
-
     public boolean pedigreeExists() {
         return StringUtils.isNotBlank(getFemaleParentDBID()) ||
                 StringUtils.isNotBlank(getMaleParentDBID()) ||
