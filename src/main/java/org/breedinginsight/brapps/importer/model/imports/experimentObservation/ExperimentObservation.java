@@ -223,6 +223,7 @@ public class ExperimentObservation implements BrAPIImport {
             String germplasmName,
             String referenceSource,
             UUID trialID,
+            UUID datasetId,
             UUID studyID,
             UUID id
     ) {
@@ -232,7 +233,7 @@ public class ExperimentObservation implements BrAPIImport {
             observationUnit.setObservationUnitName(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
 
             // Set external reference
-            observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, studyID, id));
+            observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, datasetId, studyID, id));
         } else {
             observationUnit.setObservationUnitName(getExpUnitId());
         }
@@ -345,12 +346,15 @@ public class ExperimentObservation implements BrAPIImport {
     }
 
     private List<BrAPIExternalReference> getBrAPIExternalReferences(
-            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId, UUID observationId) {
+            Program program, String referenceSourceBaseName, UUID trialId, UUID datasetId, UUID studyId, UUID obsUnitId, UUID observationId) {
         List<BrAPIExternalReference> refs = new ArrayList<>();
 
         addReference(refs, program.getId(), referenceSourceBaseName, ExternalReferenceSource.PROGRAMS);
         if (trialId != null) {
             addReference(refs, trialId, referenceSourceBaseName, ExternalReferenceSource.TRIALS);
+        }
+        if (datasetId != null) {
+            addReference(refs, datasetId, referenceSourceBaseName, ExternalReferenceSource.DATASET);
         }
         if (studyId != null) {
             addReference(refs, studyId, referenceSourceBaseName, ExternalReferenceSource.STUDIES);
@@ -367,22 +371,22 @@ public class ExperimentObservation implements BrAPIImport {
 
     private List<BrAPIExternalReference> getTrialExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null, null, null);
     }
 
     private List<BrAPIExternalReference> getStudyExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, studyId, null, null);
     }
 
     private List<BrAPIExternalReference> getObsUnitExternalReferences(
-            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId, null);
+            Program program, String referenceSourceBaseName, UUID trialId, UUID datasetId, UUID studyId, UUID obsUnitId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, datasetId, null, obsUnitId, null);
     }
 
     private List<BrAPIExternalReference> getObservationExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId, UUID observationId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId, observationId);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, studyId, obsUnitId, observationId);
     }
 
 

@@ -41,6 +41,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.AdditionalInfo;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -805,10 +806,13 @@ public class ExperimentProcessor implements Processor {
             }
             PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
+            UUID datasetId = UUID.fromString(trialPIO.getBrAPIObject()
+                    .getAdditionalInfo().getAsJsonObject()
+                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
-            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, studyID, id);
+            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, datasetId, studyID, id);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
             this.observationUnitByNameNoScope.put(key, pio);
         }
