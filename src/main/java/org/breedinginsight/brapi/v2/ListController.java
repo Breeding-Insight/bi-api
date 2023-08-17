@@ -79,9 +79,8 @@ public class ListController {
 
             // get germplasm lists by default
             BrAPIListTypes type = BrAPIListTypes.fromValue(queryParams.getListType());
-            // TODO: return 400 bad request if no listDbid or listType.
             if (type == null) {
-                type = BrAPIListTypes.GERMPLASM;
+                return HttpResponse.status(HttpStatus.BAD_REQUEST, "Required parameter listType missing");
             }
             String source = null;
             String id = null;
