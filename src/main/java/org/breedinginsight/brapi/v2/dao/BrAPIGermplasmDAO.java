@@ -188,6 +188,7 @@ public class BrAPIGermplasmDAO {
                     germplasm.setAdditionalInfo(additionalInfo);
                 }
 
+                // TODO: BI-1883 to cleanup this workaround for the pedigree string
                 String pedigree = processBreedbasePedigree(germplasm.getPedigree());
                 additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, pedigree);
 
@@ -241,6 +242,7 @@ public class BrAPIGermplasmDAO {
     }
 
     // TODO: hack for now, probably should update breedbase
+    // Made a JIRA card BI-1883 for this
     // Breedbase will return NA/NA for no pedigree or NA/father, mother/NA
     // strip NAs before saving RAW_PEDIGREE, if there was a germplasm with name NA it would be in format NA [program key]
     // so that case should be ok if we just strip NA/NA, NA/, or /NA<\0>
