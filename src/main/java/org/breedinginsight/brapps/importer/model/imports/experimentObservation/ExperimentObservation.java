@@ -381,7 +381,7 @@ public class ExperimentObservation implements BrAPIImport {
 
     private List<BrAPIExternalReference> getObsUnitExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID datasetId, UUID studyId, UUID obsUnitId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, datasetId, null, obsUnitId, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, datasetId, studyId, obsUnitId, null);
     }
 
     private List<BrAPIExternalReference> getObservationExternalReferences(
