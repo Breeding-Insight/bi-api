@@ -28,6 +28,7 @@ import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapi.v2.model.request.query.GermplasmQuery;
 import org.breedinginsight.utilities.Utilities;
@@ -223,14 +224,14 @@ public class GermplasmController {
                 response = pedigreeResponse.getBody();
 
                 //Add nodes for unknown parents if applicable
-                if (germplasm.getAdditionalInfo().has("femaleParentUnknown") && germplasm.getAdditionalInfo().get("femaleParentUnknown").getAsBoolean()) {
+                if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) && germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
                     BrAPIPedigreeNodeParents unknownFemale = new BrAPIPedigreeNodeParents();
                     unknownFemale.setGermplasmDbId(germplasm.getGermplasmDbId()+"-F-Unknown");
                     unknownFemale.setGermplasmName("Unknown");
                     unknownFemale.setParentType(BrAPIParentType.FEMALE);
                     returnNode.addParentsItem(unknownFemale);
                 }
-                if (germplasm.getAdditionalInfo().has("maleParentUnknown") && germplasm.getAdditionalInfo().get("maleParentUnknown").getAsBoolean()) {
+                if (germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) && germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
                     BrAPIPedigreeNodeParents unknownMale = new BrAPIPedigreeNodeParents();
                     unknownMale.setGermplasmDbId(germplasm.getGermplasmDbId()+"-M-Unknown");
                     unknownMale.setGermplasmName("Unknown");
