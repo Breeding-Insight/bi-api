@@ -78,7 +78,6 @@ public class GermplasmProcessor implements Processor {
 
     List<BrAPIGermplasm> updatedGermplasmList;
     List<BrAPIGermplasm> existingGermplasms;
-    List<BrAPIGermplasm> existingParentGermplasms;
     List<List<BrAPIGermplasm>> postOrder = new ArrayList<>();
     BrAPIListNewRequest importList = new BrAPIListNewRequest();
 
@@ -142,7 +141,7 @@ public class GermplasmProcessor implements Processor {
         // If parental DBID, should also be in database
         existingGermplasms = new ArrayList<>();
         List<String> missingParentalDbIds = germplasmDBIDs.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toList());
-        List<String> missingDbIds = germplasmDBIDs.entrySet().stream().filter(Map.Entry::getValue).map(Map.Entry::getKey).collect(Collectors.toList());
+        List<String> missingDbIds = germplasmDBIDs.entrySet().stream().filter(entry -> !entry.getValue()).map(Map.Entry::getKey).collect(Collectors.toList());
         if (germplasmDBIDs.size() > 0) {
             try {
                 existingGermplasms = brAPIGermplasmService.getRawGermplasmByAccessionNumber(new ArrayList<>(germplasmDBIDs.keySet()), program.getId());
@@ -155,7 +154,6 @@ public class GermplasmProcessor implements Processor {
                 existingGermplasms.forEach(existingGermplasm -> {
                     germplasmByAccessionNumber.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm));
                 });
-                existingParentGermplasms = existingGermplasms.stream().filter(germplasm -> germplasmDBIDs.get(germplasm.getAccessionNumber())).collect(Collectors.toList());
             } catch (ApiException e) {
                 // We shouldn't get an error back from our services. If we do, nothing the user can do about it
                 throw new InternalServerException(e.toString(), e);
