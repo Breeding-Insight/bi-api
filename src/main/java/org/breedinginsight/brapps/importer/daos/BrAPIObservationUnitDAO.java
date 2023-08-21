@@ -23,6 +23,7 @@ import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -127,10 +128,13 @@ public class BrAPIObservationUnitDAO {
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearchRequest);
         if( withGID ){
+            // Load germplasm for program into map.
+            // TODO: if we use redis search, that may be more efficient than loading all germplasm for the program.
+            HashMap<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
+            this.germplasmService.getGermplasm(programId).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
             for (BrAPIObservationUnit observationUnit: observationUnits) {
-                String germplasmDbId = observationUnit.getGermplasmDbId();
-                BrAPIGermplasm germplasm = this.germplasmService.getGermplasmByDBID(program.getId(), germplasmDbId).get() ;
-                observationUnit.putAdditionalInfoItem("gid", germplasm.getAccessionNumber());
+                BrAPIGermplasm germplasm = germplasmByDbId.get(observationUnit.getGermplasmDbId());
+                observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, germplasm.getAccessionNumber());
             }
         }
         return observationUnits;

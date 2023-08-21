@@ -43,4 +43,5 @@ public final class BrAPIAdditionalInfoFields {
     public static final String OBSERVATION_DATASET_ID = "observationDatasetId";
     public static final String FEMALE_PARENT_UNKNOWN = "femaleParentUnknown";
     public static final String MALE_PARENT_UNKNOWN = "maleParentUnknown";
+    public static final String GID = "gid";
 }
