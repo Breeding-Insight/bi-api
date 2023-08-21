@@ -17,19 +17,9 @@
 
 package org.breedinginsight.db.migration;
 
-import io.micronaut.context.annotation.ConfigurationInject;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.ApiResponse;
-import org.brapi.client.v2.BrAPIClient;
-import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
-import org.brapi.client.v2.model.queryParams.phenotype.ObservationUnitQueryParams;
-import org.brapi.client.v2.modules.core.TrialsApi;
-import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.core.response.BrAPITrialListResponse;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
@@ -45,8 +35,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
-    final private String DEFAULT_URL_KEY = "default-url";
-    final private String BRAPI_REFERENCE_SOURCE_KEY = "brapi-reference-source";
     private final BrAPITrialDAO trialDAO;
     private final BrAPIObservationUnitDAO ouDAO;
 
@@ -58,7 +46,9 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
 
     public void migrate(Context context) throws Exception {
         Map<String, String> placeholders = context.getConfiguration().getPlaceholders();
+        String DEFAULT_URL_KEY = "default-url";
         String defaultUrl = placeholders.get(DEFAULT_URL_KEY);
+        String BRAPI_REFERENCE_SOURCE_KEY = "brapi-reference-source";
         String referenceSource = placeholders.get(BRAPI_REFERENCE_SOURCE_KEY);
         String programReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
         String trialReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS);
@@ -81,11 +71,9 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
             }).collect(Collectors.toList());
 
             Map<String, String> ExpIdByDbId = new HashMap<>();
-            experiments.stream().forEach(exp -> {
+            experiments.forEach(exp -> {
                 Optional<BrAPIExternalReference> expRef = Utilities.getExternalReference(exp.getExternalReferences(), trialReferenceSource);
-                if (expRef.isPresent()) {
-                    ExpIdByDbId.put(expRef.get().getReferenceID(), exp.getTrialDbId());
-                }
+                expRef.ifPresent(brAPIExternalReference -> ExpIdByDbId.put(brAPIExternalReference.getReferenceID(), exp.getTrialDbId()));
             });
 
             for (BrAPITrial exp : experiments) {
