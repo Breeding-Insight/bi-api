@@ -269,7 +269,10 @@ public class ExperimentObservation implements BrAPIImport {
         position.setObservationLevelRelationships(levelRelationships);
 
         // Test or Check
-        if ("C".equals(getTestOrCheck())) {
+        String testOrCheckUpperCase = getTestOrCheck();
+        testOrCheckUpperCase = ( (testOrCheckUpperCase==null) ? "": testOrCheckUpperCase.toUpperCase() );
+
+        if ("C".equals(testOrCheckUpperCase) || "CHECK".equals(testOrCheckUpperCase)) {
             position.setEntryType(BrAPIEntryTypeEnum.CHECK);
         } else {
             position.setEntryType(BrAPIEntryTypeEnum.TEST);
