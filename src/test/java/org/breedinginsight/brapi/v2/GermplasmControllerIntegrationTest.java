@@ -6,6 +6,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
+import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
@@ -237,6 +238,19 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
                 throw new AssertionFailedError("List name not found");
             }
         }
+    }
+
+    @Test
+    @SneakyThrows
+    public void getListsWithoutTypeFailure() {
+        // Previously, the lists endpoint defaulted to Germplasm. Now it will return 400 if listType is missing.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists",validProgram.getId().toString()))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, call::blockingFirst);
+        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
     }
 
     @Test
