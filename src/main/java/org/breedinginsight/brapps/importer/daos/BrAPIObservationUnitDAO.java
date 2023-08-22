@@ -20,8 +20,11 @@ package org.breedinginsight.brapps.importer.daos;
 import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -43,17 +46,19 @@ public class BrAPIObservationUnitDAO {
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final ProgramService programService;
+    private final BrAPIGermplasmService germplasmService;
 
     private final String referenceSource;
 
     @Inject
-    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, ProgramService programService, @Property(name = "brapi.server.reference-source") String referenceSource) {
+    public BrAPIObservationUnitDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider, BrAPIGermplasmService germplasmService, ProgramService programService, @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
         this.programService = programService;
+        this.germplasmService = germplasmService;
     }
 
     public List<BrAPIObservationUnit> getObservationUnitByName(List<String> observationUnitNames, Program program) throws ApiException {
@@ -105,7 +110,12 @@ public class BrAPIObservationUnitDAO {
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearchRequest);
     }
+
     public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException, DoesNotExistException {
+        return getObservationUnitsForTrialDbId(programId, trialDbId, false);
+    }
+
+    public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId, boolean withGID) throws ApiException, DoesNotExistException {
         Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
 
         BrAPIObservationUnitSearchRequest observationUnitSearchRequest = new BrAPIObservationUnitSearchRequest();
@@ -114,8 +124,19 @@ public class BrAPIObservationUnitDAO {
         observationUnitSearchRequest.trialDbIds(List.of(trialDbId));
 
         ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
-        return brAPIDAOUtil.search(api::searchObservationunitsPost,
+        List<BrAPIObservationUnit> observationUnits = brAPIDAOUtil.search(api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearchRequest);
+        if( withGID ){
+            // Load germplasm for program into map.
+            // TODO: if we use redis search, that may be more efficient than loading all germplasm for the program.
+            HashMap<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
+            this.germplasmService.getGermplasm(programId).forEach((germplasm -> germplasmByDbId.put(germplasm.getGermplasmDbId(), germplasm)));
+            for (BrAPIObservationUnit observationUnit: observationUnits) {
+                BrAPIGermplasm germplasm = germplasmByDbId.get(observationUnit.getGermplasmDbId());
+                observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, germplasm.getAccessionNumber());
+            }
+        }
+        return observationUnits;
     }
 }
