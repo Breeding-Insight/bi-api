@@ -17,12 +17,23 @@
 
 package org.breedinginsight.db.migration;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.model.queryParams.core.TrialQueryParams;
+import org.brapi.client.v2.model.queryParams.phenotype.ObservationUnitQueryParams;
+import org.brapi.client.v2.modules.core.TrialsApi;
+import org.brapi.client.v2.modules.phenotype.ObservationUnitsApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.response.BrAPITrialListResponse;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
+import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
@@ -35,14 +46,7 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
-    private final BrAPITrialDAO trialDAO;
-    private final BrAPIObservationUnitDAO ouDAO;
 
-    @Inject
-    V1_0_15__Add_OU_Dataset_Xrefs(BrAPITrialDAO trialDAO, BrAPIObservationUnitDAO ouDAO) {
-        this.trialDAO = trialDAO;
-        this.ouDAO = ouDAO;
-    }
 
     public void migrate(Context context) throws Exception {
         Map<String, String> placeholders = context.getConfiguration().getPlaceholders();
@@ -60,43 +64,99 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
 
         // For each program, update any observation units created via Deltabreed
         for (Program program : programs) {
+            BrAPIClient client = new BrAPIClient(program.getBrapiUrl(), 240000);
 
             // Get the Deltabreed-generated experiments for the program
-            List<BrAPITrial> experiments = trialDAO.getTrials(program.getId()).stream().filter(trial -> {
-                List<BrAPIExternalReference> xrefs = trial.getExternalReferences();
-                Optional<BrAPIExternalReference> programRef = Utilities.getExternalReference(xrefs,programReferenceSource);
-                return trial.getAdditionalInfo().getAsJsonObject().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) &&
-                        programRef.isPresent() &&
-                        program.getId().equals(UUID.fromString(programRef.get().getReferenceID()));
-            }).collect(Collectors.toList());
+            TrialsApi trialsApi = new TrialsApi(client);
+            TrialQueryParams trialQueryParams = new TrialQueryParams();
+            trialQueryParams.externalReferenceSource(programReferenceSource);
+            trialQueryParams.externalReferenceID(program.getId().toString());
+            trialQueryParams.page(0);
+            trialQueryParams.pageSize(1000);
+            ApiResponse<BrAPITrialListResponse> trialsResponse = trialsApi.trialsGet(trialQueryParams);
 
-            Map<String, String> ExpIdByDbId = new HashMap<>();
-            experiments.forEach(exp -> {
-                Optional<BrAPIExternalReference> expRef = Utilities.getExternalReference(exp.getExternalReferences(), trialReferenceSource);
-                expRef.ifPresent(brAPIExternalReference -> ExpIdByDbId.put(brAPIExternalReference.getReferenceID(), exp.getTrialDbId()));
-            });
+            boolean trialsDone = trialsResponse.getBody() == null || trialsResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || trialsResponse.getBody().getResult() == null;
+            while(!trialsDone) {
+                List<BrAPITrial> experiments = trialsResponse.getBody().getResult().getData().stream().filter(trial -> {
+                    List<BrAPIExternalReference> xrefs = trial.getExternalReferences();
+                    Optional<BrAPIExternalReference> programRef = Utilities.getExternalReference(xrefs,programReferenceSource);
+                    return trial.getAdditionalInfo().getAsJsonObject().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) &&
+                            programRef.isPresent() &&
+                            program.getId().equals(UUID.fromString(programRef.get().getReferenceID()));
+                }).collect(Collectors.toList());
 
-            for (BrAPITrial exp : experiments) {
+                Map<String, String> ExpIdByDbId = new HashMap<>();
+                experiments.forEach(exp -> {
+                    Optional<BrAPIExternalReference> expRef = Utilities.getExternalReference(exp.getExternalReferences(), trialReferenceSource);
+                    expRef.ifPresent(brAPIExternalReference -> ExpIdByDbId.put(exp.getTrialDbId(), brAPIExternalReference.getReferenceID()));
+                });
 
-                ouDAO.getObservationUnitsForTrialDbId(program.getId(), exp.getTrialDbId())
-                        .stream().filter(ou -> {
+                for (BrAPITrial exp : experiments) {
 
-                            // For each experiment, fetch the observation units that need a dataset reference
-                            List<BrAPIExternalReference> xrefs = ou.getExternalReferences();
-                            Optional<BrAPIExternalReference> expRef = Utilities.getExternalReference(xrefs, trialReferenceSource);
-                            Optional<BrAPIExternalReference> datasetRef = Utilities.getExternalReference(xrefs, datasetReferenceSource);
-                           return datasetRef.isEmpty() &&
-                                   expRef.isPresent() &&
-                                   ExpIdByDbId.get(exp.getTrialDbId()).equals(expRef.get().getReferenceID());
-                        }).forEach(ou -> {
+                    // Fetch all observation units for an experiment
+                    ObservationUnitsApi ousApi = new ObservationUnitsApi(client);
+                    ObservationUnitQueryParams ouQueryParams = new ObservationUnitQueryParams();
+                    ouQueryParams.externalReferenceSource(trialReferenceSource);
+                    ouQueryParams.externalReferenceID(ExpIdByDbId.get(exp.getTrialDbId()));
+                    ouQueryParams.page(0);
+                    ouQueryParams.pageSize(1000);
+                    ApiResponse<BrAPIObservationUnitListResponse> ousResponse = ousApi.observationunitsGet(ouQueryParams);
 
-                            // Assign the experiment Observation Dataset id to the observation units
-                            BrAPIExternalReference datasetRef = new BrAPIExternalReference()
-                                    .referenceSource(datasetReferenceSource)
-                                    .referenceID(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
-                            ou.getExternalReferences().add(datasetRef);
-                            ouDAO.updateBrAPIObservationUnit(ou.getObservationUnitDbId(), ou, program.getId());
-                        });
+                    boolean ousDone = ousResponse.getBody() == null || ousResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || ousResponse.getBody().getResult() == null;
+                    while(!ousDone) {
+                        ousResponse.getBody().getResult().getData()
+                                .stream().filter(ou -> {
+
+                                    // Find the observation units that need a dataset reference
+                                    List<BrAPIExternalReference> xrefs = ou.getExternalReferences();
+                                    Optional<BrAPIExternalReference> expRef = Utilities.getExternalReference(xrefs, trialReferenceSource);
+                                    Optional<BrAPIExternalReference> datasetRef = Utilities.getExternalReference(xrefs, datasetReferenceSource);
+                                    return datasetRef.isEmpty() &&
+                                            expRef.isPresent() &&
+                                            ExpIdByDbId.get(exp.getTrialDbId()).equals(expRef.get().getReferenceID());
+                                }).forEach(ou -> {
+
+                                    // Assign the experiment Observation Dataset id to the observation units
+                                    BrAPIExternalReference datasetRef = new BrAPIExternalReference()
+                                            .referenceSource(datasetReferenceSource)
+                                            .referenceID(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+                                    ou.getExternalReferences().add(datasetRef);
+                                    try {
+
+                                        // Send the updated observation unit back to the brapi server
+                                        BrAPIObservationUnit updatedOu = ousApi.observationunitsObservationUnitDbIdPut(ou.getObservationUnitDbId(), ou).getBody().getResult();
+
+                                        // Verify that the observation unit was updated at the server
+                                        boolean isUpdated = updatedOu.getExternalReferences().stream().anyMatch(xref -> {
+                                            return xref.getReferenceSource().equals(datasetReferenceSource) &&
+                                                    xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+                                        });
+                                        if (!isUpdated) {
+                                            throw new Exception("Observation unit returned from brapi server was not updated. Check your brapi server.");
+                                        }
+                                    } catch(Exception e) {
+                                        log.error(e.getMessage(), e);
+                                        throw new InternalServerException(e.toString(), e);
+                                    }
+                                });
+
+                        // Fetch the next page of observation units for this experiment
+                        if(ousResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == ousResponse.getBody().getMetadata().getPagination().getTotalPages()) {
+                            ousDone = true;
+                        } else {
+                            ouQueryParams.page(ouQueryParams.page() + 1);
+                            ousResponse = ousApi.observationunitsGet(ouQueryParams);
+                        }
+                    }
+                }
+
+                // Fetch the next page of experiments for this program
+                if(trialsResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == trialsResponse.getBody().getMetadata().getPagination().getTotalPages()) {
+                    trialsDone = true;
+                } else {
+                    trialQueryParams.page(trialQueryParams.page() + 1);
+                    trialsResponse = trialsApi.trialsGet(trialQueryParams);
+                }
             }
         }
     }
