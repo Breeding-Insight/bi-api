@@ -72,19 +72,20 @@ public class BrAPIListService {
             // set the owner of the list items as the list owner
             BrAPIListsSingleResponse listDetails = listDAO.getListById(list.getListDbId(), program.getId());
             List<String> listItemNames = listDetails.getResult().getData();
-            switch (type) {
-                case OBSERVATIONVARIABLES:
-                    break;
-                case GERMPLASM:
-                default:
-                    String createdBy = germplasmDAO.getGermplasmByRawName(listItemNames, program.getId()).get(0)
-                            .getAdditionalInfo()
-                            .getAsJsonObject("createdBy")
-                            .get("userName")
-                            .getAsString();
-                    list.setListOwnerName(createdBy);
+            if (type != null) {
+                switch (type) {
+                    case OBSERVATIONVARIABLES:
+                        break;
+                    case GERMPLASM:
+                    default:
+                        String createdBy = germplasmDAO.getGermplasmByRawName(listItemNames, program.getId()).get(0)
+                                .getAdditionalInfo()
+                                .getAsJsonObject("createdBy")
+                                .get("userName")
+                                .getAsString();
+                        list.setListOwnerName(createdBy);
+                }
             }
-
         }
 
         return programLists;
