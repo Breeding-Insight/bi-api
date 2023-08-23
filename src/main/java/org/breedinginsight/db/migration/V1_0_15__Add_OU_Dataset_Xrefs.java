@@ -56,8 +56,8 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
         String referenceSource = placeholders.get(BRAPI_REFERENCE_SOURCE_KEY);
         String programReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
         String trialReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS);
+        String observationUnitReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
         String datasetReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.DATASET);
-
 
         // Get all the programs
         List<Program> programs = Utilities.getAllProgramsFlyway(context, defaultUrl);
@@ -65,6 +65,7 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
         // For each program, update any observation units created via Deltabreed
         for (Program program : programs) {
             BrAPIClient client = new BrAPIClient(program.getBrapiUrl(), 240000);
+            log.debug("Migrating observation units for programId: " + program.getId());
 
             // Get the Deltabreed-generated experiments for the program
             TrialsApi trialsApi = new TrialsApi(client);
@@ -77,6 +78,10 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
 
             boolean trialsDone = trialsResponse.getBody() == null || trialsResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || trialsResponse.getBody().getResult() == null;
             while(!trialsDone) {
+                log.debug(String.format("processing page %d of %d of experiments for programId: %s",
+                        trialsResponse.getBody().getMetadata().getPagination().getCurrentPage()+1,
+                        trialsResponse.getBody().getMetadata().getPagination().getTotalPages(),
+                        program.getId()));
                 List<BrAPITrial> experiments = trialsResponse.getBody().getResult().getData().stream().filter(trial -> {
                     List<BrAPIExternalReference> xrefs = trial.getExternalReferences();
                     Optional<BrAPIExternalReference> programRef = Utilities.getExternalReference(xrefs,programReferenceSource);
@@ -104,6 +109,11 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
 
                     boolean ousDone = ousResponse.getBody() == null || ousResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || ousResponse.getBody().getResult() == null;
                     while(!ousDone) {
+                        log.debug(String.format("processing page %d of %d of observation units for experiment: %s",
+                                ousResponse.getBody().getMetadata().getPagination().getCurrentPage()+1,
+                                ousResponse.getBody().getMetadata().getPagination().getTotalPages(),
+                                exp.getTrialName()));
+
                         ousResponse.getBody().getResult().getData()
                                 .stream().filter(ou -> {
 
@@ -124,9 +134,14 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                     try {
 
                                         // Send the updated observation unit back to the brapi server
+                                        log.debug(String.format("Sending observation unit (id: %s) with observation dataset (id: %s) to %s",
+                                                Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
+                                                datasetRef.getReferenceID(),
+                                                defaultUrl));
                                         BrAPIObservationUnit updatedOu = ousApi.observationunitsObservationUnitDbIdPut(ou.getObservationUnitDbId(), ou).getBody().getResult();
 
                                         // Verify that the observation unit was updated at the server
+                                        log.debug(updatedOu.getExternalReferences().toString());
                                         boolean isUpdated = updatedOu.getExternalReferences().stream().anyMatch(xref -> {
                                             return xref.getReferenceSource().equals(datasetReferenceSource) &&
                                                     xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
