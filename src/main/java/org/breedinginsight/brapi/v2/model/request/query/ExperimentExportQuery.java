@@ -8,6 +8,7 @@ import javax.validation.constraints.NotNull;
 
 @Getter
 @Introspected
+@ToString
 public class ExperimentExportQuery {
     private FileType fileExtension;
     private String dataset;
