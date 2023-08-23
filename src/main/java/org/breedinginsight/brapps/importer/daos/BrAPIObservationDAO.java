@@ -25,18 +25,15 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.daos.ObservationDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
@@ -46,38 +43,73 @@ public class BrAPIObservationDAO {
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
-    private UUID programId;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
+    public BrAPIObservationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
+        if(studyNames.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
         observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         observationSearchRequest.setStudyNames(new ArrayList<>(studyNames));
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(program.getId()));
-        this.programId = program.getId();
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
         return brAPIDAOUtil.search(
                 api::searchObservationsPost,
-                this::searchObservationsSearchResultsDbIdGet,
+                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
+                observationSearchRequest
+        );
+    }
+
+    public List<BrAPIObservation> getObservationsByTrialDbId(List<String> trialDbIds, Program program) throws ApiException {
+        if(trialDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
+        observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        observationSearchRequest.setTrialDbIds(new ArrayList<>(trialDbIds));
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchObservationsPost,
+                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
+                observationSearchRequest
+        );
+    }
+
+    public List<BrAPIObservation> getObservationsByObservationUnitsAndVariables(Collection<String> ouDbIds, Collection<String> variableDbIds, Program program) throws ApiException {
+        if(ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
+        observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        observationSearchRequest.setObservationUnitDbIds(new ArrayList<>(ouDbIds));
+        observationSearchRequest.setObservationVariableDbIds(new ArrayList<>(variableDbIds));
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchObservationsPost,
+                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
                 observationSearchRequest
         );
     }
 
     @NotNull
-    private ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>>
-    searchObservationsSearchResultsDbIdGet(String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
+    private ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>> searchObservationsSearchResultsDbIdGet(UUID programId, String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         return api.searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchResultsDbId, page, pageSize);
     }
 
-    public List<BrAPIObservation> createBrAPIObservation(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
-        ObservationsApi api = new ObservationsApi(programDAO.getCoreClient(programId));
+    public List<BrAPIObservation> createBrAPIObservations(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         return brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
     }
 

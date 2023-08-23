@@ -14,6 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
 import lombok.extern.slf4j.Slf4j;
@@ -68,7 +69,7 @@ public class ExperimentImportService extends BrAPIImportService {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
-        response = processorManagerProvider.get().process(brAPIImports, processors, program, upload, user, commit);
+        response = processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
         return response;
 
     }

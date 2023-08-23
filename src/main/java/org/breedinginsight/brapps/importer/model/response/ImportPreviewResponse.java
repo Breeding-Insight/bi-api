@@ -29,4 +29,5 @@ import java.util.Map;
 public class ImportPreviewResponse {
     private Map<String, ImportPreviewStatistics> statistics;
     private List<PendingImport> rows;
+    private List<String> dynamicColumnNames;
 }

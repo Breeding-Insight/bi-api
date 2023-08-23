@@ -18,7 +18,7 @@ import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
-import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
+import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
@@ -26,7 +26,6 @@ import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Species;
 import org.breedinginsight.services.SpeciesService;
-import org.breedinginsight.utilities.response.mappers.FilterField;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
@@ -75,9 +74,6 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     private BrAPIGermplasmService germplasmService;
     @Inject
     private BrAPIListDAO listDAO;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     @SneakyThrows
@@ -245,12 +241,35 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void filterGermplasmNameSuccess() {
+    public void getAllGermplasmByListSuccess() {
+        String programId = validProgram.getId().toString();
+        String germplasmListDbId = fetchGermplasmListDbId(programId);
+
+        // Build the endpoint to get germplasm by germplasm list.
+        String endpoint = String.format("/programs/%s/germplasm/lists/%s/records", programId, germplasmListDbId);
+
+        // Get germplasm by list.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(endpoint).cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertEquals(data.size(), 3, "Wrong number of germplasm were returned");
+    }
+
+    @Test
+    @SneakyThrows
+    public void searchGermplasmNameSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
                 List.of("defaultDisplayName", "synonyms"),
                 List.of("Full", "test1"));
-        JsonArray data = callFilterGermplasm(searchRequest);
+        JsonArray data = callSearchGermplasm(searchRequest);
 
         assertEquals(1, data.size(), "Wrong number of germplasm were returned");
         JsonObject germplasm = data.get(0).getAsJsonObject();
@@ -259,12 +278,12 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void filterGermplasmBreedingMethodSuccess() {
+    public void searchGermplasmBreedingMethodSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
                 List.of("breedingMethod", "defaultDisplayName"),
                 List.of("Aneupoly", "Germplasm 1"));
-        JsonArray data = callFilterGermplasm(searchRequest);
+        JsonArray data = callSearchGermplasm(searchRequest);
 
         assertEquals(1, data.size(), "Wrong number of germplasm were returned");
         JsonObject germplasm = data.get(0).getAsJsonObject();
@@ -273,12 +292,12 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void filterGermplasmSourceSuccess() {
+    public void searchGermplasmSourceSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
                 List.of("seedSource"),
                 List.of("cultivate"));
-        JsonArray data = callFilterGermplasm(searchRequest);
+        JsonArray data = callSearchGermplasm(searchRequest);
 
         assertEquals(1, data.size(), "Wrong number of germplasm were returned");
         JsonObject germplasm = data.get(0).getAsJsonObject();
@@ -287,12 +306,12 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void filterGermplasmFemaleParentGIDSuccess() {
+    public void searchGermplasmFemaleParentGIDSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
                 List.of("femaleParentGID"),
                 List.of("2"));
-        JsonArray data = callFilterGermplasm(searchRequest);
+        JsonArray data = callSearchGermplasm(searchRequest);
 
         assertEquals(1, data.size(), "Wrong number of germplasm were returned");
         JsonObject germplasm = data.get(0).getAsJsonObject();
@@ -301,12 +320,12 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void filterGermplasmMaleParentGIDSuccess() {
+    public void searchGermplasmMaleParentGIDSuccess() {
 
         SearchRequest searchRequest = constructSearchRequest(
                 List.of("maleParentGID"),
                 List.of("2"));
-        JsonArray data = callFilterGermplasm(searchRequest);
+        JsonArray data = callSearchGermplasm(searchRequest);
 
         assertEquals(1, data.size(), "Wrong number of germplasm were returned");
         JsonObject germplasm = data.get(0).getAsJsonObject();
@@ -315,17 +334,51 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void filterGermplasmOneMatchOneNoMatch() {
+    public void searchGermplasmOneMatchOneNoMatch() {
 
         SearchRequest searchRequest = constructSearchRequest(
                 List.of("defaultDisplayName", "synonyms"),
                 List.of("No Match", "test1"));
-        JsonArray data = callFilterGermplasm(searchRequest);
+        JsonArray data = callSearchGermplasm(searchRequest);
 
         assertEquals(0, data.size(), "Wrong number of germplasm were returned");
     }
 
-    public JsonArray callFilterGermplasm(SearchRequest searchRequest) {
+    /**
+     * Germplasm createdDate should be formatted with the value of the
+     * createdDateDisplayFormat query parameter before filtering takes place.
+     */
+    @Test
+    @SneakyThrows
+    public void filterGermplasmCreatedDateSuccess() {
+        // Case 1: createdDate="/".
+        // If createdDate is filtered in the default format, "dd/MM/yyyy HH:mm:ss", "/" will match all, test fails.
+        // If createdDate is filtered after formatting with "yyyy-MM-dd", "/" will match none, test succeeds.
+        JsonArray data = callFilterGermplasmByCreatedDate("/");
+
+        assertEquals(0, data.size(), "Wrong number of germplasm were returned");
+
+        // Case 2: createdDate="-".
+        // If createdDate is filtered in the default format, "dd/MM/yyyy HH:mm:ss", "-" will match none, test fails.
+        // If createdDate is filtered after formatting with "yyyy-MM-dd", "-" will match all, test succeeds.
+        data = callFilterGermplasmByCreatedDate("-");
+
+        assertEquals(6, data.size(), "Wrong number of germplasm were returned");
+    }
+
+    public JsonArray callFilterGermplasmByCreatedDate(String filterValue) {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/germplasm?createdDate=%s&createdDateDisplayFormat=yyyy-MM-dd", validProgram.getId().toString(), filterValue))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        return result.getAsJsonArray("data");
+    }
+
+    public JsonArray callSearchGermplasm(SearchRequest searchRequest) {
 
         Flowable<HttpResponse<String>> call = client.exchange(
                 POST(String.format("/programs/%s/brapi/v2/search/germplasm",validProgram.getId().toString()), gson.toJson(searchRequest))
@@ -347,5 +400,25 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
         }
         searchRequest.setFilters(filters);
         return searchRequest;
+    }
+
+    public String fetchGermplasmListDbId(String programId) {
+        // Get all lists for a program with listType=germplasm.
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/lists?listType=germplasm", programId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        JsonArray data = result.getAsJsonArray("data");
+
+        assertTrue(data.size() > 0);
+
+        // Return the listDbId for a germplasm list.
+        return data.get(0).getAsJsonObject().get("listDbId").getAsString();
     }
 }

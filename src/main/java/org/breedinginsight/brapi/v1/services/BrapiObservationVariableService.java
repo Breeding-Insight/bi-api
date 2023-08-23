@@ -17,6 +17,7 @@
 package org.breedinginsight.brapi.v1.services;
 
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapi.v1.model.*;
 import org.breedinginsight.dao.db.enums.DataType;
@@ -111,8 +112,15 @@ public class BrapiObservationVariableService {
 
         TraitDataType dataType = mapBiDataTypeToBrapiV1TraitDataType(biScale.getDataType());
 
-        List<String> categories = biScale.getCategories().stream()
-                .map(category -> category.getValue()).collect(Collectors.toList());
+
+        List<String> categories = new ArrayList<>();
+
+        if(biScale.getCategories() != null) {
+            categories = biScale.getCategories()
+                                .stream()
+                                .map(BrAPIScaleValidValuesCategories::getValue)
+                                .collect(Collectors.toList());
+        }
 
         ValidValues validValues = ValidValues.builder()
                 .categories(categories)
@@ -169,7 +177,7 @@ public class BrapiObservationVariableService {
                 //.scientist() // missing from bi trait model but stored in BrAPI service
                 //.status(trait.getStatus())
                 .submissionTimestamp(trait.getCreatedAt())
-                .synonyms(trait.getSynonyms().isEmpty() ? synonyms : trait.getSynonyms()) // TODO: fix need to have synonym for field book bug
+                .synonyms(trait.getSynonyms() == null || trait.getSynonyms().isEmpty() ? synonyms : trait.getSynonyms()) // TODO: fix need to have synonym for field book bug
                 .trait(brapiTrait)
                 .xref(trait.getId().toString())
                 .observationVariableDbId(trait.getId().toString())

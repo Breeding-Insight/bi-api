@@ -19,7 +19,9 @@ package org.breedinginsight.utilities.response;
 
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.MediaType;
 import io.micronaut.http.exceptions.HttpStatusException;
+import io.micronaut.http.server.types.files.StreamedFile;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.model.v1.request.query.PaginationParams;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
@@ -169,7 +171,7 @@ public class ResponseUtils {
         return data;
     }
 
-    private static List search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
+    private static List<?> search(List<?> data, SearchRequest searchRequest, AbstractQueryMapper mapper) {
 
         List<FilterField> filterFields = new ArrayList<>();
         if (searchRequest.getFilters() != null) {

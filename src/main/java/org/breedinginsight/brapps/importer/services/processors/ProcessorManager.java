@@ -29,6 +29,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -52,15 +53,16 @@ public class ProcessorManager {
         this.statusService = statusService;
     }
 
-    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException, MissingRequiredInfoException {
+    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Table data, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException, MissingRequiredInfoException {
 
         this.processors = processors;
 
         // check existing brapi objects and map data for each registered type
         for (Processor processor : processors) {
+            log.debug("Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             statusService.updateMessage(upload, "Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             processor.getExistingBrapiData(importRows, program);
-            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, program, user, commit);
+            Map<String, ImportPreviewStatistics> stats = processor.process(importRows, mappedBrAPIImport, data, program, user, commit);
             statistics.putAll(stats);
         }
 
@@ -68,7 +70,9 @@ public class ProcessorManager {
         response.setStatistics(statistics);
         List<PendingImport> mappedBrAPIImportList = new ArrayList<>(mappedBrAPIImport.values());
         response.setRows(mappedBrAPIImportList);
+        response.setDynamicColumnNames(upload.getDynamicColumnNamesList());
 
+        log.debug("Finished mapping data to brapi objects");
         statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
 
         if (!commit) {
@@ -101,14 +105,17 @@ public class ProcessorManager {
             totalObjects += stats.getNewObjectCount();
         }
 
+        log.debug("Starting upload to brapi service");
         statusService.startUpload(upload, totalObjects, "Starting upload to brapi service");
 
         for (Processor processor : processors) {
+            log.debug("Creating new " + processor.getName().toLowerCase() + " objects in brapi service");
             statusService.updateMessage(upload, "Creating new " + processor.getName().toLowerCase() + " objects in brapi service");
             processor.postBrapiData(mappedBrAPIImport, program, upload);
         }
 
-        statusService.finishUpload(upload, "Completed upload to brapi service");
+        log.debug("Completed upload to brapi service");
+        statusService.finishUpload(upload, totalObjects, "Completed upload to brapi service");
     }
 
 }

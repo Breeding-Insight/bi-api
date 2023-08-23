@@ -22,14 +22,17 @@ import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
-import java.util.UUID;
+import javax.validation.constraints.NotNull;
+import java.util.*;
 
 @Singleton
 public class BrAPIStudyDAO {
@@ -39,19 +42,29 @@ public class BrAPIStudyDAO {
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil) {
+    public BrAPIStudyDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    public List<BrAPIStudy> getStudyByName(List<String> studyNames, Program program) throws ApiException {
+    public Optional<BrAPIStudy> getStudyByName(String studyName, Program program) throws ApiException {
+        List<BrAPIStudy> studies = getStudiesByName(List.of(studyName), program);
+        return Utilities.getSingleOptional(studies);
+    }
+    public List<BrAPIStudy> getStudiesByName(List<String> studyNames, Program program) throws ApiException {
+        if(studyNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.studyNames(studyNames);
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
@@ -59,12 +72,12 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> getStudiesByExperimentID(UUID experimentID, Program program ) throws ApiException {
+    public List<BrAPIStudy> getStudiesByExperimentID(@NotNull UUID experimentID, Program program ) throws ApiException {
         BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
         studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         studySearch.addExternalReferenceIDsItem(experimentID.toString());
-        studySearch.addExternalReferenceSourcesItem(BRAPI_REFERENCE_SOURCE + "/trials");
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(program.getId()));
+        studySearch.addExternalReferenceSourcesItem(Utilities.generateReferenceSource(BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
         return brAPIDAOUtil.search(
                 api::searchStudiesPost,
                 api::searchStudiesSearchResultsDbIdGet,
@@ -72,9 +85,30 @@ public class BrAPIStudyDAO {
         );
     }
 
-    public List<BrAPIStudy> createBrAPIStudy(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
-        StudiesApi api = new StudiesApi(programDAO.getCoreClient(programId));
+    public List<BrAPIStudy> createBrAPIStudies(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), StudiesApi.class);
         return brAPIDAOUtil.post(brAPIStudyList, upload, api::studiesPost, importDAO::update);
     }
 
+    public List<BrAPIStudy> getStudiesByStudyDbId(Collection<String> studyDbIds, Program program) throws ApiException {
+        if(studyDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPIStudySearchRequest studySearch = new BrAPIStudySearchRequest();
+        studySearch.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+        studySearch.studyDbIds(new ArrayList<>(studyDbIds));
+        StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), StudiesApi.class);
+        return brAPIDAOUtil.search(
+                api::searchStudiesPost,
+                api::searchStudiesSearchResultsDbIdGet,
+                studySearch
+        );
+    }
+
+    public Optional<BrAPIStudy> getStudyByDbId(String studyDbId, Program program) throws ApiException {
+        List<BrAPIStudy> studies = getStudiesByStudyDbId(List.of(studyDbId), program);
+
+        return Utilities.getSingleOptional(studies);
+    }
 }

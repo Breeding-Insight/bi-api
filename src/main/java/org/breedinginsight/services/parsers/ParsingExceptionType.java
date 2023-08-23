@@ -16,14 +16,17 @@
  */
 package org.breedinginsight.services.parsers;
 
+import org.breedinginsight.utilities.FileUtil;
+
 public enum ParsingExceptionType {
 
-    MISSING_COLUMN_NAMES("Missing column names row"),
+    MISSING_COLUMN_NAMES_ROW("Missing column names row"),
     COLUMN_NAME_NOT_STRING("Column name must be string cell"),
     DUPLICATE_COLUMN_NAMES("Found duplicate column names"),
     MISSING_EXPECTED_COLUMNS("Missing expected columns"),
     ERROR_READING_FILE("Error reading file"),
-    MISSING_SHEET("Missing sheet Template"),
+    MISSING_COLUMN_NAME("Missing one or more column names"),
+    MISSING_SHEET( String.format("Worksheet titled '%s' is missing", FileUtil.EXCEL_DATA_SHEET_NAME) ),
     EMPTY_ROW("Empty row"),
     INVALID_TRAIT_STATUS("Invalid trait status value"),
     INVALID_SCALE_CLASS("Invalid scale class value"),
@@ -32,7 +35,8 @@ public enum ParsingExceptionType {
     INVALID_SCALE_DECIMAL_PLACES("Invalid scale decimal places value"),
     INVALID_SCALE_LOWER_LIMIT("Invalid scale lower limit value. Value must be numeric and be a whole number."),
     INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value. Value must be numeric and be a whole number."),
-    INVALID_SCALE_CATEGORIES("Invalid scale categories format");
+    INVALID_SCALE_CATEGORIES("Invalid scale categories format"),
+    INVALID_TERM_TYPE("Invalid term type");
 
     private String value;
 

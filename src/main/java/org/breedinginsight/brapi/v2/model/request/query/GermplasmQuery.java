@@ -13,6 +13,7 @@ import java.util.List;
 @Getter
 @Introspected
 public class GermplasmQuery extends BrapiQuery {
+    private String importEntryNumber;
     private String accessionNumber;
     private String defaultDisplayName;
     private String breedingMethod;
@@ -23,9 +24,14 @@ public class GermplasmQuery extends BrapiQuery {
     private String createdDate;
     private String createdByUserName;
     private String synonym;
+    // This is a meta-parameter, it describes the display format of any date fields.
+    private String dateDisplayFormat;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
+        if (!StringUtils.isBlank(getImportEntryNumber())) {
+            filters.add(constructFilterRequest("importEntryNumber", getImportEntryNumber()));
+        }
         if (!StringUtils.isBlank(getAccessionNumber())) {
             filters.add(constructFilterRequest("accessionNumber", getAccessionNumber()));
         }

@@ -26,6 +26,8 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.test.annotation.MockBean;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
@@ -39,7 +41,6 @@ import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
-import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponseResult;
@@ -56,20 +57,25 @@ import org.breedinginsight.dao.db.tables.daos.TraitDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.daos.cache.FetchFunction;
+import org.breedinginsight.daos.cache.ProgramCache;
+import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.SpeciesService;
-import org.breedinginsight.services.TraitService;
-import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
+import org.mockito.stubbing.Answer;
+import org.redisson.api.RedissonClient;
 
 import javax.inject.Inject;
 import java.time.OffsetDateTime;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 
 @MicronautTest
@@ -88,11 +94,20 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Inject
     private TraitDao traitDao;
     @Inject
-    private TraitService traitService;
-    @Inject
     private UserDAO userDAO;
     @Inject
     private SpeciesService speciesService;
+
+    @Inject
+    private RedissonClient redissonClient;
+
+    @Inject
+    private ProgramCacheProvider programCacheProvider;
+
+    @MockBean(ProgramCacheProvider.class)
+    ProgramCacheProvider programCacheProvider() {
+        return mock(ProgramCacheProvider.class);
+    }
 
     private Species validSpecies;
     private List<Trait> validTraits;
@@ -109,8 +124,28 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
+    private AtomicReference<Optional<Exception>> fetchException = new AtomicReference<>(Optional.empty());
+    @BeforeEach
+    public void beforeEach() {
+        fetchException = new AtomicReference<>(Optional.empty());
+        when(programCacheProvider.getProgramCache(isA(FetchFunction.class), any(Class.class))).thenAnswer((Answer<ProgramCache>) invocation -> {
+            FetchFunction fetchFunction = invocation.getArgument(0);
+            return new ProgramCache(redissonClient, uuid -> {
+                try {
+                    return fetchFunction.apply(uuid);
+                } catch (Exception e) {
+                    fetchException.set(Optional.of(e));
+                    throw e;
+                }
+            }, invocation.getArgument(1));
+        });
+    }
+
+    @AfterEach
+    public void afterEach() {
+        redissonClient.getKeys().deleteByPattern("*:trait");
+        reset(programCacheProvider);
+    }
 
     @BeforeAll
     @SneakyThrows
@@ -200,15 +235,13 @@ public class TraitControllerIntegrationTest extends BrAPITest {
     @SneakyThrows
     @Order(1)
     public void getTraitsNoExistInBrAPI() {
-
-        Flowable<HttpResponse<String>> call = client.exchange(
+        client.exchange(
                 GET("/programs/" + validProgram.getId() + "/traits?full=true").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
+        ).blockingFirst();
 
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+        assertTrue(fetchException.get().isPresent(), "No exception was thrown");
+        assertTrue(fetchException.get().get() instanceof InternalServerException, "Wrong exception type was thrown");
+        assertEquals("Could not find trait in returned brapi server results", fetchException.get().get().getMessage());
     }
 
     @Test
@@ -223,7 +256,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());
 
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        JsonObject result = JsonParser.parseString(Objects.requireNonNull(response.body())).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
         assertEquals(1, data.size(), "Wrong number of results returned.");
@@ -242,7 +275,11 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
             HttpResponse<String> response = call.blockingFirst();
         });
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, e.getStatus());
+        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
+
+        assertTrue(fetchException.get().isPresent(), "No exception was thrown");
+        assertTrue(fetchException.get().get() instanceof InternalServerException, "Wrong exception type was thrown");
+        assertEquals("Could not find trait in returned brapi server results", fetchException.get().get().getMessage());
     }
 
     //region POST traits
@@ -563,7 +600,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
         JsonArray data = result.getAsJsonArray("data");
 
-        assertEquals(3, data.size(), "Wrong number of results returned.");
+        assertEquals(3, data.size(), "Wrong number of results returned: " + data.toString());
         Set<String> tagsList = new HashSet<>(List.of("favorites", "leaf trait", "stem trait"));
         Set<String> foundTags = new HashSet<>();
         for (JsonElement tagElement: data) {
@@ -1204,6 +1241,7 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals("scale.categories.label", labelError.get("field").getAsString(), "wrong error returned");
     }
 
+    @SneakyThrows
     @Test
     @Order(11)
     public void getTraitsQuery() {
@@ -1234,6 +1272,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         );
         HttpResponse<String> createResponse = createCall.blockingFirst();
         assertEquals(HttpStatus.OK, createResponse.getStatus());
+
+        //let the cache repopulate
+        Thread.sleep(3000);
 
         List<TraitEntity> allTraits = traitDao.findAll();
 

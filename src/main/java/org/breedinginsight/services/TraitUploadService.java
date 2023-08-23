@@ -96,7 +96,7 @@ public class TraitUploadService {
 
         MediaType mediaType;
         try {
-            mediaType = mimeTypeParser.getMimeType(file);
+            mediaType = mimeTypeParser.getMediaType(file);
         } catch (IOException e){
             throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Could not determine file type");
         }
@@ -116,7 +116,7 @@ public class TraitUploadService {
                 traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {
                 log.error(e.getMessage());
-                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing excel: " + e.getMessage());
+                throw new HttpStatusException( HttpStatus.BAD_REQUEST, String.format("Error(s) detected in file, %s.  %s. Import cannot proceed.", file.getFilename(), e.getMessage()) );
             }
         } else {
             throw new UnsupportedTypeException("Unsupported mime type");

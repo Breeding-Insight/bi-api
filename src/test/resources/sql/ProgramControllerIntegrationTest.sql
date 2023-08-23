@@ -30,6 +30,8 @@ join bi_user on bi_user.name = 'Test User' limit 1;
 -- name: DeleteProgram
 delete from program_ontology where program_id = ?::uuid;
 delete from program_observation_level where program_id = ?::uuid;
+delete from program_breeding_method where program_id = ?::uuid;
+delete from program_enabled_breeding_methods where program_id = ?::uuid;
 delete from program where id = ?::uuid;
 
 -- name: InsertManyPrograms

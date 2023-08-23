@@ -197,7 +197,7 @@ public class ImportController {
         if (StringUtils.isBlank(importName)){
             result = fileImportService.getAllSystemMappings(actingUser);
         } else {
-            result = fileImportService.getSystemMappingByName(actingUser, importName);
+            result = fileImportService.getSystemMappingByName(importName);
         }
 
         List<Status> metadataStatus = new ArrayList<>();

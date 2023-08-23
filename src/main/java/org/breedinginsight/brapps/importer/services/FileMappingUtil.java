@@ -17,20 +17,34 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
+import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.mapping.MappingField;
+import org.jooq.DSLContext;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.columns.Column;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Singleton
 public class FileMappingUtil {
+
+    public static final String EXPERIMENT_TEMPLATE_NAME = "ExperimentsTemplateMap";
+    private FileImportService fileImportService;
+
+    @Inject
+    public FileMappingUtil(FileImportService fileImportService) {
+        this.fileImportService = fileImportService;
+    }
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
     public List<Pair<Integer, String>> findFileRelationships(Table data, List<MappedImportRelation> importRelations) {
@@ -62,5 +76,28 @@ public class FileMappingUtil {
         }
 
         return targetIndexList;
+    }
+    public List<Column<?>> getDynamicColumns(Table data, String templateName) {
+        List<ImportMapping> result = fileImportService.getSystemMappingByName(templateName);
+
+        if (result.isEmpty()) {
+            throw new InternalServerException("System mapping does not exist");
+        }
+
+        ImportMapping mapping = result.get(0);
+        List<MappingField> config = mapping.getMappingConfig();
+        List<String> columnNames = new ArrayList<>();
+
+        for (MappingField field : config) {
+            if (field.getValue() != null) {
+                columnNames.add(field.getValue().getFileFieldName());
+            }
+        }
+
+        List<String> differences = data.columnNames().stream()
+                .filter(col -> !columnNames.contains(col))
+                .collect(Collectors.toList());
+
+        return data.columns(differences.toArray(String[]::new));
     }
 }

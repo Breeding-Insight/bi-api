@@ -46,7 +46,7 @@ public class ExcelParser {
         Row columnNames = sheet.getRow(EXCEL_COLUMN_NAMES_ROW);
 
         if (columnNames == null) {
-            throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAMES);
+            throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAMES_ROW);
         }
 
         Map<Integer, String> indexColNameMap = new HashMap<>();
@@ -87,9 +87,22 @@ public class ExcelParser {
                 throw new ParsingException(ParsingExceptionType.EMPTY_ROW);
             }
 
+            // Flag for empty rows; for CSV, empty cells are empty string ("") rather than null.
+            boolean emptyRow = true;
             for(int colIndex=0; colIndex<row.getLastCellNum(); colIndex++) {
                 Cell cell = row.getCell(colIndex);
+                if (cell != null && cell.toString().length() > 0)
+                {
+                    // There is at least one value in this row, set emptyRow flag false.
+                    emptyRow = false;
+                }
                 data.put(indexColNameMap.get(colIndex), cell);
+            }
+
+            // If the row has no cells with values, skip it.
+            if (data.isEmpty() || emptyRow)
+            {
+                continue;
             }
 
             records.add(new ExcelRecord(data));

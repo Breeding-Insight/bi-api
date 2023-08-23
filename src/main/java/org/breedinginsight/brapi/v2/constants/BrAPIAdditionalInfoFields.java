@@ -18,6 +18,8 @@
 package org.breedinginsight.brapi.v2.constants;
 
 public final class BrAPIAdditionalInfoFields {
+    public static final String GERMPLASM_LIST_ENTRY_NUMBERS = "listEntryNumbers";
+    public static final String GERMPLASM_LIST_ID = "listId";
     public static final String GERMPLASM_RAW_PEDIGREE = "rawPedigree";
     public static final String GERMPLASM_PEDIGREE_BY_NAME = "pedigreeByName";
     public static final String GERMPLASM_PEDIGREE_BY_UUID = "pedigreeByUUID";
@@ -37,4 +39,10 @@ public final class BrAPIAdditionalInfoFields {
     public static final String EXPERIMENT_TYPE = "experimentType";
     public static final String EXPERIMENT_NUMBER = "experimentNumber";
     public static final String ENVIRONMENT_NUMBER = "environmentNumber";
+    public static final String STUDY_NAME = "studyName";
+    public static final String OBSERVATION_DATASET_ID = "observationDatasetId";
+    public static final String FEMALE_PARENT_UNKNOWN = "femaleParentUnknown";
+    public static final String MALE_PARENT_UNKNOWN = "maleParentUnknown";
+
+    public static final String TREATMENTS = "treatments";
 }

@@ -154,9 +154,6 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
     @MockBean(bean = EmailUtil.class)
     EmailUtil emailUtil() { return mock(EmailUtil.class); }
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     void setup() throws Exception {
 
@@ -645,7 +642,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
 
         checkMinimalValidProgram(validProgramB, result);
 
-        dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString());
+        dsl.execute(fp.get("DeleteProgram"), program.getId().toString(), program.getId().toString(), program.getId().toString(), program.getId().toString(), program.getId().toString());
     }
 
     @Test
@@ -918,7 +915,7 @@ public class ProgramControllerIntegrationTest extends BrAPITest {
         Program program = getProgramById(gson, client, UUID.fromString(newProgramId));
         assertEquals(false, program.getActive(), "Inactive flag not set in database");
 
-        dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId);
+        dsl.execute(fp.get("DeleteProgram"), newProgramId, newProgramId, newProgramId, newProgramId, newProgramId);
     }
 
     @Test

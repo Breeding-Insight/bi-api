@@ -25,15 +25,21 @@ import org.breedinginsight.services.parsers.ParsingExceptionType;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
+import tech.tablesaw.columns.Column;
+import tech.tablesaw.io.csv.CsvReadOptions;
 import tech.tablesaw.io.json.JsonReadOptions;
 
 import java.io.*;
 import java.math.BigDecimal;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 @Slf4j
 public class FileUtil {
+    public static final String EXCEL_DATA_SHEET_NAME = "Data";
+    // For backward compatibility
+    private static final String OLD_GERMPLASM_EXCEL_DATA_SHEET_NAME = "Germplasm Import";
+    private static final String OLD_EXPERIMENT_EXCEL_DATA_SHEET_NAME = "Experiment Data";
 
     public static Table parseTableFromExcel(InputStream inputStream, Integer headerRowIndex) throws ParsingException {
 
@@ -45,10 +51,15 @@ public class FileUtil {
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
 
-        List<Sheet> sheets = new ArrayList<>();
-        workbook.sheetIterator().forEachRemaining(sheets::add);
-        //TODO: Gets the last sheet for now, do we want to allow them to specify which sheet to use?
-        Sheet sheet = workbook.getSheetAt(sheets.size() - 1);
+        Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
+
+        //For backward compatibility allow old sheet names
+        if( sheet == null){ sheet = workbook.getSheet(OLD_GERMPLASM_EXCEL_DATA_SHEET_NAME); }
+        if( sheet == null){ sheet = workbook.getSheet(OLD_EXPERIMENT_EXCEL_DATA_SHEET_NAME); }
+
+        if (sheet == null) {
+            throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
+        }
         Iterator<Row> rowIterator = sheet.rowIterator();
 
         // Get into format tablesaw can use
@@ -69,8 +80,14 @@ public class FileUtil {
                     if (cell == null) {
                         columns.get(header).add(null);
                     } else if (cell.getCellType() == CellType.NUMERIC) {
-                        double cellValue = cell.getNumericCellValue();
-                        String stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
+                        //Distinguish between date and numeric
+                        DataFormatter dataFormatter = new DataFormatter();
+                        String stringValue = dataFormatter.formatCellValue(cell);
+                        if (!stringValue.contains("-")) {
+                            //No dashes, assume cell is numeric and not date
+                            double cellValue = cell.getNumericCellValue();
+                            stringValue = BigDecimal.valueOf(cellValue).stripTrailingZeros().toPlainString();
+                        }
                         columns.get(header).add(stringValue);
                     } else {
                         columns.get(header).add(formatter.formatCellValue(cell));
@@ -85,9 +102,26 @@ public class FileUtil {
         // Read from the excel header row to get proper order
         Table table = Table.create();
         Iterator<Cell> headerIterator = headerRow.cellIterator();
+        HashSet<String> colNames = new HashSet<>();
         while (headerIterator.hasNext()) {
             Cell cell = headerIterator.next();
             StringColumn column = StringColumn.create(formatter.formatCellValue(cell), columns.get(formatter.formatCellValue(cell)));
+            // Drop columns with no data, throw exception if column has data but no header.
+            if (cell.getCellType() == CellType.BLANK)
+            {
+                // If data in column with no header, throw parsing exception, user likely wants to add header.
+                for (String value : column.asList()) {
+                    if (!value.isBlank())
+                    {
+                        throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAME);
+                    }
+                }
+                // Silently drop columns with neither headers nor data, user likely doesn't know they exist.
+                continue;
+            }
+            if (!colNames.add(column.name())) {
+                throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
+            }
             table.addColumns(column);
         }
 
@@ -97,8 +131,16 @@ public class FileUtil {
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
         //TODO: See if this has the windows BOM issue
         try {
-            Table df = Table.read().csv(inputStream);
-            return removeNullRows(df);
+            //Jackson used downstream messily converts LOCAL_DATE/LOCAL_DATETIME, so need to interpret date input as strings
+            //Note that if another type is needed later this is what needs to be updated
+            ArrayList<ColumnType> acceptedTypes = new ArrayList<>(Arrays.asList(ColumnType.STRING, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.FLOAT));
+            Table df = Table.read().usingOptions(
+                    CsvReadOptions
+                            .builder(inputStream)
+                            .columnTypesToDetect(acceptedTypes)
+                            .separator(',')
+            );
+            return removeNullColumns(removeNullRows(df));
         } catch (IOException e) {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
@@ -123,10 +165,11 @@ public class FileUtil {
         List<Integer> allNullRows = new ArrayList<>();
         // Find all null rows
         table.stream().forEach(row -> {
-            Boolean allNull = true;
+            boolean allNull = true;
             for (String columnName: row.columnNames()) {
                 if (row.getObject(columnName) != null && !row.getObject(columnName).toString().isEmpty()) {
                     allNull = false;
+                    break;
                 }
             }
             if (allNull) {
@@ -137,6 +180,32 @@ public class FileUtil {
         if (allNullRows.size() > 0) {
             table = table.dropRows(allNullRows.stream().mapToInt(i->i).toArray());
         }
+        return table;
+    }
+
+    /** Removes columns with an empty or null header and no data from a table. */
+    public static Table removeNullColumns(Table table) throws ParsingException {
+        ArrayList<Column> columnsToRemove = new ArrayList<>();
+        int columnIndex = 0;
+        for (Column column : table.columns()) {
+            // Empty/null column headers are replaced with a placeholder by tablesaw, e.g. "C23" for the 23rd column.
+            // See https://github.com/jtablesaw/tablesaw/blob/42ca803e1a5fff1d4a01f5a3deabc38ced783125/core/src/main/java/tech/tablesaw/io/FileReader.java#L101.
+            String placeholderName = String.format("C%d", columnIndex);
+            if (column.name().equals(placeholderName)) {
+                if (column.countMissing() == column.size()) {
+                    // Silently drop columns with neither headers nor data, user likely doesn't know they exist.
+                    columnsToRemove.add(column);
+                }
+                else {
+                    // If data in column with no header, throw parsing exception, user likely wants to add header.
+                    throw new ParsingException(ParsingExceptionType.MISSING_COLUMN_NAME);
+                }
+            }
+            ++columnIndex;
+        }
+
+        table.removeColumns(columnsToRemove.toArray(Column[]::new));
+
         return table;
     }
 }

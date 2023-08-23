@@ -16,18 +16,20 @@
  */
 package org.breedinginsight.services.parsers.trait;
 
-import io.micronaut.core.util.StringUtils;
 import io.micronaut.http.HttpStatus;
 import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
+import org.apache.commons.text.WordUtils;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapps.importer.model.imports.TermTypeTranslator;
 import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.dao.db.enums.TermType;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -56,7 +58,9 @@ public class TraitFileParser {
 
     private static final String LIST_DELIMITER = ";";
     private static final String CATEGORY_DELIMITER = "=";
-    private static final String EXCEL_DATA_SHEET_NAME = "Template";
+    private static final String EXCEL_DATA_SHEET_NAME = "Data";
+    private static final String OLD_EXCEL_DATA_SHEET_NAME = "Template";
+
 
     private static final String TRAIT_STATUS_ACTIVE = "active";
     private static final String TRAIT_STATUS_ARCHIVED = "archived";
@@ -80,8 +84,13 @@ public class TraitFileParser {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
-
         Sheet sheet = workbook.getSheet(EXCEL_DATA_SHEET_NAME);
+
+        // accept the old sheet name ("template") for backwards compatability
+        if (sheet == null){
+            sheet = workbook.getSheet(OLD_EXCEL_DATA_SHEET_NAME);
+        }
+
         if (sheet == null) {
             throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
         }
@@ -250,6 +259,21 @@ public class TraitFileParser {
             String tagsString = parseExcelValueAsString(record, TraitFileColumns.TAGS);
             List<String> traitTags = parseListValue(tagsString);
 
+            //Set to backend value for user input term type, if none, set to default
+            TermType termType = TermType.PHENOTYPE;
+
+            String termTypeVal = parseExcelValueAsString(record, TraitFileColumns.TERM_TYPE);
+            if ((!Objects.isNull(termTypeVal)) && (!termTypeVal.isBlank())) {
+                Optional<TermType> termTypeOpt = TermTypeTranslator.getTermTypeFromUserDisplayName(WordUtils.capitalizeFully(termTypeVal));
+                if (termTypeOpt.isPresent()) {
+                    termType = termTypeOpt.get();
+                } else {
+                    ValidationError error = new ValidationError(TraitFileColumns.TERM_TYPE.toString(),
+                            ParsingExceptionType.INVALID_TERM_TYPE.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
+
             Trait trait = Trait.builder()
                     .observationVariableName(parseExcelValueAsString(record, TraitFileColumns.NAME))
                     .traitDescription(parseExcelValueAsString(record, TraitFileColumns.DESCRIPTION))
@@ -263,6 +287,7 @@ public class TraitFileParser {
                     .method(method)
                     .scale(scale)
                     .tags(traitTags)
+                    .termType(termType)
                     .build();
 
             traits.add(trait);

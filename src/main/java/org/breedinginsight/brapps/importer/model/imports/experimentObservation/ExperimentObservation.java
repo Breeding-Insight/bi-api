@@ -22,6 +22,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
@@ -29,114 +30,133 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 
 import java.math.BigInteger;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
 
 @Getter
 @Setter
 @NoArgsConstructor
-@ImportConfigMetadata(id="ExperimentImport", name="Experiment Import",
+@ImportConfigMetadata(id = "ExperimentImport", name = "Experiment Import",
         description = "This import is used to create Observation Unit and Experiment data")
 public class ExperimentObservation implements BrAPIImport {
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="germplasmName", name="Germplasm Name", description = "Name of germplasm")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "germplasmName", name = Columns.GERMPLASM_NAME, description = "Name of germplasm")
     private String germplasmName;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="gid", name="Germplasm GID", description = "Unique germplasm identifier")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "gid", name = Columns.GERMPLASM_GID, description = "Unique germplasm identifier")
     private String gid;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="test_or_check", name="Test or Check", description = "T test (T) and check (C) germplasm")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "test_or_check", name = Columns.TEST_CHECK, description = "T test (T) and check (C) germplasm")
     private String testOrCheck;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="exp_title", name="Experiment Title", description = "Title of experiment")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "exp_title", name = Columns.EXP_TITLE, description = "Title of experiment")
     private String expTitle;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="expDescription", name="Experiment Description", description = "Description of experiment")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "expDescription", name = Columns.EXP_DESCRIPTION, description = "Description of experiment")
     private String expDescription;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="expUnit", name="Experiment Unit", description = "experiment unit  (Examples: plots, plant, tanks, hives, etc.)")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "expUnit", name = Columns.EXP_UNIT, description = "Experiment unit  (Examples: plots, plant, tanks, hives, etc.)")
     private String expUnit;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="expType", name="Experiment Type", description = "Description of experimental type (Examples: Performance trial, crossing block, seed orchard, etc)")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "expType", name = Columns.EXP_TYPE, description = "Description of experimental type (Examples: Performance trial, crossing block, seed orchard, etc)")
     private String expType;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="env", name="Environment", description = "Free-text unique identifier for environment within the experiment. Common examples include: 1,2,3…n and/or a concationation of environment location and year")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "env", name = Columns.ENV, description = "Free-text unique identifier for environment within the experiment. Common examples include: 1,2,3…n and/or a concationation of environment location and year")
     private String env;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="envLocation", name="Environment Location", description = "Location of the environment")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "envLocation", name = Columns.ENV_LOCATION, description = "Location of the environment")
     private String envLocation;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id="envYear", name="Environment Year", description = "Year corresponding to the environment")
+    @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
+    @ImportFieldMetadata(id = "envYear", name = Columns.ENV_YEAR, description = "Year corresponding to the environment")
     private String envYear;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="expUnitId", name="Experiment Unit ID", description = "Human-readable alphanumeric identifier for experimental units unique within environment. Examples, like plot number, are often a numeric sequence.")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "expUnitId", name = Columns.EXP_UNIT_ID, description = "Human-readable alphanumeric identifier for experimental units unique within environment. Examples, like plot number, are often a numeric sequence.")
     private String expUnitId;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id="expReplicateNo", name="Experiment Replicate Number", description = "Sequential number of experimental replications")
+    @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
+    @ImportFieldMetadata(id = "expReplicateNo", name = Columns.REP_NUM, description = "Sequential number of experimental replications")
     private String expReplicateNo;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.INTEGER)
-    @ImportFieldMetadata(id="expBlockNo", name="Experiment Block Number", description = "Sequential number of blocks in an experimental design")
+    @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
+    @ImportFieldMetadata(id = "expBlockNo", name = Columns.BLOCK_NUM, description = "Sequential number of blocks in an experimental design")
     private String expBlockNo;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="row", name="Row", description = "Horizontal (y-axis) position in 2D Cartesian space.")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "row", name = Columns.ROW, description = "Horizontal (y-axis) position in 2D Cartesian space.")
     private String row;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="column", name="Column", description = "Vertical (x-axis) position in 2D Cartesian space.")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "column", name = Columns.COLUMN, description = "Vertical (x-axis) position in 2D Cartesian space.")
     private String column;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="treatmentFactors", name="Treatment Factors", description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "treatmentFactors", name = Columns.TREATMENT_FACTORS, description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
     private String treatmentFactors;
 
-    @ImportFieldType(type= ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id="obsUnitID", name="Observation Unit ID", description = "A database generated unique identifier for experimental observation units")
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "ObsUnitID", name = Columns.OBS_UNIT_ID, description = "A database generated unique identifier for experimental observation units")
     private String obsUnitID;
 
-    public BrAPITrial constructBrAPITrial(Program program, boolean commit, String referenceSource, UUID id, String expSeqValue) {
+    public BrAPITrial constructBrAPITrial(Program program, User user, boolean commit, String referenceSource, UUID id, String expSeqValue) {
         BrAPIProgram brapiProgram = program.getBrapiProgram();
         BrAPITrial trial = new BrAPITrial();
-        if( commit ){
-            trial.setTrialName( Utilities.appendProgramKey(getExpTitle(), program.getKey() ));
-
-            // Set external reference
-            trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
-        }
-        else{
-            trial.setTrialName( getExpTitle() );
+        if (commit) {
+            setBrAPITrialCommitFields(program, trial, referenceSource, id);
+        } else {
+            trial.setTrialName(getExpTitle());
         }
         trial.setTrialDescription(getExpDescription());
         trial.setActive(true);
         trial.setProgramDbId(brapiProgram.getProgramDbId());
         trial.setProgramName(brapiProgram.getProgramName());
 
-        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
-        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
-        trial.putAdditionalInfoItem( BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER, expSeqValue);
+        Map<String, String> createdBy = new HashMap<>();
+        createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID,
+                      user.getId()
+                          .toString());
+        createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL, getExpUnit());
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE, getExpType());
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER, expSeqValue);
 
         return trial;
     }
 
-    public BrAPILocation constructBrAPILocation() {
-        BrAPILocation location = new BrAPILocation();
-        location.setLocationName(getEnvLocation());
+    private void setBrAPITrialCommitFields(Program program, BrAPITrial trial, String referenceSource, UUID id) {
+        trial.setTrialName(Utilities.appendProgramKey(getExpTitle(), program.getKey()));
+
+        // Set external reference
+        trial.setExternalReferences(getTrialExternalReferences(program, referenceSource, id));
+
+        // Set createdDate field
+        LocalDateTime now = LocalDateTime.now();
+        trial.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_LOCAL_DATE.format(now));
+
+    }
+
+    public ProgramLocation constructProgramLocation() {
+        ProgramLocation location = new ProgramLocation();
+        location.setName(getEnvLocation());
         return location;
     }
 
@@ -149,13 +169,12 @@ public class ExperimentObservation implements BrAPIImport {
             UUID id,
             Supplier<BigInteger> envNextVal) {
         BrAPIStudy study = new BrAPIStudy();
-        if ( commit ){
+        if (commit) {
             study.setStudyName(Utilities.appendProgramKey(getEnv(), program.getKey(), expSequenceValue));
 
             // Set external reference
             study.setExternalReferences(getStudyExternalReferences(program, referenceSource, trialId, id));
-        }
-        else {
+        } else {
             study.setStudyName(getEnv());
         }
         study.setActive(true);
@@ -164,24 +183,39 @@ public class ExperimentObservation implements BrAPIImport {
         study.setTrialName(getExpTitle());
 
         List<String> seasonList = new ArrayList<>();
-        seasonList.add( getEnvYear() );
-        study.setSeasons( seasonList );
+        seasonList.add(getEnvYear());
+        study.setSeasons(seasonList);
 
         String designType = "Analysis"; // to support the BRApi server, the design type must be one of the following:
-                                        // 'CRD','Alpha','MAD','Lattice','Augmented','RCBD','p-rep','splitplot','greenhouse','Westcott', or 'Analysis'
-                                        // For now it will be hardcoded to 'Analysis'
+        // 'CRD','Alpha','MAD','Lattice','Augmented','RCBD','p-rep','splitplot','greenhouse','Westcott', or 'Analysis'
+        // For now it will be hardcoded to 'Analysis'
         BrAPIStudyExperimentalDesign design = new BrAPIStudyExperimentalDesign();
         design.setPUI(designType);
         design.setDescription(designType);
         study.setExperimentalDesign(design);
-        String envSequenceValue = null;
-        if( commit ){
-            envSequenceValue = envNextVal.get().toString();
-            study.putAdditionalInfoItem( BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envSequenceValue);
+        if (commit) {
+            study.putAdditionalInfoItem(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER, envNextVal.get().toString());
         }
         return study;
     }
 
+    public BrAPIListDetails constructDatasetDetails(
+            String name,
+            UUID datasetId,
+            String referenceSourceBase,
+            Program program, String trialId) {
+        BrAPIListDetails dataSetDetails = new BrAPIListDetails();
+        dataSetDetails.setListName(name);
+        dataSetDetails.setListType(BrAPIListTypes.OBSERVATIONVARIABLES);
+        dataSetDetails.setData(new ArrayList<>());
+        dataSetDetails.putAdditionalInfoItem("datasetType", "observationDataset");
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+        addReference(refs, program.getId(), referenceSourceBase, ExternalReferenceSource.PROGRAMS);
+        addReference(refs, UUID.fromString(trialId), referenceSourceBase, ExternalReferenceSource.TRIALS);
+        addReference(refs, datasetId, referenceSourceBase, ExternalReferenceSource.DATASET);
+        dataSetDetails.setExternalReferences(refs);
+        return dataSetDetails;
+    }
     public BrAPIObservationUnit constructBrAPIObservationUnit(
             Program program,
             String seqVal,
@@ -194,18 +228,17 @@ public class ExperimentObservation implements BrAPIImport {
     ) {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
-        if( commit){
-            observationUnit.setObservationUnitName( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal) );
+        if (commit) {
+            observationUnit.setObservationUnitName(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
 
             // Set external reference
             observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, trialID, studyID, id));
-        }
-        else {
+        } else {
             observationUnit.setObservationUnitName(getExpUnitId());
         }
         observationUnit.setStudyName(getEnv());
 
-        if(germplasmName==null){
+        if (germplasmName == null) {
             germplasmName = getGermplasmName();
         }
         observationUnit.setGermplasmName(germplasmName);
@@ -213,13 +246,13 @@ public class ExperimentObservation implements BrAPIImport {
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
         level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
-        level.setLevelCode( Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal) );
+        level.setLevelCode(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
         position.setObservationLevel(level);
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
 
         // Exp Unit
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
-        if( getExpReplicateNo() !=null ) {
+        if (getExpReplicateNo() != null) {
             BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
             repLvl.setLevelName(BrAPIConstants.REPLICATE.getValue());
             repLvl.setLevelCode(getExpReplicateNo());
@@ -227,16 +260,16 @@ public class ExperimentObservation implements BrAPIImport {
         }
 
         // Block number
-        if( getExpBlockNo() != null ) {
-            BrAPIObservationUnitLevelRelationship repLvl = new BrAPIObservationUnitLevelRelationship();
-            repLvl.setLevelName( BrAPIConstants.BLOCK.getValue() );
-            repLvl.setLevelCode(getExpBlockNo());
-            levelRelationships.add(repLvl);
+        if (getExpBlockNo() != null) {
+            BrAPIObservationUnitLevelRelationship blockLvl = new BrAPIObservationUnitLevelRelationship();
+            blockLvl.setLevelName(BrAPIConstants.BLOCK.getValue());
+            blockLvl.setLevelCode(getExpBlockNo());
+            levelRelationships.add(blockLvl);
         }
         position.setObservationLevelRelationships(levelRelationships);
 
         // Test or Check
-        if("C".equals(getTestOrCheck())){
+        if ("C".equals(getTestOrCheck())) {
             position.setEntryType(BrAPIEntryTypeEnum.CHECK);
         } else {
             position.setEntryType(BrAPIEntryTypeEnum.TEST);
@@ -249,7 +282,7 @@ public class ExperimentObservation implements BrAPIImport {
         }
         if (getColumn() != null) {
             position.setPositionCoordinateY(getColumn());
-            position.setPositionCoordinateYType(BrAPIPositionCoordinateTypeEnum.GRID_ROW);
+            position.setPositionCoordinateYType(BrAPIPositionCoordinateTypeEnum.GRID_COL);
         }
         observationUnit.setObservationUnitPosition(position);
 
@@ -267,38 +300,114 @@ public class ExperimentObservation implements BrAPIImport {
         return observationUnit;
     }
 
+    public BrAPIObservation constructBrAPIObservation(
+            String value,
+            String variableName,
+            String seasonDbId,
+            BrAPIObservationUnit obsUnit,
+            boolean commit,
+            Program program,
+            User user,
+            String referenceSource,
+            UUID trialID,
+            UUID studyID,
+            UUID obsUnitID,
+            UUID id) {
+        BrAPIObservation observation = new BrAPIObservation();
+        observation.setGermplasmName(getGermplasmName());
+        if (getEnv() != null) {
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.STUDY_NAME, getEnv());
+        }
+        observation.setObservationVariableName(variableName);
+        observation.setObservationUnitDbId(obsUnit.getObservationUnitDbId());
+        observation.setObservationUnitName(obsUnit.getObservationUnitName());
+        observation.setValue(value);
+
+        // The BrApi server needs this.  Breedbase does not.
+        BrAPISeason season = new BrAPISeason();
+        season.setSeasonDbId(seasonDbId);
+        observation.setSeason(season);
+
+        if(commit) {
+            Map<String, Object> createdBy = new HashMap<>();
+            createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId());
+            createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.now()));
+
+            observation.setExternalReferences(getObservationExternalReferences(program, referenceSource, trialID, studyID, obsUnitID, id));
+        }
+
+        return observation;
+    }
+
     private List<BrAPIExternalReference> getBrAPIExternalReferences(
-            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId, UUID observationId) {
         List<BrAPIExternalReference> refs = new ArrayList<>();
 
         addReference(refs, program.getId(), referenceSourceBaseName, ExternalReferenceSource.PROGRAMS);
-        if( trialId   != null ) { addReference(refs, trialId, referenceSourceBaseName, ExternalReferenceSource.TRIALS); }
-        if( studyId   != null ) { addReference(refs, studyId, referenceSourceBaseName, ExternalReferenceSource.STUDIES); }
-        if( obsUnitId != null ) { addReference(refs, obsUnitId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATION_UNITS); }
+        if (trialId != null) {
+            addReference(refs, trialId, referenceSourceBaseName, ExternalReferenceSource.TRIALS);
+        }
+        if (studyId != null) {
+            addReference(refs, studyId, referenceSourceBaseName, ExternalReferenceSource.STUDIES);
+        }
+        if (obsUnitId != null) {
+            addReference(refs, obsUnitId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATION_UNITS);
+        }
+        if (observationId != null) {
+            addReference(refs, observationId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATIONS);
+        }
 
         return refs;
     }
 
     private List<BrAPIExternalReference> getTrialExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, null, null, null);
     }
+
     private List<BrAPIExternalReference> getStudyExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null, null);
     }
+
     private List<BrAPIExternalReference> getObsUnitExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId) {
-        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, null);
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId, null);
+    }
+
+    private List<BrAPIExternalReference> getObservationExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID studyId, UUID obsUnitId, UUID observationId) {
+        return getBrAPIExternalReferences(program, referenceSourceBaseName, trialId, studyId, obsUnitId, observationId);
     }
 
 
     private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, ExternalReferenceSource refSourceName) {
-        BrAPIExternalReference reference;
-        reference = new BrAPIExternalReference();
-        reference.setReferenceSource( String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()) );
+        BrAPIExternalReference reference = new BrAPIExternalReference();
+        reference.setReferenceSource(String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()));
         reference.setReferenceID(uuid.toString());
         refs.add(reference);
+    }
+
+    public static final class Columns {
+        public static final String GERMPLASM_NAME = "Germplasm Name";
+        public static final String GERMPLASM_GID = "Germplasm GID";
+        public static final String TEST_CHECK = "Test (T) or Check (C )";
+        public static final String EXP_TITLE = "Exp Title";
+        public static final String EXP_DESCRIPTION = "Exp Description";
+        public static final String EXP_UNIT = "Exp Unit";
+        public static final String EXP_TYPE = "Exp Type";
+        public static final String ENV = "Env";
+        public static final String ENV_LOCATION = "Env Location";
+        public static final String ENV_YEAR = "Env Year";
+        public static final String EXP_UNIT_ID = "Exp Unit ID";
+        public static final String REP_NUM = "Exp Replicate #";
+        public static final String BLOCK_NUM = "Exp Block #";
+        public static final String ROW = "Row";
+        public static final String COLUMN = "Column";
+        public static final String TREATMENT_FACTORS = "Treatment Factors";
+        public static final String OBS_UNIT_ID = "ObsUnitID";
     }
 
 }

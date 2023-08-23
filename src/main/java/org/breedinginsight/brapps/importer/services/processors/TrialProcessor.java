@@ -31,6 +31,7 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ public class TrialProcessor implements Processor {
         List<BrAPITrial> existingTrials;
 
         try {
-            existingTrials = brapiTrialDAO.getTrialByName(uniqueTrialNames, program);
+            existingTrials = brapiTrialDAO.getTrialsByName(uniqueTrialNames, program);
             existingTrials.forEach(existingTrial -> {
                 trialByName.put(existingTrial.getTrialName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial));
             });
@@ -74,7 +75,8 @@ public class TrialProcessor implements Processor {
 
     @Override
     public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
+                                                        Map<Integer, PendingImport> mappedBrAPIImport, Table data,
+                                                        Program program, User user, boolean commit) throws ValidatorException {
 
         getExistingBrapiData(importRows, program);
 
@@ -112,7 +114,7 @@ public class TrialProcessor implements Processor {
 
         List<BrAPITrial> createdTrials = new ArrayList<>();
         try {
-            createdTrials.addAll(brapiTrialDAO.createBrAPITrial(trials, program.getId(), upload));
+            createdTrials.addAll(brapiTrialDAO.createBrAPITrials(trials, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }

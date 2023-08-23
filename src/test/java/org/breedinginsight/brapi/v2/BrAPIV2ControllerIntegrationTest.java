@@ -28,7 +28,9 @@ import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.BrAPIPagination;
 import org.brapi.v2.model.core.BrAPIServerInfo;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
@@ -72,6 +74,7 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
 
     private Gson GSON = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
+            .registerTypeAdapter(BrAPIPagination.class, new PaginationTypeAdapter())
                                          .create();
 
     @Inject
@@ -82,9 +85,6 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
     private UserDAO userDAO;
 
     private ProgramEntity validProgram;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     @SneakyThrows

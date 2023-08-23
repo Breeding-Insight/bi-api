@@ -38,6 +38,7 @@ import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.dao.db.enums.TermType;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
@@ -94,9 +95,6 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     private String validUploadId;
     String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     String invalidProgram = invalidUUID;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     public void setup() {
@@ -573,6 +571,8 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("Leaf", observationLevel.get("name").getAsString(), "wrong level name");
 
         assertEquals(true, trait.get("active").getAsBoolean(), "wrong status");
+        assertEquals(TermType.GERM_PASSPORT.toString(), trait.get("termType").getAsString());
+
         // TODO: trait lists
 
         JsonObject method = trait.get("method").getAsJsonObject();

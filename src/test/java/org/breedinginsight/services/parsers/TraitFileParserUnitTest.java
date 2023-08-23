@@ -22,6 +22,7 @@ import org.breedinginsight.api.model.v1.response.RowValidationErrors;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.dao.db.enums.DataType;
+import org.breedinginsight.dao.db.enums.TermType;
 import org.breedinginsight.model.Method;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
@@ -80,7 +81,7 @@ public class TraitFileParserUnitTest {
         InputStream inputStream = new FileInputStream(file);
 
         ParsingException e = assertThrows(ParsingException.class, () -> parser.parseCsv(inputStream), "expected parsing exception");
-        assertEquals(ParsingExceptionType.MISSING_COLUMN_NAMES, e.getType(), "Wrong type");
+        assertEquals(ParsingExceptionType.MISSING_COLUMN_NAMES_ROW, e.getType(), "Wrong type");
     }
 
     @Test
@@ -182,6 +183,7 @@ public class TraitFileParserUnitTest {
         expectedErrors3.put(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(), ParsingExceptionType.INVALID_SCALE_DECIMAL_PLACES);
         expectedErrors3.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), ParsingExceptionType.INVALID_SCALE_LOWER_LIMIT);
         expectedErrors3.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), ParsingExceptionType.INVALID_SCALE_UPPER_LIMIT);
+        expectedErrors3.put(TraitFileColumns.TERM_TYPE.toString(), ParsingExceptionType.INVALID_TERM_TYPE);
 
         checkParsingExceptionErrors(rowErrors.getRowErrors().get(0), expectedErrors1);
         checkParsingExceptionErrors(rowErrors.getRowErrors().get(1), expectedErrors2);
@@ -286,6 +288,7 @@ public class TraitFileParserUnitTest {
         assertEquals("leaf", trait.getEntity(), "wrong entity");
         assertEquals("powdery mildew severity", trait.getAttribute(), "wrong attribute");
         assertEquals(true, trait.getActive(), "wrong status");
+        assertEquals(TermType.GERM_PASSPORT, trait.getTermType(), "wrong term type");
         // TODO: trait lists
         Method method = trait.getMethod();
         assertEquals("Powdery Mildew severity, leaf", method.getDescription(), "wrong method description");
@@ -331,4 +334,33 @@ public class TraitFileParserUnitTest {
         assertEquals(3, traits.size(), "number of traits different than expected");
     }
 
+    @Test
+    @SneakyThrows
+    void parseCsvNullRowsSuccess() {
+        File file = new File("src/test/resources/files/ontology/ontology_null_rows.csv");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseCsv(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsNullRowsSuccess() {
+        File file = new File("src/test/resources/files/ontology/ontology_null_rows.xls");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
+
+    @Test
+    @SneakyThrows
+    void parseXlsxNullRowsSuccess() {
+        File file = new File("src/test/resources/files/ontology/ontology_null_rows.xlsx");
+        InputStream inputStream = new FileInputStream(file);
+        List<Trait> traits = parser.parseExcel(inputStream);
+
+        assertEquals(3, traits.size(), "number of traits different than expected");
+    }
 }

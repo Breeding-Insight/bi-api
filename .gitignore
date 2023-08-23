@@ -17,5 +17,4 @@ src/build/*.dev.*
 src/build/*.test.*
 application-dev.yml
 application-test.yml
-.env
-.env.local
+.env.*

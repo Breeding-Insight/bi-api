@@ -63,6 +63,7 @@ public class Trait extends TraitEntity {
     private User updatedByUser;
 
     // Properties from brapi
+    private String observationVariableDbId;
     private String traitClass;
     private String traitDescription;
     private String attribute;
@@ -91,6 +92,7 @@ public class Trait extends TraitEntity {
         this.setUpdatedAt(traitEntity.getUpdatedAt());
         this.setUpdatedBy(traitEntity.getUpdatedBy());
         this.setActive(traitEntity.getActive());
+        this.setTermType(traitEntity.getTermType());
     }
 
     public static Trait parseSqlRecord(Record record) {
@@ -106,6 +108,7 @@ public class Trait extends TraitEntity {
             .updatedAt(record.getValue(TRAIT.UPDATED_AT))
             .updatedBy(record.getValue(TRAIT.UPDATED_BY))
             .active(record.getValue(TRAIT.ACTIVE))
+            .termType(record.getValue(TRAIT.TERM_TYPE))
             .build();
     }
 
@@ -118,7 +121,7 @@ public class Trait extends TraitEntity {
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
             this.setSynonyms(brApiVariable.getTrait().getSynonyms());
         }
-
+        this.setObservationVariableDbId(brApiVariable.getObservationVariableDbId());
         this.setDefaultValue(brApiVariable.getDefaultValue());
     }
 
