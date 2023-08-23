@@ -2,6 +2,7 @@ package org.breedinginsight.brapi.v2.model.request.query;
 
 import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
+import lombok.ToString;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 
 import javax.validation.constraints.NotNull;
