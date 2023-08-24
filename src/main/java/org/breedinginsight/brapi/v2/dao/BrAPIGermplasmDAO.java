@@ -296,7 +296,15 @@ public class BrAPIGermplasmDAO {
                     putGermplasm(putBrAPIGermplasmList, api);
                     // Need all program germplasm for processGermplasmForDisplay parents pedigree
                     List<BrAPIGermplasm> germplasm = getRawGermplasm(programId);
-                    return processGermplasmForDisplay(germplasm, program.getKey());
+                    Map<String,BrAPIGermplasm> allDisplayGermplasm = processGermplasmForDisplay(germplasm, program.getKey());
+                    Map<String,BrAPIGermplasm> updatedBrAPIGermplasmForDisplay = new HashMap<>();
+                    for (BrAPIGermplasm updatedGermplasm: putBrAPIGermplasmList) {
+                        BrAPIExternalReference extRef = updatedGermplasm.getExternalReferences().stream().filter(reference -> referenceSource.equals(reference.getReferenceSource())).findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
+                        String germplasmId = extRef.getReferenceID();
+                        BrAPIGermplasm displayGerm = allDisplayGermplasm.get(germplasmId);
+                        updatedBrAPIGermplasmForDisplay.put(germplasmId, displayGerm);
+                    }
+                    return updatedBrAPIGermplasmForDisplay;
                 };
             }
             return programGermplasmCache.post(programId, postFunction);
