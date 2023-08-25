@@ -35,6 +35,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
@@ -145,21 +146,23 @@ public class BrAPIGermplasmDAO {
                 api::searchGermplasmPost,
                 api::searchGermplasmSearchResultsDbIdGet,
                 germplasmSearch
-        ), program.getKey());
+        ), program);
     }
 
     /**
      * Process germplasm into a format for display
-     * @param programGermplasm
+     * @param germplasmList
      * @return Map<Key = string representing germplasm UUID, value = formatted BrAPIGermplasm>
      * @throws ApiException
      */
-    private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> programGermplasm, String programKey) {
+    private Map<String,BrAPIGermplasm> processGermplasmForDisplay(List<BrAPIGermplasm> germplasmList, ProgramEntity program) throws ApiException {
+        String programKey = program.getKey();
         // Process the germplasm
         Map<String, BrAPIGermplasm> programGermplasmMap = new HashMap<>();
-        log.trace("processing germ for display: " + programGermplasm);
+        log.trace("processing germ for display: " + germplasmList);
         Map<String, BrAPIGermplasm> programGermplasmByFullName = new HashMap<>();
-        for (BrAPIGermplasm germplasm: programGermplasm) {
+        boolean isExpanded_programGermplasmByFullName = false;
+        for (BrAPIGermplasm germplasm: germplasmList) {
             programGermplasmByFullName.put(germplasm.getGermplasmName(), germplasm);
 
             JsonObject additionalInfo = germplasm.getAdditionalInfo();
@@ -181,7 +184,7 @@ public class BrAPIGermplasmDAO {
         }
 
         // Update pedigree string
-        for (BrAPIGermplasm germplasm: programGermplasm) {
+        for (BrAPIGermplasm germplasm: germplasmList) {
                 JsonObject additionalInfo = germplasm.getAdditionalInfo();
                 if(additionalInfo == null) {
                     additionalInfo = new JsonObject();
@@ -200,6 +203,13 @@ public class BrAPIGermplasmDAO {
                     parents = Arrays.asList(germplasm.getPedigree().split("/"));
                 }
                 if (parents.size() >= 1) {
+                    // if the female parent germplasm is not found in the passed-in germplasmList, then expand the programGermplasmByFullName
+                    // map so we can search all of the program's germplasm for the parent.
+                    if( ! isExpanded_programGermplasmByFullName && !"NA".equals(parents.get(0)) && !programGermplasmByFullName.containsKey(parents.get(0)) ){
+                        if (! additionalInfo.has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) || ! additionalInfo.get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
+                            isExpanded_programGermplasmByFullName = expand_programGermplasmByFullName(program, programGermplasmByFullName);
+                        }
+                    }
                     if (programGermplasmByFullName.containsKey(parents.get(0))) {
                         String femaleParentAccessionNumber = programGermplasmByFullName.get(parents.get(0)).getAccessionNumber();
                         newPedigreeString = femaleParentAccessionNumber;
@@ -213,11 +223,19 @@ public class BrAPIGermplasmDAO {
                     }
                 }
                 if (parents.size() == 2) {
-                    if (programGermplasmByFullName.containsKey(parents.get(1))) {
-                        String maleParentAccessionNumber = programGermplasmByFullName.get(parents.get(1)).getAccessionNumber();
+                    // if the male parent germplasm is not found in the passed-in germplasmList, then expand the programGermplasmByFullName
+                    // map so we can search all of the program's germplasm for the parent.
+                    String maleParentName = parents.get(1);
+                    if( ! isExpanded_programGermplasmByFullName && !"NA".equals(maleParentName) && !programGermplasmByFullName.containsKey(maleParentName)){
+                        if (!additionalInfo.has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) || !additionalInfo.get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
+                            isExpanded_programGermplasmByFullName = expand_programGermplasmByFullName(program, programGermplasmByFullName);
+                        }
+                    }
+                    if (programGermplasmByFullName.containsKey(maleParentName)) {
+                        String maleParentAccessionNumber = programGermplasmByFullName.get(maleParentName).getAccessionNumber();
                         newPedigreeString += "/" + maleParentAccessionNumber;
-                        namePedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getDefaultDisplayName();
-                        uuidPedigreeString += "/" + programGermplasmByFullName.get(parents.get(1)).getExternalReferences().
+                        namePedigreeString += "/" + programGermplasmByFullName.get(maleParentName).getDefaultDisplayName();
+                        uuidPedigreeString += "/" + programGermplasmByFullName.get(maleParentName).getExternalReferences().
                                 stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
                                 map(ref -> ref.getReferenceID()).findFirst().orElse("");
                         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParentAccessionNumber);
@@ -239,6 +257,16 @@ public class BrAPIGermplasmDAO {
         }
 
         return programGermplasmMap;
+    }
+
+    private boolean expand_programGermplasmByFullName(ProgramEntity program, Map<String, BrAPIGermplasm> programGermplasmByFullName) throws ApiException {
+        List<BrAPIGermplasm> allProgramGermplasm = getRawGermplasm(program.getId());
+        for (BrAPIGermplasm programGermplasm: allProgramGermplasm) {
+            if( ! programGermplasmByFullName.containsKey( programGermplasm.getGermplasmName() ) ){
+                programGermplasmByFullName.put(programGermplasm.getGermplasmName(), programGermplasm);
+            }
+        }
+        return true;
     }
 
     // TODO: hack for now, probably should update breedbase
@@ -277,7 +305,7 @@ public class BrAPIGermplasmDAO {
             if (!postBrAPIGermplasmList.isEmpty()) {
                 postFunction = () -> {
                     List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
-                    return processGermplasmForDisplay(postResponse, program.getKey());
+                    return processGermplasmForDisplay(postResponse, program);
                 };
             }
             return programGermplasmCache.post(programId, postFunction);
@@ -293,18 +321,8 @@ public class BrAPIGermplasmDAO {
         try {
             if (!putBrAPIGermplasmList.isEmpty()) {
                 postFunction = () -> {
-                    putGermplasm(putBrAPIGermplasmList, api);
-                    // Need all program germplasm for processGermplasmForDisplay parents pedigree
-                    List<BrAPIGermplasm> germplasm = getRawGermplasm(programId);
-                    Map<String,BrAPIGermplasm> allDisplayGermplasm = processGermplasmForDisplay(germplasm, program.getKey());
-                    Map<String,BrAPIGermplasm> updatedBrAPIGermplasmForDisplay = new HashMap<>();
-                    for (BrAPIGermplasm updatedGermplasm: putBrAPIGermplasmList) {
-                        BrAPIExternalReference extRef = updatedGermplasm.getExternalReferences().stream().filter(reference -> referenceSource.equals(reference.getReferenceSource())).findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-                        String germplasmId = extRef.getReferenceID();
-                        BrAPIGermplasm displayGerm = allDisplayGermplasm.get(germplasmId);
-                        updatedBrAPIGermplasmForDisplay.put(germplasmId, displayGerm);
-                    }
-                    return updatedBrAPIGermplasmForDisplay;
+                    List<BrAPIGermplasm> germplasm = putGermplasm(putBrAPIGermplasmList, api);
+                    return processGermplasmForDisplay(germplasm, program);
                 };
             }
             return programGermplasmCache.post(programId, postFunction);
