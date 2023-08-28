@@ -141,11 +141,11 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                         BrAPIObservationUnit updatedOu = ousApi.observationunitsObservationUnitDbIdPut(ou.getObservationUnitDbId(), ou).getBody().getResult();
 
                                         // Verify that the observation unit was updated at the server
-                                        log.debug(updatedOu.getExternalReferences().toString());
                                         boolean isUpdated = updatedOu.getExternalReferences().stream().anyMatch(xref -> {
                                             return xref.getReferenceSource().equals(datasetReferenceSource) &&
                                                     xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
                                         });
+                                        log.debug("Updating observation unit successful: " + String.valueOf(isUpdated));
                                         if (!isUpdated) {
                                             throw new Exception("Observation unit returned from brapi server was not updated. Check your brapi server.");
                                         }
