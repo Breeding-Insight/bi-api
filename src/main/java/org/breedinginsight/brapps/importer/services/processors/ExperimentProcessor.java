@@ -806,9 +806,12 @@ public class ExperimentProcessor implements Processor {
             }
             PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
-            UUID datasetId = UUID.fromString(trialPIO.getBrAPIObject()
-                    .getAdditionalInfo().getAsJsonObject()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+            UUID datasetId = null;
+            if (commit) {
+                datasetId = UUID.fromString(trialPIO.getBrAPIObject()
+                        .getAdditionalInfo().getAsJsonObject()
+                        .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+            }
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
