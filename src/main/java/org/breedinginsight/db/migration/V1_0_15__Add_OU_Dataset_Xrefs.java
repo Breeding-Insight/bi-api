@@ -132,37 +132,30 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                             .referenceSource(datasetReferenceSource)
                                             .referenceID(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
                                     ou.getExternalReferences().add(datasetRef);
-                                    mutatedOuByDbId.put(ou.getObservationUnitDbId(), ou);
+                                    try {
+
+                                        // Send the updated observation unit back to the brapi server
+                                        log.debug(String.format("Sending observation unit (id: %s) with observation dataset (id: %s) to %s",
+                                                Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
+                                                datasetRef.getReferenceID(),
+                                                defaultUrl));
+                                        BrAPIObservationUnit updatedOu = ousApi.observationunitsObservationUnitDbIdPut(ou.getObservationUnitDbId(), ou).getBody().getResult();
+
+                                        // Verify that the observation unit was updated at the server
+                                        boolean isUpdated = updatedOu.getExternalReferences().stream().anyMatch(xref -> {
+                                            return xref.getReferenceSource().equals(datasetReferenceSource) &&
+                                                    xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+                                        });
+                                        log.debug("Updating observation unit successful: " + String.valueOf(isUpdated));
+                                        if (!isUpdated) {
+                                            throw new Exception("Observation unit returned from brapi server was not updated. Check your brapi server.");
+                                        }
+                                    } catch(Exception e) {
+                                        log.error(e.getMessage(), e);
+                                        throw new InternalServerException(e.toString(), e);
+                                    }
                                 });
-                        try {
-
-                            // Send the updated observation unit back to the brapi server
-                            mutatedOuByDbId.values().stream().forEach(ou -> {
-                                log.debug(String.format("Sending observation unit (id: %s) with observation dataset (id: %s) to %s",
-                                        Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
-                                        Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource),
-                                        defaultUrl));
-                            });
-                            List<BrAPIObservationUnit> updatedOus = ousApi.observationunitsPut(mutatedOuByDbId).getBody().getResult().getData();
-
-                            // Verify that the observation unit was updated at the server
-                            boolean updateFailed = updatedOus.stream().anyMatch(updatedOu -> {
-                                return !updatedOu.getExternalReferences().stream().anyMatch(xref -> {
-                                    return xref.getReferenceSource().equals(datasetReferenceSource) &&
-                                            xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
-                                });
-                            });
-                            log.debug("Updating observation unit successful: " + String.valueOf(!updateFailed));
-                            if (updateFailed) {
-                                throw new Exception("Observation unit returned from brapi server was not updated. Check your brapi server.");
-                            }
-                        } catch(Exception e) {
-                            log.error(e.getMessage(), e);
-                            throw new InternalServerException(e.toString(), e);
-                        }
-
-
-
+                        
                         // Fetch the next page of observation units for this experiment
                         if(ousResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == ousResponse.getBody().getMetadata().getPagination().getTotalPages()) {
                             ousDone = true;
