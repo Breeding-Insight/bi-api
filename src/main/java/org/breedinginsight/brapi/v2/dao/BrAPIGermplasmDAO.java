@@ -187,7 +187,10 @@ public class BrAPIGermplasmDAO {
                     additionalInfo = new JsonObject();
                     germplasm.setAdditionalInfo(additionalInfo);
                 }
-                additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, germplasm.getPedigree());
+
+                // TODO: BI-1883 to cleanup this workaround for the pedigree string
+                String pedigree = processBreedbasePedigree(germplasm.getPedigree());
+                additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, pedigree);
 
                 String newPedigreeString = "";
                 String namePedigreeString = "";
@@ -205,7 +208,7 @@ public class BrAPIGermplasmDAO {
                                 stream().filter(ref -> ref.getReferenceSource().equals(referenceSource)).
                                 map(ref -> ref.getReferenceID()).findFirst().orElse("");
                         additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParentAccessionNumber);
-                    } else if (additionalInfo.has("femaleParentUnknown") && additionalInfo.get("femaleParentUnknown").getAsBoolean()) {
+                    } else if (additionalInfo.has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) && additionalInfo.get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
                         namePedigreeString = "Unknown";
                     }
                 }
@@ -221,7 +224,7 @@ public class BrAPIGermplasmDAO {
                     }
                 }
                 //Add Unknown germplasm for display
-                if (additionalInfo.has("maleParentUnknown") && additionalInfo.get("maleParentUnknown").getAsBoolean()) {
+                if (additionalInfo.has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) && additionalInfo.get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
                     namePedigreeString += "/Unknown";
                 }
                 //For use in individual germplasm display
@@ -236,6 +239,34 @@ public class BrAPIGermplasmDAO {
         }
 
         return programGermplasmMap;
+    }
+
+    // TODO: hack for now, probably should update breedbase
+    // Made a JIRA card BI-1883 for this
+    // Breedbase will return NA/NA for no pedigree or NA/father, mother/NA
+    // strip NAs before saving RAW_PEDIGREE, if there was a germplasm with name NA it would be in format NA [program key]
+    // so that case should be ok if we just strip NA/NA, NA/, or /NA<\0>
+    private String processBreedbasePedigree(String pedigree) {
+
+        if (pedigree != null) {
+            if (pedigree.equals("NA/NA")) {
+                return "";
+            }
+
+            // Technically processGermplasmForDisplay should handle ok without stripping these NAs but will strip anyways
+            // for consistency.
+            // We only allow the /NA case for single parent as we require a female parent in the pedigree
+            // keep the leading slash, will be handled by processGermplasmForDisplay
+            if (pedigree.endsWith("/NA")) {
+                return pedigree.substring(0, pedigree.length()-2);
+            }
+
+            // shouldn't have this case in our data but just in case
+            if (pedigree.startsWith("NA/")) {
+                return pedigree.substring(2);
+            }
+        }
+        return pedigree;
     }
 
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, UUID programId, ImportUpload upload) {
@@ -262,8 +293,10 @@ public class BrAPIGermplasmDAO {
         try {
             if (!putBrAPIGermplasmList.isEmpty()) {
                 postFunction = () -> {
-                    List<BrAPIGermplasm> postResponse = putGermplasm(putBrAPIGermplasmList, api);
-                    return processGermplasmForDisplay(postResponse, program.getKey());
+                    putGermplasm(putBrAPIGermplasmList, api);
+                    // Need all program germplasm for processGermplasmForDisplay parents pedigree
+                    List<BrAPIGermplasm> germplasm = getRawGermplasm(programId);
+                    return processGermplasmForDisplay(germplasm, program.getKey());
                 };
             }
             return programGermplasmCache.post(programId, postFunction);

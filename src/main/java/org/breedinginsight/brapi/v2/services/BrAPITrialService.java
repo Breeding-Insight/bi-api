@@ -39,6 +39,7 @@ import java.io.PipedOutputStream;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -111,6 +112,8 @@ public class BrAPITrialService {
             Program program,
             UUID experimentId,
             ExperimentExportQuery params) throws IOException, DoesNotExistException, ApiException {
+        String logHash = UUID.randomUUID().toString();
+        log.debug(logHash + ": exporting experiment: "+experimentId+", params: " + params);
         DownloadFile downloadFile;
         boolean isDataset = false;
         List<BrAPIObservation> dataset = new ArrayList<>();
@@ -126,9 +129,11 @@ public class BrAPITrialService {
         List<Column> columns = ExperimentFileColumns.getOrderedColumns();
 
         // add columns for requested dataset obsvars and timestamps
+        log.debug(logHash + ": fetching experiment for export");
         BrAPITrial experiment = getExperiment(program, experimentId);
 
         // get requested environments for the experiment
+        log.debug(logHash + ": fetching environments for export");
         List<BrAPIStudy> expStudies = studyDAO.getStudiesByExperimentID(experimentId, program);
         if (!requestedEnvIds.isEmpty()) {
             expStudies = expStudies
@@ -139,6 +144,7 @@ public class BrAPITrialService {
         expStudies.forEach(study -> studyByDbId.putIfAbsent(study.getStudyDbId(), study));
 
         // get the OUs for the requested environments
+        log.debug(logHash + ": fetching OUs for export");
         List<BrAPIObservationUnit> ous = new ArrayList<>();
         Map<String, BrAPIObservationUnit> ouByOUDbId = new HashMap<>();
         try {
@@ -148,7 +154,7 @@ public class BrAPITrialService {
                 ous.addAll(studyOUs);
             }
         } catch (ApiException err) {
-            log.error("Error fetching observation units for a study by its DbId" +
+            log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
 
@@ -158,6 +164,7 @@ public class BrAPITrialService {
                     .getAdditionalInfo().getAsJsonObject()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
             isDataset = true;
+            log.debug(logHash + ": fetching dataset observation variables for export");
             obsVars = getDatasetObsVars(obsDatasetId, program);
 
             // make additional columns in the export for each obs variable and obs variable timestamp
@@ -167,12 +174,19 @@ public class BrAPITrialService {
 
         // make export rows from any observations
         if (isDataset) {
+            log.debug(logHash + ": fetching observations for export");
             dataset = observationDAO.getObservationsByTrialDbId(List.of(experiment.getTrialDbId()), program);
         }
         if (!requestedEnvIds.isEmpty()) {
+            log.debug(logHash + ": filtering observations to only requested environments for export");
             dataset = filterDatasetByEnvironment(dataset, requestedEnvIds, studyByDbId);
         }
 
+        log.debug(logHash + ": fetching program's germplasm for export");
+        List<BrAPIGermplasm> programGermplasm = germplasmDAO.getGermplasmsByDBID(ouByOUDbId.values().stream().map(BrAPIObservationUnit::getGermplasmDbId).collect(Collectors.toList()), program.getId());
+        Map<String, BrAPIGermplasm> programGermplasmByDbId = programGermplasm.stream().collect(Collectors.toMap(BrAPIGermplasm::getGermplasmDbId, Function.identity()));
+
+        log.debug(logHash + ": populating rows for export");
         // Update rowByOUId and studyDbIdByOUId.
         addBrAPIObsToRecords(
                 dataset,
@@ -183,7 +197,8 @@ public class BrAPITrialService {
                 rowByOUId,
                 params.isIncludeTimestamps(),
                 obsVars,
-                studyDbIdByOUId
+                studyDbIdByOUId,
+                programGermplasmByDbId
         );
 
 
@@ -194,11 +209,12 @@ public class BrAPITrialService {
                 // Map Observation Unit to the Study it belongs to.
                 studyDbIdByOUId.put(ouId, ou.getStudyDbId());
                 if (!rowByOUId.containsKey(ouId)) {
-                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId));
+                    rowByOUId.put(ouId, createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId));
                 }
             }
         }
 
+        log.debug(logHash + ": writing data to file for export");
         // If one or more envs requested, create a separate file for each env, then zip if there are multiple.
         if (!requestedEnvIds.isEmpty()) {
             // This will hold a list of rows for each study, each list will become a separate file.
@@ -227,6 +243,7 @@ public class BrAPITrialService {
                 downloadFile = files.get(0);
             }
             else {
+                log.debug(logHash + ": zipping files for export");
                 // Zip, as there are multiple files.
                 StreamedFile zipFile = zipFiles(files);
                 downloadFile = new DownloadFile(makeZipFileName(experiment, program), zipFile);
@@ -283,7 +300,7 @@ public class BrAPITrialService {
 
         // TODO: Once BI-1831 is complete and OUs in a dataset can be identified using the datasetId stored as a xref
         // the expOUs needs to be replaced with datasetOUs, as was done with datasetObsVars
-        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId());
+        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId(), true);
         List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
         List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
@@ -314,7 +331,8 @@ public class BrAPITrialService {
             Map<String, Map<String, Object>> rowByOUId,
             boolean includeTimestamp,
             List<BrAPIObservationVariable> obsVars,
-            Map<String, String> studyDbIdByOUId) throws ApiException, DoesNotExistException {
+            Map<String, String> studyDbIdByOUId,
+            Map<String, BrAPIGermplasm> programGermplasmByDbId) throws ApiException, DoesNotExistException {
         Map<String, BrAPIObservationVariable> varByDbId = new HashMap<>();
         obsVars.forEach(var -> varByDbId.put(var.getObservationVariableDbId(), var));
         for (BrAPIObservation obs: dataset) {
@@ -332,7 +350,7 @@ public class BrAPITrialService {
             } else {
 
                 // otherwise make a new row
-                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId);
+                Map<String, Object> row = createExportRow(experiment, program, ou, studyByDbId, programGermplasmByDbId);
                 addObsVarDataToRow(row, obs, includeTimestamp, var, program);
                 rowByOUId.put(ouId, row);
             }
@@ -411,7 +429,8 @@ public class BrAPITrialService {
             BrAPITrial experiment,
             Program program,
             BrAPIObservationUnit ou,
-            Map<String, BrAPIStudy> studyByDbId) throws ApiException, DoesNotExistException {
+            Map<String, BrAPIStudy> studyByDbId,
+            Map<String, BrAPIGermplasm> programGermplasmByDbId) throws ApiException, DoesNotExistException {
         HashMap<String, Object> row = new HashMap<>();
 
         // get OU id, germplasm, and study
@@ -420,7 +439,7 @@ public class BrAPITrialService {
                         String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName()))
                 .orElseThrow(() -> new RuntimeException("observation unit id not found"));
         String ouId = ouXref.getReferenceID();
-        BrAPIGermplasm germplasm = germplasmDAO.getGermplasmByDBID(ou.getGermplasmDbId(), program.getId())
+        BrAPIGermplasm germplasm = Optional.ofNullable(programGermplasmByDbId.get(ou.getGermplasmDbId()))
                 .orElseThrow(() -> new DoesNotExistException("Germplasm not returned from BrAPI service"));
         BrAPIStudy study = studyByDbId.get(ou.getStudyDbId());
 
