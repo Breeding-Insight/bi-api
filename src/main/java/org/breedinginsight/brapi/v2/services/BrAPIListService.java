@@ -74,16 +74,16 @@ public class BrAPIListService {
             List<String> listItemNames = listDetails.getResult().getData();
             if (type != null) {
                 switch (type) {
-                    case OBSERVATIONVARIABLES:
-                        break;
                     case GERMPLASM:
-                    default:
                         String createdBy = germplasmDAO.getGermplasmByRawName(listItemNames, program.getId()).get(0)
                                 .getAdditionalInfo()
                                 .getAsJsonObject("createdBy")
                                 .get("userName")
                                 .getAsString();
                         list.setListOwnerName(createdBy);
+                    case OBSERVATIONVARIABLES:
+                    default:
+                        break;
                 }
             }
         }
