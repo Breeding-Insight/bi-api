@@ -30,18 +30,13 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPITrialListResponse;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
-import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponseResult;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
-import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 
-import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -114,7 +109,6 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                 ousResponse.getBody().getMetadata().getPagination().getCurrentPage()+1,
                                 ousResponse.getBody().getMetadata().getPagination().getTotalPages(),
                                 exp.getTrialName()));
-                        Map<String, BrAPIObservationUnit> mutatedOuByDbId = new HashMap<>();
                         ousResponse.getBody().getResult().getData()
                                 .stream().filter(ou -> {
 
@@ -142,14 +136,20 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                         BrAPIObservationUnit updatedOu = ousApi.observationunitsObservationUnitDbIdPut(ou.getObservationUnitDbId(), ou).getBody().getResult();
 
                                         // Verify that the observation unit was updated at the server
+                                        // TODO: Breedbase does not return the updated unit in the successful response, and fetching a single unit via GET returns a an error
+                                        // parsing the date time. Once these bugs are fixed in Breedbase, uncomment the verification step below.
+                                        /*
                                         boolean isUpdated = updatedOu.getExternalReferences().stream().anyMatch(xref -> {
                                             return xref.getReferenceSource().equals(datasetReferenceSource) &&
                                                     xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
                                         });
+
                                         log.debug("Updating observation unit successful: " + String.valueOf(isUpdated));
                                         if (!isUpdated) {
                                             throw new Exception("Observation unit returned from brapi server was not updated. Check your brapi server.");
                                         }
+
+                                         */
                                     } catch(Exception e) {
                                         log.error(e.getMessage(), e);
                                         throw new InternalServerException(e.toString(), e);
