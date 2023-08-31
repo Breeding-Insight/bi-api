@@ -60,7 +60,10 @@ public class TokenController {
         if(token.isPresent()) {
             ApiToken apiToken = token.get();
 
-            if(StringUtils.isNotBlank(returnUrl)) {
+            if(returnUrl != null) {
+                if(StringUtils.trim(returnUrl).isEmpty()) {
+                    return HttpResponse.badRequest("returnUrl cannot be blank");
+                }
                 URI location = UriBuilder.of(returnUrl)
                                          .queryParam("status", 200)
                                          .queryParam("token", apiToken.getAccessToken())
