@@ -24,14 +24,17 @@ import io.micronaut.http.uri.UriBuilder;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.model.ApiToken;
 import org.breedinginsight.services.TokenService;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.validation.constraints.NotBlank;
 import java.net.URI;
+import java.util.Map;
 import java.util.Optional;
 
 @Slf4j
@@ -47,9 +50,9 @@ public class TokenController {
         this.tokenService = tokenService;
     }
 
-    @Get("/api-token")
+    @Get("/api-token{?returnUrl}")
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse apiToken(@QueryValue @NotBlank String returnUrl) {
+    public HttpResponse apiToken(@QueryValue @Nullable String returnUrl) {
 
         AuthenticatedUser actingUser = securityService.getUser();
         Optional<ApiToken> token = tokenService.generateApiToken(actingUser);
@@ -57,18 +60,24 @@ public class TokenController {
         if(token.isPresent()) {
             ApiToken apiToken = token.get();
 
-            URI location = UriBuilder.of(returnUrl)
-                    .queryParam("status", 200)
-                    .queryParam("token", apiToken.getAccessToken())
-                    .build();
+            if(returnUrl != null) {
+                if(StringUtils.trim(returnUrl).isEmpty()) {
+                    return HttpResponse.badRequest("returnUrl cannot be blank");
+                }
+                URI location = UriBuilder.of(returnUrl)
+                                         .queryParam("status", 200)
+                                         .queryParam("token", apiToken.getAccessToken())
+                                         .build();
 
-            return HttpResponse.seeOther(location)
-                    .header("Cache-Control","no-store")
-                    .header("Pragma", "no-cache");
+                return HttpResponse.seeOther(location)
+                                   .header("Cache-Control", "no-store")
+                                   .header("Pragma", "no-cache");
+            } else {
+                return HttpResponse.ok(Map.of("token", apiToken.getAccessToken()));
+            }
         } else {
             return HttpResponse.serverError();
         }
-
     }
     
 }
