@@ -63,10 +63,11 @@ public class BrAPIV2Controller {
     @Secured(SecurityRule.IS_ANONYMOUS)
     public BrAPIServerInfoResponse serverinfo() {
         BrAPIServerInfo serverInfo = new BrAPIServerInfo();
-        serverInfo.setOrganizationName("Breeding Insight Platform");
-        serverInfo.setServerName("bi-api");
+        serverInfo.setOrganizationName("Breeding Insight");
+        serverInfo.setServerName("DeltaBreed");
         serverInfo.setContactEmail("bidevteam@cornell.edu");
         serverInfo.setOrganizationURL("breedinginsight.org");
+        serverInfo.setServerDescription("BrAPI endpoints are not implemented at the root of this domain.  Please make BrAPI calls in the context of a program (ex: https://app.breedinginsight.net/v1/programs/<programId>/brapi/v2)");
 
         return new BrAPIServerInfoResponse().result(serverInfo);
     }

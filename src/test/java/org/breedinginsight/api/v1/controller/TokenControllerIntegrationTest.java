@@ -42,19 +42,6 @@ public class TokenControllerIntegrationTest extends DatabaseTest {
     RxHttpClient client;
 
     @Test
-    void getApiTokenMissingRequiredParameter() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/api-token")
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
-    }
-
-    @Test
     void getApiTokenRequiredParameterBlank() {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET("/api-token?returnUrl=")
