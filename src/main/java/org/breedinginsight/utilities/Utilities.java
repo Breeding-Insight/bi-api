@@ -186,6 +186,12 @@ public class Utilities {
         return sb.toString();
     }
 
+    /**
+     * For only the context of a specific flyway migration, return a list of all Deltabreed programs.
+     * @param context the context relevant to a Java-based migration
+     * @param defaultUrl the url for the default BrAPI service
+     * @return a list of all Deltabreed programs
+     */
     public static List<Program> getAllProgramsFlyway(Context context, String defaultUrl) throws Exception {
         List<Program> programs = new ArrayList<>();
         try (Statement select = context.getConnection().createStatement()) {
