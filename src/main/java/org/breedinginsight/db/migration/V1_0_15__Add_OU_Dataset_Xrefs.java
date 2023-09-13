@@ -63,8 +63,11 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
             BrAPIClient client = new BrAPIClient(program.getBrapiUrl(), 240000);
             log.debug("Migrating observation units for programId: " + program.getId());
 
+            Map<String, BrAPIObservationUnit> ousToUpdate = new HashMap<>();
+
             // Get the Deltabreed-generated experiments for the program
             TrialsApi trialsApi = new TrialsApi(client);
+            ObservationUnitsApi ousApi = new ObservationUnitsApi(client);
             TrialQueryParams trialQueryParams = new TrialQueryParams();
             trialQueryParams.externalReferenceSource(programReferenceSource);
             trialQueryParams.externalReferenceID(program.getId().toString());
@@ -92,10 +95,10 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                     expRef.ifPresent(brAPIExternalReference -> ExpIdByDbId.put(exp.getTrialDbId(), brAPIExternalReference.getReferenceID()));
                 });
 
+
                 for (BrAPITrial exp : experiments) {
 
                     // Fetch all observation units for an experiment
-                    ObservationUnitsApi ousApi = new ObservationUnitsApi(client);
                     ObservationUnitQueryParams ouQueryParams = new ObservationUnitQueryParams();
                     ouQueryParams.externalReferenceSource(trialReferenceSource);
                     ouQueryParams.externalReferenceID(ExpIdByDbId.get(exp.getTrialDbId()));
@@ -126,34 +129,10 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                             .referenceSource(datasetReferenceSource)
                                             .referenceID(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
                                     ou.getExternalReferences().add(datasetRef);
-                                    try {
-
-                                        // Send the updated observation unit back to the brapi server
-                                        log.debug(String.format("Sending observation unit (id: %s) with observation dataset (id: %s) to %s",
-                                                Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
-                                                datasetRef.getReferenceID(),
-                                                defaultUrl));
-                                        BrAPIObservationUnit updatedOu = ousApi.observationunitsObservationUnitDbIdPut(ou.getObservationUnitDbId(), ou).getBody().getResult();
-
-                                        // Verify that the observation unit was updated at the server
-                                        // TODO: Breedbase does not return the updated unit in the successful response, and fetching a single unit via GET returns a an error
-                                        // parsing the date time. Once these bugs are fixed in Breedbase, uncomment the verification step below.
-                                        /*
-                                        boolean isUpdated = updatedOu.getExternalReferences().stream().anyMatch(xref -> {
-                                            return xref.getReferenceSource().equals(datasetReferenceSource) &&
-                                                    xref.getReferenceID().equals(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
-                                        });
-
-                                        log.debug("Updating observation unit successful: " + String.valueOf(isUpdated));
-                                        if (!isUpdated) {
-                                            throw new Exception("Observation unit returned from brapi server was not updated. Check your brapi server.");
-                                        }
-
-                                         */
-                                    } catch(Exception e) {
-                                        log.error(e.getMessage(), e);
-                                        throw new InternalServerException(e.toString(), e);
-                                    }
+                                    log.debug(String.format("Adding observation unit (id: %s) with observation dataset (id: %s) to update list",
+                                        Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
+                                        datasetRef.getReferenceID()));
+                                    ousToUpdate.put(ou.getObservationUnitDbId(), ou);
                                 });
                         
                         // Fetch the next page of observation units for this experiment
@@ -173,6 +152,15 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                     trialQueryParams.page(trialQueryParams.page() + 1);
                     trialsResponse = trialsApi.trialsGet(trialQueryParams);
                 }
+            }
+
+            try {
+                log.debug(String.format("Update OUs for program: %s at url: %s", program.getId(), program.getBrapiUrl()));
+                ousApi.observationunitsPut(ousToUpdate);
+            } catch(Exception e) {
+                log.error(e.getMessage(), e);
+                throw new InternalServerException(e.toString(), e);
+            }
             }
         }
     }
