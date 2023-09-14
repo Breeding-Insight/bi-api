@@ -296,18 +296,14 @@ public class BrAPITrialService {
     }
 
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
-        BrAPITrial experiment = this.getExperiment(program, experimentId);
-
-        // TODO: Once BI-1831 is complete and OUs in a dataset can be identified using the datasetId stored as a xref
-        // the expOUs needs to be replaced with datasetOUs, as was done with datasetObsVars
-        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForTrialDbId(program.getId(), experiment.getTrialDbId(), true);
+        List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datsetId.toString(), program);
         List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
-        List<String> ouDbIds = expOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
+        List<String> ouDbIds = datasetOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
-        Dataset dataset = new Dataset(experimentId.toString(), data, expOUs, datasetObsVars);
+        Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
         if (stats) {
-            Integer ouCount = expOUs.size();
+            Integer ouCount = datasetOUs.size();
             Integer obsVarCount = datasetObsVars.size();
             Integer obsCount = ouCount * obsVarCount;
             Integer obsDataCount = data.size();

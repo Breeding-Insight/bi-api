@@ -21,7 +21,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.Program;
+import org.flywaydb.core.api.migration.Context;
 
+import java.sql.ResultSet;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -179,6 +184,30 @@ public class Utilities {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * For only the context of a specific flyway migration, return a list of all Deltabreed programs.
+     * @param context the context relevant to a Java-based migration
+     * @param defaultUrl the url for the default BrAPI service
+     * @return a list of all Deltabreed programs
+     */
+    public static List<Program> getAllProgramsFlyway(Context context, String defaultUrl) throws Exception {
+        List<Program> programs = new ArrayList<>();
+        try (Statement select = context.getConnection().createStatement()) {
+            try (ResultSet rows = select.executeQuery("SELECT id, brapi_url, key FROM program where active = true ORDER BY id")) {
+                while (rows.next()) {
+                    Program program = new Program();
+                    program.setId(UUID.fromString(rows.getString(1)));
+                    String brapi_url = rows.getString(2);
+                    if (brapi_url == null) brapi_url = defaultUrl;
+                    program.setBrapiUrl(brapi_url);
+                    program.setKey(rows.getString(3));
+                    programs.add(program);
+                }
+            }
+        }
+        return programs;
     }
 
     private static boolean isSafeChar(char c) {
