@@ -76,14 +76,14 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
             ApiResponse<BrAPITrialListResponse> trialsResponse = trialsApi.trialsGet(trialQueryParams);
 
             boolean trialsDone = trialsResponse.getBody() == null || trialsResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || trialsResponse.getBody().getResult() == null;
-            while(!trialsDone) {
+            while (!trialsDone) {
                 log.debug(String.format("processing page %d of %d of experiments for programId: %s",
-                        trialsResponse.getBody().getMetadata().getPagination().getCurrentPage()+1,
+                        trialsResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1,
                         trialsResponse.getBody().getMetadata().getPagination().getTotalPages(),
                         program.getId()));
                 List<BrAPITrial> experiments = trialsResponse.getBody().getResult().getData().stream().filter(trial -> {
                     List<BrAPIExternalReference> xrefs = trial.getExternalReferences();
-                    Optional<BrAPIExternalReference> programRef = Utilities.getExternalReference(xrefs,programReferenceSource);
+                    Optional<BrAPIExternalReference> programRef = Utilities.getExternalReference(xrefs, programReferenceSource);
                     return trial.getAdditionalInfo().getAsJsonObject().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) &&
                             programRef.isPresent() &&
                             program.getId().equals(UUID.fromString(programRef.get().getReferenceID()));
@@ -107,9 +107,9 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                     ApiResponse<BrAPIObservationUnitListResponse> ousResponse = ousApi.observationunitsGet(ouQueryParams);
 
                     boolean ousDone = ousResponse.getBody() == null || ousResponse.getBody().getMetadata().getPagination().getTotalCount() == 0 || ousResponse.getBody().getResult() == null;
-                    while(!ousDone) {
+                    while (!ousDone) {
                         log.debug(String.format("processing page %d of %d of observation units for experiment: %s",
-                                ousResponse.getBody().getMetadata().getPagination().getCurrentPage()+1,
+                                ousResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1,
                                 ousResponse.getBody().getMetadata().getPagination().getTotalPages(),
                                 exp.getTrialName()));
                         ousResponse.getBody().getResult().getData()
@@ -130,13 +130,13 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                                             .referenceID(exp.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
                                     ou.getExternalReferences().add(datasetRef);
                                     log.debug(String.format("Adding observation unit (id: %s) with observation dataset (id: %s) to update list",
-                                        Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
-                                        datasetRef.getReferenceID()));
+                                            Utilities.getExternalReference(ou.getExternalReferences(), observationUnitReferenceSource),
+                                            datasetRef.getReferenceID()));
                                     ousToUpdate.put(ou.getObservationUnitDbId(), ou);
                                 });
-                        
+
                         // Fetch the next page of observation units for this experiment
-                        if(ousResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == ousResponse.getBody().getMetadata().getPagination().getTotalPages()) {
+                        if (ousResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == ousResponse.getBody().getMetadata().getPagination().getTotalPages()) {
                             ousDone = true;
                         } else {
                             ouQueryParams.page(ouQueryParams.page() + 1);
@@ -146,7 +146,7 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
                 }
 
                 // Fetch the next page of experiments for this program
-                if(trialsResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == trialsResponse.getBody().getMetadata().getPagination().getTotalPages()) {
+                if (trialsResponse.getBody().getMetadata().getPagination().getCurrentPage() + 1 == trialsResponse.getBody().getMetadata().getPagination().getTotalPages()) {
                     trialsDone = true;
                 } else {
                     trialQueryParams.page(trialQueryParams.page() + 1);
@@ -157,11 +157,11 @@ public class V1_0_15__Add_OU_Dataset_Xrefs extends BaseJavaMigration {
             try {
                 log.debug(String.format("Update OUs for program: %s at url: %s", program.getId(), program.getBrapiUrl()));
                 ousApi.observationunitsPut(ousToUpdate);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 log.error(e.getMessage(), e);
                 throw new InternalServerException(e.toString(), e);
             }
-            }
+
         }
     }
 }
