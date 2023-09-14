@@ -31,14 +31,21 @@ import io.reactivex.Flowable;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.Species;
+import org.breedinginsight.model.*;
 import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.services.writers.CSVWriter;
 import org.jooq.DSLContext;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -161,5 +168,66 @@ public class ImportTestUtils {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
         return result;
+    }
+
+    public List<Trait> createTraits(int numToCreate) {
+        List<Trait> traits = new ArrayList<>();
+        for (int i = 0; i < numToCreate; i++) {
+            String varName = "tt_test_" + (i + 1);
+            traits.add(Trait.builder()
+                    .observationVariableName(varName)
+                    .entity("Plant " + i)
+                    .attribute("height " + i)
+                    .traitDescription("test")
+                    .programObservationLevel(ProgramObservationLevel.builder().name("Plot").build())
+                    .scale(Scale.builder()
+                            .scaleName("test scale")
+                            .dataType(DataType.NUMERICAL)
+                            .validValueMin(0)
+                            .validValueMax(100)
+                            .build())
+                    .method(Method.builder()
+                            .description("test method")
+                            .methodClass("test method")
+                            .build())
+                    .build());
+        }
+
+        return traits;
+    }
+
+    public File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
+        File file = File.createTempFile("test", ".csv");
+
+        List<Column> columns = new ArrayList<>();
+        columns.add(Column.builder().value(ExperimentObservation.Columns.GERMPLASM_NAME).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.GERMPLASM_GID).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.TEST_CHECK).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TITLE).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_DESCRIPTION).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TYPE).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_LOCATION).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_YEAR).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.REP_NUM).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.BLOCK_NUM).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ROW).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.COLUMN).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+
+        if(traits != null) {
+            traits.forEach(trait -> {
+                columns.add(Column.builder().value(trait.getObservationVariableName()).dataType(Column.ColumnDataType.STRING).build());
+            });
+        }
+
+        ByteArrayOutputStream byteArrayOutputStream = CSVWriter.writeToCSV(columns, data);
+        FileOutputStream fos = new FileOutputStream(file);
+        fos.write(byteArrayOutputStream.toByteArray());
+
+        return file;
     }
 }

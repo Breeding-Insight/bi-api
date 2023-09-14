@@ -684,7 +684,7 @@ public class GermplasmFileImportTest extends BrAPITest {
     }
 
     public void checkGermplasmList(String listName, String listDescription, List<String> germplasmNames) {
-        String url = String.format("%sbrapi/v2/lists", BRAPI_URL);
+        String url = String.format("%sbrapi/v2/lists?listType=germplasm", BRAPI_URL);
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(url)
                         .contentType(MediaType.APPLICATION_JSON)
