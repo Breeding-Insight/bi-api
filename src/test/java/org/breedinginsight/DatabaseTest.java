@@ -31,10 +31,12 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.images.PullPolicy;
 
 import javax.annotation.Nonnull;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 public class DatabaseTest implements TestPropertyProvider {
@@ -43,36 +45,43 @@ public class DatabaseTest implements TestPropertyProvider {
     private static final String dbPassword = "postgres";
 
     @Getter
-    private GenericContainer dbContainer;
+    private static GenericContainer dbContainer;
 
     @Getter
-    private Network network;
+    private static Network network;
 
     @Getter
-    private GenericContainer redisContainer;
+    private static GenericContainer redisContainer;
 
     @Getter
     private RedissonClient redisConnection;
 
-    @SneakyThrows
+//    @SneakyThrows
     public DatabaseTest() {
-        network = Network.newNetwork();
-        dbContainer = new GenericContainer<>("postgres:11.4")
-                .withNetwork(network)
-                .withNetworkAliases("testdb")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
-                .withExposedPorts(5432)
-                .withEnv("POSTGRES_DB", dbName)
-                .withEnv("POSTGRES_PASSWORD", dbPassword)
-                .waitingFor(Wait.forLogMessage(".*LOG:  database system is ready to accept connections.*", 1).withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
-        dbContainer.start();
-        redisContainer = new GenericContainer<>("redis")
-                .withNetwork(network)
-                .withNetworkAliases("redis")
-                .withImagePullPolicy(PullPolicy.defaultPolicy())
-                .withExposedPorts(6379)
-                .waitingFor(Wait.forListeningPort());
-        redisContainer.start();
+        if(network == null) {
+            network = Network.newNetwork();
+        }
+        if(dbContainer == null) {
+            dbContainer = new GenericContainer<>("postgres:11.4")
+                    .withNetwork(network)
+                    .withNetworkAliases("testdb")
+                    .withImagePullPolicy(PullPolicy.defaultPolicy())
+                    .withExposedPorts(5432)
+                    .withEnv("POSTGRES_DB", dbName)
+                    .withEnv("POSTGRES_PASSWORD", dbPassword)
+                    .waitingFor(Wait.forLogMessage(".*LOG:  database system is ready to accept connections.*", 1)
+                                    .withStartupTimeout(Duration.of(2, ChronoUnit.MINUTES)));
+            dbContainer.start();
+        }
+        if(redisContainer == null) {
+            redisContainer = new GenericContainer<>("redis")
+                    .withNetwork(network)
+                    .withNetworkAliases("redis")
+                    .withImagePullPolicy(PullPolicy.defaultPolicy())
+                    .withExposedPorts(6379)
+                    .waitingFor(Wait.forListeningPort());
+            redisContainer.start();
+        }
 
         Integer redisContainerPort = redisContainer.getMappedPort(6379);
         String redisContainerIp = redisContainer.getContainerIpAddress();
@@ -111,8 +120,27 @@ public class DatabaseTest implements TestPropertyProvider {
     @SneakyThrows
     @AfterAll
     public void stopContainers() {
-        redisContainer.stop();
-        dbContainer.stop();
-        network.close();
+        if(redisContainer != null) {
+            redisConnection.getKeys()
+                           .flushall();
+        }
+        if(dbContainer != null) {
+            resetDb(dbName);
+            resetDb("postgres");
+        }
+    }
+
+    private void resetDb(String name) {
+        log.debug("resetting db: " + name);
+        try (Connection con = DriverManager.
+                getConnection(String.format("jdbc:postgresql://%s:%s/"+name,
+                                            dbContainer.getContainerIpAddress(), dbContainer.getMappedPort(5432)),
+                              "postgres", dbPassword)) {
+
+            con.prepareStatement("drop schema public CASCADE").execute();
+            con.prepareStatement("create schema public").execute();
+        } catch (SQLException e) {
+            log.error("Error during reset", e);
+        }
     }
 }

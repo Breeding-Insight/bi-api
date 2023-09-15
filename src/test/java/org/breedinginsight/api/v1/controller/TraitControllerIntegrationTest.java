@@ -1104,7 +1104,9 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(trait.getScale().getDataType().toString(), scaleJson.get("dataType").getAsString(), "Scale data types don't match");
 
         List<JsonObject> jsonCategories = new ArrayList<>();
-        scaleJson.get("categories").getAsJsonArray().iterator().forEachRemaining(element -> jsonCategories.add(element.getAsJsonObject()));
+        if(scaleJson.has("categories")) {
+            scaleJson.get("categories").getAsJsonArray().iterator().forEachRemaining(element -> jsonCategories.add(element.getAsJsonObject()));
+        }
         Collections.sort(jsonCategories, Comparator.comparing((x) -> x.get("label").getAsString()));
         List<BrAPIScaleValidValuesCategories> brApiScaleCategories = new ArrayList<>(trait.getScale().getCategories());
         Collections.sort(brApiScaleCategories, Comparator.comparing(BrAPIScaleValidValuesCategories::getLabel));
