@@ -23,6 +23,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -112,6 +113,7 @@ public class UploadController {
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
                                                              @PathVariable UUID uploadId, @Body @Nullable Map<String, Object> userInput) {
+        /*
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, actingUser, userInput, true);
@@ -130,6 +132,10 @@ public class UploadController {
             log.error(e.getMessage(), e);
             return HttpResponse.status(e.getStatus(), e.getMessage());
         }
+
+         */
+
+        throw new InternalServerException("Test failure");
     }
 
     @Put("programs/{programId}/import/mappings/{mappingId}/data/{uploadId}/preview")
