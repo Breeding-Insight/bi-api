@@ -61,7 +61,7 @@ public class TokenController {
             ApiToken apiToken = token.get();
 
             if(returnUrl != null) {
-                if(StringUtils.trim(returnUrl).isEmpty()) {
+                if(StringUtils.trim(returnUrl).isEmpty() || "undefined".equalsIgnoreCase(returnUrl)) {
                     return HttpResponse.badRequest("returnUrl cannot be blank");
                 }
                 URI location = UriBuilder.of(returnUrl)

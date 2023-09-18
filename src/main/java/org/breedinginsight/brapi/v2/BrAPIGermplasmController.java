@@ -51,7 +51,7 @@ import java.util.*;
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class GermplasmController {
+public class BrAPIGermplasmController {
 
     private final BrAPIGermplasmService germplasmService;
     private final GermplasmQueryMapper germplasmQueryMapper;
@@ -64,7 +64,7 @@ public class GermplasmController {
 
 
     @Inject
-    public GermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenotypeService genoService, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIGermplasmController(BrAPIGermplasmService germplasmService, GermplasmQueryMapper germplasmQueryMapper, ProgramDAO programDAO, BrAPIGermplasmDAO germplasmDAO, GenotypeService genoService, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.germplasmService = germplasmService;
         this.germplasmQueryMapper = germplasmQueryMapper;
         this.programDAO = programDAO;

@@ -46,14 +46,14 @@ import java.util.UUID;
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class StudyController {
+public class BrAPIStudiesController {
 
     private final BrAPIStudyService studyService;
     private final StudyQueryMapper studyQueryMapper;
 
 
     @Inject
-    public StudyController(BrAPIStudyService studyService, StudyQueryMapper studyQueryMapper) {
+    public BrAPIStudiesController(BrAPIStudyService studyService, StudyQueryMapper studyQueryMapper) {
         this.studyService = studyService;
         this.studyQueryMapper = studyQueryMapper;
     }
@@ -79,5 +79,35 @@ public class StudyController {
             log.info(e.getMessage(), e);
             return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, "Error parsing requested date format");
         }
+    }
+
+    /*
+    TODO
+    - GET studies/{id}
+     */
+    @Post("/studies")
+    @Consumes({"application/json"})
+    @Produces({"application/json"})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse studiesPost(@PathVariable("programId") UUID programId, List<BrAPIStudy> body) {
+        //DO NOT IMPLEMENT - Users are only able to create new studies via the DeltaBreed UI
+        return HttpResponse.notFound();
+    }
+
+    @Get("/studies/{studyDbId}")
+    @Produces({"application/json"})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse studiesStudyDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId) {
+        return HttpResponse.notFound();
+    }
+
+    @Put("/studies/{studyDbId}")
+    @Consumes({"application/json"})
+    @Produces({"application/json"})
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse studiesStudyDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId,
+                                            BrAPIStudy body) {
+        //DO NOT IMPLEMENT - Users are only able to update studies via the DeltaBreed UI
+        return HttpResponse.notFound();
     }
 }
