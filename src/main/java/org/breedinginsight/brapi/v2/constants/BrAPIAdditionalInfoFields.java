@@ -23,6 +23,8 @@ public final class BrAPIAdditionalInfoFields {
     public static final String GERMPLASM_RAW_PEDIGREE = "rawPedigree";
     public static final String GERMPLASM_PEDIGREE_BY_NAME = "pedigreeByName";
     public static final String GERMPLASM_PEDIGREE_BY_UUID = "pedigreeByUUID";
+    public static final String GERMPLASM_FEMALE_PARENT_UUID = "femaleParentUUID";
+    public static final String GERMPLASM_MALE_PARENT_UUID = "maleParentUUID";
     public static final String GERMPLASM_IMPORT_ENTRY_NUMBER = "importEntryNumber";
     public static final String GERMPLASM_FEMALE_PARENT_GID = "femaleParentGid";
     public static final String GERMPLASM_MALE_PARENT_GID = "maleParentGid";
