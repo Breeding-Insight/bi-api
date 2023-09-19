@@ -164,7 +164,7 @@ brapi:
   page-size: 1000
   search:
     wait-time: 1000
-  post-group-size: 100
+  post-group-size: ${POST_CHUNK_SIZE:1000}
 
 email:
   relay-server:
