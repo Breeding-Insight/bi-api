@@ -216,6 +216,8 @@ public class BrAPIGermplasmDAO {
                     // Throw a descriptive error if femaleParentUUID is absent.
                     if (!additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID)) {
                         // TODO: link to BI-1881.
+                        log.debug("Germplasm: " + germplasm.getGermplasmName());
+                        log.debug("Germplasm Pedigree: " + germplasm.getPedigree());
                         throw new InternalServerException("Germplasm has a female parent but femaleParentUUID is missing.");
                     }
                 } else if (additionalInfo.has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) && additionalInfo.get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
@@ -230,6 +232,8 @@ public class BrAPIGermplasmDAO {
                     // Throw a descriptive error if maleParentUUID is absent.
                     if (!additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID)) {
                         // TODO: link to BI-1881.
+                        log.debug("Germplasm: " + germplasm.getGermplasmName());
+                        log.debug("Germplasm Pedigree: " + germplasm.getPedigree());
                         throw new InternalServerException("Germplasm has a male parent but maleParentUUID is missing.");
                     }
                 } else if (additionalInfo.has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) && additionalInfo.get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
