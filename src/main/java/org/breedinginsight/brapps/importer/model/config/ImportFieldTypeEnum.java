@@ -21,6 +21,7 @@ import lombok.Getter;
 
 @Getter
 public enum ImportFieldTypeEnum {
+    BOOLEAN("BOOLEAN"),
     TEXT("TEXT"),
     NUMERICAL("NUMERICAL"),
     INTEGER("INTEGER"),
