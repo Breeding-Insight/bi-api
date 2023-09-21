@@ -56,7 +56,6 @@ public class DatabaseTest implements TestPropertyProvider {
     @Getter
     private RedissonClient redisConnection;
 
-//    @SneakyThrows
     public DatabaseTest() {
         if(network == null) {
             network = Network.newNetwork();
@@ -119,7 +118,7 @@ public class DatabaseTest implements TestPropertyProvider {
 
     @SneakyThrows
     @AfterAll
-    public void stopContainers() {
+    public void resetContainers() {
         if(redisContainer != null) {
             redisConnection.getKeys()
                            .flushall();
