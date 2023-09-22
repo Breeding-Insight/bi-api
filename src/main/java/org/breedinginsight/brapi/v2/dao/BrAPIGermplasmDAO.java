@@ -31,7 +31,7 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.brapi.v2.model.germ.request.BrAPIGermplasmSearchRequest;
 import org.brapi.v2.model.germ.response.BrAPIGermplasmSingleResponse;
-import static org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields.*;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
@@ -112,9 +112,9 @@ public class BrAPIGermplasmDAO {
         List<BrAPIGermplasm> cacheList = new ArrayList<>(programGermplasmCache.get(programId).values());
         return cacheList.stream().map(germplasm -> {
             germplasm.setGermplasmName(Utilities.appendProgramKey(germplasm.getDefaultDisplayName(), program.getKey(), germplasm.getAccessionNumber()));
-            if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(GERMPLASM_RAW_PEDIGREE)
-                    && !(germplasm.getAdditionalInfo().get(GERMPLASM_RAW_PEDIGREE).isJsonNull())) {
-                germplasm.setPedigree(germplasm.getAdditionalInfo().get(GERMPLASM_RAW_PEDIGREE).getAsString());
+            if(germplasm.getAdditionalInfo() != null && germplasm.getAdditionalInfo().has(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE)
+                    && !(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE).isJsonNull())) {
+                germplasm.setPedigree(germplasm.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE).getAsString());
             }
 
             return germplasm;
@@ -161,8 +161,8 @@ public class BrAPIGermplasmDAO {
         for (BrAPIGermplasm germplasm: programGermplasm) {
 
             JsonObject additionalInfo = germplasm.getAdditionalInfo();
-            if (additionalInfo != null && additionalInfo.has(GERMPLASM_BREEDING_METHOD_ID)) {
-                germplasm.setBreedingMethodDbId(additionalInfo.get(GERMPLASM_BREEDING_METHOD_ID).getAsString());
+            if (additionalInfo != null && additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID)) {
+                germplasm.setBreedingMethodDbId(additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD_ID).getAsString());
             }
 
             if (germplasm.getDefaultDisplayName() != null) {
@@ -188,7 +188,7 @@ public class BrAPIGermplasmDAO {
 
                 // TODO: BI-1883 to cleanup this workaround for the pedigree string
                 String pedigree = processBreedbasePedigree(germplasm.getPedigree());
-                additionalInfo.addProperty(GERMPLASM_RAW_PEDIGREE, pedigree);
+                additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_RAW_PEDIGREE, pedigree);
 
                 String gidPedigreeString = "";
                 String namePedigreeString = "";
@@ -214,34 +214,44 @@ public class BrAPIGermplasmDAO {
             // Update pedigree info for female parent.
             if (parentNames.size() >= 1 && !parentNames.get(0).isEmpty())
             {
-                gidPedigreeString = additionalInfo.has(GERMPLASM_FEMALE_PARENT_GID) ? additionalInfo.get(GERMPLASM_FEMALE_PARENT_GID).getAsString() : "";
+                gidPedigreeString = additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID).getAsString() : "";
                 namePedigreeString = parentNames.get(0);
-                uuidPedigreeString = additionalInfo.has(GERMPLASM_FEMALE_PARENT_UUID) ? additionalInfo.get(GERMPLASM_FEMALE_PARENT_UUID).getAsString() : "";
+                uuidPedigreeString = additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID).getAsString() : "";
                 // Throw a descriptive error if femaleParentUUID is absent.
-                if (!additionalInfo.has(GERMPLASM_FEMALE_PARENT_UUID)) {
-                    log.debug("The germplasm data in your backing BrAPI service needs to be updated: https://github.com/Breeding-Insight/bi-api/pull/290");
+                if (!additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID)) {
+                    String programId = "unknown program";
+                    Optional<BrAPIExternalReference> exRef = Utilities.getExternalReference(germplasm.getExternalReferences(), referenceSource + "/programs");
+                    if (exRef.isPresent()) {
+                        programId = exRef.get().getReferenceID();
+                    }
+                    log.debug("The germplasm data for program " + programId + " needs to be updated: https://github.com/Breeding-Insight/bi-api/pull/290");
                     throw new InternalServerException("Germplasm (" + germplasm.getGermplasmName() + ") has a female parent but femaleParentUUID is missing (Pedigree: " + germplasm.getPedigree() + ").");
                 }
-            } else if (additionalInfo.has(FEMALE_PARENT_UNKNOWN) && additionalInfo.get(FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
+            } else if (additionalInfo.has(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN) && additionalInfo.get(BrAPIAdditionalInfoFields.FEMALE_PARENT_UNKNOWN).getAsBoolean()) {
                 namePedigreeString = "Unknown";
             }
             // Update pedigree info for male parent.
             if (parentNames.size() == 2 && !parentNames.get(1).isEmpty())
             {
-                gidPedigreeString += "/" + (additionalInfo.has(GERMPLASM_MALE_PARENT_GID) ? additionalInfo.get(GERMPLASM_MALE_PARENT_GID).getAsString() : "");
+                gidPedigreeString += "/" + (additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID).getAsString() : "");
                 namePedigreeString += "/" + parentNames.get(1);
-                uuidPedigreeString += "/" + (additionalInfo.has(GERMPLASM_MALE_PARENT_UUID) ? additionalInfo.get(GERMPLASM_MALE_PARENT_UUID).getAsString() : "");
+                uuidPedigreeString += "/" + (additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID) ? additionalInfo.get(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID).getAsString() : "");
                 // Throw a descriptive error if maleParentUUID is absent.
-                if (!additionalInfo.has(GERMPLASM_MALE_PARENT_UUID)) {
-                    log.debug("The germplasm data in your backing BrAPI service needs to be updated: https://github.com/Breeding-Insight/bi-api/pull/290");
+                if (!additionalInfo.has(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID)) {
+                    String programId = "unknown program";
+                    Optional<BrAPIExternalReference> exRef = Utilities.getExternalReference(germplasm.getExternalReferences(), referenceSource + "/programs");
+                    if (exRef.isPresent()) {
+                        programId = exRef.get().getReferenceID();
+                    }
+                    log.debug("The germplasm data for program " + programId + " needs to be updated: https://github.com/Breeding-Insight/bi-api/pull/290");
                     throw new InternalServerException("Germplasm (" + germplasm.getGermplasmName() + ") has a male parent but maleParentUUID is missing (Pedigree: " + germplasm.getPedigree() + ").");
                 }
-            } else if (additionalInfo.has(MALE_PARENT_UNKNOWN) && additionalInfo.get(MALE_PARENT_UNKNOWN).getAsBoolean()) {
+            } else if (additionalInfo.has(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN) && additionalInfo.get(BrAPIAdditionalInfoFields.MALE_PARENT_UNKNOWN).getAsBoolean()) {
                 namePedigreeString += "/Unknown";
             }
             //For use in individual germplasm display
-            additionalInfo.addProperty(GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
-            additionalInfo.addProperty(GERMPLASM_PEDIGREE_BY_UUID, uuidPedigreeString);
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_NAME, namePedigreeString);
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.GERMPLASM_PEDIGREE_BY_UUID, uuidPedigreeString);
 
                 germplasm.setPedigree(gidPedigreeString);
 
