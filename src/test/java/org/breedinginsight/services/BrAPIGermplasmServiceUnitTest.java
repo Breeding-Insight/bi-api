@@ -36,6 +36,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
@@ -92,6 +93,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         listResponse.setResult(listDetails);
 
         //Create Germplasm
+        String parentUuid = UUID.randomUUID().toString();
         List<BrAPIGermplasm> germplasm = new ArrayList();
         BrAPIGermplasm testGermplasm = new BrAPIGermplasm();
         testGermplasm.setGermplasmName("Germplasm A [TEST-1]");
@@ -99,13 +101,13 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testGermplasm.setAccessionNumber("1");
         testGermplasm.setDefaultDisplayName("Germplasm A");
         JsonObject additionalInfo = new JsonObject();
-        additionalInfo.addProperty("importEntryNumber", "2");
-        additionalInfo.addProperty("breedingMethod", "Allopolyploid");
+        additionalInfo.addProperty(GERMPLASM_IMPORT_ENTRY_NUMBER, "2");
+        additionalInfo.addProperty(GERMPLASM_BREEDING_METHOD, "Allopolyploid");
         testGermplasm.setAdditionalInfo(additionalInfo);
         List<BrAPIExternalReference> externalRef = new ArrayList<>();
         BrAPIExternalReference testReference = new BrAPIExternalReference();
         testReference.setReferenceSource(referenceSource);
-        testReference.setReferenceID(UUID.randomUUID().toString());
+        testReference.setReferenceID(parentUuid);
         externalRef.add(testReference);
         testGermplasm.setExternalReferences(externalRef);
         germplasm.add(testGermplasm);
@@ -117,8 +119,9 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         testGermplasm.setDefaultDisplayName("Germplasm B");
         testGermplasm.setPedigree("Germplasm A [TEST-1]");
         additionalInfo = new JsonObject();
-        additionalInfo.addProperty("importEntryNumber", "3");
-        additionalInfo.addProperty("breedingMethod", "Autopolyploid");
+        additionalInfo.addProperty(GERMPLASM_IMPORT_ENTRY_NUMBER, "3");
+        additionalInfo.addProperty(GERMPLASM_BREEDING_METHOD, "Autopolyploid");
+        additionalInfo.addProperty(GERMPLASM_FEMALE_PARENT_UUID, parentUuid);
         testGermplasm.setAdditionalInfo(additionalInfo);
         testReference = new BrAPIExternalReference();
         testReference.setReferenceSource(referenceSource);
