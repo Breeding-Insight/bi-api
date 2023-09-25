@@ -35,18 +35,16 @@ import java.util.UUID;
 @Secured(SecurityRule.IS_ANONYMOUS)
 public class OIDCDiscoveryController {
 
-    private static final String OIDC_CONFIG = """
-        {
-          "issuer": "%s",
-          "authorization_endpoint": "%s/programs/%s/brapi/authorize",
-          "jwks_uri": "",
-          "token_endpoint": "",
-          "grant_types_supported": ["implicit"],
-          "response_types_supported": ["token"],
-          "subject_types_supported": ["public"],
-          "id_token_signing_alg_values_supported": []
-        }
-    """;
+    private static final String OIDC_CONFIG = "    {\n" +
+                                              "      \"issuer\": \"%s\",\n" +
+                                              "      \"authorization_endpoint\": \"%s/programs/%s/brapi/authorize\",\n" +
+                                              "      \"jwks_uri\": \"\",\n" +
+                                              "      \"token_endpoint\": \"\",\n" +
+                                              "      \"grant_types_supported\": [\"implicit\"],\n" +
+                                              "      \"response_types_supported\": [\"token\"],\n" +
+                                              "      \"subject_types_supported\": [\"public\"],\n" +
+                                              "      \"id_token_signing_alg_values_supported\": []\n" +
+                                              "    }\n";
 
     private final String webUrl;
     private final ProgramDAO programDAO;
