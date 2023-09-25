@@ -51,7 +51,7 @@ public class BrAPITest extends DatabaseTest {
 
         brapiContainer = new GenericContainer<>("breedinginsight/brapi-java-server:develop")
                 .withNetwork(super.getNetwork())
-                .withImagePullPolicy(PullPolicy.alwaysPull())
+                .withImagePullPolicy(PullPolicy.ageBased(Duration.ofMinutes(60)))
                 .withExposedPorts(8080)
                 .withEnv("BRAPI_DB_SERVER",
                          String.format("%s:%s",
@@ -61,7 +61,7 @@ public class BrAPITest extends DatabaseTest {
                 .withEnv("BRAPI_DB_USER", "postgres")
                 .withEnv("BRAPI_DB_PASSWORD", "postgres")
                 .withClasspathResourceMapping("brapi/properties/application.properties", "/home/brapi/properties/application.properties", BindMode.READ_ONLY)
-                .waitingFor(Wait.forLogMessage(".*: Started BrapiTestServer in \\d*.\\d* seconds.*", 1).withStartupTimeout(Duration.ofMinutes(1)));
+                .waitingFor(Wait.forLogMessage(".*Started BrapiTestServer in \\d*.\\d* seconds.*", 1).withStartupTimeout(Duration.ofMinutes(1)));
 
         brapiContainer.start();
 

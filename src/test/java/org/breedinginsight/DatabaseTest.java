@@ -33,6 +33,7 @@ import org.testcontainers.images.PullPolicy;
 import javax.annotation.Nonnull;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
@@ -131,14 +132,15 @@ public class DatabaseTest implements TestPropertyProvider {
 
     private void resetDb(String name) {
         log.debug("resetting db: " + name);
-        try (Connection con = DriverManager.
-                getConnection(String.format("jdbc:postgresql://%s:%s/"+name,
-                                            dbContainer.getContainerIpAddress(), dbContainer.getMappedPort(5432)),
-                              "postgres", dbPassword)) {
+        try (Connection con = DriverManager.getConnection(String.format("jdbc:postgresql://%s:%s/%s", dbContainer.getContainerIpAddress(), dbContainer.getMappedPort(5432), name), "postgres", dbPassword)) {
 
-            con.prepareStatement("drop schema public CASCADE").execute();
-            con.prepareStatement("create schema public").execute();
-        } catch (SQLException e) {
+            try (PreparedStatement ps = con.prepareStatement("drop schema public CASCADE")) {
+               ps.execute();
+            }
+            try (PreparedStatement ps = con.prepareStatement("create schema public")) {
+                ps.execute();
+            }
+        } catch (Exception e) {
             log.error("Error during reset", e);
         }
     }
