@@ -92,7 +92,9 @@ public class BrAPITrialService {
             //Remove the [program key] from the trial name
             trial.setTrialName( Utilities.removeUnknownProgramKey( trial.getTrialName()) );
             if( stats ){
+                log.debug("fetching experiment: " + trialId + " stats");
                 int environmentsCount = 1; // For now this is hardcoded to 1, because we are only supporting one environment per experiment
+                log.debug("fetching observation units for experiment: " + trialId);
                 long germplasmCount = countGermplasm(programId, trial.getTrialDbId());
                 trial.putAdditionalInfoItem("environmentsCount", environmentsCount);
                 trial.putAdditionalInfoItem("germplasmCount", germplasmCount);
@@ -296,11 +298,16 @@ public class BrAPITrialService {
     }
 
     public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
+        log.debug("fetching dataset: " + datsetId + " for experiment: " + experimentId + ".  including stats: " + stats);
+        log.debug("fetching observationUnits for dataset: " + datsetId);
         List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datsetId.toString(), program);
+        log.debug("fetching dataset variables dataset: " + datsetId);
         List<BrAPIObservationVariable> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
         List<String> ouDbIds = datasetOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(BrAPIObservationVariable::getObservationVariableDbId).collect(Collectors.toList());
+        log.debug("fetching observations for dataset: " + datsetId);
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
+        log.debug("building dataset object for dataset: " + datsetId);
         Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
         if (stats) {
             Integer ouCount = datasetOUs.size();
