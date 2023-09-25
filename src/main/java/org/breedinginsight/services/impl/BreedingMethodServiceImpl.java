@@ -1,6 +1,5 @@
 package org.breedinginsight.services.impl;
 
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
@@ -14,8 +13,9 @@ import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static java.lang.String.format;
+
 @Singleton
-@Slf4j
 public class BreedingMethodServiceImpl implements BreedingMethodService {
 
     private final BreedingMethodDAO breedingMethodDAO;
@@ -60,19 +60,21 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
     }
 
     @Override
-    public ProgramBreedingMethodEntity createBreedingMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID userId) throws BadRequestException, ApiException {
-        if(!validateBreedingMethod(breedingMethod)) {
-            throw new BadRequestException("Missing required data");
-        }
+    public ProgramBreedingMethodEntity createBreedingMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID userId) throws BadRequestException {
+        validate(breedingMethod, programId);
 
         return dsl.transactionResult(() -> breedingMethodDAO.createProgramMethod(breedingMethod, programId, userId));
     }
 
+    private boolean methodAlreadyExist(ProgramBreedingMethodEntity breedingMethod, UUID programId) {
+        List<ProgramBreedingMethodEntity> programMethods = getBreedingMethods(programId);
+        List<ProgramBreedingMethodEntity> systemMethods = getSystemBreedingMethods();
+        return isDuplicateMethodFoundAnywhere(breedingMethod, systemMethods, programMethods);
+    }
+
     @Override
     public ProgramBreedingMethodEntity updateBreedingMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID userId) throws BadRequestException, ApiException {
-        if(!validateBreedingMethod(breedingMethod)) {
-            throw new BadRequestException("Missing required data");
-        }
+        validate(breedingMethod, programId);
 
         List<ProgramBreedingMethodEntity> inUseMethods = fetchBreedingMethodsInUse(programId);
         if(inUseMethods.stream().anyMatch(method -> method.getId().equals(breedingMethod.getId()))) {
@@ -81,6 +83,16 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
 
         return dsl.transactionResult(() -> breedingMethodDAO.updateProgramMethod(breedingMethod, programId, userId));
     }
+
+    private void validate(ProgramBreedingMethodEntity breedingMethod, UUID programId) throws BadRequestException {
+        if (isMissingRequiredFields(breedingMethod)) {
+            throw new BadRequestException("Missing required data");
+        }
+        if (methodAlreadyExist(breedingMethod, programId)) {
+            throw new BadRequestException(format("A method with name:'%s' or abbreviation:'%s already exist", breedingMethod.getName(), breedingMethod.getAbbreviation()));
+        }
+    }
+
 
     @Override
     public void enableSystemMethods(List<UUID> systemBreedingMethods, UUID programId, UUID userId) throws ApiException, BadRequestException {
@@ -111,10 +123,48 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         dsl.transaction(() -> breedingMethodDAO.deleteProgramMethod(programId, breedingMethodId));
     }
 
-    private boolean validateBreedingMethod(ProgramBreedingMethodEntity method) {
-        return StringUtils.isNotBlank(method.getName())
-                && StringUtils.isNotBlank(method.getAbbreviation())
-                && StringUtils.isNotBlank(method.getCategory())
-                && StringUtils.isNotBlank(method.getGeneticDiversity());
+     public boolean isMissingRequiredFields(ProgramBreedingMethodEntity method) {
+        return StringUtils.isBlank(method.getName())
+                || StringUtils.isBlank(method.getAbbreviation())
+                || StringUtils.isBlank(method.getCategory())
+                || StringUtils.isBlank(method.getGeneticDiversity());
     }
+
+    public boolean isDuplicateMethodFoundAnywhere(ProgramBreedingMethodEntity testMethod, List<ProgramBreedingMethodEntity> systemBreedingMethodEntityList, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+        boolean foundDup = isDuplicateMethodFoundOnList(testMethod, systemBreedingMethodEntityList);
+        if (!foundDup && programBreedingMethodEntityList!=null){
+            foundDup = isDuplicateMethodFoundOnList(testMethod, programBreedingMethodEntityList);
+        }
+        return foundDup;
+    }
+
+    private boolean isDuplicateMethodFoundOnList(ProgramBreedingMethodEntity testMethod, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+        boolean foundDup = false;
+        for (ProgramBreedingMethodEntity method: programBreedingMethodEntityList) {
+            if(areMethodsDuplicate(testMethod, method)){
+                foundDup = true;
+                break;
+            }
+        }
+        return foundDup;
+    }
+
+
+    public boolean areMethodsDuplicate(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
+        boolean isDup = false;
+
+        if(testMethod.getName()!= null && testMethod.getName().equals(method.getName())){
+            isDup = true;
+        }
+        else if(testMethod.getAbbreviation()!= null && testMethod.getAbbreviation().equals(method.getAbbreviation())){
+            isDup = true;
+        }
+        else if(testMethod.getName()==null && method.getName()==null ||
+                testMethod.getAbbreviation()==null && method.getAbbreviation()==null){
+            isDup = true;
+        }
+
+        return isDup;
+    }
+
 }

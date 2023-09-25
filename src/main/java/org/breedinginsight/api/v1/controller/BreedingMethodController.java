@@ -64,7 +64,7 @@ public class BreedingMethodController {
     @Post("programs/{programId}/breeding-methods")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<ProgramBreedingMethodEntity>> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
+    public HttpResponse createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
         log.debug("Saving new program breeding method");
 
         try {
@@ -79,6 +79,8 @@ public class BreedingMethodController {
             response.metadata = metadata;
 
             return HttpResponse.ok(response);
+        } catch (BadRequestException ex) {
+            return HttpResponse.badRequest(ex.getMessage());
         } catch (Exception e) {
             log.error("Error creating program breeding method", e);
             throw e;
