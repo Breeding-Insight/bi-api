@@ -1,4 +1,4 @@
-﻿Germplasm Name,Germplasm GID,Test (T) or Check (C ),Exp Title,Exp Description,Exp Unit,Exp Type,Env,Env Location,Env Year,Exp Unit ID,Exp Replicate #,Exp Block #,Row,Column,Treatment Factors,ObsUnitID,Color,INCAUDPS,INCW10SUM,INCW6SUM,,,
+﻿Germplasm Name,Germplasm GID,Test (T) or Check (C),Exp Title,Exp Description,Exp Unit,Exp Type,Env,Env Location,Env Year,Exp Unit ID,Exp Replicate #,Exp Block #,Row,Column,Treatment Factors,ObsUnitID,Color,INCAUDPS,INCW10SUM,INCW6SUM,,,
 BRG,453,C,KRSP22-3,INSV phenotyping trial BRG x Eruption RIL population and parents,Plot,Disease resistance screening,"Salinas, CA 2022","Salinas, CA",2022,89,1,1,,,,,Green,120,6,0,,,
 Eruption,454,C,KRSP22-3,INSV phenotyping trial BRG x Eruption RIL population and parents,Plot,Disease resistance screening,"Salinas, CA 2022","Salinas, CA",2022,90,1,1,,,,,Medium red,110,4,0,,,
 BxE16-001,455,,KRSP22-3,INSV phenotyping trial BRG x Eruption RIL population and parents,Plot,Disease resistance screening,"Salinas, CA 2022","Salinas, CA",2022,91,1,1,,,,,Dark red,110,6,0,,,
