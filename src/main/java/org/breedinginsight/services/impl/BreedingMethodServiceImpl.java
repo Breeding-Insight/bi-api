@@ -87,7 +87,7 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
             throw new BadRequestException("Missing required data");
         }
         if (methodAlreadyExist(breedingMethod, programId)) {
-            throw new BadRequestException(format("A method with name:'%s' or abbreviation:'%s already exist", breedingMethod.getName(), breedingMethod.getAbbreviation()));
+            throw new BadRequestException(format("A method with name:'%s' or abbreviation:'%s' already exist.", breedingMethod.getName(), breedingMethod.getAbbreviation()));
         }
     }
 
