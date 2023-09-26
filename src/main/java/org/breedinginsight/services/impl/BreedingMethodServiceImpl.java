@@ -67,19 +67,17 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
     }
 
     private boolean methodAlreadyExist(ProgramBreedingMethodEntity breedingMethod, UUID programId) {
-        List<ProgramBreedingMethodEntity> programMethods = getBreedingMethods(programId);
-        List<ProgramBreedingMethodEntity> systemMethods = getSystemBreedingMethods();
-        return isDuplicateMethodFoundAnywhere(breedingMethod, systemMethods, programMethods);
+        List<ProgramBreedingMethodEntity> programAndSystemMethods = getBreedingMethods(programId);
+        return isDuplicateMethodFoundOnList(breedingMethod, programAndSystemMethods);
     }
 
     @Override
     public ProgramBreedingMethodEntity updateBreedingMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID userId) throws BadRequestException, ApiException {
-        validate(breedingMethod, programId);
-
         List<ProgramBreedingMethodEntity> inUseMethods = fetchBreedingMethodsInUse(programId);
         if(inUseMethods.stream().anyMatch(method -> method.getId().equals(breedingMethod.getId()))) {
             throw new BadRequestException("Breeding method is not allowed to be edited");
         }
+        validate(breedingMethod, programId);
 
         return dsl.transactionResult(() -> breedingMethodDAO.updateProgramMethod(breedingMethod, programId, userId));
     }
@@ -123,24 +121,16 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         dsl.transaction(() -> breedingMethodDAO.deleteProgramMethod(programId, breedingMethodId));
     }
 
-     public boolean isMissingRequiredFields(ProgramBreedingMethodEntity method) {
+     boolean isMissingRequiredFields(ProgramBreedingMethodEntity method) {
         return StringUtils.isBlank(method.getName())
                 || StringUtils.isBlank(method.getAbbreviation())
                 || StringUtils.isBlank(method.getCategory())
                 || StringUtils.isBlank(method.getGeneticDiversity());
     }
 
-    public boolean isDuplicateMethodFoundAnywhere(ProgramBreedingMethodEntity testMethod, List<ProgramBreedingMethodEntity> systemBreedingMethodEntityList, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
-        boolean foundDup = isDuplicateMethodFoundOnList(testMethod, systemBreedingMethodEntityList);
-        if (!foundDup && programBreedingMethodEntityList!=null){
-            foundDup = isDuplicateMethodFoundOnList(testMethod, programBreedingMethodEntityList);
-        }
-        return foundDup;
-    }
-
-    private boolean isDuplicateMethodFoundOnList(ProgramBreedingMethodEntity testMethod, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+    boolean isDuplicateMethodFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
         boolean foundDup = false;
-        for (ProgramBreedingMethodEntity method: programBreedingMethodEntityList) {
+        for (ProgramBreedingMethodEntity testMethod: programBreedingMethodEntityList) {
             if(areMethodsDuplicate(testMethod, method)){
                 foundDup = true;
                 break;
@@ -150,9 +140,14 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
     }
 
 
-    public boolean areMethodsDuplicate(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
-        boolean isDup = false;
+    boolean areMethodsDuplicate(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
 
+        // SPECIAL CASE: If the two methods are the same method, then they are not duplicates
+        if( (testMethod.getId()!=null) && testMethod.getId().equals(method.getId()) ){
+            return false;
+        }
+
+        boolean isDup = false;
         if(testMethod.getName()!= null && testMethod.getName().equals(method.getName())){
             isDup = true;
         }

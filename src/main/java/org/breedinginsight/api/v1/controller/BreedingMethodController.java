@@ -112,7 +112,7 @@ public class BreedingMethodController {
     @Put("programs/{programId}/breeding-methods/{breedingMethodId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<ProgramBreedingMethodEntity>> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
+    public HttpResponse updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
         log.debug("Saving new program breeding method");
 
         try {
@@ -130,6 +130,8 @@ public class BreedingMethodController {
             response.metadata = metadata;
 
             return HttpResponse.ok(response);
+        } catch (BadRequestException ex) {
+            return HttpResponse.badRequest(ex.getMessage());
         } catch (Exception e) {
             log.error("Error updating program breeding method", e);
             throw e;
