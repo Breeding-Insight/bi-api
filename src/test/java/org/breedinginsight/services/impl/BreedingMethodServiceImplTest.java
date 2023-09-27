@@ -11,6 +11,7 @@ import org.junit.jupiter.api.TestInstance;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -40,95 +41,115 @@ public class BreedingMethodServiceImplTest {
 
     @Test
     @SneakyThrows
-    public void isDupOfProgramMethod() {
+    public void isDuplicateMethodNameFoundOnList() {
         List<ProgramBreedingMethodEntity> programBreedingMethodEntityList = new ArrayList<>();
-        programBreedingMethodEntityList.add(makeMethod("1"));
-        programBreedingMethodEntityList.add(makeMethod("2"));
+        programBreedingMethodEntityList.add(makeMethod("1", null));
+        programBreedingMethodEntityList.add(makeMethod("2", null));
 
-        boolean isDup = breedingMethodService.isDuplicateMethodFoundOnList(makeMethod("1"), programBreedingMethodEntityList);
-        assertTrue(isDup, "Duplicate found in  list.");
+        boolean isDup = breedingMethodService.isDuplicateMethodNameFoundOnList(makeMethod("1", null), programBreedingMethodEntityList);
+        assertTrue(isDup, "Duplicate name found in  list.");
     }
 
     @Test
     @SneakyThrows
-    public void isNotADupMethod() {
+    public void isDuplicateMethodAbbreviationFoundOnList() {
         List<ProgramBreedingMethodEntity> programBreedingMethodEntityList = new ArrayList<>();
-        programBreedingMethodEntityList.add(makeMethod("1"));
-        programBreedingMethodEntityList.add(makeMethod("2"));
+        programBreedingMethodEntityList.add(makeMethod(null, "1"));
+        programBreedingMethodEntityList.add(makeMethod(null, "2"));
 
-
-        ProgramBreedingMethodEntity methodUnique = makeMethod("unique");;
-        boolean isDup = breedingMethodService.isDuplicateMethodFoundOnList(methodUnique, programBreedingMethodEntityList);
-        assertFalse(isDup, "No duplicates method found.");
-
+        boolean isDup = breedingMethodService.isDuplicateMethodAbbreviationFoundOnList(makeMethod(null, "1"), programBreedingMethodEntityList);
+        assertTrue(isDup, "Duplicate abbreviation found in  list.");
+        isDup = breedingMethodService.isDuplicateMethodAbbreviationFoundOnList(makeMethod(null, "unique"), programBreedingMethodEntityList);
+        assertFalse(isDup, "Duplicate abbreviation NOT found in  list.");
     }
+
+
+
     @Test
     @SneakyThrows
-    public void methodNameEqual() {
-        ProgramBreedingMethodEntity method = makeMethod("ABC");
-        ProgramBreedingMethodEntity testMethod = makeMethod("ABC");
-        testMethod.setAbbreviation("misatch Abbreviation");
+    public void isDuplicateName() {
+        ProgramBreedingMethodEntity method = makeMethod("ABC", null);
+        ProgramBreedingMethodEntity testMethod = makeMethod("ABC", null);
+        ProgramBreedingMethodEntity testMethodLowerCase = makeMethod("abc", null);
+
+
+
         assertTrue(
-                breedingMethodService.areMethodsDuplicate(testMethod, method),
+                breedingMethodService.isDuplicateName(testMethod, method),
                 "Method Names are Equal"
         );
         assertTrue(
-                breedingMethodService.areMethodsDuplicate(method, testMethod),
+                breedingMethodService.isDuplicateName(method, testMethod),
                 "Method Names are Equal (switched order)"
         );
+        assertTrue(
+                breedingMethodService.isDuplicateName(method, testMethodLowerCase),
+                "Method Names are Equal (one is LowerCase)"
+        );
+        testMethod.setId(method.getId());
+        assertFalse(
+                breedingMethodService.isDuplicateName(testMethod, method),
+                "The methods are the same method (not duplicate data)"
+        );
+
 
         testMethod.setName("misatch Name");
+        testMethod.setId(UUID.randomUUID());
         assertFalse(
-                breedingMethodService.areMethodsDuplicate(testMethod, method),
+                breedingMethodService.isDuplicateName(testMethod, method),
                 "Method Names are not Equal"
         );
         testMethod.setName(null);
         assertFalse(
-                breedingMethodService.areMethodsDuplicate(testMethod, method),
+                breedingMethodService.isDuplicateName(testMethod, method),
                 "Method Names are not Equal (one is null)"
         );
 
         testMethod.setName("name");
         method.setName(null);
         assertFalse(
-                breedingMethodService.areMethodsDuplicate(testMethod, method),
+                breedingMethodService.isDuplicateName(testMethod, method),
                 "Method Names are not Equal (the other is null)"
         );
-
     }
 
     @Test
     @SneakyThrows
-    public void methodAbbreviationEqual() {
-        ProgramBreedingMethodEntity method = makeMethod("ABC");
-        ProgramBreedingMethodEntity testMethod = makeMethod("ABC");
-        testMethod.setName("misatch Name");
+    public void isDuplicateAbbreviation() {
+        ProgramBreedingMethodEntity method = makeMethod("ABC", "ABC");
+        ProgramBreedingMethodEntity testMethod = makeMethod("mismatch_name", "ABC");
+        ProgramBreedingMethodEntity testMethodLowerCase = makeMethod("mismatch_name", "abc");
         assertTrue(
-                breedingMethodService.areMethodsDuplicate(testMethod, method),
+                breedingMethodService.isDuplicateAbbreviation(testMethod, method),
                 "Method Abbreviations are Equal"
         );
         assertTrue(
-                breedingMethodService.areMethodsDuplicate(method, testMethod),
+                breedingMethodService.isDuplicateAbbreviation(method, testMethod),
                 "Method Abbreviations are Equal (switched order)"
         );
-
-        testMethod.setAbbreviation("misatch Abbreviation");
+        assertTrue(
+                breedingMethodService.isDuplicateAbbreviation(testMethodLowerCase, method),
+                "Method Abbreviations are Equal (one is lower case)"
+        );
+        testMethod.setAbbreviation("misatch_abbreviation");
         assertFalse(
-                breedingMethodService.areMethodsDuplicate(method, testMethod),
+                breedingMethodService.isDuplicateAbbreviation(method, testMethod),
                 "Method Abbreviations are not equal."
         );
         testMethod.setAbbreviation(null);
         assertFalse(
-                breedingMethodService.areMethodsDuplicate(method, testMethod),
+                breedingMethodService.isDuplicateAbbreviation(method, testMethod),
                 "Method Abbreviations are not equal (one is null)."
         );
     }
 
     // Helper Methods //
-    private ProgramBreedingMethodEntity makeMethod(String suffix){
+    private ProgramBreedingMethodEntity makeMethod(String nameSuffix, String abbrevSuffix){
         ProgramBreedingMethodEntity method = new ProgramBreedingMethodEntity();
-        method.setName("Name" + suffix);
-        method.setAbbreviation("Abbreviation" + suffix);
+
+        method.setName("Name" + nameSuffix!=null? nameSuffix : "junk");
+        method.setAbbreviation("Abbreviation" + abbrevSuffix!=null? abbrevSuffix : "junk");
+        method.setId(UUID.randomUUID());
         return method;
     }
 

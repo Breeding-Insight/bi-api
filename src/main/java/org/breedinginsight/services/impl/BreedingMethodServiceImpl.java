@@ -66,10 +66,6 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         return dsl.transactionResult(() -> breedingMethodDAO.createProgramMethod(breedingMethod, programId, userId));
     }
 
-    private boolean methodAlreadyExist(ProgramBreedingMethodEntity breedingMethod, UUID programId) {
-        List<ProgramBreedingMethodEntity> programAndSystemMethods = getBreedingMethods(programId);
-        return isDuplicateMethodFoundOnList(breedingMethod, programAndSystemMethods);
-    }
 
     @Override
     public ProgramBreedingMethodEntity updateBreedingMethod(ProgramBreedingMethodEntity breedingMethod, UUID programId, UUID userId) throws BadRequestException, ApiException {
@@ -86,8 +82,13 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         if (isMissingRequiredFields(breedingMethod)) {
             throw new BadRequestException("Missing required data");
         }
-        if (methodAlreadyExist(breedingMethod, programId)) {
-            throw new BadRequestException(format("A method with name:'%s' or abbreviation:'%s' already exist.", breedingMethod.getName(), breedingMethod.getAbbreviation()));
+
+        List<ProgramBreedingMethodEntity> programAndSystemMethods = getBreedingMethods(programId);
+        if( isDuplicateMethodNameFoundOnList(breedingMethod, programAndSystemMethods)){
+            throw new BadRequestException(format("'%s' is already defined in the system.", breedingMethod.getName()));
+        }
+        if( isDuplicateMethodAbbreviationFoundOnList(breedingMethod, programAndSystemMethods)){
+            throw new BadRequestException(format("'%s' is already defined in the system.", breedingMethod.getAbbreviation()));
         }
     }
 
@@ -127,11 +128,10 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
                 || StringUtils.isBlank(method.getCategory())
                 || StringUtils.isBlank(method.getGeneticDiversity());
     }
-
-    boolean isDuplicateMethodFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+    boolean isDuplicateMethodNameFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
         boolean foundDup = false;
         for (ProgramBreedingMethodEntity testMethod: programBreedingMethodEntityList) {
-            if(areMethodsDuplicate(testMethod, method)){
+            if(isDuplicateName(testMethod, method)){
                 foundDup = true;
                 break;
             }
@@ -139,26 +139,46 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         return foundDup;
     }
 
+    boolean isDuplicateMethodAbbreviationFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+        boolean foundDup = false;
+        for (ProgramBreedingMethodEntity testMethod: programBreedingMethodEntityList) {
+            if(isDuplicateAbbreviation(testMethod, method)){
+                foundDup = true;
+                break;
+            }
+        }
+        return foundDup;
+    }
 
-    boolean areMethodsDuplicate(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
-
+    boolean isDuplicateName(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
         // SPECIAL CASE: If the two methods are the same method, then they are not duplicates
         if( (testMethod.getId()!=null) && testMethod.getId().equals(method.getId()) ){
             return false;
         }
 
         boolean isDup = false;
-        if(testMethod.getName()!= null && testMethod.getName().equals(method.getName())){
+        if(testMethod.getName()!= null && testMethod.getName().equalsIgnoreCase(method.getName())){
             isDup = true;
         }
-        else if(testMethod.getAbbreviation()!= null && testMethod.getAbbreviation().equals(method.getAbbreviation())){
+        else if(testMethod.getName()==null && method.getName()==null ){
             isDup = true;
         }
-        else if(testMethod.getName()==null && method.getName()==null ||
-                testMethod.getAbbreviation()==null && method.getAbbreviation()==null){
-            isDup = true;
+        return isDup;
+    }
+
+    boolean isDuplicateAbbreviation(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
+        // SPECIAL CASE: If the two methods are the same method, then they are not duplicates
+        if( (testMethod.getId()!=null) && testMethod.getId().equals(method.getId()) ){
+            return false;
         }
 
+        boolean isDup = false;
+        if(testMethod.getAbbreviation()!= null && testMethod.getAbbreviation().equalsIgnoreCase(method.getAbbreviation())){
+            isDup = true;
+        }
+        else if(testMethod.getAbbreviation()==null && method.getAbbreviation()==null ){
+            isDup = true;
+        }
         return isDup;
     }
 
