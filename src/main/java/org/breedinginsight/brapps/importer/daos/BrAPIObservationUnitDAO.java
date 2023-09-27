@@ -152,10 +152,7 @@ public class BrAPIObservationUnitDAO {
         ouSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         ouSearchRequest.externalReferenceSources(List.of(datasetReferenceSource));
         ouSearchRequest.externalReferenceIDs(List.of(datasetId));
-        ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationUnitsApi.class);
-        return brAPIDAOUtil.search(api::searchObservationunitsPost,
-                api::searchObservationunitsSearchResultsDbIdGet,
-                ouSearchRequest);
+        return searchObservationUnitsAndProcess(ouSearchRequest, program.getId(), true);
     }
 
     public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId, boolean withGID) throws ApiException, DoesNotExistException {
