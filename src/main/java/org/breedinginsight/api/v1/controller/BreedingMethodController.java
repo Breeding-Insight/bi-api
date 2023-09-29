@@ -59,7 +59,7 @@ public class BreedingMethodController {
     @Post("programs/{programId}/breeding-methods")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException {
+    public HttpResponse<?> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException{
         log.debug("Saving new program breeding method");
 
         try {
@@ -107,7 +107,7 @@ public class BreedingMethodController {
     @Put("programs/{programId}/breeding-methods/{breedingMethodId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException {
+    public HttpResponse<?> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException {
         log.debug("Saving new program breeding method");
 
         try {
