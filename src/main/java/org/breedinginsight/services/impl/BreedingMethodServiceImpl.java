@@ -85,10 +85,10 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
 
         List<ProgramBreedingMethodEntity> programAndSystemMethods = getBreedingMethods(programId);
         if( isDuplicateMethodNameFoundOnList(breedingMethod, programAndSystemMethods)){
-            throw new BadRequestException(format("'%s' is already defined in the system.", breedingMethod.getName()));
+            throw new BadRequestException(format("A breeding method with the name '%s' is already defined in the system.", breedingMethod.getName()));
         }
         if( isDuplicateMethodAbbreviationFoundOnList(breedingMethod, programAndSystemMethods)){
-            throw new BadRequestException(format("'%s' is already defined in the system.", breedingMethod.getAbbreviation()));
+            throw new BadRequestException(format("A breeding method with the abbreviation '%s' is already defined in the system.", breedingMethod.getAbbreviation()));
         }
     }
 
@@ -122,13 +122,16 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         dsl.transaction(() -> breedingMethodDAO.deleteProgramMethod(programId, breedingMethodId));
     }
 
-     boolean isMissingRequiredFields(ProgramBreedingMethodEntity method) {
+    //'protected' instead of 'private' so it is accessible to unit test.
+    protected boolean isMissingRequiredFields(ProgramBreedingMethodEntity method) {
         return StringUtils.isBlank(method.getName())
                 || StringUtils.isBlank(method.getAbbreviation())
                 || StringUtils.isBlank(method.getCategory())
                 || StringUtils.isBlank(method.getGeneticDiversity());
     }
-    boolean isDuplicateMethodNameFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+
+    //'protected' instead of 'private' so it is accessible to unit test.
+    protected boolean isDuplicateMethodNameFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
         boolean foundDup = false;
         for (ProgramBreedingMethodEntity testMethod: programBreedingMethodEntityList) {
             if(isDuplicateName(testMethod, method)){
@@ -139,7 +142,8 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         return foundDup;
     }
 
-    boolean isDuplicateMethodAbbreviationFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
+    //'protected' instead of 'private' so it is accessible to unit test.
+    protected boolean isDuplicateMethodAbbreviationFoundOnList(ProgramBreedingMethodEntity method, List<ProgramBreedingMethodEntity> programBreedingMethodEntityList) {
         boolean foundDup = false;
         for (ProgramBreedingMethodEntity testMethod: programBreedingMethodEntityList) {
             if(isDuplicateAbbreviation(testMethod, method)){
@@ -150,7 +154,8 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         return foundDup;
     }
 
-    boolean isDuplicateName(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
+    //'protected' instead of 'private' so it is accessible to unit test.
+    protected boolean isDuplicateName(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
         // SPECIAL CASE: If the two methods are the same method, then they are not duplicates
         if( (testMethod.getId()!=null) && testMethod.getId().equals(method.getId()) ){
             return false;
@@ -166,7 +171,8 @@ public class BreedingMethodServiceImpl implements BreedingMethodService {
         return isDup;
     }
 
-    boolean isDuplicateAbbreviation(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
+    //'protected' instead of 'private' so it is accessible to unit test.
+    protected boolean isDuplicateAbbreviation(ProgramBreedingMethodEntity testMethod, ProgramBreedingMethodEntity method) {
         // SPECIAL CASE: If the two methods are the same method, then they are not duplicates
         if( (testMethod.getId()!=null) && testMethod.getId().equals(method.getId()) ){
             return false;

@@ -47,7 +47,7 @@ public class BreedingMethodServiceImplTest {
         programBreedingMethodEntityList.add(makeMethod("2", null));
 
         boolean isDup = breedingMethodService.isDuplicateMethodNameFoundOnList(makeMethod("1", null), programBreedingMethodEntityList);
-        assertTrue(isDup, "Duplicate name found in  list.");
+        assertTrue(isDup, "Duplicate name found in list.");
     }
 
     @Test
@@ -58,9 +58,9 @@ public class BreedingMethodServiceImplTest {
         programBreedingMethodEntityList.add(makeMethod(null, "2"));
 
         boolean isDup = breedingMethodService.isDuplicateMethodAbbreviationFoundOnList(makeMethod(null, "1"), programBreedingMethodEntityList);
-        assertTrue(isDup, "Duplicate abbreviation found in  list.");
+        assertTrue(isDup, "Duplicate abbreviation found in list.");
         isDup = breedingMethodService.isDuplicateMethodAbbreviationFoundOnList(makeMethod(null, "unique"), programBreedingMethodEntityList);
-        assertFalse(isDup, "Duplicate abbreviation NOT found in  list.");
+        assertFalse(isDup, "Duplicate abbreviation NOT found in list.");
     }
 
 
@@ -147,8 +147,8 @@ public class BreedingMethodServiceImplTest {
     private ProgramBreedingMethodEntity makeMethod(String nameSuffix, String abbrevSuffix){
         ProgramBreedingMethodEntity method = new ProgramBreedingMethodEntity();
 
-        method.setName("Name" + nameSuffix!=null? nameSuffix : "junk");
-        method.setAbbreviation("Abbreviation" + abbrevSuffix!=null? abbrevSuffix : "junk");
+        method.setName("Name" + ( nameSuffix != null? nameSuffix : "junk" ));
+        method.setAbbreviation("Abbreviation" + ( abbrevSuffix != null? abbrevSuffix : "junk" ));
         method.setId(UUID.randomUUID());
         return method;
     }
