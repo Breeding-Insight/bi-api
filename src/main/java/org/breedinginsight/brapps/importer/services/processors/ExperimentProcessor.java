@@ -44,6 +44,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.AdditionalInfo;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -75,6 +76,8 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPERIMENT_TEMPLATE_NAME;
 
 @Slf4j
 @Prototype
@@ -125,7 +128,7 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
 
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
-
+    private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
 
@@ -238,7 +241,7 @@ public class ExperimentProcessor implements Processor {
 
         log.debug("done processing experiment import");
         // Construct our response object
-        return generateStatisticsMap(importRows);
+        return generateStatisticsMap(importRows, phenotypeCols);
     }
 
     @Override
@@ -543,7 +546,7 @@ public class ExperimentProcessor implements Processor {
     private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
                                             List<Column<?>> phenotypeCols, boolean commit) throws MissingRequiredInfoException, ApiException {
         //fetching any existing observations for any OUs in the import
-        Map<String, BrAPIObservation> existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
+        this.existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
         CaseInsensitiveMap<String, Trait> colVarMap = new CaseInsensitiveMap<>();
         for ( Trait trait: referencedTraits) {
             colVarMap.put(trait.getObservationVariableName(),trait);
@@ -566,7 +569,7 @@ public class ExperimentProcessor implements Processor {
 
             validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
-            validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, existingObsByObsHash);
+            validateObservations(validationErrors, rowNum, importRows.size(), importRow, phenotypeCols, colVarMap, commit);
         }
         return validationErrors;
     }
@@ -619,22 +622,45 @@ public class ExperimentProcessor implements Processor {
                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private void validateObservations(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow, List<Column<?>> phenotypeCols, CaseInsensitiveMap<String, Trait> colVarMap, Map<String, BrAPIObservation> existingObservations) {
+    private void validateObservations(ValidationErrors validationErrors,
+                                      int rowNum,
+                                      int numRows,
+                                      ExperimentObservation importRow,
+                                      List<Column<?>> phenotypeCols,
+                                      Map<String, Trait> colVarMap,
+                                      boolean commit) {
         phenotypeCols.forEach(phenoCol -> {
             var importHash = getImportObservationHash(importRow, phenoCol.name());
-            if(existingObservations.containsKey(importHash) && StringUtils.isNotBlank(phenoCol.getString(rowNum)) && !existingObservations.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
+
+            // error if import observation data already exists and user has not selected to overwrite
+            if(commit && !importRow.isOverwrite() &&
+                    this.existingObsByObsHash.containsKey(importHash) &&
+                    StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum - 1)) &&
+                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum - 1))) {
                 addRowError(
                         phenoCol.name(),
                         String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", importRow.getObsUnitID(), phenoCol.name()),
                         validationErrors, rowNum
                 );
-            } else if(existingObservations.containsKey(importHash) && (StringUtils.isBlank(phenoCol.getString(rowNum)) || existingObservations.get(importHash).getValue().equals(phenoCol.getString(rowNum)))) {
-                BrAPIObservation existingObs = existingObservations.get(importHash);
+
+            // preview case where observation has already been committed and the import row ObsVar data differs from what
+            // had been saved prior to import
+            } else if (this.existingObsByObsHash.containsKey(importHash) &&
+                    StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum -1)) &&
+                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1))) {
+                observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
+
+            // preview case where observation has already been committed and import ObsVar data is either empty or the
+            // same as has been committed prior to import
+            } else if(this.existingObsByObsHash.containsKey(importHash) &&
+                    (StringUtils.isBlank(phenoCol.getString(numRows - rowNum -1)) ||
+                            this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1)))) {
+                BrAPIObservation existingObs = this.existingObsByObsHash.get(importHash);
                 existingObs.setObservationVariableName(phenoCol.name());
                 observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
                 observationByHash.get(importHash).setBrAPIObject(existingObs);
             } else {
-                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
+                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(numRows - rowNum -1), phenoCol.name(), validationErrors, rowNum);
 
                 //Timestamp validation
                 if(timeStampColByPheno.containsKey(phenoCol.name())) {
@@ -728,7 +754,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private Map<String, ImportPreviewStatistics> generateStatisticsMap(List<BrAPIImport> importRows) {
+    private Map<String, ImportPreviewStatistics> generateStatisticsMap(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols) {
         // Data for stats.
         HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
         HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
@@ -751,6 +777,15 @@ public class ExperimentProcessor implements Processor {
                                  .count()
         );
 
+        int numExistingObservations = Math.toIntExact(
+                this.observationByHash.values()
+                        .stream()
+                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.EXISTING &&
+                                !StringUtils.isBlank(preview.getBrAPIObject()
+                                        .getValue()))
+                        .count()
+        );
+
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                                                                           .newObjectCount(environmentNameCounter.size())
                                                                           .build();
@@ -763,12 +798,16 @@ public class ExperimentProcessor implements Processor {
         ImportPreviewStatistics observationStats = ImportPreviewStatistics.builder()
                                                                           .newObjectCount(numNewObservations)
                                                                           .build();
+        ImportPreviewStatistics existingObservationStats = ImportPreviewStatistics.builder()
+                .newObjectCount(numExistingObservations)
+                .build();
 
         return Map.of(
                 "Environments", environmentStats,
                 "Observation_Units", obdUnitStats,
                 "GIDs", gidStats,
-                "Observations", observationStats
+                "Observations", observationStats,
+                "Existing Observations", existingObservationStats
         );
     }
 
