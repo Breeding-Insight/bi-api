@@ -47,5 +47,6 @@ public final class BrAPIAdditionalInfoFields {
     public static final String MALE_PARENT_UNKNOWN = "maleParentUnknown";
 	public static final String TREATMENTS = "treatments";
     public static final String GID = "gid";
+    public static final String CHANGELOG = "changeLog";
     public static final String ENV_YEAR = "envYear";
 }

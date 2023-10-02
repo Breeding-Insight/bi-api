@@ -278,6 +278,7 @@ public class ExperimentProcessor implements Processor {
                 .getMutationsByObjectId(obsVarDatasetByName, BrAPIListSummary::getListDbId);
 
         List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
+
         // filter out observations with no 'value' so they will not be saved
         List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(this.observationByHash)
                                                               .stream()
@@ -648,7 +649,8 @@ public class ExperimentProcessor implements Processor {
             } else if (this.existingObsByObsHash.containsKey(importHash) &&
                     StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum -1)) &&
                     !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1))) {
-                observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
+                observationByHash.get(importHash).getBrAPIObject().setValue(phenoCol.getString(numRows - rowNum -1));
+                observationByHash.get(importHash).setState(ImportObjectState.MUTATED);
 
             // preview case where observation has already been committed and import ObsVar data is either empty or the
             // same as has been committed prior to import
@@ -780,7 +782,7 @@ public class ExperimentProcessor implements Processor {
         int numExistingObservations = Math.toIntExact(
                 this.observationByHash.values()
                         .stream()
-                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.EXISTING &&
+                        .filter(preview -> preview != null && (preview.getState() == ImportObjectState.EXISTING || preview.getState() == ImportObjectState.MUTATED) &&
                                 !StringUtils.isBlank(preview.getBrAPIObject()
                                         .getValue()))
                         .count()
