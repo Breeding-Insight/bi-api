@@ -685,8 +685,9 @@ public class ExperimentProcessor implements Processor {
                     BrAPIObservation pendingObservation = observationByHash.get(importHash).getBrAPIObject();
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
                     String timestamp = formatter.format(OffsetDateTime.now());
+                    String reason = importRow.getOverwriteReason() != null ? importRow.getOverwriteReason() : "";
                     ChangeLogEntry change = new ChangeLogEntry(existingObsByObsHash.get(importHash).getValue(),
-                            importRow.getOverwriteReason(),
+                            reason,
                             user.getId(),
                             timestamp
                     );
