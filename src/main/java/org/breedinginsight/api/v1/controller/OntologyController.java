@@ -4,6 +4,8 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.security.annotation.Secured;
+import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRole;
@@ -81,7 +83,7 @@ public class OntologyController {
     }
 
     /**
-     * Accepts a list of programs to shared the ontology with.
+     * Accepts a list of programs to share the ontology with.
      * @param programId
      * @return List of programs successfully shared to with acceptable status
      * {
@@ -210,7 +212,7 @@ public class OntologyController {
     @Get("/programs/{programId}/ontology/subscribe")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
-    @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
+    @Secured(SecurityRule.IS_AUTHENTICATED)
     public HttpResponse<Response<DataResponse<SubscribedOntology>>> getSubscribedOntology(
             @PathVariable UUID programId) {
         try {
