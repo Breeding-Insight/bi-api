@@ -268,6 +268,9 @@ public class ExperimentProcessor implements Processor {
         Map<String, BrAPITrial> mutatedTrialsById = ProcessorData
                 .getMutationsByObjectId(trialByNameNoScope, BrAPITrial::getTrialDbId);
 
+        Map<String, BrAPIObservation> mutatedObservationByDbId = ProcessorData
+                .getMutationsByObjectId(observationByHash, observation -> observation.getObservationDbId());
+
         List<ProgramLocationRequest> newLocations = ProcessorData.getNewObjects(this.locationByName)
                                                                  .stream()
                                                                  .map(location -> ProgramLocationRequest.builder()
@@ -386,6 +389,19 @@ public class ExperimentProcessor implements Processor {
                 throw new InternalServerException(e.getMessage(), e);
             }
         });
+
+        mutatedObservationByDbId.forEach((id, observation) ->  {
+            try {
+                brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
+            } catch (ApiException e) {
+                log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException("Error saving experiment import", e);
+            } catch (Exception e) {
+                log.error("Error updating observation: ", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+        });
+
         log.debug("experiment import complete");
 
     }
