@@ -74,10 +74,10 @@ public class FileUtil {
         try {
             columns = new HashMap<>();
             headerRow = sheet.getRow(headerRowIndex);
-            // Throw an exception if duplicate header values are found.
+            // Build column map, throw if duplicate (non-blank) column header values are found.
             for (Cell cell: headerRow) {
-                if (columns.containsKey(formatter.formatCellValue(cell))) {
-                    // Duplicate column header.
+                if (columns.containsKey(formatter.formatCellValue(cell)) && !formatter.formatCellValue(cell).isBlank()) {
+                    // Duplicate (non-blank) column header.
                     throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
                 }
                 columns.put(formatter.formatCellValue(cell), new ArrayList<>());
@@ -148,7 +148,7 @@ public class FileUtil {
         //TODO: See if this has the windows BOM issue
         try {
             // Read inputStream into a String.
-            String input = new String(inputStream.readAllBytes());
+            String input = new String(new BOMInputStream(inputStream).readAllBytes());
 
             // Check for duplicate (non-blank) column names, could also do other validations.
             try (CSVParser parser = CSVParser.parse(input, CSVFormat.EXCEL);) {
