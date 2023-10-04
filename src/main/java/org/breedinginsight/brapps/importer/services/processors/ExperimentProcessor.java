@@ -557,6 +557,7 @@ public class ExperimentProcessor implements Processor {
             if (StringUtils.isNotBlank(importRow.getGid())) { // if GID is blank, don't bother to check if it is valid.
                 validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
             }
+            validateTestOrCheck(importRow, validationErrors, rowNum);
 
             //Check if existing environment. If so, ObsUnitId must be assigned
             if ((mappedImportRow.getStudy().getState() == ImportObjectState.EXISTING)
@@ -781,6 +782,16 @@ public class ExperimentProcessor implements Processor {
         // error if GID is not blank but GID does not already exist
         if (StringUtils.isNotBlank(importRow.getGid()) && germplasmPIO == null) {
             addRowError(Columns.GERMPLASM_GID, "A non-existing GID", validationErrors, rowNum);
+        }
+    }
+
+    private void validateTestOrCheck(ExperimentObservation importRow, ValidationErrors validationErrors, int rowNum) {
+        String testOrCheck = importRow.getTestOrCheck();
+        if ( ! ( testOrCheck==null || testOrCheck.isBlank()
+                || "C".equalsIgnoreCase(testOrCheck) || "CHECK".equalsIgnoreCase(testOrCheck)
+                || "T".equalsIgnoreCase(testOrCheck) || "TEST".equalsIgnoreCase(testOrCheck) )
+        ){
+            addRowError(Columns.TEST_CHECK, String.format("Invalid value. (%s)", testOrCheck), validationErrors, rowNum) ;
         }
     }
 
