@@ -400,7 +400,7 @@ public class ExperimentObservation implements BrAPIImport {
     public static final class Columns {
         public static final String GERMPLASM_NAME = "Germplasm Name";
         public static final String GERMPLASM_GID = "Germplasm GID";
-        public static final String TEST_CHECK = "Test (T) or Check (C )";
+        public static final String TEST_CHECK = "Test (T) or Check (C)";
         public static final String EXP_TITLE = "Exp Title";
         public static final String EXP_DESCRIPTION = "Exp Description";
         public static final String EXP_UNIT = "Exp Unit";
