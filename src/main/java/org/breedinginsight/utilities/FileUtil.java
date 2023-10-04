@@ -147,27 +147,39 @@ public class FileUtil {
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
         //TODO: See if this has the windows BOM issue
         try {
-            Reader reader = new InputStreamReader(new BOMInputStream(inputStream), StandardCharsets.UTF_8);
-            CSVParser parser = new CSVParser(reader, CSVFormat.EXCEL);
-            HashSet<String> columnNames = new HashSet<>();
-            for (String columnName: parser.getRecords().get(0)) {
-                log.debug(columnName);
-                if (columnNames.contains(columnName)) {
-                    log.debug("Duplicate column header name: " + columnName);
-                    throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
+            // Read inputStream into a String.
+            String input = new String(inputStream.readAllBytes());
+
+            // Check for duplicate (non-blank) column names, could also do other validations.
+            try (CSVParser parser = CSVParser.parse(input, CSVFormat.EXCEL);) {
+                HashSet<String> columnNames = new HashSet<>();
+                for (String columnName: parser.getRecords().get(0)) {
+                    if (columnName.isBlank()) {
+                        log.debug("Skipping blank column header.");
+                    } else {
+                        log.debug("Column name: " + columnName);
+                        if (columnNames.contains(columnName)) {
+                            log.debug("Duplicate column header name: " + columnName);
+                            throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
+                        }
+                        columnNames.add(columnName);
+                    }
                 }
-                columnNames.add(columnName);
             }
+
+            // Convert to Table.
             //Jackson used downstream messily converts LOCAL_DATE/LOCAL_DATETIME, so need to interpret date input as strings
             //Note that if another type is needed later this is what needs to be updated
             ArrayList<ColumnType> acceptedTypes = new ArrayList<>(Arrays.asList(ColumnType.STRING, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.FLOAT));
             Table df = Table.read().usingOptions(
                     CsvReadOptions
-                            .builder(inputStream)
+                            .builderFromString(input)
                             .columnTypesToDetect(acceptedTypes)
                             .separator(',')
             );
             return removeNullColumns(removeNullRows(df));
+        } catch (ParsingException e) {
+            throw e;
         } catch (Exception e) {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
