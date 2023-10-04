@@ -147,8 +147,8 @@ public class FileUtil {
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
         //TODO: See if this has the windows BOM issue
         try {
-            // Read inputStream into a String.
-            String input = new String(new BOMInputStream(inputStream).readAllBytes());
+            // Read inputStream into a String, exclude any Byte Order Marks.
+            String input = new String(new BOMInputStream(inputStream, false).readAllBytes());
 
             // Check for duplicate (non-blank) column names, could also do other validations.
             try (CSVParser parser = CSVParser.parse(input, CSVFormat.EXCEL);) {
