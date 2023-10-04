@@ -677,7 +677,7 @@ public class ExperimentProcessor implements Processor {
             } else if (this.existingObsByObsHash.containsKey(importHash) &&
                     StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum -1)) &&
                     !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1))) {
-                observationByHash.get(importHash).getBrAPIObject().setValue(phenoCol.getString(numRows - rowNum -1));
+                //observationByHash.get(importHash).getBrAPIObject().setValue(phenoCol.getString(numRows - rowNum -1));
                 observationByHash.get(importHash).setState(ImportObjectState.MUTATED);
 
                 // add a change log entry when updating the value of an observation
@@ -837,11 +837,21 @@ public class ExperimentProcessor implements Processor {
         int numExistingObservations = Math.toIntExact(
                 this.observationByHash.values()
                         .stream()
-                        .filter(preview -> preview != null && (preview.getState() == ImportObjectState.EXISTING || preview.getState() == ImportObjectState.MUTATED) &&
+                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.EXISTING &&
                                 !StringUtils.isBlank(preview.getBrAPIObject()
                                         .getValue()))
                         .count()
         );
+
+        int numMutatedObservations = Math.toIntExact(
+                this.observationByHash.values()
+                        .stream()
+                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.MUTATED &&
+                                !StringUtils.isBlank(preview.getBrAPIObject()
+                                        .getValue()))
+                        .count()
+        );
+
 
         ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
                                                                           .newObjectCount(environmentNameCounter.size())
@@ -858,13 +868,17 @@ public class ExperimentProcessor implements Processor {
         ImportPreviewStatistics existingObservationStats = ImportPreviewStatistics.builder()
                 .newObjectCount(numExistingObservations)
                 .build();
+        ImportPreviewStatistics mutatedObservationStats = ImportPreviewStatistics.builder()
+                .newObjectCount(numMutatedObservations)
+                .build();
 
         return Map.of(
                 "Environments", environmentStats,
                 "Observation_Units", obdUnitStats,
                 "GIDs", gidStats,
                 "Observations", observationStats,
-                "Existing Observations", existingObservationStats
+                "Existing Observations", existingObservationStats,
+                "Mutated Observations", mutatedObservationStats
         );
     }
 
