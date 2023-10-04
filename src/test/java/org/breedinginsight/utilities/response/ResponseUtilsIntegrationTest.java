@@ -108,10 +108,11 @@ public class ResponseUtilsIntegrationTest extends BrAPITest {
                                                .slope(new BigDecimal("1.1"))
                                                .build());
         for(int i = 2; i < 25; i++) {
+            // Ensure random slope values don't overlap with hardcoded value by adding 2 to the unsigned magnitude.
             newLocations.add(ProgramLocationRequest.builder()
                                                       .name("place"+i)
                                                       .abbreviation("abbrev"+i)
-                    .slope(new BigDecimal(((Math.random()*10)%2 == 0 ? "" : "-")+Math.random()*20.0))
+                    .slope(new BigDecimal(((Math.random()*10)%2 == 0 ? "" : "-")+(Math.random()*20.0 + 2.0)))
                                                       .build());
         }
         for(int i = 25; i < 31; i++) {
