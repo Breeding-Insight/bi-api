@@ -151,6 +151,15 @@ public class BrAPIStudyDAO {
         );
     }
 
+    public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program ) throws ApiException {
+        return programStudyCache.get(program.getId())
+                                .entrySet()
+                                .stream()
+                                .filter(entry -> environmentIds.contains(UUID.fromString(entry.getKey())))
+                                .map(Map.Entry::getValue)
+                                .collect(Collectors.toList());
+    }
+
     public List<BrAPIStudy> createBrAPIStudies(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
         StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), StudiesApi.class);
         List<BrAPIStudy> createdStudies = new ArrayList<>();
@@ -204,6 +213,12 @@ public class BrAPIStudyDAO {
 
     public Optional<BrAPIStudy> getStudyByDbId(String studyDbId, Program program) throws ApiException {
         List<BrAPIStudy> studies = getStudiesByStudyDbId(List.of(studyDbId), program);
+
+        return Utilities.getSingleOptional(studies);
+    }
+
+    public Optional<BrAPIStudy> getStudyByEnvironmentId(UUID environmentId, Program program) throws ApiException {
+        List<BrAPIStudy> studies = getStudiesByEnvironmentIds(List.of(environmentId), program);
 
         return Utilities.getSingleOptional(studies);
     }

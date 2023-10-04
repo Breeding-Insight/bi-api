@@ -475,4 +475,12 @@ public class TraitService {
         tags.add(FAVORITES_TAG);
         return new ArrayList<>(tags);
     }
+
+    public List<Trait> getByName(UUID programId, List<String> names) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        return traitDAO.getTraitsByTraitName(programId, names.stream().map(name -> Trait.builder().observationVariableName(name).build()).collect(Collectors.toList()));
+    }
 }

@@ -22,16 +22,40 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.BrAPIIndexPagination;
+import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.core.response.BrAPIProgramListResponse;
+import org.brapi.v2.model.core.response.BrAPIProgramListResponseResult;
+import org.brapi.v2.model.core.response.BrAPIProgramSingleResponse;
+import org.breedinginsight.api.auth.ProgramSecured;
+import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
 
+import javax.annotation.Nullable;
+import javax.inject.Inject;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIProgramsController {
+
+    private final SecurityService securityService;
+    private final ProgramService programService;
+
+    @Inject
+    public BrAPIProgramsController(SecurityService securityService, ProgramService programService) {
+        this.securityService = securityService;
+        this.programService = programService;
+    }
+
     /*
     TODO
     - GET programs
@@ -39,32 +63,61 @@ public class BrAPIProgramsController {
 
     //START - endpoints at root BrAPI url
     @Get(BrapiVersion.BRAPI_V2 + "/programs")
-    public HttpResponse rootProgramsGet(@QueryValue("abbreviation") String abbreviation,
-                                    @QueryValue("programType") String programType,
-                                    @QueryValue("commonCropName") String commonCropName,
-                                    @QueryValue("programDbId") String programDbId,
-                                    @QueryValue("programName") String programName,
-                                    @QueryValue("externalReferenceID") String externalReferenceID,
-                                    @QueryValue("externalReferenceId") String externalReferenceId,
-                                    @QueryValue("externalReferenceSource") String externalReferenceSource,
-                                    @QueryValue("page") Integer page,
-                                    @QueryValue("pageSize") Integer pageSize) {
-        return HttpResponse.notFound();
+    public HttpResponse<BrAPIProgramListResponse> rootProgramsGet(
+            @Nullable  @QueryValue("abbreviation") String abbreviation,
+            @Nullable @QueryValue("programType") String programType,
+            @Nullable @QueryValue("commonCropName") String commonCropName,
+            @Nullable @QueryValue("programDbId") String programDbId,
+            @Nullable @QueryValue("programName") String programName,
+            @Nullable @QueryValue("externalReferenceID") String externalReferenceID,
+            @Nullable @QueryValue("externalReferenceId") String externalReferenceId,
+            @Nullable @QueryValue("externalReferenceSource") String externalReferenceSource,
+            @Nullable @QueryValue("page") Integer page,
+            @Nullable @QueryValue("pageSize") Integer pageSize) {
+
+        Optional<String> abbreviationOptional = Optional.ofNullable(abbreviation);
+        Optional<String> programDbIdOptional = Optional.ofNullable(programDbId);
+        Optional<String> programNameOptional = Optional.ofNullable(programName);
+
+        List<BrAPIProgram> programs = programService.getAll(securityService.getUser()).stream().filter(program -> {
+            boolean matches = abbreviationOptional.map(abbr -> abbr.equals(program.getKey())).orElse(true);
+            matches = matches && programDbIdOptional.map(id -> id.equals(program.getId().toString())).orElse(true);
+            return matches && programNameOptional.map(name -> name.equals(program.getName())).orElse(true);
+        }).map(this::convertToBrAPI).collect(Collectors.toList());
+
+        return HttpResponse.ok(new BrAPIProgramListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
+                                                                                                                                .totalPages(1)
+                                                                                                                                .totalCount(programs.size())
+                                                                                                                                .pageSize(programs.size())))
+                                                             .result(new BrAPIProgramListResponseResult().data(programs)));
     }
 
     @Post(BrapiVersion.BRAPI_V2 + "/programs")
-    public HttpResponse rootProgramsPost(List<BrAPIProgram> body) {
+    public HttpResponse<?> rootProgramsPost(List<BrAPIProgram> body) {
         //DO NOT IMPLEMENT - Users should only be able to create new programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Get(BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    public HttpResponse rootProgramsProgramDbIdGet(@PathVariable("programDbId") String programDbId) {
-        return HttpResponse.notFound();
+    public HttpResponse<BrAPIProgramSingleResponse> rootProgramsProgramDbIdGet(@PathVariable("programDbId") String programDbId) {
+        HttpResponse<BrAPIProgramListResponse> brAPIProgramListResponseHttpResponse = this.rootProgramsGet(null, null, null,
+                                                                                                           programDbId,
+                                                                                                           null,
+                                                                                                           null,
+                                                                                                           null,
+                                                                                                           null,
+                                                                                                           null,
+                                                                                                           null);
+        Optional<BrAPIProgram> program = Optional.ofNullable(brAPIProgramListResponseHttpResponse.body())
+                                              .orElse(new BrAPIProgramListResponse())
+                                                                      .getResult()
+                                                                      .getData().stream().findFirst();
+
+        return HttpResponse.ok(new BrAPIProgramSingleResponse().result(program.orElse(null)));
     }
 
     @Put(BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    public HttpResponse rootProgramsProgramDbIdPut(@PathVariable("programDbId") String programDbId, BrAPIProgram body) {
+    public HttpResponse<?> rootProgramsProgramDbIdPut(@PathVariable("programDbId") String programDbId, BrAPIProgram body) {
         //DO NOT IMPLEMENT - Users should only be able to update programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
@@ -73,34 +126,63 @@ public class BrAPIProgramsController {
 
     //START - endpoints for within the context of a program
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
-    public HttpResponse programsGet(@PathVariable("programId") UUID programId, @QueryValue("abbreviation") String abbreviation,
-                                    @QueryValue("programType") String programType,
-                                    @QueryValue("commonCropName") String commonCropName,
-                                    @QueryValue("programDbId") String programDbId,
-                                    @QueryValue("programName") String programName,
-                                    @QueryValue("externalReferenceID") String externalReferenceID,
-                                    @QueryValue("externalReferenceId") String externalReferenceId,
-                                    @QueryValue("externalReferenceSource") String externalReferenceSource,
-                                    @QueryValue("page") Integer page,
-                                    @QueryValue("pageSize") Integer pageSize) {
-        return HttpResponse.notFound();
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<BrAPIProgramListResponse> programsGet(@PathVariable("programId") UUID programId,
+                                    @QueryValue("abbreviation") Optional<String> abbreviation,
+                                    @QueryValue("programType") Optional<String> programType,
+                                    @QueryValue("commonCropName") Optional<String> commonCropName,
+                                    @QueryValue("programDbId") Optional<String> programDbId,
+                                    @QueryValue("programName") Optional<String> programName,
+                                    @QueryValue("externalReferenceID") Optional<String> externalReferenceID,
+                                    @QueryValue("externalReferenceId") Optional<String> externalReferenceId,
+                                    @QueryValue("externalReferenceSource") Optional<String> externalReferenceSource,
+                                    @QueryValue("page") Optional<Integer> page,
+                                    @QueryValue("pageSize") Optional<Integer> pageSize) {
+
+        List<BrAPIProgram> programs = programService.getById(programId).stream().filter(program -> {
+            boolean matches = abbreviation.map(abbr -> abbr.equals(program.getKey())).orElse(true);
+            matches = matches && programDbId.map(id -> id.equals(program.getId().toString())).orElse(true);
+            return matches && programName.map(name -> name.equals(program.getName())).orElse(true);
+        }).map(this::convertToBrAPI).collect(Collectors.toList());
+
+        return HttpResponse.ok(new BrAPIProgramListResponse().metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
+                                                                                                                                .totalPages(1)
+                                                                                                                                .totalCount(programs.size())
+                                                                                                                                .pageSize(programs.size())))
+                                                             .result(new BrAPIProgramListResponseResult().data(programs)));
     }
 
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
-    public HttpResponse programsPost(@PathVariable("programId") UUID programId, List<BrAPIProgram> body) {
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<?> programsPost(@PathVariable("programId") UUID programId, List<BrAPIProgram> body) {
         //DO NOT IMPLEMENT - Users should only be able to create new programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    public HttpResponse programsProgramDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId) {
-        return HttpResponse.notFound();
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<BrAPIProgramSingleResponse> programsProgramDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId) {
+        Optional<BrAPIProgram> program = programService.getById(programId)
+                                                       .stream()
+                                                       .filter(p -> programDbId.equals(programId.toString()))
+                                                       .map(this::convertToBrAPI)
+                                                       .findFirst();
+
+        return HttpResponse.ok(new BrAPIProgramSingleResponse().result(program.orElse(null)));
     }
 
     @Put("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    public HttpResponse programsProgramDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId, BrAPIProgram body) {
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<?> programsProgramDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId, BrAPIProgram body) {
         //DO NOT IMPLEMENT - Users should only be able to update programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
     //END - endpoints for within the context of a program
+
+    private BrAPIProgram convertToBrAPI(Program program) {
+        return new BrAPIProgram().programName(program.getName())
+                                 .programDbId(program.getId().toString())
+                                 .abbreviation(program.getKey())
+                                 .commonCropName(program.getSpecies().getCommonName());
+    }
 }

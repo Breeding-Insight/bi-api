@@ -17,15 +17,16 @@
 
 package org.breedinginsight.brapi.v2.services;
 
-import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
+import org.breedinginsight.model.Program;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Slf4j
@@ -40,11 +41,11 @@ public class BrAPIStudyService {
     }
 
     public List<BrAPIStudy> getStudies(UUID programId) throws ApiException {
-        try {
-            return studyDAO.getStudies(programId);
-        } catch (ApiException e) {
-            throw new InternalServerException(e.getMessage(), e);
-        }
+        return studyDAO.getStudies(programId);
+    }
+
+    public Optional<BrAPIStudy> getStudyByEnvironmentId(Program program, UUID environmentId) throws ApiException {
+        return studyDAO.getStudyByEnvironmentId(environmentId, program);
     }
 
 }

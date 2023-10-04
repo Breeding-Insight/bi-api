@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
@@ -25,7 +26,10 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIMetadata;
+import org.brapi.v2.model.BrAPIStatus;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.response.BrAPIStudySingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
@@ -35,30 +39,40 @@ import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.model.request.query.StudyQuery;
 import org.breedinginsight.brapi.v2.services.BrAPIStudyService;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.model.Program;
+import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.utilities.Utilities;
 import org.breedinginsight.utilities.response.ResponseUtils;
 import org.breedinginsight.utilities.response.mappers.StudyQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
-@Controller("/${micronaut.bi.api.version}")
+@Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIStudiesController {
 
+    private final String referenceSource;
     private final BrAPIStudyService studyService;
     private final StudyQueryMapper studyQueryMapper;
+    private final ProgramService programService;
 
 
     @Inject
-    public BrAPIStudiesController(BrAPIStudyService studyService, StudyQueryMapper studyQueryMapper) {
+    public BrAPIStudiesController(BrAPIStudyService studyService, StudyQueryMapper studyQueryMapper, @Property(name = "brapi.server.reference-source") String referenceSource, ProgramService programService) {
         this.studyService = studyService;
         this.studyQueryMapper = studyQueryMapper;
+        this.referenceSource = referenceSource;
+        this.programService = programService;
     }
 
-    @Get("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/studies{?queryParams*}")
+    @Get("/studies{?queryParams*}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<Response<DataResponse<List<BrAPIStudy>>>> getStudies(
@@ -67,7 +81,10 @@ public class BrAPIStudiesController {
         try {
             log.debug("fetching studies for program: " + programId);
 
-            List<BrAPIStudy> studies = studyService.getStudies(programId);
+            List<BrAPIStudy> studies = studyService.getStudies(programId)
+                                                   .stream()
+                                                   .peek(this::setDbIds)
+                                                   .collect(Collectors.toList());
             queryParams.setSortField(studyQueryMapper.getDefaultSortField());
             queryParams.setSortOrder(studyQueryMapper.getDefaultSortOrder());
             SearchRequest searchRequest = queryParams.constructSearchRequest();
@@ -81,33 +98,54 @@ public class BrAPIStudiesController {
         }
     }
 
-    /*
-    TODO
-    - GET studies/{id}
-     */
     @Post("/studies")
-    @Consumes({"application/json"})
-    @Produces({"application/json"})
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse studiesPost(@PathVariable("programId") UUID programId, List<BrAPIStudy> body) {
+    public HttpResponse<?> studiesPost(@PathVariable("programId") UUID programId, List<BrAPIStudy> body) {
         //DO NOT IMPLEMENT - Users are only able to create new studies via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Get("/studies/{studyDbId}")
-    @Produces({"application/json"})
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse studiesStudyDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId) {
-        return HttpResponse.notFound();
+    public HttpResponse<BrAPIStudySingleResponse> studiesStudyDbIdGet(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String environmentId) {
+        Optional<Program> program = programService.getById(programId);
+        if(program.isEmpty()) {
+            log.warn("program id: " + programId + " not found");
+            return HttpResponse.notFound();
+        }
+        try {
+            Optional<BrAPIStudy> study = studyService.getStudyByEnvironmentId(program.get(), UUID.fromString(environmentId));
+            if(study.isPresent()) {
+                setDbIds(study.get());
+                return HttpResponse.ok(new BrAPIStudySingleResponse().result(study.get()));
+            } else {
+                log.warn("studyDbId: " + environmentId + " not found");
+                return HttpResponse.notFound();
+            }
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.serverError(new BrAPIStudySingleResponse().metadata(new BrAPIMetadata().addStatusItem(new BrAPIStatus().message("Error fetching study")
+                                                                                                                                       .messageType(BrAPIStatus.MessageTypeEnum.ERROR))));
+        }
     }
 
     @Put("/studies/{studyDbId}")
-    @Consumes({"application/json"})
-    @Produces({"application/json"})
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse studiesStudyDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId,
+    public HttpResponse<?> studiesStudyDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId,
                                             BrAPIStudy body) {
         //DO NOT IMPLEMENT - Users are only able to update studies via the DeltaBreed UI
         return HttpResponse.notFound();
+    }
+
+    private void setDbIds(BrAPIStudy study) {
+        study.studyDbId(Utilities.getExternalReference(study.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
+                                 .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
+                                 .getReferenceID());
+
+        study.trialDbId(Utilities.getExternalReference(study.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
+                                 .orElseThrow(() -> new IllegalStateException("No BI external reference found"))
+                                 .getReferenceID());
+
+        //TODO update locationDbId
     }
 }

@@ -614,32 +614,14 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
     @Override
     public List<Trait> getTraitsByTraitName(UUID programId, List<Trait> traits){
 
-        String[] names = traits.stream()
+        List<String> names = traits.stream()
                 .filter(trait -> trait.getObservationVariableName() != null)
                 .map(trait -> trait.getObservationVariableName().toLowerCase())
-                .collect(Collectors.toList()).toArray(String[]::new);
+                .collect(Collectors.toList());
 
         List<Trait> traitResults = new ArrayList<>();
-        if (names.length > 0){
-
-            Result<Record> records = dsl.select()
-                    .from(TRAIT)
-                    .join(PROGRAM_ONTOLOGY).on(TRAIT.PROGRAM_ONTOLOGY_ID.eq(PROGRAM_ONTOLOGY.ID))
-                    .join(PROGRAM).on(PROGRAM_ONTOLOGY.PROGRAM_ID.eq(PROGRAM.ID))
-                    .join(SCALE).on(TRAIT.SCALE_ID.eq(SCALE.ID))
-                    .join(METHOD).on(TRAIT.METHOD_ID.eq(METHOD.ID))
-                    .where(PROGRAM.ID.eq(programId))
-                    .and(lower(TRAIT.OBSERVATION_VARIABLE_NAME).in(names))
-                    .fetch();
-
-            for (Record record: records) {
-                Trait trait = Trait.parseSqlRecord(record);
-                Scale scale = Scale.parseSqlRecord(record);
-                Method method = Method.parseSqlRecord(record);
-                trait.setScale(scale);
-                trait.setMethod(method);
-                traitResults.add(trait);
-            }
+        if (!names.isEmpty()) {
+            traitResults = getTraitsFullByProgramId(programId).stream().filter(trait -> names.contains(trait.getObservationVariableName())).collect(Collectors.toList());
         }
 
         return traitResults;
