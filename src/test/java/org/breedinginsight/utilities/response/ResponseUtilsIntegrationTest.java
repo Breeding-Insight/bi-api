@@ -112,7 +112,7 @@ public class ResponseUtilsIntegrationTest extends BrAPITest {
             newLocations.add(ProgramLocationRequest.builder()
                                                       .name("place"+i)
                                                       .abbreviation("abbrev"+i)
-                    .slope(new BigDecimal(((Math.random()*10)%2 == 0 ? "" : "-")+(Math.random()*20.0 + 2.0)))
+                    .slope(new BigDecimal((Math.random() > 0.5 ? "" : "-")+(Math.random() + 2.0)))
                                                       .build());
         }
         for(int i = 25; i < 31; i++) {
