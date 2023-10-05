@@ -621,7 +621,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
 
         List<Trait> traitResults = new ArrayList<>();
         if (!names.isEmpty()) {
-            traitResults = getTraitsFullByProgramId(programId).stream().filter(trait -> names.contains(trait.getObservationVariableName())).collect(Collectors.toList());
+            traitResults = getTraitsFullByProgramId(programId).stream().filter(trait -> names.contains(trait.getObservationVariableName().toLowerCase())).collect(Collectors.toList());
         }
 
         return traitResults;
