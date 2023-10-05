@@ -77,7 +77,7 @@ public class FileUtil {
             // Build column map, throw if duplicate (non-blank) column header values are found.
             for (Cell cell: headerRow) {
                 if (columns.containsKey(formatter.formatCellValue(cell)) && !formatter.formatCellValue(cell).isBlank()) {
-                    // Duplicate (non-blank) column header.
+                    // Duplicate (non-blank) column header found.
                     throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
                 }
                 columns.put(formatter.formatCellValue(cell), new ArrayList<>());
@@ -145,7 +145,6 @@ public class FileUtil {
     }
 
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
-        //TODO: See if this has the windows BOM issue
         try {
             // Read inputStream into a String, exclude any Byte Order Marks.
             String input = new String(new BOMInputStream(inputStream, false).readAllBytes());
