@@ -662,7 +662,7 @@ public class ExperimentProcessor implements Processor {
             var importHash = getImportObservationHash(importRow, phenoCol.name());
 
             // error if import observation data already exists and user has not selected to overwrite
-            if(commit && !importRow.isOverwrite() &&
+            if(commit && importRow.getOverwrite().equals("false") &&
                     this.existingObsByObsHash.containsKey(importHash) &&
                     StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum - 1)) &&
                     !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum - 1))) {
@@ -678,6 +678,7 @@ public class ExperimentProcessor implements Processor {
                     StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum -1)) &&
                     !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1))) {
                 //observationByHash.get(importHash).getBrAPIObject().setValue(phenoCol.getString(numRows - rowNum -1));
+                //this.existingObsByObsHash.get(importHash).setObservationVariableName(phenoCol.name());
                 observationByHash.get(importHash).setState(ImportObjectState.MUTATED);
 
                 // add a change log entry when updating the value of an observation

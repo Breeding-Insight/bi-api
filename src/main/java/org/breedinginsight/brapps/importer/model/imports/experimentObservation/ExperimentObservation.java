@@ -47,9 +47,9 @@ import java.util.function.Supplier;
 @ImportConfigMetadata(id = "ExperimentImport", name = "Experiment Import",
         description = "This import is used to create Observation Unit and Experiment data")
 public class ExperimentObservation implements BrAPIImport {
-    @ImportFieldType(type = ImportFieldTypeEnum.BOOLEAN)
+    @ImportFieldType(type = ImportFieldTypeEnum.BOOLEAN, collectTime = ImportCollectTimeEnum.UPLOAD)
     @ImportFieldMetadata(id = "overwrite", name = "Overwrite", description = "Boolean flag to overwrite existing observation")
-    private boolean overwrite;
+    private String overwrite;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
     @ImportFieldMetadata(id="overwriteReason", name="Overwrite Reason", description="Description of the reason for overwriting existing observations")
