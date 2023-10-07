@@ -53,6 +53,12 @@ public class MappingManager {
 
     private ImportConfigManager configManager;
 
+    public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
+    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
+    public static String missingColumn = "Column name \"%s\" does not exist in file";
+    public static String missingUserInput = "User input, \"%s\" is required";
+    public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
+
     @Inject
     MappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
@@ -339,7 +345,7 @@ public class MappingManager {
 
         // Only supports user input at the top level of an object at the moment. No nested objects. Map<String, String>
         String fieldId = metadata.id();
-        if (!userInput.containsKey(fieldId) && required != null) {
+        if ((userInput == null || !userInput.containsKey(fieldId)) && required != null) {
             throw new UnprocessableEntityException(importService.getMissingUserInputMsg(metadata.name()));
         }
         else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
@@ -369,12 +375,15 @@ public class MappingManager {
 
     private Boolean isCorrectType(ImportFieldTypeEnum expectedType, String value) {
         if (!value.isBlank()) {
-            if (expectedType == ImportFieldTypeEnum.INTEGER) {
-                try {
+            try {
+                if (expectedType == ImportFieldTypeEnum.INTEGER) {
                     Integer d = Integer.parseInt(value);
-                } catch (NumberFormatException nfe) {
-                    return false;
                 }
+                if (expectedType == ImportFieldTypeEnum.BOOLEAN) {
+                    Boolean b = Boolean.parseBoolean(value);
+                }
+            } catch (NumberFormatException nfe) {
+                return false;
             }
         }
         return true;
