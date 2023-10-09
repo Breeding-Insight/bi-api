@@ -18,6 +18,9 @@
 package org.breedinginsight.utilities;
 
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.io.input.BOMInputStream;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
 import org.breedinginsight.services.parsers.ParsingException;
@@ -31,6 +34,7 @@ import tech.tablesaw.io.json.JsonReadOptions;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 
@@ -70,7 +74,14 @@ public class FileUtil {
         try {
             columns = new HashMap<>();
             headerRow = sheet.getRow(headerRowIndex);
-            headerRow.forEach(cell -> columns.put(formatter.formatCellValue(cell), new ArrayList<>()));
+            // Build column map, throw if duplicate (non-blank) column header values are found.
+            for (Cell cell: headerRow) {
+                if (columns.containsKey(formatter.formatCellValue(cell)) && !formatter.formatCellValue(cell).isBlank()) {
+                    // Duplicate (non-blank) column header found.
+                    throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
+                }
+                columns.put(formatter.formatCellValue(cell), new ArrayList<>());
+            }
             for (int i = headerRowIndex + 1; i <= sheet.getLastRowNum(); i++) {
                 Row row = sheet.getRow(i);
                 Iterator<Cell> cellIterator = row.cellIterator();
@@ -94,7 +105,12 @@ public class FileUtil {
                     }
                 }
             }
-        } catch (Exception e) {
+        }
+        catch (ParsingException e) {
+            log.error(e.toString());
+            throw e;
+        }
+        catch (Exception e) {
             log.error(e.toString());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
@@ -129,19 +145,41 @@ public class FileUtil {
     }
 
     public static Table parseTableFromCsv(InputStream inputStream) throws ParsingException {
-        //TODO: See if this has the windows BOM issue
         try {
+            // Read inputStream into a String, exclude any Byte Order Marks.
+            String input = new String(new BOMInputStream(inputStream, false).readAllBytes());
+
+            // Check for duplicate (non-blank) column names, could also do other validations.
+            try (CSVParser parser = CSVParser.parse(input, CSVFormat.EXCEL);) {
+                HashSet<String> columnNames = new HashSet<>();
+                for (String columnName: parser.getRecords().get(0)) {
+                    if (columnName.isBlank()) {
+                        log.debug("Skipping blank column header.");
+                    } else {
+                        log.debug("Column name: " + columnName);
+                        if (columnNames.contains(columnName)) {
+                            log.debug("Duplicate column header name: " + columnName);
+                            throw new ParsingException(ParsingExceptionType.DUPLICATE_COLUMN_NAMES);
+                        }
+                        columnNames.add(columnName);
+                    }
+                }
+            }
+
+            // Convert to Table.
             //Jackson used downstream messily converts LOCAL_DATE/LOCAL_DATETIME, so need to interpret date input as strings
             //Note that if another type is needed later this is what needs to be updated
             ArrayList<ColumnType> acceptedTypes = new ArrayList<>(Arrays.asList(ColumnType.STRING, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.FLOAT));
             Table df = Table.read().usingOptions(
                     CsvReadOptions
-                            .builder(inputStream)
+                            .builderFromString(input)
                             .columnTypesToDetect(acceptedTypes)
                             .separator(',')
             );
             return removeNullColumns(removeNullRows(df));
-        } catch (IOException e) {
+        } catch (ParsingException e) {
+            throw e;
+        } catch (Exception e) {
             log.error(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
