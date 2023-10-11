@@ -41,7 +41,6 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.AdditionalInfo;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -74,8 +73,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPERIMENT_TEMPLATE_NAME;
-
 @Slf4j
 @Prototype
 public class ExperimentProcessor implements Processor {
@@ -89,9 +86,7 @@ public class ExperimentProcessor implements Processor {
     private static final String TIMESTAMP_PREFIX = "TS:";
     private static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
     private static final String COMMA_DELIMITER = ",";
-    private static final String BLANK_FIELD_EXPERIMENT = "Field is blank when creating a new experiment";
-    private static final String BLANK_FIELD_ENV = "Field is blank when creating a new environment";
-    private static final String BLANK_FIELD_OBS = "Field is blank when creating new observations";
+    private static final String BLANK_FIELD = "Required field is blank";
     private static final String ENV_LOCATION_MISMATCH = "All locations must be the same for a given environment";
     private static final String ENV_YEAR_MISMATCH = "All years must be the same for a given environment";
 
@@ -674,12 +669,7 @@ public class ExperimentProcessor implements Processor {
                                                             .getState();
         ImportObjectState envState = this.studyByNameNoScope.get(importRow.getEnv()).getState();
 
-        String errorMessage = BLANK_FIELD_EXPERIMENT;
-        if (expState == ImportObjectState.EXISTING && envState == ImportObjectState.NEW) {
-            errorMessage = BLANK_FIELD_ENV;
-        } else if(expState == ImportObjectState.EXISTING && envState == ImportObjectState.EXISTING) {
-            errorMessage = BLANK_FIELD_OBS;
-        }
+        String errorMessage = BLANK_FIELD;
 
         if(expState == ImportObjectState.NEW || envState == ImportObjectState.NEW) {
             validateRequiredCell(importRow.getGid(), Columns.GERMPLASM_GID, errorMessage, validationErrors, rowNum);
