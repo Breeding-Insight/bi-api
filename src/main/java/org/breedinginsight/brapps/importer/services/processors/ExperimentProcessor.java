@@ -595,8 +595,8 @@ public class ExperimentProcessor implements Processor {
         observationUnitByNameNoScope.values().forEach(ou -> {
             if(StringUtils.isNotBlank(ou.getBrAPIObject().getObservationUnitDbId())) {
                 ouDbIds.add(ou.getBrAPIObject().getObservationUnitDbId());
+                ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getBrAPIObject().getObservationUnitName(), program.getKey()));
             }
-            ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getBrAPIObject().getObservationUnitName(), program.getKey()));
         });
 
         for (Trait referencedTrait : referencedTraits) {
