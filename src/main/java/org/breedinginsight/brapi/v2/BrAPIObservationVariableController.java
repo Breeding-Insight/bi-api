@@ -28,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.BrAPIOntologyReference;
@@ -102,7 +101,7 @@ public class BrAPIObservationVariableController {
                                                                            @Nullable @QueryValue("traitPUI") String traitPUI,
                                                                            @Nullable @QueryValue("ontologyDbId") String ontologyDbId,
                                                                            @Nullable @QueryValue("commonCropName") String commonCropName,
-//                                     @QueryValue("programDbId") Optional<@Nullable String> programDbId, //this is
+//                                     @QueryValue("programDbId") Optional<@Nullable String> programDbId, //this is redundant
                                                                            @Nullable @QueryValue("trialDbId") String experimentId,
                                                                            @Nullable @QueryValue("studyDbId") String environmentId,
                                                                            @Nullable @QueryValue("externalReferenceID") String externalReferenceID,
@@ -204,18 +203,19 @@ public class BrAPIObservationVariableController {
         BrAPIOntologyReference brAPIOntologyReference = new BrAPIOntologyReference().ontologyDbId(trait.getProgramOntologyId()
                                                                                                        .toString());
         String status = trait.getActive() ? "active" : "inactive";
+        List<String> synonyms = prepSynonyms(trait);
         return new BrAPIObservationVariable().observationVariableDbId(trait.getId().toString())
                                              .observationVariableName(trait.getObservationVariableName())
                                              .defaultValue(trait.getDefaultValue())
                                              .status(status)
-                                             .synonyms(trait.getSynonyms())
+                                             .synonyms(synonyms)
                                              .trait(new BrAPITrait().ontologyReference(brAPIOntologyReference)
                                                                     .traitName(trait.getObservationVariableName())
                                                                     .traitDbId(trait.getId().toString())
                                                                     .entity(trait.getEntity())
                                                                     .attribute(trait.getAttribute())
                                                                     .status(status)
-                                                                    .synonyms(trait.getSynonyms()))
+                                                                    .synonyms(synonyms))
                                              .method(new BrAPIMethod().ontologyReference(brAPIOntologyReference)
                                                                       .methodDbId(trait.getMethod().getId().toString())
                                                                       .description(trait.getMethod().getDescription())
@@ -228,6 +228,36 @@ public class BrAPIObservationVariableController {
                                                                     .validValues(new BrAPIScaleValidValues().max(trait.getScale().getValidValueMax())
                                                                                                             .min(trait.getScale().getValidValueMin())
                                                                                                             .categories(trait.getScale().getCategories())));
+    }
+
+    /**
+     * Create a list of synonyms, and ensure that there the first element matches the name of the trait<br><br>
+     * This is primarily needed to ensure any system using the first synonym as a display shows the actual name of the ontology term
+     * @param trait
+     * @return list of synonyms with at least one value (the name of the trait)
+     */
+    private List<String> prepSynonyms(Trait trait) {
+        List<String> preppedSynonyms = new ArrayList<>();
+        if(trait.getSynonyms() != null) {
+            preppedSynonyms = trait.getSynonyms();
+            int traitNameIdx = -1;
+            for(int i = 0; i < preppedSynonyms.size(); i++) {
+                if(preppedSynonyms.get(i).equals(trait.getObservationVariableName())) {
+                    traitNameIdx = i;
+                    break;
+                }
+            }
+            if(traitNameIdx > -1) {
+                String temp = preppedSynonyms.get(traitNameIdx);
+                preppedSynonyms.set(traitNameIdx, preppedSynonyms.get(0));
+                preppedSynonyms.set(0, temp);
+            } else {
+                preppedSynonyms.add(0, trait.getObservationVariableName());
+            }
+        } else {
+            preppedSynonyms.add(trait.getObservationVariableName());
+        }
+        return preppedSynonyms;
     }
 
     @NotNull
