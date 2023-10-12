@@ -33,9 +33,7 @@ import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIObservationUnitHierarchyLevel;
-import org.brapi.v2.model.pheno.BrAPIObservationUnitLevelRelationship;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponseResult;
 import org.breedinginsight.api.auth.ProgramSecured;
@@ -44,11 +42,10 @@ import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.annotation.Nullable;
@@ -57,6 +54,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
@@ -130,7 +128,8 @@ public class BrAPIObservationLevelsController {
             BrAPIIndexPagination responsePagination = (BrAPIIndexPagination) response.getBody().getMetadata().getPagination();
             List<BrAPIObservationUnitHierarchyLevel> levels = new ArrayList<>();
             if(response.getBody() != null) {
-                levels = response.getBody().getResult().getData();
+                levels = response.getBody().getResult().getData().stream().filter(level -> !level.getLevelName().equals(BrAPIConstants.REPLICATE.getValue()) && !level.getLevelName().equals(BrAPIConstants.BLOCK.getValue())).collect(
+                        Collectors.toList());
             }
             log.debug(String.format("found %d observation levels", levels.size()));
             return HttpResponse.ok(new BrAPIObservationLevelListResponse().metadata(new BrAPIMetadata().pagination(responsePagination))
