@@ -144,7 +144,7 @@ services:
         source: gigwa_data
         target: /usr/local/tomcat/config
   mongo:
-    image: mongo:4.2.21
+    image: mongo:4.2.24
     container_name: ${GIGWA_CONTAINER_NAME:-gigwa}_db
     restart: always
     command: --profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet
