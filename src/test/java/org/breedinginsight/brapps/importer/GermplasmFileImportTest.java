@@ -15,17 +15,13 @@ import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.breedinginsight.BrAPITest;
-import org.breedinginsight.api.model.v1.request.ProgramRequest;
-import org.breedinginsight.api.model.v1.request.SpeciesRequest;
-import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.base.Germplasm;
+import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImportService;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.MappingManager;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.UserDAO;
@@ -64,6 +60,8 @@ public class GermplasmFileImportTest extends BrAPITest {
     @Property(name = "brapi.server.core-url")
     private String BRAPI_URL;
 
+    @Inject
+    private GermplasmImportService importService;
     @Inject
     private SpeciesService speciesService;
     @Inject
@@ -338,7 +336,7 @@ public class GermplasmFileImportTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.missingUserInput, "List Name"), e.getMessage());
+        assertEquals(importService.getMissingUserInputMsg("List Name"), e.getMessage());
     }
 
     @Test
@@ -503,7 +501,7 @@ public class GermplasmFileImportTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.wrongDataTypeMsg, "Entry No"), e.getMessage());
+        assertEquals(importService.getWrongDataTypeMsg("Entry No"), e.getMessage());
     }
 
     @Test
@@ -534,7 +532,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
         assertEquals("Name", error.get("field").getAsString(), "Incorrect field name");
-        assertEquals(String.format(MappingManager.blankRequiredField, "Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
+        assertEquals(importService.getBlankRequiredFieldMsg("Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
 
         JsonObject rowError2 = rowErrors.get(1).getAsJsonObject();
         JsonArray errors2 = rowError2.getAsJsonArray("errors");
@@ -542,7 +540,7 @@ public class GermplasmFileImportTest extends BrAPITest {
         JsonObject error2 = errors2.get(0).getAsJsonObject();
         assertEquals(422, error2.get("httpStatusCode").getAsInt(), "Incorrect http status code");
         assertEquals("Source", error2.get("field").getAsString(), "Incorrect field name");
-        assertEquals(String.format(MappingManager.blankRequiredField, "Source"), error2.get("errorMessage").getAsString(), "Incorrect error message");
+        assertEquals(importService.getBlankRequiredFieldMsg("Source"), error2.get("errorMessage").getAsString(), "Incorrect error message");
     }
 
     @Test
@@ -590,7 +588,7 @@ public class GermplasmFileImportTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.missingColumn, "Source"), e.getMessage());
+        assertEquals(importService.getMissingColumnMsg("Source"), e.getMessage());
     }
 
     @Test
@@ -611,7 +609,7 @@ public class GermplasmFileImportTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(String.format(MappingManager.missingColumn, "Entry No"), e.getMessage());
+        assertEquals(importService.getMissingColumnMsg("Entry No"), e.getMessage());
     }
 
     @Test
