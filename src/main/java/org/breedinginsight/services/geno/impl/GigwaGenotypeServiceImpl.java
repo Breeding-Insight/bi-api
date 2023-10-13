@@ -82,7 +82,7 @@ import java.util.stream.Collectors;
 @Slf4j
 public class GigwaGenotypeServiceImpl implements GenotypeService {
     private static final String AUTHORIZATION = "Authorization";
-    private static final String X_FORWARDED_SERVER = "X-Forwarded-Server";
+    private static final String X_FORWARDED_FOR = "X-Forwarded-For";
     private static final String BEARER = "Bearer ";
     private static final String GIGWA_REST_BASE_PATH = "gigwa/rest";
     private static final String GIGWA_BRAPI_BASE_PATH = GIGWA_REST_BASE_PATH + BrapiVersion.BRAPI_V2;
@@ -613,7 +613,7 @@ public class GigwaGenotypeServiceImpl implements GenotypeService {
 
                             .build())
                 .header(AUTHORIZATION, BEARER + gigwaAuthToken)
-                .header(X_FORWARDED_SERVER, referenceSource)
+                .header(X_FORWARDED_FOR, referenceSource)
                 .post(RequestBody.create("", MediaType.parse("text/plain")))
                 .build();
 
