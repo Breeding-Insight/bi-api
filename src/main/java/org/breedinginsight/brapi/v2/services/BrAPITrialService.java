@@ -11,6 +11,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
@@ -18,6 +19,7 @@ import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.model.BrAPIConstants;
@@ -235,7 +237,11 @@ public class BrAPITrialService {
             List<DownloadFile> files = new ArrayList<>();
             // Generate a file for each study.
             for (Map.Entry<String, List<Map<String, Object>>> entry: rowsByStudyId.entrySet()) {
-                StreamedFile streamedFile = writeToStreamedFile(columns, entry.getValue(), fileType, "Experiment Data");
+
+                List<Map<String, Object>> rows = entry.getValue();
+                sortExportRows(rows);
+                //TODO the sheetName should be "Data".  It should no longer be "Experiment Data"
+                StreamedFile streamedFile = writeToStreamedFile(columns, rows, fileType, "Experiment Data");
                 String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName()) + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
@@ -252,7 +258,9 @@ public class BrAPITrialService {
             }
         } else {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
+            sortExportRows(exportRows);
             // write export data to requested file format
+            //TODO the sheetName should be "Data".  It should no longer be "Experiment Data"
             StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, "Experiment Data");
             // Set filename.
             String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
@@ -308,6 +316,7 @@ public class BrAPITrialService {
         log.debug("fetching observations for dataset: " + datsetId);
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
         log.debug("building dataset object for dataset: " + datsetId);
+        sortObservationUnit(datasetOUs);
         Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
         if (stats) {
             Integer ouCount = datasetOUs.size();
@@ -549,4 +558,16 @@ public class BrAPITrialService {
                 .collect(Collectors.toList());
     }
 
+    private void sortObservationUnit(List<BrAPIObservationUnit> ous){
+        ous.sort(Comparator.comparing(BrAPIObservationUnit::getStudyName)
+                .thenComparing(BrAPIObservationUnit::getObservationUnitName));
+    }
+
+    private void sortExportRows(List<Map<String, Object>> exportRows){
+        Comparator<Map<String, Object>> envComparator = Comparator.comparing(row -> ( row.get(Columns.ENV).toString()));
+        Comparator<Map<String, Object>> expUnitIdComparator =
+                Comparator.comparing(row -> (row.get(Columns.EXP_UNIT_ID).toString()));
+
+        exportRows.sort(envComparator.thenComparing(expUnitIdComparator));
+    }
 }
