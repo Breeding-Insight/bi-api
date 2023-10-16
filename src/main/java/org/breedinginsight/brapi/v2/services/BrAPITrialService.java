@@ -229,7 +229,7 @@ public class BrAPITrialService {
                 // Initialize key with empty list if it is not present.
                 if (!rowsByStudyId.containsKey(studyId))
                 {
-                    rowsByStudyId.put(studyId, new ArrayList<Map<String, Object>>());
+                    rowsByStudyId.put(studyId, new ArrayList<>());
                 }
                 // Add row to appropriate list in rowsByStudyId.
                 rowsByStudyId.get(studyId).add(row);
@@ -240,8 +240,7 @@ public class BrAPITrialService {
 
                 List<Map<String, Object>> rows = entry.getValue();
                 sortExportRows(rows);
-                //TODO the sheetName should be "Data".  It should no longer be "Experiment Data"
-                StreamedFile streamedFile = writeToStreamedFile(columns, rows, fileType, "Experiment Data");
+                StreamedFile streamedFile = writeToStreamedFile(columns, rows, fileType, "Data");
                 String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName()) + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
@@ -260,8 +259,7 @@ public class BrAPITrialService {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
             sortExportRows(exportRows);
             // write export data to requested file format
-            //TODO the sheetName should be "Data".  It should no longer be "Experiment Data"
-            StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, "Experiment Data");
+            StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, "Data");
             // Set filename.
             String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
             String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
