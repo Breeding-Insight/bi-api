@@ -265,6 +265,7 @@ public class MappingManager {
             if (matchedMapping.getValue().getFileFieldName() != null) {
                 // Check that the file has this name
                 if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
+                    log.debug("Expected column missing from file: " + matchedMapping.getValue().getFileFieldName());
                     throw new UnprocessableEntityException(importService.getMissingColumnMsg(matchedMapping.getValue().getFileFieldName()));
                 }
 
