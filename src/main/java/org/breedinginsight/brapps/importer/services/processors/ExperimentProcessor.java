@@ -688,9 +688,6 @@ public class ExperimentProcessor implements Processor {
             } else if (this.existingObsByObsHash.containsKey(importHash) &&
                     StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum -1)) &&
                     !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1))) {
-                //observationByHash.get(importHash).getBrAPIObject().setValue(phenoCol.getString(numRows - rowNum -1));
-                //this.existingObsByObsHash.get(importHash).setObservationVariableName(phenoCol.name());
-                //observationByHash.get(importHash).setState(ImportObjectState.MUTATED);
 
                 // add a change log entry when updating the value of an observation
                 if (commit) {
@@ -711,7 +708,7 @@ public class ExperimentProcessor implements Processor {
                     if (pendingObservation.getAdditionalInfo() != null && !pendingObservation.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CHANGELOG)) {
                         pendingObservation.getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
                     }
-                    pendingObservation.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CHANGELOG).getAsJsonArray().add(gson.toJson(change));
+                    pendingObservation.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CHANGELOG).getAsJsonArray().add(gson.toJsonTree(change).getAsJsonObject());
                 }
 
             // preview case where observation has already been committed and import ObsVar data is either empty or the
