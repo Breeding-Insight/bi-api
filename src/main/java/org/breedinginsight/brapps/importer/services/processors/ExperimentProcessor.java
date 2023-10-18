@@ -946,15 +946,16 @@ public class ExperimentProcessor implements Processor {
                         .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
             }
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
+            UUID studyID = studyPIO.getId();
+            UUID id = UUID.randomUUID();
+            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, datasetId, studyID, id);
 
-            List<BrAPIObservationUnit> existingOUs = brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyPIO.getBrAPIObject().getStudyDbId(), program);
-            List<BrAPIObservationUnit> matchingOU = existingOUs.stream().filter(ou -> importRow.getExpUnitId().equals(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()))).collect(Collectors.toList());
-            if (!matchingOU.isEmpty()) {
-                pio = new PendingImportObject<>(ImportObjectState.EXISTING, matchingOU.get(0));
+            // check for existing units if this is an existing study
+            if (studyPIO.getBrAPIObject().getStudyDbId() != null) {
+                List<BrAPIObservationUnit> existingOUs = brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyPIO.getBrAPIObject().getStudyDbId(), program);
+                List<BrAPIObservationUnit> matchingOU = existingOUs.stream().filter(ou -> importRow.getExpUnitId().equals(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()))).collect(Collectors.toList());
+                pio = !matchingOU.isEmpty() ? new PendingImportObject<>(ImportObjectState.EXISTING, matchingOU.get(0)) : new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
             } else {
-                UUID studyID = studyPIO.getId();
-                UUID id = UUID.randomUUID();
-                BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, datasetId, studyID, id);
                 pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
             }
             this.observationUnitByNameNoScope.put(key, pio);
