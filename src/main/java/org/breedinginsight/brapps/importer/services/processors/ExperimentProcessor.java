@@ -849,13 +849,8 @@ public class ExperimentProcessor implements Processor {
     private void addObsVarsToDatasetDetails(PendingImportObject<BrAPIListDetails> pio, List<Trait> referencedTraits, Program program) {
         BrAPIListDetails details = pio.getBrAPIObject();
         referencedTraits.forEach(trait -> {
-            String id = Utilities.appendProgramKey(trait.getObservationVariableName(), program.getKey());
+            String id = trait.getRawObservationVariableName();
 
-            // Don't append the key if connected to a brapi service operating with legacy data(no appended program key)
-            if (trait.getFullName() == null) {
-                id = trait.getObservationVariableName();
-            }
-            
             if (!details.getData().contains(id) && ImportObjectState.EXISTING != pio.getState()) {
                 details.getData().add(id);
             }
