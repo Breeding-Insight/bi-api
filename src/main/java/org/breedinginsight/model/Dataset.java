@@ -1,5 +1,6 @@
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.google.gson.JsonObject;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
@@ -7,6 +8,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 
 import java.util.List;
 
+@JsonInclude(JsonInclude.Include.NON_ABSENT)
 public class Dataset {
     public String experimentId;
     public JsonObject additionalInfo;
