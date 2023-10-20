@@ -16,6 +16,8 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -899,6 +901,9 @@ public class ExperimentProcessor implements Processor {
         PendingImportObject<BrAPIStudy> pio;
         if (studyByNameNoScope.containsKey(importRow.getEnv())) {
             pio = studyByNameNoScope.get(importRow.getEnv());
+            if (! commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
         } else {
             PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
@@ -906,18 +911,54 @@ public class ExperimentProcessor implements Processor {
             BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
             newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
 
+            // It is assumed that the study has only one season, And that the Years and not
+            // the dbId's are stored in getSeason() list.
+            String year = newStudy.getSeasons().get(0);
             if (commit) {
-                String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
                 if(StringUtils.isNotBlank(year)) {
                     String seasonID = this.yearToSeasonDbId(year, program.getId());
                     newStudy.setSeasons(Collections.singletonList(seasonID));
                 }
+            } else {
+                addYearToStudyAdditionalInfo(program, newStudy, year);
             }
+
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
             this.studyByNameNoScope.put(importRow.getEnv(), pio);
         }
         return pio;
+    }
+
+
+    /*
+     * this finds the YEAR from the season list on the BrAPIStudy and then
+     * will add the year to the additionalInfo-field of the BrAPIStudy
+     * */
+    private void addYearToStudyAdditionalInfo(Program program, BrAPIStudy study) {
+        JsonObject additionalInfo = study.getAdditionalInfo();
+
+        //if it is already there, don't add it.
+        if(additionalInfo==null || additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
+            String seasonDbId = study.getSeasons().get(0);
+            String year = seasonDbIdToYear(seasonDbId, program.getId());
+            addYearToStudyAdditionalInfo(program, study, year);
+        }
+    }
+
+
+    /*
+    * this will add the given year to the additionalInfo field of the BrAPIStudy (if it does not already exist)
+    * */
+    private void addYearToStudyAdditionalInfo(Program program, BrAPIStudy study, String year) {
+        JsonObject additionalInfo = study.getAdditionalInfo();
+        if (additionalInfo==null){
+            additionalInfo = new JsonObject();
+            study.setAdditionalInfo(additionalInfo);
+        }
+        if( additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.ENV_YEAR, year);
+        }
     }
 
     private PendingImportObject<ProgramLocation> fetchOrCreateLocationPIO(ExperimentObservation importRow) {
