@@ -22,4 +22,6 @@ public class SupportedMediaType {
     public static final String XLS = "application/vnd.ms-excel";
     public static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
+    public static final String XLSB = "application/vnd.ms-excel.sheet.binary.macroenabled.12";
+
 }
