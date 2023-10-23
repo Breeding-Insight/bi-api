@@ -163,7 +163,7 @@ public class BrAPIObservationUnitDAO {
         ouSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         ouSearchRequest.externalReferenceSources(List.of(datasetReferenceSource));
         ouSearchRequest.externalReferenceIDs(List.of(datasetId));
-        return searchObservationUnitsAndProcess(ouSearchRequest, program.getId(), true);
+        return searchObservationUnitsAndProcess(ouSearchRequest, program, true);
     }
 
     public List<BrAPIObservationUnit> getObservationUnits(Program program,
