@@ -232,7 +232,7 @@ public class ExperimentProcessor implements Processor {
             }
         }
 
-        List<Trait> referencedTraits = verifyTraits(program.getId(), phenotypeCols, timestampCols, validationErrors);
+        List<Trait> referencedTraits = verifyTraits(program.getId(), phenotypeCols, timestampCols);
 
         //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
         for (Column<?> tsColumn : timestampCols) {
@@ -252,7 +252,7 @@ public class ExperimentProcessor implements Processor {
 
         log.debug("done processing experiment import");
         // Construct our response object
-        return generateStatisticsMap(importRows, phenotypeCols);
+        return generateStatisticsMap(importRows);
     }
 
     @Override
@@ -269,7 +269,7 @@ public class ExperimentProcessor implements Processor {
                 .getMutationsByObjectId(trialByNameNoScope, BrAPITrial::getTrialDbId);
 
         Map<String, BrAPIObservation> mutatedObservationByDbId = ProcessorData
-                .getMutationsByObjectId(observationByHash, observation -> observation.getObservationDbId());
+                .getMutationsByObjectId(observationByHash, BrAPIObservation::getObservationDbId);
 
         List<ProgramLocationRequest> newLocations = ProcessorData.getNewObjects(this.locationByName)
                                                                  .stream()
@@ -430,7 +430,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private List<Trait> verifyTraits(UUID programId, List<Column<?>> phenotypeCols, List<Column<?>> timestampCols, ValidationErrors validationErrors) {
+    private List<Trait> verifyTraits(UUID programId, List<Column<?>> phenotypeCols, List<Column<?>> timestampCols) {
         Set<String> varNames = phenotypeCols.stream()
                                             .map(Column::name)
                                             .collect(Collectors.toSet());
@@ -571,8 +571,8 @@ public class ExperimentProcessor implements Processor {
         return DigestUtils.sha256Hex(concat);
     }
 
-    private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
-                                List<Column<?>> phenotypeCols, boolean commit, User user) throws MissingRequiredInfoException, ApiException {
+    private void validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
+                                List<Column<?>> phenotypeCols, boolean commit, User user) {
         //fetching any existing observations for any OUs in the import
         CaseInsensitiveMap<String, Trait> colVarMap = new CaseInsensitiveMap<>();
         for ( Trait trait: referencedTraits) {
@@ -587,7 +587,7 @@ public class ExperimentProcessor implements Processor {
                 validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
             }
             validateTestOrCheck(importRow, validationErrors, rowNum);
-
+            //TODO: providing obs unit ID does not supersede import row inout data as expected and needs to be fixed
             //Check if existing environment. If so, ObsUnitId must be assigned
 //            if ((mappedImportRow.getStudy().getState() == ImportObjectState.EXISTING)
 //                    && (StringUtils.isBlank(importRow.getObsUnitID()))) {
@@ -598,7 +598,6 @@ public class ExperimentProcessor implements Processor {
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
             validateObservations(validationErrors, rowNum, importRows.size(), importRow, phenotypeCols, colVarMap, commit, user);
         }
-        return validationErrors;
     }
 
     private void validateObservationUnits(ValidationErrors validationErrors, Set<String> uniqueStudyAndObsUnit, int rowNum, ExperimentObservation importRow) {
@@ -622,7 +621,7 @@ public class ExperimentProcessor implements Processor {
                                                                 .map(PendingImportObject::getBrAPIObject)
                                                                 .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
 
-        studyNameByDbId.keySet().stream().forEach(studyDbId -> {
+        studyNameByDbId.keySet().forEach(studyDbId -> {
             try {
                 brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyDbId, program).forEach(ou -> {
                     if(StringUtils.isNotBlank(ou.getObservationUnitDbId())) {
@@ -634,12 +633,6 @@ public class ExperimentProcessor implements Processor {
                 throw new RuntimeException(e);
             }
         });
-//        observationUnitByNameNoScope.values().forEach(ou -> {
-//            if(StringUtils.isNotBlank(ou.getBrAPIObject().getObservationUnitDbId())) {
-//                ouDbIds.add(ou.getBrAPIObject().getObservationUnitDbId());
-//            }
-//            ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getBrAPIObject().getObservationUnitName(), program.getKey()));
-//        });
 
         for (Trait referencedTrait : referencedTraits) {
             variableDbIds.add(referencedTrait.getObservationVariableDbId());
@@ -797,6 +790,7 @@ public class ExperimentProcessor implements Processor {
                 addRowError(Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
             }
         } else {
+            //TODO: include this step once user-supplied obs unit id correctly supersedes other row data
             //validateRequiredCell(importRow.getObsUnitID(), Columns.OBS_UNIT_ID, errorMessage, validationErrors, rowNum);
         }
     }
@@ -820,7 +814,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private Map<String, ImportPreviewStatistics> generateStatisticsMap(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols) {
+    private Map<String, ImportPreviewStatistics> generateStatisticsMap(List<BrAPIImport> importRows) {
         // Data for stats.
         HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
         HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
@@ -886,8 +880,8 @@ public class ExperimentProcessor implements Processor {
                 "Observation_Units", obdUnitStats,
                 "GIDs", gidStats,
                 "Observations", observationStats,
-                "Existing Observations", existingObservationStats,
-                "Mutated Observations", mutatedObservationStats
+                "Existing_Observations", existingObservationStats,
+                "Mutated_Observations", mutatedObservationStats
         );
     }
 
@@ -1024,7 +1018,7 @@ public class ExperimentProcessor implements Processor {
             }
         });
     }
-    private PendingImportObject<BrAPIListDetails> fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
+    private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
         PendingImportObject<BrAPIListDetails> pio;
         PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
         String name = String.format("Observation Dataset [%s-%s]",
@@ -1051,7 +1045,6 @@ public class ExperimentProcessor implements Processor {
             obsVarDatasetByName.put(name, pio);
         }
         addObsVarsToDatasetDetails(pio, referencedTraits, program);
-        return pio;
     }
 
     private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(Program program, boolean commit, String expSequenceValue, ExperimentObservation importRow, Supplier<BigInteger> envNextVal) {
@@ -1405,9 +1398,7 @@ public class ExperimentProcessor implements Processor {
                                                                .collect(Collectors.toSet());
 
         List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
-        studies.forEach(study -> {
-            processAndCacheStudy(study, program, studyByName);
-        });
+        studies.forEach(study -> processAndCacheStudy(study, program, studyByName));
     }
 
     private List<BrAPIStudy> fetchStudiesByDbId(Set<String> studyDbIds, Program program) throws ApiException {
