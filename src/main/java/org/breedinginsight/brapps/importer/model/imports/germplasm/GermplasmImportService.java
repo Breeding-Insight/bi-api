@@ -39,7 +39,7 @@ import java.util.*;
 
 @Singleton
 @Slf4j
-public class GermplasmImportService extends BrAPIImportService {
+public class GermplasmImportService implements BrAPIImportService {
 
     private final String IMPORT_TYPE_ID = "GermplasmImport";
 

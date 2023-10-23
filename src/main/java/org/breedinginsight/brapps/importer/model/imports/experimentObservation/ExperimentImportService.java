@@ -39,7 +39,7 @@ import java.util.List;
 
 @Singleton
 @Slf4j
-public class ExperimentImportService extends BrAPIImportService {
+public class ExperimentImportService implements BrAPIImportService {
 
     private final String IMPORT_TYPE_ID = "ExperimentImport";
 
