@@ -602,7 +602,7 @@ public class ExperimentProcessor implements Processor {
 
             validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
-            validateObservations(validationErrors, rowNum, importRows.size(), importRow, phenotypeCols, colVarMap, commit, user);
+            validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
         }
     }
 
@@ -662,7 +662,6 @@ public class ExperimentProcessor implements Processor {
 
     private void validateObservations(ValidationErrors validationErrors,
                                       int rowNum,
-                                      int numRows,
                                       ExperimentObservation importRow,
                                       List<Column<?>> phenotypeCols,
                                       Map<String, Trait> colVarMap,
@@ -674,8 +673,8 @@ public class ExperimentProcessor implements Processor {
             // error if import observation data already exists and user has not selected to overwrite
             if(commit && importRow.getOverwrite().equals("false") &&
                     this.existingObsByObsHash.containsKey(importHash) &&
-                    StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum - 1)) &&
-                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum - 1))) {
+                    StringUtils.isNotBlank(phenoCol.getString(rowNum)) &&
+                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
                 addRowError(
                         phenoCol.name(),
                         String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", importRow.getObsUnitID(), phenoCol.name()),
@@ -685,8 +684,8 @@ public class ExperimentProcessor implements Processor {
             // preview case where observation has already been committed and the import row ObsVar data differs from what
             // had been saved prior to import
             } else if (this.existingObsByObsHash.containsKey(importHash) &&
-                    StringUtils.isNotBlank(phenoCol.getString(numRows - rowNum -1)) &&
-                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1))) {
+                    StringUtils.isNotBlank(phenoCol.getString(rowNum)) &&
+                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
 
                 // add a change log entry when updating the value of an observation
                 if (commit) {
@@ -713,14 +712,14 @@ public class ExperimentProcessor implements Processor {
             // preview case where observation has already been committed and import ObsVar data is either empty or the
             // same as has been committed prior to import
             } else if(this.existingObsByObsHash.containsKey(importHash) &&
-                    (StringUtils.isBlank(phenoCol.getString(numRows - rowNum -1)) ||
-                            this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(numRows - rowNum -1)))) {
+                    (StringUtils.isBlank(phenoCol.getString(rowNum)) ||
+                            this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum)))) {
                 BrAPIObservation existingObs = this.existingObsByObsHash.get(importHash);
                 existingObs.setObservationVariableName(phenoCol.name());
                 observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
                 observationByHash.get(importHash).setBrAPIObject(existingObs);
             } else {
-                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(numRows - rowNum -1), phenoCol.name(), validationErrors, rowNum);
+                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
 
                 //Timestamp validation
                 if(timeStampColByPheno.containsKey(phenoCol.name())) {
