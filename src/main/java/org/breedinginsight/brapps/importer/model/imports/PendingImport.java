@@ -21,9 +21,10 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.geno.BrAPIPlate;
+import org.brapi.v2.model.geno.BrAPISample;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
@@ -44,6 +45,8 @@ public class PendingImport {
     private PendingImportObject<BrAPIStudy> study;
     private PendingImportObject<BrAPIObservationUnit> observationUnit;
     private List<PendingImportObject<BrAPIObservation>> observations = new ArrayList<>();
+    private PendingImportObject<BrAPIPlate> plate;
+    private PendingImportObject<BrAPISample> sample;
 
     @JsonIgnore
     public PendingImportObject<BrAPIObservation> getObservation() {

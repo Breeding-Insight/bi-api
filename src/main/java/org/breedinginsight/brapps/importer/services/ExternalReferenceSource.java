@@ -10,7 +10,11 @@ public enum ExternalReferenceSource {
     OBSERVATION_UNITS("observationunits"),
     DATASET("dataset"),
     LISTS("lists"),
-    OBSERVATIONS("observations");
+    OBSERVATIONS("observations"),
+    GERMPLASM("germplasm"),
+    PLATES("plates"),
+    SAMPLES("samples"),
+    PLATE_SUBMISSIONS("plates/submissions");
 
     private String name;
 
