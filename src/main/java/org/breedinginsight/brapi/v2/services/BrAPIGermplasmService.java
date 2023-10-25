@@ -191,6 +191,37 @@ public class BrAPIGermplasmService {
             return germplasm;
         } else throw new ApiException();
     }
+    public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
+        List<Column> columns = GermplasmFileColumns.getOrderedColumns();
+
+        //Retrieve germplasm list data
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasm(programId);
+        germplasm.sort(Comparator.comparingInt(germ -> Integer.parseInt(germ.getAccessionNumber())));
+
+        // make file Name
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        String programKey = "program";
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (optionalProgram.isPresent()) {
+            Program program = optionalProgram. get();
+            programKey = program.getKey();
+        }
+        String fileName = "germplasm[" + programKey + "]_" + timestamp;
+
+        StreamedFile downloadFile;
+        //Convert list data to List<Map<String, Object>> data to pass into file writer
+        List<Map<String, Object>> processedData =  processListData(germplasm, new UUID(0,0));
+
+        if (fileExtension == FileType.CSV){
+            downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
+        } else {
+            downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
+        }
+
+        return new DownloadFile(fileName, downloadFile);
+    }
+
     public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
@@ -219,7 +250,7 @@ public class BrAPIGermplasmService {
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
         } else {
-            downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData, fileExtension);
+            downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
         }
 
         return new DownloadFile(fileName, downloadFile);
