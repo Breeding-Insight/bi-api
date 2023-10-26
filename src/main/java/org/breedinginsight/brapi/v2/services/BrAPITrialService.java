@@ -29,9 +29,8 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
-import org.breedinginsight.services.writers.CSVWriter;
-import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.utilities.IntOrderComparator;
+import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
@@ -242,7 +241,7 @@ public class BrAPITrialService {
             for (Map.Entry<String, List<Map<String, Object>>> entry: rowsByStudyId.entrySet()) {
                 List<Map<String, Object>> rows = entry.getValue();
                 sortDefaultForExportRows(rows);
-                StreamedFile streamedFile = writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
+                StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
                 String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName()) + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
@@ -261,7 +260,7 @@ public class BrAPITrialService {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
             sortDefaultForExportRows(exportRows);
             // write export data to requested file format
-            StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
+            StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
             // Set filename.
             String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
             String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
@@ -269,14 +268,6 @@ public class BrAPITrialService {
         }
 
         return downloadFile;
-    }
-
-    private StreamedFile writeToStreamedFile(List<Column> columns, List<Map<String, Object>> data, FileType extension, String sheetName) throws IOException {
-        if (extension.equals(FileType.CSV)){
-            return CSVWriter.writeToDownload(columns, data, extension);
-        } else {
-            return ExcelWriter.writeToDownload(sheetName, columns, data, extension);
-        }
     }
 
     private StreamedFile zipFiles(List<DownloadFile> files) throws IOException {

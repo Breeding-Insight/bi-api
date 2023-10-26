@@ -63,6 +63,12 @@ import java.util.stream.Collectors;
 public class SampleSubmissionProcessor implements Processor {
 
     private static final String MISSING_REQUIRED_DATA = "Missing required data";
+    private static final String MISSING_GERM_ASSOCIATION = "One of GID or ObsUnitID is required";
+    private static final String UNKNOWN_OBS_UNIT_ID = "Unknown ObsUnitID";
+    private static final String UNKNOWN_GID = "Unknown germplasm GID";
+    private static final String INVALID_COLUMN = "Column must be a number between 1 and 12";
+    private static final String INVALID_ROW = "Row must be a letter between A and H";
+    private static final String MULTIPLE_SAMPLES_SINGLE_WELL = "The sample in row %d is already in row: %s, column: %d";
     private final String referenceSource;
     private final BrAPIGermplasmDAO germplasmDAO;
     private final BrAPIObservationUnitDAO observationUnitDAO;
@@ -188,25 +194,19 @@ public class SampleSubmissionProcessor implements Processor {
     }
 
     private boolean validRow(SampleSubmissionImport row, int rowNum, ValidationErrors validationErrors) {
-        int numErrorsBefore = validationErrors.getRowErrors()
-                                              .size();
+        int numErrorsBefore = validationErrors.getRowErrors().size();
         if (StringUtils.isBlank(row.getPlateId())) {
             validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.PLATE_ID, MISSING_REQUIRED_DATA, HttpStatus.UNPROCESSABLE_ENTITY));
         }
         int plateRow = -1;
         if (StringUtils.isBlank(row.getRow())) {
             validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.ROW, MISSING_REQUIRED_DATA, HttpStatus.UNPROCESSABLE_ENTITY));
-        } else if (row.getRow()
-                      .length() > 1 || row.getRow()
-                                          .toUpperCase()
-                                          .charAt(0) - 'A' < 0 || row.getRow()
-                                                                     .toUpperCase()
-                                                                     .charAt(0) - 'H' > 0) {
-            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.ROW, "Row must be a a letter between A and H", HttpStatus.UNPROCESSABLE_ENTITY));
+        } else if (row.getRow().length() > 1
+                || row.getRow().toUpperCase().charAt(0) - 'A' < 0
+                || row.getRow().toUpperCase().charAt(0) - 'H' > 0) {
+            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.ROW, INVALID_ROW, HttpStatus.UNPROCESSABLE_ENTITY));
         } else {
-            plateRow = row.getRow()
-                          .toUpperCase()
-                          .charAt(0) - 'A';
+            plateRow = row.getRow().toUpperCase().charAt(0) - 'A';
         }
         int plateCol = -1;
         if (StringUtils.isBlank(row.getColumn())) {
@@ -215,25 +215,22 @@ public class SampleSubmissionProcessor implements Processor {
             try {
                 plateCol = Integer.parseInt(row.getColumn());
                 if (plateCol < 1 || plateCol > 12) {
-                    validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.COLUMN, "Column must be a number between 1 and 12", HttpStatus.UNPROCESSABLE_ENTITY));
+                    validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.COLUMN, INVALID_COLUMN, HttpStatus.UNPROCESSABLE_ENTITY));
                     plateCol = -1;
                 }
             } catch (NumberFormatException e) {
-                validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.COLUMN, "Column must be a number between 1 and 12", HttpStatus.UNPROCESSABLE_ENTITY));
+                validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.COLUMN, INVALID_COLUMN, HttpStatus.UNPROCESSABLE_ENTITY));
             }
         }
         if (StringUtils.isBlank(row.getOrganism())) {
             validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.ORGANISM, MISSING_REQUIRED_DATA, HttpStatus.UNPROCESSABLE_ENTITY));
         }
-        if (StringUtils.isBlank(row.getSpecies())) {
-            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.SPECIES, MISSING_REQUIRED_DATA, HttpStatus.UNPROCESSABLE_ENTITY));
-        }
         if (StringUtils.isBlank(row.getGid()) && StringUtils.isBlank(row.getObsUnitId())) {
-            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.GERMPLASM_GID, "One of GID or ObsUnitID is required", HttpStatus.UNPROCESSABLE_ENTITY));
+            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.GERMPLASM_GID, MISSING_GERM_ASSOCIATION, HttpStatus.UNPROCESSABLE_ENTITY));
         } else if (StringUtils.isNotBlank(row.getObsUnitId()) && !observationUnitsById.containsKey(row.getObsUnitId())) {
-            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.OBS_UNIT_ID, "Unknown ObsUnitID", HttpStatus.UNPROCESSABLE_ENTITY));
+            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.OBS_UNIT_ID, UNKNOWN_OBS_UNIT_ID, HttpStatus.UNPROCESSABLE_ENTITY));
         } else if (StringUtils.isNotBlank(row.getGid()) && !germplasmByGID.containsKey(row.getGid())) {
-            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.GERMPLASM_GID, "Unknown germplasm GID", HttpStatus.UNPROCESSABLE_ENTITY));
+            validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.GERMPLASM_GID, UNKNOWN_GID, HttpStatus.UNPROCESSABLE_ENTITY));
         }
         if (StringUtils.isBlank(row.getTissue())) {
             validationErrors.addError(rowNum, new ValidationError(SampleSubmissionImport.Columns.TISSUE, MISSING_REQUIRED_DATA, HttpStatus.UNPROCESSABLE_ENTITY));
@@ -244,7 +241,7 @@ public class SampleSubmissionProcessor implements Processor {
             if (plateLayout[plateRow][plateCol] > 0) {
                 validationErrors.addError(rowNum,
                                           new ValidationError(SampleSubmissionImport.Columns.ROW + "/" + SampleSubmissionImport.Columns.COLUMN,
-                                                              String.format("The sample in row %d is already in row: %s, column: %d", plateLayout[plateRow][plateCol], Character.toString('A' + plateRow), plateCol),
+                                                              String.format(MULTIPLE_SAMPLES_SINGLE_WELL, plateLayout[plateRow][plateCol], Character.toString('A' + plateRow), plateCol),
                                                               HttpStatus.UNPROCESSABLE_ENTITY));
             } else {
                 plateLayout[plateRow][plateCol] = rowNum;

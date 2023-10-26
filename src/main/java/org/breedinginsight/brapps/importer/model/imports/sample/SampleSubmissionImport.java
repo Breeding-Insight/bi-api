@@ -44,7 +44,8 @@ import java.util.*;
         description = "This import is used to create Genotype Samples")
 public class SampleSubmissionImport implements BrAPIImport {
 
-    private static final String SAMPLE_NAME_FORMAT = "%s__%s_%s%s";
+    private static final String SAMPLE_NAME_FORMAT = "S_%s__%s_%s%02d";
+    private static final String SAMPLE_NAME_ILLEGAL_CHARS_REGEX = "[^a-zA-Z0-9_]";
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id = "plateId", name = Columns.PLATE_ID, description = "The ID which uniquely identifies this plate to the client making the request")
@@ -83,7 +84,7 @@ public class SampleSubmissionImport implements BrAPIImport {
     private String tissue;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "comment", name = Columns.COMMENT, description = "Generic comments about this sample for the vendor")
+    @ImportFieldMetadata(id = "comment", name = Columns.COMMENTS, description = "Generic comments about this sample for the vendor")
     private String comment;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
@@ -100,7 +101,7 @@ public class SampleSubmissionImport implements BrAPIImport {
         public static final String GERMPLASM_NAME = "Germplasm Name";
         public static final String GERMPLASM_GID = "Germplasm GID";
         public static final String TISSUE = "Tissue";
-        public static final String COMMENT = "Comment";
+        public static final String COMMENTS = "Comments";
         public static final String OBS_UNIT_ID = "ObsUnitID";
     }
 
@@ -140,7 +141,7 @@ public class SampleSubmissionImport implements BrAPIImport {
                 .externalReferences(xrefs)
                 .plateName(plateId)
                 .plateDbId(plate.getPlateDbId())
-                .sampleName(String.format(SAMPLE_NAME_FORMAT, germplasm.getDefaultDisplayName(), plate.getPlateName(), row, column))
+                .sampleName(generateSampleName(germplasm, plate))
                 .germplasmDbId(germplasm.getGermplasmDbId())
                 .row(row)
                 .column(Integer.valueOf(column))
@@ -157,6 +158,18 @@ public class SampleSubmissionImport implements BrAPIImport {
         }
 
         return brAPISample;
+    }
+
+    private String generateSampleName(BrAPIGermplasm germplasm, BrAPIPlate plate) {
+        var legalGermplasmName =  germplasm.getDefaultDisplayName().replaceAll(SAMPLE_NAME_ILLEGAL_CHARS_REGEX, "_");
+        String name = String.format(SAMPLE_NAME_FORMAT, legalGermplasmName, plate.getPlateName(), row, Integer.parseInt(column));
+
+        if(name.length() > 100) {
+            //TODO what to do in this case??
+            throw new RuntimeException("Generated sample name is too long");
+        }
+
+        return name;
     }
 
     public BrAPIPlate constructBrAPIPlate(boolean commit, Program program, User user, String referenceSource, String submissionId) {

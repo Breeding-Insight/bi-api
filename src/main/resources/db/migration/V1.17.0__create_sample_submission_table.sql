@@ -20,10 +20,12 @@ create table sample_submission
     like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
     name            TEXT,
     submitted       bool default false,
-    submittedDate   timestamp(0) with time zone,
+    submitted_date   timestamp(0) with time zone,
+    submitted_by UUID,
     vendor_order_id TEXT,
     vendor_status TEXT,
-    shipmentForms   jsonb,
+    vendor_status_last_check timestamp(0) with time zone,
+    shipmentforms   jsonb,
     program_id      UUID NOT NULL,
     like base_edit_track_entity INCLUDING ALL
 );
@@ -34,3 +36,5 @@ ALTER TABLE sample_submission
     ADD FOREIGN KEY (updated_by) REFERENCES bi_user (id);
 ALTER TABLE sample_submission
     ADD FOREIGN KEY (program_id) REFERENCES program (id);
+ALTER TABLE sample_submission
+    ADD FOREIGN KEY (submitted_by) REFERENCES bi_user (id);
