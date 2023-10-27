@@ -4,21 +4,34 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.http.server.types.files.StreamedFile;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.brapps.importer.model.imports.DataTypeTranslator;
+import org.breedinginsight.brapps.importer.model.imports.TermTypeTranslator;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.*;
+import org.breedinginsight.services.parsers.trait.TraitFileColumns;
+import org.breedinginsight.services.writers.CSVWriter;
+import org.breedinginsight.services.writers.ExcelWriter;
+import org.jooq.DataType;
+import org.jooq.exception.IOException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -342,6 +355,43 @@ public class OntologyService {
         return traitService.updateTraits(lookupId, traits, actingUser);
     }
 
+
+    public DownloadFile exportOntology(UUID programId, FileType fileExtension, boolean isActive) throws IllegalArgumentException, IOException, java.io.IOException {
+        List<Column> columns = TraitFileColumns.getOrderedColumns();
+
+        //Retrieve trait list data
+        List<Trait> traits = traitDAO.getTraitsFullByProgramId(programId);
+        //Filter traits for Active or Archived
+        traits = traits.stream().filter(trait -> trait.getActive()==isActive).collect(Collectors.toList());
+        //Sort list in default (trait name) order.
+        traits.sort(Comparator.comparing(trait -> trait.getObservationVariableName().toLowerCase()));
+
+        // make file Name
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        Program program  = null;
+        try {
+            program = getProgram(programId);
+        } catch (DoesNotExistException e) {
+            e.printStackTrace();
+        }
+        String activeOrArchive = isActive ? "Active" : "Archive";
+        String programName = program.getName();
+        String fileName = programName + "_" + activeOrArchive + "_Ontology_" + timestamp;
+
+        StreamedFile downloadFile;
+
+        //Convert traits list to List<Map<String, Object>> data to pass into file writer
+        List<Map<String, Object>> processedData = processData(traits);
+
+        if (fileExtension == FileType.CSV){
+            downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
+        } else {
+            downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
+        }
+        return new DownloadFile(fileName, downloadFile);
+    }
+
     public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
             throws DoesNotExistException, ValidatorException, BadRequestException {
         UUID lookupId = getSubscribedOntologyProgramId(programId);
@@ -408,5 +458,71 @@ public class OntologyService {
                 ).collect(Collectors.toList());
         return subscriptionOptions;
     }
+    public List<Map<String, Object>> processData(List<Trait> traits) {
+        List<Map<String, Object>> processedData = new ArrayList<>();
 
+        for (Trait trait : traits) {
+            HashMap<String, Object> row = new HashMap<>();
+            row.put(TraitFileColumns.NAME.toString(), trait.getObservationVariableName());
+            row.put(TraitFileColumns.FULL_NAME.toString(), trait.getFullName());
+            row.put(TraitFileColumns.TERM_TYPE.toString(), TermTypeTranslator.getDisplayNameFromTermType( trait.getTermType() ));
+            row.put(TraitFileColumns.DESCRIPTION.toString(), trait.getTraitDescription());
+            //SYNONYMS
+            String synonymsAsStr = null;
+            if(trait.getSynonyms() != null) {
+                synonymsAsStr = String.join("; ", trait.getSynonyms());
+            }
+            row.put(TraitFileColumns.SYNONYMS.toString(), synonymsAsStr);
+            //STATUS
+            if(trait.getActive()) {
+                row.put(TraitFileColumns.STATUS.toString(), "active");
+            } else {
+                row.put(TraitFileColumns.STATUS.toString(), "archived");
+
+            }
+            //TAGS
+            String tagsAsStr = null;
+            if(trait.getTags() != null) {
+                tagsAsStr = String.join("; ", trait.getTags());
+            }
+            row.put(TraitFileColumns.TAGS.toString(), tagsAsStr);
+
+            row.put(TraitFileColumns.TRAIT_ENTITY.toString(), trait.getEntity());
+            row.put(TraitFileColumns.TRAIT_ATTRIBUTE.toString(), trait.getAttribute());
+            Method method = trait.getMethod();
+            if(method!=null) {
+                row.put(TraitFileColumns.METHOD_DESCRIPTION.toString(), method.getDescription());
+                row.put(TraitFileColumns.METHOD_CLASS.toString(), method.getMethodClass());
+                row.put(TraitFileColumns.METHOD_FORMULA.toString(), method.getFormula());
+            }
+            Scale scale = trait.getScale();
+            if(scale!=null) {
+
+                row.put(TraitFileColumns.SCALE_CLASS.toString(), DataTypeTranslator.getDisplayNameFromType(scale.getDataType()));
+                row.put(TraitFileColumns.SCALE_NAME.toString(), scale.getScaleName());
+                row.put(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(), scale.getDecimalPlaces());
+                row.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), scale.getValidValueMin());
+                row.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), scale.getValidValueMax());
+                //SCALE_CATEGORIES
+                String categoriesAsStr = null;
+                if(scale.getCategories() != null) {
+                    categoriesAsStr = scale.getCategories().stream()
+                            .map(this::makeCategoryString)
+                            .collect(Collectors.joining("; "));
+                }
+
+                row.put(TraitFileColumns.SCALE_CATEGORIES.toString(), categoriesAsStr);
+            }
+            processedData.add(row);
+        }
+        return processedData;
+    }
+    private String makeCategoryString(BrAPIScaleValidValuesCategories category){
+        StringBuilder stringBuilder = new StringBuilder( category.getValue() );
+        if( StringUtils.isNotBlank( category.getLabel() ) ){
+            stringBuilder.append("=");
+            stringBuilder.append( category.getLabel() );
+        }
+        return stringBuilder.toString();
+    }
 }

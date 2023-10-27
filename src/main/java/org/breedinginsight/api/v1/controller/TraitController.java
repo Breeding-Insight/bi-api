@@ -17,10 +17,12 @@
 
 package org.breedinginsight.api.v1.controller;
 
+import io.micronaut.http.HttpHeaders;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.annotation.*;
+import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.request.query.QueryParams;
@@ -35,6 +37,8 @@ import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.api.model.v1.validators.SearchValid;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Editable;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
@@ -52,7 +56,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -85,6 +88,26 @@ public class TraitController {
             return ResponseUtils.getQueryResponse(traits, traitQueryMapper, searchRequest, traitsQuery);
         } catch (DoesNotExistException e) {
             return HttpResponse.notFound();
+        }
+    }
+
+    @Get("/programs/{programId}/traits/export{?fileExtension,isActive}")
+    @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    public HttpResponse<StreamedFile> getTraitsExport(
+            @PathVariable("programId") UUID programId, @QueryValue(defaultValue = "XLSX") String fileExtension, @QueryValue(defaultValue = "true") Boolean isActive) {
+        String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
+        try {
+            FileType extension = Enum.valueOf(FileType.class, fileExtension);
+            DownloadFile ontologyFile = ontologyService.exportOntology(programId, extension, isActive);
+            HttpResponse<StreamedFile> ontologyExport = HttpResponse.ok(ontologyFile.getStreamedFile()).header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename="+ontologyFile.getFileName()+extension.getExtension());
+            return ontologyExport;
+        }
+        catch (Exception e) {
+            log.info(e.getMessage(), e);
+            e.printStackTrace();
+            HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
+            return response;
         }
     }
 

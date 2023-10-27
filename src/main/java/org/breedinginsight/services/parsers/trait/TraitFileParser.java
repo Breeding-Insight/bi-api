@@ -95,7 +95,7 @@ public class TraitFileParser {
             throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
         }
 
-        List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumns());
+        List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumnNames());
 
         return excelRecordsToTraits(records);
     }
@@ -117,7 +117,7 @@ public class TraitFileParser {
         }
 
         Sheet excelSheet = convertCsvToExcel(records);
-        List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumns());
+        List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumnNames());
 
         return excelRecordsToTraits(excelRecords);
     }
