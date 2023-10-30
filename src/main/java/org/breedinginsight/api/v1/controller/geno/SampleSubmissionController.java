@@ -19,6 +19,7 @@ package org.breedinginsight.api.v1.controller.geno;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.*;
 import io.micronaut.http.annotation.*;
 import io.micronaut.http.server.types.files.StreamedFile;
@@ -52,6 +53,8 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class SampleSubmissionController {
+
+    private final boolean brapiSubmissionEnabled;
     private final SampleSubmissionService sampleSubmissionService;
     private final ProgramService programService;
     private final SecurityService securityService;
@@ -60,7 +63,8 @@ public class SampleSubmissionController {
     private final Gson gson;
 
     @Inject
-    public SampleSubmissionController(SampleSubmissionService sampleSubmissionService, ProgramService programService, SecurityService securityService, UserService userService) {
+    public SampleSubmissionController(@Property(name = "brapi.vendors.submission-enabled") boolean brapiSubmissionEnabled, SampleSubmissionService sampleSubmissionService, ProgramService programService, SecurityService securityService, UserService userService) {
+        this.brapiSubmissionEnabled = brapiSubmissionEnabled;
         this.sampleSubmissionService = sampleSubmissionService;
         this.programService = programService;
         this.securityService = securityService;
@@ -210,6 +214,10 @@ public class SampleSubmissionController {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<BrAPIVendorOrderSubmission>> submitOrder(@PathVariable UUID programId, @PathVariable UUID submissionId, @QueryValue(value = "vendor") @NotBlank String vendorName) {
+        if(!brapiSubmissionEnabled) {
+            return HttpResponse.notFound();
+        }
+
         try {
             GenotypeVendor vendor = GenotypeVendor.fromName(vendorName);
             if(vendor != null) {
@@ -247,6 +255,10 @@ public class SampleSubmissionController {
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<SampleSubmission>> checkVendorStatus(@PathVariable UUID programId, @PathVariable UUID submissionId) {
+        if(!brapiSubmissionEnabled) {
+            return HttpResponse.notFound();
+        }
+
         Optional<Program> program = programService.getById(programId);
         if(program.isEmpty()) {
             log.info(String.format("programId not found: %s", programId.toString()));

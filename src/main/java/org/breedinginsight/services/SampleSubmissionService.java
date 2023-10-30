@@ -81,9 +81,9 @@ public class SampleSubmissionService {
 
     @Inject
     public SampleSubmissionService(@Property(name = "brapi.server.reference-source") String referenceSource,
-                                   @Property(name = "brapi.server.vendor.dart-url") String dartBrapiUrl,
-                                   @Property(name = "brapi.server.vendor.dart-client-id") String dartClientId,
-                                   @Property(name = "brapi.server.vendor.dart-token") String dartToken,
+                                   @Property(name = "brapi.vendors.dart.url") String dartBrapiUrl,
+                                   @Property(name = "brapi.vendors.dart.client-id") String dartClientId,
+                                   @Property(name = "brapi.vendors.dart.token") String dartToken,
                                    @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout,
                                    SampleSubmissionDAO submissionDAO,
                                    BrAPIPlateDAO plateDAO,

@@ -159,11 +159,13 @@ brapi:
     core-url: ${brapi.server.default-url}
     pheno-url: ${brapi.server.default-url}
     geno-url: ${brapi.server.default-url}
-    vendor:
-      dart-url: ${DART_VENDOR_URL}
-      dart-client-id: ${DART_CLIENT_ID:potato-salad}
-      dart-token: ${DART_TOKEN:YYYY}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
+  vendors:
+    submission-enabled: ${BRAPI_VENDOR_SUBMISSION_ENABLED:false}
+    dart:
+      url: ${DART_VENDOR_URL:`https://test-server.brapi.org`}
+      client-id: ${DART_CLIENT_ID:potato-salad}
+      token: ${DART_TOKEN:YYYY}
   read-timeout: ${BRAPI_READ_TIMEOUT:10m}
   page-size: 1000
   search:
