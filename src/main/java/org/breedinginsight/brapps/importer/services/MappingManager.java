@@ -363,7 +363,7 @@ public class MappingManager {
     private void checkFieldType(ImportFieldTypeEnum expectedType, String column, String value, BrAPIImportService importService) throws UnprocessableEntityException {
         //TODO: Do more type checks
         if (!isCorrectType(expectedType, value)) {
-            throw new UnprocessableEntityException(importService.getWrongDataTypeMsg(column));
+            throw new UnprocessableEntityException(importService.getInvalidIntegerMsg(column));
         }
     }
 

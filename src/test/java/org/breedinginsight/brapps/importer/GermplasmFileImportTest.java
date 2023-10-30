@@ -501,7 +501,7 @@ public class GermplasmFileImportTest extends BrAPITest {
             HttpResponse<String> response = call.blockingFirst();
         });
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
-        assertEquals(importService.getWrongDataTypeMsg("Entry No"), e.getMessage());
+        assertEquals(importService.getInvalidIntegerMsg("Entry No"), e.getMessage());
     }
 
     @Test

@@ -33,7 +33,7 @@ import java.util.List;
 public abstract class BrAPIImportService {
     public String getImportTypeId() {return null;}
     public BrAPIImport getImportClass() {return null;}
-    public String getWrongDataTypeMsg(String columnName) {
+    public String getInvalidIntegerMsg(String columnName) {
         return String.format("Column name \"%s\" must be integer type, but non-integer type provided.", columnName);
     }
     public String getBlankRequiredFieldMsg(String fieldName) {
