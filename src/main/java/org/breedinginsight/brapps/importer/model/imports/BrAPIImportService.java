@@ -33,6 +33,21 @@ import java.util.List;
 public abstract class BrAPIImportService {
     public String getImportTypeId() {return null;}
     public BrAPIImport getImportClass() {return null;}
+    public String getInvalidIntegerMsg(String columnName) {
+        return String.format("Column name \"%s\" must be integer type, but non-integer type provided.", columnName);
+    }
+    public String getBlankRequiredFieldMsg(String fieldName) {
+        return String.format("Required field \"%s\" cannot contain empty values", fieldName);
+    }
+    public String getMissingColumnMsg(String columnName) {
+        return String.format("Column name \"%s\" does not exist in file", columnName);
+    }
+    public String getMissingUserInputMsg(String fieldName) {
+        return String.format("User input, \"%s\" is required", fieldName);
+    }
+    public String getWrongUserInputDataTypeMsg(String fieldName, String typeName) {
+        return String.format("User input, \"%s\" must be an %s", fieldName, typeName);
+    }
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
             throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {return null;}
 }
