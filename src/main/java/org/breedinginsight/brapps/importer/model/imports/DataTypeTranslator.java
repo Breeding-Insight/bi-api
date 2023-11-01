@@ -9,7 +9,7 @@ import java.util.Optional;
 public class DataTypeTranslator {
 
     private static final Map<String, DataType> displayToTypeMap = Map.of(
-            "Date YYYY-MM-DD", DataType.DATE,
+            "Date", DataType.DATE,
             "Numerical", DataType.NUMERICAL,
             "Nominal", DataType.NOMINAL,
             "Ordinal", DataType.ORDINAL,
