@@ -31,6 +31,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
+import org.breedinginsight.utilities.IntOrderComparator;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
@@ -43,6 +44,8 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -557,16 +560,47 @@ public class BrAPITrialService {
                 .collect(Collectors.toList());
     }
 
+    static Comparator<String> alphaNumComparator = (str1, str2) -> {
+        Pattern p = Pattern.compile("^\\d+");
+        Matcher m = p.matcher(str1);
+        Integer number1 = null;
+        if (!m.find()) {
+            return str1.compareToIgnoreCase(str2);
+        }
+        else {
+            Integer number2 = null;
+            number1 = Integer.parseInt(m.group());
+            m = p.matcher(str2);
+            if (!m.find()) {
+                return str1.compareToIgnoreCase(str2);
+            }
+            else {
+                number2 = Integer.parseInt(m.group());
+                int comparison = number1.compareTo(number2);
+                if (comparison != 0) {
+                    return comparison;
+                }
+                else {
+                    return str1.compareToIgnoreCase(str2);
+                }
+            }
+        }
+    };
+
     private void sortDefaultForObservationUnit(List<BrAPIObservationUnit> ous) {
-        ous.sort(Comparator.comparing(BrAPIObservationUnit::getStudyName)
-                .thenComparing(BrAPIObservationUnit::getObservationUnitName));
+        Comparator<BrAPIObservationUnit> studyNameComparator = Comparator.comparing(BrAPIObservationUnit::getStudyName, new IntOrderComparator());
+        Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
+        ous.sort( (studyNameComparator).thenComparing(ouNameComparator));
     }
 
     private void sortDefaultForExportRows(@NotNull List<Map<String, Object>> exportRows) {
-        Comparator<Map<String, Object>> envComparator = Comparator.comparing(row -> (row.get(Columns.ENV).toString()));
-        Comparator<Map<String, Object>> expUnitIdComparator =
-                Comparator.comparing(row -> (row.get(Columns.EXP_UNIT_ID).toString()));
-
-        exportRows.sort(envComparator.thenComparing(expUnitIdComparator));
+//        Comparator<Map<String, Object>> envComparator = Comparator.comparing(row -> (row.get(Columns.ENV).toString()));
+//        Comparator<Map<String, Object>> expUnitIdComparator =
+//                Comparator.comparing(row -> (row.get(Columns.EXP_UNIT_ID).toString()));
+//
+//        exportRows.sort(envComparator.thenComparing(expUnitIdComparator));
+//
+        exportRows.sort( (row1, row2) -> alphaNumComparator.compare((row1.get(Columns.EXP_UNIT_ID).toString()), (row2.get(Columns.EXP_UNIT_ID).toString())));
+        exportRows.sort( (row1, row2) -> alphaNumComparator.compare((row1.get(Columns.ENV).toString()), (row2.get(Columns.ENV).toString())));
     }
 }
