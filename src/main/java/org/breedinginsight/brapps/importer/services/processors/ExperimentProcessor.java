@@ -24,6 +24,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
@@ -69,7 +70,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -437,10 +437,11 @@ public class ExperimentProcessor implements Processor {
 
     private List<Trait> fetchFileTraits(UUID programId, Collection<String> varNames) {
         try {
+            Collection<String> upperCaseVarNames = varNames.stream().map(String::toUpperCase).collect(Collectors.toList());
             List<Trait> traits = ontologyService.getTraitsByProgramId(programId, true);
             // filter out just traits specified in file
             return traits.stream()
-                         .filter(e -> varNames.contains(e.getObservationVariableName()))
+                         .filter(e -> upperCaseVarNames.contains(e.getObservationVariableName().toUpperCase()))
                          .collect(Collectors.toList());
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -540,8 +541,10 @@ public class ExperimentProcessor implements Processor {
                                 List<Column<?>> phenotypeCols, boolean commit) throws MissingRequiredInfoException, ApiException {
         //fetching any existing observations for any OUs in the import
         Map<String, BrAPIObservation> existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
-        Map<String, Trait> colVarMap = referencedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableName, Function.identity()));
-
+        CaseInsensitiveMap<String, Trait> colVarMap = new CaseInsensitiveMap<>();
+        for ( Trait trait: referencedTraits) {
+            colVarMap.put(trait.getObservationVariableName(),trait);
+        }
         Set<String> uniqueStudyAndObsUnit = new HashSet<>();
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
@@ -612,7 +615,7 @@ public class ExperimentProcessor implements Processor {
                                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
-    private void validateObservations(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow, List<Column<?>> phenotypeCols, Map<String, Trait> colVarMap, Map<String, BrAPIObservation> existingObservations) {
+    private void validateObservations(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow, List<Column<?>> phenotypeCols, CaseInsensitiveMap<String, Trait> colVarMap, Map<String, BrAPIObservation> existingObservations) {
         phenotypeCols.forEach(phenoCol -> {
             var importHash = getImportObservationHash(importRow, phenoCol.name());
             if(existingObservations.containsKey(importHash) && StringUtils.isNotBlank(phenoCol.getString(rowNum)) && !existingObservations.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
@@ -965,8 +968,10 @@ public class ExperimentProcessor implements Processor {
 
         // Update ObservationVariable DbIds
         List<Trait> traits = getTraitList(program);
-        Map<String, Trait> traitMap = traits.stream().collect(Collectors.toMap(TraitEntity::getObservationVariableName, Function.identity()));
-
+        CaseInsensitiveMap<String, Trait> traitMap = new CaseInsensitiveMap<>();
+        for ( Trait trait: traits) {
+            traitMap.put(trait.getObservationVariableName(),trait);
+        }
         for (PendingImportObject<BrAPIObservation> observation : this.observationByHash.values()) {
             String observationVariableName = observation.getBrAPIObject().getObservationVariableName();
             if (observationVariableName != null && traitMap.containsKey(observationVariableName)) {
