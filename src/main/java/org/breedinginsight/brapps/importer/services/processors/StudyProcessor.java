@@ -21,7 +21,6 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
@@ -33,8 +32,10 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.util.*;
@@ -66,7 +67,7 @@ public class StudyProcessor implements Processor {
         List<BrAPIStudy> existingStudies;
 
         try {
-            existingStudies = brAPIStudyDAO.getStudyByName(uniqueStudyNames, program);
+            existingStudies = brAPIStudyDAO.getStudiesByName(uniqueStudyNames, program);
             existingStudies.forEach(existingStudy -> {
                 studyByName.put(existingStudy.getStudyName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy));
             });
@@ -78,8 +79,9 @@ public class StudyProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-                Map<Integer, PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) {
+    public Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
+                                                        Map<Integer, PendingImport> mappedBrAPIImport, Table data,
+                                                        Program program, User user, boolean commit) {
 
         for (int i = 0; i < importRows.size(); i++) {
             BrAPIImport brapiImport = importRows.get(i);
@@ -125,7 +127,7 @@ public class StudyProcessor implements Processor {
         // POST Study
         List<BrAPIStudy> createdStudies = new ArrayList<>();
         try {
-            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudy(studies, program.getId(), upload));
+            createdStudies.addAll(brAPIStudyDAO.createBrAPIStudies(studies, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
@@ -156,9 +158,9 @@ public class StudyProcessor implements Processor {
                 .forEach(this::updateTrialDbId);
     }
 
-    private void updateLocationDbId(BrAPILocation location) {
-        studyByName.values().stream()
-                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getLocationName()))
+    private void updateLocationDbId(ProgramLocation location) {
+        this.studyByName.values().stream()
+                .filter(study -> study.getBrAPIObject().getLocationName().equals(location.getName()))
                 .forEach(study -> study.getBrAPIObject().setLocationDbId(location.getLocationDbId()));
     }
 

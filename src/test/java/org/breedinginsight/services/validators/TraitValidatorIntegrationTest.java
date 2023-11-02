@@ -18,7 +18,7 @@
 package org.breedinginsight.services.validators;
 
 import io.kowalski.fannypack.FannyPack;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import lombok.SneakyThrows;
 import org.breedinginsight.DatabaseTest;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
@@ -49,9 +49,6 @@ public class TraitValidatorIntegrationTest extends DatabaseTest {
     private ProgramDao programDao;
     @Inject
     private TraitValidatorService traitValidator;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     public void setup() {

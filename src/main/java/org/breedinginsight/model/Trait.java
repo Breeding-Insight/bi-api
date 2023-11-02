@@ -20,18 +20,21 @@ package org.breedinginsight.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.api.deserializer.ArrayOfStringDeserializer;
 import org.breedinginsight.api.deserializer.ListOfStringDeserializer;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.jooq.Record;
 
+import javax.validation.Valid;
 import java.util.List;
 
 import static org.breedinginsight.dao.db.Tables.TRAIT;
@@ -42,6 +45,8 @@ import static org.breedinginsight.dao.db.Tables.TRAIT;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = { "methodId", "scaleId",
         "programOntologyId", "programObservationLevelId", "createdBy", "updatedBy"})
 public class Trait extends TraitEntity {
@@ -58,6 +63,7 @@ public class Trait extends TraitEntity {
     private User updatedByUser;
 
     // Properties from brapi
+    private String observationVariableDbId;
     private String traitClass;
     private String traitDescription;
     private String attribute;
@@ -86,6 +92,7 @@ public class Trait extends TraitEntity {
         this.setUpdatedAt(traitEntity.getUpdatedAt());
         this.setUpdatedBy(traitEntity.getUpdatedBy());
         this.setActive(traitEntity.getActive());
+        this.setTermType(traitEntity.getTermType());
     }
 
     public static Trait parseSqlRecord(Record record) {
@@ -101,6 +108,7 @@ public class Trait extends TraitEntity {
             .updatedAt(record.getValue(TRAIT.UPDATED_AT))
             .updatedBy(record.getValue(TRAIT.UPDATED_BY))
             .active(record.getValue(TRAIT.ACTIVE))
+            .termType(record.getValue(TRAIT.TERM_TYPE))
             .build();
     }
 
@@ -113,7 +121,7 @@ public class Trait extends TraitEntity {
             this.setMainAbbreviation(brApiVariable.getTrait().getMainAbbreviation());
             this.setSynonyms(brApiVariable.getTrait().getSynonyms());
         }
-
+        this.setObservationVariableDbId(brApiVariable.getObservationVariableDbId());
         this.setDefaultValue(brApiVariable.getDefaultValue());
     }
 

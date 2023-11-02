@@ -28,7 +28,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.micronaut.test.annotation.MockBean;
 import io.reactivex.Flowable;
 import junit.framework.AssertionFailedError;
@@ -99,9 +99,6 @@ public class UserControllerIntegrationTest extends DatabaseTest {
     private BiUserEntity otherTestUser;
     private SystemRoleEntity validSystemRole;
     private String invalidUUID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @BeforeAll
     void setup() {

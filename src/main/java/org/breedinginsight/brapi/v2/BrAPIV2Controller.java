@@ -27,32 +27,19 @@ import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
-import org.brapi.client.v2.JSON;
-import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIServerInfo;
-import org.brapi.v2.model.core.response.BrAPIListsListResponse;
 import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.auth.SecurityService;
-import org.breedinginsight.api.model.v1.validators.QueryValid;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapi.v1.model.request.query.BrapiQuery;
-import org.breedinginsight.brapi.v2.model.response.mappers.GermplasmQueryMapper;
-import org.breedinginsight.brapi.v2.model.response.mappers.ListQueryMapper;
-import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.breedinginsight.model.ProgramBrAPIEndpoints;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.response.ResponseUtils;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
-import javax.ws.rs.NotFoundException;
 import java.io.IOException;
-import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -63,16 +50,11 @@ public class BrAPIV2Controller {
 
     private final SecurityService securityService;
     private final ProgramService programService;
-    private final BrAPIGermplasmService germplasmService;
-    private ListQueryMapper listQueryMapper;
 
     @Inject
-    public BrAPIV2Controller(SecurityService securityService, ProgramService programService, BrAPIGermplasmService germplasmService,
-                             ListQueryMapper listQueryMapper) {
+    public BrAPIV2Controller(SecurityService securityService, ProgramService programService) {
         this.securityService = securityService;
         this.programService = programService;
-        this.germplasmService = germplasmService;
-        this.listQueryMapper = listQueryMapper;
     }
 
 
@@ -81,23 +63,13 @@ public class BrAPIV2Controller {
     @Secured(SecurityRule.IS_ANONYMOUS)
     public BrAPIServerInfoResponse serverinfo() {
         BrAPIServerInfo serverInfo = new BrAPIServerInfo();
-        serverInfo.setOrganizationName("Breeding Insight Platform");
-        serverInfo.setServerName("bi-api");
+        serverInfo.setOrganizationName("Breeding Insight");
+        serverInfo.setServerName("DeltaBreed");
         serverInfo.setContactEmail("bidevteam@cornell.edu");
         serverInfo.setOrganizationURL("breedinginsight.org");
+        serverInfo.setServerDescription("BrAPI endpoints are not implemented at the root of this domain.  Please make BrAPI calls in the context of a program (ex: https://app.breedinginsight.net/v1/programs/<programId>/brapi/v2)");
 
         return new BrAPIServerInfoResponse().result(serverInfo);
-    }
-
-    //@Get(BrapiVersion.BRAPI_V2 + "/lists")
-    @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/lists{?queryParams*}")
-    @Produces(MediaType.APPLICATION_JSON)
-    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse getLists(@PathVariable("programId") UUID programId, HttpRequest<String> request,
-                                 @QueryValue @QueryValid(using = ListQueryMapper.class) @Valid BrapiQuery queryParams
-    ) throws DoesNotExistException, ApiException {
-        List<BrAPIListSummary> brapiLists = germplasmService.getGermplasmListsByProgramId(programId, request);
-        return ResponseUtils.getBrapiQueryResponse(brapiLists, listQueryMapper, queryParams);
     }
 
     @Get("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/{+path}")

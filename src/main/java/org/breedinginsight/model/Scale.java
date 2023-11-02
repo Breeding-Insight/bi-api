@@ -18,12 +18,14 @@
 package org.breedinginsight.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import io.micronaut.core.annotation.Introspected;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
+import lombok.extern.jackson.Jacksonized;
 import org.brapi.v2.model.pheno.BrAPIScale;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValues;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
@@ -40,6 +42,8 @@ import static org.breedinginsight.dao.db.Tables.SCALE;
 @ToString
 @SuperBuilder
 @NoArgsConstructor
+@Introspected
+@Jacksonized
 @JsonIgnoreProperties(value = { "id", "programOntologyId", "updatedBy", "createdBy", "updatedAt", "createdAt" })
 public class Scale extends ScaleEntity {
 

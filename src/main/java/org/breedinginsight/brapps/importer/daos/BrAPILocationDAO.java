@@ -23,42 +23,63 @@ import org.brapi.v2.model.core.BrAPILocation;
 import org.brapi.v2.model.core.request.BrAPILocationSearchRequest;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 @Singleton
 public class BrAPILocationDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPILocationDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPILocation> getLocationsByName(List<String> locationNames, UUID programId) throws ApiException {
+        if(locationNames.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
         locationSearchRequest.setLocationNames(new ArrayList<>(locationNames));
         //TODO: Locations don't connect to programs. How to get locations for the program?
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.search(
+        LocationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
+        return brAPIDAOUtil.search(
                 api::searchLocationsPost,
                 api::searchLocationsSearchResultsDbIdGet,
                 locationSearchRequest
         );
     }
 
-    public List<BrAPILocation> createBrAPILocation(List<BrAPILocation> brAPILocationList, UUID programId, ImportUpload upload) throws ApiException {
-        LocationsApi api = new LocationsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
+    public List<BrAPILocation> createBrAPILocations(List<BrAPILocation> brAPILocationList, UUID programId, ImportUpload upload) throws ApiException {
+        LocationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
+        return brAPIDAOUtil.post(brAPILocationList, upload, api::locationsPost, importDAO::update);
     }
 
+    public List<BrAPILocation> getLocationsByDbId(Collection<String> locationDbIds, UUID programId) throws ApiException {
+        if(locationDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        BrAPILocationSearchRequest locationSearchRequest = new BrAPILocationSearchRequest();
+        locationSearchRequest.setLocationDbIds(new ArrayList<>(locationDbIds));
+        //TODO: Locations don't connect to programs. How to get locations for the program?
+        LocationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), LocationsApi.class);
+        return brAPIDAOUtil.search(
+                api::searchLocationsPost,
+                api::searchLocationsSearchResultsDbIdGet,
+                locationSearchRequest
+        );
+    }
 }

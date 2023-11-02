@@ -31,12 +31,14 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import se.sawano.java.text.AlphanumericComparator;
 
-import java.io.File;
+import java.io.*;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
 
 import static io.micronaut.http.HttpRequest.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -232,5 +234,34 @@ public class TestUtils {
         );
 
         HttpResponse<String> response = call.blockingFirst();
+    }
+
+    public static void unzipFile(InputStream stream, String destDirPath) throws IOException {
+        File destDir = new File(destDirPath);
+        destDir.mkdirs();
+
+        byte[] buffer = new byte[1024];
+        ZipInputStream zis = new ZipInputStream(stream);
+        ZipEntry zipEntry = zis.getNextEntry();
+        while (zipEntry != null) {
+            File newFile = new File(destDir, zipEntry.getName());
+            if (zipEntry.isDirectory()) {
+                if (!newFile.isDirectory() && !newFile.mkdirs()) {
+                    throw new IOException("Failed to create directory " + newFile);
+                }
+            } else {
+                // write file content
+                FileOutputStream fos = new FileOutputStream(newFile);
+                int len;
+                while ((len = zis.read(buffer)) > 0) {
+                    fos.write(buffer, 0, len);
+                }
+                fos.close();
+            }
+            zipEntry = zis.getNextEntry();
+        }
+
+        zis.closeEntry();
+        zis.close();
     }
 }

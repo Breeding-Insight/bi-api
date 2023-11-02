@@ -12,16 +12,18 @@ import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
-import org.brapi.v2.model.core.response.BrAPIListsListResponse;
-import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
+import org.brapi.v2.model.core.response.*;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.ExternalReference;
 import org.breedinginsight.daos.ProgramDAO;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -30,18 +32,26 @@ public class BrAPIListDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private final BrAPIDAOUtil brAPIDAOUtil;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO) {
+    public BrAPIListDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.brAPIDAOUtil = brAPIDAOUtil;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
     public List<BrAPIListSummary> getListByName(List<String> listNames, UUID programId) throws ApiException {
+        if(listNames.isEmpty()) {
+            return Collections.emptyList();
+        }
+
         BrAPIListSearchRequest listSearch = new BrAPIListSearchRequest();
         listSearch.listNames(listNames);
-        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
-        return BrAPIDAOUtil.search(
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        return brAPIDAOUtil.search(
                 api::searchListsPost,
                 api::searchListsSearchResultsDbIdGet,
                 listSearch
@@ -49,19 +59,31 @@ public class BrAPIListDAO {
     }
 
     public BrAPIListsSingleResponse getListById(String listId, UUID programId) throws ApiException {
-        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
         ApiResponse<BrAPIListsSingleResponse> response = api.listsListDbIdGet(listId);
         return response.getBody();
     }
 
-    public List<BrAPIListSummary> getListByTypeAndExternalRef(BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
+    public List<BrAPIListSummary> getListBySearch(@NotNull BrAPIListSearchRequest searchRequest, UUID programId) throws ApiException {
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        List<BrAPIListSummary> programLists = brAPIDAOUtil.search(api::searchListsPost, api::searchListsSearchResultsDbIdGet, searchRequest);
+        if (searchRequest.getExternalReferenceSources() != null && searchRequest.getExternalReferenceIDs() != null) {
+            programLists = processListsForProgram(programLists,
+                    UUID.fromString(searchRequest.getExternalReferenceIDs().get(0)),
+                    searchRequest.getExternalReferenceSources().get(0));
+        }
+        return programLists;
+
+    }
+
+    public List<BrAPIListSummary> getListByTypeAndExternalRef(@NotNull BrAPIListTypes listType, UUID programId, String externalReferenceSource, UUID externalReferenceId) throws ApiException {
         BrAPIListSearchRequest searchRequest = new BrAPIListSearchRequest()
                 .externalReferenceIDs(List.of(externalReferenceId.toString()))
                 .externalReferenceSources(List.of(externalReferenceSource))
                 .listType(listType);
 
-        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
-        return processListsForProgram(BrAPIDAOUtil.search(
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        return processListsForProgram(brAPIDAOUtil.search(
                 api::searchListsPost,
                 api::searchListsSearchResultsDbIdGet,
                 searchRequest
@@ -87,16 +109,73 @@ public class BrAPIListDAO {
         }
         return filteredLists;
     }
+    public List<String> updateBrAPIList(String brAPIListDbId, BrAPIListDetails mutatedList, UUID programId) throws ApiException {
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        BrAPIListNewRequest request = new BrAPIListNewRequest();
+        request.setAdditionalInfo(mutatedList.getAdditionalInfo());
+        request.setDateCreated(mutatedList.getDateCreated());
+        request.setDateModified(mutatedList.getDateModified());
+        request.setExternalReferences(mutatedList.getExternalReferences());
+        request.setListDescription(mutatedList.getListDescription());
+        request.setListName(mutatedList.getListName());
+        request.setListOwnerName(mutatedList.getListOwnerName());
+        request.setListOwnerPersonDbId(mutatedList.getListOwnerPersonDbId());
+        request.setListSize(mutatedList.getListSize());
+        request.setListSource(mutatedList.getListSource());
+        request.setListType(mutatedList.getListType());
+        request.setData(mutatedList.getData());
 
-    public List<BrAPIObservation> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
-        ListsApi api = new ListsApi(programDAO.getCoreClient(programId));
         // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
-        ApiResponse response =  api.listsPost(brapiLists);
-        if (response.getBody() == null) throw new ApiException("Response is missing body");
-        BrAPIResponse body = (BrAPIResponse) response.getBody();
-        if (body.getResult() == null) throw new ApiException("Response body is missing result");
-        BrAPIResponseResult result = (BrAPIResponseResult) body.getResult();
-        if (result.getData() == null) throw new ApiException("Response result is missing data");
-        return result.getData();
+        ApiResponse<BrAPIListsSingleResponse> response;
+        try {
+            response = api.listsListDbIdPut(brAPIListDbId, request);
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        }
+        if(response != null) {
+            BrAPIListsSingleResponse body = response.getBody();
+            if (body == null) {
+                throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
+            }
+            BrAPIListDetails result = body.getResult();
+            if (result == null) {
+                throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
+            }
+            if (result.getData() == null) {
+                throw new ApiException("Response result is missing data", 0, response.getHeaders(), response.getBody().toString());
+            }
+            return result.getData();
+        }
+
+        throw new ApiException("No response after creating list");
+    }
+
+    public List<BrAPIListSummary> createBrAPILists(List<BrAPIListNewRequest> brapiLists, UUID programId, ImportUpload upload) throws ApiException {
+        ListsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ListsApi.class);
+        // Do manually, it doesn't like List<Object> to List<BrAPIListNewRequest> for some reason
+        ApiResponse<BrAPIListsListResponse> response;
+        try {
+            response = api.listsPost(brapiLists);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw e;
+        }
+        if(response != null) {
+            BrAPIResponse<BrAPIListsListResponseResult> body = response.getBody();
+            if (body == null) {
+                throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
+            }
+            BrAPIResponseResult<BrAPIListSummary> result = body.getResult();
+            if (result == null) {
+                throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
+            }
+            if (result.getData() == null) {
+                throw new ApiException("Response result is missing data", 0, response.getHeaders(), response.getBody().toString());
+            }
+            return result.getData();
+        }
+
+        throw new ApiException("No response after creating list");
     }
 }

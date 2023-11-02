@@ -65,9 +65,6 @@ public class OntologyControllerIntegrationTest extends BrAPITest {
             (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
             .create();
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @BeforeAll
     void setup() throws Exception {
         // Create two programs with fanny pack

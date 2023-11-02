@@ -18,7 +18,9 @@
 package org.breedinginsight.brapps.importer.services;
 
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
@@ -38,7 +40,6 @@ import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import javax.ws.rs.BadRequestException;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.model.config.ImportRelationType.DB_LOOKUP_CONSTANT_VALUE;
 
+@Slf4j
 @Singleton
 public class MappingManager {
 
@@ -110,8 +112,6 @@ public class MappingManager {
     private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex,
                           Map<String, Object> userInput, Boolean process, ValidationErrors validationErrors) throws UnprocessableEntityException {
 
-
-
         Row focusRow = importFile.row(rowIndex);
         // Process this field
         ImportFieldType type = field.getAnnotation(ImportFieldType.class);
@@ -125,7 +125,6 @@ public class MappingManager {
             metadata = field.getAnnotation(ImportFieldMetadata.class) != null ?
                     field.getAnnotation(ImportFieldMetadata.class) : (ImportFieldMetadata) type.clazz().getAnnotation(ImportFieldMetadata.class);
         }
-
         ImportMappingRequired required = field.getAnnotation(ImportMappingRequired.class);
 
         // Check if it is a user input field
@@ -136,7 +135,6 @@ public class MappingManager {
             }
             return;
         }
-
         List<MappingField> foundMappings = new ArrayList<>();
         if (mappings != null) {
              foundMappings = mappings.stream()
@@ -151,7 +149,6 @@ public class MappingManager {
         } else if (required == null && foundMappings.size() == 0) {
             return;
         }
-
         MappingField matchedMapping = foundMappings.get(0);
         if (type == null) {
             throw new InternalServerException("BrAPIObject is missing import type annotation");
@@ -233,7 +230,7 @@ public class MappingManager {
             } else if (matchedMapping.getValue().getRelationMap().getReference() == null &&
                     matchedMapping.getValue().getRelationMap().getTarget() == null)
             {
-                throw new BadRequestException("Relationship field is not properly formatted");
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Relationship field is not properly formatted");
             }
 
             MappingValue value = matchedMapping.getValue();
@@ -266,7 +263,7 @@ public class MappingManager {
                 return;
             } else if (matchedMapping.getValue() != null &&
                     matchedMapping.getValue().getFileFieldName() == null && matchedMapping.getValue().getConstantValue() == null){
-                throw new BadRequestException("Basic mapping field must have file field or constant value specified.");
+                throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Basic mapping field must have file field or constant value specified.");
             }
 
             // Check if the mapping passed a constant value or a mapped value
@@ -283,6 +280,9 @@ public class MappingManager {
                     fileValue = String.valueOf(focusRow.getDouble(matchedMapping.getValue().getFileFieldName()));
                 } else if (columnType == ColumnType.INTEGER) {
                     fileValue = String.valueOf(focusRow.getInt(matchedMapping.getValue().getFileFieldName()));
+                }
+                else if (columnType == ColumnType.BOOLEAN) {
+                    fileValue = String.valueOf(focusRow.getBoolean(matchedMapping.getValue().getFileFieldName()));
                 }
                 else {
                     fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
@@ -310,6 +310,7 @@ public class MappingManager {
 
                 // Check non-null value
                 if (required != null && value.isBlank()) {
+
                     //throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
                     ValidationError ve = getMissingRequiredErr(metadata.name());
                     validationErrors.addError(getRowNumber(rowIndex), ve);

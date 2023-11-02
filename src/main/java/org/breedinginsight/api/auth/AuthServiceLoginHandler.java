@@ -21,16 +21,15 @@ import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Replaces;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.MutableHttpResponse;
 import io.micronaut.http.context.ServerRequestContext;
 import io.micronaut.http.cookie.Cookie;
-import io.micronaut.security.authentication.AuthenticationException;
-import io.micronaut.security.authentication.AuthenticationFailed;
-import io.micronaut.security.authentication.AuthenticationFailureReason;
-import io.micronaut.security.authentication.UserDetails;
+import io.micronaut.security.authentication.*;
 import io.micronaut.security.token.jwt.cookie.JwtCookieConfiguration;
 import io.micronaut.security.token.jwt.cookie.JwtCookieLoginHandler;
 import io.micronaut.security.token.jwt.generator.AccessRefreshTokenGenerator;
+import io.micronaut.security.token.jwt.generator.AccessTokenConfiguration;
 import io.micronaut.security.token.jwt.generator.JwtGeneratorConfiguration;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.auth.SignUpJWT;
@@ -68,6 +67,8 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     private String newAccountSuccessUrl;
     @Property(name = "web.signup.error.url")
     private String newAccountErrorUrl;
+    @Property(name = "web.login.failure.url")
+    private String loginFailureUrl;
 
     @Inject
     private UserService userService;
@@ -75,13 +76,13 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     private SignUpJwtService signUpJwtService;
 
     public AuthServiceLoginHandler(JwtCookieConfiguration jwtCookieConfiguration,
-                       JwtGeneratorConfiguration jwtGeneratorConfiguration,
+                       AccessTokenConfiguration accessTokenConfiguration,
                        AccessRefreshTokenGenerator accessRefreshTokenGenerator) {
-        super(jwtCookieConfiguration, jwtGeneratorConfiguration, accessRefreshTokenGenerator);
+        super(jwtCookieConfiguration, accessTokenConfiguration, accessRefreshTokenGenerator);
     }
 
     @Override
-    public HttpResponse loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
+    public MutableHttpResponse<?> loginSuccess(UserDetails userDetails, HttpRequest<?> request) {
         // Called when login to orcid is successful.
         // Check if our login to our system is successful.
         if (request.getCookies().contains(accountTokenCookieName)) {
@@ -94,10 +95,30 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
         // Normal login
         try {
             AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
-            return super.loginSuccess(authenticatedUser, request);
+
+            // Redirect on user login if redirect is present
+            if (request.getCookies().contains(loginSuccessUrlCookieName)){
+                MutableHttpResponse<?> response = HttpResponse.status(HttpStatus.SEE_OTHER);
+                Cookie loginSuccessCookie = request.getCookies().get(loginSuccessUrlCookieName);
+                String returnUrl = loginSuccessCookie.getValue();
+                try {
+                    returnUrl = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8.name());
+                    try {
+                        response.getHeaders().location(new URI(returnUrl));
+                        return super.applyCookies(response, getCookies(authenticatedUser, request));
+                    } catch (URISyntaxException e) {
+                        log.info("Invalid url: " + returnUrl);
+                    }
+                } catch (UnsupportedEncodingException e){
+                    log.info("Error decoding url: " + returnUrl);
+                }
+            }
+
+            MutableHttpResponse<?> response = super.loginSuccess(authenticatedUser, request);
+            return response;
         } catch (AuthenticationException e) {
             AuthenticationFailed authenticationFailed = new AuthenticationFailed(AuthenticationFailureReason.USER_NOT_FOUND);
-            return loginFailed(authenticationFailed);
+            return loginFailed(authenticationFailed, request);
         }
     }
 
@@ -125,58 +146,13 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
     }
 
     @Override
-    protected HttpResponse loginSuccessWithCookies(List<Cookie> cookies) {
-        try {
-            String locationUrl = this.jwtCookieConfiguration.getLoginSuccessTargetUrl();
-
-            Optional<HttpRequest<Object>> requestOptional = this.getCurrentRequest();
-            if (requestOptional.isPresent()){
-                HttpRequest<Object> request = requestOptional.get();
-                if (request.getCookies().contains(loginSuccessUrlCookieName)){
-                    Cookie loginSuccessCookie = request.getCookies().get(loginSuccessUrlCookieName);
-                    String returnUrl = loginSuccessCookie.getValue();
-                    try {
-                        returnUrl = URLDecoder.decode(returnUrl, StandardCharsets.UTF_8.name());
-                        if (isValidURL(returnUrl)){
-                            locationUrl = returnUrl;
-                        } else {
-                            log.info("Invalid url: " + returnUrl);
-                        }
-                    } catch (UnsupportedEncodingException e){
-                        log.info("Error decoding url: " + returnUrl);
-                    }
-                }
-            }
-
-            URI location = new URI(locationUrl);
-
-            MutableHttpResponse mutableHttpResponse = HttpResponse.seeOther(location);
-
-            Cookie cookie;
-            for(Iterator cookieIterator = cookies.iterator(); cookieIterator.hasNext(); mutableHttpResponse = mutableHttpResponse.cookie(cookie)) {
-                cookie = (Cookie)cookieIterator.next();
-            }
-
-            return mutableHttpResponse;
-        } catch (URISyntaxException e) {
-            log.error(e.getMessage());
-            return HttpResponse.serverError();
-        }
-    }
-
-    @Override
-    public HttpResponse loginFailed(AuthenticationFailed authenticationFailed) {
+    public MutableHttpResponse<?> loginFailed(AuthenticationResponse authenticationFailed, HttpRequest<?> request) {
         // If we want to hook code into the login process in the future we can put it here, for now just
         // passes through to JwtCookieLoginHandler
 
         try {
             URI location;
-            if (authenticationFailed.getReason().equals(AuthenticationFailureReason.USER_NOT_FOUND)){
-                location = new URI(jwtCookieConfiguration.getLoginFailureTargetUrl());
-            } else {
-                location = new URI(loginErrorUrl);
-            }
-
+            location = new URI(loginFailureUrl);
             return HttpResponse.seeOther(location);
         } catch (URISyntaxException e) {
             return HttpResponse.serverError();
@@ -224,18 +200,11 @@ public class AuthServiceLoginHandler extends JwtCookieLoginHandler {
             // Get logged in JWT and redirect user to account creation success page
             try {
                 AuthenticatedUser authenticatedUser = getUserCredentials(userDetails);
-                Optional<Cookie> cookieOptional = super.accessTokenCookie(authenticatedUser, request);
-                if (!cookieOptional.isPresent()) {
-                    return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
-                }
-                Cookie cookie = cookieOptional.get();
-                MutableHttpResponse resp = HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
-                resp.cookie(cookie);
-                return resp;
+                MutableHttpResponse response = HttpResponse.seeOther(URI.create(newAccountSuccessUrl));
+                return super.applyCookies(response, super.getCookies(authenticatedUser, request));
             } catch (AuthenticationException e) {
                 return HttpResponse.seeOther(URI.create(newAccountErrorUrl));
             }
-
         } else {
             // JWT ID did not match
             return HttpResponse.seeOther(URI.create(newAccountErrorUrl));

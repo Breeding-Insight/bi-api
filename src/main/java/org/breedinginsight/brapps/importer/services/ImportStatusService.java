@@ -33,7 +33,6 @@ import javax.inject.Singleton;
 public class ImportStatusService {
 
     private ImportDAO importDAO;
-    private ImportUpload upload;
     private ObjectMapper objMapper;
 
     @Inject
@@ -42,32 +41,26 @@ public class ImportStatusService {
         this.objMapper = objMapper;
     }
 
-    public void setUpload(ImportUpload upload) {
-        this.upload = upload;
-    }
-
-    public ImportUpload getUpload() {
-        return this.upload;
-    }
-
-    public void updateMessage(String message) {
+    public void updateMessage(ImportUpload upload, String message) {
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
     }
 
-    public void startUpload(long numberObjects, String message) {
+    public void startUpload(ImportUpload upload, long numberObjects, String message) {
         upload.getProgress().setTotal(numberObjects);
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
     }
 
-    public void finishUpload(String message) {
+    public void finishUpload(ImportUpload upload, long numberObjects, String message) {
+        // Update progress to reflect final finished and inProgress counts.
+        upload.updateProgress(Math.toIntExact(numberObjects), 0);
         upload.getProgress().setMessage(message);
         upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
         importDAO.update(upload);
     }
 
-    public void updateMappedData(ImportPreviewResponse response, String message) {
+    public void updateMappedData(ImportUpload upload, ImportPreviewResponse response, String message) {
         // Save our results to the db
         JSON config = new JSON();
         String json = config.getGson().toJson(response);
@@ -76,7 +69,7 @@ public class ImportStatusService {
         importDAO.update(upload);
     }
 
-    public void updateOk() {
+    public void updateOk(ImportUpload upload) {
         upload.getProgress().setStatuscode((short) HttpStatus.OK.getCode());
         importDAO.update(upload);
     }

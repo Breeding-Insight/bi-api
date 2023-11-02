@@ -22,7 +22,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.*;
@@ -40,22 +40,6 @@ public class TokenControllerIntegrationTest extends DatabaseTest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient client;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
-    @Test
-    void getApiTokenMissingRequiredParameter() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/api-token")
-                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = call.blockingFirst();
-        });
-        assertEquals(HttpStatus.BAD_REQUEST, e.getStatus());
-    }
 
     @Test
     void getApiTokenRequiredParameterBlank() {

@@ -24,6 +24,7 @@ micronaut:
     port: ${API_INTERNAL_PORT:8081}
     cors:
       enabled: true
+    thread-selection: AUTO
     multipart:
       enabled: true
       max-file-size: '100MB'
@@ -33,6 +34,7 @@ micronaut:
   bi:
     api:
       version: v1
+      run-scheduled-tasks: true
   security:
     enabled: true
     oauth2:
@@ -80,7 +82,8 @@ micronaut:
               secret: ${JWT_SECRET}
               jws-algorithm: HS256
         generator:
-          access-token-expiration: 43200
+          access-token:
+            expiration: 43200
     api-token:
       jwt:
         generator:
@@ -92,6 +95,7 @@ micronaut:
         enabled: true
         get-allowed: true
         path: /logout
+    authentication: cookie
 jackson:
   date-format: yyyy-MM-dd'T'HH:mm:ssZ
   mapper:
@@ -100,8 +104,8 @@ flyway:
   datasources:
     default:
       locations:
-        - classpath:org.breedinginsight.db.migration
-        - classpath:db.migration
+        - classpath:org/breedinginsight/db/migration
+        - classpath:db/migration
       enabled: true
       placeholders:
         default-url: ${brapi.server.default-url}
@@ -156,7 +160,11 @@ brapi:
     pheno-url: ${brapi.server.default-url}
     geno-url: ${brapi.server.default-url}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
-  read-timeout: 10m
+  read-timeout: ${BRAPI_READ_TIMEOUT:10m}
+  page-size: 1000
+  search:
+    wait-time: 1000
+  post-group-size: ${POST_CHUNK_SIZE:1000}
 
 email:
   relay-server:
@@ -164,4 +172,26 @@ email:
     port: ${EMAIL_RELAY_PORT}
   from: ${EMAIL_FROM}
 
+redisson:
+  single-server-config:
+    address: ${REDIS_URL:`redis://localhost:6379`}
+    connect-timeout: ${REDIS_TIMEOUT:30s}
+    ssl-enable-endpoint-identification: ${REDIS_SSL:false}
+  threads: 16
+  netty-threads: 32
 
+gigwa:
+  host: ${GIGWA_HOST}
+  username: ${GIGWA_USER}
+  password: ${GIGWA_PASSWORD}
+
+aws:
+  region: ${AWS_REGION:`us-east-1`}
+  accessKeyId: ${AWS_ACCESS_KEY_ID}
+  secretKey: ${AWS_SECRET_KEY}
+  s3:
+    region: ${aws.region}
+    endpoint: ${AWS_S3_ENDPOINT:`https://s3.us-east-1.amazonaws.com`}
+    buckets:
+      genotype:
+        bucket: ${AWS_GENO_BUCKET}

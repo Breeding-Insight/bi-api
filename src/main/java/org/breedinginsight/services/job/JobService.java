@@ -46,10 +46,7 @@ public class JobService {
             throw new DoesNotExistException("Program id does not exist");
         }
 
-        List<Job> jobs = new ArrayList<>();
-        jobs.addAll(getProgramImports(programId));
-
-        return jobs;
+        return new ArrayList<>(getProgramImports(programId));
     }
 
     @SneakyThrows
@@ -57,6 +54,7 @@ public class JobService {
         List<ImportResponse> uploads = fileImportService.getProgramUploads(programId, false);
         return uploads.stream()
                       .map(importJob -> new Job().setJobDetail(importJob)
+                                                                  .setId(importJob.getImportId().toString())
                                                                   .setJobType(importJob.getImportType())
                                                                   .setCreatedAt(importJob.getCreatedAt())
                                                                   .setUpdatedAt(importJob.getProgress().getUpdatedAt())

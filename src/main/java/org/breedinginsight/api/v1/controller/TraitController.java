@@ -81,7 +81,8 @@ public class TraitController {
 
         try {
             List<Trait> traits = ontologyService.getTraitsByProgramId(programId, traitsQuery.getFull());
-            return ResponseUtils.getQueryResponse(traits, traitQueryMapper, traitsQuery);
+            SearchRequest searchRequest = traitsQuery.constructSearchRequest();
+            return ResponseUtils.getQueryResponse(traits, traitQueryMapper, searchRequest, traitsQuery);
         } catch (DoesNotExistException e) {
             return HttpResponse.notFound();
         }

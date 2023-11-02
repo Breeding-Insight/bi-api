@@ -17,12 +17,15 @@
 
 package org.breedinginsight.brapps.importer.services;
 
+import io.reactivex.functions.Function;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
 import tech.tablesaw.api.Row;
 import tech.tablesaw.api.Table;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +34,15 @@ import java.util.Map;
 
 @Singleton
 public class FileMappingUtil {
+
+    public static final String EXPERIMENT_TEMPLATE_NAME = "ExperimentsTemplateMap";
+    private FileImportService fileImportService;
+
+
+    @Inject
+    public FileMappingUtil(FileImportService fileImportService) {
+        this.fileImportService = fileImportService;
+    }
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
     public List<Pair<Integer, String>> findFileRelationships(Table data, List<MappedImportRelation> importRelations) {
@@ -62,5 +74,24 @@ public class FileMappingUtil {
         }
 
         return targetIndexList;
+    }
+
+    public <T> List<T> sortByField(List<String> sortedFields, List<T> unsortedItems, Function<T, String> fieldGetter) {
+        CaseInsensitiveMap<String, Integer> sortOrder = new CaseInsensitiveMap<>();
+        for (int i = 0; i < sortedFields.size(); i++) {
+            sortOrder.put(sortedFields.get(i), i);
+        }
+
+        unsortedItems.sort((i1, i2) -> {
+            try {
+                String field1 = fieldGetter.apply(i1);
+                String field2 = fieldGetter.apply(i2);
+                return Integer.compare(sortOrder.get(field1), sortOrder.get(field2));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        return unsortedItems;
     }
 }

@@ -22,7 +22,7 @@ import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import org.breedinginsight.DatabaseTest;
 import org.junit.jupiter.api.AfterAll;
@@ -43,9 +43,6 @@ public class ServerInfoControllerIntegrationTest extends DatabaseTest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
 
     @Test
     public void getVersionInfo() throws IOException {

@@ -114,9 +114,6 @@ public class JobControllerIntegrationTest extends DatabaseTest {
         }
     }
 
-    @AfterAll
-    public void finish() { super.stopContainers(); }
-
     @Test
     public void fetchJobs() throws DoesNotExistException {
         try {

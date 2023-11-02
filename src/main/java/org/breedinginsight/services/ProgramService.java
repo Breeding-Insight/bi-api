@@ -25,6 +25,7 @@ import org.breedinginsight.api.auth.SecurityService;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.dao.db.tables.pojos.*;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
+import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramObservationLevelDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
@@ -55,14 +56,20 @@ public class ProgramService {
     private DSLContext dsl;
     private SecurityService securityService;
     private BrAPIClientProvider brAPIClientProvider;
+    private BreedingMethodDAO breedingMethodDAO;
 
     private static final String PROGRAM_NAME_IN_USE = "PROGRAM_NAME_IN_USE";
     private static final String PROGRAM_KEY_IN_USE = "PROGRAM_KEY_IN_USE";
     private static final String GERMPLASM_SEQUENCE_TEMPLATE = "%s_germplasm_sequence";
+    private static final String OBS_UNIT_SEQUENCE_TEMPLATE = "%s_obs_unit_sequence";
+    private static final String EXP_SEQUENCE_TEMPLATE = "%s_exp_sequence";
+    private static final String ENV_SEQUENCE_TEMPLATE = "%s_env_sequence";
+
 
     @Inject
     public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO, ProgramObservationLevelDAO programObservationLevelDAO,
-                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService, BrAPIClientProvider brAPIClientProvider) {
+                          SpeciesService speciesService, DSLContext dsl, SecurityService securityService, BrAPIClientProvider brAPIClientProvider,
+                          BreedingMethodDAO breedingMethodDAO) {
         this.dao = dao;
         this.programOntologyDAO = programOntologyDAO;
         this.programObservationLevelDAO = programObservationLevelDAO;
@@ -70,22 +77,27 @@ public class ProgramService {
         this.dsl = dsl;
         this.securityService = securityService;
         this.brAPIClientProvider = brAPIClientProvider;
-    }
-
-    @Inject
-    public ProgramService(ProgramDAO dao, ProgramOntologyDAO programOntologyDAO,
-                          ProgramObservationLevelDAO programObservationLevelDAO, SpeciesService speciesService,
-                          DSLContext dsl) {
-        this.dao = dao;
-        this.programOntologyDAO = programOntologyDAO;
-        this.programObservationLevelDAO = programObservationLevelDAO;
-        this.speciesService = speciesService;
-        this.dsl = dsl;
+        this.breedingMethodDAO = breedingMethodDAO;
     }
 
     public Optional<Program> getById(UUID programId) {
 
         List<Program> programs = dao.get(programId);
+
+        if (programs.size() <= 0) {
+            return Optional.empty();
+        }
+
+        Program program = programs.get(0);
+        BrAPIProgram brapiProgram = dao.getProgramBrAPI(program);
+        program.setBrAPIProperties(brapiProgram);
+
+        return Optional.of(program);
+    }
+
+    public Optional<Program> getByKey(String programKey) {
+
+        List<Program> programs = dao.getProgramByKey(programKey);
 
         if (programs.size() <= 0) {
             return Optional.empty();
@@ -161,6 +173,18 @@ public class ProgramService {
             String germplasm_sequence_name = String.format(GERMPLASM_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
             dsl.createSequence(germplasm_sequence_name).execute();
 
+            // Create experiment sequence
+            String exp_sequence_name = String.format(EXP_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(exp_sequence_name).execute();
+
+            // Create obs unit sequence
+            String obs_unit_sequence_name = String.format(OBS_UNIT_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(obs_unit_sequence_name).execute();
+
+            // Create env sequence
+            String env_sequence_name = String.format(ENV_SEQUENCE_TEMPLATE, programRequest.getKey()).toLowerCase();
+            dsl.createSequence(env_sequence_name).execute();
+
             // Parse and create the program object
             ProgramEntity programEntity = ProgramEntity.builder()
                     .name(programRequest.getName())
@@ -171,6 +195,8 @@ public class ProgramService {
                     .brapiUrl(brapiUrl)
                     .key(programRequest.getKey())
                     .germplasmSequence(germplasm_sequence_name)
+                    .expSequence( exp_sequence_name )
+                    .envSequence( env_sequence_name )
                     .createdBy(actingUser.getId())
                     .updatedBy(actingUser.getId())
                     .build();
@@ -185,6 +211,8 @@ public class ProgramService {
                     .updatedBy(actingUser.getId())
                     .build();
             programOntologyDAO.insert(programOntologyEntity);
+
+            breedingMethodDAO.enableAllSystemMethods(createdProgram.getId(), actingUser.getId());
 
             // Add program to brapi service
             dao.createProgramBrAPI(createdProgram);

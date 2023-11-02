@@ -17,8 +17,10 @@
 package org.breedinginsight.daos;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
+import org.brapi.client.v2.BrAPIClient;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.model.queryParams.phenotype.ObservationQueryParams;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
@@ -27,32 +29,45 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.services.brapi.BrAPIClientType;
+import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.brapi.BrAPIProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
+
+@Singleton
+@Slf4j
 public class ObservationDAO {
-    private BrAPIProvider brAPIProvider;
+    private final BrAPIDAOUtil brAPIDAOUtil;
+    private ProgramDAO programDAO;
+    private final BrAPIEndpointProvider brAPIEndpointProvider;
 
     @Inject
-    public ObservationDAO(BrAPIProvider brAPIProvider) {
-        this.brAPIProvider = brAPIProvider;
+    public ObservationDAO(BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
+        this.brAPIDAOUtil = brAPIDAOUtil;
+        this.programDAO = programDAO;
+        this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId) {
+    public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId, UUID programId) {
 
         ApiResponse<BrAPIObservationListResponse> brapiObservations;
         ObservationQueryParams observationsRequest = new ObservationQueryParams()
                 .observationVariableDbId(observationVariableDbId);
         try {
-            brapiObservations = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO).observationsGet(observationsRequest);
+            BrAPIClient client = programDAO.getCoreClient(programId);
+            ObservationsApi api = brAPIEndpointProvider.get(client, ObservationsApi.class);
+            brapiObservations = api.observationsGet(observationsRequest);
         } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
             throw new InternalServerException("Error making BrAPI call", e);
         }
 
@@ -60,16 +75,20 @@ public class ObservationDAO {
     }
 
     // search by ObservationVariableDbIds
-    public List<BrAPIObservation> getObservationsByVariableDbIds(List<String> observationVariableDbIds) {
+    public List<BrAPIObservation> getObservationsByVariableDbIds(List<String> observationVariableDbIds, UUID programId) {
+        if(observationVariableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
                     .observationVariableDbIds(observationVariableDbIds);
 
-            ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return BrAPIDAOUtil.search(
+            BrAPIClient client = programDAO.getCoreClient(programId);
+            ObservationsApi api = brAPIEndpointProvider.get(client, ObservationsApi.class);
+            return brAPIDAOUtil.search(
                     api::searchObservationsPost,
-                    this::searchObservationsSearchResultsDbIdGet,
+                    api::searchObservationsSearchResultsDbIdGet,
                     request
             );
         } catch (ApiException e) {
@@ -78,29 +97,27 @@ public class ObservationDAO {
 
     }
 
-    public List<BrAPIObservation> getObservationsByVariableAndBrAPIProgram(String brapiProgramId, List<String> observationVariableDbIds) {
+    public List<BrAPIObservation> getObservationsByVariableAndBrAPIProgram(String brapiProgramId, UUID programId, List<String> observationVariableDbIds) {
+        if(observationVariableDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
 
         try {
             BrAPIObservationSearchRequest request = new BrAPIObservationSearchRequest()
                     .observationVariableDbIds(observationVariableDbIds)
                     .programDbIds(List.of(brapiProgramId));
 
-            ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-            return BrAPIDAOUtil.search(
+            BrAPIClient client = programDAO.getCoreClient(programId);
+            ObservationsApi api = brAPIEndpointProvider.get(client, ObservationsApi.class);
+            return brAPIDAOUtil.search(
                     api::searchObservationsPost,
-                    this::searchObservationsSearchResultsDbIdGet,
+                    api::searchObservationsSearchResultsDbIdGet,
                     request
             );
         } catch (ApiException e) {
             throw new InternalServerException("Observations brapi search error", e);
         }
 
-    }
-
-    private ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>>
-    searchObservationsSearchResultsDbIdGet(String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
-        ObservationsApi api = brAPIProvider.getObservationsAPI(BrAPIClientType.PHENO);
-        return api.searchObservationsSearchResultsDbIdGet(APPLICATION_JSON, searchResultsDbId, page, pageSize);
     }
 
 }

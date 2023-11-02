@@ -27,11 +27,12 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.http.client.exceptions.HttpClientResponseException;
 import io.micronaut.http.netty.cookies.NettyCookie;
-import io.micronaut.test.annotation.MicronautTest;
+import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
-import lombok.SneakyThrows;
-import org.breedinginsight.DatabaseTest;
+import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.api.model.v1.request.query.FilterRequest;
 import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
@@ -39,14 +40,20 @@ import org.breedinginsight.api.v1.controller.metadata.SortOrder;
 import org.breedinginsight.dao.db.tables.daos.PlaceDao;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.PlaceEntity;
-import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
 import org.breedinginsight.daos.UserDAO;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.ProgramLocationService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
-
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,9 +64,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class ResponseUtilsIntegrationTest extends DatabaseTest {
+public class ResponseUtilsIntegrationTest extends BrAPITest {
 
-    ProgramEntity validProgram;
+    Program validProgram;
     List<PlaceEntity> locations;
 
     private FannyPack fp;
@@ -74,14 +81,12 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
     private PlaceDao locationDao;
     @Inject
     private UserDAO userDAO;
-
-    @AfterAll
-    public void finish() { super.stopContainers(); }
+    @Inject
+    private ProgramLocationService locationService;
 
     // Set up program locations
     @BeforeAll
-    @SneakyThrows
-    public void setup() {
+    public void setup() throws MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException, NoSuchMethodException, InvocationTargetException, IllegalAccessException {
 
         // Insert our traits into the db
         fp = FannyPack.fill("src/test/resources/sql/ResponseUtilsIntegrationTest.sql");
@@ -93,12 +98,38 @@ public class ResponseUtilsIntegrationTest extends DatabaseTest {
 
         // Insert program
         dsl.execute(fp.get("InsertProgram"));
+        validProgram = new Program(programDao.findAll().get(0));
 
         // Insert program locations
-        dsl.execute(fp.get("InsertProgramLocations"));
+        List<ProgramLocationRequest> newLocations = new ArrayList<>();
+        newLocations.add(ProgramLocationRequest.builder()
+                                               .name("place1")
+                                               .abbreviation("abbrev1")
+                                               .slope(new BigDecimal("1.1"))
+                                               .build());
+        for(int i = 2; i < 25; i++) {
+            // Ensure random slope values don't overlap with hardcoded value by adding 2 to the unsigned magnitude.
+            newLocations.add(ProgramLocationRequest.builder()
+                                                      .name("place"+i)
+                                                      .abbreviation("abbrev"+i)
+                    .slope(new BigDecimal((Math.random() > 0.5 ? "" : "-")+Math.random()))
+                                                      .build());
+        }
+        for(int i = 25; i < 31; i++) {
+            newLocations.add(ProgramLocationRequest.builder()
+                                                   .name("place"+i)
+                                                   .build());
+        }
+        AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
 
-        validProgram = programDao.findAll().get(0);
-
+        //accessing the private method to bypass the fetch of a program from the db/brapi (which fails bc the program isn't in the brapi server)
+        Method createLocationMethod = locationService.getClass()
+                                               .getDeclaredMethod("createLocation", AuthenticatedUser.class, Program.class, ProgramLocationRequest.class);
+        createLocationMethod.setAccessible(true);
+        for (ProgramLocationRequest location : newLocations) {
+            createLocationMethod.invoke(locationService, user, validProgram, location);
+        }
+        createLocationMethod.setAccessible(false);
         locations = locationDao.findAll();
     }
 

@@ -18,9 +18,11 @@
 package org.breedinginsight.services.exceptions;
 
 import lombok.Getter;
+import lombok.ToString;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 
 @Getter
+@ToString
 public class ValidatorException extends Exception {
 
     private ValidationErrors errors;

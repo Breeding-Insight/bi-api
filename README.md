@@ -79,6 +79,46 @@ to run the brapi test server, update the proper variables in the .env file and t
 
 ```docker-compose up -d brapi-server```
 
+#### Redis
+
+Run this docker command in terminal to start up a redis docker container
+
+```docker-compose up -d redis```
+
+Then update the following environment variables:
+
+```
+REDIS_URL=redis://localhost:6379
+```
+
+#### Gigwa
+
+Run this docker command in terminal to start up a Gigwa container
+
+```docker-compose up -d gigwa```
+
+Then update the following environment variable:
+
+```
+GIGWA_HOST=http://localhost:5080/
+```
+
+#### Localstack (AWS service emulator)
+
+If you do not want to configure an S3 bucket and IAM roles in S3, you can use Localstack (https://localstack.cloud/) to emulate the S3 service on your machine
+
+Run this docker command in terminal to start up a Localstack container
+
+```docker-compose up -d localstack```
+
+Then update the following environment variables:
+
+```
+AWS_ACCESS_KEY_ID=test
+AWS_SECRET_KEY=test
+AWS_S3_ENDPOINT=http://localhost:4566
+```
+
 ### Building the project
 
 Once you have the project pulled down and your database running, follow these steps to build the project.

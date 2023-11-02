@@ -38,6 +38,7 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.time.ZoneOffset;
@@ -141,8 +142,9 @@ public class ObservationProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
-            Map<Integer,PendingImport> mappedBrAPIImport, Program program, User user, boolean commit) throws ValidatorException {
+    public Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
+                                                        Map<Integer,PendingImport> mappedBrAPIImport, Table data,
+                                                        Program program, User user, boolean commit) throws ValidatorException {
 
         if (!importRows.isEmpty() && importRows.get(0).getObservations() != null) {
 
@@ -165,7 +167,6 @@ public class ObservationProcessor implements Processor {
                     mappedImportRow.setObservation(observationByHash.get(hash));
                     mappedBrAPIImport.put(i, mappedImportRow);
                 }
-
             }
         }
 
@@ -191,7 +192,7 @@ public class ObservationProcessor implements Processor {
 
         List<BrAPIObservation> createdObservations = new ArrayList<>();
         try {
-            createdObservations.addAll(brAPIObservationDAO.createBrAPIObservation(observations, program.getId(), upload));
+            createdObservations.addAll(brAPIObservationDAO.createBrAPIObservations(observations, program.getId(), upload));
         } catch (ApiException e) {
             throw new InternalServerException(e.toString(), e);
         }
