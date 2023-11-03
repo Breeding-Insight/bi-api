@@ -63,7 +63,7 @@ public class SampleSubmissionController {
     private final Gson gson;
 
     @Inject
-    public SampleSubmissionController(@Property(name = "brapi.vendors.submission-enabled") boolean brapiSubmissionEnabled, SampleSubmissionService sampleSubmissionService, ProgramService programService, SecurityService securityService, UserService userService) {
+    public SampleSubmissionController(@Property(name = "brapi.vendor-submission-enabled") boolean brapiSubmissionEnabled, SampleSubmissionService sampleSubmissionService, ProgramService programService, SecurityService securityService, UserService userService) {
         this.brapiSubmissionEnabled = brapiSubmissionEnabled;
         this.sampleSubmissionService = sampleSubmissionService;
         this.programService = programService;

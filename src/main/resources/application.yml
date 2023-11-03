@@ -160,8 +160,9 @@ brapi:
     pheno-url: ${brapi.server.default-url}
     geno-url: ${brapi.server.default-url}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
+  vendor-submission-enabled: ${BRAPI_VENDOR_SUBMISSION_ENABLED:false}
+  vendor-check-frequency: ${BRAPI_VENDOR_CHECK_FREQUENCY:1d}
   vendors:
-    submission-enabled: ${BRAPI_VENDOR_SUBMISSION_ENABLED:false}
     dart:
       url: ${DART_VENDOR_URL:`https://test-server.brapi.org`}
       client-id: ${DART_CLIENT_ID:potato-salad}
@@ -171,7 +172,6 @@ brapi:
   search:
     wait-time: 1000
   post-group-size: ${POST_CHUNK_SIZE:1000}
-  vendor-check-frequency: ${VENDOR_CHECK_FREQUENCY:30s}
 
 email:
   relay-server:

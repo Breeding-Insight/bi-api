@@ -93,9 +93,9 @@ $$
             {
               "id": "de7fed3a-ec44-4139-83cb-c773e09237bd",
               "value": {
-                "fileFieldName": "Comment"
+                "fileFieldName": "Comments"
               },
-              "objectId": "comment"
+              "objectId": "comments"
             }
           ]', '[]',
                 false,

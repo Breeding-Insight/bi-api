@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.services.processors;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -73,10 +74,6 @@ public class SampleSubmissionProcessor implements Processor {
     private final BrAPIGermplasmDAO germplasmDAO;
     private final BrAPIObservationUnitDAO observationUnitDAO;
     private final SampleSubmissionService sampleSubmissionService;
-    private final DSLContext dsl;
-    private final BrAPIPlateDAO plateDAO;
-    private final BrAPISampleDAO sampleDAO;
-
     private SampleSubmission submission;
     private Map<String, BrAPIGermplasm> germplasmByGID = new HashMap<>();
     private Map<String, BrAPIGermplasm> germplasmByDbId = new HashMap<>();
@@ -88,17 +85,11 @@ public class SampleSubmissionProcessor implements Processor {
     public SampleSubmissionProcessor(@Property(name = "brapi.server.reference-source") String referenceSource,
                                      BrAPIGermplasmDAO germplasmDAO,
                                      BrAPIObservationUnitDAO observationUnitDAO,
-                                     SampleSubmissionService sampleSubmissionService,
-                                     DSLContext dsl,
-                                     BrAPIPlateDAO plateDAO,
-                                     BrAPISampleDAO sampleDAO) {
+                                     SampleSubmissionService sampleSubmissionService) {
         this.referenceSource = referenceSource;
         this.germplasmDAO = germplasmDAO;
         this.observationUnitDAO = observationUnitDAO;
         this.sampleSubmissionService = sampleSubmissionService;
-        this.dsl = dsl;
-        this.plateDAO = plateDAO;
-        this.sampleDAO = sampleDAO;
     }
 
     @Override
@@ -260,15 +251,21 @@ public class SampleSubmissionProcessor implements Processor {
 
     @Override
     public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) throws ValidatorException {
-        dsl.transaction(() -> {
-            List<BrAPIPlate> platesToSave = plateById.values().stream().map(PendingImportObject::getBrAPIObject).collect(Collectors.toList());
-            List<BrAPISample> samplesToSave = mappedBrAPIImport.values().stream().map(row -> row.getSample().getBrAPIObject()).collect(Collectors.toList());
+        List<BrAPIPlate> platesToSave = plateById.values().stream().map(PendingImportObject::getBrAPIObject).collect(Collectors.toList());
+        List<BrAPISample> samplesToSave = mappedBrAPIImport.values().stream().map(row -> row.getSample().getBrAPIObject()).collect(Collectors.toList());
 
-            submission.setPlates(platesToSave);
-            submission.setSamples(samplesToSave);
+        submission.setPlates(platesToSave);
+        submission.setSamples(samplesToSave);
 
+        try {
             sampleSubmissionService.createSubmission(submission, program, upload);
-        });
+        } catch (ApiException e) {
+            log.error("Error saving sample submission import: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException("Error saving sample submission import", e);
+        } catch (Exception e) {
+            log.error("Error saving sample submission import", e);
+            throw new InternalServerException(e.getMessage(), e);
+        }
     }
 
     @Override

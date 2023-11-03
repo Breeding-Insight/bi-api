@@ -84,8 +84,8 @@ public class SampleSubmissionImport implements BrAPIImport {
     private String tissue;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
-    @ImportFieldMetadata(id = "comment", name = Columns.COMMENTS, description = "Generic comments about this sample for the vendor")
-    private String comment;
+    @ImportFieldMetadata(id = "comments", name = Columns.COMMENTS, description = "Generic comments about this sample for the vendor")
+    private String comments;
 
     @ImportFieldType(type= ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
     @ImportMappingRequired
@@ -99,7 +99,7 @@ public class SampleSubmissionImport implements BrAPIImport {
         public static final String ORGANISM = "Organism";
         public static final String SPECIES = "Species";
         public static final String GERMPLASM_NAME = "Germplasm Name";
-        public static final String GERMPLASM_GID = "Germplasm GID";
+        public static final String GERMPLASM_GID = "GID";
         public static final String TISSUE = "Tissue";
         public static final String COMMENTS = "Comments";
         public static final String OBS_UNIT_ID = "ObsUnitID";
@@ -146,7 +146,7 @@ public class SampleSubmissionImport implements BrAPIImport {
                 .row(row)
                 .column(Integer.valueOf(column))
                 .tissueType(tissue)
-                .sampleDescription(comment);
+                .sampleDescription(comments);
 
         if (ou != null) {
             brAPISample

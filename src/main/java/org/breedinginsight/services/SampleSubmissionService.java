@@ -67,10 +67,11 @@ public class SampleSubmissionService {
     private static final String VENDOR_NOT_SUBMITTED_STATUS = "NOT SUBMITTED";
     private static final String VENDOR_SUBMITTED_STATUS = "SUBMITTED";
     private final String referenceSource;
-    private String dartBrapiUrl;
-    private String dartClientId;
-    private String dartToken;
-    private Duration requestTimeout;
+    private final String dartBrapiUrl;
+    private final String dartClientId;
+    private final String dartToken;
+    private final  Duration requestTimeout;
+    private final boolean brapiSubmissionEnabled;
 
     private final SampleSubmissionDAO submissionDAO;
     private final BrAPIPlateDAO plateDAO;
@@ -85,6 +86,7 @@ public class SampleSubmissionService {
                                    @Property(name = "brapi.vendors.dart.client-id") String dartClientId,
                                    @Property(name = "brapi.vendors.dart.token") String dartToken,
                                    @Value(value = "${brapi.read-timeout:5m}") Duration requestTimeout,
+                                   @Property(name = "brapi.vendor-submission-enabled") boolean brapiSubmissionEnabled,
                                    SampleSubmissionDAO submissionDAO,
                                    BrAPIPlateDAO plateDAO,
                                    BrAPISampleDAO sampleDAO,
@@ -96,6 +98,7 @@ public class SampleSubmissionService {
         this.dartClientId = dartClientId;
         this.dartToken = dartToken;
         this.requestTimeout = requestTimeout;
+        this.brapiSubmissionEnabled = brapiSubmissionEnabled;
         this.submissionDAO = submissionDAO;
         this.plateDAO = plateDAO;
         this.sampleDAO = sampleDAO;
@@ -106,6 +109,9 @@ public class SampleSubmissionService {
 
     @Scheduled(fixedDelay = "${brapi.vendor-check-frequency}", initialDelay = "10s")
     void checkSubmissionStatuses() {
+        if(!brapiSubmissionEnabled) {
+            return;
+        }
         log.trace("checking vendor order statuses");
         List<SampleSubmission> submittedAndNotCompleted = submissionDAO.getSubmittedAndNotComplete();
         log.trace(submittedAndNotCompleted.size() + " orders to check");
@@ -127,15 +133,17 @@ public class SampleSubmissionService {
         submission.setUpdatedByUser(upload.getUpdatedByUser());
         submission.setUpdatedBy(upload.getUpdatedBy());
 
-        submissionDAO.insert(submission);
+        dsl.transaction(() -> {
+            submissionDAO.insert(submission);
 
-        List<BrAPIPlate> savedPlates = plateDAO.createPlates(program, submission.getPlates(), upload);
-        submission.setPlates(savedPlates);
-        Map<String, String> plateNameToDbId = savedPlates.stream().collect(Collectors.toMap(BrAPIPlate::getPlateName, BrAPIPlate::getPlateDbId));
+            List<BrAPIPlate> savedPlates = plateDAO.createPlates(program, submission.getPlates(), upload);
+            submission.setPlates(savedPlates);
+            Map<String, String> plateNameToDbId = savedPlates.stream().collect(Collectors.toMap(BrAPIPlate::getPlateName, BrAPIPlate::getPlateDbId));
 
-        List<BrAPISample> samplesToSave = submission.getSamples().stream().map(sample -> sample.plateDbId(plateNameToDbId.get(sample.getPlateName()))).collect(Collectors.toList());
-        List<BrAPISample> savedSamples = sampleDAO.createSamples(program, samplesToSave, upload);
-        submission.setSamples(savedSamples);
+            List<BrAPISample> samplesToSave = submission.getSamples().stream().map(sample -> sample.plateDbId(plateNameToDbId.get(sample.getPlateName()))).collect(Collectors.toList());
+            List<BrAPISample> savedSamples = sampleDAO.createSamples(program, samplesToSave, upload);
+            submission.setSamples(savedSamples);
+        });
 
         return submission;
     }
