@@ -55,7 +55,7 @@ public interface Processor {
     Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
                                                  Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                  Program program, User user, boolean commit)
-            throws ValidatorException, MissingRequiredInfoException, ApiException;
+            throws Exception;
 
     /**
      * Given mapped brapi import with updates from prior dependencies, check if have everything needed

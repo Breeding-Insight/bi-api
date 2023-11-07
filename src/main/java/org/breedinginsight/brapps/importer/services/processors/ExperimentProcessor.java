@@ -30,6 +30,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -64,6 +65,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -91,6 +93,7 @@ import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPER
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
+    private static final String EXISTING_ENV = "Cannot create a new observation unit for existing environment: ";
     private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
@@ -216,7 +219,7 @@ public class ExperimentProcessor implements Processor {
             Table data,
             Program program,
             User user,
-            boolean commit) throws ValidatorException, MissingRequiredInfoException, ApiException {
+            boolean commit) throws UnprocessableEntityException, ApiException, ValidatorException {
         log.debug("processing experiment import");
 
         ValidationErrors validationErrors = new ValidationErrors();
@@ -490,7 +493,7 @@ public class ExperimentProcessor implements Processor {
         return column.name();
     }
 
-    private void initNewBrapiData(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Program program, User user, List<Trait> referencedTraits, boolean commit) throws ApiException {
+    private void initNewBrapiData(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Program program, User user, List<Trait> referencedTraits, boolean commit) throws UnprocessableEntityException, ApiException {
 
         String expSequenceName = program.getExpSequence();
         if (expSequenceName == null) {
@@ -671,7 +674,7 @@ public class ExperimentProcessor implements Processor {
             var importHash = getImportObservationHash(importRow, phenoCol.name());
 
             // error if import observation data already exists and user has not selected to overwrite
-            if(commit && importRow.getOverwrite().equals("false") &&
+            if(commit && "false".equals(importRow.getOverwrite() == null ? "false" : importRow.getOverwrite()) &&
                     this.existingObsByObsHash.containsKey(importHash) &&
                     StringUtils.isNotBlank(phenoCol.getString(rowNum)) &&
                     !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
@@ -915,7 +918,7 @@ public class ExperimentProcessor implements Processor {
         return null;
     }
 
-    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException {
+    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws UnprocessableEntityException, ApiException {
         PendingImportObject<BrAPIObservationUnit> pio;
         String key = createObservationUnitKey(importRow);
         if (this.observationUnitByNameNoScope.containsKey(key)) {
@@ -944,7 +947,11 @@ public class ExperimentProcessor implements Processor {
             if (studyPIO.getBrAPIObject().getStudyDbId() != null) {
                 List<BrAPIObservationUnit> existingOUs = brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyPIO.getBrAPIObject().getStudyDbId(), program);
                 List<BrAPIObservationUnit> matchingOU = existingOUs.stream().filter(ou -> importRow.getExpUnitId().equals(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()))).collect(Collectors.toList());
-                pio = !matchingOU.isEmpty() ? new PendingImportObject<>(ImportObjectState.EXISTING, matchingOU.get(0)) : new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
+                if (matchingOU.isEmpty()) {
+                    throw new UnprocessableEntityException(EXISTING_ENV + Utilities.removeProgramKeyAndUnknownAdditionalData(studyPIO.getBrAPIObject().getStudyName(), program.getKey()));
+                } else {
+                    pio = new PendingImportObject<>(ImportObjectState.EXISTING, matchingOU.get(0));
+                }
             } else {
                 pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
             }

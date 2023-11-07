@@ -351,7 +351,7 @@ public class MappingManager {
         else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
             throw new UnprocessableEntityException(importService.getMissingUserInputMsg(metadata.name()));
         }
-        else if (userInput.containsKey(fieldId)) {
+        else if (userInput != null && userInput.containsKey(fieldId)) {
             String value = userInput.get(fieldId).toString();
             if (!isCorrectType(type.type(), value)) {
                 throw new UnprocessableEntityException(importService.getWrongUserInputDataTypeMsg(metadata.name(), type.type().toString().toLowerCase()));

@@ -69,7 +69,7 @@ public class SampleSubmissionImportService implements BrAPIImportService {
                                          Program program,
                                          ImportUpload upload,
                                          User user,
-                                         Boolean commit) throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {
+                                         Boolean commit) throws Exception {
         List<Processor> processors = List.of(sampleProcessorProvider.get());
         return processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
     }
