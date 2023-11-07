@@ -16,6 +16,8 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -70,6 +72,7 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -86,9 +89,7 @@ public class ExperimentProcessor implements Processor {
     private static final String TIMESTAMP_PREFIX = "TS:";
     private static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
     private static final String COMMA_DELIMITER = ",";
-    private static final String BLANK_FIELD_EXPERIMENT = "Field is blank when creating a new experiment";
-    private static final String BLANK_FIELD_ENV = "Field is blank when creating a new environment";
-    private static final String BLANK_FIELD_OBS = "Field is blank when creating new observations";
+    private static final String BLANK_FIELD = "Required field is blank";
     private static final String ENV_LOCATION_MISMATCH = "All locations must be the same for a given environment";
     private static final String ENV_YEAR_MISMATCH = "All years must be the same for a given environment";
 
@@ -110,6 +111,8 @@ public class ExperimentProcessor implements Processor {
 
     // used to make the yearsToSeasonDbId() function more efficient
     private final Map<String, String> yearToSeasonDbIdCache = new HashMap<>();
+    // used to make the seasonDbIdtoYear() function more efficient
+    private final Map<String, String> seasonDbIdToYearCache = new HashMap<>();
 
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the getNewBrapiData() method.
@@ -215,7 +218,7 @@ public class ExperimentProcessor implements Processor {
             }
         }
 
-        List<Trait> referencedTraits = verifyTraits(program.getId(), phenotypeCols, timestampCols);
+        List<Trait> referencedTraits = verifyTraits(program.getId(), phenotypeCols, timestampCols, validationErrors);
 
         //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
         for (Column<?> tsColumn : timestampCols) {
@@ -396,7 +399,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private List<Trait> verifyTraits(UUID programId, List<Column<?>> phenotypeCols, List<Column<?>> timestampCols) {
+    private List<Trait> verifyTraits(UUID programId, List<Column<?>> phenotypeCols, List<Column<?>> timestampCols, ValidationErrors validationErrors) {
         Set<String> varNames = phenotypeCols.stream()
                                             .map(Column::name)
                                             .collect(Collectors.toSet());
@@ -537,8 +540,8 @@ public class ExperimentProcessor implements Processor {
         return DigestUtils.sha256Hex(concat);
     }
 
-    private void validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
-                                List<Column<?>> phenotypeCols, boolean commit) throws MissingRequiredInfoException, ApiException {
+    private ValidationErrors validateFields(List<BrAPIImport> importRows, ValidationErrors validationErrors, Map<Integer, PendingImport> mappedBrAPIImport, List<Trait> referencedTraits, Program program,
+                                            List<Column<?>> phenotypeCols, boolean commit) throws MissingRequiredInfoException, ApiException {
         //fetching any existing observations for any OUs in the import
         Map<String, BrAPIObservation> existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
         CaseInsensitiveMap<String, Trait> colVarMap = new CaseInsensitiveMap<>();
@@ -565,6 +568,7 @@ public class ExperimentProcessor implements Processor {
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
             validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, existingObsByObsHash);
         }
+        return validationErrors;
     }
 
     private void validateObservationUnits(ValidationErrors validationErrors, Set<String> uniqueStudyAndObsUnit, int rowNum, ExperimentObservation importRow) {
@@ -591,8 +595,8 @@ public class ExperimentProcessor implements Processor {
         observationUnitByNameNoScope.values().forEach(ou -> {
             if(StringUtils.isNotBlank(ou.getBrAPIObject().getObservationUnitDbId())) {
                 ouDbIds.add(ou.getBrAPIObject().getObservationUnitDbId());
+                ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getBrAPIObject().getObservationUnitName(), program.getKey()));
             }
-            ouNameByDbId.put(ou.getBrAPIObject().getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getBrAPIObject().getObservationUnitName(), program.getKey()));
         });
 
         for (Trait referencedTrait : referencedTraits) {
@@ -670,12 +674,7 @@ public class ExperimentProcessor implements Processor {
                                                             .getState();
         ImportObjectState envState = this.studyByNameNoScope.get(importRow.getEnv()).getState();
 
-        String errorMessage = BLANK_FIELD_EXPERIMENT;
-        if (expState == ImportObjectState.EXISTING && envState == ImportObjectState.NEW) {
-            errorMessage = BLANK_FIELD_ENV;
-        } else if(expState == ImportObjectState.EXISTING && envState == ImportObjectState.EXISTING) {
-            errorMessage = BLANK_FIELD_OBS;
-        }
+        String errorMessage = BLANK_FIELD;
 
         if(expState == ImportObjectState.NEW || envState == ImportObjectState.NEW) {
             validateRequiredCell(importRow.getGid(), Columns.GERMPLASM_GID, errorMessage, validationErrors, rowNum);
@@ -829,18 +828,20 @@ public class ExperimentProcessor implements Processor {
     }
 
 
-    private void fetchOrCreateObservationPIO(Program program,
-                                             User user,
-                                             ExperimentObservation importRow,
-                                             String variableName,
-                                             String value,
-                                             String timeStampValue,
-                                             boolean commit,
-                                             String seasonDbId,
-                                             PendingImportObject<BrAPIObservationUnit> obsUnitPIO) {
+    private PendingImportObject<BrAPIObservation> fetchOrCreateObservationPIO(Program program,
+                                                                              User user,
+                                                                              ExperimentObservation importRow,
+                                                                              String variableName,
+                                                                              String value,
+                                                                              String timeStampValue,
+                                                                              boolean commit,
+                                                                              String seasonDbId,
+                                                                              PendingImportObject<BrAPIObservationUnit> obsUnitPIO) {
         PendingImportObject<BrAPIObservation> pio;
         String key = getImportObservationHash(importRow, variableName);
-        if (!this.observationByHash.containsKey(key)) {
+        if (this.observationByHash.containsKey(key)) {
+            pio = observationByHash.get(key);
+        } else {
             PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
@@ -858,17 +859,13 @@ public class ExperimentProcessor implements Processor {
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
             this.observationByHash.put(key, pio);
         }
+        return pio;
     }
     private void addObsVarsToDatasetDetails(PendingImportObject<BrAPIListDetails> pio, List<Trait> referencedTraits, Program program) {
         BrAPIListDetails details = pio.getBrAPIObject();
         referencedTraits.forEach(trait -> {
-            String id = Utilities.appendProgramKey(trait.getObservationVariableName(), program.getKey());
+            String id = trait.getRawObservationVariableName();
 
-            // Don't append the key if connected to a brapi service operating with legacy data(no appended program key)
-            if (trait.getFullName() == null) {
-                id = trait.getObservationVariableName();
-            }
-            
             if (!details.getData().contains(id) && ImportObjectState.EXISTING != pio.getState()) {
                 details.getData().add(id);
             }
@@ -878,7 +875,7 @@ public class ExperimentProcessor implements Processor {
             }
         });
     }
-    private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
+    private PendingImportObject<BrAPIListDetails> fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
         PendingImportObject<BrAPIListDetails> pio;
         PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
         String name = String.format("Observation Dataset [%s-%s]",
@@ -905,12 +902,16 @@ public class ExperimentProcessor implements Processor {
             obsVarDatasetByName.put(name, pio);
         }
         addObsVarsToDatasetDetails(pio, referencedTraits, program);
+        return pio;
     }
 
     private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(Program program, boolean commit, String expSequenceValue, ExperimentObservation importRow, Supplier<BigInteger> envNextVal) {
         PendingImportObject<BrAPIStudy> pio;
         if (studyByNameNoScope.containsKey(importRow.getEnv())) {
             pio = studyByNameNoScope.get(importRow.getEnv());
+            if (! commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
         } else {
             PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
@@ -918,13 +919,18 @@ public class ExperimentProcessor implements Processor {
             BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
             newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
 
+            // It is assumed that the study has only one season, And that the Years and not
+            // the dbId's are stored in getSeason() list.
+            String year = newStudy.getSeasons().get(0);
             if (commit) {
-                String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
                 if(StringUtils.isNotBlank(year)) {
                     String seasonID = this.yearToSeasonDbId(year, program.getId());
                     newStudy.setSeasons(Collections.singletonList(seasonID));
                 }
+            } else {
+                addYearToStudyAdditionalInfo(program, newStudy, year);
             }
+
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
             this.studyByNameNoScope.put(importRow.getEnv(), pio);
@@ -932,13 +938,47 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
-    private void fetchOrCreateLocationPIO(ExperimentObservation importRow) {
+
+    /*
+     * this finds the YEAR from the season list on the BrAPIStudy and then
+     * will add the year to the additionalInfo-field of the BrAPIStudy
+     * */
+    private void addYearToStudyAdditionalInfo(Program program, BrAPIStudy study) {
+        JsonObject additionalInfo = study.getAdditionalInfo();
+
+        //if it is already there, don't add it.
+        if(additionalInfo==null || additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
+            String seasonDbId = study.getSeasons().get(0);
+            String year = seasonDbIdToYear(seasonDbId, program.getId());
+            addYearToStudyAdditionalInfo(program, study, year);
+        }
+    }
+
+
+    /*
+    * this will add the given year to the additionalInfo field of the BrAPIStudy (if it does not already exist)
+    * */
+    private void addYearToStudyAdditionalInfo(Program program, BrAPIStudy study, String year) {
+        JsonObject additionalInfo = study.getAdditionalInfo();
+        if (additionalInfo==null){
+            additionalInfo = new JsonObject();
+            study.setAdditionalInfo(additionalInfo);
+        }
+        if( additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.ENV_YEAR, year);
+        }
+    }
+
+    private PendingImportObject<ProgramLocation> fetchOrCreateLocationPIO(ExperimentObservation importRow) {
         PendingImportObject<ProgramLocation> pio;
-        if (! locationByName.containsKey((importRow.getEnvLocation()))) {
+        if (locationByName.containsKey((importRow.getEnvLocation()))) {
+            pio = locationByName.get(importRow.getEnvLocation());
+        } else {
             ProgramLocation newLocation = importRow.constructProgramLocation();
             pio = new PendingImportObject<>(ImportObjectState.NEW, newLocation, UUID.randomUUID());
             this.locationByName.put(importRow.getEnvLocation(), pio);
         }
+        return pio;
     }
 
     private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) {
@@ -1292,7 +1332,7 @@ public class ExperimentProcessor implements Processor {
             BrAPIListDetails dataSetDetails = brAPIListDAO
                     .getListById(existingDatasets.get(0).getListDbId(), program.getId())
                     .getResult();
-            processAndCacheObsVarDataset(dataSetDetails, obsVarDatasetByName);
+            processAndCacheObsVarDataset(dataSetDetails, program, obsVarDatasetByName);
           } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
@@ -1316,7 +1356,7 @@ public class ExperimentProcessor implements Processor {
 
         return Optional.ofNullable(this.trialByNameNoScope.get(expTitle.get()));
     }
-    private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
+    private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Program program, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
         BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
                 .orElseThrow(() -> new IllegalStateException("External references wasn't found for list (dbid): " + existingList.getListDbId()));
@@ -1563,6 +1603,17 @@ public class ExperimentProcessor implements Processor {
         return dbID;
     }
 
+    private String seasonDbIdToYear(String seasonDbId, UUID programId) {
+        String year = null;
+        if (this.seasonDbIdToYearCache.containsKey(seasonDbId)) { // get it from cache if possible
+            year = this.seasonDbIdToYearCache.get(seasonDbId);
+        } else {
+            year = this.seasonDbIdToYearFromDatabase(seasonDbId, programId);
+            this.seasonDbIdToYearCache.put(seasonDbId, year);
+        }
+        return year;
+    }
+
     private String yearToSeasonDbIdFromDatabase(String year, UUID programId) {
         BrAPISeason targetSeason = null;
         List<BrAPISeason> seasons;
@@ -1589,5 +1640,14 @@ public class ExperimentProcessor implements Processor {
         return (targetSeason == null) ? null : targetSeason.getSeasonDbId();
     }
 
-
+    private String seasonDbIdToYearFromDatabase(String seasonDbId, UUID programId) {
+        BrAPISeason season = null;
+        try {
+            season = this.brAPISeasonDAO.getSeasonById(seasonDbId, programId);
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+        }
+        Integer yearInt = (season == null) ? null : season.getYear();
+        return (yearInt == null) ? "" : yearInt.toString();
+    }
 }

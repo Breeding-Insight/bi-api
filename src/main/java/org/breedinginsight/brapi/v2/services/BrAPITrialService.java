@@ -422,7 +422,9 @@ public class BrAPITrialService {
         String listDbId = lists.get(0).getListDbId();
         BrAPIListsSingleResponse list = listDAO.getListById(listDbId, program.getId());
         List<String> obsVarNames = list.getResult().getData();
+        log.debug("Searching for dataset obsVars: " + obsVarNames);
         List<BrAPIObservationVariable> obsVars = obsVarDAO.getVariableByName(obsVarNames, program.getId());
+        log.debug(String.format("Found %d obsVars", obsVars.size()));
 
         // sort the obsVars to match the order stored in the dataset list
         return fileMappingUtil.sortByField(obsVarNames, obsVars, BrAPIObservationVariable::getObservationVariableName);

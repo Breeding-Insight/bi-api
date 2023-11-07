@@ -75,6 +75,8 @@ public class Trait extends TraitEntity {
     @JsonDeserialize(using = ListOfStringDeserializer.class)
     private List<String> tags;
     private String fullName;
+    @JsonIgnore
+    private String rawObservationVariableName;
 
     // isDup is used solely to pass information to the front end.
     // It is not populated by the database.
@@ -129,6 +131,7 @@ public class Trait extends TraitEntity {
         setBrAPIProperties(brApiVariable);
         this.tags = tags;
         this.fullName = fullName;
+        this.rawObservationVariableName = brApiVariable.getObservationVariableName();
     }
 
 }
