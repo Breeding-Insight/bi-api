@@ -30,3 +30,5 @@ INSERT INTO crop (id, crop_name) VALUES ('14', 'Honey') ON CONFLICT DO NOTHING;
 INSERT INTO crop (id, crop_name) VALUES ('15', 'Pecan') ON CONFLICT DO NOTHING;
 INSERT INTO crop (id, crop_name) VALUES ('16', 'Lettuce') ON CONFLICT DO NOTHING;
 INSERT INTO crop (id, crop_name) VALUES ('17', 'Cotton') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('18', 'Sorghum') ON CONFLICT DO NOTHING;
+INSERT INTO crop (id, crop_name) VALUES ('19', 'Hemp') ON CONFLICT DO NOTHING;
