@@ -53,12 +53,6 @@ public class MappingManager {
 
     private ImportConfigManager configManager;
 
-    public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
-    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
-    public static String missingColumn = "Column name \"%s\" does not exist in file";
-    public static String missingUserInput = "User input, \"%s\" is required";
-    public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
-
     @Inject
     MappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
@@ -96,7 +90,7 @@ public class MappingManager {
             // Run through the brapi fields and look for a match
             Field[] fields = brAPIImport.getClass().getDeclaredFields();
             for (Field field: fields) {
-                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process, validationErrors);
+                mapField(brAPIImport, field, importMapping.getMappingConfig(), data, rowIndex, userInput, process, validationErrors, importService);
             }
 
             brAPIImports.add(brAPIImport);
@@ -110,7 +104,8 @@ public class MappingManager {
     }
 
     private void mapField(Object parent, Field field, List<MappingField> mappings, Table importFile, Integer rowIndex,
-                          Map<String, Object> userInput, Boolean process, ValidationErrors validationErrors) throws UnprocessableEntityException {
+                          Map<String, Object> userInput, Boolean process, ValidationErrors validationErrors,
+                          BrAPIImportService importService) throws UnprocessableEntityException {
 
         Row focusRow = importFile.row(rowIndex);
         // Process this field
@@ -131,7 +126,7 @@ public class MappingManager {
         if (type.collectTime().equals(ImportCollectTimeEnum.UPLOAD)) {
             // User input, check that it was passed
             if (process) {
-                mapUserInputField(parent, field, userInput, type, metadata, required);
+                mapUserInputField(parent, field, userInput, type, metadata, required, importService);
             }
             return;
         }
@@ -167,7 +162,7 @@ public class MappingManager {
                 brAPIObject = (BrAPIObject) field.getType().getDeclaredConstructor().newInstance();
                 List<Field> fields = Arrays.asList(brAPIObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
+                    mapField(brAPIObject, lowerField, matchedMapping.getMapping(), importFile, rowIndex, userInput, process, validationErrors, importService);
                 }
                 if (brapiObjectIsEmpty(brAPIObject)) brAPIObject = null;
 
@@ -200,7 +195,7 @@ public class MappingManager {
                 // Populate new object
                 List<Field> fields = Arrays.asList(newObject.getClass().getDeclaredFields());
                 for (Field lowerField: fields) {
-                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process, validationErrors);
+                    mapField(newObject, lowerField, listField.getMapping(), importFile, rowIndex, userInput, process, validationErrors, importService);
                 }
 
                 field.setAccessible(true);
@@ -270,7 +265,8 @@ public class MappingManager {
             if (matchedMapping.getValue().getFileFieldName() != null) {
                 // Check that the file has this name
                 if (!Utilities.containsCaseInsensitive(matchedMapping.getValue().getFileFieldName(), focusRow.columnNames())) {
-                    throw new UnprocessableEntityException(String.format(missingColumn, matchedMapping.getValue().getFileFieldName()));
+                    log.debug("Expected column missing from file: " + matchedMapping.getValue().getFileFieldName());
+                    throw new UnprocessableEntityException(importService.getMissingColumnMsg(matchedMapping.getValue().getFileFieldName()));
                 }
 
                 // TODO: should handle all types, not sure if better way to do this with tablesaw?
@@ -288,11 +284,12 @@ public class MappingManager {
                     fileValue = focusRow.getString(matchedMapping.getValue().getFileFieldName());
                 }
 
-                checkFieldType(type.type(), matchedMapping.getValue().getFileFieldName(), fileValue);
+                checkFieldType(type.type(), matchedMapping.getValue().getFileFieldName(), fileValue, importService);
 
                 // Check non-null value
                 if (required != null && fileValue.isBlank()) {
-                    ValidationError ve = getMissingRequiredErr(matchedMapping.getValue().getFileFieldName());
+                    ValidationError ve = new ValidationError(matchedMapping.getValue().getFileFieldName(),
+                            importService.getBlankRequiredFieldMsg(matchedMapping.getValue().getFileFieldName()), HttpStatus.UNPROCESSABLE_ENTITY);
                     validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
 
@@ -306,13 +303,14 @@ public class MappingManager {
                 }
             } else if (matchedMapping.getValue().getConstantValue() != null){
                 String value = matchedMapping.getValue().getConstantValue();
-                checkFieldType(type.type(), metadata.name(), value);
+                checkFieldType(type.type(), metadata.name(), value, importService);
 
                 // Check non-null value
                 if (required != null && value.isBlank()) {
 
                     //throw new UnprocessableEntityException(String.format(blankRequiredField,  metadata.name()));
-                    ValidationError ve = getMissingRequiredErr(metadata.name());
+                    ValidationError ve = new ValidationError(metadata.name(),
+                            importService.getBlankRequiredFieldMsg(metadata.name()), HttpStatus.UNPROCESSABLE_ENTITY);
                     validationErrors.addError(getRowNumber(rowIndex), ve);
                 }
 
@@ -335,25 +333,22 @@ public class MappingManager {
         return row+2;
     }
 
-    private static ValidationError getMissingRequiredErr(String fieldName) {
-        return new ValidationError(fieldName, String.format(blankRequiredField, fieldName), HttpStatus.UNPROCESSABLE_ENTITY);
-    }
-
     private void mapUserInputField(Object parent, Field field, Map<String, Object> userInput, ImportFieldType type,
-                                   ImportFieldMetadata metadata, ImportMappingRequired required) throws UnprocessableEntityException {
+                                   ImportFieldMetadata metadata, ImportMappingRequired required,
+                                   BrAPIImportService importService) throws UnprocessableEntityException {
 
         // Only supports user input at the top level of an object at the moment. No nested objects. Map<String, String>
         String fieldId = metadata.id();
         if (!userInput.containsKey(fieldId) && required != null) {
-            throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
+            throw new UnprocessableEntityException(importService.getMissingUserInputMsg(metadata.name()));
         }
         else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
-            throw new UnprocessableEntityException(String.format(missingUserInput, metadata.name()));
+            throw new UnprocessableEntityException(importService.getMissingUserInputMsg(metadata.name()));
         }
         else if (userInput.containsKey(fieldId)) {
             String value = userInput.get(fieldId).toString();
             if (!isCorrectType(type.type(), value)) {
-                throw new UnprocessableEntityException(String.format(wrongUserInputDataType, metadata.name(), type.type().toString().toLowerCase()));
+                throw new UnprocessableEntityException(importService.getWrongUserInputDataTypeMsg(metadata.name(), type.type().toString().toLowerCase()));
             }
             try {
                 field.setAccessible(true);
@@ -365,10 +360,10 @@ public class MappingManager {
         }
     }
 
-    private void checkFieldType(ImportFieldTypeEnum expectedType, String column, String value) throws UnprocessableEntityException {
+    private void checkFieldType(ImportFieldTypeEnum expectedType, String column, String value, BrAPIImportService importService) throws UnprocessableEntityException {
         //TODO: Do more type checks
         if (!isCorrectType(expectedType, value)) {
-            throw new UnprocessableEntityException(String.format(wrongDataTypeMsg, column));
+            throw new UnprocessableEntityException(importService.getInvalidIntegerMsg(column));
         }
     }
 
