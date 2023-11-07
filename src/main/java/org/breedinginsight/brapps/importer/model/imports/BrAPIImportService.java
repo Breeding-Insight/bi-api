@@ -49,5 +49,5 @@ public abstract class BrAPIImportService {
         return String.format("User input, \"%s\" must be an %s", fieldName, typeName);
     }
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {return null;}
+            throws Exception {return null;}
 }

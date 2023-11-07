@@ -91,6 +91,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ExperimentFileImportTest extends BrAPITest {
+    private static final String OVERWRITE = "overwrite";
 
     private FannyPack securityFp;
     private String mappingId;
@@ -199,7 +200,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         validRow.put(Columns.COLUMN, "1");
         validRow.put(Columns.TREATMENT_FACTORS, "Test treatment factors");
 
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeDataToFile(List.of(validRow), null), null, true, client, program, mappingId);
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeDataToFile(List.of(validRow), null), Map.of(OVERWRITE, "false"), true, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -257,7 +258,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         secondEnv.put(Columns.COLUMN, "1");
         secondEnv.put(Columns.TREATMENT_FACTORS, "Test treatment factors");
 
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeDataToFile(List.of(firstEnv, secondEnv), null), null, true, client, program, mappingId);
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeDataToFile(List.of(firstEnv, secondEnv), null), Map.of(OVERWRITE, "false"), true, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
@@ -598,7 +599,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newOU.put(Columns.ROW, "1");
         newOU.put(Columns.COLUMN, "2");
 
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeDataToFile(List.of(newOU), null), null, commit, client, program, mappingId);
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeDataToFile(List.of(newOU), null), Map.of(OVERWRITE, "false"), commit, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
 
@@ -608,7 +609,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
 
-        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experiment Units are missing Observation Unit Id."));
+        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Cannot create a new observation unit for existing environment:"));
     }
 
     @Test
@@ -1327,7 +1328,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     }
 
     private JsonObject uploadAndVerifyFailure(Program program, File file, String expectedColumnError, boolean commit) throws InterruptedException, IOException {
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, null, true, client, program, mappingId);
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, Map.of(OVERWRITE, "false"), true, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
 

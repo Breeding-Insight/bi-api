@@ -18,7 +18,6 @@ package org.breedinginsight.brapps.importer.services.processors;
 
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -27,7 +26,6 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
@@ -53,7 +51,7 @@ public class ProcessorManager {
         this.statusService = statusService;
     }
 
-    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Table data, Program program, ImportUpload upload, User user, boolean commit) throws ValidatorException, ApiException, MissingRequiredInfoException {
+    public ImportPreviewResponse process(List<BrAPIImport> importRows, List<Processor> processors, Table data, Program program, ImportUpload upload, User user, boolean commit) throws Exception {
 
         this.processors = processors;
 
