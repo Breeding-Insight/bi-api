@@ -64,6 +64,11 @@ public class ExperimentImportService extends BrAPIImportService {
     }
 
     @Override
+    public String getMissingColumnMsg(String columnName) {
+        return "Column heading does not match template or ontology";
+    }
+
+    @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
             throws UnprocessableEntityException, ValidatorException, ApiException, MissingRequiredInfoException {
 
