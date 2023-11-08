@@ -73,6 +73,7 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
+import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -90,7 +91,10 @@ import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPER
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String EXISTING_ENV = "Cannot create a new observation unit for existing environment: ";
+    private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s." +
+            "If you’re trying to add these units to the experiment, please create a new environment" +
+            " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
+            "for each experiment unit).";
     private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
@@ -940,9 +944,10 @@ public class ExperimentProcessor implements Processor {
                 List<BrAPIObservationUnit> existingOUs = brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyPIO.getBrAPIObject().getStudyDbId(), program);
                 List<BrAPIObservationUnit> matchingOU = existingOUs.stream().filter(ou -> importRow.getExpUnitId().equals(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()))).collect(Collectors.toList());
                 if (matchingOU.isEmpty()) {
-                    throw new UnprocessableEntityException(EXISTING_ENV + Utilities.removeProgramKeyAndUnknownAdditionalData(studyPIO.getBrAPIObject().getStudyName(), program.getKey()));
+                    throw new UnprocessableEntityException(String.format(EXISTING_ENV, importRow.getExpUnitId(),
+                            Utilities.removeProgramKeyAndUnknownAdditionalData(studyPIO.getBrAPIObject().getStudyName(), program.getKey())));
                 } else {
-                    pio = new PendingImportObject<>(ImportObjectState.EXISTING, matchingOU.get(0));
+                    pio = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservationUnit) Utilities.formatBrapiObjForDisplay(matchingOU.get(0), BrAPIObservationUnit.class, program));
                 }
             } else {
                 pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
@@ -953,16 +958,17 @@ public class ExperimentProcessor implements Processor {
     }
 
 
+
     private void fetchOrCreateObservationPIO(Program program,
-                                                                              User user,
-                                                                              ExperimentObservation importRow,
-                                                                              String variableName,
-                                                                              String value,
-                                                                              String timeStampValue,
-                                                                              boolean commit,
-                                                                              String seasonDbId,
-                                                                              PendingImportObject<BrAPIObservationUnit> obsUnitPIO,
-                                                                              List<Trait> referencedTraits) throws ApiException {
+                                             User user,
+                                             ExperimentObservation importRow,
+                                             String variableName,
+                                             String value,
+                                             String timeStampValue,
+                                             boolean commit,
+                                             String seasonDbId,
+                                             PendingImportObject<BrAPIObservationUnit> obsUnitPIO,
+                                             List<Trait> referencedTraits) throws ApiException {
         PendingImportObject<BrAPIObservation> pio;
         BrAPIObservation newObservation;
         String key = getImportObservationHash(importRow, variableName);
@@ -974,11 +980,11 @@ public class ExperimentProcessor implements Processor {
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
                 newObservation.setValue(value);
-                pio = new PendingImportObject<>(ImportObjectState.MUTATED, newObservation);
+                pio = new PendingImportObject<>(ImportObjectState.MUTATED, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(newObservation, BrAPIObservation.class, program));
             } else {
 
                 // prior observation
-                pio = new PendingImportObject<>(ImportObjectState.EXISTING, existingObsByObsHash.get(key));
+                pio = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(existingObsByObsHash.get(key), BrAPIObservation.class, program));
             }
 
             observationByHash.put(key, pio);
@@ -1556,7 +1562,7 @@ public class ExperimentProcessor implements Processor {
                                                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
         studyByName.put(
                 Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()),
-                new PendingImportObject<>(ImportObjectState.EXISTING, existingStudy, UUID.fromString(xref.getReferenceID())));
+                new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIStudy) Utilities.formatBrapiObjForDisplay(existingStudy, BrAPIStudy.class, program), UUID.fromString(xref.getReferenceID())));
     }
 
     private void initializeTrialsForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPITrial>> trialByName) {

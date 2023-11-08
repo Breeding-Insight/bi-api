@@ -70,7 +70,7 @@ public class ExperimentImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException {
+            throws Exception {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
