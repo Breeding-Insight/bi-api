@@ -15,6 +15,7 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.DataTypeTranslator;
 import org.breedinginsight.brapps.importer.model.imports.TermTypeTranslator;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.ProgramDAO;
@@ -509,12 +510,7 @@ public class OntologyService {
                 row.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), scale.getValidValueMin());
                 row.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), scale.getValidValueMax());
                 //SCALE_CATEGORIES
-                String categoriesAsStr = null;
-                if(scale.getCategories() != null) {
-                    categoriesAsStr = scale.getCategories().stream()
-                            .map(this::makeCategoryString)
-                            .collect(Collectors.joining("; "));
-                }
+                String categoriesAsStr = makeCategoriesString(scale);
 
                 row.put(TraitFileColumns.SCALE_CATEGORIES.toString(), categoriesAsStr);
             }
@@ -522,9 +518,21 @@ public class OntologyService {
         }
         return processedData;
     }
-    private String makeCategoryString(BrAPIScaleValidValuesCategories category){
+
+    private String makeCategoriesString(Scale scale) {
+        String categoriesAsStr = null;
+        if(scale.getCategories() != null &&
+                (scale.getDataType()==DataType.ORDINAL || scale.getDataType() == DataType.NOMINAL) ) {
+            categoriesAsStr = scale.getCategories().stream()
+                    .map(cat -> makeCategoryString(cat, scale.getDataType()) )
+                    .collect(Collectors.joining("; "));
+        }
+        return categoriesAsStr;
+    }
+
+    private String makeCategoryString(BrAPIScaleValidValuesCategories category, DataType scaleClass){
         StringBuilder stringBuilder = new StringBuilder( category.getValue() );
-        if( StringUtils.isNotBlank( category.getLabel() ) ){
+        if( StringUtils.isNotBlank( category.getLabel() ) && scaleClass == DataType.ORDINAL ){
             stringBuilder.append("=");
             stringBuilder.append( category.getLabel() );
         }
