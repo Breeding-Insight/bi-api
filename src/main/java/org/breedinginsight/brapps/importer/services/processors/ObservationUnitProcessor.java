@@ -88,7 +88,7 @@ public class ObservationUnitProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+    public Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
                                                         Map<Integer,PendingImport> mappedBrAPIImport, Table data,
                                                         Program program, User user, boolean commit) {
 

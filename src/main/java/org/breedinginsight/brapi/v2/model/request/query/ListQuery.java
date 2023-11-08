@@ -17,6 +17,8 @@ public class ListQuery extends BrapiQuery {
     private String name;
     private String description;
     private String size;
+    private String externalReferenceSource;
+    private String externalReferenceId;
     private String dateCreated;
     private String ownerName;
     // This is a meta-parameter, it describes the display format of any date fields.
@@ -24,7 +26,7 @@ public class ListQuery extends BrapiQuery {
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
-        if (!StringUtils.isBlank(getListType())) {
+        if (getListType() != null) {
             filters.add(constructFilterRequest("type", getListType()));
         }
         if (!StringUtils.isBlank(getName())) {
@@ -35,6 +37,12 @@ public class ListQuery extends BrapiQuery {
         }
         if (!StringUtils.isBlank(getSize())) {
             filters.add(constructFilterRequest("size", getSize()));
+        }
+        if (!StringUtils.isBlank(getExternalReferenceSource())) {
+            filters.add(constructFilterRequest("externalReferenceSource", getExternalReferenceSource()));
+        }
+        if (!StringUtils.isBlank(getExternalReferenceId())) {
+            filters.add(constructFilterRequest("externalReferenceId", getExternalReferenceId()));
         }
         if (!StringUtils.isBlank(getDateCreated())) {
             filters.add(constructFilterRequest("dateCreated", getDateCreated()));

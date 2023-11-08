@@ -210,7 +210,7 @@ public class GermplasmControllerIntegrationTest extends BrAPITest {
     @SneakyThrows
     public void getAllGermplasmListsSuccess() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/lists",validProgram.getId().toString()))
+                GET(String.format("/programs/%s/brapi/v2/lists?listType=germplasm",validProgram.getId().toString()))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
         );
 

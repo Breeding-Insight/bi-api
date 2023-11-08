@@ -26,8 +26,9 @@ Defines MediaType parameters for file export
 public enum FileType {
     XLS("xls", ".xls", "application/vnd.ms-excel"),
     XLSX("xlsx", ".xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"),
-    CSV("csv", ".csv", "text/csv");
-
+    CSV("csv", ".csv", "text/csv"),
+    // NOTE: MIME type is not application/zip because Micronaut doesn't natively support it.
+    ZIP("zip", ".zip", "application/octet-stream");
     private String name;
     private String extension;
     private String mimeType;

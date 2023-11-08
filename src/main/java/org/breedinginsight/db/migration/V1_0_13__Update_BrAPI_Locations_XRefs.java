@@ -49,7 +49,7 @@ public class V1_0_13__Update_BrAPI_Locations_XRefs extends BaseJavaMigration {
         String referenceSource = placeholders.get(BRAPI_REFERENCE_SOURCE_KEY);
 
         // Get all the programs
-        List<Program> programs = getAllPrograms(context, defaultUrl);
+        List<Program> programs = Utilities.getAllProgramsFlyway(context, defaultUrl);
         Map<UUID, LocationsApi> locationsApiForProgram = new HashMap<>();
         for (Program program : programs) {
             BrAPIClient client = new BrAPIClient(program.getBrapiUrl(), 240000);
@@ -102,23 +102,5 @@ public class V1_0_13__Update_BrAPI_Locations_XRefs extends BaseJavaMigration {
             }
         }
         return locations;
-    }
-
-    private List<Program> getAllPrograms(Context context, String defaultUrl) throws Exception {
-        List<Program> programs = new ArrayList<>();
-        try (Statement select = context.getConnection().createStatement()) {
-            try (ResultSet rows = select.executeQuery("SELECT id, brapi_url, key FROM program where active = true ORDER BY id")) {
-                while (rows.next()) {
-                    Program program = new Program();
-                    program.setId(UUID.fromString(rows.getString(1)));
-                    String brapi_url = rows.getString(2);
-                    if (brapi_url == null) brapi_url = defaultUrl;
-                    program.setBrapiUrl(brapi_url);
-                    program.setKey(rows.getString(3));
-                    programs.add(program);
-                }
-            }
-        }
-        return programs;
     }
 }

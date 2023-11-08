@@ -142,8 +142,8 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
                                       .getAsJsonObject("result");
         BrAPIServerInfo serverInfo = GSON.fromJson(result, BrAPIServerInfo.class);
 
-        assertEquals("Breeding Insight Platform", serverInfo.getOrganizationName());
-        assertEquals("bi-api", serverInfo.getServerName());
+        assertEquals("Breeding Insight", serverInfo.getOrganizationName());
+        assertEquals("DeltaBreed", serverInfo.getServerName());
         assertEquals("bidevteam@cornell.edu", serverInfo.getContactEmail());
         assertEquals("breedinginsight.org", serverInfo.getOrganizationURL());
     }

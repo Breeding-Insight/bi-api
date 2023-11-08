@@ -24,6 +24,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
@@ -45,6 +46,7 @@ import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
 
@@ -230,7 +232,7 @@ public class GermplasmProcessor implements Processor {
     }
 
     @Override
-    public Map<String, ImportPreviewStatistics> process(List<BrAPIImport> importRows,
+    public Map<String, ImportPreviewStatistics> process(ImportUpload upload, List<BrAPIImport> importRows,
                                                         Map<Integer, PendingImport> mappedBrAPIImport, Table data,
                                                         Program program, User user, boolean commit) throws ValidatorException {
 
@@ -717,11 +719,20 @@ public class GermplasmProcessor implements Processor {
                 if (commit) {
                     if (femaleParentFound) {
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_GID, femaleParent.getAccessionNumber());
+                        // Add femaleParentUUID to additionalInfo.
+                        Optional<BrAPIExternalReference> femaleParentUUID = Utilities.getExternalReference(femaleParent.getExternalReferences(), BRAPI_REFERENCE_SOURCE);
+                        if (femaleParentUUID.isPresent()) {
+                            brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_FEMALE_PARENT_UUID, femaleParentUUID.get().getReferenceID());
+                        }
                     }
 
                     if (maleParent != null) {
                         brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_GID, maleParent.getAccessionNumber());
-                    }
+                        // Add maleParentUUID to additionalInfo.
+                        Optional<BrAPIExternalReference> maleParentUUID = Utilities.getExternalReference(maleParent.getExternalReferences(), BRAPI_REFERENCE_SOURCE);
+                        if (maleParentUUID.isPresent()) {
+                            brAPIGermplasm.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_MALE_PARENT_UUID, maleParentUUID.get().getReferenceID());
+                        }                    }
                 }
             }
         }
