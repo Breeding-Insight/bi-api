@@ -16,6 +16,7 @@ import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.DataTypeTranslator;
 import org.breedinginsight.brapps.importer.model.imports.TermTypeTranslator;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
@@ -24,7 +25,7 @@ import org.breedinginsight.services.exceptions.*;
 import org.breedinginsight.services.parsers.trait.TraitFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
-import org.jooq.DataType;
+
 import org.jooq.exception.IOException;
 
 import javax.inject.Inject;
@@ -38,11 +39,11 @@ import java.util.stream.Collectors;
 @Singleton
 public class OntologyService {
 
-    private ProgramDAO programDAO;
-    private ProgramOntologyDAO programOntologyDAO;
-    private TraitDAO traitDAO;
-    private TraitService traitService;
-    private TraitUploadService traitUploadService;
+    private final ProgramDAO programDAO;
+    private final ProgramOntologyDAO programOntologyDAO;
+    private final TraitDAO traitDAO;
+    private final TraitService traitService;
+    private final TraitUploadService traitUploadService;
 
     @Inject
     public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO, TraitService traitService, TraitUploadService traitUploadService) {
@@ -59,7 +60,7 @@ public class OntologyService {
      * @param sharedOnly -- True = return only shared programs, False = get all shareable programs
      * @return List<SharedOntologyProgram>
      */
-    public List getSharedOntology(@NotNull UUID programId, @NotNull Boolean sharedOnly) throws DoesNotExistException {
+    public List<SharedOntology> getSharedOntology(@NotNull UUID programId, @NotNull Boolean sharedOnly) throws DoesNotExistException {
 
         // Get program with that id
         Program program = getProgram(programId);
@@ -100,7 +101,7 @@ public class OntologyService {
             unsharableIds.addAll(shareTargetIds);
             formattedPrograms.addAll(matchingPrograms.stream()
                     .filter(matchingProgram -> !unsharableIds.contains(matchingProgram.getId()))
-                    .map(matchingProgram -> formatResponse(matchingProgram))
+                    .map(this::formatResponse)
                     .collect(Collectors.toList()));
         }
 
@@ -115,7 +116,7 @@ public class OntologyService {
                 sharedOntologies.stream().map(ProgramSharedOntologyEntity::getSharedProgramId).collect(Collectors.toList()));
         // Get the programs in a lookup map
         Map<UUID, Program> sharedProgramsMap = new HashMap<>();
-        sharedPrograms.stream().forEach(sharedProgram -> sharedProgramsMap.put(sharedProgram.getId(), sharedProgram));
+        sharedPrograms.forEach(sharedProgram -> sharedProgramsMap.put(sharedProgram.getId(), sharedProgram));
 
         // Format shared programs response
         return sharedOntologies.stream().map(sharedOntology ->
@@ -170,7 +171,7 @@ public class OntologyService {
         if (sharedOntologyEntity.getActive()) {
             // Get all trait ids for the program
             List<UUID> traitIds = traitService.getSubscribedOntologyTraits(sharedOntologyEntity.getSharedProgramId()).stream()
-                    .map(trait -> trait.getId())
+                    .map(TraitEntity::getId)
                     .collect(Collectors.toList());
 
             // Get the brapi program id
@@ -216,7 +217,7 @@ public class OntologyService {
         // Check shareability, same brapi server, same species
         List<Program> matchingPrograms = getMatchingPrograms(program);
         Set<UUID> matchingProgramsSet = new HashSet<>();
-        matchingPrograms.stream().forEach(matchingProgram -> matchingProgramsSet.add(matchingProgram.getId()));
+        matchingPrograms.forEach(matchingProgram -> matchingProgramsSet.add(matchingProgram.getId()));
 
         Set<UUID> shareProgramIdsSet = new HashSet<>();
         ValidationErrors validationErrors = new ValidationErrors();
@@ -262,7 +263,7 @@ public class OntologyService {
      */
     public void revokeOntology(@NotNull UUID programId, @NotNull UUID sharedProgramId) throws UnprocessableEntityException, DoesNotExistException {
         // Check that program exists
-        Program program = getProgram(programId);
+        getProgram(programId);
 
         // Check that shared program exists
         Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(programId, sharedProgramId);
@@ -324,7 +325,7 @@ public class OntologyService {
 
     public void unsubscribeOntology(UUID programId, UUID sharingProgramId) throws DoesNotExistException, UnprocessableEntityException {
         // Check that program exists
-        Program program = getProgram(programId);
+        getProgram(programId);
 
         // Check that shared program exists
         Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(sharingProgramId, programId);
@@ -367,17 +368,7 @@ public class OntologyService {
         traits.sort(Comparator.comparing(trait -> trait.getObservationVariableName().toLowerCase()));
 
         // make file Name
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
-        String timestamp = formatter.format(OffsetDateTime.now());
-        Program program  = null;
-        try {
-            program = getProgram(programId);
-        } catch (DoesNotExistException e) {
-            e.printStackTrace();
-        }
-        String activeOrArchive = isActive ? "Active" : "Archive";
-        String programName = program.getName();
-        String fileName = programName + "_" + activeOrArchive + "_Ontology_" + timestamp;
+        String fileName = makeFileName(programId, isActive);
 
         StreamedFile downloadFile;
 
@@ -390,6 +381,20 @@ public class OntologyService {
             downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
         }
         return new DownloadFile(fileName, downloadFile);
+    }
+
+    private String makeFileName(UUID programId, boolean isActive) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        Program program = null;
+        try {
+            program = getProgram(programId);
+        } catch (DoesNotExistException e) {
+            e.printStackTrace();
+        }
+        String activeOrArchive = isActive ? "Active" : "Archive";
+        String programName = program==null? "program" : program.getName();
+        return programName + "_" + activeOrArchive + "_Ontology_" + timestamp;
     }
 
     public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
@@ -440,8 +445,8 @@ public class OntologyService {
     }
 
     public List<SubscribedOntology> getSubscribeOntologyOptions(UUID programId) throws DoesNotExistException {
-
-        Program program = getProgram(programId);
+        // Check that program exists
+        getProgram(programId);
 
         List<ProgramSharedOntologyEntity> sharedOntologies = programOntologyDAO.getSubscriptionOptions(programId);
         List<Program> programs = programDAO.get(sharedOntologies.stream().map(ProgramSharedOntologyEntity::getProgramId).collect(Collectors.toList()));

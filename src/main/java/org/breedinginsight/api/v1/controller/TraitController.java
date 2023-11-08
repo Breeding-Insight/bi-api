@@ -61,10 +61,10 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}")
 public class TraitController {
 
-    private TraitService traitService;
-    private SecurityService securityService;
-    private TraitQueryMapper traitQueryMapper;
-    private OntologyService ontologyService;
+    private final TraitService traitService;
+    private final SecurityService securityService;
+    private final TraitQueryMapper traitQueryMapper;
+    private final OntologyService ontologyService;
 
     @Inject
     public TraitController(TraitService traitService, SecurityService securityService,
@@ -94,7 +94,7 @@ public class TraitController {
     @Get("/programs/{programId}/traits/export{?fileExtension,isActive}")
     @Produces(value = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<StreamedFile> getTraitsExport(
+    public HttpResponse getTraitsExport(
             @PathVariable("programId") UUID programId, @QueryValue(defaultValue = "XLSX") String fileExtension, @QueryValue(defaultValue = "true") Boolean isActive) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
@@ -163,7 +163,7 @@ public class TraitController {
     @Post("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<DataResponse<Trait>>> createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
+    public HttpResponse createTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
             List<Trait> createdTraits = ontologyService.createTraits(programId, traits, actingUser, true);
@@ -191,7 +191,7 @@ public class TraitController {
     @Put("/programs/{programId}/traits")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<DataResponse<Trait>>> updateTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
+    public HttpResponse updateTraits(@PathVariable UUID programId, @Body @Valid List<Trait> traits) {
         AuthenticatedUser actingUser = securityService.getUser();
         try {
             List<Trait> updatedTraits = ontologyService.updateTraits(programId, traits, actingUser);

@@ -1,7 +1,6 @@
 package org.breedinginsight.brapps.importer.model.imports;
 
 import org.breedinginsight.dao.db.enums.DataType;
-import org.breedinginsight.dao.db.enums.TermType;
 
 import java.util.Map;
 import java.util.Optional;
