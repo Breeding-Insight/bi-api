@@ -11,6 +11,7 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+
 import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
@@ -18,6 +19,7 @@ import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.model.BrAPIConstants;
@@ -29,7 +31,9 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
+import org.breedinginsight.utilities.IntOrderComparator;
 import org.breedinginsight.utilities.Utilities;
+import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -57,6 +61,7 @@ public class BrAPITrialService {
     private final BrAPIObservationUnitDAO ouDAO;
     private final BrAPIGermplasmDAO germplasmDAO;
     private final FileMappingUtil fileMappingUtil;
+    private static final String SHEET_NAME = "Data";
 
     @Inject
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
@@ -227,7 +232,7 @@ public class BrAPITrialService {
                 // Initialize key with empty list if it is not present.
                 if (!rowsByStudyId.containsKey(studyId))
                 {
-                    rowsByStudyId.put(studyId, new ArrayList<Map<String, Object>>());
+                    rowsByStudyId.put(studyId, new ArrayList<>());
                 }
                 // Add row to appropriate list in rowsByStudyId.
                 rowsByStudyId.get(studyId).add(row);
@@ -235,7 +240,9 @@ public class BrAPITrialService {
             List<DownloadFile> files = new ArrayList<>();
             // Generate a file for each study.
             for (Map.Entry<String, List<Map<String, Object>>> entry: rowsByStudyId.entrySet()) {
-                StreamedFile streamedFile = writeToStreamedFile(columns, entry.getValue(), fileType, "Experiment Data");
+                List<Map<String, Object>> rows = entry.getValue();
+                sortDefaultForExportRows(rows);
+                StreamedFile streamedFile = writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
                 String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName()) + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
@@ -252,8 +259,9 @@ public class BrAPITrialService {
             }
         } else {
             List<Map<String, Object>> exportRows = new ArrayList<>(rowByOUId.values());
+            sortDefaultForExportRows(exportRows);
             // write export data to requested file format
-            StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, "Experiment Data");
+            StreamedFile streamedFile = writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
             // Set filename.
             String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
             String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
@@ -308,6 +316,7 @@ public class BrAPITrialService {
         log.debug("fetching observations for dataset: " + datsetId);
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
         log.debug("building dataset object for dataset: " + datsetId);
+        sortDefaultForObservationUnit(datasetOUs);
         Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
         if (stats) {
             Integer ouCount = datasetOUs.size();
@@ -551,4 +560,17 @@ public class BrAPITrialService {
                 .collect(Collectors.toList());
     }
 
+    private void sortDefaultForObservationUnit(List<BrAPIObservationUnit> ous) {
+        Comparator<BrAPIObservationUnit> studyNameComparator = Comparator.comparing(BrAPIObservationUnit::getStudyName, new IntOrderComparator());
+        Comparator<BrAPIObservationUnit> ouNameComparator = Comparator.comparing(BrAPIObservationUnit::getObservationUnitName, new IntOrderComparator());
+        ous.sort( (studyNameComparator).thenComparing(ouNameComparator));
+    }
+
+    private void sortDefaultForExportRows(@NotNull List<Map<String, Object>> exportRows) {
+        Comparator<Map<String, Object>> envComparator = Comparator.comparing(row -> (row.get(Columns.ENV).toString()), new IntOrderComparator());
+        Comparator<Map<String, Object>> expUnitIdComparator =
+                Comparator.comparing(row -> (row.get(Columns.EXP_UNIT_ID).toString()), new IntOrderComparator());
+
+        exportRows.sort(envComparator.thenComparing(expUnitIdComparator));
+     }
 }
