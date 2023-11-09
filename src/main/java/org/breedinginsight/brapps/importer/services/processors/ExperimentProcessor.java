@@ -324,7 +324,7 @@ public class ExperimentProcessor implements Processor {
             }
 
             List<ProgramLocation> createdLocations = new ArrayList<>(locationService.create(actingUser, program.getId(), newLocations));
-            // set the DbId to the for each newly created trial
+            // set the DbId to the for each newly created location
             for (ProgramLocation createdLocation : createdLocations) {
                 String createdLocationName = createdLocation.getName();
                 this.locationByName.get(createdLocationName)
@@ -1570,6 +1570,12 @@ public class ExperimentProcessor implements Processor {
     private void processAndCacheStudy(BrAPIStudy existingStudy, Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
         BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
                                                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
+        // map season dbid to year
+        String seasonDbId = existingStudy.getSeasons().get(0); // It is assumed that the study has only one season
+        if(StringUtils.isNotBlank(seasonDbId)) {
+            String seasonYear = this.seasonDbIdToYear(seasonDbId, program.getId());
+            existingStudy.setSeasons(Collections.singletonList(seasonYear));
+        }
         studyByName.put(
                 Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()),
                 new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIStudy) Utilities.formatBrapiObjForDisplay(existingStudy, BrAPIStudy.class, program), UUID.fromString(xref.getReferenceID())));
