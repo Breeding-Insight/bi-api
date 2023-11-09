@@ -139,11 +139,11 @@ public class Utilities {
                 try {
                     field.setAccessible(true);
 
-                    // remove key of form [%s-%s]
+                    // remove either of possible key formats, [%s-%s] and [%s]
                     String valueSansKeyAndInfo = removeProgramKeyAndUnknownAdditionalData((String) field.get(brapiInstance), program.getKey());
-
-                    //remove key of form [%s]
                     String valueSansKey = removeProgramKey(valueSansKeyAndInfo, program.getKey());
+
+                    // set the value without key or additional info
                     field.set(brapiInstance, valueSansKey);
                 } catch (IllegalAccessException e) {
                     throw new RuntimeException(e);
