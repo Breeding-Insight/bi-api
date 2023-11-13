@@ -13,22 +13,22 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-INSERT INTO crop (id, crop_name) VALUES ('1', 'Blueberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('2', 'Salmon') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('3', 'Grape') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('4', 'Alfalfa') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('5', 'Sweet Potato') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('6', 'Trout') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('7', 'Soybean') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('8', 'Cranberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('9', 'Cucumber') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('10', 'Oat') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('11', 'Citrus') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('12', 'Sugar Cane') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('13', 'Strawberry') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('14', 'Honey') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('15', 'Pecan') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('16', 'Lettuce') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('17', 'Cotton') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('18', 'Sorghum') ON CONFLICT DO NOTHING;
-INSERT INTO crop (id, crop_name) VALUES ('19', 'Hemp') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '4', 'Blueberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '5', 'Salmon') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '6', 'Grape') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '7', 'Alfalfa') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '8', 'Sweet Potato') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '9', 'Trout') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '10', 'Soybean') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '11', 'Cranberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '12', 'Cucumber') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '13', 'Oat') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '14', 'Citrus') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '15', 'Sugar Cane') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '16', 'Strawberry') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '17', 'Honey') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '18', 'Pecan') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '19', 'Lettuce') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '20', 'Cotton') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '21', 'Sorghum') ON CONFLICT DO NOTHING;
+INSERT INTO crop (auth_user_id, id, crop_name) VALUES ('anonymousUser', '22', 'Hemp') ON CONFLICT DO NOTHING;
