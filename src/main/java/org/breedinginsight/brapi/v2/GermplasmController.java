@@ -170,8 +170,7 @@ public class GermplasmController {
             return germplasmExport;
         }
         catch (Exception e) {
-            log.info(e.getMessage(), e);
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
             HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
             return response;
         }
