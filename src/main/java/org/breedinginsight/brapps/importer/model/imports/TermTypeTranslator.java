@@ -14,4 +14,17 @@ public class TermTypeTranslator {
     public static Optional<TermType> getTermTypeFromUserDisplayName(String userDisplayName) {
         return Optional.ofNullable(userDisplayToTermTypeMap.get(userDisplayName));
     }
+
+    public static String getDisplayNameFromTermType(TermType termType){
+        String displayName = "";
+        if(termType!=null) {
+            for (String key : userDisplayToTermTypeMap.keySet()) {
+                if (termType == userDisplayToTermTypeMap.get(key)) {
+                    displayName = key;
+                    break;
+                }
+            }
+        }
+        return displayName;
+    }
 }

@@ -4,32 +4,47 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.http.server.types.files.StreamedFile;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.core.BrAPIProgram;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.SharedOntologyProgramRequest;
 import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
+import org.breedinginsight.brapps.importer.model.imports.DataTypeTranslator;
+import org.breedinginsight.brapps.importer.model.imports.TermTypeTranslator;
+import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
+import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.daos.ProgramOntologyDAO;
 import org.breedinginsight.daos.TraitDAO;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.exceptions.*;
+import org.breedinginsight.services.parsers.trait.TraitFileColumns;
+import org.breedinginsight.services.writers.CSVWriter;
+import org.breedinginsight.services.writers.ExcelWriter;
+
+import org.jooq.exception.IOException;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.validation.constraints.NotNull;
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
 @Singleton
 public class OntologyService {
 
-    private ProgramDAO programDAO;
-    private ProgramOntologyDAO programOntologyDAO;
-    private TraitDAO traitDAO;
-    private TraitService traitService;
-    private TraitUploadService traitUploadService;
+    private final ProgramDAO programDAO;
+    private final ProgramOntologyDAO programOntologyDAO;
+    private final TraitDAO traitDAO;
+    private final TraitService traitService;
+    private final TraitUploadService traitUploadService;
 
     @Inject
     public OntologyService(ProgramDAO programDAO, ProgramOntologyDAO programOntologyDAO, TraitDAO traitDAO, TraitService traitService, TraitUploadService traitUploadService) {
@@ -46,7 +61,7 @@ public class OntologyService {
      * @param sharedOnly -- True = return only shared programs, False = get all shareable programs
      * @return List<SharedOntologyProgram>
      */
-    public List getSharedOntology(@NotNull UUID programId, @NotNull Boolean sharedOnly) throws DoesNotExistException {
+    public List<SharedOntology> getSharedOntology(@NotNull UUID programId, @NotNull Boolean sharedOnly) throws DoesNotExistException {
 
         // Get program with that id
         Program program = getProgram(programId);
@@ -87,7 +102,7 @@ public class OntologyService {
             unsharableIds.addAll(shareTargetIds);
             formattedPrograms.addAll(matchingPrograms.stream()
                     .filter(matchingProgram -> !unsharableIds.contains(matchingProgram.getId()))
-                    .map(matchingProgram -> formatResponse(matchingProgram))
+                    .map(this::formatResponse)
                     .collect(Collectors.toList()));
         }
 
@@ -102,7 +117,7 @@ public class OntologyService {
                 sharedOntologies.stream().map(ProgramSharedOntologyEntity::getSharedProgramId).collect(Collectors.toList()));
         // Get the programs in a lookup map
         Map<UUID, Program> sharedProgramsMap = new HashMap<>();
-        sharedPrograms.stream().forEach(sharedProgram -> sharedProgramsMap.put(sharedProgram.getId(), sharedProgram));
+        sharedPrograms.forEach(sharedProgram -> sharedProgramsMap.put(sharedProgram.getId(), sharedProgram));
 
         // Format shared programs response
         return sharedOntologies.stream().map(sharedOntology ->
@@ -157,7 +172,7 @@ public class OntologyService {
         if (sharedOntologyEntity.getActive()) {
             // Get all trait ids for the program
             List<UUID> traitIds = traitService.getSubscribedOntologyTraits(sharedOntologyEntity.getSharedProgramId()).stream()
-                    .map(trait -> trait.getId())
+                    .map(TraitEntity::getId)
                     .collect(Collectors.toList());
 
             // Get the brapi program id
@@ -203,7 +218,7 @@ public class OntologyService {
         // Check shareability, same brapi server, same species
         List<Program> matchingPrograms = getMatchingPrograms(program);
         Set<UUID> matchingProgramsSet = new HashSet<>();
-        matchingPrograms.stream().forEach(matchingProgram -> matchingProgramsSet.add(matchingProgram.getId()));
+        matchingPrograms.forEach(matchingProgram -> matchingProgramsSet.add(matchingProgram.getId()));
 
         Set<UUID> shareProgramIdsSet = new HashSet<>();
         ValidationErrors validationErrors = new ValidationErrors();
@@ -249,7 +264,7 @@ public class OntologyService {
      */
     public void revokeOntology(@NotNull UUID programId, @NotNull UUID sharedProgramId) throws UnprocessableEntityException, DoesNotExistException {
         // Check that program exists
-        Program program = getProgram(programId);
+        getProgram(programId);
 
         // Check that shared program exists
         Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(programId, sharedProgramId);
@@ -311,7 +326,7 @@ public class OntologyService {
 
     public void unsubscribeOntology(UUID programId, UUID sharingProgramId) throws DoesNotExistException, UnprocessableEntityException {
         // Check that program exists
-        Program program = getProgram(programId);
+        getProgram(programId);
 
         // Check that shared program exists
         Optional<ProgramSharedOntologyEntity> optionalSharedOntology = programOntologyDAO.getSharedOntologyById(sharingProgramId, programId);
@@ -340,6 +355,47 @@ public class OntologyService {
         }
 
         return traitService.updateTraits(lookupId, traits, actingUser);
+    }
+
+
+    public DownloadFile exportOntology(UUID programId, FileType fileExtension, boolean isActive) throws IllegalArgumentException, IOException, java.io.IOException {
+        List<Column> columns = TraitFileColumns.getOrderedColumns();
+
+        //Retrieve trait list data
+        List<Trait> traits = traitDAO.getTraitsFullByProgramId(programId);
+        //Filter traits for Active or Archived
+        traits = traits.stream().filter(trait -> trait.getActive()==isActive).collect(Collectors.toList());
+        //Sort list in default (trait name) order.
+        traits.sort(Comparator.comparing(trait -> trait.getObservationVariableName().toLowerCase()));
+
+        // make file Name
+        String fileName = makeFileName(programId, isActive);
+
+        StreamedFile downloadFile;
+
+        //Convert traits list to List<Map<String, Object>> data to pass into file writer
+        List<Map<String, Object>> processedData = processData(traits);
+
+        if (fileExtension == FileType.CSV){
+            downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
+        } else {
+            downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
+        }
+        return new DownloadFile(fileName, downloadFile);
+    }
+
+    private String makeFileName(UUID programId, boolean isActive) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        Program program = null;
+        try {
+            program = getProgram(programId);
+        } catch (DoesNotExistException e) {
+            e.printStackTrace();
+        }
+        String activeOrArchive = isActive ? "Active" : "Archive";
+        String programName = program==null? "program" : program.getName();
+        return programName + "_" + activeOrArchive + "_Ontology_" + timestamp;
     }
 
     public List<Trait> createTraits(UUID programId, List<Trait> traits, AuthenticatedUser actingUser, Boolean throwDuplicateErrors)
@@ -390,8 +446,8 @@ public class OntologyService {
     }
 
     public List<SubscribedOntology> getSubscribeOntologyOptions(UUID programId) throws DoesNotExistException {
-
-        Program program = getProgram(programId);
+        // Check that program exists
+        getProgram(programId);
 
         List<ProgramSharedOntologyEntity> sharedOntologies = programOntologyDAO.getSubscriptionOptions(programId);
         List<Program> programs = programDAO.get(sharedOntologies.stream().map(ProgramSharedOntologyEntity::getProgramId).collect(Collectors.toList()));
@@ -408,5 +464,78 @@ public class OntologyService {
                 ).collect(Collectors.toList());
         return subscriptionOptions;
     }
+    public List<Map<String, Object>> processData(List<Trait> traits) {
+        List<Map<String, Object>> processedData = new ArrayList<>();
 
+        for (Trait trait : traits) {
+            HashMap<String, Object> row = new HashMap<>();
+            row.put(TraitFileColumns.NAME.toString(), trait.getObservationVariableName());
+            row.put(TraitFileColumns.FULL_NAME.toString(), trait.getFullName());
+            row.put(TraitFileColumns.TERM_TYPE.toString(), TermTypeTranslator.getDisplayNameFromTermType( trait.getTermType() ));
+            row.put(TraitFileColumns.DESCRIPTION.toString(), trait.getTraitDescription());
+            //SYNONYMS
+            String synonymsAsStr = null;
+            if(trait.getSynonyms() != null) {
+                synonymsAsStr = String.join("; ", trait.getSynonyms());
+            }
+            row.put(TraitFileColumns.SYNONYMS.toString(), synonymsAsStr);
+            //STATUS
+            if(trait.getActive()) {
+                row.put(TraitFileColumns.STATUS.toString(), "active");
+            } else {
+                row.put(TraitFileColumns.STATUS.toString(), "archived");
+
+            }
+            //TAGS
+            String tagsAsStr = null;
+            if(trait.getTags() != null) {
+                tagsAsStr = String.join("; ", trait.getTags());
+            }
+            row.put(TraitFileColumns.TAGS.toString(), tagsAsStr);
+
+            row.put(TraitFileColumns.TRAIT_ENTITY.toString(), trait.getEntity());
+            row.put(TraitFileColumns.TRAIT_ATTRIBUTE.toString(), trait.getAttribute());
+            Method method = trait.getMethod();
+            if(method!=null) {
+                row.put(TraitFileColumns.METHOD_DESCRIPTION.toString(), method.getDescription());
+                row.put(TraitFileColumns.METHOD_CLASS.toString(), method.getMethodClass());
+                row.put(TraitFileColumns.METHOD_FORMULA.toString(), method.getFormula());
+            }
+            Scale scale = trait.getScale();
+            if(scale!=null) {
+
+                row.put(TraitFileColumns.SCALE_CLASS.toString(), DataTypeTranslator.getDisplayNameFromType(scale.getDataType()));
+                row.put(TraitFileColumns.SCALE_NAME.toString(), scale.getScaleName());
+                row.put(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(), scale.getDecimalPlaces());
+                row.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), scale.getValidValueMin());
+                row.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), scale.getValidValueMax());
+                //SCALE_CATEGORIES
+                String categoriesAsStr = makeCategoriesString(scale);
+
+                row.put(TraitFileColumns.SCALE_CATEGORIES.toString(), categoriesAsStr);
+            }
+            processedData.add(row);
+        }
+        return processedData;
+    }
+
+    private String makeCategoriesString(Scale scale) {
+        String categoriesAsStr = null;
+        if(scale.getCategories() != null &&
+                (scale.getDataType()==DataType.ORDINAL || scale.getDataType() == DataType.NOMINAL) ) {
+            categoriesAsStr = scale.getCategories().stream()
+                    .map(cat -> makeCategoryString(cat, scale.getDataType()) )
+                    .collect(Collectors.joining("; "));
+        }
+        return categoriesAsStr;
+    }
+
+    private String makeCategoryString(BrAPIScaleValidValuesCategories category, DataType scaleClass){
+        StringBuilder stringBuilder = new StringBuilder( category.getValue() );
+        if( StringUtils.isNotBlank( category.getLabel() ) && scaleClass == DataType.ORDINAL ){
+            stringBuilder.append("=");
+            stringBuilder.append( category.getLabel() );
+        }
+        return stringBuilder.toString();
+    }
 }
