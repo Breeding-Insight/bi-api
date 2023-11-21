@@ -19,8 +19,6 @@ package org.breedinginsight.brapps.importer.services.processors;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
@@ -49,7 +47,6 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.AdditionalInfo;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -70,31 +67,26 @@ import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
-import org.checkerframework.checker.nullness.Opt;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
-import java.lang.reflect.Field;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static org.breedinginsight.brapps.importer.services.FileMappingUtil.EXPERIMENT_TEMPLATE_NAME;
 
 @Slf4j
 @Prototype
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s." +
+    private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
             "for each experiment unit).";
@@ -107,7 +99,6 @@ public class ExperimentProcessor implements Processor {
     private static final String TIMESTAMP_PREFIX = "TS:";
     private static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
     private static final String COMMA_DELIMITER = ",";
-    private static final String BLANK_FIELD = "Required field is blank";
     private static final String BLANK_FIELD_EXPERIMENT = "Field is blank when creating a new experiment";
     private static final String BLANK_FIELD_ENV = "Field is blank when creating a new environment";
     private static final String BLANK_FIELD_OBS = "Field is blank when creating new observations";
@@ -401,7 +392,16 @@ public class ExperimentProcessor implements Processor {
 
         mutatedObservationByDbId.forEach((id, observation) ->  {
             try {
-                brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
+                BrAPIObservation updatedObs = brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
+                if (!observation.getValue().equals(updatedObs.getValue()) || !observation.getObservationTimeStamp().equals(updatedObs.getObservationTimeStamp())) {
+                    String message;
+                    if(!observation.getValue().equals(updatedObs.getValue())) {
+                        message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObs.getValue(), observation.getValue());
+                    } else {
+                        message = String.format("Updated observation timestamp, %s, from BrAPI service does not match requested update timestamp %s.", updatedObs.getObservationTimeStamp(), observation.getObservationTimeStamp());
+                    }
+                    throw new Exception(message);
+                }
             } catch (ApiException e) {
                 log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException("Error saving experiment import", e);
@@ -671,7 +671,7 @@ public class ExperimentProcessor implements Processor {
                                       int rowNum,
                                       ExperimentObservation importRow,
                                       List<Column<?>> phenotypeCols,
-                                      Map<String, Trait> colVarMap,
+                                      CaseInsensitiveMap<String, Trait> colVarMap,
                                       boolean commit,
                                       User user) {
         phenotypeCols.forEach(phenoCol -> {
@@ -705,6 +705,8 @@ public class ExperimentProcessor implements Processor {
                             user.getId(),
                             timestamp
                     );
+
+                    // create the changelog field in additonalinfo if it does not already exist
                     if (pendingObservation.getAdditionalInfo().isJsonNull()) {
                         pendingObservation.setAdditionalInfo(new JsonObject());
                         pendingObservation.getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
@@ -713,6 +715,8 @@ public class ExperimentProcessor implements Processor {
                     if (pendingObservation.getAdditionalInfo() != null && !pendingObservation.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CHANGELOG)) {
                         pendingObservation.getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
                     }
+
+                    // add a new entry to the changelog
                     pendingObservation.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CHANGELOG).getAsJsonArray().add(gson.toJsonTree(change).getAsJsonObject());
                 }
 
@@ -981,13 +985,20 @@ public class ExperimentProcessor implements Processor {
         BrAPIObservation newObservation;
         String key = getImportObservationHash(importRow, variableName);
         existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timeStampValue));
         if (existingObsByObsHash.containsKey(key)) {
             if (StringUtils.isNotBlank(value) &&
-                    !existingObsByObsHash.get(key).getValue().equals(value)) {
+                    (!existingObsByObsHash.get(key).getValue().equals(value) ||
+                    !existingObsByObsHash.get(key).getObservationTimeStamp().equals(formattedTimeStampValue))){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
-                newObservation.setValue(value);
+                if (!existingObsByObsHash.get(key).getValue().equals(value)){
+                    newObservation.setValue(value);
+                } else if (!existingObsByObsHash.get(key).getObservationTimeStamp().equals(formattedTimeStampValue)) {
+                    newObservation.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
+                }
                 pio = new PendingImportObject<>(ImportObjectState.MUTATED, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(newObservation, BrAPIObservation.class, program));
             } else {
 

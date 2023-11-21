@@ -375,14 +375,14 @@ public class MappingManager {
 
     private Boolean isCorrectType(ImportFieldTypeEnum expectedType, String value) {
         if (!value.isBlank()) {
-            try {
-                if (expectedType == ImportFieldTypeEnum.INTEGER) {
-                    Integer d = Integer.parseInt(value);
+            if (expectedType == ImportFieldTypeEnum.INTEGER) {
+                try {
+                    Integer.parseInt(value);
+                } catch (NumberFormatException nfe) {
+                    return false;
                 }
-                if (expectedType == ImportFieldTypeEnum.BOOLEAN) {
-                    Boolean b = Boolean.parseBoolean(value);
-                }
-            } catch (NumberFormatException nfe) {
+            }
+            if (expectedType == ImportFieldTypeEnum.BOOLEAN && !String.valueOf(Boolean.parseBoolean(value)).equals(value)) {
                 return false;
             }
         }
