@@ -143,7 +143,7 @@ public class SampleSubmissionImport implements BrAPIImport {
                 .plateDbId(plate.getPlateDbId())
                 .sampleName(generateSampleName(germplasm, plate))
                 .germplasmDbId(germplasm.getGermplasmDbId())
-                .row(row)
+                .row(row.toUpperCase())
                 .column(Integer.valueOf(column))
                 .tissueType(tissue)
                 .sampleDescription(comments);
