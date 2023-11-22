@@ -102,10 +102,6 @@ public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
     @Client("/${micronaut.bi.api.version}")
     private RxHttpClient client;
 
-//    private final Gson gson = new GsonBuilder().registerTypeAdapter(OffsetDateTime.class, (JsonDeserializer<OffsetDateTime>)
-//                    (json, type, context) -> OffsetDateTime.parse(json.getAsString()))
-//            .create();
-
     private final Gson gson = new BrAPIClient().getJSON().getGson();
 
     @BeforeAll
