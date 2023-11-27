@@ -72,6 +72,7 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
+import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -393,7 +394,7 @@ public class ExperimentProcessor implements Processor {
         mutatedObservationByDbId.forEach((id, observation) ->  {
             try {
                 BrAPIObservation updatedObs = brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
-                if (!observation.getValue().equals(updatedObs.getValue()) || !observation.getObservationTimeStamp().equals(updatedObs.getObservationTimeStamp())) {
+                if (!observation.getValue().equals(updatedObs.getValue()) || !observation.getObservationTimeStamp().isEqual(updatedObs.getObservationTimeStamp())) {
                     String message;
                     if(!observation.getValue().equals(updatedObs.getValue())) {
                         message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObs.getValue(), observation.getValue());
@@ -675,7 +676,9 @@ public class ExperimentProcessor implements Processor {
                                       boolean commit,
                                       User user) {
         phenotypeCols.forEach(phenoCol -> {
-            var importHash = getImportObservationHash(importRow, phenoCol.name());
+            String importHash = getImportObservationHash(importRow, phenoCol.name());
+            String importObsValue = phenoCol.getString(rowNum);
+            String importObsTimestamp = timeStampColByPheno.get(phenoCol.name()).getString(rowNum);
 
             // error if import observation data already exists and user has not selected to overwrite
             if(commit && "false".equals(importRow.getOverwrite() == null ? "false" : importRow.getOverwrite()) &&
@@ -690,9 +693,7 @@ public class ExperimentProcessor implements Processor {
 
             // preview case where observation has already been committed and the import row ObsVar data differs from what
             // had been saved prior to import
-            } else if (this.existingObsByObsHash.containsKey(importHash) &&
-                    StringUtils.isNotBlank(phenoCol.getString(rowNum)) &&
-                    !this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum))) {
+            } else if (existingObsByObsHash.containsKey(importHash) && !isObservationMatched(importHash, importObsValue, importObsTimestamp)) {
 
                 // add a change log entry when updating the value of an observation
                 if (commit) {
@@ -700,13 +701,21 @@ public class ExperimentProcessor implements Processor {
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
                     String timestamp = formatter.format(OffsetDateTime.now());
                     String reason = importRow.getOverwriteReason() != null ? importRow.getOverwriteReason() : "";
-                    ChangeLogEntry change = new ChangeLogEntry(existingObsByObsHash.get(importHash).getValue(),
+                    String prior = "";
+                    if (isValueMatched(importHash, importObsValue)) {
+                        prior.concat(existingObsByObsHash.get(importHash).getValue());
+                    }
+                    if (isTimestampMatched(importHash, importObsTimestamp)) {
+                        prior = prior.isEmpty() ? prior : prior.concat(" ");
+                        prior.concat(existingObsByObsHash.get(importHash).getObservationTimeStamp().toString());
+                    }
+                    ChangeLogEntry change = new ChangeLogEntry(prior,
                             reason,
                             user.getId(),
                             timestamp
                     );
 
-                    // create the changelog field in additonalinfo if it does not already exist
+                    // create the changelog field in additional info if it does not already exist
                     if (pendingObservation.getAdditionalInfo().isJsonNull()) {
                         pendingObservation.setAdditionalInfo(new JsonObject());
                         pendingObservation.getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
@@ -722,9 +731,8 @@ public class ExperimentProcessor implements Processor {
 
             // preview case where observation has already been committed and import ObsVar data is either empty or the
             // same as has been committed prior to import
-            } else if(this.existingObsByObsHash.containsKey(importHash) &&
-                    (StringUtils.isBlank(phenoCol.getString(rowNum)) ||
-                            this.existingObsByObsHash.get(importHash).getValue().equals(phenoCol.getString(rowNum)))) {
+            } else if(existingObsByObsHash.containsKey(importHash) && (StringUtils.isBlank(phenoCol.getString(rowNum)) ||
+                            isObservationMatched(importHash, importObsValue, importObsTimestamp))) {
                 BrAPIObservation existingObs = this.existingObsByObsHash.get(importHash);
                 existingObs.setObservationVariableName(phenoCol.name());
                 observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
@@ -969,7 +977,24 @@ public class ExperimentProcessor implements Processor {
         return pio;
     }
 
+    boolean isTimestampMatched(String observationHash, String timeStamp) {
+        OffsetDateTime priorStamp = existingObsByObsHash.get(observationHash).getObservationTimeStamp();
+        if (priorStamp == null) {
+            return timeStamp == null;
+        }
+        return priorStamp.isEqual(OffsetDateTime.parse(timeStamp));
+    }
 
+    boolean isValueMatched(String observationHash, String value) {
+        if (existingObsByObsHash.get(observationHash).getValue() == null) {
+            return value == null;
+        }
+        return existingObsByObsHash.get(observationHash).getValue().equals(value);
+    }
+
+    boolean isObservationMatched(String observationHash, String value, String timeStamp) {
+        return isTimestampMatched(observationHash, timeStamp) && isValueMatched(observationHash, value);
+    }
 
     private void fetchOrCreateObservationPIO(Program program,
                                              User user,
@@ -985,18 +1010,16 @@ public class ExperimentProcessor implements Processor {
         BrAPIObservation newObservation;
         String key = getImportObservationHash(importRow, variableName);
         existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
         String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timeStampValue));
         if (existingObsByObsHash.containsKey(key)) {
-            if (StringUtils.isNotBlank(value) &&
-                    (!existingObsByObsHash.get(key).getValue().equals(value) ||
-                    !existingObsByObsHash.get(key).getObservationTimeStamp().equals(formattedTimeStampValue))){
+            if (StringUtils.isNotBlank(value) && !isObservationMatched(key, value, timeStampValue)){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
-                if (!existingObsByObsHash.get(key).getValue().equals(value)){
+                if (!isValueMatched(key, value)){
                     newObservation.setValue(value);
-                } else if (!existingObsByObsHash.get(key).getObservationTimeStamp().equals(formattedTimeStampValue)) {
+                } else if (!isTimestampMatched(key, timeStampValue)) {
                     newObservation.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
                 }
                 pio = new PendingImportObject<>(ImportObjectState.MUTATED, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(newObservation, BrAPIObservation.class, program));
