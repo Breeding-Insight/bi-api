@@ -69,7 +69,6 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -92,6 +91,7 @@ public class ExperimentProcessor implements Processor {
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
             "for each experiment unit).";
+    private static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
     private static final String MIDNIGHT = "T00:00:00-00:00";
     private static final String TIMESTAMP_PREFIX = "TS:";
     private static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
@@ -588,7 +588,6 @@ public class ExperimentProcessor implements Processor {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
             PendingImport mappedImportRow = mappedBrAPIImport.get(rowNum);
-
             if (StringUtils.isNotBlank(importRow.getGid())) { // if GID is blank, don't bother to check if it is valid.
                 validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
             }
@@ -1163,10 +1162,12 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) {
+    private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) throws UnprocessableEntityException {
         PendingImportObject<BrAPITrial> pio;
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
             pio = trialByNameNoScope.get(importRow.getExpTitle());
+        } else if (!trialByNameNoScope.isEmpty()) {
+            throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
         } else {
             UUID id = UUID.randomUUID();
             String expSeqValue = null;
