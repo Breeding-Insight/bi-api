@@ -281,12 +281,12 @@ public class BrAPIDAOUtil {
         throw new UnsupportedOperationException();
     }
 
-    public <T> List<T> post(List<T> brapiObjects,
-                                   ImportUpload upload,
-                                   Function<List<T>, ApiResponse> postMethod,
-                                   Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
+    public <T, R> List<R> post(List<T> brapiObjects,
+                            ImportUpload upload,
+                            Function<List<T>, ApiResponse> postMethod,
+                            Consumer<ImportUpload> progressUpdateMethod) throws ApiException {
 
-        List<T> listResult = new ArrayList<>();
+        List<R> listResult = new ArrayList<>();
         try {
             // Make the POST calls in chunks so we don't overload the brapi server
             Integer currentRightBorder = 0;
@@ -314,7 +314,7 @@ public class BrAPIDAOUtil {
                 if (result.getData() == null) {
                     throw new ApiException("Response result is missing data", response.getStatusCode(), response.getHeaders(), response.getBody().toString());
                 }
-                List<T> data = result.getData();
+                List<R> data = result.getData();
                 // TODO: Maybe move this outside of the loop
                 if (data.size() != postChunk.size()) {
                     throw new ApiException("Number of brapi objects returned does not equal number sent");

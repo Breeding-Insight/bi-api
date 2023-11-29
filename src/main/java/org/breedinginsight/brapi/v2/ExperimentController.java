@@ -97,19 +97,21 @@ public class ExperimentController {
             @QueryValue @Valid ExperimentExportQuery queryParams) {
         String downloadErrorMessage = "An error occurred while generating the download file. Contact the development team at bidevteam@cornell.edu.";
         try {
-            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+            Optional<Program> program = programService.getById(programId);
+            if(program.isEmpty()) {
+                return HttpResponse.notFound();
+            }
 
             // if a list of environmentIds are sent, return multiple files (zipped),
             // else if a single environmentId is sent, return single file (CSV/Excel),
             // else (if no environmentIds are sent), return a single file (CSV/Excel) including all Environments.
-            DownloadFile downloadFile = experimentService.exportObservations(program, experimentId, queryParams);
+            DownloadFile downloadFile = experimentService.exportObservations(program.get(), experimentId, queryParams);
 
-            HttpResponse<StreamedFile> response = HttpResponse
+            return HttpResponse
                     .ok(downloadFile.getStreamedFile())
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment;filename=" + downloadFile.getFileName());
-            return response;
         } catch (Exception e) {
-            log.info(e.getMessage(), e);
+            log.info(downloadErrorMessage, e);
             HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
             return response;
         }

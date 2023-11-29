@@ -14,14 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.services.constants;
 
-public class SupportedMediaType {
+package org.breedinginsight.model;
 
-    public static final String CSV = "text/csv";
-    public static final String XLS = "application/vnd.ms-excel";
-    public static final String XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+public enum GenotypeVendor {
+    DART("DArT");
 
-    public static final String XLSB = "application/vnd.ms-excel.sheet.binary.macroenabled.12";
+    private final String name;
 
+    GenotypeVendor(String name) {
+        this.name = name;
+    }
+
+    public static GenotypeVendor fromName(String name) {
+        for(var vendor : GenotypeVendor.values()) {
+            if(vendor.name.equalsIgnoreCase(name)) {
+                return vendor;
+            }
+        }
+        return null;
+    }
 }

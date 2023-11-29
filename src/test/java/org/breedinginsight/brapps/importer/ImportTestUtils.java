@@ -196,7 +196,7 @@ public class ImportTestUtils {
         return traits;
     }
 
-    public File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
+    public File writeExperimentDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
         File file = File.createTempFile("test", ".csv");
 
         List<Column> columns = new ArrayList<>();

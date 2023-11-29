@@ -17,14 +17,18 @@
 
 package org.breedinginsight.utilities;
 
+import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.poi.EncryptedDocumentException;
 import org.apache.poi.ss.usermodel.*;
+import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.ParsingExceptionType;
+import org.breedinginsight.services.writers.CSVWriter;
+import org.breedinginsight.services.writers.ExcelWriter;
 import tech.tablesaw.api.ColumnType;
 import tech.tablesaw.api.StringColumn;
 import tech.tablesaw.api.Table;
@@ -245,5 +249,13 @@ public class FileUtil {
         table.removeColumns(columnsToRemove.toArray(Column[]::new));
 
         return table;
+    }
+
+    public static StreamedFile writeToStreamedFile(List<org.breedinginsight.model.Column> columns, List<Map<String, Object>> data, FileType extension, String sheetName) throws IOException {
+        if (extension.equals(FileType.CSV)){
+            return CSVWriter.writeToDownload(columns, data, extension);
+        } else {
+            return ExcelWriter.writeToDownload(sheetName, columns, data, extension);
+        }
     }
 }

@@ -15,18 +15,20 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
+package org.breedinginsight.brapps.importer.model.imports.sample;
 
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.brapps.importer.model.imports.germplasm.GermplasmImport;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.services.processors.*;
+import org.breedinginsight.brapps.importer.services.processors.Processor;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
+import org.breedinginsight.brapps.importer.services.processors.SampleSubmissionProcessor;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -39,23 +41,16 @@ import java.util.List;
 
 @Singleton
 @Slf4j
-public class ExperimentImportService implements BrAPIImportService {
-
-    private final String IMPORT_TYPE_ID = "ExperimentImport";
-
-    private final Provider<ExperimentProcessor> experimentProcessorProvider;
+public class SampleSubmissionImportService implements BrAPIImportService {
+    private final String IMPORT_TYPE_ID = "SampleImport";
+    private final Provider<SampleSubmissionProcessor> sampleProcessorProvider;
     private final Provider<ProcessorManager> processorManagerProvider;
 
     @Inject
-    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider, Provider<ProcessorManager> processorManagerProvider)
+    public SampleSubmissionImportService(Provider<SampleSubmissionProcessor> sampleProcessorProvider, Provider<ProcessorManager> processorManagerProvider)
     {
-        this.experimentProcessorProvider = experimentProcessorProvider;
+        this.sampleProcessorProvider = sampleProcessorProvider;
         this.processorManagerProvider = processorManagerProvider;
-    }
-
-    @Override
-    public ExperimentObservation getImportClass() {
-        return new ExperimentObservation();
     }
 
     @Override
@@ -64,19 +59,18 @@ public class ExperimentImportService implements BrAPIImportService {
     }
 
     @Override
-    public String getMissingColumnMsg(String columnName) {
-        return "Column heading does not match template or ontology";
+    public BrAPIImport getImportClass() {
+        return new SampleSubmissionImport();
     }
 
     @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, ValidatorException, ApiException, MissingRequiredInfoException {
-
-        ImportPreviewResponse response = null;
-        List<Processor> processors = List.of(experimentProcessorProvider.get());
-        response = processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
-        return response;
-
+    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports,
+                                         Table data,
+                                         Program program,
+                                         ImportUpload upload,
+                                         User user,
+                                         Boolean commit) throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {
+        List<Processor> processors = List.of(sampleProcessorProvider.get());
+        return processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
     }
 }
-
