@@ -93,7 +93,7 @@ public class BrAPIProgramsController {
     }
 
     @Post(BrapiVersion.BRAPI_V2 + "/programs")
-    public HttpResponse<?> rootProgramsPost(List<BrAPIProgram> body) {
+    public HttpResponse<?> rootProgramsPost(@Body List<BrAPIProgram> body) {
         //DO NOT IMPLEMENT - Users should only be able to create new programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
@@ -117,7 +117,7 @@ public class BrAPIProgramsController {
     }
 
     @Put(BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
-    public HttpResponse<?> rootProgramsProgramDbIdPut(@PathVariable("programDbId") String programDbId, BrAPIProgram body) {
+    public HttpResponse<?> rootProgramsProgramDbIdPut(@PathVariable("programDbId") String programDbId, @Body BrAPIProgram body) {
         //DO NOT IMPLEMENT - Users should only be able to update programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
@@ -154,7 +154,7 @@ public class BrAPIProgramsController {
 
     @Post("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> programsPost(@PathVariable("programId") UUID programId, List<BrAPIProgram> body) {
+    public HttpResponse<?> programsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIProgram> body) {
         //DO NOT IMPLEMENT - Users should only be able to create new programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }
@@ -173,7 +173,7 @@ public class BrAPIProgramsController {
 
     @Put("/programs/{programId}" + BrapiVersion.BRAPI_V2 + "/programs/{programDbId}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> programsProgramDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId, BrAPIProgram body) {
+    public HttpResponse<?> programsProgramDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("programDbId") String programDbId, @Body BrAPIProgram body) {
         //DO NOT IMPLEMENT - Users should only be able to update programs via the DeltaBreed UI
         return HttpResponse.notFound();
     }

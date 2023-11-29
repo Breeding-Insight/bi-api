@@ -187,14 +187,14 @@ public class BrAPIObservationVariableController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<?> variablesObservationVariableDbIdPut(@PathVariable("programId") UUID programId,
                                                             @PathVariable("observationVariableDbId") String observationVariableDbId,
-                                                            BrAPIObservationVariable body) {
+                                                               @Body BrAPIObservationVariable body) {
         //DO NOT IMPLEMENT - Users are only able to update traits via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Post("/variables")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> variablesPost(@PathVariable("programId") UUID programId, List<BrAPIObservationVariable> body) {
+    public HttpResponse<?> variablesPost(@PathVariable("programId") UUID programId, @Body List<BrAPIObservationVariable> body) {
         //DO NOT IMPLEMENT - Users are only able to create new traits via the DeltaBreed UI
         return HttpResponse.notFound();
     }

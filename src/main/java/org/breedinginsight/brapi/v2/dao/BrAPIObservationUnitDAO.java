@@ -15,13 +15,14 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.daos;
+package org.breedinginsight.brapi.v2.dao;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import io.micronaut.context.annotation.Property;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.JSON;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -33,6 +34,7 @@ import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
 import org.brapi.v2.model.pheno.BrAPIObservationTreatment;
+import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -305,16 +307,30 @@ public class BrAPIObservationUnitDAO {
                 }
             }
             ou.setObservationUnitName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
-            ou.setGermplasmName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getGermplasmName(), program.getKey()));
-            ou.setLocationName(Utilities.removeProgramKey(ou.getLocationName(), program.getKey()));
-            ou.setProgramName(ou.getProgramName().replaceAll("\\("+program.getKey()+"\\)", "").trim());
-            ou.setTrialName(Utilities.removeProgramKey(ou.getTrialName(), program.getKey()));
-            ou.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getStudyName(), program.getKey()));
-            ou.getObservationUnitPosition()
-              .getObservationLevel()
-              .setLevelCode(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitPosition()
-                                                                                 .getObservationLevel()
-                                                                                 .getLevelCode(), program.getKey()));
+            if(StringUtils.isNotBlank(ou.getGermplasmName())) {
+                ou.setGermplasmName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getGermplasmName(), program.getKey()));
+            }
+            if(StringUtils.isNotBlank(ou.getLocationName())) {
+                ou.setLocationName(Utilities.removeProgramKey(ou.getLocationName(), program.getKey()));
+            }
+            if(StringUtils.isNotBlank(ou.getProgramName())) {
+                ou.setProgramName(ou.getProgramName().replaceAll("\\(" + program.getKey() + "\\)", "").trim());
+            }
+            if(StringUtils.isNotBlank(ou.getTrialName())) {
+                ou.setTrialName(Utilities.removeProgramKey(ou.getTrialName(), program.getKey()));
+            }
+            if(StringUtils.isNotBlank(ou.getStudyName())) {
+                ou.setStudyName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getStudyName(), program.getKey()));
+            }
+            if (ou.getObservationUnitPosition() != null
+                    && ou.getObservationUnitPosition().getObservationLevel() != null
+                    && StringUtils.isNotBlank(ou.getObservationUnitPosition().getObservationLevel().getLevelCode())) {
+                ou.getObservationUnitPosition()
+                        .getObservationLevel()
+                        .setLevelCode(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitPosition()
+                                .getObservationLevel()
+                                .getLevelCode(), program.getKey()));
+            }
         }
     }
 

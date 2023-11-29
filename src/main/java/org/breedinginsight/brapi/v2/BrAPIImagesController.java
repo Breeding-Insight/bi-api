@@ -70,7 +70,7 @@ public class BrAPIImagesController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse imagesImageDbIdImagecontentPut(@PathVariable("programId") UUID programId,
                                                        @PathVariable("imageDbId") String imageDbId,
-                                                       Object body) {
+                                                       @Body Object body) {
         return HttpResponse.notFound();
     }
 
@@ -78,13 +78,13 @@ public class BrAPIImagesController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse imagesImageDbIdPut(@PathVariable("programId") UUID programId,
                                            @PathVariable("imageDbId") String imageDbId,
-                                           BrAPIImage body) {
+                                           @Body BrAPIImage body) {
         return HttpResponse.notFound();
     }
 
     @Post("/images")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse imagesPost(@PathVariable("programId") UUID programId, List<BrAPIImage> body) {
+    public HttpResponse imagesPost(@PathVariable("programId") UUID programId, @Body List<BrAPIImage> body) {
         return HttpResponse.notFound();
     }
 }

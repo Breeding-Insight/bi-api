@@ -35,7 +35,7 @@ import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -66,11 +66,6 @@ public class BrAPIObservationUnitController {
         this.programService = programService;
     }
 
-    /*
-        TODO
-        - GET observationLevels
-        - GET observationUnits
-     */
     @Get("/observationunits")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<BrAPIObservationUnitListResponse> observationunitsGet(@PathVariable("programId") UUID programId,
@@ -182,21 +177,21 @@ public class BrAPIObservationUnitController {
 
     @Put("/observationunits/{observationUnitDbId}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> observationunitsObservationUnitDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("observationUnitDbId") String observationUnitDbId, BrAPIObservationUnit body) {
+    public HttpResponse<?> observationunitsObservationUnitDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("observationUnitDbId") String observationUnitDbId, @Body BrAPIObservationUnit body) {
         //DO NOT IMPLEMENT - Users aren't yet able to update observation units
         return HttpResponse.notFound();
     }
 
     @Post("/observationunits")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> observationunitsPost(@PathVariable("programId") UUID programId, List<BrAPIObservationUnit> body) {
+    public HttpResponse<?> observationunitsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIObservationUnit> body) {
         //DO NOT IMPLEMENT - Users are only able to create observation units via the DeltaBreed UI
         return HttpResponse.notFound();
     }
 
     @Put("/observationunits")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> observationunitsPut(@PathVariable("programId") UUID programId, Map<String, BrAPIObservationUnit> body) {
+    public HttpResponse<?> observationunitsPut(@PathVariable("programId") UUID programId, @Body Map<String, BrAPIObservationUnit> body) {
         //DO NOT IMPLEMENT - Users aren't yet able to update observation units
         return HttpResponse.notFound();
     }
@@ -205,23 +200,23 @@ public class BrAPIObservationUnitController {
     @Produces({"application/json", "text/csv", "text/tsv"})
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse<?> observationunitsTableGet(@PathVariable("programId") UUID programId,
-                                                 @Header("Accept") String accept,
-                                                 @QueryValue("observationUnitDbId") String observationUnitDbId,
-                                                 @QueryValue("observationVariableDbId") String observationVariableDbId,
-                                                 @QueryValue("locationDbId") String locationDbId,
-                                                 @QueryValue("seasonDbId") String seasonDbId,
-                                                 @QueryValue("observationLevel") String observationLevel,
-                                                 @QueryValue("programDbId") String programDbId,
-                                                 @QueryValue("trialDbId") String trialDbId,
-                                                 @QueryValue("studyDbId") String studyDbId,
-                                                 @QueryValue("germplasmDbId") String germplasmDbId,
-                                                 @QueryValue("observationUnitLevelName") String observationUnitLevelName,
-                                                 @QueryValue("observationUnitLevelOrder") String observationUnitLevelOrder,
-                                                 @QueryValue("observationUnitLevelCode") String observationUnitLevelCode,
-                                                 @QueryValue("observationUnitLevelRelationshipName") String observationUnitLevelRelationshipName,
-                                                 @QueryValue("observationUnitLevelRelationshipOrder") String observationUnitLevelRelationshipOrder,
-                                                 @QueryValue("observationUnitLevelRelationshipCode") String observationUnitLevelRelationshipCode,
-                                                 @QueryValue("observationUnitLevelRelationshipDbId") String observationUnitLevelRelationshipDbId) {
+                                                    @Nullable @Header("Accept") String accept,
+                                                    @Nullable @QueryValue("observationUnitDbId") String observationUnitDbId,
+                                                    @Nullable @QueryValue("observationVariableDbId") String observationVariableDbId,
+                                                    @Nullable @QueryValue("locationDbId") String locationDbId,
+                                                    @Nullable @QueryValue("seasonDbId") String seasonDbId,
+                                                    @Nullable @QueryValue("observationLevel") String observationLevel,
+                                                    @Nullable @QueryValue("programDbId") String programDbId,
+                                                    @Nullable @QueryValue("trialDbId") String trialDbId,
+                                                    @Nullable @QueryValue("studyDbId") String studyDbId,
+                                                    @Nullable @QueryValue("germplasmDbId") String germplasmDbId,
+                                                    @Nullable @QueryValue("observationUnitLevelName") String observationUnitLevelName,
+                                                    @Nullable @QueryValue("observationUnitLevelOrder") String observationUnitLevelOrder,
+                                                    @Nullable @QueryValue("observationUnitLevelCode") String observationUnitLevelCode,
+                                                    @Nullable @QueryValue("observationUnitLevelRelationshipName") String observationUnitLevelRelationshipName,
+                                                    @Nullable @QueryValue("observationUnitLevelRelationshipOrder") String observationUnitLevelRelationshipOrder,
+                                                    @Nullable @QueryValue("observationUnitLevelRelationshipCode") String observationUnitLevelRelationshipCode,
+                                                    @Nullable @QueryValue("observationUnitLevelRelationshipDbId") String observationUnitLevelRelationshipDbId) {
         return HttpResponse.notFound();
     }
 

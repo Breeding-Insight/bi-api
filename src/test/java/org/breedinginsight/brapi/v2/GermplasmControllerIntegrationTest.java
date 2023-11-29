@@ -20,7 +20,7 @@ import org.breedinginsight.api.model.v1.request.query.SearchRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.utilities.response.mappers.GermplasmQueryMapper;
 import org.breedinginsight.brapi.v2.services.BrAPIGermplasmService;
-import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.dao.db.tables.pojos.BiUserEntity;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;

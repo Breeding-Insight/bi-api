@@ -24,7 +24,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;

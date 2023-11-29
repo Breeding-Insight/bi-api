@@ -39,8 +39,8 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationLevelListResponseResult
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
-import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.BrAPIConstants;
 import org.breedinginsight.model.Program;

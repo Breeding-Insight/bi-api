@@ -100,7 +100,7 @@ public class BrAPIStudiesController {
 
     @Post("/studies")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> studiesPost(@PathVariable("programId") UUID programId, List<BrAPIStudy> body) {
+    public HttpResponse studiesPost(@PathVariable("programId") UUID programId, @Body List<BrAPIStudy> body) {
         //DO NOT IMPLEMENT - Users are only able to create new studies via the DeltaBreed UI
         return HttpResponse.notFound();
     }
@@ -131,8 +131,8 @@ public class BrAPIStudiesController {
 
     @Put("/studies/{studyDbId}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> studiesStudyDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId,
-                                            BrAPIStudy body) {
+    public HttpResponse studiesStudyDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("studyDbId") String studyDbId,
+                                            @Body BrAPIStudy body) {
         //DO NOT IMPLEMENT - Users are only able to update studies via the DeltaBreed UI
         return HttpResponse.notFound();
     }

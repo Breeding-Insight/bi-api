@@ -93,7 +93,7 @@ public class BrAPITrialsController {
 
     @Post("/trials")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> trialsPost(@PathVariable("programId") UUID programId, List<BrAPITrial> body) {
+    public HttpResponse<?> trialsPost(@PathVariable("programId") UUID programId, @Body List<BrAPITrial> body) {
         //DO NOT IMPLEMENT - Users are only able to create new trials via the DeltaBreed UI
         return HttpResponse.notFound();
     }
@@ -101,7 +101,7 @@ public class BrAPITrialsController {
 
     @Put("/trials/{trialDbId}")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse<?> trialsTrialDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("trialDbId") String trialDbId, BrAPITrial body) {
+    public HttpResponse<?> trialsTrialDbIdPut(@PathVariable("programId") UUID programId, @PathVariable("trialDbId") String trialDbId, @Body BrAPITrial body) {
         //DO NOT IMPLEMENT - Users are only able to update trials via the DeltaBreed UI
         return HttpResponse.notFound();
     }

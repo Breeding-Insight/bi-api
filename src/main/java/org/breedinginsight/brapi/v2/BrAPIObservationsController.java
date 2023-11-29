@@ -79,7 +79,7 @@ public class BrAPIObservationsController {
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
     public HttpResponse observationsObservationDbIdPut(@PathVariable("programId") UUID programId,
                                                        @PathVariable("observationDbId") String observationDbId,
-                                                       BrAPIObservation body) {
+                                                       @Body BrAPIObservation body) {
         /*
             DO NOT IMPLEMENT - users must create observations via file upload
             TODO identify how observations uploaded via BrAPI will be separated from curated observations
@@ -89,7 +89,7 @@ public class BrAPIObservationsController {
 
     @Post("/observations")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse observationsPost(@PathVariable("programId") UUID programId, List<BrAPIObservation> body) {
+    public HttpResponse observationsPost(@PathVariable("programId") UUID programId, @Body List<BrAPIObservation> body) {
         /*
             DO NOT IMPLEMENT - users must create observations via file upload
             TODO identify how observations uploaded via BrAPI will be separated from curated observations
@@ -99,7 +99,7 @@ public class BrAPIObservationsController {
 
     @Put("/observations")
     @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
-    public HttpResponse observationsPut(@PathVariable("programId") UUID programId, Map<String, BrAPIObservation> body) {
+    public HttpResponse observationsPut(@PathVariable("programId") UUID programId, @Body Map<String, BrAPIObservation> body) {
         /*
             DO NOT IMPLEMENT - users must create observations via file upload
             TODO identify how observations uploaded via BrAPI will be separated from curated observations

@@ -20,7 +20,7 @@ package org.breedinginsight.brapi.v2.services;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
-import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.model.Program;
 
 import javax.inject.Inject;
