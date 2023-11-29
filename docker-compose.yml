@@ -100,7 +100,7 @@ services:
       - ${BRAPI_SERVER_PORT}:8080
     volumes:
       - ./src/main/resources/brapi/properties/application.properties:/home/brapi/properties/application.properties
-      - ./src/main/resources/brapi/sql/:/home/brapi/db/sql/
+      - ./src/main/resources/brapi/sql:/home/brapi/db/sql
     networks:
       backend:
         aliases:
