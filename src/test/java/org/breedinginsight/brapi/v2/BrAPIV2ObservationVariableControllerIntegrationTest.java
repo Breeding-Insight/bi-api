@@ -32,9 +32,7 @@ import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
-import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.brapi.v2.model.pheno.response.BrAPIObservationUnitSingleResponse;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
 import org.breedinginsight.api.auth.AuthenticatedUser;
@@ -63,16 +61,15 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.time.OffsetDateTime;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static io.micronaut.http.HttpRequest.*;
+import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
-
+public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITest {
     private Program program;
     private String experimentId;
     private List<String> envIds = new ArrayList<>();
@@ -147,7 +144,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
                 .get(0).getAsJsonObject().get("id").getAsString();
 
         // Add traits to program
-        traits = createTraits(2);
+        traits = createTraits(4);
         AuthenticatedUser user = new AuthenticatedUser(testUser.getName(), new ArrayList<>(), testUser.getId(), new ArrayList<>());
         try {
             ontologyService.createTraits(program.getId(), traits, user, false);
@@ -171,7 +168,9 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         Map<String, Object> row2 = makeExpImportRow("Env2");
 
         // Add test observation data
-        for (Trait trait : traits) {
+        List<Trait> expTraits = List.of(traits.get(0), traits.get(1));
+        for (int i = 0; i < 2; i++) {
+            var trait = expTraits.get(i);
             Random random = new Random();
 
             // TODO: test for sending obs data as double.
@@ -187,7 +186,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
         // Import test experiment, environments, and any observations
         JsonObject importResult = importTestUtils.uploadAndFetch(
-                writeDataToFile(rows, traits),
+                writeDataToFile(rows, expTraits),
                 null,
                 true,
                 client,
@@ -206,12 +205,12 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void testPostObsNotFound() {
-        BrAPIObservation obs = new BrAPIObservation().observationUnitName("test");
+    public void testPostVariablesNotFound() {
+        BrAPIObservationVariable variable = new BrAPIObservationVariable().observationVariableName(traits.get(0).getObservationVariableName()+" post");
 
         Flowable<HttpResponse<String>> postCall = client.exchange(
-                POST(String.format("/programs/%s/brapi/v2/observations",
-                        program.getId().toString()), List.of(obs))
+                POST(String.format("/programs/%s/brapi/v2/variables",
+                        program.getId().toString()), List.of(variable))
                         .contentType(MediaType.APPLICATION_JSON)
                         .bearerAuth("test-registered-user"), String.class
         );
@@ -224,74 +223,26 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void testPutSingleObsNotFound() {
-        BrAPIObservation obs = new BrAPIObservation().observationDbId(UUID.randomUUID().toString()).germplasmName("updated");
+    public void testPutVariablesNotFound() {
+        BrAPIObservationVariable variable = new BrAPIObservationVariable().observationVariableName(traits.get(0).getObservationVariableName()+" put");
 
-        Flowable<HttpResponse<String>> postCall = client.exchange(
-                PUT(String.format("/programs/%s/brapi/v2/observations/%s",
-                        program.getId().toString(), obs.getObservationUnitDbId()), obs)
+        Flowable<HttpResponse<String>> putCall = client.exchange(
+                PUT(String.format("/programs/%s/brapi/v2/variables/%s",
+                        program.getId().toString(), traits.get(0).getId()), List.of(variable))
                         .contentType(MediaType.APPLICATION_JSON)
                         .bearerAuth("test-registered-user"), String.class
         );
 
         HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> errorResponse = postCall.blockingFirst();
+            HttpResponse<String> response = putCall.blockingFirst();
         });
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
     }
 
     @Test
-    @SneakyThrows
-    public void testPutMultipleObsNotFound() {
-        BrAPIObservation obs = new BrAPIObservation().observationDbId(UUID.randomUUID().toString()).germplasmName("updated");
-
-        Flowable<HttpResponse<String>> postCall = client.exchange(
-                PUT(String.format("/programs/%s/brapi/v2/observations",
-                        program.getId().toString()), Map.of(obs.getObservationDbId(), obs))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bearerAuth("test-registered-user"), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> errorResponse = postCall.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
-    }
-
-    @Test
-    @SneakyThrows
-    public void testGetObsTableNotFound() {
-        Flowable<HttpResponse<String>> getCall = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/observations/table",
-                        program.getId().toString()))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .bearerAuth("test-registered-user"), String.class
-        );
-
-        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
-            HttpResponse<String> response = getCall.blockingFirst();
-        });
-        assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
-    }
-
-    @Test
-    @Disabled("Disabled until fetching of observations is implemented")
-    public void testGetObsListByExpId() {
+    public void testGetVariables() {
         Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/observations?trialDbId=%s", program.getId(), experimentId))
-                        .bearerAuth("test-registered-user"),
-                String.class
-        );
-
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.OK, response.getStatus());
-    }
-
-    @Test
-    @Disabled("Disabled until fetching of observations is implemented")
-    public void testGetOUById() {
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/observations?trialDbId=%s", program.getId(), experimentId))
+                GET(String.format("/programs/%s/brapi/v2/variables", program.getId(), experimentId))
                         .bearerAuth("test-registered-user"),
                 String.class
         );
@@ -300,17 +251,71 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.OK, response.getStatus());
 
         JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
-        JsonArray observations = responseObj.getAsJsonObject("result").getAsJsonArray("data");
-        JsonObject obs = observations.get(0).getAsJsonObject();
+        JsonArray variables = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(4, variables.size());
+        List<String> variableNames = new ArrayList<>();
+        for(var variable : variables) {
+            variableNames.add(variable.getAsJsonObject().get("observationVariableName").getAsString());
+        }
+        assertTrue(variableNames.contains("tt_test_1"));
+        assertTrue(variableNames.contains("tt_test_2"));
+        assertTrue(variableNames.contains("tt_test_3"));
+        assertTrue(variableNames.contains("tt_test_4"));
+    }
 
-        Flowable<HttpResponse<String>> ouCall = client.exchange(
-                GET(String.format("/programs/%s/brapi/v2/observations/%s", program.getId(), obs.get("observationDbId").getAsString()))
+    @Test
+    public void testGetVariablesByExpId() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/variables?trialDbId=%s", program.getId(), experimentId))
                         .bearerAuth("test-registered-user"),
                 String.class
         );
 
-        HttpResponse<String> ouResponse = ouCall.blockingFirst();
-        assertEquals(HttpStatus.OK, ouResponse.getStatus());
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonArray variables = responseObj.getAsJsonObject("result").getAsJsonArray("data");
+        assertEquals(2, variables.size());
+        List<String> variableNames = new ArrayList<>();
+        for(var variable : variables) {
+            variableNames.add(variable.getAsJsonObject().get("observationVariableName").getAsString());
+        }
+        assertTrue(variableNames.contains("tt_test_1"));
+        assertTrue(variableNames.contains("tt_test_2"));
+    }
+
+    @Test
+    public void testGetVariableById() {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/brapi/v2/variables/%s", program.getId(), traits.get(0).getId()))
+                        .bearerAuth("test-registered-user"),
+                String.class
+        );
+
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+
+        JsonObject responseObj = gson.fromJson(response.body(), JsonObject.class);
+        JsonObject variable = responseObj.getAsJsonObject("result");
+        assertNotNull(variable);
+        assertEquals(traits.get(0).getId().toString(), variable.get("observationVariableDbId").getAsString());
+        assertEquals(traits.get(0).getObservationVariableName(), variable.get("observationVariableName").getAsString());
+
+        JsonObject trait = variable.getAsJsonObject("trait");
+        assertEquals(traits.get(0).getEntity(), trait.get("entity").getAsString());
+        assertEquals(traits.get(0).getAttribute(), trait.get("attribute").getAsString());
+
+        JsonObject method = variable.getAsJsonObject("method");
+        assertEquals(traits.get(0).getMethod().getMethodClass(),
+                method.get("methodClass").getAsString());
+        assertEquals(traits.get(0).getMethod().getDescription(), method.get("description").getAsString());
+
+        JsonObject scale = variable.getAsJsonObject("scale");
+        assertEquals(traits.get(0).getScale().getScaleName(), scale.get("scaleName").getAsString());
+        assertEquals(traits.get(0).getScale().getDataType().getLiteral().toLowerCase(), scale.get("dataType").getAsString().toLowerCase());
+        assertEquals(traits.get(0).getScale().getValidValueMin(), scale.getAsJsonObject("validValues").get("min").getAsInt());
+        assertEquals(traits.get(0).getScale().getValidValueMax(), scale.getAsJsonObject("validValues").get("max").getAsInt());
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
@@ -405,7 +410,7 @@ public class BrAPIObservationsControllerIntegrationTest extends BrAPITest {
         row.put(ExperimentObservation.Columns.ENV, environment);
         row.put(ExperimentObservation.Columns.ENV_LOCATION, "Location A");
         row.put(ExperimentObservation.Columns.ENV_YEAR, "2023");
-        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, environment+" - a-1");
+        row.put(ExperimentObservation.Columns.EXP_UNIT_ID, "a-1");
         row.put(ExperimentObservation.Columns.REP_NUM, "1");
         row.put(ExperimentObservation.Columns.BLOCK_NUM, "1");
         row.put(ExperimentObservation.Columns.ROW, "1");

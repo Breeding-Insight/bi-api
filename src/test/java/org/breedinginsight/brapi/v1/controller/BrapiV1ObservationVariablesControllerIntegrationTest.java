@@ -59,7 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class BrapiObservationVariablesControllerIntegrationTest extends BrAPITest {
+public class BrapiV1ObservationVariablesControllerIntegrationTest extends BrAPITest {
 
     @Inject
     @Client(BrapiVersion.BRAPI_V1)

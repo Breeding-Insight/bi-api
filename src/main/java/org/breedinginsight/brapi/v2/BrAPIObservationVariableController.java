@@ -218,6 +218,7 @@ public class BrAPIObservationVariableController {
                                                                     .synonyms(synonyms))
                                              .method(new BrAPIMethod().ontologyReference(brAPIOntologyReference)
                                                                       .methodDbId(trait.getMethod().getId().toString())
+                                                                      .methodClass(trait.getMethod().getMethodClass())
                                                                       .description(trait.getMethod().getDescription())
                                                                       .formula(trait.getMethod().getFormula()))
                                              .scale(new BrAPIScale().ontologyReference(brAPIOntologyReference)
