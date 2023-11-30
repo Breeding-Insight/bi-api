@@ -33,12 +33,7 @@ import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrAPIPagination;
 import org.brapi.v2.model.core.BrAPIServerInfo;
-import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.core.response.BrAPIStudyListResponse;
-import org.brapi.v2.model.core.response.BrAPIStudySingleResponse;
 import org.brapi.v2.model.pheno.*;
-import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
-import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
@@ -54,7 +49,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import static io.micronaut.http.HttpRequest.*;
+import static io.micronaut.http.HttpRequest.GET;
+import static io.micronaut.http.HttpRequest.POST;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 

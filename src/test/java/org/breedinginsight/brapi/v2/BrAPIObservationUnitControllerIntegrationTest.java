@@ -65,7 +65,6 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.micronaut.http.HttpRequest.*;
-import static io.micronaut.http.HttpRequest.GET;
 import static org.junit.jupiter.api.Assertions.*;
 
 @MicronautTest
