@@ -59,6 +59,7 @@ import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
@@ -477,7 +478,12 @@ public class ExperimentProcessor implements Processor {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
-            PendingImportObject<BrAPITrial> trialPIO = fetchOrCreateTrialPIO(program, user, commit, importRow, expNextVal);
+            PendingImportObject<BrAPITrial> trialPIO = null;
+            try {
+                trialPIO = fetchOrCreateTrialPIO(program, user, commit, importRow, expNextVal);
+            } catch (UnprocessableEntityException e) {
+                throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+            }
 
             String expSeqValue = null;
             if (commit) {
