@@ -18,7 +18,6 @@
 package org.breedinginsight.brapps.importer.model.imports.sample;
 
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
@@ -28,10 +27,6 @@ import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 import org.breedinginsight.brapps.importer.services.processors.SampleSubmissionProcessor;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
