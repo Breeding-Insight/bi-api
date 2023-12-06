@@ -184,7 +184,7 @@ public class TraitValidatorService {
 
             Trait trait = traits.get(i);
             Method method = trait.getMethod();
-            int shortCharLimit = 12;
+            int shortCharLimit = 16;
             int longCharLimit = 30;
 
             if ((trait.getObservationVariableName() != null) && (trait.getObservationVariableName().length() > shortCharLimit)) {
