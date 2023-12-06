@@ -26,7 +26,6 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.JSON;
@@ -87,11 +86,8 @@ import java.util.stream.Collectors;
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Error(s) detected in file. (See details below.) Import cannot proceed.";
     private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s.<br/><br/>" +
-            "If you’re trying to add these units to the experiment, please create a new environment" +
-            " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
-            "for each experiment unit).";
-    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
             "for each experiment unit).";
@@ -1066,7 +1062,7 @@ public class ExperimentProcessor implements Processor {
             if (trait.getFullName() == null) {
                 id = trait.getObservationVariableName();
             }
-            
+
             if (!details.getData().contains(id) && ImportObjectState.EXISTING != pio.getState()) {
                 details.getData().add(id);
             }
