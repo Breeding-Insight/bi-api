@@ -24,6 +24,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.flywaydb.core.api.migration.Context;
 
+import java.lang.reflect.Field;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.ArrayList;
@@ -113,6 +114,42 @@ public class Utilities {
      */
     public static String removeProgramKey(String original, String programKey) {
         return removeProgramKey(original, programKey, null);
+    }
+
+    /**
+     * Remove program key from fields visible on the front end. Mutates the original object and returns it.
+     *
+     * @param brapiInstance Object, an instance of a BrAPI Object
+     * @param brapiClass Class, the BrAPI class
+     * @param program
+     * @return Object, BrAPI instance formatted for display
+     */
+    public static Object formatBrapiObjForDisplay(Object brapiInstance, Class brapiClass, Program program) throws RuntimeException {
+        List<String> displayFields = new ArrayList<>(List.of(
+                "trialName",
+                "studyName",
+                "germplasmName",
+                "locationName",
+                "observationUnitName",
+                "observationVariableName"));
+        List<Field> fields = List.of(brapiClass.getDeclaredFields());
+        for (Field field : fields) {
+            if (displayFields.contains(field.getName())) {
+                try {
+                    field.setAccessible(true);
+
+                    // remove either of possible key formats, [%s-%s] and [%s]
+                    String valueSansKeyAndInfo = removeProgramKeyAndUnknownAdditionalData((String) field.get(brapiInstance), program.getKey());
+                    String valueSansKey = removeProgramKey(valueSansKeyAndInfo, program.getKey());
+
+                    // set the value without key or additional info
+                    field.set(brapiInstance, valueSansKey);
+                } catch (IllegalAccessException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        return brapiInstance;
     }
 
     public static String removeProgramKeyAndUnknownAdditionalData(String original, String programKey) {

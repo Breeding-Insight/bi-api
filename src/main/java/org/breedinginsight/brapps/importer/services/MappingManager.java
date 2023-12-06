@@ -53,6 +53,12 @@ public class MappingManager {
 
     private ImportConfigManager configManager;
 
+    public static String wrongDataTypeMsg = "Column name \"%s\" must be integer type, but non-integer type provided.";
+    public static String blankRequiredField = "Required field \"%s\" cannot contain empty values";
+    public static String missingColumn = "Column name \"%s\" does not exist in file";
+    public static String missingUserInput = "User input, \"%s\" is required";
+    public static String wrongUserInputDataType = "User input, \"%s\" must be an %s";
+
     @Inject
     MappingManager(ImportConfigManager configManager) {
         this.configManager = configManager;
@@ -339,13 +345,13 @@ public class MappingManager {
 
         // Only supports user input at the top level of an object at the moment. No nested objects. Map<String, String>
         String fieldId = metadata.id();
-        if (!userInput.containsKey(fieldId) && required != null) {
+        if ((userInput == null || !userInput.containsKey(fieldId)) && required != null) {
             throw new UnprocessableEntityException(importService.getMissingUserInputMsg(metadata.name()));
         }
         else if (required != null && userInput.containsKey(fieldId) && userInput.get(fieldId).toString().isBlank()) {
             throw new UnprocessableEntityException(importService.getMissingUserInputMsg(metadata.name()));
         }
-        else if (userInput.containsKey(fieldId)) {
+        else if (userInput != null && userInput.containsKey(fieldId)) {
             String value = userInput.get(fieldId).toString();
             if (!isCorrectType(type.type(), value)) {
                 throw new UnprocessableEntityException(importService.getWrongUserInputDataTypeMsg(metadata.name(), type.type().toString().toLowerCase()));
@@ -371,10 +377,13 @@ public class MappingManager {
         if (!value.isBlank()) {
             if (expectedType == ImportFieldTypeEnum.INTEGER) {
                 try {
-                    Integer d = Integer.parseInt(value);
+                    Integer.parseInt(value);
                 } catch (NumberFormatException nfe) {
                     return false;
                 }
+            }
+            if (expectedType == ImportFieldTypeEnum.BOOLEAN && !String.valueOf(Boolean.parseBoolean(value)).equals(value)) {
+                return false;
             }
         }
         return true;

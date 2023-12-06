@@ -15,24 +15,25 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.config;
+package org.breedinginsight.brapps.importer.model.imports;
 
 import lombok.Getter;
+import lombok.Setter;
+
+import java.util.UUID;
 
 @Getter
-public enum ImportFieldTypeEnum {
-    BOOLEAN("BOOLEAN"),
-    TEXT("TEXT"),
-    NUMERICAL("NUMERICAL"),
-    INTEGER("INTEGER"),
-    DATE("DATE"),
-    LIST("LIST"),
-    OBJECT("OBJECT"),
-    RELATIONSHIP("RELATIONSHIP");
+@Setter
+public class ChangeLogEntry {
+    private String originalValue;
+    private String reasonForChange;
+    private UUID changedBy;
+    private String dateOfChange;
 
-    private String value;
-
-    ImportFieldTypeEnum(String value) {
-        this.value = value;
+    public ChangeLogEntry(String originalValue, String reasonForChange, UUID changedBy, String dateOfChange) {
+        this.originalValue = originalValue;
+        this.reasonForChange = reasonForChange;
+        this.changedBy = changedBy;
+        this.dateOfChange = dateOfChange;
     }
 }

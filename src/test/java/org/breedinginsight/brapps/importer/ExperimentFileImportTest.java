@@ -86,6 +86,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ExperimentFileImportTest extends BrAPITest {
+    private static final String OVERWRITE = "overwrite";
 
     private FannyPack securityFp;
     private String mappingId;
@@ -603,7 +604,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
 
-        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experiment Units are missing Observation Unit Id."));
+        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Cannot create new observation unit"));
     }
 
     @Test
