@@ -86,7 +86,7 @@ import java.util.stream.Collectors;
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String MISSING_OBS_UNIT_ID_ERROR = "Error(s) detected in file. (See details below.) Import cannot proceed.";
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs. You must append file with the appropriate ObsUnitIDs or specify a new environment for these entities to proceed.";
     private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
