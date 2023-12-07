@@ -218,7 +218,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     public GigwaGenotypeServiceImplIntegrationTest() {
         super();
-        mongo = new GenericContainer<>("mongo:4.2.21")
+        mongo = new GenericContainer<>("mongo:4.2.24")
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("gigwa_db")
                 .withImagePullPolicy(PullPolicy.defaultPolicy())
