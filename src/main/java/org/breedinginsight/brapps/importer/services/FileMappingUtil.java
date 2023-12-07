@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services;
 
 import io.reactivex.functions.Function;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.breedinginsight.brapps.importer.model.config.MappedImportRelation;
@@ -76,7 +77,7 @@ public class FileMappingUtil {
     }
 
     public <T> List<T> sortByField(List<String> sortedFields, List<T> unsortedItems, Function<T, String> fieldGetter) {
-        HashMap<String, Integer> sortOrder = new HashMap<>();
+        CaseInsensitiveMap<String, Integer> sortOrder = new CaseInsensitiveMap<>();
         for (int i = 0; i < sortedFields.size(); i++) {
             sortOrder.put(sortedFields.get(i), i);
         }

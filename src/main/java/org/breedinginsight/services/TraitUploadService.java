@@ -111,7 +111,8 @@ public class TraitUploadService {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing csv: " + e.getMessage());
             }
         } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
-                   mediaType.toString().equals(SupportedMediaType.XLSX)) {
+                   mediaType.toString().equals(SupportedMediaType.XLSX) ||
+                   mediaType.toString().equals(SupportedMediaType.XLSB)) {
             try {
                 traits = parser.parseExcel(new BOMInputStream(file.getInputStream(), false));
             } catch(IOException | ParsingException e) {

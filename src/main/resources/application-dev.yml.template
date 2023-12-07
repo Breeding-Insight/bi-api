@@ -1,0 +1,10 @@
+##For local development:
+## 1. spin up a LocalStack container
+## 2. copy this file and rename it to `application-dev.yml`
+## 3. uncomment these lines, and update the `endpoint` value
+## 4. set the environment variable MICRONAUT_ENVIRONMENTS=dev
+#aws:
+#  s3:
+#    buckets:
+#      geno:
+#        endpoint: <url to LocalStack>

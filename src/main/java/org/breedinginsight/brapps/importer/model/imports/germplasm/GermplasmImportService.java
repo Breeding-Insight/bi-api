@@ -18,28 +18,25 @@
 package org.breedinginsight.brapps.importer.model.imports.germplasm;
 
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.services.processors.*;
+import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
+import org.breedinginsight.brapps.importer.services.processors.Processor;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
-import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
-import java.util.*;
+import java.util.List;
 
 @Singleton
 @Slf4j
-public class GermplasmImportService extends BrAPIImportService {
+public class GermplasmImportService implements BrAPIImportService {
 
     private final String IMPORT_TYPE_ID = "GermplasmImport";
 
@@ -66,7 +63,7 @@ public class GermplasmImportService extends BrAPIImportService {
 
     @Override
     public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {
+            throws Exception {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get());

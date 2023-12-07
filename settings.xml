@@ -50,13 +50,6 @@
                     <snapshots><enabled>true</enabled></snapshots>
                 </repository>
                 <repository>
-                    <id>github-brapi</id>
-                    <name>GitHub Breeding Insight Apache Maven Packages</name>
-                    <url>https://maven.pkg.github.com/Breeding-Insight/brapi</url>
-                    <releases><enabled>true</enabled></releases>
-                    <snapshots><enabled>true</enabled></snapshots>
-                </repository>
-                <repository>
                     <id>github-fannypack</id>
                     <name>FannyPack github repository</name>
                     <url>https://maven.pkg.github.com/Kowalski-IO/fannypack</url>
@@ -70,11 +63,6 @@
     <servers>
         <server>
             <id>github-jooq</id>
-            <username>${GITHUB_ACTOR}</username>
-            <password>${GITHUB_TOKEN}</password>
-        </server>
-        <server>
-            <id>github-brapi</id>
             <username>${GITHUB_ACTOR}</username>
             <password>${GITHUB_TOKEN}</password>
         </server>

@@ -298,7 +298,7 @@ public class TraitValidatorUnitTest {
     public void charLimitExceeded() {
 
         Trait trait = new Trait();
-        trait.setObservationVariableName("OverTwelveChar");
+        trait.setObservationVariableName("IsOverSixteenChar");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");

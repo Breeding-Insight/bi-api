@@ -154,12 +154,19 @@ web:
 
 brapi:
   server:
-    default-url: ${BRAPI_DEFAULT_URL:`https://test-server.brapi.org`}
+    default-url: ${BRAPI_DEFAULT_URL}
     # leave these for future but all point to default for now
     core-url: ${brapi.server.default-url}
     pheno-url: ${brapi.server.default-url}
     geno-url: ${brapi.server.default-url}
     reference-source: ${BRAPI_REFERENCE_SOURCE:breedinginsight.org}
+  vendor-submission-enabled: ${BRAPI_VENDOR_SUBMISSION_ENABLED:false}
+  vendor-check-frequency: ${BRAPI_VENDOR_CHECK_FREQUENCY:1d}
+  vendors:
+    dart:
+      url: ${DART_VENDOR_URL:`https://test-server.brapi.org`}
+      client-id: ${DART_CLIENT_ID:potato-salad}
+      token: ${DART_TOKEN:YYYY}
   read-timeout: ${BRAPI_READ_TIMEOUT:10m}
   page-size: 1000
   search:

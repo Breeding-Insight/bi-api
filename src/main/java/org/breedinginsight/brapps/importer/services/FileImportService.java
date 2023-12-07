@@ -156,7 +156,8 @@ public class FileImportService {
                 throw new HttpStatusException(HttpStatus.BAD_REQUEST, "Error parsing csv: " + e.getMessage());
             }
         } else if (mediaType.toString().equals(SupportedMediaType.XLS) ||
-                mediaType.toString().equals(SupportedMediaType.XLSX)) {
+                mediaType.toString().equals(SupportedMediaType.XLSX) ||
+                mediaType.toString().equals(SupportedMediaType.XLSB)) {
 
             try {
                 //TODO: Allow them to pass in header row index in the future
@@ -453,7 +454,7 @@ public class FileImportService {
                 progress.setUpdatedBy(actingUser.getId());
                 importDAO.update(upload);
             }catch (ValidatorException e) {
-                log.info("Validation errors", e);
+                log.info("Validation errors: \n" + e);
                 ImportProgress progress = upload.getProgress();
                 progress.setStatuscode((short) HttpStatus.UNPROCESSABLE_ENTITY.getCode());
                 progress.setMessage("Multiple Errors");

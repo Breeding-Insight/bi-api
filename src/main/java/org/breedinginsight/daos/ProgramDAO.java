@@ -62,4 +62,6 @@ public interface ProgramDAO extends DAO<ProgramRecord, ProgramEntity, UUID> {
     BrAPIClient getCoreClient(UUID programId);
 
     BrAPIClient getPhenoClient(UUID programId);
+
+    BrAPIClient getSampleClient(UUID programId);
 }

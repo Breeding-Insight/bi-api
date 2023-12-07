@@ -30,9 +30,24 @@ import tech.tablesaw.api.Table;
 
 import java.util.List;
 
-public abstract class BrAPIImportService {
-    public String getImportTypeId() {return null;}
-    public BrAPIImport getImportClass() {return null;}
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws UnprocessableEntityException, DoesNotExistException, ValidatorException, ApiException, MissingRequiredInfoException {return null;}
+public interface BrAPIImportService {
+    String getImportTypeId();
+    BrAPIImport getImportClass();
+    default String getInvalidIntegerMsg(String columnName) {
+        return String.format("Column name \"%s\" must be integer type, but non-integer type provided.", columnName);
+    }
+    default String getBlankRequiredFieldMsg(String fieldName) {
+        return String.format("Required field \"%s\" cannot contain empty values", fieldName);
+    }
+    default String getMissingColumnMsg(String columnName) {
+        return String.format("Column name \"%s\" does not exist in file", columnName);
+    }
+    default String getMissingUserInputMsg(String fieldName) {
+        return String.format("User input, \"%s\" is required", fieldName);
+    }
+    default String getWrongUserInputDataTypeMsg(String fieldName, String typeName) {
+        return String.format("User input, \"%s\" must be an %s", fieldName, typeName);
+    }
+    ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
+            throws Exception;
 }

@@ -47,4 +47,12 @@ public final class BrAPIAdditionalInfoFields {
     public static final String MALE_PARENT_UNKNOWN = "maleParentUnknown";
 	public static final String TREATMENTS = "treatments";
     public static final String GID = "gid";
+    public static final String CHANGELOG = "changeLog";
+    public static final String ENV_YEAR = "envYear";
+    public static final String GERMPLASM_UUID = "germplasmId";
+    public static final String SAMPLE_ORGANISM = "organism";
+    public static final String SAMPLE_SPECIES = "species";
+    public static final String OBS_UNIT_ID = "obsUnitID";
+    public static final String GERMPLASM_NAME = "germplasmName";
+    public static final String SUBMISSION_NAME = "submissionName";
 }

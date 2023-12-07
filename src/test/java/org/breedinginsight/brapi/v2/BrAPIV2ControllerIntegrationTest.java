@@ -387,6 +387,7 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
         return new BrAPIObservationVariable().observationVariableName("test" + random)
                                              .commonCropName("Grape")
                                              .externalReferences(Collections.singletonList(new BrAPIExternalReference().referenceID("abc123")
+                                                                                                                       .referenceId("abc123")
                                                                                                                        .referenceSource("breedinginsight.org")))
                                              .trait(new BrAPITrait().traitClass("Agronomic")
                                                                     .traitName("test trait" + random))
