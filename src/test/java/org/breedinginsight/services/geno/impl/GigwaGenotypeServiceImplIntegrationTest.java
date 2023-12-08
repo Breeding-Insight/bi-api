@@ -251,7 +251,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("localstack")
-                .withEnv("HOSTNAME_EXTERNAL", "localstack");
+                .withEnv("LOCALSTACK_HOST", "localstack");
         localStackContainer.start();
     }
 
