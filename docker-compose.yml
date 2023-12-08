@@ -172,7 +172,7 @@ services:
         aliases:
           - localstack
     environment:
-      - HOSTNAME_EXTERNAL=localstack
+      - LOCALSTACK_HOST=localstack
 
 networks:
   backend:
