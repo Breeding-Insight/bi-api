@@ -1299,8 +1299,7 @@ public class ExperimentProcessor implements Processor {
                                          .forEach(obsUnit -> obsUnit.getBrAPIObject()
                                                                     .setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
-
-//obsUnit.getBrAPIObject().getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.GID).getAsString()
+    
     private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
         // update location DbIds in studies for all distinct locations
         mappedBrAPIImport.values()
