@@ -56,6 +56,7 @@ public class ProgramCache<R> {
 
     public void populate(@NotNull UUID key) {
         String cacheKey = generateCacheKey(key);
+        log.debug("populate(UUID key) method called with key: " + cacheKey);
         RSemaphore semaphore = connection.getSemaphore(cacheKey+":semaphore");
         semaphore.trySetPermits(1);
 
@@ -72,7 +73,7 @@ public class ProgramCache<R> {
                 next refresh will pick up data persisted by this thread
              */
             if(queueSemaphore.tryAcquire()) {
-                log.debug("Attempting to refresh");
+                log.debug("Attempting to refresh for: " + cacheKey);
                 try {
                     // block until we get the green light to refresh the cache
                     semaphore.acquire();
@@ -139,11 +140,11 @@ public class ProgramCache<R> {
         if (!connection.getBucket(cacheKey).isExists()) {
             RSemaphore semaphore = connection.getSemaphore(cacheKey + ":semaphore");
             try {
-                log.debug("cache miss, populating");
+                log.debug("cache miss, populating for key: " + cacheKey);
                 populate(key);
                 //block until any updates are done
                 semaphore.acquire();
-                log.debug("Cache loading done!!!!");
+                log.debug("Cache loading done!!!! - key: " + cacheKey);
             } catch(Exception e){
                 throw new ApiException(e);
             } finally {
