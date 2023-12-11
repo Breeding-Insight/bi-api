@@ -17,10 +17,14 @@
 
 package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
+import com.github.filosganga.geogson.model.Feature;
+import com.github.filosganga.geogson.model.Point;
+import com.github.filosganga.geogson.model.positions.SinglePosition;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.BrApiGeoJSON;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.*;
@@ -73,6 +77,10 @@ public class ExperimentObservation implements BrAPIImport {
     private String expUnit;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "subObsUnit", name = Columns.SUB_OBS_UNIT, description = "Sub observation unit (Examples: plant, etc.)")
+    private String subObsUnit;
+
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id = "expType", name = Columns.EXP_TYPE, description = "Description of experimental type (Examples: Performance trial, crossing block, seed orchard, etc)")
     private String expType;
 
@@ -92,6 +100,10 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldMetadata(id = "expUnitId", name = Columns.EXP_UNIT_ID, description = "Human-readable alphanumeric identifier for experimental units unique within environment. Examples, like plot number, are often a numeric sequence.")
     private String expUnitId;
 
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "subUnitId", name = Columns.SUB_UNIT_ID, description = "Alphanumeric identifier of sub-units. For example if three fruits are observed per plot, the three fruits can be identified by 1,2,3.")
+    private String subUnitId;
+
     @ImportFieldType(type = ImportFieldTypeEnum.INTEGER)
     @ImportFieldMetadata(id = "expReplicateNo", name = Columns.REP_NUM, description = "Sequential number of experimental replications")
     private String expReplicateNo;
@@ -107,6 +119,22 @@ public class ExperimentObservation implements BrAPIImport {
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id = "column", name = Columns.COLUMN, description = "Vertical (x-axis) position in 2D Cartesian space.")
     private String column;
+
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "lat", name = Columns.LAT, description = "Latitude coordinate in WGS 84 coordinate reference system.")
+    private String latitude;
+
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "long", name = Columns.LONG, description = "Longitude coordinate in WGS 84 coordinate reference system.")
+    private String longitude;
+
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "elevation", name = Columns.ELEVATION, description = "Height in meters above WGS 84 reference ellipsoid.")
+    private String elevation;
+
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
+    @ImportFieldMetadata(id = "rtk", name = Columns.RTK, description = "Free text description of real-time kinematic positioning used to correct coordinates.")
+    private String rtk;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id = "treatmentFactors", name = Columns.TREATMENT_FACTORS, description = "Treatment factors in an experiment with applied variables, like fertilizer or water regimens.")
@@ -279,6 +307,27 @@ public class ExperimentObservation implements BrAPIImport {
             position.setEntryType(BrAPIEntryTypeEnum.TEST);
         }
 
+        // geocoordinates
+        try {
+            double lat = Double.parseDouble(getLatitude());
+            double lon = Double.parseDouble(getLongitude());
+            Point geoPoint = Point.from(lat, lon);
+
+            if (getElevation() != null) {
+                double elevation = Double.parseDouble(getElevation());
+                geoPoint = geoPoint.withAlt(elevation);
+            }
+
+            BrApiGeoJSON coords = BrApiGeoJSON.builder()
+                    .geometry(geoPoint)
+                    .type("Feature")
+                    .build();
+            position.setGeoCoordinates(coords);
+
+        } catch (NullPointerException | NumberFormatException e) {
+            // ignore null or number format exceptions, won't populate geocoordinates if there are any issues
+        }
+
         // X and Y coordinates
         if (getRow() != null) {
             position.setPositionCoordinateX(getRow());
@@ -404,15 +453,21 @@ public class ExperimentObservation implements BrAPIImport {
         public static final String EXP_TITLE = "Exp Title";
         public static final String EXP_DESCRIPTION = "Exp Description";
         public static final String EXP_UNIT = "Exp Unit";
+        public static final String SUB_OBS_UNIT = "Sub-Obs Unit";
         public static final String EXP_TYPE = "Exp Type";
         public static final String ENV = "Env";
         public static final String ENV_LOCATION = "Env Location";
         public static final String ENV_YEAR = "Env Year";
         public static final String EXP_UNIT_ID = "Exp Unit ID";
+        public static final String SUB_UNIT_ID = "Sub Unit ID";
         public static final String REP_NUM = "Exp Replicate #";
         public static final String BLOCK_NUM = "Exp Block #";
         public static final String ROW = "Row";
         public static final String COLUMN = "Column";
+        public static final String LAT = "Lat";
+        public static final String LONG = "Long";
+        public static final String ELEVATION = "Elevation";
+        public static final String RTK = "RTK";
         public static final String TREATMENT_FACTORS = "Treatment Factors";
         public static final String OBS_UNIT_ID = "ObsUnitID";
     }
