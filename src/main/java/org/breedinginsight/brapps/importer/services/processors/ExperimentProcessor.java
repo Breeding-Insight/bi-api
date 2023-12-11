@@ -611,7 +611,6 @@ public class ExperimentProcessor implements Processor {
 
             validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
-            validateGeoCoordinates(validationErrors, rowNum, importRow);
             validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
 
         }
@@ -625,6 +624,8 @@ public class ExperimentProcessor implements Processor {
         if(ouPIO.getState() == ImportObjectState.NEW && StringUtils.isNotBlank(importRow.getObsUnitID())) {
             addRowError(Columns.OBS_UNIT_ID, "Could not find observation unit by ObsUnitDBID", validationErrors, rowNum);
         }
+
+        validateGeoCoordinates(validationErrors, rowNum, importRow);
     }
 
     private void validateGeoCoordinates(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow) {
