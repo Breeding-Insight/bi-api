@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.daos;
 
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -24,11 +25,13 @@ import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationSingleResponse;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
@@ -38,6 +41,7 @@ import java.util.*;
 import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 @Singleton
+@Slf4j
 public class BrAPIObservationDAO {
 
     private ProgramDAO programDAO;
@@ -113,4 +117,25 @@ public class BrAPIObservationDAO {
         return brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
     }
 
+    public BrAPIObservation updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
+        ApiResponse<BrAPIObservationSingleResponse> response;
+        BrAPIObservation updatedObservation = null;
+        try {
+            response = api.observationsObservationDbIdPut(dbId, observation);
+            if (response != null) {
+                BrAPIObservationSingleResponse body = response.getBody();
+                if (body == null) {
+                    throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
+                }
+                updatedObservation = body.getResult();
+                if (updatedObservation == null) {
+                    throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
+                }
+            }
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e));
+        }
+        return updatedObservation;
+    }
 }
