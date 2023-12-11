@@ -111,6 +111,8 @@ public class ProgramCache<R> {
                         RMap<String, String> map = connection.getMap(cacheKey);
                         map.clear();
                         map.putAll(entryMap);
+                    } else {
+                        log.debug("No values to cache for key: " + cacheKey);
                     }
                     log.debug("cache loading complete for key: " + cacheKey);
                 } catch (Exception e) {
