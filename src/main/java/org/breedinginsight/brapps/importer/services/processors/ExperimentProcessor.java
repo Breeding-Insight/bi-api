@@ -16,10 +16,6 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
-import com.github.filosganga.geogson.model.Feature;
-import com.github.filosganga.geogson.model.Point;
-import com.github.filosganga.geogson.model.positions.SinglePosition;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
@@ -32,7 +28,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.BrApiGeoJSON;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
@@ -77,7 +72,6 @@ import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
-import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
