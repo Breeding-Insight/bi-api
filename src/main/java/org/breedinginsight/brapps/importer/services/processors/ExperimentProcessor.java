@@ -62,8 +62,6 @@ import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
@@ -71,7 +69,6 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -86,7 +83,7 @@ import java.util.stream.Collectors;
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs. You must append file with the appropriate ObsUnitIDs or specify a new environment for these entities to proceed.";
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs. You must append file with the appropriate ObsUnitIDs or specify a new environment for these entities to proceed";
     private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s.<br/><br/>" +
             "If you’re trying to add these units to the experiment, please create a new environment" +
             " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
