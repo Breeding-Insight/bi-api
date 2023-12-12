@@ -173,7 +173,9 @@ public class FileUtil {
             // Convert to Table.
             //Jackson used downstream messily converts LOCAL_DATE/LOCAL_DATETIME, so need to interpret date input as strings
             //Note that if another type is needed later this is what needs to be updated
-            ArrayList<ColumnType> acceptedTypes = new ArrayList<>(Arrays.asList(ColumnType.STRING, ColumnType.INTEGER, ColumnType.DOUBLE, ColumnType.FLOAT));
+            //Removed FLOAT and DOUBLE types because it was causing issues with experiment geocoordinates which are to be treated as strings
+            //until validations are done
+            ArrayList<ColumnType> acceptedTypes = new ArrayList<>(Arrays.asList(ColumnType.STRING, ColumnType.INTEGER));
             Table df = Table.read().usingOptions(
                     CsvReadOptions
                             .builderFromString(input)
