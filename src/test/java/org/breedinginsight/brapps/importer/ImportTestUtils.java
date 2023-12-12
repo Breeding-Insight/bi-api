@@ -206,15 +206,21 @@ public class ImportTestUtils {
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TITLE).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_DESCRIPTION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.SUB_OBS_UNIT).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_TYPE).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ENV).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_LOCATION).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ENV_YEAR).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.EXP_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.SUB_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.REP_NUM).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.BLOCK_NUM).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.ROW).dataType(Column.ColumnDataType.INTEGER).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.COLUMN).dataType(Column.ColumnDataType.INTEGER).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.LAT).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.LONG).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.ELEVATION).dataType(Column.ColumnDataType.STRING).build());
+        columns.add(Column.builder().value(ExperimentObservation.Columns.RTK).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.TREATMENT_FACTORS).dataType(Column.ColumnDataType.STRING).build());
         columns.add(Column.builder().value(ExperimentObservation.Columns.OBS_UNIT_ID).dataType(Column.ColumnDataType.STRING).build());
 
