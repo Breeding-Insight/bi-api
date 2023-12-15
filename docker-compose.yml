@@ -164,7 +164,7 @@ services:
           - gigwa_db
   localstack:
     container_name: "localstack"
-    image: localstack/localstack
+    image: localstack/localstack:3.0.2
     restart: always
     ports:
       - "4566:4566"
@@ -173,7 +173,7 @@ services:
         aliases:
           - localstack
     environment:
-      - HOSTNAME_EXTERNAL=localstack
+      - LOCALSTACK_HOST=localstack
 
 networks:
   backend:
