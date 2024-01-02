@@ -23,6 +23,7 @@ import com.github.filosganga.geogson.model.positions.SinglePosition;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.BrApiGeoJSON;
 import org.brapi.v2.model.core.*;
@@ -333,6 +334,11 @@ public class ExperimentObservation implements BrAPIImport {
 
         } catch (NullPointerException | NumberFormatException e) {
             // ignore null or number format exceptions, won't populate geocoordinates if there are any issues
+        }
+
+        String rtk = getRtk();
+        if (StringUtils.isNotBlank(rtk)) {
+            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.RTK, rtk);
         }
 
         // X and Y coordinates
