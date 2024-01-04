@@ -257,6 +257,7 @@ public class ExperimentObservation implements BrAPIImport {
             String seqVal,
             boolean commit,
             String germplasmName,
+            String gid,
             String referenceSource,
             UUID trialID,
             UUID datasetId,
@@ -279,6 +280,7 @@ public class ExperimentObservation implements BrAPIImport {
             germplasmName = getGermplasmName();
         }
         observationUnit.setGermplasmName(germplasmName);
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid);
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();

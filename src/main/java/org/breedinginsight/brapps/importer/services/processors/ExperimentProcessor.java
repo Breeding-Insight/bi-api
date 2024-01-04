@@ -1030,7 +1030,7 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
-            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, BRAPI_REFERENCE_SOURCE, trialID, datasetId, studyID, id);
+            BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, importRow.getGid(), BRAPI_REFERENCE_SOURCE, trialID, datasetId, studyID, id);
 
             // check for existing units if this is an existing study
             if (studyPIO.getBrAPIObject().getStudyDbId() != null) {
@@ -1365,15 +1365,14 @@ public class ExperimentProcessor implements Processor {
     private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
         this.observationUnitByNameNoScope.values()
                                          .stream()
-                                         .filter(obsUnit -> obsUnit.getBrAPIObject()
-                                                                   .getGermplasmName() != null &&
-                                                 obsUnit.getBrAPIObject()
-                                                        .getGermplasmName()
-                                                        .equals(germplasm.getGermplasmName()))
+                                         .filter(obsUnit -> germplasm.getAccessionNumber() != null &&
+                                                 germplasm.getAccessionNumber().equals(obsUnit
+                                                         .getBrAPIObject()
+                                                         .getAdditionalInfo().getAsJsonObject()
+                                                         .get(BrAPIAdditionalInfoFields.GID).getAsString()))
                                          .forEach(obsUnit -> obsUnit.getBrAPIObject()
                                                                     .setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
-
 
     private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
         // update location DbIds in studies for all distinct locations
