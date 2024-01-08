@@ -38,6 +38,7 @@ public final class BrAPIAdditionalInfoFields {
     public static final String CREATED_DATE = "createdDate";
     public static final String DEFAULT_OBSERVATION_LEVEL = "defaultObservationLevel";
     public static final String OBSERVATION_LEVEL = "observationLevel";
+    public static final String RTK = "rtk";
     public static final String EXPERIMENT_TYPE = "experimentType";
     public static final String EXPERIMENT_NUMBER = "experimentNumber";
     public static final String ENVIRONMENT_NUMBER = "environmentNumber";
