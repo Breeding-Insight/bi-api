@@ -50,6 +50,7 @@ public class TraitsQuery extends QueryParams {
     private String updatedByUserId;
     private String updatedByUserName;
     private String termType;
+    private String fullName;
 
     public SearchRequest constructSearchRequest() {
         List<FilterRequest> filters = new ArrayList<>();
@@ -124,6 +125,9 @@ public class TraitsQuery extends QueryParams {
         }
         if (!StringUtils.isBlank(getTermType())) {
             filters.add(constructFilterRequest("termType", getTermType()));
+        }
+        if (!StringUtils.isBlank(getFullName())) {
+            filters.add(constructFilterRequest("fullName", getFullName()));
         }
         return new SearchRequest(filters);
     }
