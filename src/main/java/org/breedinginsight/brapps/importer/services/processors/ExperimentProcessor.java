@@ -26,7 +26,6 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.JSON;
@@ -62,7 +61,6 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
@@ -72,7 +70,6 @@ import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.time.OffsetDateTime;
@@ -87,14 +84,7 @@ import java.util.stream.Collectors;
 public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
-    private static final String EXISTING_ENV = "Cannot create new observation unit %s for existing environment %s.<br/><br/>" +
-            "If you’re trying to add these units to the experiment, please create a new environment" +
-            " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
-            "for each experiment unit).";
-    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experiment Units are missing Observation Unit Id.<br/><br/>" +
-            "If you’re trying to add these units to the experiment, please create a new environment" +
-            " with all appropriate experiment units (NOTE: this will generate new Observation Unit Ids " +
-            "for each experiment unit).";
+    private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs";
     private static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
     private static final String MIDNIGHT = "T00:00:00-00:00";
     private static final String TIMESTAMP_PREFIX = "TS:";
@@ -215,7 +205,7 @@ public class ExperimentProcessor implements Processor {
             Table data,
             Program program,
             User user,
-            boolean commit) throws UnprocessableEntityException, ApiException, ValidatorException {
+            boolean commit) throws ApiException, ValidatorException, MissingRequiredInfoException {
         log.debug("processing experiment import");
 
         ValidationErrors validationErrors = new ValidationErrors();
@@ -498,7 +488,7 @@ public class ExperimentProcessor implements Processor {
         return column.name();
     }
 
-    private void initNewBrapiData(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Program program, User user, List<Trait> referencedTraits, boolean commit) throws UnprocessableEntityException, ApiException {
+    private void initNewBrapiData(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Program program, User user, List<Trait> referencedTraits, boolean commit) throws ApiException, MissingRequiredInfoException {
 
         String expSequenceName = program.getExpSequence();
         if (expSequenceName == null) {
@@ -933,7 +923,7 @@ public class ExperimentProcessor implements Processor {
         return null;
     }
 
-    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws UnprocessableEntityException, ApiException {
+    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException {
         PendingImportObject<BrAPIObservationUnit> pio;
         String key = createObservationUnitKey(importRow);
         if (this.observationUnitByNameNoScope.containsKey(key)) {
@@ -963,8 +953,7 @@ public class ExperimentProcessor implements Processor {
                 List<BrAPIObservationUnit> existingOUs = brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyPIO.getBrAPIObject().getStudyDbId(), program);
                 List<BrAPIObservationUnit> matchingOU = existingOUs.stream().filter(ou -> importRow.getExpUnitId().equals(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()))).collect(Collectors.toList());
                 if (matchingOU.isEmpty()) {
-                    throw new UnprocessableEntityException(String.format(EXISTING_ENV, importRow.getExpUnitId(),
-                            Utilities.removeProgramKeyAndUnknownAdditionalData(studyPIO.getBrAPIObject().getStudyName(), program.getKey())));
+                    throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
                 } else {
                     pio = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservationUnit) Utilities.formatBrapiObjForDisplay(matchingOU.get(0), BrAPIObservationUnit.class, program));
                 }
