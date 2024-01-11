@@ -1051,10 +1051,7 @@ public class ExperimentProcessor implements Processor {
         referencedTraits.forEach(trait -> {
             String id = Utilities.appendProgramKey(trait.getObservationVariableName(), program.getKey());
 
-            // Don't append the key if connected to a brapi service operating with legacy data(no appended program key)
-            if (trait.getFullName() == null) {
-                id = trait.getObservationVariableName();
-            }
+            // TODO - Don't append the key if connected to a brapi service operating with legacy data(no appended program key)
 
             if (!details.getData().contains(id) && ImportObjectState.EXISTING != pio.getState()) {
                 details.getData().add(id);
