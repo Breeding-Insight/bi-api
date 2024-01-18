@@ -383,10 +383,19 @@ public class ExperimentProcessor implements Processor {
 
         mutatedObservationByDbId.forEach((id, observation) ->  {
             try {
+                if (observation == null) {
+                    throw new Exception("Null observation");
+                }
                 BrAPIObservation updatedObs = brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
-                if (!observation.getValue().equals(updatedObs.getValue()) || !observation.getObservationTimeStamp().isEqual(updatedObs.getObservationTimeStamp())) {
+
+                if (updatedObs == null) {
+                    throw new Exception("Null updated observation");
+                }
+
+                if (!Objects.equals(observation.getValue(), updatedObs.getValue())
+                        || !Objects.equals(observation.getObservationTimeStamp(), updatedObs.getObservationTimeStamp())) {
                     String message;
-                    if(!observation.getValue().equals(updatedObs.getValue())) {
+                    if(!Objects.equals(observation.getValue(), updatedObs.getValue())) {
                         message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObs.getValue(), observation.getValue());
                     } else {
                         message = String.format("Updated observation timestamp, %s, from BrAPI service does not match requested update timestamp %s.", updatedObs.getObservationTimeStamp(), observation.getObservationTimeStamp());
@@ -401,9 +410,7 @@ public class ExperimentProcessor implements Processor {
                 throw new InternalServerException(e.getMessage(), e);
             }
         });
-
         log.debug("experiment import complete");
-
     }
 
     private void prepareDataForValidation(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Map<Integer, PendingImport> mappedBrAPIImport) {
