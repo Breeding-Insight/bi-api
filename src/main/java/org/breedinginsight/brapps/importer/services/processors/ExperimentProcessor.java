@@ -1146,8 +1146,6 @@ public class ExperimentProcessor implements Processor {
         //if it is already there, don't add it.
         if(additionalInfo==null || additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
             String year = study.getSeasons().get(0);
-            //String seasonDbId = study.getSeasons().get(0);
-            //String year = seasonDbIdToYear(seasonDbId, program.getId());
             addYearToStudyAdditionalInfo(program, study, year);
         }
     }
