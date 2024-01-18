@@ -1091,7 +1091,12 @@ public class ExperimentProcessor implements Processor {
         addObsVarsToDatasetDetails(pio, referencedTraits, program);
     }
 
-    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(Program program, boolean commit, String expSequenceValue, ExperimentObservation importRow, Supplier<BigInteger> envNextVal) {
+    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(
+            Program program,
+            boolean commit,
+            String expSequenceValue,
+            ExperimentObservation importRow,
+            Supplier<BigInteger> envNextVal) {
         PendingImportObject<BrAPIStudy> pio;
         if (studyByNameNoScope.containsKey(importRow.getEnv())) {
             pio = studyByNameNoScope.get(importRow.getEnv());
@@ -1133,8 +1138,9 @@ public class ExperimentProcessor implements Processor {
 
         //if it is already there, don't add it.
         if(additionalInfo==null || additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
-            String seasonDbId = study.getSeasons().get(0);
-            String year = seasonDbIdToYear(seasonDbId, program.getId());
+            String year = study.getSeasons().get(0);
+            //String seasonDbId = study.getSeasons().get(0);
+            //String year = seasonDbIdToYear(seasonDbId, program.getId());
             addYearToStudyAdditionalInfo(program, study, year);
         }
     }
