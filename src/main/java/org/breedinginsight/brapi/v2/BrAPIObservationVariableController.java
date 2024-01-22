@@ -25,37 +25,30 @@ import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.Pair;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
-import org.brapi.v2.model.BrAPIOntologyReference;
-import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.pheno.*;
+import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableListResponseResult;
 import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.Utilities;
-import org.jetbrains.annotations.NotNull;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
@@ -115,14 +108,15 @@ public class BrAPIObservationVariableController {
                 log.debug("unsupported variable filters, returning");
                 programTraits = new ArrayList<>();
             } else if(environmentId != null || experimentId != null) {
-                programTraits = getBrAPIObservationVariablesForExperiment(programId, Optional.ofNullable(experimentId), Optional.ofNullable(environmentId));
+                programTraits = traitService.getBrAPIObservationVariablesForExperiment(
+                        programId, Optional.ofNullable(experimentId), Optional.ofNullable(environmentId));
             } else {
                 log.debug("fetching variables for the program: " + programId);
                 programTraits = ontologyService.getTraitsByProgramId(programId, true);
 
             }
 
-            List<BrAPIObservationVariable> filteredObsVars = filterVariables(programTraits,
+            List<BrAPIObservationVariable> filteredObsVars = traitService.filterVariables(programTraits,
                                                                                        Optional.ofNullable(observationVariableDbId),
                                                                                        Optional.ofNullable(observationVariableName),
                                                                                        Optional.ofNullable(traitClass),
@@ -174,7 +168,7 @@ public class BrAPIObservationVariableController {
 
             BrAPIObservationVariableSingleResponse response = new BrAPIObservationVariableSingleResponse()
                     .metadata(new BrAPIMetadata())
-                    .result(convertToBrAPI(trait.get()));
+                    .result(traitService.convertToBrAPI(trait.get()));
 
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
@@ -198,175 +192,4 @@ public class BrAPIObservationVariableController {
         return HttpResponse.notFound();
     }
 
-    private BrAPIObservationVariable convertToBrAPI(Trait trait) {
-        BrAPIOntologyReference brAPIOntologyReference = new BrAPIOntologyReference().ontologyDbId(trait.getProgramOntologyId()
-                                                                                                       .toString());
-        String status = trait.getActive() ? "active" : "inactive";
-        List<String> synonyms = prepSynonyms(trait);
-        return new BrAPIObservationVariable().observationVariableDbId(trait.getId().toString())
-                                             .observationVariableName(trait.getObservationVariableName())
-                                             .defaultValue(trait.getDefaultValue())
-                                             .status(status)
-                                             .synonyms(synonyms)
-                                             .trait(new BrAPITrait().ontologyReference(brAPIOntologyReference)
-                                                                    .traitName(trait.getObservationVariableName())
-                                                                    .traitDbId(trait.getId().toString())
-                                                                    .entity(trait.getEntity())
-                                                                    .attribute(trait.getAttribute())
-                                                                    .status(status)
-                                                                    .synonyms(synonyms))
-                                             .method(new BrAPIMethod().ontologyReference(brAPIOntologyReference)
-                                                                      .methodDbId(trait.getMethod().getId().toString())
-                                                                      .methodClass(trait.getMethod().getMethodClass())
-                                                                      .description(trait.getMethod().getDescription())
-                                                                      .formula(trait.getMethod().getFormula()))
-                                             .scale(new BrAPIScale().ontologyReference(brAPIOntologyReference)
-                                                                    .scaleDbId(trait.getScale().getId().toString())
-                                                                    .scaleName(trait.getScale().getScaleName())
-                                                                    .dataType(BrAPITraitDataType.fromValue(trait.getScale().getDataType().getLiteral()))
-                                                                    .decimalPlaces(trait.getScale().getDecimalPlaces())
-                                                                    .validValues(new BrAPIScaleValidValues().max(trait.getScale().getValidValueMax())
-                                                                                                            .min(trait.getScale().getValidValueMin())
-                                                                                                            .categories(trait.getScale().getCategories())));
-    }
-
-    /**
-     * Create a list of synonyms, and ensure that there the first element matches the name of the trait<br><br>
-     * This is primarily needed to ensure any system using the first synonym as a display shows the actual name of the ontology term
-     * @param trait
-     * @return list of synonyms with at least one value (the name of the trait)
-     */
-    private List<String> prepSynonyms(Trait trait) {
-        List<String> preppedSynonyms = new ArrayList<>();
-        if(trait.getSynonyms() != null) {
-            preppedSynonyms = trait.getSynonyms();
-            int traitNameIdx = -1;
-            for(int i = 0; i < preppedSynonyms.size(); i++) {
-                if(preppedSynonyms.get(i).equals(trait.getObservationVariableName())) {
-                    traitNameIdx = i;
-                    break;
-                }
-            }
-            if(traitNameIdx > -1) {
-                String temp = preppedSynonyms.get(traitNameIdx);
-                preppedSynonyms.set(traitNameIdx, preppedSynonyms.get(0));
-                preppedSynonyms.set(0, temp);
-            } else {
-                preppedSynonyms.add(0, trait.getObservationVariableName());
-            }
-        } else {
-            preppedSynonyms.add(trait.getObservationVariableName());
-        }
-        return preppedSynonyms;
-    }
-
-    @NotNull
-    private List<BrAPIObservationVariable> filterVariables(List<Trait> programTraits,
-                                                           Optional<String> observationVariableDbId,
-                                                           Optional<String> observationVariableName,
-                                                           Optional<String> traitClass,
-                                                           Optional<String> methodDbId,
-                                                           Optional<String> methodName,
-                                                           Optional<String> scaleDbId,
-                                                           Optional<String> scaleName,
-                                                           Optional<String> traitDbId,
-                                                           Optional<String> traitName,
-                                                           Optional<String> ontologyDbId) throws DoesNotExistException {
-        log.debug("filtering variables:\n" +
-                  "observationVariableDbId: " + observationVariableDbId + "\n" +
-                  "observationVariableName: " + observationVariableName + "\n" +
-                  "traitClass: " + traitClass + "\n" +
-                  "methodDbId: " + methodDbId + "\n" +
-                  "methodName: " + methodName + "\n" +
-                  "scaleDbId: " + scaleDbId + "\n" +
-                  "scaleName: " + scaleName + "\n" +
-                  "traitDbId: " + traitDbId + "\n" +
-                  "traitName: " + traitName + "\n" +
-                  "ontologyDbId: " + ontologyDbId);
-
-        return programTraits.stream()
-                            .filter(trait -> {
-                                boolean matches = true;
-
-                                Map<String, Pair<Optional<String>, String>> filterParams = new HashMap<>();
-                                filterParams.put("observationVariableDbId",
-                                                 Pair.of(observationVariableDbId,
-                                                         trait.getId()
-                                                              .toString()));
-                                filterParams.put("observationVariableName", Pair.of(observationVariableName, trait.getObservationVariableName()));
-                                filterParams.put("traitClass", Pair.of(traitClass, trait.getTraitClass()));
-                                filterParams.put("methodDbId",
-                                                 Pair.of(methodDbId,
-                                                         trait.getMethodId()
-                                                              .toString()));
-                                filterParams.put("methodName",
-                                                 Pair.of(methodName,
-                                                         trait.getMethod()
-                                                              .getDescription()));
-                                filterParams.put("scaleDbId",
-                                                 Pair.of(scaleDbId,
-                                                         trait.getScale()
-                                                              .getId()
-                                                              .toString()));
-                                filterParams.put("scaleName",
-                                                 Pair.of(scaleName,
-                                                         trait.getScale()
-                                                              .getScaleName()));
-                                filterParams.put("traitDbId",
-                                                 Pair.of(traitDbId,
-                                                         trait.getId()
-                                                              .toString()));
-                                filterParams.put("traitName", Pair.of(traitName, trait.getObservationVariableName()));
-                                filterParams.put("ontologyDbId",
-                                                 Pair.of(ontologyDbId,
-                                                         trait.getProgramOntologyId()
-                                                              .toString()));
-
-                                for (Map.Entry<String, Pair<Optional<String>, String>> filter : filterParams.entrySet()) {
-                                    if (filter.getValue().getLeft().isPresent()) {
-                                        log.debug("filtering traits by: " + filter.getKey());
-                                        matches = StringUtils.equals(filter.getValue()
-                                                                           .getLeft()
-                                                                           .get(),
-                                                                     filter.getValue()
-                                                                           .getRight());
-                                    }
-                                    if (!matches) {
-                                        break;
-                                    }
-                                }
-
-                                return matches;
-                            })
-                            .map(this::convertToBrAPI)
-                            .collect(Collectors.toList());
-    }
-
-    private List<Trait> getBrAPIObservationVariablesForExperiment(UUID programId, Optional<String> experimentId, Optional<String> environmentId) throws DoesNotExistException, ApiException {
-        log.debug(String.format("fetching variables for experiment.  expId: %s, envId: %s ", experimentId.orElse(""), environmentId.orElse("")));
-        Optional<Program> program = programService.getById(programId);
-        if(program.isEmpty()) {
-            throw new DoesNotExistException("Could not find program: " + programId);
-        }
-        UUID expId;
-        if(experimentId.isPresent()) {
-            expId = UUID.fromString(experimentId.get());
-        } else {
-            UUID envId = UUID.fromString(environmentId.get());
-            BrAPIStudy environment = trialService.getEnvironment(program.get(), envId);
-            expId = UUID.fromString(Utilities.getExternalReference(environment.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS)).get().getReferenceID());
-        }
-
-        BrAPITrial experiment = trialService.getExperiment(program.get(), expId);
-        if(experiment
-                .getAdditionalInfo().getAsJsonObject()
-                .has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String obsDatasetId = experiment
-                    .getAdditionalInfo().getAsJsonObject()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
-            return trialService.getDatasetObsVars(obsDatasetId, program.get());
-        }
-
-        return new ArrayList<>();
-    }
 }
