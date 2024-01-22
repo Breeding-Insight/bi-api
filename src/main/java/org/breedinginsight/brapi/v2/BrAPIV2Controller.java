@@ -60,7 +60,7 @@ public class BrAPIV2Controller {
     }
 
 
-    @Get(BrapiVersion.BRAPI_V2 + "/serverinfo")
+    @Get("/${micronaut.bi.api.version}/" + BrapiVersion.BRAPI_V2 + "/serverinfo")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     public BrAPIServerInfoResponse serverinfo() {
@@ -70,8 +70,7 @@ public class BrAPIV2Controller {
 
         serverInfo.setCalls(
                 new ServiceBuilder().versions("2.0", "2.1")
-                        .setBase("serverinfo").GET().build()
-                        .setBase("programs").GET().addPath("{programDbId}").GET().build()
+                        .setBase("serverinfo").GET().build()                 
         );
 
         return new BrAPIServerInfoResponse().result(serverInfo);
