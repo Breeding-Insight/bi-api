@@ -55,7 +55,6 @@ public class BrAPITrialService {
     private final BrAPITrialDAO trialDAO;
     private final BrAPIObservationDAO observationDAO;
     private final BrAPIListDAO listDAO;
-//    private final BrAPIObservationVariableDAO obsVarDAO;
 
     private final TraitService traitService;
     private final BrAPIStudyDAO studyDAO;
@@ -70,7 +69,6 @@ public class BrAPITrialService {
                              BrAPITrialDAO trialDAO,
                              BrAPIObservationDAO observationDAO,
                              BrAPIListDAO listDAO,
-//                             BrAPIObservationVariableDAO obsVarDAO,
                              TraitService traitService,
                              BrAPIStudyDAO studyDAO,
                              BrAPISeasonDAO seasonDAO,
@@ -82,7 +80,6 @@ public class BrAPITrialService {
         this.trialDAO = trialDAO;
         this.observationDAO = observationDAO;
         this.listDAO = listDAO;
-//        this.obsVarDAO = obsVarDAO;
         this.traitService = traitService;
         this.studyDAO = studyDAO;
         this.seasonDAO = seasonDAO;
@@ -413,7 +410,6 @@ public class BrAPITrialService {
                 String.format("%s/%s", referenceSource, ExternalReferenceSource.DATASET.getName()),
                 UUID.fromString(datasetId));
         if (lists == null || lists.isEmpty()) {
-//            throw new DoesNotExistException("Dataset observation variables list not returned from BrAPI service");
             log.warn(String.format("Dataset %s observation variables list not returned from BrAPI service", datasetId));
             return new ArrayList<>();
         }
