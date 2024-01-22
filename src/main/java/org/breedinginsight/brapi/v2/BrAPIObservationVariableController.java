@@ -101,7 +101,6 @@ public class BrAPIObservationVariableController {
                                                                            @Nullable @QueryValue("traitPUI") String traitPUI,
                                                                            @Nullable @QueryValue("ontologyDbId") String ontologyDbId,
                                                                            @Nullable @QueryValue("commonCropName") String commonCropName,
-//                                     @QueryValue("programDbId") Optional<@Nullable String> programDbId, //this is redundant
                                                                            @Nullable @QueryValue("trialDbId") String experimentId,
                                                                            @Nullable @QueryValue("studyDbId") String environmentId,
                                                                            @Nullable @QueryValue("externalReferenceID") String externalReferenceID,

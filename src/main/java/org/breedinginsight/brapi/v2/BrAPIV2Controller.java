@@ -70,7 +70,7 @@ public class BrAPIV2Controller {
 
         serverInfo.setCalls(
                 new ServiceBuilder().versions("2.0", "2.1")
-                        .setBase("serverinfo").GET().build()                 
+                        .setBase("serverinfo").GET().build()
         );
 
         return new BrAPIServerInfoResponse().result(serverInfo);

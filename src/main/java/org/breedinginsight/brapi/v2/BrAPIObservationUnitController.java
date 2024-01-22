@@ -82,7 +82,6 @@ public class BrAPIObservationUnitController {
                                                @Nullable @QueryValue("observationUnitLevelRelationshipCode") String observationUnitLevelRelationshipCode,
                                                @Nullable @QueryValue("observationUnitLevelRelationshipDbId") String observationUnitLevelRelationshipDbId,
                                                @Nullable @QueryValue("commonCropName") String commonCropName,
-                                               @Nullable @QueryValue("programDbId") String programDbId,
                                                @Nullable @QueryValue("trialDbId") String trialDbId,
                                                @Nullable @QueryValue("studyDbId") String studyDbId,
                                                @Nullable @QueryValue("germplasmDbId") String germplasmDbId,
