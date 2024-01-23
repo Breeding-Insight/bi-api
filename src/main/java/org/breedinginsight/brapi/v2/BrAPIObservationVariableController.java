@@ -35,6 +35,7 @@ import org.brapi.v2.model.pheno.response.BrAPIObservationVariableSingleResponse;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.services.BrAPIObservationVariableService;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
@@ -57,19 +58,21 @@ public class BrAPIObservationVariableController {
     private final String referenceSource;
 
     private final OntologyService ontologyService;
+    private final BrAPIObservationVariableService observationVariableService;
     private final TraitService traitService;
-
     private final BrAPITrialService trialService;
 
     private final ProgramService programService;
 
     @Inject
     public BrAPIObservationVariableController(OntologyService ontologyService,
+                                              BrAPIObservationVariableService observationVariableService,
                                               TraitService traitService,
                                               BrAPITrialService trialService,
                                               ProgramService programService,
                                               @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.ontologyService = ontologyService;
+        this.observationVariableService = observationVariableService;
         this.traitService = traitService;
         this.trialService = trialService;
         this.programService = programService;
@@ -108,7 +111,7 @@ public class BrAPIObservationVariableController {
                 log.debug("unsupported variable filters, returning");
                 programTraits = new ArrayList<>();
             } else if(environmentId != null || experimentId != null) {
-                programTraits = traitService.getBrAPIObservationVariablesForExperiment(
+                programTraits = observationVariableService.getBrAPIObservationVariablesForExperiment(
                         programId, Optional.ofNullable(experimentId), Optional.ofNullable(environmentId));
             } else {
                 log.debug("fetching variables for the program: " + programId);
@@ -116,7 +119,7 @@ public class BrAPIObservationVariableController {
 
             }
 
-            List<BrAPIObservationVariable> filteredObsVars = traitService.filterVariables(programTraits,
+            List<BrAPIObservationVariable> filteredObsVars = observationVariableService.filterVariables(programTraits,
                                                                                        Optional.ofNullable(observationVariableDbId),
                                                                                        Optional.ofNullable(observationVariableName),
                                                                                        Optional.ofNullable(traitClass),
@@ -168,7 +171,7 @@ public class BrAPIObservationVariableController {
 
             BrAPIObservationVariableSingleResponse response = new BrAPIObservationVariableSingleResponse()
                     .metadata(new BrAPIMetadata())
-                    .result(traitService.convertToBrAPI(trait.get()));
+                    .result(observationVariableService.convertToBrAPI(trait.get()));
 
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
