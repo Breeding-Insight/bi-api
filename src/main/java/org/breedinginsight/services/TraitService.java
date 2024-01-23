@@ -71,15 +71,13 @@ public class TraitService {
     private TraitValidatorService traitValidator;
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
-    private BrAPITrialService trialService;
-    private String referenceSource;
     private final static String FAVORITES_TAG = "favorites";
 
     @Inject
     public TraitService(TraitDAO traitDao, MethodDAO methodDao, ScaleDAO scaleDao, ObservationDAO observationDao, ProgramService programService,
                         ProgramOntologyService programOntologyService, ProgramObservationLevelService programObservationLevelService,
                         UserService userService, TraitValidatorService traitValidator, DSLContext dsl, TraitValidatorError traitValidatorError,
-                        ProgramOntologyDAO programOntologyDAO, BrAPITrialService trialService, String referenceSource) {
+                        ProgramOntologyDAO programOntologyDAO) {
         this.traitDAO = traitDao;
         this.methodDAO = methodDao;
         this.scaleDAO = scaleDao;
@@ -92,8 +90,6 @@ public class TraitService {
         this.dsl = dsl;
         this.traitValidatorError = traitValidatorError;
         this.programOntologyDAO = programOntologyDAO;
-        this.trialService = trialService;
-        this.referenceSource = referenceSource;
     }
 
     public List<Trait> getByProgramId(UUID programId, boolean getFullTrait) throws DoesNotExistException {
