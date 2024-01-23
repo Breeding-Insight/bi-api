@@ -68,10 +68,11 @@ public class BrAPIObservationVariableService {
         if(experimentId.isPresent()) {
             expId = UUID.fromString(experimentId.get());
         } else {
-            UUID envId = UUID.fromString(environmentId.get());
+            UUID envId = UUID.fromString(environmentId.orElseThrow(() -> new IllegalStateException("no environment id found")));
             BrAPIStudy environment = trialService.getEnvironment(program.get(), envId);
             expId = UUID.fromString(Utilities.getExternalReference(environment.getExternalReferences(),
-                    Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS)).get().getReferenceId());
+                    Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
+                    .orElseThrow(() -> new IllegalStateException("no external reference found")).getReferenceId());
         }
 
         BrAPITrial experiment = trialService.getExperiment(program.get(), expId);
