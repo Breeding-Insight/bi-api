@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapi.v2;
 
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpRequest;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
@@ -55,13 +54,11 @@ import java.util.UUID;
 @Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIObservationVariableController {
-    private final String referenceSource;
 
     private final OntologyService ontologyService;
     private final BrAPIObservationVariableService observationVariableService;
     private final TraitService traitService;
     private final BrAPITrialService trialService;
-
     private final ProgramService programService;
 
     @Inject
@@ -69,14 +66,12 @@ public class BrAPIObservationVariableController {
                                               BrAPIObservationVariableService observationVariableService,
                                               TraitService traitService,
                                               BrAPITrialService trialService,
-                                              ProgramService programService,
-                                              @Property(name = "brapi.server.reference-source") String referenceSource) {
+                                              ProgramService programService) {
         this.ontologyService = ontologyService;
         this.observationVariableService = observationVariableService;
         this.traitService = traitService;
         this.trialService = trialService;
         this.programService = programService;
-        this.referenceSource = referenceSource;
     }
 
     @Get("/variables")

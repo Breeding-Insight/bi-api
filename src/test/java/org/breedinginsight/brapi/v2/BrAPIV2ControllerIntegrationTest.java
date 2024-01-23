@@ -127,7 +127,7 @@ public class BrAPIV2ControllerIntegrationTest extends BrAPITest {
 
     @Test
     public void testRootServerInfo() {
-        Flowable<HttpResponse<String>> call = biClient.exchange(GET("/brapi/v2/serverinfo"), String.class);
+        Flowable<HttpResponse<String>> call = biClient.exchange(GET("/v1/brapi/v2/serverinfo"), String.class);
 
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.OK, response.getStatus());

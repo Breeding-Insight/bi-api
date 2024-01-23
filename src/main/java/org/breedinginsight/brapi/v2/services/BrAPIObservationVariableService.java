@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapi.v2.services;
 
+import io.micronaut.context.annotation.Property;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -47,7 +48,8 @@ public class BrAPIObservationVariableService {
 
     @Inject
     public BrAPIObservationVariableService(
-            ProgramService programService, BrAPITrialService trialService, String referenceSource) {
+            ProgramService programService, BrAPITrialService trialService,
+            @Property(name = "brapi.server.reference-source") String referenceSource) {
         this.programService = programService;
         this.trialService = trialService;
         this.referenceSource = referenceSource;

@@ -60,7 +60,7 @@ public class BrAPIV2Controller {
     }
 
 
-    @Get("/${micronaut.bi.api.version}/" + BrapiVersion.BRAPI_V2 + "/serverinfo")
+    @Get("/${micronaut.bi.api.version}" + BrapiVersion.BRAPI_V2 + "/serverinfo")
     @Produces(MediaType.APPLICATION_JSON)
     @Secured(SecurityRule.IS_ANONYMOUS)
     public BrAPIServerInfoResponse serverinfo() {
