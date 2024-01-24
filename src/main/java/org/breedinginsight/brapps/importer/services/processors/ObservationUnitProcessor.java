@@ -24,7 +24,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.daos.BrAPIObservationUnitDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -34,6 +34,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import tech.tablesaw.api.Table;
 
@@ -143,6 +144,8 @@ public class ObservationUnitProcessor implements Processor {
         try {
             createdObservationUnits.addAll(brAPIObservationUnitDAO.createBrAPIObservationUnits(observationUnits, program.getId(), upload));
         } catch (ApiException e) {
+            throw new InternalServerException(e.toString(), e);
+        } catch (DoesNotExistException e) {
             throw new InternalServerException(e.toString(), e);
         }
 
