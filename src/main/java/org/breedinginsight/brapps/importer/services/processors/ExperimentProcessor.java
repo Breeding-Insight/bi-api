@@ -509,7 +509,7 @@ public class ExperimentProcessor implements Processor {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for environment import");
         }
         Supplier<BigInteger> envNextVal = () -> dsl.nextval(envSequenceName.toLowerCase());
-
+        existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
@@ -1010,7 +1010,7 @@ public class ExperimentProcessor implements Processor {
         String variableName = column.name();
         String value = column.getString(rowNum);
         String key = getImportObservationHash(importRow, variableName);
-        existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
+
         if (existingObsByObsHash.containsKey(key)) {
             if (StringUtils.isNotBlank(value) && !isObservationMatched(key, value, column, rowNum)){
 
