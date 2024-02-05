@@ -37,6 +37,13 @@ public class StudyQueryMapper extends AbstractQueryMapper<BrAPIStudy> {
     private final Map<String, Function<BrAPIStudy, ?>> fields;
 
     public StudyQueryMapper() {
+        /*
+        TODO
+            - observationVariableDbId
+            - active
+            - programDbId
+            - germplasmDbId
+         */
         fields = Map.ofEntries(
                 Map.entry("studyType", BrAPIStudy::getStudyType),
                 Map.entry("locationDbId", BrAPIStudy::getLocationDbId),

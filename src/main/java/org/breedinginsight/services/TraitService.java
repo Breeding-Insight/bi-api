@@ -22,10 +22,19 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.HttpServerException;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.text.WordUtils;
-import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIOntologyReference;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.pheno.*;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.enums.DataType;
 import org.breedinginsight.dao.db.tables.pojos.MethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramSharedOntologyEntity;
@@ -37,6 +46,8 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.validators.TraitValidatorError;
 import org.breedinginsight.services.validators.TraitValidatorService;
+import org.breedinginsight.utilities.Utilities;
+import org.jetbrains.annotations.NotNull;
 import org.jooq.DSLContext;
 
 import javax.inject.Inject;
@@ -60,7 +71,6 @@ public class TraitService {
     private TraitValidatorService traitValidator;
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
-
     private final static String FAVORITES_TAG = "favorites";
 
     @Inject
@@ -474,5 +484,13 @@ public class TraitService {
 
         tags.add(FAVORITES_TAG);
         return new ArrayList<>(tags);
+    }
+
+    public List<Trait> getByName(UUID programId, List<String> names) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        return traitDAO.getTraitsByTraitName(programId, names.stream().map(name -> Trait.builder().observationVariableName(name).build()).collect(Collectors.toList()));
     }
 }

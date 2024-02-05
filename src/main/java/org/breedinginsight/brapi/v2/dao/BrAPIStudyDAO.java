@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.breedinginsight.brapps.importer.daos;
+package org.breedinginsight.brapi.v2.dao;
 
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
@@ -26,6 +26,7 @@ import org.brapi.client.v2.modules.core.StudiesApi;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.request.BrAPIStudySearchRequest;
+import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
@@ -151,6 +152,15 @@ public class BrAPIStudyDAO {
         );
     }
 
+    public List<BrAPIStudy> getStudiesByEnvironmentIds(@NotNull Collection<UUID> environmentIds, Program program ) throws ApiException {
+        return programStudyCache.get(program.getId())
+                                .entrySet()
+                                .stream()
+                                .filter(entry -> environmentIds.contains(UUID.fromString(entry.getKey())))
+                                .map(Map.Entry::getValue)
+                                .collect(Collectors.toList());
+    }
+
     public List<BrAPIStudy> createBrAPIStudies(List<BrAPIStudy> brAPIStudyList, UUID programId, ImportUpload upload) throws ApiException {
         StudiesApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), StudiesApi.class);
         List<BrAPIStudy> createdStudies = new ArrayList<>();
@@ -204,6 +214,12 @@ public class BrAPIStudyDAO {
 
     public Optional<BrAPIStudy> getStudyByDbId(String studyDbId, Program program) throws ApiException {
         List<BrAPIStudy> studies = getStudiesByStudyDbId(List.of(studyDbId), program);
+
+        return Utilities.getSingleOptional(studies);
+    }
+
+    public Optional<BrAPIStudy> getStudyByEnvironmentId(UUID environmentId, Program program) throws ApiException {
+        List<BrAPIStudy> studies = getStudiesByEnvironmentIds(List.of(environmentId), program);
 
         return Utilities.getSingleOptional(studies);
     }
