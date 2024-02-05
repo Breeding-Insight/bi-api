@@ -1010,6 +1010,160 @@ public class ExperimentFileImportTest extends BrAPITest {
         }
     }
 
+    /*
+    Scenario:
+    - a new experiment is created with sub-unit value
+    - no observations recorded, empty dataset
+    - verify that datasets are successfully created for the experiment units and sub-units
+    * */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void importNewExpWithSubUnits(boolean commit) {
+        List<Trait> traits = importTestUtils.createTraits(1);
+        Program program = createProgram(
+                "New exp with sub-units, no observation data "+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                BRAPI_REFERENCE_SOURCE,
+                createGermplasm(1),
+                traits
+        );
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.SUB_OBS_UNIT, "Plant");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.SUB_UNIT_ID, "A");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), null);
+
+        JsonObject result = importTestUtils.uploadAndFetch(
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits),
+                null,
+                commit,
+                client,
+                program,
+                mappingId
+        );
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("NEW", row.getAsJsonObject("trial").get("state").getAsString());
+        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
+        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertEquals("NEW", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", row.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("NEW", row.getAsJsonObject("observationUnit").get("state").getAsString());
+        if(commit) {
+            assertRowSaved(newExp, program, traits);
+        } else {
+            assertValidPreviewRow(newExp, row, program, traits);
+        }
+    }
+
+    /*
+    Scenario:
+    - a new experiment is created with sub-obs-unit and sub-unit-id values
+    - exp-unit-id is empty
+    - verify that import fails validation
+    * */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void importNewExpWithEmptyExpUnitID(boolean commit) {
+        List<Trait> traits = importTestUtils.createTraits(1);
+        Program program = createProgram(
+                "New exp with sub-units, no observation data "+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                BRAPI_REFERENCE_SOURCE,
+                createGermplasm(1),
+                traits
+        );
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.SUB_OBS_UNIT, "Plant");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "");  // leave exp-unit-id empty
+        newExp.put(Columns.SUB_UNIT_ID, "A");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), null);
+
+        JsonObject result = importTestUtils.uploadAndFetch(
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits),
+                null,
+                commit,
+                client,
+                program,
+                mappingId
+        );
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("NEW", row.getAsJsonObject("trial").get("state").getAsString());
+        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
+        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertEquals("NEW", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", row.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("NEW", row.getAsJsonObject("observationUnit").get("state").getAsString());
+        if(commit) {
+            assertRowSaved(newExp, program, traits);
+        } else {
+            assertValidPreviewRow(newExp, row, program, traits);
+        }
+    }
+
+    /*
+    Scenario:
+    - a new experiment is created with sub-unit and sub-unit-id values
+    - multiple and distinct values for sub-obs-unit used
+    - verify that import fails validation
+    * */
+
+    /*
+    Scenario:
+    - a new experiment is created with sub-unit and sub-unit-id values
+    - sub-obs-unit has same value as exp-unit
+    - verify that import fails validation
+    * */
+
+    /*
+    Scenario:
+    - a new experiment is created with sub-unit and sub-unit-id values
+    - verify that import rows with sub-unit-ids equal but exp-unit-ids different pass validation
+    - verify that import rows with sub-unit-ids equal but exp-unit-ids same fail validation
+    * */
+
+    /*
+    Scenario:
+    - a new experiment is created without sub-units and with phenotypic columns
+    - a new import in the same experiment with sub-units and the same phenotypic columns
+    - verify import of sub-units fails validation check for trying to use phenotypes already assigned to a adataset
+    * */
+
     private Map<String, Object> assertRowSaved(Map<String, Object> expected, Program program, List<Trait> traits) throws ApiException {
         Map<String, Object> ret = new HashMap<>();
 
