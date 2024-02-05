@@ -50,15 +50,15 @@ import java.util.UUID;
 @Slf4j
 @Controller
 @Secured(SecurityRule.IS_AUTHENTICATED)
-public class ListController {
+public class BrAPIListController {
 
     private final ProgramService programService;
     private final BrAPIListService listService;
     private final ListQueryMapper listQueryMapper;
 
     @Inject
-    public ListController(ProgramService programService, BrAPIListService listService,
-                          ListQueryMapper listQueryMapper) {
+    public BrAPIListController(ProgramService programService, BrAPIListService listService,
+                               ListQueryMapper listQueryMapper) {
         this.programService = programService;
         this.listService = listService;
         this.listQueryMapper = listQueryMapper;

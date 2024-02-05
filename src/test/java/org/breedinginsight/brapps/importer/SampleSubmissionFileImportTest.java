@@ -43,7 +43,7 @@ import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.daos.*;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;

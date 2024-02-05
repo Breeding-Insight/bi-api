@@ -9,7 +9,7 @@ import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListSearchRequest;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
-import org.breedinginsight.brapps.importer.daos.*;
+import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -17,10 +17,8 @@ import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j

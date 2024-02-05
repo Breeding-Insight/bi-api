@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.daos;
+package org.breedinginsight.brapi.v2.dao;
 
 import io.micronaut.context.annotation.Property;
 import org.brapi.client.v2.ApiResponse;
