@@ -1773,10 +1773,19 @@ public class ExperimentProcessor implements Processor {
 
     }
 
+    private boolean isNAObservation(String value){
+        return value.equalsIgnoreCase("NA");
+    }
+
     private void validateObservationValue(Trait variable, String value,
                                           String columnHeader, ValidationErrors validationErrors, int row) {
         if (StringUtils.isBlank(value)) {
             log.debug(String.format("skipping validation of observation because there is no value.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
+            return;
+        }
+
+        if (isNAObservation(value)) {
+            log.debug(String.format("skipping validation of observation because it is NA.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
             return;
         }
 
