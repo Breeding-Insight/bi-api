@@ -118,7 +118,7 @@ public class ExperimentProcessor implements Processor {
     private final Map<String, String> seasonDbIdToYearCache = new HashMap<>();
 
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
-    // then updated by the getNewBrapiData() method.
+    // then updated by the initNewBrapiData() method.
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
     private Map<String, PendingImportObject<ProgramLocation>> locationByName = null;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
@@ -129,7 +129,7 @@ public class ExperimentProcessor implements Processor {
 
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
-    // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
+    // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the initNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
 
     // Associates timestamp columns to associated phenotype column name for ease of storage
@@ -598,13 +598,6 @@ public class ExperimentProcessor implements Processor {
                 validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
             }
             validateTestOrCheck(importRow, validationErrors, rowNum);
-            //TODO: providing obs unit ID does not supersede import row inout data as expected and needs to be fixed
-            //Check if existing environment. If so, ObsUnitId must be assigned
-//            if ((mappedImportRow.getStudy().getState() == ImportObjectState.EXISTING)
-//                    && (StringUtils.isBlank(importRow.getObsUnitID()))) {
-//                throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
-//            }
-
             validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
             validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
@@ -810,8 +803,14 @@ public class ExperimentProcessor implements Processor {
                 addRowError(Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
             }
         } else {
-            //TODO: include this step once user-supplied obs unit id correctly supersedes other row data
-            //validateRequiredCell(importRow.getObsUnitID(), Columns.OBS_UNIT_ID, errorMessage, validationErrors, rowNum);
+            //Check if existing environment. If so, ObsUnitId must be assigned
+            validateRequiredCell(
+                    importRow.getObsUnitID(),
+                    Columns.OBS_UNIT_ID,
+                    "Experimental entities are missing ObsUnitIDs. Import cannot proceed",
+                    validationErrors,
+                    rowNum
+            );
         }
     }
 
@@ -1380,7 +1379,7 @@ public class ExperimentProcessor implements Processor {
                     BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
                                                             .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
 
-                    ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceID());
+                    ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceId());
                     row.setExpTitle(Utilities.removeProgramKey(brAPIObservationUnit.getTrialName(), program.getKey()));
                     row.setEnv(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getStudyName(), program.getKey()));
                     row.setEnvLocation(Utilities.removeProgramKey(brAPIObservationUnit.getLocationName(), program.getKey()));
@@ -1600,12 +1599,12 @@ public class ExperimentProcessor implements Processor {
         BrAPIExternalReference idRef = Utilities.getExternalReference(brAPIObservationUnit.getExternalReferences(), refSource)
                                                 .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
 
-        ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceID());
+        ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceId());
         row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
         observationUnitByName.put(createObservationUnitKey(row),
                 new PendingImportObject<>(ImportObjectState.EXISTING,
                                           brAPIObservationUnit,
-                                          UUID.fromString(idRef.getReferenceID())));
+                                          UUID.fromString(idRef.getReferenceId())));
     }
 
     private void processAndCacheStudy(BrAPIStudy existingStudy, Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
