@@ -242,8 +242,10 @@ public class TraitFileParser {
                 }
             }
 
+            String units = parseExcelValueAsString(record, TraitFileColumns.UNITS);
             Scale scale = Scale.builder()
-                    .scaleName(parseExcelValueAsString(record, TraitFileColumns.SCALE_NAME))
+                    .scaleName(units == null ? parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS) : units)
+                    .units(units)
                     .dataType(dataType)
                     .decimalPlaces(decimalPlaces)
                     .validValueMin(validValueMin)

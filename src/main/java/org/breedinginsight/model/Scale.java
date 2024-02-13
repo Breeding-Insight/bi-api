@@ -58,6 +58,7 @@ public class Scale extends ScaleEntity {
     public Scale(ScaleEntity scaleEntity){
         this.setId(scaleEntity.getId());
         this.setScaleName(scaleEntity.getScaleName());
+        this.setUnits(scaleEntity.getUnits());
         this.setProgramOntologyId(scaleEntity.getProgramOntologyId());
         this.setDataType(scaleEntity.getDataType());
         this.setCreatedAt(scaleEntity.getCreatedAt());
@@ -70,6 +71,7 @@ public class Scale extends ScaleEntity {
         return Scale.builder()
             .id(record.getValue(SCALE.ID))
             .scaleName(record.getValue(SCALE.SCALE_NAME))
+            .units(record.getValue(SCALE.UNITS))
             .programOntologyId(record.getValue(SCALE.PROGRAM_ONTOLOGY_ID))
             .dataType(record.getValue(SCALE.DATA_TYPE))
             .createdAt(record.getValue(SCALE.CREATED_AT))
