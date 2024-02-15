@@ -570,7 +570,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureNewOuExistingEnv(boolean commit) {
-        Program program = createProgram("New OU Exising Env "+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+        Program program = createProgram("New OU Existing Env "+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -608,7 +608,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void importNewObsVarExisingOu() {
+    public void importNewObsVarExistingOu() {
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram("New ObsVar Existing OU", "OUVAR", "OUVAR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -674,7 +674,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void importNewObsExisingOu(boolean commit) {
+    public void importNewObsExistingOu(boolean commit) {
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Obs Existing OU "+(commit ? "C" : "P"), "OUOBS"+(commit ? "C" : "P"), "OUOBS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -740,7 +740,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     @SneakyThrows
-    public void verifyFailureImportNewObsExisingOuWithExistingObs(boolean commit) {
+    public void verifyFailureImportNewObsExistingOuWithExistingObs(boolean commit) {
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Obs Existing Obs "+(commit ? "C" : "P"), "FEXOB"+(commit ? "C" : "P"), "FEXOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
