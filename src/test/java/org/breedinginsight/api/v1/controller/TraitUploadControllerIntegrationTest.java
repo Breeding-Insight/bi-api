@@ -581,7 +581,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
 
         JsonObject scale = trait.get("scale").getAsJsonObject();
-        assertEquals("1-4 Parlier field response score", scale.get("scaleName").getAsString(), "wrong scale name");
+        assertEquals("Ordinal", scale.get("scaleName").getAsString(), "wrong scale name");
         assertEquals(DataType.ORDINAL.getLiteral(), scale.get("dataType").getAsString(), "wrong scale dataType");
         assertEquals(2, scale.get("decimalPlaces").getAsInt(), "wrong scale decimal places");
         assertEquals(2, scale.get("validValueMin").getAsInt(), "wrong scale min value");

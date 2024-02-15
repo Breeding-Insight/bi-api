@@ -56,8 +56,8 @@ public class TraitValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingScaleNameMsg() {
-        return new ValidationError("scale.scaleName", "Missing scale name", HttpStatus.BAD_REQUEST);
+    public ValidationError getMissingScaleUnitMsg() {
+        return new ValidationError("scale.units", "Missing units", HttpStatus.BAD_REQUEST);
     }
 
     @Override

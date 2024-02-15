@@ -290,6 +290,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
                     .programObservationLevel(ProgramObservationLevel.builder().name("Plot").build())
                     .scale(Scale.builder()
                             .scaleName("test scale")
+                            .units("test unit")
                             .dataType(DataType.NUMERICAL)
                             .validValueMin(0)
                             .validValueMax(100)
