@@ -812,6 +812,27 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
     }
 
     @Test
+    void putNonNumericalClassWithUnitError() {
+
+        File file = new File("src/test/resources/files/ontology/non_numerical_with_unit.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Units identified for non-numeric scale class", error.get("errorMessage").getAsString(), "Incorrect http status code");
+    }
+
+    @Test
     void putOrdinalMissingCategories() {
 
         File file = new File("src/test/resources/files/ontology/data_ordinal_missing_categories.xlsx");

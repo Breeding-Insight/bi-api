@@ -37,7 +37,7 @@ public enum ParsingExceptionType {
     INVALID_SCALE_UPPER_LIMIT("Invalid scale upper limit value. Value must be numeric and be a whole number."),
     INVALID_SCALE_CATEGORIES("Invalid scale categories format"),
     INVALID_TERM_TYPE("Invalid term type"),
-    SCALE_UNIT_NOT_ALLOWED("Units identified for non-numeric scale class.");
+    SCALE_UNIT_NOT_ALLOWED("Units identified for non-numeric scale class");
 
     private String value;
 
