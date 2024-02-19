@@ -1210,14 +1210,14 @@ public class ExperimentFileImportTest extends BrAPITest {
     /*
     Scenario:
     - an experiment was created with observations
-    - new observations with sub-units made without specifying parent Obs-Unit-ID
-    - verify that errors are returned for the rows missing Obs-Unit-ID
+    - a new experiment is created after the first experiment
+    - verify the second experiment gets created successfully
      */
     @Test
     @SneakyThrows
     public void importSecondExpAfterFirstExpWithObs() {
         List<Trait> traits = importTestUtils.createTraits(1);
-        Program program = createProgram("Sub-units without obs-unit-id", "NEAF", "NEAF", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("New Exp After First", "NEAF", "NEAF", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExpA = new HashMap<>();
         newExpA.put(Columns.GERMPLASM_GID, "1");
         newExpA.put(Columns.TEST_CHECK, "T");
