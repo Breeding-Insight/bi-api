@@ -794,14 +794,168 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceID());
         newObservation.put(traits.get(0).getObservationVariableName(), "2");
 
+        Map<String, String> userData = new HashMap<>();
+        userData.put("overwrite", "true");
+        userData.put("overwriteReason", "regression test");
         uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit);
     }
 
     /*
     Scenario:
+    - a new experiment is created with sub-unit value
+    - no observations recorded, empty dataset
+    - verify that datasets are successfully created for the experiment units and sub-units
+    * */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void verifyFailureImportSubUnitWithoutParentObsUnitID(boolean commit) {
+        List<Trait> traits = importTestUtils.createTraits(1);
+        Program program = createProgram(
+                "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                BRAPI_REFERENCE_SOURCE,
+                createGermplasm(1),
+                traits
+        );
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), null);
+
+        importTestUtils.uploadAndFetch(
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits),
+                null,
+                commit,
+                client,
+                program,
+                mappingId
+        );
+
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(
+                List.of((String)newExp.get(Columns.EXP_TITLE)),
+                program
+        ).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(
+                brAPITrial.getExternalReferences(),
+                String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName())
+        );
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(
+                UUID.fromString(trialIdXref.get().getReferenceId()),
+                program
+        ).get(0);
+
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        assertRowSaved(newExp, program, traits);
+
+        Map<String, Object> newObservation = new HashMap<>();
+        newExp.put(Columns.SUB_OBS_UNIT, "Plant");
+        newExp.put(Columns.SUB_UNIT_ID, "A");
+        newObservation.put(Columns.OBS_UNIT_ID, null);
+        newObservation.put(traits.get(0).getObservationVariableName(), "1");
+
+        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit);
+    }
+
+    /*
+    Scenario:
+    - a new experiment is created
+    - sub-units imported with different values for sub-obs-unit
+    - verify that import row with different sub-obs-unit has error
+    * */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void verifyFailureImportMultipleSubObsUnits(boolean commit) {
+        List<Trait> traits = importTestUtils.createTraits(1);
+        Program program = createProgram(
+                "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                "EXPSU"+(commit ? "C" : "P"),
+                BRAPI_REFERENCE_SOURCE,
+                createGermplasm(1),
+                traits
+        );
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), null);
+
+        importTestUtils.uploadAndFetch(
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits),
+                null,
+                commit,
+                client,
+                program,
+                mappingId
+        );
+
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(
+                List.of((String)newExp.get(Columns.EXP_TITLE)),
+                program
+        ).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(
+                brAPITrial.getExternalReferences(),
+                String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName())
+        );
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(
+                UUID.fromString(trialIdXref.get().getReferenceId()),
+                program
+        ).get(0);
+
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        assertRowSaved(newExp, program, traits);
+
+        Map<String, Object> newPlant = new HashMap<>();
+        newExp.put(Columns.SUB_OBS_UNIT, "Plant");
+        newExp.put(Columns.SUB_UNIT_ID, "A");
+        newPlant.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newPlant.put(traits.get(0).getObservationVariableName(), "1");
+        Map<String, Object> newLeaf = new HashMap<>();
+        newExp.put(Columns.SUB_OBS_UNIT, "Leaf");
+        newExp.put(Columns.SUB_UNIT_ID, "B");
+        newPlant.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newPlant.put(traits.get(0).getObservationVariableName(), "1");
+
+        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlant, newLeaf), traits), traits.get(0).getObservationVariableName(), commit);
+    }
+
+    /*
+    Scenario:
     - an experiment was created with observations
-    - a new experiment is created after the first experiment
-    - verify the second experiment gets created successfully
+    - new observations with sub-units made without specifying parent Obs-Unit-ID
+    - verify that errors are returned for the rows missing Obs-Unit-ID
      */
     @Test
     @SneakyThrows
@@ -1538,8 +1692,14 @@ public class ExperimentFileImportTest extends BrAPITest {
         return germplasm;
     }
 
-    private JsonObject uploadAndVerifyFailure(Program program, File file, String expectedColumnError, boolean commit) throws InterruptedException, IOException {
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, null, true, client, program, mappingId);
+    private JsonObject uploadAndVerifyFailure(
+            Program program,
+            File file,
+            String expectedColumnError,
+            Map<String, String> userData,
+            boolean commit
+    ) throws InterruptedException, IOException {
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, userData, commit, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
 
@@ -1559,5 +1719,33 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         return result;
     }
+
+    private JsonObject uploadAndVerifyFailure(
+            Program program,
+            File file,
+            String expectedColumnError,
+            boolean commit
+    ) throws InterruptedException, IOException {
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(file, null, commit, client, program, mappingId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+
+        JsonArray rowErrors = result.getAsJsonObject("progress").getAsJsonArray("rowErrors");
+        assertEquals(1, rowErrors.size());
+        JsonArray fieldErrors = rowErrors.get(0).getAsJsonObject().getAsJsonArray("errors");
+        assertEquals(1, fieldErrors.size());
+        JsonObject error = fieldErrors.get(0).getAsJsonObject();
+        assertEquals(expectedColumnError, error.get("field").getAsString());
+        assertEquals(422, error.get("httpStatusCode").getAsInt());
+
+        return result;
+    }
+
 
 }
