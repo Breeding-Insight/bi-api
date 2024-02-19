@@ -578,7 +578,7 @@ public class ExperimentProcessor implements Processor {
     private String getObservationHash(String observationUnitName, String variableName, String studyName) {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                 DigestUtils.sha256Hex(variableName) +
-                DigestUtils.sha256Hex(studyName);
+                DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
         return DigestUtils.sha256Hex(concat);
     }
 
@@ -792,12 +792,12 @@ public class ExperimentProcessor implements Processor {
                 }
             }
             if(validateRequiredCell(importRow.getEnvYear(), Columns.ENV_YEAR, errorMessage, validationErrors, rowNum)) {
-                String studyYear = this.studyByNameNoScope.get(importRow.getEnv()).getBrAPIObject().getSeasons().get(0);
+                String studyYear = StringUtils.defaultString( this.studyByNameNoScope.get(importRow.getEnv()).getBrAPIObject().getSeasons().get(0) );
                 String rowYear = importRow.getEnvYear();
                 if(commit) {
                     rowYear = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
                 }
-                if(!studyYear.equals(rowYear)) {
+                if(StringUtils.isNotBlank(studyYear) && !studyYear.equals(rowYear)) {
                     addRowError(Columns.ENV_YEAR, ENV_YEAR_MISMATCH, validationErrors, rowNum);
                 }
             }
