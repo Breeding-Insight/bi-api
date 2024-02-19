@@ -883,8 +883,14 @@ public class ExperimentProcessor implements Processor {
                 addRowError(Columns.OBS_UNIT_ID, "ObsUnitID cannot be specified when creating a new environment", validationErrors, rowNum);
             }
         } else {
-            //TODO: include this step once user-supplied obs unit id correctly supersedes other row data
-            //validateRequiredCell(importRow.getObsUnitID(), Columns.OBS_UNIT_ID, errorMessage, validationErrors, rowNum);
+            //Check if existing environment. If so, ObsUnitId must be assigned
+            validateRequiredCell(
+                    importRow.getObsUnitID(),
+                    Columns.OBS_UNIT_ID,
+                    "Experimental entities are missing ObsUnitIDs. Import cannot proceed",
+                    validationErrors,
+                    rowNum
+            );
         }
     }
 
