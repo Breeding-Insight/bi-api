@@ -803,14 +803,14 @@ public class ExperimentFileImportTest extends BrAPITest {
     /*
     Scenario:
     - a new experiment is created with sub-unit value
-    - no observations recorded, empty dataset
-    - verify that datasets are successfully created for the experiment units and sub-units
+    - no parent obs-unit-id
+    - verify that errors returned for rows without obs-unit-id
     * */
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureImportSubUnitWithoutParentObsUnitID(boolean commit) {
-        List<Trait> traits = importTestUtils.createTraits(1);
+        List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram(
                 "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
@@ -868,9 +868,9 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.SUB_OBS_UNIT, "Plant");
         newObservation.put(Columns.SUB_UNIT_ID, "A");
         newObservation.put(Columns.OBS_UNIT_ID, null);
-        newObservation.put(traits.get(0).getObservationVariableName(), "1");
+        newObservation.put(traits.get(1).getObservationVariableName(), "1");
 
-        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(0).getObservationVariableName(), commit);
+        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), traits.get(1).getObservationVariableName(), commit);
     }
 
     /*
@@ -883,9 +883,9 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureImportMultipleSubObsUnits(boolean commit) {
-        List<Trait> traits = importTestUtils.createTraits(1);
+        List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram(
-                "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
+                "Verify all sub-obs-units are equal "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 BRAPI_REFERENCE_SOURCE,
@@ -941,14 +941,14 @@ public class ExperimentFileImportTest extends BrAPITest {
         newPlant.put(Columns.SUB_OBS_UNIT, "Plant");
         newPlant.put(Columns.SUB_UNIT_ID, "A");
         newPlant.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
-        newPlant.put(traits.get(0).getObservationVariableName(), "1");
+        newPlant.put(traits.get(1).getObservationVariableName(), "1");
         Map<String, Object> newLeaf = new HashMap<>();
         newLeaf.put(Columns.SUB_OBS_UNIT, "Leaf");
         newLeaf.put(Columns.SUB_UNIT_ID, "B");
         newLeaf.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
-        newLeaf.put(traits.get(0).getObservationVariableName(), "1");
+        newLeaf.put(traits.get(1).getObservationVariableName(), "1");
 
-        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlant, newLeaf), traits), traits.get(0).getObservationVariableName(), commit);
+        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlant, newLeaf), traits), traits.get(1).getObservationVariableName(), commit);
     }
 
     /*
@@ -961,9 +961,9 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureImportSubUnitEqualsExpUnit(boolean commit) {
-        List<Trait> traits = importTestUtils.createTraits(1);
+        List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram(
-                "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
+                "Verify sub-units not equal to parent unit "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 BRAPI_REFERENCE_SOURCE,
@@ -1019,9 +1019,9 @@ public class ExperimentFileImportTest extends BrAPITest {
         newPlot.put(Columns.SUB_OBS_UNIT, "Plot");     // Sub-obs-unit = Exp-unit
         newPlot.put(Columns.SUB_UNIT_ID, "A");
         newPlot.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
-        newPlot.put(traits.get(0).getObservationVariableName(), "1");
+        newPlot.put(traits.get(1).getObservationVariableName(), "1");
 
-        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlot), traits), traits.get(0).getObservationVariableName(), commit);
+        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlot), traits), traits.get(1).getObservationVariableName(), commit);
     }
 
     /*
@@ -1034,9 +1034,9 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureImportMultipleSubUnitIds(boolean commit) {
-        List<Trait> traits = importTestUtils.createTraits(1);
+        List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram(
-                "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
+                "Verify sub-units non-null and unique "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 BRAPI_REFERENCE_SOURCE,
@@ -1114,24 +1114,24 @@ public class ExperimentFileImportTest extends BrAPITest {
         newPlant.put(Columns.SUB_OBS_UNIT, "Plant");
         newPlant.put(Columns.SUB_UNIT_ID, "A");
         newPlant.put(Columns.OBS_UNIT_ID, ouIdXref1.get().getReferenceId());
-        newPlant.put(traits.get(0).getObservationVariableName(), "1");
+        newPlant.put(traits.get(1).getObservationVariableName(), "1");
         Map<String, Object> similarPlant = new HashMap<>();
         similarPlant.put(Columns.SUB_OBS_UNIT, "Plant");
         similarPlant.put(Columns.SUB_UNIT_ID, "A");
         similarPlant.put(Columns.OBS_UNIT_ID, ouIdXref2.get().getReferenceId());    //this one should not return an error since parent ou-id is different
-        similarPlant.put(traits.get(0).getObservationVariableName(), "1");
+        similarPlant.put(traits.get(1).getObservationVariableName(), "1");
         Map<String, Object> samePlant = new HashMap<>();
         samePlant.put(Columns.SUB_OBS_UNIT, "Plant");
         samePlant.put(Columns.SUB_UNIT_ID, "A");
         samePlant.put(Columns.OBS_UNIT_ID, ouIdXref1.get().getReferenceId());
-        samePlant.put(traits.get(0).getObservationVariableName(), "1");
+        samePlant.put(traits.get(1).getObservationVariableName(), "1");
         Map<String, Object> nullPlant = new HashMap<>();
         nullPlant.put(Columns.SUB_OBS_UNIT, "Plant");
         nullPlant.put(Columns.SUB_UNIT_ID, null);
         nullPlant.put(Columns.OBS_UNIT_ID, ouIdXref1.get().getReferenceId());
-        nullPlant.put(traits.get(0).getObservationVariableName(), "1");
+        nullPlant.put(traits.get(1).getObservationVariableName(), "1");
 
-        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlant, similarPlant, samePlant, nullPlant), traits), traits.get(0).getObservationVariableName(), commit);
+        uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newPlant, similarPlant, samePlant, nullPlant), traits), traits.get(1).getObservationVariableName(), commit);
     }
 
     /*
@@ -1146,7 +1146,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     public void verifyFailureImportSubUnitsWithSameObsVar(boolean commit) {
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram(
-                "Verify sub-units need parent ouid "+(commit ? "C" : "P"),
+                "Verify sub-units not re-using observation variables "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 BRAPI_REFERENCE_SOURCE,
@@ -1217,7 +1217,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @SneakyThrows
     public void importSecondExpAfterFirstExpWithObs() {
         List<Trait> traits = importTestUtils.createTraits(1);
-        Program program = createProgram("New Exp After First", "NEAF", "NEAF", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("Sub-units without obs-unit-id", "NEAF", "NEAF", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExpA = new HashMap<>();
         newExpA.put(Columns.GERMPLASM_GID, "1");
         newExpA.put(Columns.TEST_CHECK, "T");
@@ -1438,7 +1438,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     public void importNewExpWithSubUnits(boolean commit) {
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram(
-                "New exp with no sub-units, no observation data "+(commit ? "C" : "P"),
+                "New exp with sub-units, no observation data "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 BRAPI_REFERENCE_SOURCE,
@@ -1459,7 +1459,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.BLOCK_NUM, "1");
         newExp.put(Columns.ROW, "1");
         newExp.put(Columns.COLUMN, "1");
-        //newExp.put(traits.get(0).getObservationVariableName(), null);
 
         importTestUtils.uploadAndFetch(
                 importTestUtils.writeExperimentDataToFile(List.of(newExp), traits),
@@ -1537,7 +1536,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     public void importNewExpWithSubUnitsEmptySubUnitIds(boolean commit) {
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram(
-                "New exp with no sub-units, no observation data "+(commit ? "C" : "P"),
+                "Auto-filled sub-unit-ids "+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 "EXPSU"+(commit ? "C" : "P"),
                 BRAPI_REFERENCE_SOURCE,
