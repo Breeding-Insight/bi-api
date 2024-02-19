@@ -84,7 +84,7 @@ public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
     private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs";
-    private static final String DUPLICATE_EXPERIMENT_TITLE = "Experiment Title already exists";
+    private static final String PREEXISTING_EXPERIMENT_TITLE = "Experiment Title already exists";
     private static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
     private static final String MIDNIGHT = "T00:00:00-00:00";
     private static final String TIMESTAMP_PREFIX = "TS:";
@@ -1179,7 +1179,7 @@ public class ExperimentProcessor implements Processor {
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
             pio = trialByNameNoScope.get(importRow.getExpTitle());
             if  (pio.getState() == ImportObjectState.EXISTING && StringUtils.isBlank( importRow.getObsUnitID() ) ){
-                throw new UnprocessableEntityException(DUPLICATE_EXPERIMENT_TITLE);
+                throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
             }
         } else if (!trialByNameNoScope.isEmpty()) {
             throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
