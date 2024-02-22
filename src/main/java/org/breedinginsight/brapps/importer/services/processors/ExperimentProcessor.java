@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.services.processors;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
@@ -64,6 +65,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
@@ -1145,7 +1147,9 @@ public class ExperimentProcessor implements Processor {
     private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
         PendingImportObject<BrAPIListDetails> pio;
         PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
-        String name = String.format("Observation Dataset [%s-%s]",
+        String datasetName = StringUtils.isNotBlank(importRow.getSubObsUnit()) ? importRow.getSubObsUnit() : importRow.getExpUnit();
+        String name = String.format("%s Observation Dataset [%s-%s]",
+                datasetName,
                 program.getKey(),
                 trialPIO.getBrAPIObject()
                         .getAdditionalInfo()
@@ -1163,6 +1167,19 @@ public class ExperimentProcessor implements Processor {
                     trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
             trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
+
+            // TODO:BI-1464 add datasetId to datasets array
+            JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
+            DatasetMetadata dataset = DatasetMetadata.builder()
+                    .name(datasetName)
+                    .id(id)
+                    .level(StringUtils.isNotBlank(importRow.getSubObsUnit()) ? DatasetLevel.SUB_OBS_UNIT : DatasetLevel.EXP_UNIT)
+                    .build();
+            datasets.add(dataset);
+            datasetsJson = DatasetUtil.jsonArrayFromDatasets(datasets);
+            trialPIO.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);
+
             if (ImportObjectState.EXISTING == trialPIO.getState()) {
                 trialPIO.setState(ImportObjectState.MUTATED);
             }
@@ -1580,6 +1597,7 @@ public class ExperimentProcessor implements Processor {
 
         Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows);
 
+        // TODO: BI-1464
         if (trialPIO.isPresent() && trialPIO.get().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
             String datasetId = trialPIO.get().getBrAPIObject()
                     .getAdditionalInfo()

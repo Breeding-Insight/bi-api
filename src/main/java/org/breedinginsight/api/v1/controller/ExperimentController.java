@@ -9,12 +9,14 @@ import io.micronaut.http.server.types.files.StreamedFile;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.model.Dataset;
+import org.breedinginsight.model.DatasetMetadata;
 import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
@@ -23,6 +25,7 @@ import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
 import javax.validation.Valid;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -87,6 +90,32 @@ public class ExperimentController {
             HttpResponse response = HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, downloadErrorMessage).contentType(MediaType.TEXT_PLAIN).body(downloadErrorMessage);
             return response;
         }
+    }
+
+    /**
+     * Retrieves the datasets for a given program and experiment.
+     *
+     * @param programId The UUID of the program.
+     * @param experimentId The UUID of the experiment.
+     * @return An HttpResponse with a Response object containing a list of DatasetMetadata.
+     * @throws DoesNotExistException if the program does not exist.
+     * @throws ApiException if an error occurs while retrieving the datasets.
+     */
+    @Get("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/datasets")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<List<DatasetMetadata>>> getDatasets(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId) throws DoesNotExistException, ApiException {
+
+        Optional<Program> programOptional = programService.getById(programId);
+        if (programOptional.isEmpty()) {
+            return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+        }
+
+        Response<List<DatasetMetadata>> response = new Response(experimentService.getDatasetsMetadata(programOptional.get(), experimentId));
+        return HttpResponse.ok(response);
+
     }
 
 }
