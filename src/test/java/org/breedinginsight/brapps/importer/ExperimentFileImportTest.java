@@ -216,7 +216,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void importNewExpMultiNewEnvNoObsSuccess() {
+    public void importNewExpMultiNewEnvError() {
         Program program = createProgram("New Exp and Multi New Env", "MULENV", "MULENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> firstEnv = new HashMap<>();
         firstEnv.put(Columns.GERMPLASM_GID, "1");
@@ -282,8 +282,8 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void importNewEnvExistingExpNoObsSuccess() {
-        Program program = createProgram("New Env Existing Exp", "NEWENV", "NEWENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+    public void importNewEnvExistingExpErrorMessage() {
+        Program program = createProgram("New Env Existing Exp", "DUPENV", "DUPENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
@@ -316,18 +316,51 @@ public class ExperimentFileImportTest extends BrAPITest {
         newEnv.put(Columns.ROW, "1");
         newEnv.put(Columns.COLUMN, "1");
 
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeExperimentDataToFile(List.of(newEnv), null), null, false, client, program, mappingId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experiment Title already exists"));
+    }
+
+    @Test
+    @SneakyThrows
+    public void importNewEnvNoObsSuccess() {
+        Program program = createProgram("New Env", "NEWENV", "NEWENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+
+        Map<String, Object> newEnv = new HashMap<>();
+        newEnv.put(Columns.GERMPLASM_GID, "1");
+        newEnv.put(Columns.TEST_CHECK, "T");
+        newEnv.put(Columns.EXP_TITLE, "Test Exp");
+        newEnv.put(Columns.EXP_UNIT, "Plot");
+        newEnv.put(Columns.EXP_TYPE, "Phenotyping");
+        newEnv.put(Columns.ENV, "New Trial Existing Exp");
+        newEnv.put(Columns.ENV_LOCATION, "Location A");
+        newEnv.put(Columns.ENV_YEAR, "2023");
+        newEnv.put(Columns.EXP_UNIT_ID, "a-1");
+        newEnv.put(Columns.REP_NUM, "1");
+        newEnv.put(Columns.BLOCK_NUM, "1");
+        newEnv.put(Columns.ROW, "1");
+        newEnv.put(Columns.COLUMN, "1");
+
         JsonObject result = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newEnv), null), null, true, client, program, mappingId);
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
         JsonObject row = previewRows.get(0).getAsJsonObject();
 
-        assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
-        assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("NEW", row.getAsJsonObject("trial").get("state").getAsString());
+        assertEquals("NEW", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("observationUnit").get("state").getAsString());
         assertRowSaved(newEnv, program, null);
     }
+
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
@@ -566,45 +599,46 @@ public class ExperimentFileImportTest extends BrAPITest {
         uploadAndVerifyFailure(program, importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), traits.get(0).getObservationVariableName(), commit);
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {true, false})
-    @SneakyThrows
-    public void verifyFailureNewOuExistingEnv(boolean commit) {
-        Program program = createProgram("New OU Exising Env "+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
-        Map<String, Object> newExp = new HashMap<>();
-        newExp.put(Columns.GERMPLASM_GID, "1");
-        newExp.put(Columns.TEST_CHECK, "T");
-        newExp.put(Columns.EXP_TITLE, "Test Exp");
-        newExp.put(Columns.EXP_UNIT, "Plot");
-        newExp.put(Columns.EXP_TYPE, "Phenotyping");
-        newExp.put(Columns.ENV, "New Env");
-        newExp.put(Columns.ENV_LOCATION, "Location A");
-        newExp.put(Columns.ENV_YEAR, "2023");
-        newExp.put(Columns.EXP_UNIT_ID, "a-1");
-        newExp.put(Columns.REP_NUM, "1");
-        newExp.put(Columns.BLOCK_NUM, "1");
-        newExp.put(Columns.ROW, "1");
-        newExp.put(Columns.COLUMN, "1");
-
-        importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
-
-        Map<String, Object> newOU = new HashMap<>(newExp);
-        newOU.put(Columns.EXP_UNIT_ID, "a-2");
-        newOU.put(Columns.ROW, "1");
-        newOU.put(Columns.COLUMN, "2");
-
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeExperimentDataToFile(List.of(newOU), null), null, commit, client, program, mappingId);
-        HttpResponse<String> response = call.blockingFirst();
-        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
-
-        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
-
-        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, program, mappingId);
-        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
-        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
-
-        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experimental entities are missing ObsUnitIDs"));
-    }
+    // NO Longer needed, but may be needed in the future.
+//    @ParameterizedTest
+//    @ValueSource(booleans = {true, false})
+//    @SneakyThrows
+//    public void verifyFailureNewOuExistingEnv(boolean commit) {
+//        Program program = createProgram("New OU Exising Env "+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
+//        Map<String, Object> newExp = new HashMap<>();
+//        newExp.put(Columns.GERMPLASM_GID, "1");
+//        newExp.put(Columns.TEST_CHECK, "T");
+//        newExp.put(Columns.EXP_TITLE, "Test Exp");
+//        newExp.put(Columns.EXP_UNIT, "Plot");
+//        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+//        newExp.put(Columns.ENV, "New Env");
+//        newExp.put(Columns.ENV_LOCATION, "Location A");
+//        newExp.put(Columns.ENV_YEAR, "2023");
+//        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+//        newExp.put(Columns.REP_NUM, "1");
+//        newExp.put(Columns.BLOCK_NUM, "1");
+//        newExp.put(Columns.ROW, "1");
+//        newExp.put(Columns.COLUMN, "1");
+//
+//        importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
+//
+//        Map<String, Object> newOU = new HashMap<>(newExp);
+//        newOU.put(Columns.EXP_UNIT_ID, "a-2");
+//        newOU.put(Columns.ROW, "1");
+//        newOU.put(Columns.COLUMN, "2");
+//
+//        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeExperimentDataToFile(List.of(newOU), null), null, commit, client, program, mappingId);
+//        HttpResponse<String> response = call.blockingFirst();
+//        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+//
+//        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+//
+//        HttpResponse<String> upload = importTestUtils.getUploadedFile(importId, client, program, mappingId);
+//        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+//        assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+//
+//        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experimental entities are missing ObsUnitIDs"));
+//    }
 
     @Test
     @SneakyThrows
