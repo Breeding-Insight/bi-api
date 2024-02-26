@@ -1170,12 +1170,17 @@ public class ExperimentProcessor implements Processor {
 
             // TODO:BI-1464 add datasetId to datasets array
             JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            // If datasets property does not yet exist, create it
+
+
             List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
             DatasetMetadata dataset = DatasetMetadata.builder()
                     .name(datasetName)
                     .id(id)
                     .level(StringUtils.isNotBlank(importRow.getSubObsUnit()) ? DatasetLevel.SUB_OBS_UNIT : DatasetLevel.EXP_UNIT)
                     .build();
+
+            log.debug(dataset.getName());
             datasets.add(dataset);
             datasetsJson = DatasetUtil.jsonArrayFromDatasets(datasets);
             trialPIO.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);

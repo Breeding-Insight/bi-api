@@ -7,6 +7,7 @@ import org.brapi.client.v2.JSON;
 import org.breedinginsight.model.DatasetMetadata;
 
 import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 
 public class DatasetUtil {
@@ -19,7 +20,7 @@ public class DatasetUtil {
             return gson.fromJson(datasetsJsonArray, listDatasetType);
         }
 
-        return List.of();
+        return new ArrayList<>();
     }
 
     public static JsonArray jsonArrayFromDatasets(List<DatasetMetadata> datasets) {
