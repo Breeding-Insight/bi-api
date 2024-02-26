@@ -702,6 +702,70 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertRowSaved(newObsVar, program, traits);
     }
 
+    @Test
+    @SneakyThrows
+    public void importNewObsVarByObsUnitId() {
+        List<Trait> traits = importTestUtils.createTraits(2);
+        Program program = createProgram("New ObsVar Existing OU", "OUVAR", "OUVAR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), null);
+
+        importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
+
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
+
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        Map<String, Object> newObsVar = new HashMap<>();
+//        newObsVar.put(Columns.GERMPLASM_GID, "1");
+//        newObsVar.put(Columns.TEST_CHECK, "T");
+//        newObsVar.put(Columns.EXP_TITLE, "Test Exp");
+//        newObsVar.put(Columns.EXP_UNIT, "Plot");
+//        newObsVar.put(Columns.EXP_TYPE, "Phenotyping");
+//        newObsVar.put(Columns.ENV, "New Env");
+//        newObsVar.put(Columns.ENV_LOCATION, "Location A");
+//        newObsVar.put(Columns.ENV_YEAR, "2023");
+//        newObsVar.put(Columns.EXP_UNIT_ID, "a-1");
+//        newObsVar.put(Columns.REP_NUM, "1");
+//        newObsVar.put(Columns.BLOCK_NUM, "1");
+//        newObsVar.put(Columns.ROW, "1");
+//        newObsVar.put(Columns.COLUMN, "1");
+        newObsVar.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
+        newObsVar.put(traits.get(1).getObservationVariableName(), null);
+
+        JsonObject result = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits), null, true, client, program, mappingId);
+
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
+        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
+        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
+        assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
+        assertRowSaved(newObsVar, program, traits);
+    }
+
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
