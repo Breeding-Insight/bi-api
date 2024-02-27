@@ -188,47 +188,32 @@ public class ExperimentProcessor implements Processor {
                                                                      .map(trialImport -> (ExperimentObservation) trialImport)
                                                                      .collect(Collectors.toList());
 
-        Map<String, BrAPIObservationUnit> referenceUnitById = new HashMap<>();
-        Map<String, String> expTitleByRefUnitId = new HashMap<>();
         // check for references to Deltabreed-generated observation units
-        setReferenceOUIds(importRows);
+        referenceOUIds = collateReferenceOUIds(importRows);
 
         if (hasAllReferenceUnitIds) {
-
-            // get all prior units referenced in import
             try {
-                List<BrAPIObservationUnit> referenceOUs = brAPIObservationUnitDAO.getObservationUnitsById(new ArrayList<String>(referenceOUIds), program);
-                for (BrAPIObservationUnit unit: referenceOUs) {
-                    setPendingObsUnitByOUId(program);
-                    setPendingTrialByOUId(program);
 
-                    // set pendingStudiesByOUId
-                    // set pendingLocationsByOUId
-                    // set pendingObsDatasetByOUId
-
-                    BrAPIExternalReference xref = Utilities.getExternalReference(
-                            unit.getExternalReferences(),
-                            ExternalReferenceSource.OBSERVATION_UNITS.getName()
-                    ).orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-                    referenceUnitById.put(xref.getReferenceId(), unit);
-                    expTitleByRefUnitId.put(xref.getReferenceId(), unit.getTrialName());
-                }
+                // get all prior units referenced in import
+                pendingObsUnitByOUId = fetchReferenceObservationUnits(referenceOUIds, program);
+                observationUnitByNameNoScope = mapPendingObservationUnitByName(pendingObsUnitByOUId, program);
             } catch (ApiException e) {
+                log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
             }
         } else if (hasNoReferenceUnitIds) {
             observationUnitByNameNoScope = initializeObservationUnits(program, experimentImportRows);
-            trialByNameNoScope = initializeTrialByNameNoScope(program, experimentImportRows);
-            studyByNameNoScope = initializeStudyByNameNoScope(program, experimentImportRows);
-            locationByName = initializeUniqueLocationNames(program, experimentImportRows);
-            obsVarDatasetByName = initializeObsVarDatasetByName(program, experimentImportRows);
-            existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
+
         } else {
 
             // can't proceed if you have a mix of ObsUnitId for some but not all rows
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, MISSING_OBS_UNIT_ID_ERROR);
         }
-
+        trialByNameNoScope = initializeTrialByNameNoScope(program, experimentImportRows);
+        studyByNameNoScope = initializeStudyByNameNoScope(program, experimentImportRows);
+        locationByName = initializeUniqueLocationNames(program, experimentImportRows);
+        obsVarDatasetByName = initializeObsVarDatasetByName(program, experimentImportRows);
+        existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
     }
 
     /**
@@ -562,6 +547,7 @@ public class ExperimentProcessor implements Processor {
         }
         Supplier<BigInteger> envNextVal = () -> dsl.nextval(envSequenceName.toLowerCase());
         existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
+
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
@@ -1454,6 +1440,28 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> mapPendingObservationUnitByName(
+            Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById,
+            Program program
+    ) {
+        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitByName = new HashMap<>();
+        for (Map.Entry<String, PendingImportObject<BrAPIObservationUnit>> entry : pendingUnitById.entrySet()) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    entry.getValue().getBrAPIObject().getStudyName(),
+                    program.getKey()
+            );
+            String observationUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    entry.getValue().getBrAPIObject().getObservationUnitName(),
+                    program.getKey()
+            );
+            pendingUnitByName.put(createObservationUnitKey(studyName, observationUnitName), entry.getValue());
+        }
+        return pendingUnitByName;
+    }
+
+
+
+
     /**
      * Retrieves a list of pending Observation Units based on their IDs.
      *
@@ -1464,7 +1472,11 @@ public class ExperimentProcessor implements Processor {
      *
      * @throws InternalServerException if an error occurs during the process.
      */
-    private List<BrAPIObservationUnit> setPendingObsUnitByOUId(Program program) {
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> fetchReferenceObservationUnits(
+            Set<String> referenceOUIds,
+            Program program
+    ) throws ApiException {
+        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = new HashMap<>();
         try {
             // Retrieve reference Observation Units based on IDs
             List<BrAPIObservationUnit> referenceObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(
@@ -1480,10 +1492,10 @@ public class ExperimentProcessor implements Processor {
                 referenceObsUnits.forEach(unit -> {
                     // Get external reference for the Observation Unit
                     BrAPIExternalReference unitXref = Utilities.getExternalReference(unit.getExternalReferences(), deltabreedOUSource)
-                        .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"));
+                        .orElseThrow(() -> new IllegalStateException("External reference does not exist for Deltabreed ObservationUnit ID"));
 
                     // Set pending Observation Unit by its ID
-                    pendingObsUnitByOUId.put(
+                    pendingUnitById.put(
                         unitXref.getReferenceId(),
                         new PendingImportObject<BrAPIObservationUnit>(
                             ImportObjectState.EXISTING, unit, UUID.fromString(unitXref.getReferenceId()))
@@ -1494,17 +1506,17 @@ public class ExperimentProcessor implements Processor {
                 List<String> missingIds = new ArrayList<>(referenceOUIds);
                 Set<String> fetchedIds = referenceObsUnits.stream().map(unit ->
                         Utilities.getExternalReference(unit.getExternalReferences(), deltabreedOUSource)
-                        .orElseThrow(() -> new InternalServerException("An ObservationUnit ID was not found in any of the external references"))
+                        .orElseThrow(() -> new InternalServerException("External reference does not exist for Deltabreed ObservationUnit ID"))
                         .getReferenceId())
                         .collect(Collectors.toSet());
                 missingIds.removeAll(fetchedIds);
                 throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(COMMA_DELIMITER, missingIds));
             }
 
-            return referenceObsUnits;
+            return pendingUnitById;
         } catch (ApiException e) {
             log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new InternalServerException(e.toString(), e);
+            throw new ApiException(e);
         }
     }
 
@@ -1562,11 +1574,12 @@ public class ExperimentProcessor implements Processor {
     }
 
     private void initializeStudiesForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) throws ApiException {
-        Set<String> studyDbIds = this.observationUnitByNameNoScope.values()
-                                                               .stream()
-                                                               .map(pio -> pio.getBrAPIObject()
-                                                                              .getStudyDbId())
-                                                               .collect(Collectors.toSet());
+        Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitMap = hasAllReferenceUnitIds ? pendingObsUnitByOUId : observationUnitByNameNoScope;
+        Set<String> studyDbIds = observationUnitMap.values()
+                .stream()
+                .map(pio -> pio.getBrAPIObject()
+                        .getStudyDbId())
+                .collect(Collectors.toSet());
 
         List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
         studies.forEach(study -> processAndCacheStudy(study, program, studyByName));
@@ -1796,20 +1809,21 @@ public class ExperimentProcessor implements Processor {
         if(observationUnitByNameNoScope.size() > 0) {
             Set<String> trialDbIds = new HashSet<>();
             Set<String> studyDbIds = new HashSet<>();
+            Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitMap = hasAllReferenceUnitIds ? pendingObsUnitByOUId : observationUnitByNameNoScope;
 
-            observationUnitByNameNoScope.values()
-                                        .forEach(pio -> {
-                                            BrAPIObservationUnit existingOu = pio.getBrAPIObject();
-                                            if (StringUtils.isBlank(existingOu.getTrialDbId()) && StringUtils.isBlank(existingOu.getStudyDbId())) {
-                                                throw new IllegalStateException("TrialDbId and StudyDbId are not set for an existing ObservationUnit");
-                                            }
+            observationUnitMap.values()
+                    .forEach(pio -> {
+                        BrAPIObservationUnit existingOu = pio.getBrAPIObject();
+                        if (StringUtils.isBlank(existingOu.getTrialDbId()) && StringUtils.isBlank(existingOu.getStudyDbId())) {
+                            throw new IllegalStateException("TrialDbId and StudyDbId are not set for an existing ObservationUnit");
+                        }
 
-                                            if (StringUtils.isNotBlank(existingOu.getTrialDbId())) {
-                                                trialDbIds.add(existingOu.getTrialDbId());
-                                            } else {
-                                                studyDbIds.add(existingOu.getStudyDbId());
-                                            }
-                                        });
+                        if (StringUtils.isNotBlank(existingOu.getTrialDbId())) {
+                            trialDbIds.add(existingOu.getTrialDbId());
+                        } else {
+                            studyDbIds.add(existingOu.getStudyDbId());
+                        }
+                    });
 
             //if the OU doesn't have the trialDbId set, then fetch the study to fetch the trialDbId
             if(!studyDbIds.isEmpty()) {
@@ -1904,7 +1918,8 @@ public class ExperimentProcessor implements Processor {
      * referenceOUIds list.
      * Sets flags hasAllReferenceUnitIds and hasNoReferenceUnitIds accordingly.
      */
-    private void setReferenceOUIds(List<BrAPIImport> importRows) {
+    private Set<String> collateReferenceOUIds(List<BrAPIImport> importRows) {
+        Set<String> referenceOUIds = new HashSet<>();
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
@@ -1920,6 +1935,7 @@ public class ExperimentProcessor implements Processor {
                 hasNoReferenceUnitIds = false;
             }
         }
+        return referenceOUIds;
     }
 
     private void validateTimeStampValue(String value,
