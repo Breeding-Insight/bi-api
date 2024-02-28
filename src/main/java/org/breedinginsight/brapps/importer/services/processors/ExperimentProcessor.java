@@ -1107,7 +1107,12 @@ public class ExperimentProcessor implements Processor {
     }
     private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
         PendingImportObject<BrAPIListDetails> pio;
-        PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
+        PendingImportObject<BrAPITrial> trialPIO;
+        if (hasAllReferenceUnitIds) {
+            trialPIO = trialByNameNoScope.values().iterator().next();
+        } else {
+            trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
+        }
         String name = String.format("Observation Dataset [%s-%s]",
                 program.getKey(),
                 trialPIO.getBrAPIObject()
@@ -1218,24 +1223,35 @@ public class ExperimentProcessor implements Processor {
             Supplier<BigInteger> expNextVal
     ) throws UnprocessableEntityException {
         PendingImportObject<BrAPITrial> trialPio;
-        if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
-            PendingImportObject<BrAPIStudy> envPio;
-            trialPio = trialByNameNoScope.get(importRow.getExpTitle());
-            envPio = this.studyByNameNoScope.get(importRow.getEnv());
-            if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
-                throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+
+        // use the prior trial if observation unit IDs are supplied
+        if (hasAllReferenceUnitIds) {
+            if (trialByNameNoScope.size() != 1) {
+                throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
             }
-        } else if (!trialByNameNoScope.isEmpty()) {
-            throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
+            trialPio = trialByNameNoScope.values().iterator().next();
+
+        // otherwise create a new trial, but there can be only one allowed
         } else {
-            UUID id = UUID.randomUUID();
-            String expSeqValue = null;
-            if (commit) {
-                expSeqValue = expNextVal.get().toString();
+            if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
+                PendingImportObject<BrAPIStudy> envPio;
+                trialPio = trialByNameNoScope.get(importRow.getExpTitle());
+                envPio = this.studyByNameNoScope.get(importRow.getEnv());
+                if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                    throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+                }
+            } else if (!trialByNameNoScope.isEmpty()) {
+                throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
+            } else {
+                UUID id = UUID.randomUUID();
+                String expSeqValue = null;
+                if (commit) {
+                    expSeqValue = expNextVal.get().toString();
+                }
+                BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
+                trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
+                this.trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
             }
-            BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
-            trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-            this.trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
         }
         return trialPio;
     }
@@ -1482,11 +1498,11 @@ public class ExperimentProcessor implements Processor {
             List<BrAPIObservationUnit> referenceObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(
                 new ArrayList<String>(referenceOUIds),
                 program
-            );
+            );    
 
             // Construct the DeltaBreed observation unit source for external references
             String deltabreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
-
+            
             if (referenceObsUnits.size() == referenceOUIds.size()) {
                 // Iterate through reference Observation Units
                 referenceObsUnits.forEach(unit -> {
@@ -1574,8 +1590,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     private void initializeStudiesForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) throws ApiException {
-        Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitMap = hasAllReferenceUnitIds ? pendingObsUnitByOUId : observationUnitByNameNoScope;
-        Set<String> studyDbIds = observationUnitMap.values()
+        Set<String> studyDbIds = observationUnitByNameNoScope.values()
                 .stream()
                 .map(pio -> pio.getBrAPIObject()
                         .getStudyDbId())
@@ -1809,9 +1824,8 @@ public class ExperimentProcessor implements Processor {
         if(observationUnitByNameNoScope.size() > 0) {
             Set<String> trialDbIds = new HashSet<>();
             Set<String> studyDbIds = new HashSet<>();
-            Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitMap = hasAllReferenceUnitIds ? pendingObsUnitByOUId : observationUnitByNameNoScope;
 
-            observationUnitMap.values()
+            observationUnitByNameNoScope.values()
                     .forEach(pio -> {
                         BrAPIObservationUnit existingOu = pio.getBrAPIObject();
                         if (StringUtils.isBlank(existingOu.getTrialDbId()) && StringUtils.isBlank(existingOu.getStudyDbId())) {

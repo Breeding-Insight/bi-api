@@ -706,7 +706,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @SneakyThrows
     public void importNewObsVarByObsUnitId() {
         List<Trait> traits = importTestUtils.createTraits(2);
-        Program program = createProgram("New ObsVar Existing OU", "OUVAR", "OUVAR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Program program = createProgram("New ObsVar Referring to OU by ID", "OUVAR", "VAROU", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
         newExp.put(Columns.TEST_CHECK, "T");
