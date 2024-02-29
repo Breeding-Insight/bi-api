@@ -21,14 +21,14 @@ public enum DatasetLevel {
     EXP_UNIT(0),
     SUB_OBS_UNIT(1);
 
-    private final int literal;
+    private final int value;
 
-    DatasetLevel(int literal) {
-        this.literal = literal;
+    DatasetLevel(int value) {
+        this.value = value;
     }
 
-    public int getLiteral() {
-        return literal;
+    public int getValue() {
+        return value;
     }
 
 }

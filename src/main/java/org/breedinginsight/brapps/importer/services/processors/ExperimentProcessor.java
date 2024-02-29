@@ -129,6 +129,66 @@ public class ExperimentProcessor implements Processor {
     // initialized by getExistingBrapiData() )
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
 
+    // for use when creating sub obs units
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> obsUnitByExpObsUnitId = null;
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> subObsUnitBySubObsUnitId = null;
+
+    /**
+     * Operational modes of experiment processor dependent on import file contents
+     *
+     * CREATE_NEW_EXPERIMENT:
+     *   ENTRY:
+     *     - WHEN no ExpUnit ObsUnitIDs column present in file
+     *         AND Exp Title file column contains new title
+     *   CONDITION:
+     *     - All data validations pass
+     *   ACTION:
+     *     - Create BrAPI objects Trial, Study, ObservationUnit, Optional: [Location, Observation, List]
+     * APPEND_EXPERIMENT_ENV: (Is creating obs units also required?)
+     *   ENTRY:
+     *     - WHEN no ExpUnit ObsUnitIDs column present in file
+     *         AND Exp Title file column contains existing title
+     *         AND Env file column contains new env
+     *   CONDITION:
+     *     - All data validations pass
+     *   ACTION:
+     *     - Create BrAPI objects Study, ObservationUnit, Optional: [Location, Observation, List]
+     * APPEND_EXPERIMENT_OBS: (this might be combined with next mode)
+     *   ENTRY:
+     *     - WHEN ExpUnit ObsUnitIds column present in file
+     *         AND Sub-ObsUnit ObsUnitIds column not present in file
+     *         AND Sub-ObsUnit column contains only empty values
+     *         AND one or more phenotype columns are present in file
+     *   ACTION:
+     *     - Create BrAPI objects Study, ObservationUnit, Optional: [Location, Observation, List]
+     * UPDATE_EXPERIMENT_OBS:
+     *   - WHEN ExpUnit ObsUnitIds column present in file
+     *       AND Sub-ObsUnit ObsUnitIds column not present in file
+     *       AND Sub-ObsUnit column contains only empty values
+     *       AND one or more phenotype columns are present in file
+     *       AND phenotype values for observation units already exist
+     *
+     * UPDATE_EXP_UNIT_DATA:
+     *   - WHEN ExpUnit ObsUnitIds column present in file
+     *       AND Sub-ObsUnit ObsUnitIds column not present in file
+     *       AND Sub-ObsUnit column contains only empty values
+     * CREATE_SUB_OBS_UNIT_DATA:
+     *   - WHEN ExpUnit ObsUnitIds column present in file
+     *       AND Sub-ObsUnit ObsUnitIds column not present in file
+     *       AND Sub-ObsUnit column rows contains values
+     * UPDATE_SUB_OBS_UNIT_DATA:
+     *   - WHEN ExpUnit ObsUnitIds column present in file
+     *       AND Sub-ObsUnit ObsUnitIds column present in file
+     */
+    private enum Mode {
+        CREATE_EXP_UNIT_DATA,
+        UPDATE_EXP_UNIT_DATA,
+        CREATE_SUB_OBS_UNIT_DATA,
+        UPDATE_SUB_OBS_UNIT_DATA
+    }
+
+    private Mode mode;
+
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the getNewBrapiData() method
@@ -1007,6 +1067,7 @@ public class ExperimentProcessor implements Processor {
 
     private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException {
         PendingImportObject<BrAPIObservationUnit> pio;
+        // TODO: Should be based on ObsUnitID
         String key = createObservationUnitKey(importRow);
         if (this.observationUnitByNameNoScope.containsKey(key)) {
             pio = observationUnitByNameNoScope.get(key);
@@ -1021,6 +1082,7 @@ public class ExperimentProcessor implements Processor {
             UUID trialID = trialPIO.getId();
             UUID datasetId = null;
             if (commit) {
+                // TODO: BI-1464 get dataset id from array
                 datasetId = UUID.fromString(trialPIO.getBrAPIObject()
                         .getAdditionalInfo().getAsJsonObject()
                         .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
@@ -1166,12 +1228,12 @@ public class ExperimentProcessor implements Processor {
                     program,
                     trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
+
+            // TODO:BI-1464 remove old id and update code to use datasets array - existing will need migration
             trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
 
-            // TODO:BI-1464 add datasetId to datasets array
             JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
             // If datasets property does not yet exist, create it
-
 
             List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
             DatasetMetadata dataset = DatasetMetadata.builder()
@@ -1462,6 +1524,13 @@ public class ExperimentProcessor implements Processor {
         try {
             List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
 
+            // TODO: grab from externalReferences
+            /*
+            observationUnitByObsUnitId = existingObsUnits.stream()
+                    .collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId,
+                            (BrAPIObservationUnit unit) -> new PendingImportObject<>(unit, false)));
+             */
+
             String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
             if (existingObsUnits.size() == rowByObsUnitId.size()) {
                 existingObsUnits.forEach(brAPIObservationUnit -> {
@@ -1602,7 +1671,7 @@ public class ExperimentProcessor implements Processor {
 
         Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows);
 
-        // TODO: BI-1464
+        // TODO: BI-1464 use value in datasets array instead
         if (trialPIO.isPresent() && trialPIO.get().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
             String datasetId = trialPIO.get().getBrAPIObject()
                     .getAdditionalInfo()
