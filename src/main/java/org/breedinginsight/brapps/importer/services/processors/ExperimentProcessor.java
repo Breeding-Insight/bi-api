@@ -234,7 +234,7 @@ public class ExperimentProcessor implements Processor {
             Table data,
             Program program,
             User user,
-            boolean commit) throws ApiException, ValidatorException, MissingRequiredInfoException {
+            boolean commit) throws ApiException, ValidatorException, MissingRequiredInfoException, UnprocessableEntityException {
         log.debug("processing experiment import");
 
         ValidationErrors validationErrors = new ValidationErrors();
@@ -531,7 +531,7 @@ public class ExperimentProcessor implements Processor {
             User user,
             List<Trait> referencedTraits,
             boolean commit
-    ) throws ApiException, MissingRequiredInfoException {
+    ) throws UnprocessableEntityException, ApiException, MissingRequiredInfoException {
 
         String expSequenceName = program.getExpSequence();
         if (expSequenceName == null) {
@@ -594,9 +594,23 @@ public class ExperimentProcessor implements Processor {
                         dateTimeValue += MIDNIGHT;
                     }
                 }
-                //column.name() gets phenotype name
-                String seasonDbId = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
-                fetchOrCreateObservationPIO(program, user, importRow, column, rowNum, dateTimeValue, commit, seasonDbId, obsUnitPIO, referencedTraits);
+
+                // get the study year either referenced from the observation unit or listed explicitly on the import row
+                String studyYear = hasAllReferenceUnitIds ? studyPIO.getBrAPIObject().getSeasons().get(0) : importRow.getEnvYear();
+                String seasonDbId = yearToSeasonDbId(studyYear, program.getId());
+                fetchOrCreateObservationPIO(
+                        program,
+                        user,
+                        importRow,
+                        column,    //column.name() gets phenotype name
+                        rowNum,
+                        dateTimeValue,
+                        commit,
+                        seasonDbId,
+                        obsUnitPIO,
+                        studyPIO,
+                        referencedTraits
+                );
             }
         }
     }
@@ -966,10 +980,12 @@ public class ExperimentProcessor implements Processor {
         return null;
     }
 
-    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException {
+    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException {
         PendingImportObject<BrAPIObservationUnit> pio;
         String key = createObservationUnitKey(importRow);
-        if (this.observationUnitByNameNoScope.containsKey(key)) {
+        if (hasAllReferenceUnitIds) {
+            pio = pendingObsUnitByOUId.get(importRow.getObsUnitID());
+        } else if (observationUnitByNameNoScope.containsKey(key)) {
             pio = observationUnitByNameNoScope.get(key);
         } else {
             String germplasmName = "";
@@ -978,7 +994,7 @@ public class ExperimentProcessor implements Processor {
                                                            .getBrAPIObject()
                                                            .getGermplasmName();
             }
-            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
+            PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());;
             UUID trialID = trialPIO.getId();
             UUID datasetId = null;
             if (commit) {
@@ -1041,12 +1057,20 @@ public class ExperimentProcessor implements Processor {
                                              boolean commit,
                                              String seasonDbId,
                                              PendingImportObject<BrAPIObservationUnit> obsUnitPIO,
-                                             List<Trait> referencedTraits) throws ApiException {
+                                             PendingImportObject<BrAPIStudy> studyPIO,
+                                             List<Trait> referencedTraits) throws ApiException, UnprocessableEntityException {
         PendingImportObject<BrAPIObservation> pio;
         BrAPIObservation newObservation;
         String variableName = column.name();
         String value = column.getString(rowNum);
-        String key = getImportObservationHash(importRow, variableName);
+        String key;
+        if (hasAllReferenceUnitIds) {
+            String unitName = obsUnitPIO.getBrAPIObject().getObservationUnitName();
+            String studyName = studyPIO.getBrAPIObject().getStudyName();
+            key = getObservationHash(unitName, variableName, studyName);
+        } else {
+            key = getImportObservationHash(importRow, variableName);
+        }
 
         if (existingObsByObsHash.containsKey(key)) {
             if (StringUtils.isNotBlank(value) && !isObservationMatched(key, value, column, rowNum)){
@@ -1071,9 +1095,11 @@ public class ExperimentProcessor implements Processor {
         } else if (!this.observationByHash.containsKey(key)){
 
             // new observation
-            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
+            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
+                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
+
             UUID trialID = trialPIO.getId();
-            PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
+            //PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
             newObservation = importRow.constructBrAPIObservation(value, variableName, seasonDbId, obsUnitPIO.getBrAPIObject(), commit, program, user, BRAPI_REFERENCE_SOURCE, trialID, studyID, obsUnitPIO.getId(), id);
@@ -1083,7 +1109,7 @@ public class ExperimentProcessor implements Processor {
                 newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
             }
 
-            newObservation.setStudyDbId(this.studyByNameNoScope.get(importRow.getEnv()).getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
+            newObservation.setStudyDbId(this.studyByNameNoScope.get(pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()).getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
             this.observationByHash.put(key, pio);
@@ -1105,14 +1131,10 @@ public class ExperimentProcessor implements Processor {
             }
         });
     }
-    private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) {
+    private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) throws UnprocessableEntityException {
         PendingImportObject<BrAPIListDetails> pio;
-        PendingImportObject<BrAPITrial> trialPIO;
-        if (hasAllReferenceUnitIds) {
-            trialPIO = trialByNameNoScope.values().iterator().next();
-        } else {
-            trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
-        }
+        PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
+                getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
         String name = String.format("Observation Dataset [%s-%s]",
                 program.getKey(),
                 trialPIO.getBrAPIObject()
@@ -1144,15 +1166,26 @@ public class ExperimentProcessor implements Processor {
             boolean commit,
             String expSequenceValue,
             ExperimentObservation importRow,
-            Supplier<BigInteger> envNextVal) {
+            Supplier<BigInteger> envNextVal
+    ) throws UnprocessableEntityException {
         PendingImportObject<BrAPIStudy> pio;
-        if (studyByNameNoScope.containsKey(importRow.getEnv())) {
+        if (hasAllReferenceUnitIds) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName(),
+                    program.getKey()
+            );
+            pio = studyByNameNoScope.get(studyName);
+            if (!commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
+        } else if (studyByNameNoScope.containsKey(importRow.getEnv())) {
             pio = studyByNameNoScope.get(importRow.getEnv());
             if (!commit){
                 addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
             }
         } else {
-            PendingImportObject<BrAPITrial> trialPIO = this.trialByNameNoScope.get(importRow.getExpTitle());
+            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
+                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
             UUID id = UUID.randomUUID();
             BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
@@ -1208,10 +1241,13 @@ public class ExperimentProcessor implements Processor {
 
     private void fetchOrCreateLocationPIO(ExperimentObservation importRow) {
         PendingImportObject<ProgramLocation> pio;
-        if (! locationByName.containsKey((importRow.getEnvLocation()))) {
-            ProgramLocation newLocation = importRow.constructProgramLocation();
+        String envLocationName = hasAllReferenceUnitIds ?
+                pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getLocationName() : importRow.getEnvLocation();
+        if (!locationByName.containsKey((importRow.getEnvLocation()))) {
+            ProgramLocation newLocation = new ProgramLocation();
+            newLocation.setName(envLocationName);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newLocation, UUID.randomUUID());
-            this.locationByName.put(importRow.getEnvLocation(), pio);
+            this.locationByName.put(envLocationName, pio);
         }
     }
 
@@ -1226,10 +1262,7 @@ public class ExperimentProcessor implements Processor {
 
         // use the prior trial if observation unit IDs are supplied
         if (hasAllReferenceUnitIds) {
-            if (trialByNameNoScope.size() != 1) {
-                throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
-            }
-            trialPio = trialByNameNoScope.values().iterator().next();
+            trialPio = getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES);
 
         // otherwise create a new trial, but there can be only one allowed
         } else {
@@ -1548,8 +1581,10 @@ public class ExperimentProcessor implements Processor {
                                                             .collect(Collectors.toList());
         try {
             String trialRefSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName());
-            brapiTrialDAO.getTrialsByName(uniqueTrialNames, program)
-                         .forEach(existingTrial -> processAndCacheTrial(existingTrial, program, trialRefSource, trialByName));
+
+            brapiTrialDAO.getTrialsByName(uniqueTrialNames, program).forEach(existingTrial ->
+                    processAndCacheTrial(existingTrial, program, trialRefSource, trialByName)
+            );
         } catch (ApiException e) {
             log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
@@ -2115,5 +2150,12 @@ public class ExperimentProcessor implements Processor {
         }
         Integer yearInt = (season == null) ? null : season.getYear();
         return (yearInt == null) ? "" : yearInt.toString();
+    }
+
+    private <K, V> V getSingleEntryValue(Map<K, V> map, String message) throws UnprocessableEntityException {
+        if (map.size() != 1) {
+            throw new UnprocessableEntityException(message);
+        }
+        return map.values().iterator().next();
     }
 }
