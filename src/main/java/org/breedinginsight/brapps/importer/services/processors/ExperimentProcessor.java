@@ -207,6 +207,8 @@ public class ExperimentProcessor implements Processor {
                     BrAPIObservationUnit unit = unitEntry.getValue().getBrAPIObject();
                     mapPendingTrialByOUId(unitId, unit, trialByNameNoScope, studyByNameNoScope, pendingTrialByOUId, program);
                     mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
+                    mapPendingLocationByOUId(unitId, unit, pendingStudyByOUId, locationByName, pendingLocationByOUId);
+
                 }
 
                 pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
@@ -1503,6 +1505,27 @@ public class ExperimentProcessor implements Processor {
             log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
         }
+    }
+
+    private Map<String, PendingImportObject<ProgramLocation>> mapPendingLocationByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByOUId,
+            Map<String, PendingImportObject<ProgramLocation>> locationByName,
+            Map<String, PendingImportObject<ProgramLocation>> locationByOUId
+    ) {
+        if (unit.getLocationName() != null) {
+            locationByOUId.put(unitId, locationByName.get(unit.getLocationName()));
+        } else if (studyByOUId.get(unitId) != null && studyByOUId.get(unitId).getBrAPIObject().getLocationName() != null) {
+            locationByOUId.put(
+                    unitId,
+                    locationByName.get(studyByOUId.get(unitId).getBrAPIObject().getLocationName())
+            );
+        } else {
+            throw new IllegalStateException("Observation unit missing location: " + unitId);
+        }
+
+        return locationByOUId;
     }
 
     private Map<String, PendingImportObject<BrAPIStudy>> mapPendingStudyByOUId(
