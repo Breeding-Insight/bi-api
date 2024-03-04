@@ -290,7 +290,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.EXP_TITLE, "Test Exp");
         newExp.put(Columns.EXP_UNIT, "Plot");
         newExp.put(Columns.EXP_TYPE, "Phenotyping");
-        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV, "Existing Env");
         newExp.put(Columns.ENV_LOCATION, "Location A");
         newExp.put(Columns.ENV_YEAR, "2023");
         newExp.put(Columns.EXP_UNIT_ID, "a-1");
@@ -301,22 +301,22 @@ public class ExperimentFileImportTest extends BrAPITest {
 
         JsonObject expResult = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExp), null), null, true, client, program, mappingId);
 
-        Map<String, Object> newEnv = new HashMap<>();
-        newEnv.put(Columns.GERMPLASM_GID, "1");
-        newEnv.put(Columns.TEST_CHECK, "T");
-        newEnv.put(Columns.EXP_TITLE, "Test Exp");
-        newEnv.put(Columns.EXP_UNIT, "Plot");
-        newEnv.put(Columns.EXP_TYPE, "Phenotyping");
-        newEnv.put(Columns.ENV, "New Trial Existing Exp");
-        newEnv.put(Columns.ENV_LOCATION, "Location A");
-        newEnv.put(Columns.ENV_YEAR, "2023");
-        newEnv.put(Columns.EXP_UNIT_ID, "a-1");
-        newEnv.put(Columns.REP_NUM, "1");
-        newEnv.put(Columns.BLOCK_NUM, "1");
-        newEnv.put(Columns.ROW, "1");
-        newEnv.put(Columns.COLUMN, "1");
+        Map<String, Object> dupExp = new HashMap<>();
+        dupExp.put(Columns.GERMPLASM_GID, "1");
+        dupExp.put(Columns.TEST_CHECK, "T");
+        dupExp.put(Columns.EXP_TITLE, "Test Exp");
+        dupExp.put(Columns.EXP_UNIT, "Plot");
+        dupExp.put(Columns.EXP_TYPE, "Phenotyping");
+        dupExp.put(Columns.ENV, "Existing Env");
+        dupExp.put(Columns.ENV_LOCATION, "Location A");
+        dupExp.put(Columns.ENV_YEAR, "2023");
+        dupExp.put(Columns.EXP_UNIT_ID, "a-1");
+        dupExp.put(Columns.REP_NUM, "1");
+        dupExp.put(Columns.BLOCK_NUM, "1");
+        dupExp.put(Columns.ROW, "1");
+        dupExp.put(Columns.COLUMN, "1");
 
-        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeExperimentDataToFile(List.of(newEnv), null), null, false, client, program, mappingId);
+        Flowable<HttpResponse<String>> call = importTestUtils.uploadDataFile(importTestUtils.writeExperimentDataToFile(List.of(dupExp), null), null, false, client, program, mappingId);
         HttpResponse<String> response = call.blockingFirst();
         assertEquals(HttpStatus.ACCEPTED, response.getStatus());
 
