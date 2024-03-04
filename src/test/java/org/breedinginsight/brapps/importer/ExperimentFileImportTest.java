@@ -282,7 +282,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void importNewEnvExistingExpErrorMessage() {
+    public void importExistingExpAndEnvErrorMessage() {
         Program program = createProgram("New Env Existing Exp", "DUPENV", "DUPENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
