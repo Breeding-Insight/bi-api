@@ -24,6 +24,7 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.reactivex.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
@@ -46,6 +47,7 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.Study;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -197,8 +199,17 @@ public class ExperimentProcessor implements Processor {
                 // get all prior units referenced in import
                 pendingObsUnitByOUId = fetchReferenceObservationUnits(referenceOUIds, program);
                 observationUnitByNameNoScope = mapPendingObservationUnitByName(pendingObsUnitByOUId, program);
+                initializeTrialsForExistingObservationUnits(program, trialByNameNoScope);
+                initializeStudiesForExistingObservationUnits(program, studyByNameNoScope);
+                locationByName = initializeLocationByName(program, studyByNameNoScope);
+
+
+                pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
             } catch (ApiException e) {
                 log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            } catch (Exception e) {
+                log.error("Error processing experiment with ", e);
                 throw new InternalServerException(e.toString(), e);
             }
         } else if (hasNoReferenceUnitIds) {
@@ -1489,6 +1500,15 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
+    private Map<String, PendingImportObject<BrAPITrial>> mapPendingTrialOUId(
+            Map<String, PendingImportObject<BrAPITrial>> trialByName,
+            Program program
+    ) {
+        Map<String, PendingImportObject<BrAPITrial>> trialByOUId = new HashMap<>();
+
+
+        return trialByOUId;
+    }
     private Map<String, PendingImportObject<BrAPIObservationUnit>> mapPendingObservationUnitByName(
             Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById,
             Program program
@@ -1507,9 +1527,6 @@ public class ExperimentProcessor implements Processor {
         }
         return pendingUnitByName;
     }
-
-
-
 
     /**
      * Retrieves a list of pending Observation Units based on their IDs.
@@ -1534,13 +1551,13 @@ public class ExperimentProcessor implements Processor {
             );    
 
             // Construct the DeltaBreed observation unit source for external references
-            String deltabreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
+            String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
             
             if (referenceObsUnits.size() == referenceOUIds.size()) {
                 // Iterate through reference Observation Units
                 referenceObsUnits.forEach(unit -> {
                     // Get external reference for the Observation Unit
-                    BrAPIExternalReference unitXref = Utilities.getExternalReference(unit.getExternalReferences(), deltabreedOUSource)
+                    BrAPIExternalReference unitXref = Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource)
                         .orElseThrow(() -> new IllegalStateException("External reference does not exist for Deltabreed ObservationUnit ID"));
 
                     // Set pending Observation Unit by its ID
@@ -1554,7 +1571,7 @@ public class ExperimentProcessor implements Processor {
                 // Handle missing Observation Unit IDs
                 List<String> missingIds = new ArrayList<>(referenceOUIds);
                 Set<String> fetchedIds = referenceObsUnits.stream().map(unit ->
-                        Utilities.getExternalReference(unit.getExternalReferences(), deltabreedOUSource)
+                        Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource)
                         .orElseThrow(() -> new InternalServerException("External reference does not exist for Deltabreed ObservationUnit ID"))
                         .getReferenceId())
                         .collect(Collectors.toSet());
@@ -1580,10 +1597,8 @@ public class ExperimentProcessor implements Processor {
                                                             .distinct()
                                                             .collect(Collectors.toList());
         try {
-            String trialRefSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName());
-
             brapiTrialDAO.getTrialsByName(uniqueTrialNames, program).forEach(existingTrial ->
-                    processAndCacheTrial(existingTrial, program, trialRefSource, trialByName)
+                    processAndCacheTrial(existingTrial, program, trialByName)
             );
         } catch (ApiException e) {
             log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
@@ -1604,6 +1619,9 @@ public class ExperimentProcessor implements Processor {
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
             throw new InternalServerException(e.toString(), e);
+        } catch (Exception e) {
+            log.error("Error processing studies", e);
+            throw new InternalServerException(e.toString(), e);
         }
 
         List<BrAPIStudy> existingStudies;
@@ -1615,16 +1633,24 @@ public class ExperimentProcessor implements Processor {
             }
             UUID experimentId = trial.get().getId();
             existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
-            existingStudies.forEach(existingStudy -> processAndCacheStudy(existingStudy, program, studyByName));
+            for (BrAPIStudy existingStudy : existingStudies) {
+                processAndCacheStudy(existingStudy, program, BrAPIStudy::getStudyName, studyByName);
+            }
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        } catch (Exception e) {
+            log.error("Error processing studies: ", e);
             throw new InternalServerException(e.toString(), e);
         }
 
         return studyByName;
     }
 
-    private void initializeStudiesForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) throws ApiException {
+    private void initializeStudiesForExistingObservationUnits(
+            Program program,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName
+    ) throws Exception {
         Set<String> studyDbIds = observationUnitByNameNoScope.values()
                 .stream()
                 .map(pio -> pio.getBrAPIObject()
@@ -1632,7 +1658,9 @@ public class ExperimentProcessor implements Processor {
                 .collect(Collectors.toSet());
 
         List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
-        studies.forEach(study -> processAndCacheStudy(study, program, studyByName));
+        for (BrAPIStudy study : studies) {
+            processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
+        }
     }
 
     /**
@@ -1659,6 +1687,33 @@ public class ExperimentProcessor implements Processor {
         return studies;
     }
 
+    Map<String, PendingImportObject<ProgramLocation>> initializeLocationByName(
+            Program program,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName
+    ) {
+        Map<String, PendingImportObject<ProgramLocation>> locationByName = new HashMap<>();
+
+        List<ProgramLocation> existingLocations = new ArrayList<>();
+        if(studyByName.size() > 0) {
+            Set<String> locationDbIds = studyByName.values()
+                    .stream()
+                    .map(study -> study.getBrAPIObject()
+                            .getLocationDbId())
+                    .collect(Collectors.toSet());
+            try {
+                existingLocations.addAll(locationService.getLocationsByDbId(locationDbIds, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+        existingLocations.forEach(existingLocation -> locationByName.put(
+                existingLocation.getName(),
+                new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation, existingLocation.getId())
+            )
+        );
+        return locationByName;
+    }
     private Map<String, PendingImportObject<ProgramLocation>> initializeUniqueLocationNames(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<ProgramLocation>> locationByName = new HashMap<>();
 
@@ -1794,8 +1849,13 @@ public class ExperimentProcessor implements Processor {
                                           brAPIObservationUnit,
                                           UUID.fromString(idRef.getReferenceId())));
     }
-
-    private void processAndCacheStudy(BrAPIStudy existingStudy, Program program, Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
+    private PendingImportObject<BrAPIStudy> processAndCacheStudy(
+            BrAPIStudy existingStudy,
+            Program program,
+            Function<BrAPIStudy, String> getterFunction,
+            Map<String, PendingImportObject<BrAPIStudy>> studyMap
+    ) throws Exception {
+        PendingImportObject<BrAPIStudy> pendingStudy;
         BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
                                                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
         // map season dbid to year
@@ -1804,9 +1864,16 @@ public class ExperimentProcessor implements Processor {
             String seasonYear = this.seasonDbIdToYear(seasonDbId, program.getId());
             existingStudy.setSeasons(Collections.singletonList(seasonYear));
         }
-        studyByName.put(
-                Utilities.removeProgramKeyAndUnknownAdditionalData(existingStudy.getStudyName(), program.getKey()),
-                new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIStudy) Utilities.formatBrapiObjForDisplay(existingStudy, BrAPIStudy.class, program), UUID.fromString(xref.getReferenceID())));
+        pendingStudy = new PendingImportObject<>(
+                ImportObjectState.EXISTING,
+                (BrAPIStudy) Utilities.formatBrapiObjForDisplay(existingStudy, BrAPIStudy.class, program),
+                UUID.fromString(xref.getReferenceId())
+        );
+        studyMap.put(
+                Utilities.removeProgramKeyAndUnknownAdditionalData(getterFunction.apply(existingStudy), program.getKey()),
+                pendingStudy
+        );
+        return pendingStudy;
     }
 
     private void setPendingTrialByOUId(Program program) {
@@ -1892,8 +1959,7 @@ public class ExperimentProcessor implements Processor {
                     throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
                 }
 
-                String trialRefSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName());
-                trials.forEach(trial -> processAndCacheTrial(trial, program, trialRefSource, trialByName));
+                trials.forEach(trial -> processAndCacheTrial(trial, program, trialByName));
             } catch (ApiException e) {
                 log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
@@ -1915,16 +1981,15 @@ public class ExperimentProcessor implements Processor {
     }
 
     private void processAndCacheTrial(
-        BrAPITrial existingTrial,
+        BrAPITrial existingTrial, 
         Program program,
-        String trialRefSource,
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope
         ) {
 
         //get TrialId from existingTrial
-        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), trialRefSource)
+        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
                                                           .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
-        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceID());
+        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
 
         trialByNameNoScope.put(
                 Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()),
