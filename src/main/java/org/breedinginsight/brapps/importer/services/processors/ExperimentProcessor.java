@@ -202,7 +202,12 @@ public class ExperimentProcessor implements Processor {
                 initializeTrialsForExistingObservationUnits(program, trialByNameNoScope);
                 initializeStudiesForExistingObservationUnits(program, studyByNameNoScope);
                 locationByName = initializeLocationByName(program, studyByNameNoScope);
-
+                for (Map.Entry<String, PendingImportObject<BrAPIObservationUnit>>  unitEntry : pendingObsUnitByOUId.entrySet()) {
+                    String unitId = unitEntry.getKey();
+                    BrAPIObservationUnit unit = unitEntry.getValue().getBrAPIObject();
+                    mapPendingTrialByOUId(unitId, unit, trialByNameNoScope, studyByNameNoScope, pendingTrialByOUId, program);
+                    mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
+                }
 
                 pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
             } catch (ApiException e) {
@@ -1500,12 +1505,43 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private Map<String, PendingImportObject<BrAPITrial>> mapPendingTrialOUId(
-            Map<String, PendingImportObject<BrAPITrial>> trialByName,
+    private Map<String, PendingImportObject<BrAPIStudy>> mapPendingStudyByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByOUId,
             Program program
     ) {
-        Map<String, PendingImportObject<BrAPITrial>> trialByOUId = new HashMap<>();
+        if (unit.getStudyName() != null) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
+            studyByOUId.put(unitId, studyByName.get(studyName));
+        } else {
+            throw new IllegalStateException("Observation unit missing study name: " + unitId);
+        }
 
+        return studyByOUId;
+    }
+    private Map<String, PendingImportObject<BrAPITrial>> mapPendingTrialByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPITrial>> trialByName,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
+            Map<String, PendingImportObject<BrAPITrial>> trialByOUId,
+            Program program
+    ) {
+        String trialName;
+        if (unit.getTrialName() != null) {
+            trialName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getTrialName(), program.getKey());
+        } else if (unit.getStudyName() != null) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
+            trialName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    studyByName.get(studyName).getBrAPIObject().getTrialName(),
+                    program.getKey()
+            );
+        } else {
+            throw new IllegalStateException("Observation unit missing trial name and study name: " + unitId);
+        }
+        trialByOUId.put(unitId, trialByName.get(trialName));
 
         return trialByOUId;
     }
