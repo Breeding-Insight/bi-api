@@ -1175,10 +1175,12 @@ public class ExperimentProcessor implements Processor {
     }
 
     private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) throws UnprocessableEntityException {
-        PendingImportObject<BrAPITrial> pio;
+        PendingImportObject<BrAPITrial> trialPio;
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
-            pio = trialByNameNoScope.get(importRow.getExpTitle());
-            if  (pio.getState() == ImportObjectState.EXISTING && StringUtils.isBlank( importRow.getObsUnitID() ) ){
+            PendingImportObject<BrAPIStudy> envPio;
+            trialPio = trialByNameNoScope.get(importRow.getExpTitle());
+            envPio = this.studyByNameNoScope.get(importRow.getEnv());
+            if  (trialPio.getState() == ImportObjectState.EXISTING && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
                 throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
             }
         } else if (!trialByNameNoScope.isEmpty()) {
@@ -1190,10 +1192,10 @@ public class ExperimentProcessor implements Processor {
                 expSeqValue = expNextVal.get().toString();
             }
             BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
-            pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-            this.trialByNameNoScope.put(importRow.getExpTitle(), pio);
+            trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
+            this.trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
         }
-        return pio;
+        return trialPio;
     }
 
     private void updateObservationDependencyValues(Program program) {
