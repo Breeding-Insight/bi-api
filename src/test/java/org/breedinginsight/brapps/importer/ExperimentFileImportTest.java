@@ -216,7 +216,7 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     @Test
     @SneakyThrows
-    public void importNewExpMultiNewEnvError() {
+    public void importNewExpMultiNewEnvSuccess() {
         Program program = createProgram("New Exp and Multi New Env", "MULENV", "MULENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> firstEnv = new HashMap<>();
         firstEnv.put(Columns.GERMPLASM_GID, "1");

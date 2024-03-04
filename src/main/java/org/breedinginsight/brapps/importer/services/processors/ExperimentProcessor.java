@@ -1180,7 +1180,7 @@ public class ExperimentProcessor implements Processor {
             PendingImportObject<BrAPIStudy> envPio;
             trialPio = trialByNameNoScope.get(importRow.getExpTitle());
             envPio = this.studyByNameNoScope.get(importRow.getEnv());
-            if  (trialPio.getState() == ImportObjectState.EXISTING && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+            if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
                 throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
             }
         } else if (!trialByNameNoScope.isEmpty()) {
