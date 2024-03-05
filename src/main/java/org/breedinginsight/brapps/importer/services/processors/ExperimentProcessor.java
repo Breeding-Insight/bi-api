@@ -209,6 +209,7 @@ public class ExperimentProcessor implements Processor {
                     mapPendingTrialByOUId(unitId, unit, trialByNameNoScope, studyByNameNoScope, pendingTrialByOUId, program);
                     mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
                     mapPendingLocationByOUId(unitId, unit, pendingStudyByOUId, locationByName, pendingLocationByOUId);
+                    mapPendingObsDatasetByOUId(unitId, pendingTrialByOUId, obsVarDatasetByName, pendingObsDatasetByOUId, program);
                 }
 
                 pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
@@ -1809,6 +1810,20 @@ public class ExperimentProcessor implements Processor {
         return locationByName;
     }
 
+    private Map<String, PendingImportObject<BrAPIListDetails>> mapPendingObsDatasetByOUId(
+            String unitId,
+            Map<String, PendingImportObject<BrAPITrial>> trialByOUId,
+            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName,
+            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId,
+            Program program
+    ) {
+        if (!trialByOUId.isEmpty() && !obsVarDatasetByName.isEmpty() &&
+                trialByOUId.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+            obsVarDatasetByOUId.put(unitId, obsVarDatasetByName.values().iterator().next());
+        }
+
+        return obsVarDatasetByOUId;
+    }
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnits(
             Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId,
             Program program
