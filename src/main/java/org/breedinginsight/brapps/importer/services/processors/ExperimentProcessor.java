@@ -225,17 +225,17 @@ public class ExperimentProcessor implements Processor {
             }
         } else if (hasNoReferenceUnitIds) {
             observationUnitByNameNoScope = initializeObservationUnits(program, experimentImportRows);
-
+            trialByNameNoScope = initializeTrialByNameNoScope(program, experimentImportRows);
+            studyByNameNoScope = initializeStudyByNameNoScope(program, experimentImportRows);
+            locationByName = initializeUniqueLocationNames(program, experimentImportRows);
+            obsVarDatasetByName = initializeObsVarDatasetByName(program, experimentImportRows);
+            existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
+            
         } else {
 
             // can't proceed if you have a mix of ObsUnitId for some but not all rows
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, MISSING_OBS_UNIT_ID_ERROR);
         }
-        trialByNameNoScope = initializeTrialByNameNoScope(program, experimentImportRows);
-        studyByNameNoScope = initializeStudyByNameNoScope(program, experimentImportRows);
-        locationByName = initializeUniqueLocationNames(program, experimentImportRows);
-        obsVarDatasetByName = initializeObsVarDatasetByName(program, experimentImportRows);
-        existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
     }
 
     /**
