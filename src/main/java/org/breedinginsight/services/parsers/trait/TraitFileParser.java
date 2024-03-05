@@ -242,8 +242,18 @@ public class TraitFileParser {
                 }
             }
 
+            String units = parseExcelValueAsString(record, TraitFileColumns.UNITS);
+            // Note: if method class is "Computation", scale class will be overwritten to "Numerical", so treat accordingly.
+            if (dataType != DataType.NUMERICAL && (method.getMethodClass() == null || !method.getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE))) {
+                if (units != null && !units.isEmpty()) {
+                    ValidationError error = new ValidationError(TraitFileColumns.UNITS.toString(),
+                            ParsingExceptionType.SCALE_UNIT_NOT_ALLOWED.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
             Scale scale = Scale.builder()
-                    .scaleName(parseExcelValueAsString(record, TraitFileColumns.SCALE_NAME))
+                    .scaleName(units == null ? parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS) : units)
+                    .units(units)
                     .dataType(dataType)
                     .decimalPlaces(decimalPlaces)
                     .validValueMin(validValueMin)

@@ -1367,6 +1367,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
 
         // Set scale class to computation
         trait1.getMethod().setMethodClass("Computation");
+        // Since method class of "Computation" will change scale class to "Numerical", units is reauired.
+        trait1.getScale().setUnits("test unit");
 
         List<Trait> traits = List.of(trait1);
 

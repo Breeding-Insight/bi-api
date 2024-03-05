@@ -163,6 +163,7 @@ public class BrapiV1ObservationVariablesControllerIntegrationTest extends BrAPIT
 
         Scale scale = Scale.builder()
                 .scaleName(name + " scale")
+                .units("test unit")
                 .dataType(DataType.NUMERICAL)
                 .build();
 
