@@ -84,6 +84,7 @@ public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
     private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs";
+    private static final String PREEXISTING_EXPERIMENT_TITLE = "Experiment Title already exists";
     private static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
     private static final String MIDNIGHT = "T00:00:00-00:00";
     private static final String TIMESTAMP_PREFIX = "TS:";
@@ -1174,9 +1175,14 @@ public class ExperimentProcessor implements Processor {
     }
 
     private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) throws UnprocessableEntityException {
-        PendingImportObject<BrAPITrial> pio;
+        PendingImportObject<BrAPITrial> trialPio;
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
-            pio = trialByNameNoScope.get(importRow.getExpTitle());
+            PendingImportObject<BrAPIStudy> envPio;
+            trialPio = trialByNameNoScope.get(importRow.getExpTitle());
+            envPio = this.studyByNameNoScope.get(importRow.getEnv());
+            if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+            }
         } else if (!trialByNameNoScope.isEmpty()) {
             throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
         } else {
@@ -1186,10 +1192,10 @@ public class ExperimentProcessor implements Processor {
                 expSeqValue = expNextVal.get().toString();
             }
             BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
-            pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-            this.trialByNameNoScope.put(importRow.getExpTitle(), pio);
+            trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
+            this.trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
         }
-        return pio;
+        return trialPio;
     }
 
     private void updateObservationDependencyValues(Program program) {
