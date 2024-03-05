@@ -47,6 +47,7 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
 import org.breedinginsight.brapps.importer.model.base.Study;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
@@ -122,23 +123,24 @@ public class ExperimentProcessor implements Processor {
 
     //These BrapiData-objects are initially populated by the getExistingBrapiData() method,
     // then updated by the initNewBrapiData() method.
-    private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = null;
-    private Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = null;
+    private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = new HashMap<>();
     private Map<String, PendingImportObject<ProgramLocation>> locationByName = null;
-    private Map<String, PendingImportObject<ProgramLocation>> pendingLocationByOUId = null;
-    private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = null;
-    private Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByOUId = null;
+    private Map<String, PendingImportObject<ProgramLocation>> pendingLocationByOUId = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByOUId = new HashMap<>();
     private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = null;
-    private Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId = null;
+    private Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId = new HashMap<>();
     //  It is assumed that there are no preexisting Observation Units for the given environment (so this will not be
     // initialized by getExistingBrapiData() )
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> pendingObsUnitByOUId = null;
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> pendingObsUnitByOUId = new HashMap<>();
 
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the initNewBrapiData() method
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
+    private Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByOUId = null;
 
     // Associates timestamp columns to associated phenotype column name for ease of storage
     private final Map<String, Column<?>> timeStampColByPheno = new HashMap<>();
@@ -202,7 +204,8 @@ public class ExperimentProcessor implements Processor {
                 initializeTrialsForExistingObservationUnits(program, trialByNameNoScope);
                 initializeStudiesForExistingObservationUnits(program, studyByNameNoScope);
                 locationByName = initializeLocationByName(program, studyByNameNoScope);
-                initializeObsVarDatasetForExistingObservationUnits(pendingTrialByOUId, program);
+                obsVarDatasetByName = initializeObsVarDatasetForExistingObservationUnits(trialByNameNoScope, program);
+                existingGermplasmByGID = initializeGermplasmByGIDForExistingObservationUnits(observationUnitByNameNoScope, program);
                 for (Map.Entry<String, PendingImportObject<BrAPIObservationUnit>>  unitEntry : pendingObsUnitByOUId.entrySet()) {
                     String unitId = unitEntry.getKey();
                     BrAPIObservationUnit unit = unitEntry.getValue().getBrAPIObject();
@@ -210,9 +213,10 @@ public class ExperimentProcessor implements Processor {
                     mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
                     mapPendingLocationByOUId(unitId, unit, pendingStudyByOUId, locationByName, pendingLocationByOUId);
                     mapPendingObsDatasetByOUId(unitId, pendingTrialByOUId, obsVarDatasetByName, pendingObsDatasetByOUId, program);
+                    mapGermplasmByOUId(unitId, unit, existingGermplasmByGID, pendingGermplasmByOUId);
                 }
 
-                pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
+                //pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
             } catch (ApiException e) {
                 log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
@@ -1810,6 +1814,16 @@ public class ExperimentProcessor implements Processor {
         return locationByName;
     }
 
+    private Map<String, PendingImportObject<BrAPIGermplasm>> mapGermplasmByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName,
+            Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByOUId
+    ) {
+        //String dbId = unit.
+        //germplasmByName.values().stream().filter(pio -> pio.getBrAPIObject().getGermplasmDbId())
+        return germplasmByOUId;
+    }
     private Map<String, PendingImportObject<BrAPIListDetails>> mapPendingObsDatasetByOUId(
             String unitId,
             Map<String, PendingImportObject<BrAPITrial>> trialByOUId,
@@ -1825,14 +1839,14 @@ public class ExperimentProcessor implements Processor {
         return obsVarDatasetByOUId;
     }
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnits(
-            Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId,
+            Map<String, PendingImportObject<BrAPITrial>> trialByName,
             Program program
     ) {
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
 
-        if (pendingTrialByOUId.size() > 0 &&
-                pendingTrialByOUId.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String datasetId = pendingTrialByOUId.values().iterator().next().getBrAPIObject()
+        if (trialByName.size() > 0 &&
+                trialByName.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+            String datasetId = trialByName.values().iterator().next().getBrAPIObject()
                     .getAdditionalInfo()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
                     .getAsString();
@@ -1919,6 +1933,32 @@ public class ExperimentProcessor implements Processor {
         obsVarDatasetByName.put(existingList.getListName(),
                 new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
     }
+    private Map<String, PendingImportObject<BrAPIGermplasm>> initializeGermplasmByGIDForExistingObservationUnits(
+            Map<String, PendingImportObject<BrAPIObservationUnit>> unitByName,
+            Program program
+    ) {
+        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+
+        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
+        if(unitByName.size() > 0) {
+            Set<String> germplasmDbIds = unitByName.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
+            try {
+                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
+        existingGermplasms.forEach(existingGermplasm -> {
+            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
+                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
+            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceID())));
+        });
+        return existingGermplasmByGID;
+    }
+
+
     private Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
 
