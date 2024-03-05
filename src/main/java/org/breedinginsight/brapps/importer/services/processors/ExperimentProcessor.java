@@ -202,13 +202,13 @@ public class ExperimentProcessor implements Processor {
                 initializeTrialsForExistingObservationUnits(program, trialByNameNoScope);
                 initializeStudiesForExistingObservationUnits(program, studyByNameNoScope);
                 locationByName = initializeLocationByName(program, studyByNameNoScope);
+                initializeObsVarDatasetForExistingObservationUnits(pendingTrialByOUId, program);
                 for (Map.Entry<String, PendingImportObject<BrAPIObservationUnit>>  unitEntry : pendingObsUnitByOUId.entrySet()) {
                     String unitId = unitEntry.getKey();
                     BrAPIObservationUnit unit = unitEntry.getValue().getBrAPIObject();
                     mapPendingTrialByOUId(unitId, unit, trialByNameNoScope, studyByNameNoScope, pendingTrialByOUId, program);
                     mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
                     mapPendingLocationByOUId(unitId, unit, pendingStudyByOUId, locationByName, pendingLocationByOUId);
-                    initializeObsVarDatasetForExistingObservationUnit(unitId, pendingObsDatasetByOUId, obsVarDatasetByName, pendingTrialByOUId, program);
                 }
 
                 pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
@@ -1809,16 +1809,15 @@ public class ExperimentProcessor implements Processor {
         return locationByName;
     }
 
-    private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnit(
-            String unitId,
-            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId,
-            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName,
+    private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnits(
             Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId,
             Program program
     ) {
-        if (pendingTrialByOUId.get(unitId) != null &&
-                pendingTrialByOUId.get(unitId).getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String datasetId = pendingTrialByOUId.get(unitId).getBrAPIObject()
+        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
+
+        if (pendingTrialByOUId.size() > 0 &&
+                pendingTrialByOUId.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+            String datasetId = pendingTrialByOUId.values().iterator().next().getBrAPIObject()
                     .getAdditionalInfo()
                     .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
                     .getAsString();
@@ -1836,13 +1835,12 @@ public class ExperimentProcessor implements Processor {
                         .getListById(existingDatasets.get(0).getListDbId(), program.getId())
                         .getResult();
                 processAndCacheObsVarDataset(dataSetDetails, obsVarDatasetByName);
-                processAndCacheObsVarDatasetByOUId(dataSetDetails, unitId, obsVarDatasetByOUId);
             } catch (ApiException e) {
                 log.error(Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
             }
         }
-        return obsVarDatasetByOUId;
+        return obsVarDatasetByName;
     }
 
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetByName(Program program, List<ExperimentObservation> experimentImportRows) {
