@@ -139,8 +139,8 @@ public class ExperimentProcessor implements Processor {
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the initNewBrapiData() method
-    private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = null;
-    private Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByOUId = null;
+    private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+    private Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByOUId = new HashMap<>();
 
     // Associates timestamp columns to associated phenotype column name for ease of storage
     private final Map<String, Column<?>> timeStampColByPheno = new HashMap<>();
@@ -216,7 +216,6 @@ public class ExperimentProcessor implements Processor {
                     mapGermplasmByOUId(unitId, unit, existingGermplasmByGID, pendingGermplasmByOUId);
                 }
 
-                //pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
             } catch (ApiException e) {
                 log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
@@ -1820,8 +1819,9 @@ public class ExperimentProcessor implements Processor {
             Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName,
             Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByOUId
     ) {
-        //String dbId = unit.
-        //germplasmByName.values().stream().filter(pio -> pio.getBrAPIObject().getGermplasmDbId())
+        String gid = unit.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.GID).getAsString();
+        germplasmByOUId.put(unitId, germplasmByName.get(gid));
+
         return germplasmByOUId;
     }
     private Map<String, PendingImportObject<BrAPIListDetails>> mapPendingObsDatasetByOUId(
