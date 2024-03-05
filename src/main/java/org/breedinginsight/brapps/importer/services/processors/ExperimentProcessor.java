@@ -208,7 +208,7 @@ public class ExperimentProcessor implements Processor {
                     mapPendingTrialByOUId(unitId, unit, trialByNameNoScope, studyByNameNoScope, pendingTrialByOUId, program);
                     mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
                     mapPendingLocationByOUId(unitId, unit, pendingStudyByOUId, locationByName, pendingLocationByOUId);
-
+                    initializeObsVarDatasetForExistingObservationUnit(unitId, pendingObsDatasetByOUId, obsVarDatasetByName, pendingTrialByOUId, program);
                 }
 
                 pendingStudyByOUId = fetchStudyByOUId(referenceOUIds, pendingObsUnitByOUId, program);
@@ -1808,6 +1808,43 @@ public class ExperimentProcessor implements Processor {
         existingLocations.forEach(existingLocation -> locationByName.put(existingLocation.getName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation, existingLocation.getId())));
         return locationByName;
     }
+
+    private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnit(
+            String unitId,
+            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId,
+            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName,
+            Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId,
+            Program program
+    ) {
+        if (pendingTrialByOUId.get(unitId) != null &&
+                pendingTrialByOUId.get(unitId).getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+            String datasetId = pendingTrialByOUId.get(unitId).getBrAPIObject()
+                    .getAdditionalInfo()
+                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
+                    .getAsString();
+
+            try {
+                List<BrAPIListSummary> existingDatasets = brAPIListDAO
+                        .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
+                                program.getId(),
+                                String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
+                                UUID.fromString(datasetId));
+                if (existingDatasets == null || existingDatasets.isEmpty()) {
+                    throw new InternalServerException("existing dataset summary not returned from brapi server");
+                }
+                BrAPIListDetails dataSetDetails = brAPIListDAO
+                        .getListById(existingDatasets.get(0).getListDbId(), program.getId())
+                        .getResult();
+                processAndCacheObsVarDataset(dataSetDetails, obsVarDatasetByName);
+                processAndCacheObsVarDatasetByOUId(dataSetDetails, unitId, obsVarDatasetByOUId);
+            } catch (ApiException e) {
+                log.error(Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+        return obsVarDatasetByOUId;
+    }
+
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetByName(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
 
@@ -1854,12 +1891,20 @@ public class ExperimentProcessor implements Processor {
 
         return Optional.ofNullable(this.trialByNameNoScope.get(expTitle.get()));
     }
+
+    private void processAndCacheObsVarDatasetByOUId(BrAPIListDetails existingList, String unitId, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId) {
+        BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
+                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
+                .orElseThrow(() -> new IllegalStateException("External references wasn't found for list (dbid): " + existingList.getListDbId()));
+        obsVarDatasetByOUId.put(unitId,
+                new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
+    }
     private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
         BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
                 .orElseThrow(() -> new IllegalStateException("External references wasn't found for list (dbid): " + existingList.getListDbId()));
         obsVarDatasetByName.put(existingList.getListName(),
-                new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceID())));
+                new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
     }
     private Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
