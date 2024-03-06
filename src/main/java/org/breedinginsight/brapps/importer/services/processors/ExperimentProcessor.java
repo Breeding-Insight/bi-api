@@ -230,7 +230,7 @@ public class ExperimentProcessor implements Processor {
             locationByName = initializeUniqueLocationNames(program, experimentImportRows);
             obsVarDatasetByName = initializeObsVarDatasetByName(program, experimentImportRows);
             existingGermplasmByGID = initializeExistingGermplasmByGID(program, experimentImportRows);
-            
+
         } else {
 
             // can't proceed if you have a mix of ObsUnitId for some but not all rows
@@ -467,22 +467,42 @@ public class ExperimentProcessor implements Processor {
     private void prepareDataForValidation(List<BrAPIImport> importRows, List<Column<?>> phenotypeCols, Map<Integer, PendingImport> mappedBrAPIImport) {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
-
             PendingImport mappedImportRow = mappedBrAPIImport.getOrDefault(rowNum, new PendingImport());
-            mappedImportRow.setTrial(this.trialByNameNoScope.get(importRow.getExpTitle()));
-            mappedImportRow.setLocation(this.locationByName.get(importRow.getEnvLocation()));
-            mappedImportRow.setStudy(this.studyByNameNoScope.get(importRow.getEnv()));
-            mappedImportRow.setObservationUnit(this.observationUnitByNameNoScope.get(createObservationUnitKey(importRow)));
-
-            // loop over phenotype column observation data for current row
             List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
-            for (Column<?> column : phenotypeCols) {
-                // if value was blank won't be entry in map for this observation
-                observations.add(this.observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
-            }
+            String observationHash;
+            if (hasAllReferenceUnitIds) {
+                mappedImportRow.setTrial(pendingTrialByOUId.get(importRow.getObsUnitID());
+                mappedImportRow.setLocation(pendingLocationByOUId.get(importRow.getObsUnitID()));
+                mappedImportRow.setStudy(pendingStudyByOUId.get(importRow.getObsUnitID()));
+                mappedImportRow.setObservationUnit(pendingObsUnitByOUId.get(importRow.getObsUnitID()));
+                mappedImportRow.setGermplasm(pendingGermplasmByOUId.get(importRow.getObsUnitID()));
 
-            PendingImportObject<BrAPIGermplasm> germplasmPIO = getGidPOI(importRow);
-            mappedImportRow.setGermplasm(germplasmPIO);
+                // loop over phenotype column observation data for current row
+                for (Column<?> column : phenotypeCols) {
+                    observationHash = getObservationHash(
+                            pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getObservationUnitName(),
+                            getVariableNameFromColumn(column),
+                            pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()
+                    );
+
+                    // if value was blank won't be entry in map for this observation
+                    observations.add(observationByHash.get(observationHash));
+                }
+
+            } else {
+                mappedImportRow.setTrial(trialByNameNoScope.get(importRow.getExpTitle()));
+                mappedImportRow.setLocation(locationByName.get(importRow.getEnvLocation()));
+                mappedImportRow.setStudy(studyByNameNoScope.get(importRow.getEnv()));
+                mappedImportRow.setObservationUnit(observationUnitByNameNoScope.get(createObservationUnitKey(importRow)));
+                mappedImportRow.setGermplasm(getGidPIO(importRow));
+
+                // loop over phenotype column observation data for current row
+                for (Column<?> column : phenotypeCols) {
+
+                    // if value was blank won't be entry in map for this observation
+                    observations.add(observationByHash.get(getImportObservationHash(importRow, getVariableNameFromColumn(column))));
+                }
+            }
 
             mappedBrAPIImport.put(rowNum, mappedImportRow);
         }
@@ -994,7 +1014,7 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
-    private PendingImportObject<BrAPIGermplasm> getGidPOI(ExperimentObservation importRow) {
+    private PendingImportObject<BrAPIGermplasm> getGidPIO(ExperimentObservation importRow) {
         if (this.existingGermplasmByGID.containsKey(importRow.getGid())) {
             return existingGermplasmByGID.get(importRow.getGid());
         }
