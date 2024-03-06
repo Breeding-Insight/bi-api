@@ -56,6 +56,13 @@
                     <releases><enabled>true</enabled></releases>
                     <snapshots><enabled>true</enabled></snapshots>
                 </repository>
+                <repository>
+                    <id>github-tablesaw</id>
+                    <name>Tablesaw github repository</name>
+                    <url>https://maven.pkg.github.com/Breeding-Insight/tablesaw</url>
+                    <releases><enabled>true</enabled></releases>
+                    <snapshots><enabled>true</enabled></snapshots>
+                </repository>
             </repositories>
         </profile>
     </profiles>
@@ -68,6 +75,11 @@
         </server>
         <server>
             <id>github-fannypack</id>
+            <username>${GITHUB_ACTOR}</username>
+            <password>${GITHUB_TOKEN}</password>
+        </server>
+        <server>
+            <id>github-tablesaw</id>
             <username>${GITHUB_ACTOR}</username>
             <password>${GITHUB_TOKEN}</password>
         </server>

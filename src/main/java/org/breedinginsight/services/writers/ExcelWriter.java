@@ -54,7 +54,8 @@ public class ExcelWriter {
                 } else {
                     //Data values
                     if (data.get(i-1).get(column.getValue()) != null) {
-                        if (column.getDataType() == Column.ColumnDataType.STRING) {
+                        //If String or NA value, accept as is
+                        if (column.getDataType() == Column.ColumnDataType.STRING || data.get(i-1).get(column.getValue()).toString().equalsIgnoreCase("NA")) {
                             row.createCell(cellCount).setCellValue((String) data.get(i - 1).get(column.getValue()));
                         } else if (column.getDataType() == Column.ColumnDataType.INTEGER) {
                             row.createCell(cellCount).setCellValue((Integer) data.get(i - 1).get(column.getValue()));
