@@ -471,7 +471,7 @@ public class ExperimentProcessor implements Processor {
             List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
             String observationHash;
             if (hasAllReferenceUnitIds) {
-                mappedImportRow.setTrial(pendingTrialByOUId.get(importRow.getObsUnitID());
+                mappedImportRow.setTrial(pendingTrialByOUId.get(importRow.getObsUnitID()));
                 mappedImportRow.setLocation(pendingLocationByOUId.get(importRow.getObsUnitID()));
                 mappedImportRow.setStudy(pendingStudyByOUId.get(importRow.getObsUnitID()));
                 mappedImportRow.setObservationUnit(pendingObsUnitByOUId.get(importRow.getObsUnitID()));
@@ -687,17 +687,26 @@ public class ExperimentProcessor implements Processor {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
             PendingImport mappedImportRow = mappedBrAPIImport.get(rowNum);
-            if (StringUtils.isNotBlank(importRow.getGid())) { // if GID is blank, don't bother to check if it is valid.
-                validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
+            if (hasAllReferenceUnitIds) {
+                validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
+            } else {
+                if (StringUtils.isNotBlank(importRow.getGid())) { // if GID is blank, don't bother to check if it is valid.
+                    validateGermplasm(importRow, validationErrors, rowNum, mappedImportRow.getGermplasm());
+                }
+                validateTestOrCheck(importRow, validationErrors, rowNum);
+                validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
+                validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
+                validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
             }
-            validateTestOrCheck(importRow, validationErrors, rowNum);
-            validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
-            validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
-            validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
         }
     }
 
-    private void validateObservationUnits(ValidationErrors validationErrors, Set<String> uniqueStudyAndObsUnit, int rowNum, ExperimentObservation importRow) {
+    private void validateObservationUnits(
+            ValidationErrors validationErrors,
+            Set<String> uniqueStudyAndObsUnit,
+            int rowNum,
+            ExperimentObservation importRow
+    ) {
         validateUniqueObsUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
 
         String key = createObservationUnitKey(importRow);
@@ -759,8 +768,19 @@ public class ExperimentProcessor implements Processor {
                                       boolean commit,
                                       User user) {
         phenotypeCols.forEach(phenoCol -> {
-            String importHash = getImportObservationHash(importRow, phenoCol.name());
+            String importHash;
             String importObsValue = phenoCol.getString(rowNum);
+
+            if (hasAllReferenceUnitIds) {
+                importHash = getObservationHash(
+                        pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getObservationUnitName(),
+                        getVariableNameFromColumn(phenoCol),
+                        pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()
+                );
+
+            } else {
+                importHash = getImportObservationHash(importRow, phenoCol.name());
+            }
 
             // error if import observation data already exists and user has not selected to overwrite
             if(commit && "false".equals(importRow.getOverwrite() == null ? "false" : importRow.getOverwrite()) &&
@@ -845,7 +865,8 @@ public class ExperimentProcessor implements Processor {
             ValidationErrors validationErrors,
             Set<String> uniqueStudyAndObsUnit,
             int rowNum,
-            ExperimentObservation importRow) {
+            ExperimentObservation importRow
+    ) {
         String envIdPlusStudyId = createObservationUnitKey(importRow);
         if (uniqueStudyAndObsUnit.contains(envIdPlusStudyId)) {
             String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
