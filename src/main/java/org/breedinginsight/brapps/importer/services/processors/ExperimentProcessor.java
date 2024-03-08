@@ -1824,7 +1824,11 @@ public class ExperimentProcessor implements Processor {
             }
             if (targetSeason == null) {
                 BrAPISeason newSeason = new BrAPISeason();
-                newSeason.setYear(Integer.parseInt(year));
+                Integer intYear = null;
+                if( StringUtils.isNotBlank(year) ){
+                    intYear = Integer.parseInt(year);
+                }
+                newSeason.setYear(intYear);
                 newSeason.setSeasonName(year);
                 targetSeason = this.brAPISeasonDAO.addOneSeason(newSeason, programId);
             }
