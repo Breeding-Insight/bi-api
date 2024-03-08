@@ -43,6 +43,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -147,7 +148,7 @@ public class BrAPIV2Controller {
                 .build();
 
                 for(BrAPIService service : programServices) {
-                    service.setService(programBrAPIBase + service.getService());
+                    service.setService(service.getService());
                 }
 
                 BrAPIServerInfo programServerInfo = new BrAPIServerInfo();
@@ -230,7 +231,10 @@ public class BrAPIV2Controller {
     }
 
     private HttpResponse<String> makeCall(Request brapiRequest) {
-        OkHttpClient client = new OkHttpClient();
+        // TODO: use config parameter for timeout
+        OkHttpClient client = new OkHttpClient.Builder()
+                .readTimeout(5, TimeUnit.MINUTES)
+                .build();
         try (Response brapiResponse = client.newCall(brapiRequest).execute()) {
             if(brapiResponse.isSuccessful()) {
                 try(ResponseBody body = brapiResponse.body()) {
