@@ -1,11 +1,16 @@
 package org.breedinginsight.brapi.v2.services;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.reflect.TypeToken;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.client.v2.BrAPIClient;
+import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
@@ -30,6 +35,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.IntOrderComparator;
 import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -40,6 +46,7 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.lang.reflect.Type;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -325,6 +332,22 @@ public class BrAPITrialService {
         }
 
         return dataset;
+    }
+
+    /**
+     * Retrieves the metadata of datasets associated with a program and experiment.
+     *
+     * @param program The program object representing the program that the datasets belong to.
+     * @param experimentId The UUID of the experiment that the datasets are associated with.
+     * @return A list of DatasetMetadata objects containing the metadata of the datasets.
+     * @throws DoesNotExistException If the trial does not exist for the program and experimentId combination.
+     * @throws ApiException If there is an error retrieving the trial or parsing the datasets metadata.
+     */
+    public List<DatasetMetadata> getDatasetsMetadata(Program program, UUID experimentId) throws DoesNotExistException, ApiException {
+        BrAPITrial trial = trialDAO.getTrialById(program.getId(), experimentId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
+        JsonArray datasetsJson = trial.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+        List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
+        return datasets;
     }
 
     private void addBrAPIObsToRecords(
