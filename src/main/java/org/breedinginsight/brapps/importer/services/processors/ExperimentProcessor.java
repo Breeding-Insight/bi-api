@@ -1162,7 +1162,6 @@ public class ExperimentProcessor implements Processor {
                     getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
 
             UUID trialID = trialPIO.getId();
-            //PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
             newObservation = importRow.constructBrAPIObservation(value, variableName, seasonDbId, obsUnitPIO.getBrAPIObject(), commit, program, user, BRAPI_REFERENCE_SOURCE, trialID, studyID, obsUnitPIO.getId(), id);
@@ -1172,7 +1171,7 @@ public class ExperimentProcessor implements Processor {
                 newObservation.setObservationTimeStamp(OffsetDateTime.parse(timeStampValue));
             }
 
-            newObservation.setStudyDbId(this.studyByNameNoScope.get(pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()).getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
+            newObservation.setStudyDbId(studyPIO.getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
             this.observationByHash.put(key, pio);
