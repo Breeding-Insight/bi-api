@@ -19,10 +19,12 @@ package org.breedinginsight.brapi.v2;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
+import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIIndexPagination;
 import org.brapi.v2.model.BrAPIMetadata;
 import org.brapi.v2.model.germ.BrAPIPedigreeNode;
@@ -31,8 +33,10 @@ import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponseResult;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
 import org.breedinginsight.brapi.v1.controller.BrapiVersion;
+import org.breedinginsight.brapi.v2.dao.BrAPIPedigreeDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.annotation.Nullable;
 import javax.inject.Inject;
@@ -44,14 +48,14 @@ import java.util.*;
 public class BrAPIPedigreeController {
     private final String referenceSource;
 
-    //private final BrAPIObservationUnitDAO observationUnitDAO;
+    private final BrAPIPedigreeDAO pedigreeDAO;
 
     private final ProgramService programService;
 
     @Inject
-    public BrAPIPedigreeController(@Property(name = "brapi.server.reference-source") String referenceSource, ProgramService programService) {
+    public BrAPIPedigreeController(@Property(name = "brapi.server.reference-source") String referenceSource, BrAPIPedigreeDAO pedigreeDAO, ProgramService programService) {
         this.referenceSource = referenceSource;
-        //this.observationUnitDAO = observationUnitDAO;
+        this.pedigreeDAO = pedigreeDAO;
         this.programService = programService;
     }
 
@@ -92,16 +96,21 @@ public class BrAPIPedigreeController {
         }
 
         // TODO: implement this
-        List<BrAPIPedigreeNode> pedigree = new ArrayList<>();
+        try {
+            List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(program.get());
 
-        return HttpResponse.ok(
-                new BrAPIPedigreeListResponse()
-                .metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
-                        .totalPages(1)
-                        .pageSize(pedigree.size())
-                        .totalCount(pedigree.size())))
-                .result(new BrAPIPedigreeListResponseResult().data(pedigree))
-        );
+            return HttpResponse.ok(
+                    new BrAPIPedigreeListResponse()
+                            .metadata(new BrAPIMetadata().pagination(new BrAPIIndexPagination().currentPage(0)
+                                    .totalPages(1)
+                                    .pageSize(pedigree.size())
+                                    .totalCount(pedigree.size())))
+                            .result(new BrAPIPedigreeListResponseResult().data(pedigree))
+            );
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "error fetching variables");
+        }
     }
 
     @Post("/pedigree")

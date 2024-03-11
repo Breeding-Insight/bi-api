@@ -17,19 +17,27 @@
 
 package org.breedinginsight.brapi.v2.dao;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.germplasm.PedigreeApi;
+import org.brapi.client.v2.modules.phenotype.ObservationsApi;
+import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.germ.BrAPIPedigreeNode;
 import org.brapi.v2.model.germ.request.BrAPIPedigreeSearchRequest;
-import org.breedinginsight.brapps.importer.daos.ImportDAO;
+import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponse;
+import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
+import org.jetbrains.annotations.NotNull;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+
+import static org.brapi.v2.model.BrAPIWSMIMEDataTypes.APPLICATION_JSON;
 
 @Singleton
 public class BrAPIPedigreeDAO {
@@ -45,26 +53,7 @@ public class BrAPIPedigreeDAO {
         this.brAPIEndpointProvider = brAPIEndpointProvider;
     }
 
-    public List<BrAPIPedigreeNode> getPedigree(Program program,
-                                               Optional<String> observationUnitId,
-                                               Optional<String> observationUnitName,
-                                               Optional<String> locationDbId,
-                                               Optional<String> seasonDbId,
-                                               Optional<Boolean> includeObservations,
-                                               Optional<String> observationUnitLevelName,
-                                               Optional<Integer> observationUnitLevelOrder,
-                                               Optional<String> observationUnitLevelCode,
-                                               Optional<String> observationUnitLevelRelationshipName,
-                                               Optional<Integer> observationUnitLevelRelationshipOrder,
-                                               Optional<String> observationUnitLevelRelationshipCode,
-                                               Optional<String> observationUnitLevelRelationshipDbId,
-                                               Optional<String> commonCropName,
-                                               Optional<String> experimentId,
-                                               Optional<String> environmentId,
-                                               Optional<String> germplasmId
-//                                                          , Integer page,
-//                                                          Integer pageSize
-    ) throws ApiException {
+    public List<BrAPIPedigreeNode> getPedigree(Program program) throws ApiException {
         BrAPIPedigreeSearchRequest pedigreeSearchRequest = new BrAPIPedigreeSearchRequest();
         pedigreeSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
         // TODO: add pagination support
@@ -74,8 +63,11 @@ public class BrAPIPedigreeDAO {
 
         PedigreeApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), PedigreeApi.class);
 
-        return brAPIDAOUtil.search(api::searchPedigreePost,
+        return brAPIDAOUtil.<BrAPIPedigreeListResponse, BrAPIPedigreeSearchRequest, BrAPIPedigreeNode>search(
+                api::searchPedigreePost,
                 api::searchPedigreeSearchResultsDbIdGet,
-                pedigreeSearchRequest);
+                pedigreeSearchRequest
+        );
     }
+
 }
