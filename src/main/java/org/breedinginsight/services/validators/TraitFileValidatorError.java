@@ -56,7 +56,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingScaleNameMsg() {
+    public ValidationError getMissingScaleUnitMsg() {
         return new ValidationError("Unit", "Missing unit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 

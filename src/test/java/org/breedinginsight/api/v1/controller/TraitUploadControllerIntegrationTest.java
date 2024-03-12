@@ -581,7 +581,7 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals("a^2 + b^2 = c^2", method.get("formula").getAsString(), "wrong method formula");
 
         JsonObject scale = trait.get("scale").getAsJsonObject();
-        assertEquals("1-4 Parlier field response score", scale.get("scaleName").getAsString(), "wrong scale name");
+        assertEquals("Ordinal", scale.get("scaleName").getAsString(), "wrong scale name");
         assertEquals(DataType.ORDINAL.getLiteral(), scale.get("dataType").getAsString(), "wrong scale dataType");
         assertEquals(2, scale.get("decimalPlaces").getAsInt(), "wrong scale decimal places");
         assertEquals(2, scale.get("validValueMin").getAsInt(), "wrong scale min value");
@@ -809,6 +809,27 @@ public class TraitUploadControllerIntegrationTest extends BrAPITest {
         assertEquals(1, categoryRowErrors.size(), "Wrong number of category errors");
         JsonObject labelError = categoryRowErrors.get(0).getAsJsonObject();
         assertEquals("Scale label cannot be populated for Nominal scale type", labelError.get("errorMessage").getAsString());
+    }
+
+    @Test
+    void putNonNumericalClassWithUnitError() {
+
+        File file = new File("src/test/resources/files/ontology/non_numerical_with_unit.xlsx");
+
+        HttpClientResponseException e = Assertions.assertThrows(HttpClientResponseException.class, () -> {
+            HttpResponse<String> response = uploadFile(validProgram.getId().toString(), file, "test-registered-user");
+        });
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, e.getStatus());
+
+        JsonArray rowErrors = JsonParser.parseString((String) e.getResponse().getBody().get()).getAsJsonObject().getAsJsonArray("rowErrors");
+        assertTrue(rowErrors.size() == 1, "Wrong number of row errors returned");
+
+        JsonObject rowError1 = rowErrors.get(0).getAsJsonObject();
+        JsonArray errors = rowError1.getAsJsonArray("errors");
+        assertTrue(errors.size() == 1, "Not enough errors were returned");
+        JsonObject error = errors.get(0).getAsJsonObject();
+        assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
+        assertEquals("Units identified for non-numeric scale class", error.get("errorMessage").getAsString(), "Incorrect http status code");
     }
 
     @Test

@@ -380,6 +380,7 @@ public class TraitDAOImpl extends TraitDao implements TraitDAO {
                                                                                .min(trait.getScale().getValidValueMin());
             BrAPIScale brApiScale = new BrAPIScale()
                     .scaleName(String.format("%s [%s]", trait.getScale().getScaleName(), program.getKey()))
+                    .units(trait.getScale().getUnits())
                     .externalReferences(List.of(scaleReference))
                     .dataType(brApiTraitDataType)
                     .decimalPlaces(trait.getScale().getDecimalPlaces())

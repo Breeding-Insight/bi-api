@@ -85,6 +85,7 @@ public class ExperimentProcessor implements Processor {
 
     private static final String NAME = "Experiment";
     private static final String MISSING_OBS_UNIT_ID_ERROR = "Experimental entities are missing ObsUnitIDs";
+    private static final String PREEXISTING_EXPERIMENT_TITLE = "Experiment Title already exists";
     private static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
     private static final String MIDNIGHT = "T00:00:00-00:00";
     private static final String TIMESTAMP_PREFIX = "TS:";
@@ -510,7 +511,7 @@ public class ExperimentProcessor implements Processor {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Program is not properly configured for environment import");
         }
         Supplier<BigInteger> envNextVal = () -> dsl.nextval(envSequenceName.toLowerCase());
-
+        existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
@@ -579,7 +580,7 @@ public class ExperimentProcessor implements Processor {
     private String getObservationHash(String observationUnitName, String variableName, String studyName) {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                 DigestUtils.sha256Hex(variableName) +
-                DigestUtils.sha256Hex(studyName);
+                DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
         return DigestUtils.sha256Hex(concat);
     }
 
@@ -866,12 +867,12 @@ public class ExperimentProcessor implements Processor {
                 }
             }
             if(validateRequiredCell(importRow.getEnvYear(), Columns.ENV_YEAR, errorMessage, validationErrors, rowNum)) {
-                String studyYear = this.studyByNameNoScope.get(importRow.getEnv()).getBrAPIObject().getSeasons().get(0);
+                String studyYear = StringUtils.defaultString( this.studyByNameNoScope.get(importRow.getEnv()).getBrAPIObject().getSeasons().get(0) );
                 String rowYear = importRow.getEnvYear();
                 if(commit) {
                     rowYear = this.yearToSeasonDbId(importRow.getEnvYear(), program.getId());
                 }
-                if(!studyYear.equals(rowYear)) {
+                if(StringUtils.isNotBlank(studyYear) && !studyYear.equals(rowYear)) {
                     addRowError(Columns.ENV_YEAR, ENV_YEAR_MISMATCH, validationErrors, rowNum);
                 }
             }
@@ -1084,7 +1085,7 @@ public class ExperimentProcessor implements Processor {
         String variableName = column.name();
         String value = column.getString(rowNum);
         String key = getImportObservationHash(importRow, variableName);
-        existingObsByObsHash = fetchExistingObservations(referencedTraits, program);
+
         if (existingObsByObsHash.containsKey(key)) {
             if (StringUtils.isNotBlank(value) && !isObservationMatched(key, value, column, rowNum)){
 
@@ -1248,9 +1249,14 @@ public class ExperimentProcessor implements Processor {
     }
 
     private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(Program program, User user, boolean commit, ExperimentObservation importRow, Supplier<BigInteger> expNextVal) throws UnprocessableEntityException {
-        PendingImportObject<BrAPITrial> pio;
+        PendingImportObject<BrAPITrial> trialPio;
         if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
-            pio = trialByNameNoScope.get(importRow.getExpTitle());
+            PendingImportObject<BrAPIStudy> envPio;
+            trialPio = trialByNameNoScope.get(importRow.getExpTitle());
+            envPio = this.studyByNameNoScope.get(importRow.getEnv());
+            if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+            }
         } else if (!trialByNameNoScope.isEmpty()) {
             throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
         } else {
@@ -1260,10 +1266,10 @@ public class ExperimentProcessor implements Processor {
                 expSeqValue = expNextVal.get().toString();
             }
             BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
-            pio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-            this.trialByNameNoScope.put(importRow.getExpTitle(), pio);
+            trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
+            this.trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
         }
-        return pio;
+        return trialPio;
     }
 
     private void updateObservationDependencyValues(Program program) {
@@ -1907,7 +1913,11 @@ public class ExperimentProcessor implements Processor {
             }
             if (targetSeason == null) {
                 BrAPISeason newSeason = new BrAPISeason();
-                newSeason.setYear(Integer.parseInt(year));
+                Integer intYear = null;
+                if( StringUtils.isNotBlank(year) ){
+                    intYear = Integer.parseInt(year);
+                }
+                newSeason.setYear(intYear);
                 newSeason.setSeasonName(year);
                 targetSeason = this.brAPISeasonDAO.addOneSeason(newSeason, programId);
             }
