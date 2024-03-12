@@ -64,6 +64,10 @@ public class ObservationProcessor implements Processor {
         this.brAPIObservationDAO = brAPIObservationDAO;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
+
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
         // will skip existing observations, no error reported
 

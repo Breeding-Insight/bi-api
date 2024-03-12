@@ -56,6 +56,10 @@ public class StudyProcessor implements Processor {
         this.brAPIStudyDAO = brAPIStudyDAO;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
+
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         // get unique study names

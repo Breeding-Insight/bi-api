@@ -91,6 +91,10 @@ public class SampleSubmissionProcessor implements Processor {
     }
 
     @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
+
+    @Override
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ValidatorException, ApiException {
         Set<String> gids = importRows.stream()
                                      .filter((row -> StringUtils.isNotBlank(((SampleSubmissionImport) row).getGid())))

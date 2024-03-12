@@ -133,61 +133,7 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIObservationUnit>> obsUnitByExpObsUnitId = null;
     private Map<String, PendingImportObject<BrAPIObservationUnit>> subObsUnitBySubObsUnitId = null;
 
-    /**
-     * Operational modes of experiment processor dependent on import file contents
-     *
-     * CREATE_NEW_EXPERIMENT:
-     *   ENTRY:
-     *     - WHEN no ExpUnit ObsUnitIDs column present in file
-     *         AND Exp Title file column contains new title
-     *   CONDITION:
-     *     - All data validations pass
-     *   ACTION:
-     *     - Create BrAPI objects Trial, Study, ObservationUnit, Optional: [Location, Observation, List]
-     * APPEND_EXPERIMENT_ENV: (Is creating obs units also required?)
-     *   ENTRY:
-     *     - WHEN no ExpUnit ObsUnitIDs column present in file
-     *         AND Exp Title file column contains existing title
-     *         AND Env file column contains new env
-     *   CONDITION:
-     *     - All data validations pass
-     *   ACTION:
-     *     - Create BrAPI objects Study, ObservationUnit, Optional: [Location, Observation, List]
-     * APPEND_EXPERIMENT_OBS: (this might be combined with next mode)
-     *   ENTRY:
-     *     - WHEN ExpUnit ObsUnitIds column present in file
-     *         AND Sub-ObsUnit ObsUnitIds column not present in file
-     *         AND Sub-ObsUnit column contains only empty values
-     *         AND one or more phenotype columns are present in file
-     *   ACTION:
-     *     - Create BrAPI objects Study, ObservationUnit, Optional: [Location, Observation, List]
-     * UPDATE_EXPERIMENT_OBS:
-     *   - WHEN ExpUnit ObsUnitIds column present in file
-     *       AND Sub-ObsUnit ObsUnitIds column not present in file
-     *       AND Sub-ObsUnit column contains only empty values
-     *       AND one or more phenotype columns are present in file
-     *       AND phenotype values for observation units already exist
-     *
-     * UPDATE_EXP_UNIT_DATA:
-     *   - WHEN ExpUnit ObsUnitIds column present in file
-     *       AND Sub-ObsUnit ObsUnitIds column not present in file
-     *       AND Sub-ObsUnit column contains only empty values
-     * CREATE_SUB_OBS_UNIT_DATA:
-     *   - WHEN ExpUnit ObsUnitIds column present in file
-     *       AND Sub-ObsUnit ObsUnitIds column not present in file
-     *       AND Sub-ObsUnit column rows contains values
-     * UPDATE_SUB_OBS_UNIT_DATA:
-     *   - WHEN ExpUnit ObsUnitIds column present in file
-     *       AND Sub-ObsUnit ObsUnitIds column present in file
-     */
-    private enum Mode {
-        CREATE_EXP_UNIT_DATA,
-        UPDATE_EXP_UNIT_DATA,
-        CREATE_SUB_OBS_UNIT_DATA,
-        UPDATE_SUB_OBS_UNIT_DATA
-    }
-
-    private Mode mode;
+    private ExperimentProcessorWorkflow workflow = new ExperimentProcessorWorkflow();
 
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
@@ -228,6 +174,12 @@ public class ExperimentProcessor implements Processor {
         return NAME;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+        // determine experiment import workflow based on file contents
+        workflow.determineWorkflow(importRows);
+    }
+
     /**
      * Initialize the Map<String, PendingImportObject> objects with existing BrAPI Data.
      *
@@ -236,6 +188,8 @@ public class ExperimentProcessor implements Processor {
      */
     @Override
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
+
+
 
         List<ExperimentObservation> experimentImportRows = importRows.stream()
                                                                      .map(trialImport -> (ExperimentObservation) trialImport)

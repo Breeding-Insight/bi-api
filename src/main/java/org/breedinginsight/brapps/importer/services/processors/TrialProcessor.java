@@ -53,6 +53,9 @@ public class TrialProcessor implements Processor {
         this.brapiTrialDAO = brapiTrialDAO;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         List<String> uniqueTrialNames = importRows.stream()

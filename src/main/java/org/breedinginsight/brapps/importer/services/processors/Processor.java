@@ -32,6 +32,12 @@ import java.util.Map;
 public interface Processor {
 
     /**
+     * Given importRows, configure any initial processor state like modes of operation
+     * @param importRows
+     */
+    void initialize(List<BrAPIImport> importRows);
+
+    /**
      * Given importRows, get all existing objects in the brapi service. First phase of processing followed by process.
      * @param importRows
      * @param program
