@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors;
 
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -608,6 +609,7 @@ public class ExperimentProcessor implements Processor {
             validateConditionallyRequired(validationErrors, rowNum, importRow, program, commit);
             validateObservationUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
             validateObservations(validationErrors, rowNum, importRow, phenotypeCols, colVarMap, commit, user);
+
         }
     }
 
@@ -619,6 +621,78 @@ public class ExperimentProcessor implements Processor {
         if(ouPIO.getState() == ImportObjectState.NEW && StringUtils.isNotBlank(importRow.getObsUnitID())) {
             addRowError(Columns.OBS_UNIT_ID, "Could not find observation unit by ObsUnitDBID", validationErrors, rowNum);
         }
+
+        validateGeoCoordinates(validationErrors, rowNum, importRow);
+    }
+
+    private void validateGeoCoordinates(ValidationErrors validationErrors, int rowNum, ExperimentObservation importRow) {
+
+        String lat = importRow.getLatitude();
+        String lon = importRow.getLongitude();
+        String elevation = importRow.getElevation();
+
+        // If any of Lat, Long, or Elevation are provided, Lat and Long must both be provided.
+        if (StringUtils.isNotBlank(lat) || StringUtils.isNotBlank(lon) || StringUtils.isNotBlank(elevation)) {
+            if (StringUtils.isBlank(lat)) {
+                addRowError(Columns.LAT, "Latitude must be provided for complete coordinate specification", validationErrors, rowNum);
+            }
+            if (StringUtils.isBlank(lon)) {
+                addRowError(Columns.LONG, "Longitude must be provided for complete coordinate specification", validationErrors, rowNum);
+            }
+        }
+
+        // Validate coordinate values
+        boolean latBadValue = false;
+        boolean lonBadValue = false;
+        boolean elevationBadValue = false;
+        double latDouble;
+        double lonDouble;
+        double elevationDouble;
+
+        // Only check latitude format if not blank since already had previous error
+        if (StringUtils.isNotBlank(lat)) {
+            try {
+                latDouble = Double.parseDouble(lat);
+                if (latDouble < -90 || latDouble > 90) {
+                    latBadValue = true;
+                }
+            } catch (NumberFormatException e) {
+                latBadValue = true;
+            }
+        }
+
+        // Only check longitude format if not blank since already had previous error
+        if (StringUtils.isNotBlank(lon)) {
+            try {
+                lonDouble = Double.parseDouble(lon);
+                if (lonDouble < -180 || lonDouble > 180) {
+                    lonBadValue = true;
+                }
+            } catch (NumberFormatException e) {
+                lonBadValue = true;
+            }
+        }
+
+        if (StringUtils.isNotBlank(elevation)) {
+            try {
+                elevationDouble = Double.parseDouble(elevation);
+            } catch (NumberFormatException e) {
+                elevationBadValue = true;
+            }
+        }
+
+        if (latBadValue) {
+            addRowError(Columns.LAT, "Invalid Lat value (expected range -90 to 90)", validationErrors, rowNum);
+        }
+
+        if (lonBadValue) {
+            addRowError(Columns.LONG, "Invalid Long value (expected range -180 to 180)", validationErrors, rowNum);
+        }
+
+        if (elevationBadValue) {
+            addRowError(Columns.LONG, "Invalid Elevation value (numerals expected)", validationErrors, rowNum);
+        }
+
     }
 
     private Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits, Program program) throws ApiException {
@@ -1705,10 +1779,19 @@ public class ExperimentProcessor implements Processor {
 
     }
 
+    private boolean isNAObservation(String value){
+        return value.equalsIgnoreCase("NA");
+    }
+
     private void validateObservationValue(Trait variable, String value,
                                           String columnHeader, ValidationErrors validationErrors, int row) {
         if (StringUtils.isBlank(value)) {
             log.debug(String.format("skipping validation of observation because there is no value.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
+            return;
+        }
+
+        if (isNAObservation(value)) {
+            log.debug(String.format("skipping validation of observation because it is NA.\n\tvariable: %s\n\trow: %d", variable.getObservationVariableName(), row));
             return;
         }
 
