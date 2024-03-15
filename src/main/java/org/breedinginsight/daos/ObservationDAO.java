@@ -49,84 +49,12 @@ public class ObservationDAO {
     private final BrAPIDAOUtil brAPIDAOUtil;
     private ProgramDAO programDAO;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
-    private final String referenceSource;
-    private boolean runScheduledTasks;
-    private final ProgramCache<BrAPIObservation> programObservationCache;
 
     @Inject
-    public ObservationDAO(BrAPIDAOUtil brAPIDAOUtil,
-                          ProgramDAO programDAO,
-                          BrAPIEndpointProvider brAPIEndpointProvider,
-                          @Property(name = "brapi.server.reference-source") String referenceSource,
-                          @Property(name = "micronaut.bi.api.run-scheduled-tasks") boolean runScheduledTasks,
-                          ProgramCacheProvider programCacheProvider) {
+    public ObservationDAO(BrAPIDAOUtil brAPIDAOUtil, ProgramDAO programDAO, BrAPIEndpointProvider brAPIEndpointProvider) {
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.programDAO = programDAO;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
-        this.referenceSource = referenceSource;
-        this.runScheduledTasks = runScheduledTasks;
-        this.programObservationCache = programCacheProvider.getProgramCache(this::fetchProgramObservations, BrAPIObservation.class);
-    }
-
-    @Scheduled(initialDelay = "2s")
-    public void setup() {
-        if(!runScheduledTasks) {
-            return;
-        }
-        // Populate the observation cache for all programs on startup.
-        log.debug("populating observation cache");
-        List<Program> programs = programDAO.getActive();
-        if (programs != null) {
-            programObservationCache.populate(programs.stream().map(Program::getId).collect(Collectors.toList()));
-        }
-    }
-
-    /**
-     * Fetch formatted observation for this program.
-     * @param programId
-     * @return Map<Key = string representing observation UUID, value = formatted BrAPIObservation>
-     * @throws ApiException
-     */
-    private Map<String, BrAPIObservation> fetchProgramObservations(UUID programId) throws ApiException {
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
-        // Get the program key.
-        List<Program> programs = programDAO.get(programId);
-        if (programs.size() != 1) {
-            throw new InternalServerException("Program was not found for given key");
-        }
-        Program program = programs.get(0);
-
-        // Set query params and make call.
-        BrAPIObservationSearchRequest observationSearch = new BrAPIObservationSearchRequest();
-        observationSearch.externalReferenceIds(List.of(programId.toString()));
-        observationSearch.externalReferenceSources(List.of(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS)));
-        return processObservationsForCache(brAPIDAOUtil.search(
-                api::searchObservationsPost,
-                api::searchObservationsSearchResultsDbIdGet,
-                observationSearch
-        ), program.getKey());
-    }
-
-    // TODO: use program key, strip from observationUnitName, etc.
-    /**
-     * Process a list of observations for insertion into the cache.
-     * @param programObservations
-     * @param programKey
-     * @return
-     */
-    private Map<String, BrAPIObservation> processObservationsForCache(List<BrAPIObservation> programObservations, String programKey) {
-        // Build map.
-        Map<String, BrAPIObservation> programObservationsMap = new HashMap<>();
-        log.trace("processing observationUnits for cache: " + programObservations);
-        for (BrAPIObservation observation: programObservations) {
-            BrAPIExternalReference xref = observation
-                    .getExternalReferences()
-                    .stream()
-                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATIONS.getName()).equals(reference.getReferenceSource()))
-                    .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            programObservationsMap.put(xref.getReferenceID(), observation);
-        }
-        return programObservationsMap;
     }
 
     public List<BrAPIObservation> getObservationsByVariableDbId(String observationVariableDbId, UUID programId) {
