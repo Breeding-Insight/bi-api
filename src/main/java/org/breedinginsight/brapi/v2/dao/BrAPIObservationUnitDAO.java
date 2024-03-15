@@ -97,7 +97,8 @@ public class BrAPIObservationUnitDAO {
         this.programObservationUnitCache = programCacheProvider.getProgramCache(this::fetchProgramObservationUnits, BrAPIObservationUnit.class);
     }
 
-    @Scheduled(initialDelay = "2s")
+    // TODO: 2s? 3s?
+    @Scheduled(initialDelay = "3s")
     public void setup() {
         if(!runScheduledTasks) {
             return;
@@ -112,16 +113,13 @@ public class BrAPIObservationUnitDAO {
 
     /**
      * Fetch formatted observation units for this program.
-     * @param programId
-     * @return Map<Key = string representing observation unit UUID, value = formatted BrAPIObservationUnit>
-     * @throws ApiException
      */
     private Map<String, BrAPIObservationUnit> fetchProgramObservationUnits(UUID programId) throws ApiException {
         ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationUnitsApi.class);
-        // Get the program key.
+        // Get the program.
         List<Program> programs = programDAO.get(programId);
         if (programs.size() != 1) {
-            throw new InternalServerException("Program was not found for given key");
+            throw new InternalServerException("Program was not found for given id");
         }
         Program program = programs.get(0);
 
@@ -133,17 +131,15 @@ public class BrAPIObservationUnitDAO {
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearch
-        ), program.getKey());
+        ), program);
     }
 
-    // TODO: use program key, strip from observationUnitName, etc.
     /**
      * Process a list of observation units for insertion into the cache.
-     * @param programObservationUnits
-     * @param programKey
-     * @return
      */
-    private Map<String, BrAPIObservationUnit> processObservationUnitsForCache(List<BrAPIObservationUnit> programObservationUnits, String programKey) {
+    private Map<String, BrAPIObservationUnit> processObservationUnitsForCache(List<BrAPIObservationUnit> programObservationUnits, Program program) throws ApiException {
+        // Process programObservationUnits in place (strip program key, etc.).
+        processObservationUnits(program, programObservationUnits, true);
         // Build map.
         Map<String, BrAPIObservationUnit> programObservationUnitsMap = new HashMap<>();
         for (BrAPIObservationUnit observationUnit: programObservationUnits) {
