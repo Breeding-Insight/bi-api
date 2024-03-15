@@ -27,7 +27,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
@@ -156,6 +155,9 @@ public class BrAPIObservationDAO {
         }
     }
 
+    /**
+     * Get all observations for a program from the cache.
+     */
     private Map<String, BrAPIObservation> getProgramObservations(UUID programId) throws ApiException {
         return programObservationCache.get(programId);
     }
@@ -235,10 +237,9 @@ public class BrAPIObservationDAO {
     public List<BrAPIObservation> createBrAPIObservations(List<BrAPIObservation> brAPIObservationList, UUID programId, ImportUpload upload) throws ApiException {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         var program = programDAO.fetchOneById(programId);
-        Callable<Map<String, BrAPIObservation>> postFunction = null;
         try {
             if (!brAPIObservationList.isEmpty()) {
-                postFunction = () -> {
+                Callable<Map<String, BrAPIObservation>> postFunction = () -> {
                     List<BrAPIObservation> postResponse = brAPIDAOUtil.post(brAPIObservationList, upload, api::observationsPost, importDAO::update);
                     return processObservationsForCache(postResponse, program.getKey());
                 };
@@ -253,10 +254,8 @@ public class BrAPIObservationDAO {
     public BrAPIObservation updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId) throws ApiException {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         var program = programDAO.fetchOneById(programId);
-        Callable<Map<String, BrAPIObservation>> postFunction = null;
-
         try {
-            postFunction = () -> {
+            Callable<Map<String, BrAPIObservation>> postFunction = () -> {
                 ApiResponse<BrAPIObservationSingleResponse> response = api.observationsObservationDbIdPut(dbId, observation);
                     if (response == null)
                     {
