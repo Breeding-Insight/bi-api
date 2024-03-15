@@ -480,6 +480,7 @@ public class ExperimentProcessor implements Processor {
                 // loop over phenotype column observation data for current row
                 for (Column<?> column : phenotypeCols) {
                     observationHash = getObservationHash(
+                            pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName() +
                             pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getObservationUnitName(),
                             getVariableNameFromColumn(column),
                             pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()
@@ -1130,7 +1131,7 @@ public class ExperimentProcessor implements Processor {
         if (hasAllReferenceUnitIds) {
             String unitName = obsUnitPIO.getBrAPIObject().getObservationUnitName();
             String studyName = studyPIO.getBrAPIObject().getStudyName();
-            key = getObservationHash(unitName, variableName, studyName);
+            key = getObservationHash(studyName + unitName, variableName, studyName);
         } else {
             key = getImportObservationHash(importRow, variableName);
         }
