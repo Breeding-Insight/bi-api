@@ -69,7 +69,7 @@ public class BrAPIObservationUnitDAO {
     private final BrAPIGermplasmService germplasmService;
 
     private final String referenceSource;
-    private boolean runScheduledTasks;
+    private final boolean runScheduledTasks;
 
     private final Gson gson = new JSON().getGson();
     private final Type treatmentlistType = new TypeToken<ArrayList<BrAPIObservationTreatment>>(){}.getType();
@@ -148,7 +148,7 @@ public class BrAPIObservationUnitDAO {
                 .stream()
                 .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATION_UNITS.getName()).equals(reference.getReferenceSource()))
                 .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            programObservationUnitsMap.put(xref.getReferenceID(), observationUnit);
+            programObservationUnitsMap.put(xref.getReferenceId(), observationUnit);
         }
         return programObservationUnitsMap;
     }
@@ -296,15 +296,15 @@ public class BrAPIObservationUnitDAO {
             //xref search does an OR, so we need to convert the searching for ouId/expId/envId to be an AND
             boolean matches = observationUnitId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS))
                                                                                  .get()
-                                                                                 .getReferenceID()))
+                                                                                 .getReferenceId()))
                                                    .orElse(true);
             matches = matches && experimentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.TRIALS))
                                                                                    .get()
-                                                                                   .getReferenceID()))
+                                                                                   .getReferenceId()))
                                                      .orElse(true);
             matches = matches && environmentId.map(id -> id.equals(Utilities.getExternalReference(ou.getExternalReferences(), Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES))
                                                                              .get()
-                                                                             .getReferenceID()))
+                                                                             .getReferenceId()))
                                                .orElse(true);
 
             //adding filter for germplasmDbId because we can't easily search that in the stored data object
@@ -372,7 +372,7 @@ public class BrAPIObservationUnitDAO {
                     ou.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GERMPLASM_UUID,
                                              Utilities.getExternalReference(germplasm.getExternalReferences(), referenceSource)
                                                       .orElseThrow(() -> new IllegalStateException("Germplasm UUID not found"))
-                                                      .getReferenceID());
+                                                      .getReferenceId());
                 }
             }
             ou.setObservationUnitName(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
