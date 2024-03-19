@@ -765,6 +765,15 @@ public class ExperimentProcessor implements Processor {
             // had been saved prior to import
             } else if (existingObsByObsHash.containsKey(importHash) && !isObservationMatched(importHash, importObsValue, phenoCol, rowNum)) {
 
+                // different data means validations still need to happen
+                // TODO move into separate method if not too messy
+                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
+
+                //Timestamp validation
+                if(timeStampColByPheno.containsKey(phenoCol.name())) {
+                    Column<?> timeStampCol = timeStampColByPheno.get(phenoCol.name());
+                    validateTimeStampValue(timeStampCol.getString(rowNum), timeStampCol.name(), validationErrors, rowNum);
+                
                 // add a change log entry when updating the value of an observation
                 if (commit) {
                     BrAPIObservation pendingObservation = observationByHash.get(importHash).getBrAPIObject();
