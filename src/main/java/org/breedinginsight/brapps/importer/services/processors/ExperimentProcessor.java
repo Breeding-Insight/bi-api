@@ -766,7 +766,7 @@ public class ExperimentProcessor implements Processor {
             } else if (existingObsByObsHash.containsKey(importHash) && !isObservationMatched(importHash, importObsValue, phenoCol, rowNum)) {
 
                 // different data means validations still need to happen
-                // TODO move into separate method if not too messy
+                // TODO consider moving these two calls into a separate method since called twice together
                 validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
 
                 //Timestamp validation
