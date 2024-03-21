@@ -78,7 +78,7 @@ public class BrAPIGermplasmService {
         for (BrAPIGermplasm germplasmEntry: germplasm) {
             HashMap<String, Object> row = new HashMap<>();
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
-            row.put("Name", germplasmEntry.getGermplasmName());
+            row.put("Germplasm Name", germplasmEntry.getGermplasmName());
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
