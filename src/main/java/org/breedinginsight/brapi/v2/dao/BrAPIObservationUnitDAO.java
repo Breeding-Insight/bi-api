@@ -224,7 +224,7 @@ public class BrAPIObservationUnitDAO {
         String datasetReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.DATASET);
         return getProgramObservationUnits(program.getId()).values().stream()
                 .filter(ou -> {
-                    Optional<BrAPIExternalReference> exRef = Utilities.getExternalReference(ou.getExternalReferences(), referenceSource + ExternalReferenceSource.DATASET);
+                    Optional<BrAPIExternalReference> exRef = Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource);
                     return exRef.map(brAPIExternalReference -> brAPIExternalReference.getReferenceId().equals(datasetId)).orElse(false);
                 })
                 .collect(Collectors.toList());
