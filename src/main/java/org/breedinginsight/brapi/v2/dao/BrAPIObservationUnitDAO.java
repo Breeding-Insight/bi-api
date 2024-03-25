@@ -132,15 +132,12 @@ public class BrAPIObservationUnitDAO {
                 api::searchObservationunitsPost,
                 api::searchObservationunitsSearchResultsDbIdGet,
                 observationUnitSearch
-        ), program);
+        ), program, true);
     }
 
     /**
      * Process a list of observation units for insertion into the cache.
      */
-    private Map<String, BrAPIObservationUnit> processObservationUnitsForCache(List<BrAPIObservationUnit> programObservationUnits, Program program) throws ApiException {
-        return processObservationUnitsForCache(programObservationUnits, program, true);
-    }
     private Map<String, BrAPIObservationUnit> processObservationUnitsForCache(List<BrAPIObservationUnit> programObservationUnits, Program program, boolean withGID) throws ApiException {
         // Process programObservationUnits in place (strip program key, etc.).
         processObservationUnits(program, programObservationUnits, withGID);
