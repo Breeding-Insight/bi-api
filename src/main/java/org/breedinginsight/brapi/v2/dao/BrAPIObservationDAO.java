@@ -212,20 +212,9 @@ public class BrAPIObservationDAO {
         if(ouDbIds.isEmpty() || variableDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-//        return getProgramObservations(program.getId()).values().stream()
-//                .filter(o -> ouDbIds.contains(o.getObservationDbId()) && variableDbIds.contains(o.getObservationVariableDbId()))
-//                .collect(Collectors.toList());
-
-        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
-        observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
-        observationSearchRequest.setObservationUnitDbIds(new ArrayList<>(ouDbIds));
-        observationSearchRequest.setObservationVariableDbIds(new ArrayList<>(variableDbIds));
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
-        return brAPIDAOUtil.search(
-                api::searchObservationsPost,
-                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
-                observationSearchRequest
-        );
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && variableDbIds.contains(o.getObservationVariableDbId()))
+                .collect(Collectors.toList());
     }
 
     @NotNull
