@@ -2,11 +2,13 @@ package org.breedinginsight.brapps.importer.daos;
 
 import com.google.gson.Gson;
 import io.kowalski.fannypack.FannyPack;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.annotation.Client;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import lombok.SneakyThrows;
 import org.brapi.client.v2.JSON;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationTreatment;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.BrAPITest;
@@ -17,17 +19,20 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 
 import javax.inject.Inject;
 import java.util.List;
+import java.util.UUID;
 
 import static org.breedinginsight.TestUtils.insertAndFetchTestProgram;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -64,6 +69,9 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
     @Inject
     @Client("/${micronaut.bi.api.version}")
     RxHttpClient biClient;
+
+    @Property(name = "brapi.server.reference-source")
+    String referenceSource;
 
     @BeforeAll
     @SneakyThrows
@@ -117,6 +125,11 @@ public class BrAPIObservationUnitDAOTest extends BrAPITest {
         ou1.setObservationUnitName("test1");
         ou1.putAdditionalInfoItem(BrAPIAdditionalInfoFields.TREATMENTS, List.of(testTreatment));
         ou1.setProgramDbId(validProgram.getBrapiProgram().getProgramDbId());
+        // Set xref.
+        BrAPIExternalReference xref = new BrAPIExternalReference();
+        xref.setReferenceSource(Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.OBSERVATION_UNITS));
+        xref.setReferenceId(UUID.randomUUID().toString());
+        ou1.setExternalReferences(List.of(xref));
 
         List<BrAPIObservationUnit> ous = List.of(ou1);
         List<BrAPIObservationUnit> createdOus = obsUnitDAO.createBrAPIObservationUnits(ous, validProgram.getId(), upload);
