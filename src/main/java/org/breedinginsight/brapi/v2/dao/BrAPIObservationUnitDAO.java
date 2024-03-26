@@ -207,6 +207,15 @@ public class BrAPIObservationUnitDAO {
                 .collect(Collectors.toList());
     }
 
+    public List<BrAPIObservationUnit> getObservationUnitsForTrialDbIds(@NotNull UUID programId, List<String> trialDbIds) throws ApiException {
+        if (trialDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProgramObservationUnits(programId).values().stream()
+                .filter(ou -> trialDbIds.contains(ou.getTrialDbId()))
+                .collect(Collectors.toList());
+    }
+
     public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException, DoesNotExistException {
         return getObservationUnitsForTrialDbId(programId, trialDbId, false);
     }

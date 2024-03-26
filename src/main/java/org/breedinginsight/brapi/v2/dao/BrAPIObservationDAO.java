@@ -28,6 +28,7 @@ import org.brapi.client.v2.modules.phenotype.ObservationsApi;
 import org.brapi.v2.model.BrAPIAcceptedSearchResponse;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.request.BrAPIObservationSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationSingleResponse;
@@ -57,6 +58,7 @@ public class BrAPIObservationDAO {
 
     private ProgramDAO programDAO;
     private ImportDAO importDAO;
+    private BrAPIObservationUnitDAO observationUnitDAO;
     private final BrAPIDAOUtil brAPIDAOUtil;
     private final BrAPIEndpointProvider brAPIEndpointProvider;
     private final String referenceSource;
@@ -66,6 +68,7 @@ public class BrAPIObservationDAO {
     @Inject
     public BrAPIObservationDAO(ProgramDAO programDAO,
                                ImportDAO importDAO,
+                               BrAPIObservationUnitDAO observationUnitDAO,
                                BrAPIDAOUtil brAPIDAOUtil,
                                BrAPIEndpointProvider brAPIEndpointProvider,
                                @Property(name = "brapi.server.reference-source") String referenceSource,
@@ -73,6 +76,7 @@ public class BrAPIObservationDAO {
                                ProgramCacheProvider programCacheProvider) {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
+        this.observationUnitDAO = observationUnitDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.brAPIEndpointProvider = brAPIEndpointProvider;
         this.referenceSource = referenceSource;
@@ -162,17 +166,11 @@ public class BrAPIObservationDAO {
         return programObservationCache.get(programId);
     }
 
+    // Note: not using cache, because unique studyName (with "[ProgramKey-ExtraInfo]") is not stored directly on Observation.
     public List<BrAPIObservation> getObservationsByStudyName(List<String> studyNames, Program program) throws ApiException {
         if(studyNames.isEmpty()) {
             return Collections.emptyList();
         }
-//        // Strip program key and unknown additional data from studyNames.
-//        List<String> cleanedStudyNames = studyNames.stream()
-//                .map(n -> Utilities.removeProgramKeyAndUnknownAdditionalData(n, program.getKey()))
-//                .collect(Collectors.toList());
-//        return getProgramObservations(program.getId()).values().stream()
-//                .filter(o -> cleanedStudyNames.contains(o.getAdditionalInfo().get("studyName").getAsString()))
-//                .collect(Collectors.toList());
 
         BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
         observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
@@ -189,23 +187,13 @@ public class BrAPIObservationDAO {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();
         }
-
-        // TODO: get all observationUnits, then observation.
-//        return getProgramObservations(program.getId()).values().stream()
-//                .filter(o -> )
-//                .collect(Collectors.toList());
-
-        // TODO: remove old code ------
-        BrAPIObservationSearchRequest observationSearchRequest = new BrAPIObservationSearchRequest();
-        observationSearchRequest.setProgramDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
-        observationSearchRequest.setTrialDbIds(new ArrayList<>(trialDbIds));
-        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), ObservationsApi.class);
-        return brAPIDAOUtil.search(
-                api::searchObservationsPost,
-                (brAPIWSMIMEDataTypes, searchResultsDbId, page, pageSize) -> searchObservationsSearchResultsDbIdGet(program.getId(), searchResultsDbId, page, pageSize),
-                observationSearchRequest
-        );
-        // TODO: end old code ------
+        // First, get all ObservationUnits for the given trialDbIds.
+        List<String> observationUnitDbIds = observationUnitDAO.getObservationUnitsForTrialDbIds(program.getId(), trialDbIds)
+                .stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
+        // Finally, return all Observations for those ObservationUnits (Observations are linked to Trial through ObservationUnits).
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> observationUnitDbIds.contains(o.getObservationUnitDbId()))
+                .collect(Collectors.toList());
     }
 
     public List<BrAPIObservation> getObservationsByObservationUnitsAndVariables(Collection<String> ouDbIds, Collection<String> variableDbIds, Program program) throws ApiException {
