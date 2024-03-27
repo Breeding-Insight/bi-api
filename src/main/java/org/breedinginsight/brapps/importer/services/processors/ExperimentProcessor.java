@@ -232,7 +232,7 @@ public class ExperimentProcessor implements Processor {
 
         } else {
 
-            // can't proceed if you have a mix of ObsUnitId for some but not all rows
+            // can't proceed if the import has a mix of ObsUnitId for some but not all rows
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, MISSING_OBS_UNIT_ID_ERROR);
         }
     }
@@ -665,6 +665,10 @@ public class ExperimentProcessor implements Processor {
         return studyName + obsUnitName;
     }
 
+    private String getImportObservationHash(String obsUnitName, String variableName, String studyName) {
+        return getObservationHash(createObservationUnitKey(studyName, obsUnitName), variableName, studyName);
+    }
+
     private String getImportObservationHash(ExperimentObservation importRow, String variableName) {
         return getObservationHash(createObservationUnitKey(importRow), variableName, importRow.getEnv());
     }
@@ -772,7 +776,7 @@ public class ExperimentProcessor implements Processor {
             String importObsValue = phenoCol.getString(rowNum);
 
             if (hasAllReferenceUnitIds) {
-                importHash = getObservationHash(
+                importHash = getImportObservationHash(
                         pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getObservationUnitName(),
                         getVariableNameFromColumn(phenoCol),
                         pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()
@@ -831,14 +835,17 @@ public class ExperimentProcessor implements Processor {
                     pendingObservation.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CHANGELOG).getAsJsonArray().add(gson.toJsonTree(change).getAsJsonObject());
                 }
 
-            // preview case where observation has already been committed and import ObsVar data is either empty or the
-            // same as has been committed prior to import
-            } else if(existingObsByObsHash.containsKey(importHash) && (StringUtils.isBlank(phenoCol.getString(rowNum)) ||
-                            isObservationMatched(importHash, importObsValue, phenoCol, rowNum))) {
+                // preview case where observation has already been committed and import ObsVar data is the
+                // same as has been committed prior to import
+            } else if(isObservationMatched(importHash, importObsValue, phenoCol, rowNum)) {
                 BrAPIObservation existingObs = this.existingObsByObsHash.get(importHash);
                 existingObs.setObservationVariableName(phenoCol.name());
                 observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
                 observationByHash.get(importHash).setBrAPIObject(existingObs);
+
+                // preview case where observation has already been committed and import ObsVar data is empty prior to import
+            } else if(!existingObsByObsHash.containsKey(importHash) && (StringUtils.isBlank(phenoCol.getString(rowNum)))) {
+                observationByHash.get(importHash).setState(ImportObjectState.EXISTING);
             } else {
                 validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
 
@@ -1096,7 +1103,7 @@ public class ExperimentProcessor implements Processor {
     }
 
     boolean isValueMatched(String observationHash, String value) {
-        if (existingObsByObsHash.get(observationHash).getValue() == null) {
+        if (!existingObsByObsHash.containsKey(observationHash) || existingObsByObsHash.get(observationHash).getValue() == null) {
             return value == null;
         }
         return existingObsByObsHash.get(observationHash).getValue().equals(value);
@@ -1988,7 +1995,7 @@ public class ExperimentProcessor implements Processor {
         existingGermplasms.forEach(existingGermplasm -> {
             BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
                     .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
-            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceID())));
+            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
         });
         return existingGermplasmByGID;
     }
@@ -2024,7 +2031,7 @@ public class ExperimentProcessor implements Processor {
         existingGermplasms.forEach(existingGermplasm -> {
             BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
                                                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
-            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceID())));
+            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
         });
         return existingGermplasmByGID;
     }
