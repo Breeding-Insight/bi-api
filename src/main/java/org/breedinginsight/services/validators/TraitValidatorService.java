@@ -63,12 +63,12 @@ public class TraitValidatorService {
                 ValidationError error = traitValidatorErrors.getMissingScaleMsg();
                 errors.addError(traitValidatorErrors.getRowNumber(i), error);
             } else {
-                if (scale.getDataType() != null & scale.getDataType() == DataType.NUMERICAL &&
+                if (scale.getDataType() != null && scale.getDataType() == DataType.NUMERICAL &&
                         (isBlank(scale.getUnits()))) {
                     ValidationError error = traitValidatorErrors.getMissingScaleUnitMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }
-                if (scale.getDataType() == null || scale.getDataType() == null) {
+                if (scale.getDataType() == null) {
                     ValidationError error = traitValidatorErrors.getMissingScaleDataTypeMsg();
                     errors.addError(traitValidatorErrors.getRowNumber(i), error);
                 }

@@ -43,6 +43,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.breedinginsight.utilities.Utilities;
 
 @Slf4j
 @Singleton
@@ -256,20 +257,26 @@ public class TraitService {
 
     public void preprocessTraits(List<Trait> traits) {
 
-        // Set data type to numerical when method class is computation and include name and full name as synonyms
         for (Trait trait: traits) {
             List<String> brApiSynonyms = trait.getSynonyms() == null ? new ArrayList<>() : trait.getSynonyms();
+            // Include name and full name as synonyms.
             if (trait.getObservationVariableName() != null && !brApiSynonyms.contains(trait.getObservationVariableName())) {
                 brApiSynonyms.add(trait.getObservationVariableName());
             }
             if (trait.getFullName() != null && !brApiSynonyms.contains(trait.getFullName())) {
                 brApiSynonyms.add(trait.getFullName());
             }
-            if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
-                trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
-                if (trait.getScale() != null) {
+
+            if (trait.getScale() != null) {
+                // Set data type to numerical when method class is computation.
+                if (trait.getMethod() != null && trait.getMethod().getMethodClass() != null &&
+                        trait.getMethod().getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE)) {
                     trait.getScale().setDataType(DataType.NUMERICAL);
                 }
+                // Set scaleName to units, fallback to scale class if units is null.
+                String units = trait.getScale().getUnits();
+                String dataType = trait.getScale().getDataType() == null ? null : Utilities.capitalize(trait.getScale().getDataType().getLiteral());
+                trait.getScale().setScaleName(units == null ? dataType : units);
             }
         }
 
