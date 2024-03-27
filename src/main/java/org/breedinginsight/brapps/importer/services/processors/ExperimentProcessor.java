@@ -1143,7 +1143,7 @@ public class ExperimentProcessor implements Processor {
         }
 
         if (existingObsByObsHash.containsKey(key)) {
-            if (StringUtils.isNotBlank(value) && !isObservationMatched(key, value, column, rowNum)){
+            if (!isObservationMatched(key, value, column, rowNum)){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
