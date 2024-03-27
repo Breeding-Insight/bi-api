@@ -62,6 +62,7 @@ import org.breedinginsight.daos.cache.ProgramCache;
 import org.breedinginsight.daos.cache.ProgramCacheProvider;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.SpeciesService;
+import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
 import org.mockito.stubbing.Answer;
@@ -455,7 +456,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         String methodName = String.format("%s %s", trait1.getMethod().getDescription(), trait1.getMethod().getMethodClass());
         assertEquals(String.format("%s [%s]", methodName, validProgramKey),
                 variable.getMethod().getMethodName(), "Unexpected method name");
-        assertEquals(String.format("%s [%s]", trait1.getScale().getScaleName(), validProgramKey),
+        String expectedScaleName = trait1.getScale().getUnits() == null ? Utilities.capitalize(trait1.getScale().getDataType().getLiteral()) : trait1.getScale().getUnits();
+        assertEquals(String.format("%s [%s]", expectedScaleName, validProgramKey),
                 variable.getScale().getScaleName(), "Unexpected scale name");
         String traitName = String.format("%s %s", trait1.getEntity(), trait1.getAttribute());
         assertEquals(String.format("%s [%s]", traitName, validProgramKey),
@@ -484,7 +486,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         methodName = String.format("%s %s", trait1.getMethod().getDescription(), trait1.getMethod().getMethodClass());
         assertEquals(String.format("%s [%s]", methodName, validProgramKey),
                 variable.getMethod().getMethodName(), "Unexpected method name");
-        assertEquals(String.format("%s [%s]", trait1.getScale().getScaleName(), validProgramKey),
+        expectedScaleName = trait1.getScale().getUnits() == null ? Utilities.capitalize(trait1.getScale().getDataType().getLiteral()) : trait1.getScale().getUnits();
+        assertEquals(String.format("%s [%s]", expectedScaleName, validProgramKey),
                 variable.getScale().getScaleName(), "Unexpected scale name");
         traitName = String.format("%s %s", trait1.getEntity(), trait1.getAttribute());
         assertEquals(String.format("%s [%s]", traitName, validProgramKey),
@@ -1060,7 +1063,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         }
 
         JsonObject scale = traitJson.getAsJsonObject("scale");
-        assertEquals(trait.getScale().getScaleName(), scale.get("scaleName").getAsString(), "Scale names don't match");
+        String expectedScaleName = trait.getScale().getUnits() == null ? Utilities.capitalize(trait.getScale().getDataType().getLiteral()) : trait.getScale().getUnits();
+        assertEquals(expectedScaleName, scale.get("scaleName").getAsString(), "Scale names don't match");
         assertEquals(trait.getScale().getDataType().toString(), scale.get("dataType").getAsString(), "Scale data types don't match");
 
         JsonObject programOntology = traitJson.getAsJsonObject("programOntology");
@@ -1433,7 +1437,8 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(updateTrait.getObservationVariableName(), trait.get("observationVariableName").getAsString(), "wrong trait name");
         assertEquals(updateTrait.getProgramObservationLevel().getName(),
                 trait.get("programObservationLevel").getAsJsonObject().get("name").getAsString(), "wrong observation level");
-        assertEquals(updateTrait.getScale().getScaleName(),
+        String expectedScaleName = updateTrait.getScale().getUnits() == null ? Utilities.capitalize(updateTrait.getScale().getDataType().getLiteral()) : updateTrait.getScale().getUnits();
+        assertEquals(expectedScaleName,
                 trait.get("scale").getAsJsonObject().get("scaleName").getAsString(), "wrong scale name");
         assertEquals(updateTrait.getScale().getDataType().toString(),
                 trait.get("scale").getAsJsonObject().get("dataType").getAsString(), "wrong scale data type");
@@ -1589,9 +1594,5 @@ public class TraitControllerIntegrationTest extends BrAPITest {
         assertEquals(HttpStatus.NOT_FOUND, e.getStatus());
 
     }
-
-
-
-
 
 }
