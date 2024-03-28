@@ -2130,8 +2130,7 @@ public class ExperimentProcessor implements Processor {
             BrAPIStudy existingStudy,
             Program program,
             Function<BrAPIStudy, String> getterFunction,
-            Map<String, PendingImportObject<BrAPIStudy>> studyMap
-    ) throws Exception {
+            Map<String, PendingImportObject<BrAPIStudy>> studyMap) throws Exception {
         PendingImportObject<BrAPIStudy> pendingStudy;
         BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
                                                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
@@ -2151,52 +2150,6 @@ public class ExperimentProcessor implements Processor {
                 pendingStudy
         );
         return pendingStudy;
-    }
-
-    private void setPendingTrialByOUId(Program program) {
-        if(observationUnitByNameNoScope.size() > 0) {
-            Set<String> trialDbIds = new HashSet<>();
-            Set<String> studyDbIds = new HashSet<>();
-
-            observationUnitByNameNoScope.values()
-                                        .forEach(pio -> {
-                                            BrAPIObservationUnit existingOu = pio.getBrAPIObject();
-                                            if (StringUtils.isBlank(existingOu.getTrialDbId()) && StringUtils.isBlank(existingOu.getStudyDbId())) {
-                                                throw new IllegalStateException("TrialDbId and StudyDbId are not set for an existing ObservationUnit");
-                                            }
-
-                                            if (StringUtils.isNotBlank(existingOu.getTrialDbId())) {
-                                                trialDbIds.add(existingOu.getTrialDbId());
-                                            } else {
-                                                studyDbIds.add(existingOu.getStudyDbId());
-                                            }
-                                        });
-
-            //if the OU doesn't have the trialDbId set, then fetch the study to fetch the trialDbId
-            if(!studyDbIds.isEmpty()) {
-                try {
-                    trialDbIds.addAll(fetchTrialDbidsForStudies(studyDbIds, program));
-                } catch (ApiException e) {
-                    log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
-                    throw new InternalServerException(e.toString(), e);
-                }
-            }
-
-            try {
-                List<BrAPITrial> trials = brapiTrialDAO.getTrialsByDbIds(trialDbIds, program);
-                if (trials.size() != trialDbIds.size()) {
-                    List<String> missingIds = new ArrayList<>(trialDbIds);
-                    missingIds.removeAll(trials.stream().map(BrAPITrial::getTrialDbId).collect(Collectors.toList()));
-                    throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(COMMA_DELIMITER, missingIds));
-                }
-
-                String trialRefSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName());
-                trials.forEach(trial -> processAndCachePendingTrial(trial, trialRefSource, "foo"));
-            } catch (ApiException e) {
-                log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        }
     }
 
     private void initializeTrialsForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
