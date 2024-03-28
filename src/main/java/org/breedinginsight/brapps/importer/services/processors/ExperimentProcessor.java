@@ -128,8 +128,6 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByOUId = new HashMap<>();
     private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = null;
     private Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId = new HashMap<>();
-    //  It is assumed that there are no preexisting Observation Units for the given environment (so this will not be
-    // initialized by getExistingBrapiData() )
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPIObservationUnit>> pendingObsUnitByOUId = new HashMap<>();
 
