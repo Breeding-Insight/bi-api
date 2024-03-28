@@ -91,13 +91,4 @@ public class FileMappingUtil {
 
         return unsortedItems;
     }
-
-    public boolean isValidUUID(String id) {
-        try {
-            UUID.fromString(id);
-            return true;
-        } catch (IllegalArgumentException e) {
-            return false;
-        }
-    }
 }
