@@ -2213,8 +2213,7 @@ public class ExperimentProcessor implements Processor {
     private void processAndCacheTrial(
         BrAPITrial existingTrial, 
         Program program,
-        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope
-        ) {
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
 
         //get TrialId from existingTrial
         BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(existingTrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
@@ -2227,10 +2226,12 @@ public class ExperimentProcessor implements Processor {
     }
 
     /**
-     * Sets the reference Observation Unit IDs based on the import rows.
-     * Checks for references to existing observation units and populates the
-     * referenceOUIds list.
-     * Sets flags hasAllReferenceUnitIds and hasNoReferenceUnitIds accordingly.
+     * This function collates unique ObsUnitID values from a list of BrAPIImport objects.
+     * It iterates through the list and adds non-blank ObsUnitID values to a Set. It also checks for any repeated ObsUnitIDs.
+     *
+     * @param importRows a List of BrAPIImport objects containing ExperimentObservation data
+     * @return a Set of unique ObsUnitID strings
+     * @throws IllegalStateException if a repeated ObsUnitID is encountered
      */
     private Set<String> collateReferenceOUIds(List<BrAPIImport> importRows) {
         Set<String> referenceOUIds = new HashSet<>();
