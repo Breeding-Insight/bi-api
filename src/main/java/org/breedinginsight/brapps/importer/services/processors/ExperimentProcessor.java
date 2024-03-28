@@ -2034,14 +2034,7 @@ public class ExperimentProcessor implements Processor {
 
         return Optional.ofNullable(this.trialByNameNoScope.get(expTitle.get()));
     }
-
-    private void processAndCacheObsVarDatasetByOUId(BrAPIListDetails existingList, String unitId, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId) {
-        BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
-                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
-                .orElseThrow(() -> new IllegalStateException("External references wasn't found for list (dbid): " + existingList.getListDbId()));
-        obsVarDatasetByOUId.put(unitId,
-                new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
-    }
+    
     private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
         BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
