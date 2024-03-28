@@ -2418,6 +2418,14 @@ public class ExperimentProcessor implements Processor {
         return (yearInt == null) ? "" : yearInt.toString();
     }
 
+    /**
+     * Returns the single value from the given map, throwing an UnprocessableEntityException if the map does not contain exactly one entry.
+     *
+     * @param map The map from which to retrieve the single value.
+     * @param message The error message to include in the UnprocessableEntityException if the map does not contain exactly one entry.
+     * @return The single value from the map.
+     * @throws UnprocessableEntityException if the map does not contain exactly one entry.
+     */
     private <K, V> V getSingleEntryValue(Map<K, V> map, String message) throws UnprocessableEntityException {
         if (map.size() != 1) {
             throw new UnprocessableEntityException(message);
