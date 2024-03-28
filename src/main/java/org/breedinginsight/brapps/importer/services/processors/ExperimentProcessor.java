@@ -882,8 +882,7 @@ public class ExperimentProcessor implements Processor {
             ValidationErrors validationErrors,
             Set<String> uniqueStudyAndObsUnit,
             int rowNum,
-            ExperimentObservation importRow
-    ) {
+            ExperimentObservation importRow) {
         String envIdPlusStudyId = createObservationUnitKey(importRow);
         if (uniqueStudyAndObsUnit.contains(envIdPlusStudyId)) {
             String errorMessage = String.format("The ID (%s) is not unique within the environment(%s)", importRow.getExpUnitId(), importRow.getEnv());
@@ -1568,6 +1567,24 @@ public class ExperimentProcessor implements Processor {
         }
     }
 
+    /**
+     * Maps pending locations by Observation Unit (OU) Id based on given parameters.
+     *
+     * This method takes in a unitId, BrAPIObservationUnit unit, Maps of studyByOUId, locationByName,
+     * and locationByOUId. It then associates the location of the observation unit with the respective OU Id.
+     * If the locationName is not null for the unit, it is directly added to locationByOUId.
+     * If the locationName is null, it checks the studyByOUId map for a location related to the unit.
+     * If a location related to the unit is found, it maps that location with the respective OU Id.
+     * If no location is found, it throws an IllegalStateException.
+     *
+     * @param unitId the Observation Unit Id
+     * @param unit the BrAPIObservationUnit object
+     * @param studyByOUId a Map of Study by Observation Unit Id
+     * @param locationByName a Map of Location by Name
+     * @param locationByOUId a Map of Location by Observation Unit Id
+     * @return the updated locationByOUId map after mapping the pending locations
+     * @throws IllegalStateException if the Observation Unit is missing a location
+     */
     private Map<String, PendingImportObject<ProgramLocation>> mapPendingLocationByOUId(
             String unitId,
             BrAPIObservationUnit unit,
