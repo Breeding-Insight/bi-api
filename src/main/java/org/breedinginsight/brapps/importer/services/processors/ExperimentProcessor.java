@@ -1800,17 +1800,16 @@ public class ExperimentProcessor implements Processor {
     }
 
     /**
-     * Fetches a list of BrAPI studies by studyDbIds belonging to a specific
-     * program.
-     * If not all studyDbIds are found in the database, it throws an
-     * IllegalStateException.
+     * Fetches a list of BrAPI studies by their study database IDs for a given program.
      *
-     * @param studyDbIds A set of studyDbIds to fetch studies for
-     * @param program    The program for which the studies are associated
-     * @return A list of BrAPIStudy objects representing the fetched studies
-     * @throws ApiException          if an error occurs during the database fetch
-     *                               operation
-     * @throws IllegalStateException if not all studyDbIds are found in the database
+     * This method queries the BrAPIStudyDAO to retrieve studies based on the provided study database IDs and the program.
+     * It ensures that all requested study database IDs are found in the result set, throwing an IllegalStateException if any are missing.
+     *
+     * @param studyDbIds a Set of Strings representing the study database IDs to fetch
+     * @param program the Program object representing the program context in which to fetch studies
+     * @return a List of BrAPIStudy objects matching the provided study database IDs
+     * @throws ApiException if there is an issue fetching the studies
+     * @throws IllegalStateException if any requested study database IDs are not found in the result set
      */
     private List<BrAPIStudy> fetchStudiesByDbId(Set<String> studyDbIds, Program program) throws ApiException {
         List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program);
