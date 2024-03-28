@@ -1822,10 +1822,21 @@ public class ExperimentProcessor implements Processor {
         return studies;
     }
 
+    /**
+     * Initializes a map of ProgramLocation objects by their names using the given Program and a map of BrAPIStudy objects by their names.
+     *
+     * This method takes a Program object and a map of BrAPIStudy objects by their names, retrieves the location database IDs from the studies,
+     * and fetches existing ProgramLocation objects based on the database IDs. It then creates a map of ProgramLocation objects by their names
+     * with PendingImportObject wrappers that indicate the state of the object as existing.
+     *
+     * @param program the Program object to associate with the locations
+     * @param studyByName a map of BrAPIStudy objects by their names
+     * @return a map of ProgramLocation objects by their names with PendingImportObject wrappers
+     * @throws InternalServerException if an error occurs during the location retrieval process
+     */
     Map<String, PendingImportObject<ProgramLocation>> initializeLocationByName(
             Program program,
-            Map<String, PendingImportObject<BrAPIStudy>> studyByName
-    ) {
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName) {
         Map<String, PendingImportObject<ProgramLocation>> locationByName = new HashMap<>();
 
         List<ProgramLocation> existingLocations = new ArrayList<>();
