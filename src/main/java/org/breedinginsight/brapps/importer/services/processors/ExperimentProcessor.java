@@ -209,7 +209,7 @@ public class ExperimentProcessor implements Processor {
                     mapPendingTrialByOUId(unitId, unit, trialByNameNoScope, studyByNameNoScope, pendingTrialByOUId, program);
                     mapPendingStudyByOUId(unitId, unit, studyByNameNoScope, pendingStudyByOUId, program);
                     mapPendingLocationByOUId(unitId, unit, pendingStudyByOUId, locationByName, pendingLocationByOUId);
-                    mapPendingObsDatasetByOUId(unitId, pendingTrialByOUId, obsVarDatasetByName, pendingObsDatasetByOUId, program);
+                    mapPendingObsDatasetByOUId(unitId, pendingTrialByOUId, obsVarDatasetByName, pendingObsDatasetByOUId);
                     mapGermplasmByOUId(unitId, unit, existingGermplasmByGID, pendingGermplasmByOUId);
                 }
 
@@ -1896,24 +1896,49 @@ public class ExperimentProcessor implements Processor {
         return locationByName;
     }
 
+    /**
+     * Maps a given germplasm to an observation unit ID in a given map of germplasm by observation unit ID.
+     *
+     * This method retrieves the Global Identifier (GID) of the provided observation unit and uses it to lookup
+     * the corresponding PendingImportObject<BrAPIGermplasm> in the map of germplasm by name. The found germplasm
+     * object is then mapped to the observation unit ID in the provided map of germplasm by observation unit ID.
+     * The updated map is returned after the mapping operation has been performed.
+     *
+     * @param unitId The observation unit ID to which the germplasm should be mapped.
+     * @param unit The BrAPIObservationUnit object representing the observation unit.
+     * @param germplasmByName The map of germplasm objects by name used to lookup the desired germplasm.
+     * @param germplasmByOUId The map of germplasm objects by observation unit ID to update with the mapping result.
+     * @return The updated map of germplasm objects by observation unit ID after mapping the germplasm to the provided observation unit ID.
+     */
     private Map<String, PendingImportObject<BrAPIGermplasm>> mapGermplasmByOUId(
             String unitId,
             BrAPIObservationUnit unit,
             Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByName,
-            Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByOUId
-    ) {
+            Map<String, PendingImportObject<BrAPIGermplasm>> germplasmByOUId) {
         String gid = unit.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.GID).getAsString();
         germplasmByOUId.put(unitId, germplasmByName.get(gid));
 
         return germplasmByOUId;
     }
+
+    /**
+     * Maps the pending observation dataset by OU Id based on the given inputs.
+     * This function checks if the trialByOUId map is not empty, the obsVarDatasetByName map is not empty,
+     * and if the first entry in the trialByOUId map contains observation dataset id in its additional info.
+     * If the conditions are met, it adds the pending import object from the obsVarDatasetByName map to the
+     * obsVarDatasetByOUId map using the unitId as the key.
+     *
+     * @param unitId the unit ID based on which the mapping is done
+     * @param trialByOUId a map containing pending import objects with BrAPITrial as the value, mapped by OU Id
+     * @param obsVarDatasetByName a map containing pending import objects with BrAPIListDetails as the value, mapped by dataset name
+     * @param obsVarDatasetByOUId a map containing pending import objects with BrAPIListDetails as the value, mapped by OU Id
+     * @return the updated obsVarDatasetByOUId map after potential addition of a pending import object
+     */
     private Map<String, PendingImportObject<BrAPIListDetails>> mapPendingObsDatasetByOUId(
             String unitId,
             Map<String, PendingImportObject<BrAPITrial>> trialByOUId,
             Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName,
-            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId,
-            Program program
-    ) {
+            Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId) {
         if (!trialByOUId.isEmpty() && !obsVarDatasetByName.isEmpty() &&
                 trialByOUId.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
             obsVarDatasetByOUId.put(unitId, obsVarDatasetByName.values().iterator().next());
@@ -1921,10 +1946,18 @@ public class ExperimentProcessor implements Processor {
 
         return obsVarDatasetByOUId;
     }
+
+    /**
+     * Initializes observation variable dataset for existing observation units. This function retrieves existing datasets related to observation variables for the specified trial and program, processes the dataset details, and caches the data accordingly.
+     *
+     * @param trialByName A map containing trial information indexed by trial name.
+     * @param program The program to which the datasets are related.
+     * @return A map of observation variable dataset objects indexed by dataset name.
+     * @throws InternalServerException If the existing dataset summary is not retrieved from the BrAPI server, or an error occurs during API communication.
+     */
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnits(
             Map<String, PendingImportObject<BrAPITrial>> trialByName,
-            Program program
-    ) {
+            Program program) {
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
 
         if (trialByName.size() > 0 &&
