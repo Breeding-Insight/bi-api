@@ -816,7 +816,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
         if(commit) {
-            //assertRowReferencedByOUIdSaved(newObsVar, program, traits);
             assertRowSaved(newObsVar, program, traits);
         } else {
             assertValidPreviewRow(newObsVar, row, program, traits);
@@ -1155,7 +1154,6 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
 
-        //newObservation.put(traits.get(0).getObservationVariableName(), "1");
         if(commit) {
             assertRowSaved(newObservation, program, traits);
         } else {
@@ -1172,15 +1170,10 @@ public class ExperimentFileImportTest extends BrAPITest {
         List<BrAPIObservation> observations = null;
         if(traits != null) {
             observations = observationDAO.getObservationsByStudyName(List.of(units.get(0).getStudyName()), program);
-//            observations = observationDAO.getObservationsByObservationUnitsAndVariables(
-//                    units.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList()),
-//                    traits.stream().map(Trait::getObservationVariableDbId).collect(Collectors.toList()),
-//                    program
-//            );
             if (expected.get(traits.get(0).getObservationVariableName()) == null) {
                 assertTrue(observations.isEmpty());
             } else {
-                //assertFalse(observations.isEmpty());
+                assertFalse(observations.isEmpty());
                 List<String> expectedVariableObservation = new ArrayList<>();
                 List<String> actualVariableObservation = new ArrayList<>();
                 observations.forEach(observation -> actualVariableObservation.add(String.format("%s:%s", Utilities.removeProgramKey(observation.getObservationVariableName(), program.getKey()), observation.getValue())));

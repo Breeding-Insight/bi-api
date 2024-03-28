@@ -35,7 +35,6 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.geno.BrAPIReference;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
@@ -47,8 +46,6 @@ import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.base.ObservationUnit;
-import org.breedinginsight.brapps.importer.model.base.Study;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -471,19 +468,20 @@ public class ExperimentProcessor implements Processor {
             List<PendingImportObject<BrAPIObservation>> observations = mappedImportRow.getObservations();
             String observationHash;
             if (hasAllReferenceUnitIds) {
-                mappedImportRow.setTrial(pendingTrialByOUId.get(importRow.getObsUnitID()));
-                mappedImportRow.setLocation(pendingLocationByOUId.get(importRow.getObsUnitID()));
-                mappedImportRow.setStudy(pendingStudyByOUId.get(importRow.getObsUnitID()));
-                mappedImportRow.setObservationUnit(pendingObsUnitByOUId.get(importRow.getObsUnitID()));
-                mappedImportRow.setGermplasm(pendingGermplasmByOUId.get(importRow.getObsUnitID()));
+                String refOUId = importRow.getObsUnitID();
+                mappedImportRow.setTrial(pendingTrialByOUId.get(refOUId));
+                mappedImportRow.setLocation(pendingLocationByOUId.get(refOUId));
+                mappedImportRow.setStudy(pendingStudyByOUId.get(refOUId));
+                mappedImportRow.setObservationUnit(pendingObsUnitByOUId.get(refOUId));
+                mappedImportRow.setGermplasm(pendingGermplasmByOUId.get(refOUId));
 
                 // loop over phenotype column observation data for current row
                 for (Column<?> column : phenotypeCols) {
                     observationHash = getObservationHash(
-                            pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName() +
-                            pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getObservationUnitName(),
+                            pendingStudyByOUId.get(refOUId).getBrAPIObject().getStudyName() +
+                            pendingObsUnitByOUId.get(refOUId).getBrAPIObject().getObservationUnitName(),
                             getVariableNameFromColumn(column),
-                            pendingStudyByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName()
+                            pendingStudyByOUId.get(refOUId).getBrAPIObject().getStudyName()
                     );
 
                     // if value was blank won't be entry in map for this observation
@@ -666,6 +664,17 @@ public class ExperimentProcessor implements Processor {
         return studyName + obsUnitName;
     }
 
+    /**
+     * This method is responsible for generating a hash based on the import observation unit information.
+     * It takes the observation unit name, variable name, and study name as input parameters.
+     * The observation unit key is created using the study name and observation unit name.
+     * The hash is generated based on the observation unit key, variable name, and study name.
+     *
+     * @param obsUnitName The name of the observation unit being imported.
+     * @param variableName The name of the variable associated with the observation unit.
+     * @param studyName The name of the study associated with the observation unit.
+     * @return A string representing the hash of the import observation unit information.
+     */
     private String getImportObservationHash(String obsUnitName, String variableName, String studyName) {
         return getObservationHash(createObservationUnitKey(studyName, obsUnitName), variableName, studyName);
     }
