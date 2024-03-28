@@ -2227,36 +2227,6 @@ public class ExperimentProcessor implements Processor {
     }
 
     /**
-     * Cache pending trial with reference to observation unit.
-     *
-     * This method processes the given existing trial, associates it with the
-     * specified
-     * program, retrieves the experiment ID from the trial's external references,
-     * then caches it with the provided organizational unit reference ID.
-     *
-     * @param existingTrial  The existing trial to process and cache.
-     * @param trialRefSource The source to retrieve the trial's reference.
-     * @param referenceOUId  The ID of the reference observation unit.
-     */
-    private void processAndCachePendingTrial(
-            BrAPITrial existingTrial,
-            String trialRefSource,
-            String referenceOUId) {
-
-        // Retrieve experiment ID from existingTrial
-        BrAPIExternalReference experimentIDRef = Utilities
-                .getExternalReference(existingTrial.getExternalReferences(), trialRefSource)
-                .orElseThrow(() -> new InternalServerException(
-                        "An Experiment ID was not found in any of the external references"));
-        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
-
-        // Cache pending trial by observation unit ID
-        pendingTrialByOUId.put(
-                referenceOUId,
-                new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial, experimentId));
-    }
-
-    /**
      * Sets the reference Observation Unit IDs based on the import rows.
      * Checks for references to existing observation units and populates the
      * referenceOUIds list.
