@@ -1666,14 +1666,13 @@ public class ExperimentProcessor implements Processor {
     }
 
     /**
-     * Retrieves a list of pending Observation Units based on their IDs.
+     * Retrieves reference Observation Units based on a set of reference Observation Unit IDs and a Program.
+     * Constructs DeltaBreed observation unit source for external references and sets up pending Observation Units.
      *
-     * This function retrieves Observation Units based on a list of reference Observation Unit IDs
-     * and the associated program. It then sets pending Observation Units for each ID.
-     *
-     * @return List of BrAPIObservationUnit: The list of reference Observation Units retrieved.
-     *
-     * @throws InternalServerException if an error occurs during the process.
+     * @param referenceOUIds A set of reference Observation Unit IDs to retrieve
+     * @param program The Program associated with the Observation Units
+     * @return A Map containing pending Observation Units by their ID
+     * @throws ApiException if an error occurs during the process
      */
     private Map<String, PendingImportObject<BrAPIObservationUnit>> fetchReferenceObservationUnits(
             Set<String> referenceOUIds,
