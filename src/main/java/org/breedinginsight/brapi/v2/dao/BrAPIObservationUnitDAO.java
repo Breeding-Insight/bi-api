@@ -216,11 +216,7 @@ public class BrAPIObservationUnitDAO {
                 .collect(Collectors.toList());
     }
 
-    public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException, DoesNotExistException {
-        return getObservationUnitsForTrialDbId(programId, trialDbId, false);
-    }
-
-    public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId, boolean withGID) throws ApiException, DoesNotExistException {
+    public List<BrAPIObservationUnit> getObservationUnitsForTrialDbId(@NotNull UUID programId, @NotNull String trialDbId) throws ApiException {
         return getProgramObservationUnits(programId).values().stream()
                 .filter(ou -> ou.getTrialDbId().equals(trialDbId))
                 .collect(Collectors.toList());
@@ -236,6 +232,7 @@ public class BrAPIObservationUnitDAO {
                 .collect(Collectors.toList());
     }
 
+    // Note: does not use cache, impractical to implement all search parameters client-side.
     public List<BrAPIObservationUnit> getObservationUnits(Program program,
                                                           Optional<String> observationUnitId,
                                                           Optional<String> observationUnitName,
