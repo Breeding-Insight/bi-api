@@ -2034,7 +2034,7 @@ public class ExperimentProcessor implements Processor {
 
         return Optional.ofNullable(this.trialByNameNoScope.get(expTitle.get()));
     }
-    
+
     private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
         BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
@@ -2042,10 +2042,21 @@ public class ExperimentProcessor implements Processor {
         obsVarDatasetByName.put(existingList.getListName(),
                 new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
     }
+
+    /**
+     * Initializes a mapping of BrAPI Germplasm objects by Germplasm ID for existing BrAPI Observation Units.
+     * This method retrieves existing Germplasms associated with the provided Observation Units and creates a mapping
+     * using their Accession Number as the key and a PendingImportObject containing the Germplasm object and a reference ID.
+     * If no existing Germplasms are found, an empty mapping is returned.
+     *
+     * @param unitByName A mapping of Observation Units by name.
+     * @param program The BrAPI Program object to which the Germplasms belong.
+     * @return A mapping of BrAPI Germplasm objects by Germplasm ID for existing Observation Units.
+     * @throws InternalServerException If an error occurs while fetching Germplasms from the database.
+     */
     private Map<String, PendingImportObject<BrAPIGermplasm>> initializeGermplasmByGIDForExistingObservationUnits(
             Map<String, PendingImportObject<BrAPIObservationUnit>> unitByName,
-            Program program
-    ) {
+            Program program) {
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
 
         List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
