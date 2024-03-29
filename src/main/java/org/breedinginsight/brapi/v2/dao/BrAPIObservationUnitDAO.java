@@ -98,7 +98,6 @@ public class BrAPIObservationUnitDAO {
         this.programObservationUnitCache = programCacheProvider.getProgramCache(this::fetchProgramObservationUnits, BrAPIObservationUnit.class);
     }
 
-    // TODO: 2s? 3s?
     @Scheduled(initialDelay = "3s")
     public void setup() {
         if(!runScheduledTasks) {
