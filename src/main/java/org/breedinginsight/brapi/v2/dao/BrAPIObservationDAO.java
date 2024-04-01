@@ -135,7 +135,7 @@ public class BrAPIObservationDAO {
                     .stream()
                     .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.OBSERVATIONS.getName()).equals(reference.getReferenceSource()))
                     .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
-            programObservationsMap.put(xref.getReferenceID(), observation);
+            programObservationsMap.put(xref.getReferenceId(), observation);
         }
         return programObservationsMap;
     }
