@@ -635,7 +635,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(422, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
 
-        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experimental entities are missing ObsUnitIDs"));
+        assertTrue(result.getAsJsonObject("progress").get("message").getAsString().startsWith("Experiment Title already exists"));
     }
 
     @Test

@@ -1345,8 +1345,9 @@ public class ExperimentProcessor implements Processor {
             if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
                 PendingImportObject<BrAPIStudy> envPio;
                 trialPio = trialByNameNoScope.get(importRow.getExpTitle());
-                envPio = this.studyByNameNoScope.get(importRow.getEnv());
-                if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() && (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                envPio = studyByNameNoScope.get(importRow.getEnv());
+                if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
+                        (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
                     throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
                 }
             } else if (!trialByNameNoScope.isEmpty()) {
@@ -1359,7 +1360,7 @@ public class ExperimentProcessor implements Processor {
                 }
                 BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
                 trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-                this.trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
+                trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
             }
         }
         return trialPio;
