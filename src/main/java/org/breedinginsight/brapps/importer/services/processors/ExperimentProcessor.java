@@ -776,7 +776,8 @@ public class ExperimentProcessor implements Processor {
                 }
                 
                 // add a change log entry when updating the value of an observation
-                if (commit) {
+                // only will update and thereby need change log entry if no error
+                if (commit && (!validationErrors.hasErrors())) {
                     BrAPIObservation pendingObservation = observationByHash.get(importHash).getBrAPIObject();
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
                     String timestamp = formatter.format(OffsetDateTime.now());
@@ -1061,7 +1062,14 @@ public class ExperimentProcessor implements Processor {
         if (priorStamp == null) {
             return timeStamp == null;
         }
-        return priorStamp.isEqual(OffsetDateTime.parse(timeStamp));
+        boolean isMatched = false;
+        try {
+            isMatched = priorStamp.isEqual(OffsetDateTime.parse(timeStamp));
+        } catch(DateTimeParseException e){
+            //if timestamp is invalid DateTime not equal to validated priorStamp
+            log.error(e.getMessage(), e);
+        }
+        return isMatched;
     }
 
     boolean isValueMatched(String observationHash, String value) {
