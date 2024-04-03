@@ -1346,6 +1346,8 @@ public class ExperimentProcessor implements Processor {
                 PendingImportObject<BrAPIStudy> envPio;
                 trialPio = trialByNameNoScope.get(importRow.getExpTitle());
                 envPio = studyByNameNoScope.get(importRow.getEnv());
+
+                // creating new units for existing experiments and environments is not possible
                 if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
                         (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
                     throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
@@ -2226,7 +2228,9 @@ public class ExperimentProcessor implements Processor {
 
     /**
      * This function collates unique ObsUnitID values from a list of BrAPIImport objects.
-     * It iterates through the list and adds non-blank ObsUnitID values to a Set. It also checks for any repeated ObsUnitIDs.
+     * It iterates through the list and adds non-blank ObsUnitID values to a Set.
+     * It also checks for any repeated ObsUnitIDs. The instance variables hasAllReferenceUnitIds and
+     * hasNoReferenceUnitIds are updated.
      *
      * @param importRows a List of BrAPIImport objects containing ExperimentObservation data
      * @return a Set of unique ObsUnitID strings
