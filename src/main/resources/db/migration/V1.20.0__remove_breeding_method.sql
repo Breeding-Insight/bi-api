@@ -18,6 +18,10 @@
 DO $$
 
 BEGIN
+    -- Delete any rows with FK.
+    DELETE FROM program_enabled_breeding_methods
+    WHERE breeding_method_id = (SELECT id FROM breeding_method WHERE abbreviation = 'SOC' AND name = 'Somoclone');
+    -- Delete breeding method.
     DELETE FROM breeding_method
     WHERE abbreviation = 'SOC' AND name = 'Somoclone';
 END $$;
