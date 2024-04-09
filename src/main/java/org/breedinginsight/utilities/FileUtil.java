@@ -192,12 +192,17 @@ public class FileUtil {
     }
 
     public static Table parseTableFromJson(String jsonString) throws ParsingException {
+        try {
             return Table.read()
                     .usingOptions(
                             JsonReadOptions
                                     .builderFromString(jsonString)
                                     .columnTypesToDetect(List.of(ColumnType.STRING))
                     );
+        } catch (Exception e) {
+            log.debug(e.getMessage());
+            throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
+        }
     }
 
     public static Table removeNullRows(Table table) {

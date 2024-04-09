@@ -294,15 +294,15 @@ public class BrAPIGermplasmDAO {
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, UUID programId, ImportUpload upload) {
         GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
         var program = programDAO.fetchOneById(programId);
-        Callable<Map<String, BrAPIGermplasm>> postFunction = null;
         try {
             if (!postBrAPIGermplasmList.isEmpty()) {
-                postFunction = () -> {
+                Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
                     List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
                     return processGermplasmForDisplay(postResponse, program.getKey());
                 };
+                return programGermplasmCache.post(programId, postFunction);
             }
-            return programGermplasmCache.post(programId, postFunction);
+            return new ArrayList<>();
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }
@@ -311,15 +311,15 @@ public class BrAPIGermplasmDAO {
     public List<BrAPIGermplasm> updateBrAPIGermplasm(List<BrAPIGermplasm> putBrAPIGermplasmList, UUID programId, ImportUpload upload) {
         GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
         var program = programDAO.fetchOneById(programId);
-        Callable<Map<String, BrAPIGermplasm>> postFunction = null;
         try {
             if (!putBrAPIGermplasmList.isEmpty()) {
-                postFunction = () -> {
+                Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
                     List<BrAPIGermplasm> putResponse = putGermplasm(putBrAPIGermplasmList, api);
                     return processGermplasmForDisplay(putResponse, program.getKey());
                 };
+                return programGermplasmCache.post(programId, postFunction);
             }
-            return programGermplasmCache.post(programId, postFunction);
+            return new ArrayList<>();
         } catch (Exception e) {
             throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
         }

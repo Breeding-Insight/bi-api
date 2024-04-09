@@ -124,7 +124,7 @@ public class BrAPITrialDAOImpl implements BrAPITrialDAO {
             BrAPIExternalReference xref = experiment
                     .getExternalReferences()
                     .stream()
-                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS).equalsIgnoreCase(reference.getReferenceSource()))
+                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.TRIALS.getName()).equals(reference.getReferenceSource()))
                     .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
             experimentById.put(xref.getReferenceID(), experiment);
         }

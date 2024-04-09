@@ -189,7 +189,7 @@ public class BrAPIStudyDAO {
             BrAPIExternalReference xref = environment
                     .getExternalReferences()
                     .stream()
-                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES).equalsIgnoreCase(reference.getReferenceSource()))
+                    .filter(reference -> String.format("%s/%s", referenceSource, ExternalReferenceSource.STUDIES.getName()).equals(reference.getReferenceSource()))
                     .findFirst().orElseThrow(() -> new IllegalStateException("No BI external reference found"));
             environmentById.put(xref.getReferenceID(), environment);
         }
