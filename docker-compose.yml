@@ -85,6 +85,7 @@ services:
       backend:
         aliases:
           - dbserver
+    shm_size: 2g
   brapi-server:
     image: breedinginsight/brapi-java-server:develop
     container_name: brapi-server
@@ -100,7 +101,7 @@ services:
       - ${BRAPI_SERVER_PORT}:8080
     volumes:
       - ./src/main/resources/brapi/properties/application.properties:/home/brapi/properties/application.properties
-      - ./src/main/resources/brapi/sql/:/home/brapi/sql/
+      - ./src/main/resources/brapi/sql:/home/brapi/db/sql
     networks:
       backend:
         aliases:
@@ -144,7 +145,7 @@ services:
         source: gigwa_data
         target: /usr/local/tomcat/config
   mongo:
-    image: mongo:4.2.21
+    image: mongo:4.2.24
     container_name: ${GIGWA_CONTAINER_NAME:-gigwa}_db
     restart: always
     command: --profile 0 --slowms 60000 --storageEngine wiredTiger --wiredTigerCollectionBlockCompressor=zstd --directoryperdb --quiet
@@ -163,7 +164,7 @@ services:
           - gigwa_db
   localstack:
     container_name: "localstack"
-    image: localstack/localstack
+    image: localstack/localstack:3.0.2
     restart: always
     ports:
       - "4566:4566"
@@ -172,7 +173,7 @@ services:
         aliases:
           - localstack
     environment:
-      - HOSTNAME_EXTERNAL=localstack
+      - LOCALSTACK_HOST=localstack
 
 networks:
   backend:

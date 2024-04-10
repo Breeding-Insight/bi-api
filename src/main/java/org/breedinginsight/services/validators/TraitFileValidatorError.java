@@ -56,7 +56,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
     }
 
     @Override
-    public ValidationError getMissingScaleNameMsg() {
+    public ValidationError getMissingScaleUnitMsg() {
         return new ValidationError("Unit", "Missing unit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
@@ -147,7 +147,7 @@ public class TraitFileValidatorError implements TraitValidatorErrorInterface {
 
     @Override
     public ValidationError getCharLimitObsVarNameMsg() {
-        return new ValidationError("Name", "Name exceeds 12 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
+        return new ValidationError("Name", "Name exceeds 16 character limit", HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @Override

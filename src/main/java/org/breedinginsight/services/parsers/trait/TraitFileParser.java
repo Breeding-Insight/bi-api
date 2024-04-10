@@ -65,10 +65,9 @@ public class TraitFileParser {
     private static final String TRAIT_STATUS_ACTIVE = "active";
     private static final String TRAIT_STATUS_ARCHIVED = "archived";
 
-    private final static Set TRAIT_STATUS_VALID_VALUES = Collections.unmodifiableSet(
-            Set.of(TRAIT_STATUS_ACTIVE, TRAIT_STATUS_ARCHIVED));
+    private final static Set<String> TRAIT_STATUS_VALID_VALUES = Set.of(TRAIT_STATUS_ACTIVE, TRAIT_STATUS_ARCHIVED);
 
-    private TraitFileValidatorError traitValidatorError;
+    private final TraitFileValidatorError traitValidatorError;
 
     @Inject
     public TraitFileParser(TraitFileValidatorError traitValidatorError){
@@ -95,7 +94,7 @@ public class TraitFileParser {
             throw new ParsingException(ParsingExceptionType.MISSING_SHEET);
         }
 
-        List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumns());
+        List<ExcelRecord> records = ExcelParser.parse(sheet, TraitFileColumns.getColumnNames());
 
         return excelRecordsToTraits(records);
     }
@@ -103,7 +102,6 @@ public class TraitFileParser {
     // no sheets RFC4180
     public List<Trait> parseCsv(@NonNull InputStream inputStream) throws ParsingException, ValidatorException {
 
-        ArrayList<Trait> traits = new ArrayList<>();
         InputStreamReader in = new InputStreamReader(inputStream);
 
         Iterable<CSVRecord> records = null;
@@ -117,7 +115,7 @@ public class TraitFileParser {
         }
 
         Sheet excelSheet = convertCsvToExcel(records);
-        List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumns());
+        List<ExcelRecord> excelRecords = ExcelParser.parse(excelSheet, TraitFileColumns.getColumnNames());
 
         return excelRecordsToTraits(excelRecords);
     }
@@ -135,7 +133,7 @@ public class TraitFileParser {
                     .build();
 
 
-            Boolean active;
+            boolean active;
             String traitStatus = parseExcelValueAsString(record, TraitFileColumns.STATUS);
             if (traitStatus == null) {
                 active = true;
@@ -145,7 +143,7 @@ public class TraitFileParser {
                             ParsingExceptionType.INVALID_TRAIT_STATUS.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
                     validationErrors.addError(traitValidatorError.getRowNumber(i), error);
                 }
-                active = !traitStatus.toLowerCase().equals(TRAIT_STATUS_ARCHIVED);
+                active = !traitStatus.equalsIgnoreCase(TRAIT_STATUS_ARCHIVED);
             }
 
             // Normalize and capitalize method class
@@ -244,8 +242,18 @@ public class TraitFileParser {
                 }
             }
 
+            String units = parseExcelValueAsString(record, TraitFileColumns.UNITS);
+            // Note: if method class is "Computation", scale class will be overwritten to "Numerical", so treat accordingly.
+            if (dataType != DataType.NUMERICAL && (method.getMethodClass() == null || !method.getMethodClass().equalsIgnoreCase(Method.COMPUTATION_TYPE))) {
+                if (units != null && !units.isEmpty()) {
+                    ValidationError error = new ValidationError(TraitFileColumns.UNITS.toString(),
+                            ParsingExceptionType.SCALE_UNIT_NOT_ALLOWED.toString(), HttpStatus.UNPROCESSABLE_ENTITY);
+                    validationErrors.addError(traitValidatorError.getRowNumber(i), error);
+                }
+            }
             Scale scale = Scale.builder()
-                    .scaleName(parseExcelValueAsString(record, TraitFileColumns.SCALE_NAME))
+                    .scaleName(units == null ? parseExcelValueAsString(record, TraitFileColumns.SCALE_CLASS) : units)
+                    .units(units)
                     .dataType(dataType)
                     .decimalPlaces(decimalPlaces)
                     .validValueMin(validValueMin)
@@ -354,7 +362,7 @@ public class TraitFileParser {
         else if (labelMeaning.length == 1) {
             category.setValue(labelMeaning[0].trim());
         } else if (labelMeaning.length > 2){
-            // The case where there are multiple category delimiters in a value. Could be cause by bad list delimeter.
+            // The case where there are multiple category delimiters in a value. Could be cause by bad list delimiter.
             throw new UnprocessableEntityException("Unable to parse categories");
         }
 

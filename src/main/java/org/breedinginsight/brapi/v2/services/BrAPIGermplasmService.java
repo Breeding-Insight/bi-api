@@ -1,25 +1,21 @@
 package org.breedinginsight.brapi.v2.services;
 
 import io.micronaut.context.annotation.Property;
-import io.micronaut.http.HttpRequest;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.germ.BrAPIGermplasmSynonyms;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.daos.BrAPIListDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
-import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.Column;
 import org.breedinginsight.model.DownloadFile;
-import org.breedinginsight.model.Pedigree;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -28,7 +24,6 @@ import org.breedinginsight.services.writers.CSVWriter;
 import org.breedinginsight.services.writers.ExcelWriter;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -77,46 +72,13 @@ public class BrAPIGermplasmService {
         return germplasmDAO.getGermplasmByDBID(germplasmId, programId);
     }
 
-    public List<BrAPIListSummary> getGermplasmListsByProgramId(UUID programId, HttpRequest<String> request) throws DoesNotExistException, ApiException {
-
-        if (!programService.exists(programId)) {
-            throw new DoesNotExistException("Program does not exist");
-        }
-
-        Optional<Program> optionalProgram = programService.getById(programId);
-        if(optionalProgram.isPresent()) {
-            Program program = optionalProgram.get();
-
-            List<BrAPIListSummary> germplasmLists = brAPIListDAO.getListByTypeAndExternalRef(BrAPIListTypes.GERMPLASM, programId, Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS), programId);
-
-            for (BrAPIListSummary germplasmList: germplasmLists) {
-                String listName = germplasmList.getListName();
-                String newListName = removeAppendedKey(listName, program.getKey());
-                germplasmList.setListName(newListName);
-
-                //Retrieve germplasm details to get list owner name
-                //Due to listOwnerName not being stored in breedbase
-                BrAPIListDetails listData = brAPIListDAO.getListById(germplasmList.getListDbId(), programId).getResult();
-                List<String> germplasmNames = listData.getData().subList(0,1);
-                List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasmByRawName(germplasmNames, programId);
-                String createdBy = germplasm.get(0).getAdditionalInfo().getAsJsonObject("createdBy").get("userName").getAsString();
-                germplasmList.setListOwnerName(createdBy);
-            }
-
-            return germplasmLists;
-        }
-        else {
-            throw new DoesNotExistException("Program does not exist");
-        }
-    }
-
     public List<Map<String, Object>> processListData(List<BrAPIGermplasm> germplasm, UUID germplasmListId){
         List<Map<String, Object>> processedData =  new ArrayList<>();
 
         for (BrAPIGermplasm germplasmEntry: germplasm) {
             HashMap<String, Object> row = new HashMap<>();
             row.put("GID", Integer.valueOf(germplasmEntry.getAccessionNumber()));
-            row.put("Name", germplasmEntry.getGermplasmName());
+            row.put("Germplasm Name", germplasmEntry.getGermplasmName());
             row.put("Breeding Method", germplasmEntry.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GERMPLASM_BREEDING_METHOD).getAsString());
             String source = germplasmEntry.getSeedSource();
             row.put("Source", source);
@@ -164,7 +126,7 @@ public class BrAPIGermplasmService {
             // Synonyms
             if (germplasmEntry.getSynonyms() != null && !germplasmEntry.getSynonyms().isEmpty()) {
                 String joinedSynonyms = germplasmEntry.getSynonyms().stream()
-                        .map(synonym -> synonym.getSynonym())
+                        .map(BrAPIGermplasmSynonyms::getSynonym)
                         .collect(Collectors.joining(";"));
                 row.put("Synonyms", joinedSynonyms);
             }
@@ -191,6 +153,38 @@ public class BrAPIGermplasmService {
             return germplasm;
         } else throw new ApiException();
     }
+    public DownloadFile exportGermplasm(UUID programId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
+        List<Column> columns = GermplasmFileColumns.getOrderedColumns();
+
+        //Retrieve germplasm list data
+        List<BrAPIGermplasm> germplasm = germplasmDAO.getGermplasm(programId);
+        germplasm.sort(Comparator.comparingInt(germ -> Integer.parseInt(germ.getAccessionNumber())));
+
+        // make file Name
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
+        String timestamp = formatter.format(OffsetDateTime.now());
+        StringBuilder fileNameSB = new StringBuilder();
+        Optional<Program> optionalProgram = programService.getById(programId);
+        if (optionalProgram.isPresent()) {
+            Program program = optionalProgram.get();
+            fileNameSB.append( program.getName() );
+            fileNameSB.append("_");
+        }
+        String fileName = fileNameSB.append("germplasm").append("_").append(timestamp).toString();
+
+        StreamedFile downloadFile;
+        //Convert list data to List<Map<String, Object>> data to pass into file writer
+        List<Map<String, Object>> processedData =  processListData(germplasm, new UUID(0,0));
+
+        if (fileExtension == FileType.CSV){
+            downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
+        } else {
+            downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
+        }
+
+        return new DownloadFile(fileName, downloadFile);
+    }
+
     public DownloadFile exportGermplasmList(UUID programId, String listId, FileType fileExtension) throws IllegalArgumentException, ApiException, IOException {
         List<Column> columns = GermplasmFileColumns.getOrderedColumns();
 
@@ -219,7 +213,7 @@ public class BrAPIGermplasmService {
         if (fileExtension == FileType.CSV){
             downloadFile = CSVWriter.writeToDownload(columns, processedData, fileExtension);
         } else {
-            downloadFile = ExcelWriter.writeToDownload("Germplasm Import", columns, processedData, fileExtension);
+            downloadFile = ExcelWriter.writeToDownload("Data", columns, processedData, fileExtension);
         }
 
         return new DownloadFile(fileName, downloadFile);
@@ -229,7 +223,7 @@ public class BrAPIGermplasmService {
         if(Objects.nonNull(listData.getExternalReferences()) && hasListExternalReference(listData.getExternalReferences())) {
             return UUID.fromString(listData.getExternalReferences().stream()
                     .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
-                    .map(e -> e.getReferenceID()).findAny().orElse("00000000-0000-0000-000000000000"));
+                    .map(BrAPIExternalReference::getReferenceID).findAny().orElse("00000000-0000-0000-000000000000"));
         } else {
             return new UUID(0,0);
         }
@@ -239,7 +233,7 @@ public class BrAPIGermplasmService {
         if(Objects.nonNull(importList.getExternalReferences()) && hasListExternalReference(importList.getExternalReferences())) {
             return UUID.fromString(importList.getExternalReferences().stream()
                     .filter(e -> referenceSource.concat("/lists").equals(e.getReferenceSource()))
-                    .map(e -> e.getReferenceID()).findAny().orElse("00000000-0000-0000-000000000000"));
+                    .map(BrAPIExternalReference::getReferenceID).findAny().orElse("00000000-0000-0000-000000000000"));
         } else {
             return new UUID(0,0);
         }
@@ -304,11 +298,6 @@ public class BrAPIGermplasmService {
 
     public List<BrAPIGermplasm> updateBrAPIGermplasm(List<BrAPIGermplasm> putBrAPIGermplasmList, UUID programId, ImportUpload upload) {
         return germplasmDAO.updateBrAPIGermplasm(putBrAPIGermplasmList, programId, upload);
-    }
-
-    public List<BrAPIGermplasm> importBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, List<BrAPIGermplasm> putBrAPIGermplasmList,
-                                                     UUID programId, ImportUpload upload) throws ApiException {
-        return germplasmDAO.createBrAPIGermplasm(postBrAPIGermplasmList, programId, upload);
     }
 
     public List<BrAPIGermplasm> getRawGermplasmByAccessionNumber(ArrayList<String> germplasmAccessionNumbers, UUID programId) throws ApiException {

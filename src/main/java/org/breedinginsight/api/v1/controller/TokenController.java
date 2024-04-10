@@ -52,7 +52,7 @@ public class TokenController {
 
     @Get("/api-token{?returnUrl}")
     @Secured(SecurityRule.IS_AUTHENTICATED)
-    public HttpResponse apiToken(@QueryValue @Nullable String returnUrl) {
+    public HttpResponse<?> apiToken(@QueryValue @Nullable String returnUrl) {
 
         AuthenticatedUser actingUser = securityService.getUser();
         Optional<ApiToken> token = tokenService.generateApiToken(actingUser);
@@ -61,12 +61,12 @@ public class TokenController {
             ApiToken apiToken = token.get();
 
             if(returnUrl != null) {
-                if(StringUtils.trim(returnUrl).isEmpty()) {
+                if(StringUtils.trim(returnUrl).isEmpty() || "undefined".equalsIgnoreCase(returnUrl)) {
                     return HttpResponse.badRequest("returnUrl cannot be blank");
                 }
                 URI location = UriBuilder.of(returnUrl)
                                          .queryParam("status", 200)
-                                         .queryParam("token", apiToken.getAccessToken())
+                                         .queryParam("access_token", apiToken.getAccessToken())
                                          .build();
 
                 return HttpResponse.seeOther(location)

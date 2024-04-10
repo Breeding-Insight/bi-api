@@ -42,11 +42,11 @@ import org.brapi.v2.model.pheno.request.BrAPIObservationUnitSearchRequest;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponse;
 import org.brapi.v2.model.pheno.response.BrAPIObservationUnitListResponseResult;
 import org.breedinginsight.DatabaseTest;
-import org.breedinginsight.brapps.importer.daos.BrAPITrialDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
-import org.breedinginsight.brapps.importer.daos.impl.BrAPITrialDAOImpl;
-import org.breedinginsight.brapps.importer.daos.impl.ImportMappingDAOImpl;
+import org.breedinginsight.brapi.v2.dao.impl.BrAPITrialDAOImpl;
+import org.breedinginsight.brapi.v2.dao.impl.ImportMappingDAOImpl;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
@@ -218,7 +218,7 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
 
     public GigwaGenotypeServiceImplIntegrationTest() {
         super();
-        mongo = new GenericContainer<>("mongo:4.2.21")
+        mongo = new GenericContainer<>("mongo:4.2.24")
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("gigwa_db")
                 .withImagePullPolicy(PullPolicy.defaultPolicy())
@@ -247,11 +247,11 @@ public class GigwaGenotypeServiceImplIntegrationTest extends DatabaseTest {
         gigwa.start();
 
         localStackContainer = new LocalStackContainer(DockerImageName.parse("localstack/localstack")
-                                                                     .withTag("2.2.0"))
+                                                                     .withTag("3.0.2"))
                 .withServices(LocalStackContainer.Service.S3)
                 .withNetwork(super.getNetwork())
                 .withNetworkAliases("localstack")
-                .withEnv("HOSTNAME_EXTERNAL", "localstack");
+                .withEnv("LOCALSTACK_HOST", "localstack");
         localStackContainer.start();
     }
 

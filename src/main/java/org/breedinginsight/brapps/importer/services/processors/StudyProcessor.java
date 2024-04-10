@@ -23,7 +23,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.breedinginsight.brapps.importer.daos.BrAPIStudyDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.base.Study;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;

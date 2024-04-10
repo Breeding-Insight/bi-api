@@ -142,7 +142,7 @@ public class ListControllerIntegrationTest extends BrAPITest {
         newExp.put(traits.get(0).getObservationVariableName(), "1");
 
         JsonObject result = importTestUtils.uploadAndFetch(
-                importTestUtils.writeDataToFile(List.of(newExp), traits), null, true, client, program, mappingId
+                importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId
         );
 
     }

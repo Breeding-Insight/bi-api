@@ -86,7 +86,6 @@ public class TraitValidatorUnitTest {
 
 
         ValidationErrors validationErrors = traitValidatorService.checkRequiredTraitFields(List.of(trait), new TraitValidatorError());
-
         assertEquals(1, validationErrors.getRowErrors().size(), "Wrong number of row errors returned");
         RowValidationErrors rowValidationErrors = validationErrors.getRowErrors().get(0);
         assertEquals(1, rowValidationErrors.getErrors().size(), "Wrong number of errors for row");
@@ -299,7 +298,7 @@ public class TraitValidatorUnitTest {
     public void charLimitExceeded() {
 
         Trait trait = new Trait();
-        trait.setObservationVariableName("OverTwelveChar");
+        trait.setObservationVariableName("IsOverSixteenChar");
         trait.setProgramObservationLevel(ProgramObservationLevel.builder().name("Plant").build());
         Scale scale = new Scale();
         scale.setScaleName("Test Scale");

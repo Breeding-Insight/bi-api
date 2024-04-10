@@ -36,7 +36,6 @@ import org.brapi.v2.model.core.response.BrAPIServerInfoResponse;
 import org.breedinginsight.dao.db.tables.BiUserTable;
 import org.breedinginsight.dao.db.tables.daos.ProgramDao;
 import org.breedinginsight.dao.db.tables.pojos.ProgramEntity;
-import org.breedinginsight.dao.db.tables.records.ProgramRecord;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.User;
 import org.breedinginsight.model.*;
@@ -389,6 +388,14 @@ public class ProgramDAOImpl extends ProgramDao implements ProgramDAO {
     public BrAPIClient getPhenoClient(UUID programId) {
         Program program = get(programId).get(0);
         String brapiUrl = !program.getBrapiUrl().equals(SYSTEM_DEFAULT) ? program.getBrapiUrl() : defaultBrAPIPhenoUrl;
+        BrAPIClient client = new BrAPIClient(brapiUrl);
+        initializeHttpClient(client);
+        return client;
+    }
+
+    @Override
+    public BrAPIClient getSampleClient(UUID programId) {
+        String brapiUrl = defaultBrAPIPhenoUrl;
         BrAPIClient client = new BrAPIClient(brapiUrl);
         initializeHttpClient(client);
         return client;

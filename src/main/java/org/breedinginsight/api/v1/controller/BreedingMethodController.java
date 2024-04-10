@@ -7,7 +7,6 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.security.annotation.Secured;
 import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.*;
 import org.breedinginsight.api.model.v1.response.DataResponse;
@@ -17,18 +16,14 @@ import org.breedinginsight.api.model.v1.response.metadata.Pagination;
 import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
-import org.breedinginsight.dao.db.tables.pojos.BreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
-import org.breedinginsight.daos.BreedingMethodDAO;
 import org.breedinginsight.services.BreedingMethodService;
 import org.breedinginsight.services.exceptions.BadRequestException;
 
 import javax.inject.Inject;
-import javax.validation.Valid;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Controller("/${micronaut.bi.api.version}")
@@ -64,7 +59,7 @@ public class BreedingMethodController {
     @Post("programs/{programId}/breeding-methods")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<ProgramBreedingMethodEntity>> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
+    public HttpResponse<?> createProgramBreedingMethod(@PathVariable UUID programId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException{
         log.debug("Saving new program breeding method");
 
         try {
@@ -79,6 +74,8 @@ public class BreedingMethodController {
             response.metadata = metadata;
 
             return HttpResponse.ok(response);
+        } catch (BadRequestException ex) {
+            return HttpResponse.badRequest(ex.getMessage());
         } catch (Exception e) {
             log.error("Error creating program breeding method", e);
             throw e;
@@ -110,7 +107,7 @@ public class BreedingMethodController {
     @Put("programs/{programId}/breeding-methods/{breedingMethodId}")
     @Produces(MediaType.APPLICATION_JSON)
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER})
-    public HttpResponse<Response<ProgramBreedingMethodEntity>> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws BadRequestException, ApiException {
+    public HttpResponse<?> updateProgramBreedingMethod(@PathVariable UUID programId, @PathVariable UUID breedingMethodId, @Body ProgramBreedingMethodEntity breedingMethod) throws ApiException {
         log.debug("Saving new program breeding method");
 
         try {
@@ -128,6 +125,8 @@ public class BreedingMethodController {
             response.metadata = metadata;
 
             return HttpResponse.ok(response);
+        } catch (BadRequestException ex) {
+            return HttpResponse.badRequest(ex.getMessage());
         } catch (Exception e) {
             log.error("Error updating program breeding method", e);
             throw e;

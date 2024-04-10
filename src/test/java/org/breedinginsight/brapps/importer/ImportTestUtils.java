@@ -182,6 +182,7 @@ public class ImportTestUtils {
                     .programObservationLevel(ProgramObservationLevel.builder().name("Plot").build())
                     .scale(Scale.builder()
                             .scaleName("test scale")
+                            .units("test unit")
                             .dataType(DataType.NUMERICAL)
                             .validValueMin(0)
                             .validValueMax(100)
@@ -196,7 +197,7 @@ public class ImportTestUtils {
         return traits;
     }
 
-    public File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
+    public File writeExperimentDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
         File file = File.createTempFile("test", ".csv");
 
         List<Column> columns = new ArrayList<>();

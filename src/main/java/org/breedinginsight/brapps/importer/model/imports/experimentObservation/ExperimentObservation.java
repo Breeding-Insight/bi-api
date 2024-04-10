@@ -47,6 +47,13 @@ import java.util.function.Supplier;
 @ImportConfigMetadata(id = "ExperimentImport", name = "Experiment Import",
         description = "This import is used to create Observation Unit and Experiment data")
 public class ExperimentObservation implements BrAPIImport {
+    @ImportFieldType(type = ImportFieldTypeEnum.BOOLEAN, collectTime = ImportCollectTimeEnum.UPLOAD)
+    @ImportFieldMetadata(id = "overwrite", name = "Overwrite", description = "Boolean flag to overwrite existing observation")
+    private String overwrite;
+
+    @ImportFieldType(type = ImportFieldTypeEnum.TEXT, collectTime = ImportCollectTimeEnum.UPLOAD)
+    @ImportFieldMetadata(id="overwriteReason", name="Overwrite Reason", description="Description of the reason for overwriting existing observations")
+    private String overwriteReason;
 
     @ImportFieldType(type = ImportFieldTypeEnum.TEXT)
     @ImportFieldMetadata(id = "germplasmName", name = Columns.GERMPLASM_NAME, description = "Name of germplasm")
@@ -221,6 +228,7 @@ public class ExperimentObservation implements BrAPIImport {
             String seqVal,
             boolean commit,
             String germplasmName,
+            String gid,
             String referenceSource,
             UUID trialID,
             UUID datasetId,
@@ -243,6 +251,7 @@ public class ExperimentObservation implements BrAPIImport {
             germplasmName = getGermplasmName();
         }
         observationUnit.setGermplasmName(germplasmName);
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid);
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
@@ -400,7 +409,7 @@ public class ExperimentObservation implements BrAPIImport {
     public static final class Columns {
         public static final String GERMPLASM_NAME = "Germplasm Name";
         public static final String GERMPLASM_GID = "Germplasm GID";
-        public static final String TEST_CHECK = "Test (T) or Check (C )";
+        public static final String TEST_CHECK = "Test (T) or Check (C)";
         public static final String EXP_TITLE = "Exp Title";
         public static final String EXP_DESCRIPTION = "Exp Description";
         public static final String EXP_UNIT = "Exp Unit";

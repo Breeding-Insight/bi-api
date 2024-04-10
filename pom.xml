@@ -23,7 +23,7 @@
     <version>1.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>Breeding Insight API</name>
+    <name>DeltaBreed API</name>
     <description></description>
     <url>https://breedinginsight.org</url>
 
@@ -57,6 +57,10 @@
             <name>David Phillips</name>
             <email>drp227@cornell.edu</email>
         </developer>
+        <developer>
+            <name>Matthew Mandych</name>
+            <email>mlm483@cornell.edu</email>
+        </developer>
     </developers>
 
     <properties>
@@ -72,7 +76,7 @@
         <jvm.options>-Xmx1024m -XX:MaxPermSize=256m --enable-preview</jvm.options>
 
         <jooq.version>3.16.3</jooq.version>
-        <postgres.version>42.3.2</postgres.version>
+        <postgres.version>42.3.8</postgres.version>
         <logback.version>1.2.10</logback.version>
         <lombok.version>1.18.22</lombok.version>
         <gson.version>2.8.9</gson.version>
@@ -145,6 +149,13 @@
         <repository> <!-- repo where micronaut snapshots are deployed -->
             <id>jfrog-snapshot</id>
             <url>https://oss.jfrog.org/artifactory/jfrog-dependencies</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+        </repository>
+        <repository>
+            <id>ossrh</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/snapshots/</url>
             <releases>
                 <enabled>false</enabled>
             </releases>

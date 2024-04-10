@@ -14,7 +14,7 @@ public class Dataset {
     public JsonObject additionalInfo;
     public List<BrAPIObservation> data;
     public List<BrAPIObservationUnit> observationUnits;
-    public List<BrAPIObservationVariable> observationVariables;
+    public List<Trait> observationVariables;
 
     public enum DatasetStat {
         OBSERVATION_UNITS("observationUnits"),
@@ -34,7 +34,7 @@ public class Dataset {
             String experimentId,
             List<BrAPIObservation> data,
             List<BrAPIObservationUnit> observationUnits,
-            List<BrAPIObservationVariable> observationVariables) {
+            List<Trait> observationVariables) {
         this.experimentId = experimentId;
         this.additionalInfo = new JsonObject();
         this.data = data;

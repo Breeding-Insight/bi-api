@@ -161,7 +161,7 @@ public abstract class AbstractDAO<R extends TableRecord<R>, P, T> implements DAO
     }
 
     @Override
-    public <Z> @Nullable P fetchOne(Field<Z> field, Z value) throws DataAccessException {
+    public <Z> P fetchOne(Field<Z> field, Z value) throws DataAccessException {
         return jooqDAO.fetchOne(field, value);
     }
 

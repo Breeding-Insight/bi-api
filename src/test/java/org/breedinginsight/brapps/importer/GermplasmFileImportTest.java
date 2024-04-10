@@ -167,7 +167,7 @@ public class GermplasmFileImportTest extends BrAPITest {
 
             // Check preview specific items
             // Germplasm name (display name)
-            assertEquals(fileData.getString(i, "Name"), germplasm.get("germplasmName").getAsString());
+            assertEquals(fileData.getString(i, "Germplasm Name"), germplasm.get("germplasmName").getAsString());
             JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
             // Created Date (not present)
             assertFalse(additionalInfo.has(BrAPIAdditionalInfoFields.CREATED_DATE), "createdDate is present, but should not be");
@@ -229,7 +229,7 @@ public class GermplasmFileImportTest extends BrAPITest {
 
             // Check commit specific items
             // Germplasm name (display name)
-            String expectedGermplasmName = String.format("%s [%s-%s]", fileData.getString(i, "Name"), validProgram.getKey(), germplasm.get("accessionNumber").getAsString());
+            String expectedGermplasmName = String.format("%s [%s-%s]", fileData.getString(i, "Germplasm Name"), validProgram.getKey(), germplasm.get("accessionNumber").getAsString());
             assertEquals(expectedGermplasmName, germplasm.get("germplasmName").getAsString());
             // Created Date
             JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");
@@ -531,8 +531,8 @@ public class GermplasmFileImportTest extends BrAPITest {
         assertEquals(1, errors.size(), "Not enough errors were returned");
         JsonObject error = errors.get(0).getAsJsonObject();
         assertEquals(422, error.get("httpStatusCode").getAsInt(), "Incorrect http status code");
-        assertEquals("Name", error.get("field").getAsString(), "Incorrect field name");
-        assertEquals(importService.getBlankRequiredFieldMsg("Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
+        assertEquals("Germplasm Name", error.get("field").getAsString(), "Incorrect field name");
+        assertEquals(importService.getBlankRequiredFieldMsg("Germplasm Name"), error.get("errorMessage").getAsString(), "Incorrect error message");
 
         JsonObject rowError2 = rowErrors.get(1).getAsJsonObject();
         JsonArray errors2 = rowError2.getAsJsonArray("errors");
@@ -648,7 +648,7 @@ public class GermplasmFileImportTest extends BrAPITest {
     public void checkBasicResponse(JsonObject germplasm, Table fileData, Integer i) {
 
         // Germplasm display name
-        assertEquals(fileData.getString(i, "Name"), germplasm.get("defaultDisplayName").getAsString(), "Wrong display name");
+        assertEquals(fileData.getString(i, "Germplasm Name"), germplasm.get("defaultDisplayName").getAsString(), "Wrong display name");
         // Entry Number
         gson.fromJson(germplasm.getAsJsonObject("additionalInfo").getAsJsonObject("listEntryNumbers"), Map.class).forEach((listId, entryNumber) -> assertEquals(fileData.getString(i, "Entry No"), entryNumber, "Wrong entry number"));
         JsonObject additionalInfo = germplasm.getAsJsonObject("additionalInfo");

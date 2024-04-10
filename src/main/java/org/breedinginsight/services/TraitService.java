@@ -60,7 +60,6 @@ public class TraitService {
     private TraitValidatorService traitValidator;
     private DSLContext dsl;
     private TraitValidatorError traitValidatorError;
-
     private final static String FAVORITES_TAG = "favorites";
 
     @Inject
@@ -193,6 +192,7 @@ public class TraitService {
                     // Create scale
                     ScaleEntity jooqScale = ScaleEntity.builder()
                             .scaleName(trait.getScale().getScaleName())
+                            .units(trait.getScale().getUnits())
                             .dataType(trait.getScale().getDataType())
                             .programOntologyId(programOntology.getId())
                             .createdBy(actingUser.getId())
@@ -409,6 +409,7 @@ public class TraitService {
                     // Jump to scale
                     ScaleEntity existingScaleEntity = scaleDAO.fetchOneById(existingTraitEntity.getScaleId());
                     existingScaleEntity.setScaleName(updatedTrait.getScale().getScaleName());
+                    existingScaleEntity.setUnits(updatedTrait.getScale().getUnits());
                     existingScaleEntity.setDataType(updatedTrait.getScale().getDataType());
                     existingScaleEntity.setUpdatedBy(user.getId());
                     scaleDAO.update(existingScaleEntity);
@@ -474,5 +475,13 @@ public class TraitService {
 
         tags.add(FAVORITES_TAG);
         return new ArrayList<>(tags);
+    }
+
+    public List<Trait> getByName(UUID programId, List<String> names) throws DoesNotExistException {
+        if (!programService.exists(programId)) {
+            throw new DoesNotExistException("Program does not exist");
+        }
+
+        return traitDAO.getTraitsByTraitName(programId, names.stream().map(name -> Trait.builder().observationVariableName(name).build()).collect(Collectors.toList()));
     }
 }
