@@ -390,8 +390,8 @@ public class BrAPITrialService {
             Trait var,
             Program program) {
         String varName = Utilities.removeProgramKey(obs.getObservationVariableName(), program.getKey());
-        if (var.getScale().getDataType().equals(DataType.NUMERICAL) ||
-                var.getScale().getDataType().equals(DataType.DURATION)) {
+        if (!(obs.getValue().equalsIgnoreCase("NA")) && (var.getScale().getDataType().equals(DataType.NUMERICAL) ||
+                var.getScale().getDataType().equals(DataType.DURATION))) {
             row.put(varName, Double.parseDouble(obs.getValue()));
         } else {
             row.put(varName, obs.getValue());
