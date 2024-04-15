@@ -43,9 +43,15 @@ import org.breedinginsight.services.brapi.BrAPIEndpointProvider;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
+import org.jooq.DSLContext;
+import org.jooq.SQLDialect;
+import org.jooq.impl.DSL;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
@@ -69,13 +75,27 @@ public class BrAPIGermplasmDAO {
 
     private final BrAPIEndpointProvider brAPIEndpointProvider;
 
+    // TODO: inject DSLContext more idiomatically.
+    private Connection con;
+    private final DSLContext brapiDsl;
+
     @Inject
-    public BrAPIGermplasmDAO(ProgramDAO programDAO, ImportDAO importDAO, BrAPIDAOUtil brAPIDAOUtil, ProgramCacheProvider programCacheProvider, BrAPIEndpointProvider brAPIEndpointProvider) {
+    public BrAPIGermplasmDAO(ProgramDAO programDAO,
+                             ImportDAO importDAO,
+                             BrAPIDAOUtil brAPIDAOUtil,
+                             ProgramCacheProvider programCacheProvider,
+                             BrAPIEndpointProvider brAPIEndpointProvider,
+                             @Property(name = "datasources.brapi.url") String brapiDbUrl,
+                             @Property(name = "datasources.brapi.username") String brapiDbUsername,
+                             @Property(name = "datasources.brapi.password") String brapiDbPassword) throws SQLException {
         this.programDAO = programDAO;
         this.importDAO = importDAO;
         this.brAPIDAOUtil = brAPIDAOUtil;
         this.programGermplasmCache = programCacheProvider.getProgramCache(this::fetchProgramGermplasm, BrAPIGermplasm.class);
         this.brAPIEndpointProvider = brAPIEndpointProvider;
+        // Get a dsl connection for the brapi db.
+        this.con = DriverManager.getConnection(brapiDbUrl, brapiDbUsername, brapiDbPassword);
+        this.brapiDsl = DSL.using(con, SQLDialect.POSTGRES);
     }
 
     @Scheduled(initialDelay = "2s")

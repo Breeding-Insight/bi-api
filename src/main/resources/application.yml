@@ -122,6 +122,13 @@ datasources:
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driverClassName: 'org.postgresql.Driver'
+  brapi:
+    # TODO: ideally use BRAPI_DB_SERVER, might cause problems when running bi-api outside of docker.
+    # url: jdbc:postgresql://${BRAPI_DB_SERVER:`localhost:5432`}/${BRAPI_DB:postgres}
+    url: jdbc:postgresql://localhost:5432/${BRAPI_DB:postgres}
+    username: ${BRAPI_DB_USER:postgres}
+    password: ${BRAPI_DB_PASSWORD:postgres}
+    driverClassName: 'org.postgresql.Driver'
 #
 #api:
 #  oauth:
