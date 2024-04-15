@@ -17,7 +17,6 @@
 
 package org.breedinginsight.api.v1.controller;
 
-import com.eclipsesource.json.Json;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import io.kowalski.fannypack.FannyPack;
@@ -41,10 +40,8 @@ import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
-import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport;
 import org.breedinginsight.brapps.importer.model.imports.sample.SampleSubmissionImport.Columns;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.dao.db.tables.pojos.ProgramBreedingMethodEntity;
 import org.breedinginsight.dao.db.tables.pojos.SpeciesEntity;
 import org.breedinginsight.daos.SpeciesDAO;
 import org.breedinginsight.daos.UserDAO;
@@ -58,12 +55,10 @@ import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
-import org.testcontainers.containers.localstack.LocalStackContainer;
 import tech.tablesaw.api.Table;
 
 import javax.inject.Inject;
 import java.io.*;
-import java.time.OffsetDateTime;
 import java.util.*;
 
 import static io.micronaut.http.HttpRequest.*;
@@ -76,14 +71,7 @@ import static org.junit.jupiter.api.Assertions.*;
 public class SampleSubmissionControllerIntegrationTest extends BrAPITest {
 
     private Program program;
-
     private ImportTestUtils importTestUtils;
-
-    private String experimentId;
-    private List<String> envIds = new ArrayList<>();
-    private final List<Map<String, Object>> rows = new ArrayList<>();
-    private final List<Column> columns = ExperimentFileColumns.getOrderedColumns();
-    private List<Trait> traits;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
