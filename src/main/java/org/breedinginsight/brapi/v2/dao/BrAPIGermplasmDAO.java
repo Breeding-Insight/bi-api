@@ -45,7 +45,10 @@ import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;
+//import static org.jooq.impl.DSL.*;
+//
 import org.jooq.impl.DSL;
+//import org.jooq.impl.DSL.table;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -312,20 +315,30 @@ public class BrAPIGermplasmDAO {
     }
 
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, UUID programId, ImportUpload upload) {
-        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
-        var program = programDAO.fetchOneById(programId);
-        try {
-            if (!postBrAPIGermplasmList.isEmpty()) {
-                Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
-                    List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
-                    return processGermplasmForDisplay(postResponse, program.getKey());
-                };
-                return programGermplasmCache.post(programId, postFunction);
-            }
-            return new ArrayList<>();
-        } catch (Exception e) {
-            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        for (BrAPIGermplasm germplasm: postBrAPIGermplasmList) {
+            this.brapiDsl.insertInto(org.jooq.impl.DSL.table("Germplasm"))
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("id")), "Dave1")
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("additional_info")), germplasm.getAdditionalInfo())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("accession_number")), germplasm.getAccessionNumber()).execute();
         }
+        return postBrAPIGermplasmList;
+
+//
+//
+//        GermplasmApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), GermplasmApi.class);
+//        var program = programDAO.fetchOneById(programId);
+//        try {
+//            if (!postBrAPIGermplasmList.isEmpty()) {
+//                Callable<Map<String, BrAPIGermplasm>> postFunction = () -> {
+//                    List<BrAPIGermplasm> postResponse = brAPIDAOUtil.post(postBrAPIGermplasmList, upload, api::germplasmPost, importDAO::update);
+//                    return processGermplasmForDisplay(postResponse, program.getKey());
+//                };
+//                return programGermplasmCache.post(programId, postFunction);
+//            }
+//            return new ArrayList<>();
+//        } catch (Exception e) {
+//            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+//        }
     }
 
     public List<BrAPIGermplasm> updateBrAPIGermplasm(List<BrAPIGermplasm> putBrAPIGermplasmList, UUID programId, ImportUpload upload) {

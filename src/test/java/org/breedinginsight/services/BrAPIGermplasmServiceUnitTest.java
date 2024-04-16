@@ -60,7 +60,7 @@ public class BrAPIGermplasmServiceUnitTest extends DatabaseTest {
         programDAO = mock(ProgramDAO.class);
         brAPIDAOUtil = mock(BrAPIDAOUtil.class);
         cacheProvider = new ProgramCacheProvider(super.getRedisConnection());
-        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider, new BrAPIEndpointProvider());
+        germplasmDAO = new BrAPIGermplasmDAO(programDAO, mock(ImportDAO.class), brAPIDAOUtil, cacheProvider, new BrAPIEndpointProvider(), "jdbc:postgresql://localhost:5432/postgres","postgres", "postgres");
         programService = mock(ProgramService.class);
 
         Field externalReferenceSource = BrAPIGermplasmDAO.class.getDeclaredField("referenceSource");
