@@ -63,11 +63,14 @@ public class BrAPIPedigreeDAO {
 
         PedigreeApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), PedigreeApi.class);
 
+        /*
         return brAPIDAOUtil.<BrAPIPedigreeListResponse, BrAPIPedigreeSearchRequest, BrAPIPedigreeNode>search(
                 api::searchPedigreePost,
                 api::searchPedigreeSearchResultsDbIdGet,
                 pedigreeSearchRequest
         );
+         */
+        return new ArrayList<>();
     }
 
 }
