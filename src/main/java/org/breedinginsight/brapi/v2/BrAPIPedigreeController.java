@@ -95,7 +95,6 @@ public class BrAPIPedigreeController {
             return HttpResponse.notFound();
         }
 
-        // TODO: implement this
         try {
             List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(program.get());
 
@@ -109,7 +108,7 @@ public class BrAPIPedigreeController {
             );
         } catch (ApiException e) {
             log.error(Utilities.generateApiExceptionLogMessage(e), e);
-            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "error fetching variables");
+            return HttpResponse.status(HttpStatus.INTERNAL_SERVER_ERROR, "error fetching pedigree");
         }
     }
 
