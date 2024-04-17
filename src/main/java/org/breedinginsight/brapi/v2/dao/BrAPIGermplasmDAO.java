@@ -44,10 +44,13 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.utilities.BrAPIDAOUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
+import org.jooq.JSON;
+import org.jooq.JSONB;
 import org.jooq.SQLDialect;
 //import static org.jooq.impl.DSL.*;
 //
 import org.jooq.impl.DSL;
+import org.postgresql.util.PGobject;
 //import org.jooq.impl.DSL.table;
 
 import javax.inject.Inject;
@@ -58,6 +61,7 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Slf4j
 @Singleton
@@ -316,10 +320,55 @@ public class BrAPIGermplasmDAO {
 
     public List<BrAPIGermplasm> createBrAPIGermplasm(List<BrAPIGermplasm> postBrAPIGermplasmList, UUID programId, ImportUpload upload) {
         for (BrAPIGermplasm germplasm: postBrAPIGermplasmList) {
+            String id = UUID.randomUUID().toString();
+            log.info("Id = '" + id + "'");
+            // TODO lookup crop ID by germplasm.getCommonCropName()
+            String cropID = "6";
+            JSONB addInfo = JSONB.jsonb(germplasm.getAdditionalInfo().toString());
+
+
+//            PGobject jsonObject = new PGobject();
+//            jsonObject.setType("json");
+//            //TODO handle Try Catch better
+//            try {
+//                if(germplasm.getAdditionalInfo()!=null) {
+//                    jsonObject.setValue(germplasm.getAdditionalInfo().toString());
+//                }
+//            } catch (SQLException e) {
+//                throw new RuntimeException(e);
+//            }
+
+//            this.brapiDsl.insertInto(org.jooq.impl.DSL.table("Germplasm"),
+//                    org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("id")), org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("additional_info")) )
+//                    .values(id, addInfo)
+//                    .execute();
+
             this.brapiDsl.insertInto(org.jooq.impl.DSL.table("Germplasm"))
-                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("id")), "Dave1")
-                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("additional_info")), germplasm.getAdditionalInfo())
-                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("accession_number")), germplasm.getAccessionNumber()).execute();
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("id")), id)
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("additional_info")), addInfo)
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("accession_number")), germplasm.getAccessionNumber())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("auth_user_id")), "anonymousUser")
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("acquisition_date")), germplasm.getAcquisitionDate())
+                    //            .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("acquisition_source_code")))
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("biological_status_of_accession_code")), germplasm.getBiologicalStatusOfAccessionCode())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("collection")), germplasm.getCollection())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("country_of_origin_code")), germplasm.getCountryOfOriginCode())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("default_display_name")), germplasm.getDefaultDisplayName())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("documentationurl")), germplasm.getDocumentationURL())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("genus")), germplasm.getGenus())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("germplasm_name")), germplasm.getGermplasmName())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("germplasmpui")), germplasm.getGermplasmPUI())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("germplasm_preprocessing")), germplasm.getGermplasmPreprocessing())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("mls_status")), 0)
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("seed_source")), germplasm.getSeedSource())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("seed_source_description")), germplasm.getSeedSourceDescription())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("species")), germplasm.getSpecies())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("species_authority")), germplasm.getSpeciesAuthority())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("subtaxa")), germplasm.getSubtaxa())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("subtaxa_authority")), germplasm.getSubtaxaAuthority())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("breeding_method_id")), germplasm.getBreedingMethodDbId())
+                    .set(org.jooq.impl.DSL.field(org.jooq.impl.DSL.name("crop_id")), cropID)
+                    .execute();
         }
         return postBrAPIGermplasmList;
 
