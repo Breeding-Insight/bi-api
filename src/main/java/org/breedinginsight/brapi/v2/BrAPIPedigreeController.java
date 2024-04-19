@@ -53,7 +53,9 @@ public class BrAPIPedigreeController {
     private final ProgramService programService;
 
     @Inject
-    public BrAPIPedigreeController(@Property(name = "brapi.server.reference-source") String referenceSource, BrAPIPedigreeDAO pedigreeDAO, ProgramService programService) {
+    public BrAPIPedigreeController(@Property(name = "brapi.server.reference-source") String referenceSource,
+                                   BrAPIPedigreeDAO pedigreeDAO,
+                                   ProgramService programService) {
         this.referenceSource = referenceSource;
         this.pedigreeDAO = pedigreeDAO;
         this.programService = programService;
@@ -96,7 +98,15 @@ public class BrAPIPedigreeController {
         }
 
         try {
-            List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(program.get());
+            List<BrAPIPedigreeNode> pedigree = pedigreeDAO.getPedigree(
+                    program.get(),
+                    Optional.ofNullable(includeParents),
+                    Optional.ofNullable(includeSiblings),
+                    Optional.ofNullable(includeProgeny),
+                    Optional.ofNullable(includeFullTree),
+                    Optional.ofNullable(pedigreeDepth),
+                    Optional.ofNullable(progenyDepth),
+                    Optional.ofNullable(germplasmName));
 
             return HttpResponse.ok(
                     new BrAPIPedigreeListResponse()

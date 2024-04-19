@@ -87,6 +87,11 @@ public class Utilities {
     }
 
 
+    public static String removeProgramKeyAnyAccession(String str, String programKey) {
+        return str.replaceAll("\\[" + programKey + "-.*\\]", "").trim();
+
+    }
+
     /**
      * Remove program key from a string. Returns a new value instead of altering original string.
      *

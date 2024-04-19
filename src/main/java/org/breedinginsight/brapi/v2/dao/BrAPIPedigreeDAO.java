@@ -52,7 +52,16 @@ public class BrAPIPedigreeDAO {
         this.referenceSource = referenceSource;
     }
 
-    public List<BrAPIPedigreeNode> getPedigree(Program program) throws ApiException {
+    public List<BrAPIPedigreeNode> getPedigree(
+            Program program,
+            Optional<Boolean> includeParents,
+            Optional<Boolean> includeSiblings,
+            Optional<Boolean> includeProgeny,
+            Optional<Boolean> includeFullTree,
+            Optional<Integer> pedigreeDepth,
+            Optional<Integer> progenyDepth,
+            Optional<String> germplasmName
+    ) throws ApiException {
         // TODO: maybe use get instead of search
 
         BrAPIPedigreeSearchRequest pedigreeSearchRequest = new BrAPIPedigreeSearchRequest();
@@ -62,7 +71,15 @@ public class BrAPIPedigreeDAO {
         String extRefId = program.getId().toString();
         String extRefSrc = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
         pedigreeSearchRequest.addExternalReferenceIdsItem(extRefId);
-        pedigreeSearchRequest.addExternalReferenceSourcesItem(extRefSrc);
+        //pedigreeSearchRequest.addExternalReferenceSourcesItem(extRefSrc);
+
+        includeParents.ifPresent(pedigreeSearchRequest::includeParents);
+        includeSiblings.ifPresent(pedigreeSearchRequest::includeSiblings);
+        includeProgeny.ifPresent(pedigreeSearchRequest::includeProgeny);
+        includeFullTree.ifPresent(pedigreeSearchRequest::includeFullTree);
+        pedigreeDepth.ifPresent(pedigreeSearchRequest::setPedigreeDepth);
+        progenyDepth.ifPresent(pedigreeSearchRequest::setProgenyDepth);
+        germplasmName.ifPresent(pedigreeSearchRequest::addGermplasmNamesItem);
 
         // TODO: add pagination support
         // .page(page)
@@ -78,12 +95,44 @@ public class BrAPIPedigreeDAO {
         );
 
         // search on external references is id OR source, need to filter for id AND source
+        /*
         pedigreeNodes = pedigreeNodes.stream()
                 .filter(node -> node.getExternalReferences().stream()
                         .anyMatch(ref -> ref.getReferenceSource().equals(extRefSrc) && ref.getReferenceId().equals(extRefId)))
                 .collect(Collectors.toList());
+         */
+
+        //stripProgramKeys(pedigreeNodes, program.getKey());
 
         return pedigreeNodes;
+    }
+
+    public List<BrAPIPedigreeNode> searchPedigree() {
+        return new ArrayList<>();
+    }
+
+    /**
+     * Removes the program key from the germplasm names in the list of pedigree nodes.
+     *
+     * @param pedigreeNodes The list of pedigree nodes.
+     * @param programKey The program key to be removed.
+     */
+    private void stripProgramKeys(List<BrAPIPedigreeNode> pedigreeNodes, String programKey) {
+        pedigreeNodes.forEach(node -> {
+            node.setGermplasmName(Utilities.removeProgramKeyAnyAccession(node.getGermplasmName(), programKey));
+            // TODO: pedigree stripping not right
+            //node.setPedigreeString(Utilities.removeProgramKeyAnyAccession(node.getPedigreeString(), programKey));
+            if (node.getParents() != null) {
+                node.getParents().forEach(parent -> {
+                    parent.setGermplasmName(Utilities.removeProgramKeyAnyAccession(parent.getGermplasmName(), programKey));
+                });
+            }
+            if (node.getProgeny() != null) {
+                node.getProgeny().forEach(progeny -> {
+                    progeny.setGermplasmName(Utilities.removeProgramKeyAnyAccession(progeny.getGermplasmName(), programKey));
+                });
+            }
+        });
     }
 
 }
