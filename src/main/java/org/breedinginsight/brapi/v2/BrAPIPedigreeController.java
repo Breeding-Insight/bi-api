@@ -137,5 +137,6 @@ public class BrAPIPedigreeController {
     }
 
     // TODO: search and retrieve endpoints
+    // already have some work done, search call in BrAPIPedigreeDAO
 
 }
