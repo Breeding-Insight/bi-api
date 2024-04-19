@@ -136,6 +136,7 @@ public class BrAPIPedigreeDAO {
      * @return A List of BrAPIPedigreeNode objects that match the search criteria.
      * @throws ApiException     If an error occurs while searching for pedigree nodes.
      */
+    /*
     public List<BrAPIPedigreeNode> searchPedigree(Program program,
                                                   Optional<Boolean> includeParents,
                                                   Optional<Boolean> includeSiblings,
@@ -179,6 +180,7 @@ public class BrAPIPedigreeDAO {
 
         return pedigreeNodes;
     }
+     */
 
     /**
      * Removes the program key from the germplasm names in the list of pedigree nodes.
