@@ -86,10 +86,15 @@ public class Utilities {
         return original.replaceAll("\\[.*\\]", "").trim();
     }
 
-
+    /**
+     * Removes the program key from a string with any accession number.
+     *
+     * @param str The string to remove the program key from
+     * @param programKey The program key to remove
+     * @return The modified string
+     */
     public static String removeProgramKeyAnyAccession(String str, String programKey) {
         return str.replaceAll("\\[" + programKey + "-.*\\]", "").trim();
-
     }
 
     /**
