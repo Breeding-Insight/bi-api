@@ -18,10 +18,15 @@
 package org.breedinginsight.brapi.v2.dao;
 
 import io.micronaut.context.annotation.Property;
+import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
+import org.brapi.client.v2.ApiResponse;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.client.v2.model.queryParams.germplasm.PedigreeQueryParams;
 import org.brapi.client.v2.modules.germplasm.PedigreeApi;
 import org.brapi.v2.model.germ.BrAPIPedigreeNode;
 import org.brapi.v2.model.germ.request.BrAPIPedigreeSearchRequest;
+import org.brapi.v2.model.germ.response.BrAPIPedigreeListResponse;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.daos.ProgramDAO;
 import org.breedinginsight.model.Program;
@@ -32,9 +37,9 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Singleton
+@Slf4j
 public class BrAPIPedigreeDAO {
 
     private ProgramDAO programDAO;
@@ -52,6 +57,20 @@ public class BrAPIPedigreeDAO {
         this.referenceSource = referenceSource;
     }
 
+    /**
+     * Retrieves the pedigree of a given program and optional filters. Used by Helium. TODO: Add rest of parameters
+     *
+     * @param program              The program for which the pedigree is requested.
+     * @param includeParents       Flag to indicate whether to include parent nodes in the pedigree. (optional)
+     * @param includeSiblings      Flag to indicate whether to include sibling nodes in the pedigree. (optional)
+     * @param includeProgeny       Flag to indicate whether to include progeny nodes in the pedigree. (optional)
+     * @param includeFullTree      Flag to indicate whether to include the full pedigree tree or only immediate ancestors and descendants. (optional)
+     * @param pedigreeDepth        The maximum depth of ancestors and descendants to include in the pedigree. (optional)
+     * @param progenyDepth         The maximum depth of progeny to include in the pedigree. (optional)
+     * @param germplasmName        The name of the germplasm to which the pedigree is limited. (optional)
+     * @return A list of pedigree nodes representing the pedigree of the program.
+     * @throws ApiException        If an error occurs while making the BrAPI call.
+     */
     public List<BrAPIPedigreeNode> getPedigree(
             Program program,
             Optional<Boolean> includeParents,
@@ -62,16 +81,81 @@ public class BrAPIPedigreeDAO {
             Optional<Integer> progenyDepth,
             Optional<String> germplasmName
     ) throws ApiException {
-        // TODO: maybe use get instead of search
 
-        BrAPIPedigreeSearchRequest pedigreeSearchRequest = new BrAPIPedigreeSearchRequest();
-        // TODO: Issue with BrAPI server programDbId filtering, use external refs instead for now
+        PedigreeQueryParams pedigreeRequest = new PedigreeQueryParams();
+
+        // TODO: Issue with BrAPI server programDbId filtering, think germplasm are linked to program through observation
+        // units and doesn't work if don't have any loaded
+        // use external refs instead for now
         //pedigreeSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
 
         String extRefId = program.getId().toString();
         String extRefSrc = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.PROGRAMS);
+        pedigreeRequest.externalReferenceId(extRefId);
+        pedigreeRequest.externalReferenceSource(extRefSrc);
+
+        includeParents.ifPresent(pedigreeRequest::includeParents);
+        includeSiblings.ifPresent(pedigreeRequest::includeSiblings);
+        includeProgeny.ifPresent(pedigreeRequest::includeProgeny);
+        includeFullTree.ifPresent(pedigreeRequest::includeFullTree);
+        pedigreeDepth.ifPresent(pedigreeRequest::pedigreeDepth);
+        progenyDepth.ifPresent(pedigreeRequest::progenyDepth);
+        germplasmName.ifPresent(pedigreeRequest::germplasmName);
+        // TODO: other parameters
+
+        // TODO: write utility to do paging instead of hardcoding
+        pedigreeRequest.pageSize(100000);
+
+        ApiResponse<BrAPIPedigreeListResponse> brapiPedigree;
+        try {
+            brapiPedigree = brAPIEndpointProvider
+                    .get(programDAO.getCoreClient(program.getId()), PedigreeApi.class)
+                    .pedigreeGet(pedigreeRequest);
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            throw new InternalServerException("Error making BrAPI call", e);
+        }
+
+        List<BrAPIPedigreeNode> pedigreeNodes = brapiPedigree.getBody().getResult().getData();
+        // TODO: once Helium is constructing nodes from DbId we can strip program keys but won't in the mean time
+        //stripProgramKeys(pedigreeNodes, program.getKey());
+        return pedigreeNodes;
+    }
+
+    /**
+     * Searches for pedigree nodes based on the given parameters. Not used by Helium TODO: Add rest of parameters
+     *
+     * @param program           The program to search for pedigree nodes.
+     * @param includeParents    Optional boolean to include parents in the search.
+     * @param includeSiblings   Optional boolean to include siblings in the search.
+     * @param includeProgeny    Optional boolean to include progeny in the search.
+     * @param includeFullTree   Optional boolean to include the full pedigree tree in the search.
+     * @param pedigreeDepth     Optional integer for the maximum depth of the pedigree tree.
+     * @param progenyDepth      Optional integer for the maximum depth of the progeny tree.
+     * @param germplasmName     Optional String to filter the search by germplasm name.
+     * @return A List of BrAPIPedigreeNode objects that match the search criteria.
+     * @throws ApiException     If an error occurs while searching for pedigree nodes.
+     */
+    public List<BrAPIPedigreeNode> searchPedigree(Program program,
+                                                  Optional<Boolean> includeParents,
+                                                  Optional<Boolean> includeSiblings,
+                                                  Optional<Boolean> includeProgeny,
+                                                  Optional<Boolean> includeFullTree,
+                                                  Optional<Integer> pedigreeDepth,
+                                                  Optional<Integer> progenyDepth,
+                                                  Optional<String> germplasmName
+    ) throws ApiException {
+
+        BrAPIPedigreeSearchRequest pedigreeSearchRequest = new BrAPIPedigreeSearchRequest();
+        // TODO: Issue with BrAPI server programDbId filtering, think germplasm are linked to program through observation
+        // units and doesn't work if don't have any loaded
+        // use external refs instead for now
+        //pedigreeSearchRequest.programDbIds(List.of(program.getBrapiProgram().getProgramDbId()));
+
+        // Just use program UUID, shouldn't have any collisions and don't want to get all the germplasm if we were also
+        // using source because search is OR rather than AND
+        String extRefId = program.getId().toString();
         pedigreeSearchRequest.addExternalReferenceIdsItem(extRefId);
-        //pedigreeSearchRequest.addExternalReferenceSourcesItem(extRefSrc);
 
         includeParents.ifPresent(pedigreeSearchRequest::includeParents);
         includeSiblings.ifPresent(pedigreeSearchRequest::includeSiblings);
@@ -80,10 +164,6 @@ public class BrAPIPedigreeDAO {
         pedigreeDepth.ifPresent(pedigreeSearchRequest::setPedigreeDepth);
         progenyDepth.ifPresent(pedigreeSearchRequest::setProgenyDepth);
         germplasmName.ifPresent(pedigreeSearchRequest::addGermplasmNamesItem);
-
-        // TODO: add pagination support
-        // .page(page)
-        // .pageSize(pageSize);
         // TODO: other parameters
 
         PedigreeApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(program.getId()), PedigreeApi.class);
@@ -94,21 +174,10 @@ public class BrAPIPedigreeDAO {
                 pedigreeSearchRequest
         );
 
-        // search on external references is id OR source, need to filter for id AND source
-        /*
-        pedigreeNodes = pedigreeNodes.stream()
-                .filter(node -> node.getExternalReferences().stream()
-                        .anyMatch(ref -> ref.getReferenceSource().equals(extRefSrc) && ref.getReferenceId().equals(extRefId)))
-                .collect(Collectors.toList());
-         */
-
+        // TODO: once Helium is constructing nodes from DbId we can strip program keys but won't in the mean time
         //stripProgramKeys(pedigreeNodes, program.getKey());
 
         return pedigreeNodes;
-    }
-
-    public List<BrAPIPedigreeNode> searchPedigree() {
-        return new ArrayList<>();
     }
 
     /**
@@ -120,7 +189,7 @@ public class BrAPIPedigreeDAO {
     private void stripProgramKeys(List<BrAPIPedigreeNode> pedigreeNodes, String programKey) {
         pedigreeNodes.forEach(node -> {
             node.setGermplasmName(Utilities.removeProgramKeyAnyAccession(node.getGermplasmName(), programKey));
-            // TODO: pedigree stripping not right
+            // TODO: pedigree stripping not working right
             //node.setPedigreeString(Utilities.removeProgramKeyAnyAccession(node.getPedigreeString(), programKey));
             if (node.getParents() != null) {
                 node.getParents().forEach(parent -> {
