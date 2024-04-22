@@ -295,7 +295,7 @@ public class TraitFileParserUnitTest {
         assertEquals("Estimation", method.getMethodClass(), "wrong method class");
         assertEquals("a^2 + b^2 = c^2", method.getFormula(), "wrong method formula");
         Scale scale = trait.getScale();
-        assertEquals("1-4 Parlier field response score", scale.getScaleName(), "wrong scale name");
+        assertEquals("Ordinal", scale.getScaleName(), "wrong scale name");
         assertEquals(DataType.ORDINAL, scale.getDataType(), "wrong scale dataType");
         assertEquals(2, scale.getDecimalPlaces(), "wrong scale decimal places");
         assertEquals(2, scale.getValidValueMin(), "wrong scale min value");

@@ -199,10 +199,10 @@ public class FileUtil {
                                     .builderFromString(jsonString)
                                     .columnTypesToDetect(List.of(ColumnType.STRING))
                     );
-        } catch (IOException e) {
+        } catch (Exception e) {
+            log.debug(e.getMessage());
             throw new ParsingException(ParsingExceptionType.ERROR_READING_FILE);
         }
-
     }
 
     public static Table removeNullRows(Table table) {

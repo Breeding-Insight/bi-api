@@ -38,7 +38,7 @@ public enum TraitFileColumns {
     METHOD_CLASS("Method class", Column.ColumnDataType.STRING),
     METHOD_FORMULA("Method formula", Column.ColumnDataType.STRING),
     SCALE_CLASS("Scale class", Column.ColumnDataType.STRING),
-    SCALE_NAME("Units", Column.ColumnDataType.STRING),
+    UNITS("Units", Column.ColumnDataType.STRING),
     SCALE_DECIMAL_PLACES("Scale decimal places", Column.ColumnDataType.INTEGER),
     SCALE_LOWER_LIMIT("Scale lower limit", Column.ColumnDataType.INTEGER),
     SCALE_UPPER_LIMIT("Scale upper limit", Column.ColumnDataType.INTEGER),

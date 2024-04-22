@@ -386,6 +386,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
                     .scale(Scale.builder()
                             .scaleName("test scale")
                             .dataType(DataType.NUMERICAL)
+                            .units("test unit")
                             .validValueMin(0)
                             .validValueMax(100)
                             .build())

@@ -505,7 +505,7 @@ public class OntologyService {
             if(scale!=null) {
 
                 row.put(TraitFileColumns.SCALE_CLASS.toString(), DataTypeTranslator.getDisplayNameFromType(scale.getDataType()));
-                row.put(TraitFileColumns.SCALE_NAME.toString(), scale.getScaleName());
+                row.put(TraitFileColumns.UNITS.toString(), scale.getUnits());
                 row.put(TraitFileColumns.SCALE_DECIMAL_PLACES.toString(), scale.getDecimalPlaces());
                 row.put(TraitFileColumns.SCALE_LOWER_LIMIT.toString(), scale.getValidValueMin());
                 row.put(TraitFileColumns.SCALE_UPPER_LIMIT.toString(), scale.getValidValueMax());
