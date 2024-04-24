@@ -177,8 +177,8 @@ email:
   relay-server:
     host: ${EMAIL_RELAY_HOST}
     port: ${EMAIL_RELAY_PORT}
-    login: ${EMAIL_RELAY_LOGIN}
-    password: ${EMAIL_RELAY_PASSWORD}
+    login: ${EMAIL_RELAY_LOGIN:null}
+    password: ${EMAIL_RELAY_PASSWORD:null}
   from: ${EMAIL_FROM}
 
 redisson:
