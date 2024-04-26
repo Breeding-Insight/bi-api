@@ -71,6 +71,8 @@ public class ExperimentImportService implements BrAPIImportService {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
+        Processor experimentProcessor = experimentProcessorProvider.get();
+        //response = experimentProcessor.process(upload, brAPIImports, data, program, user, commit);
         response = processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
         return response;
 
