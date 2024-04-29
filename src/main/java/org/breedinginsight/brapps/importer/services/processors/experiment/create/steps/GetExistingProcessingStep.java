@@ -3,14 +3,17 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.creat
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import io.reactivex.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
+import org.breedinginsight.brapi.v2.dao.BrAPISeasonDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -35,6 +38,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final BrAPITrialDAO brAPITrialDAO;
     private final BrAPIStudyDAO brAPIStudyDAO;
+    private final BrAPISeasonDAO brAPISeasonDAO;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -42,10 +46,12 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     @Inject
     public GetExistingProcessingStep(BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                      BrAPITrialDAO brAPITrialDAO,
-                                     BrAPIStudyDAO brAPIStudyDAO) {
+                                     BrAPIStudyDAO brAPIStudyDAO,
+                                     BrAPISeasonDAO brAPISeasonDAO) {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPITrialDAO = brAPITrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
+        this.brAPISeasonDAO = brAPISeasonDAO;
     }
 
     @Override
@@ -57,12 +63,13 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         // Populate pending objects with existing status
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = initializeObservationUnits(program, experimentImportRows);
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = initializeTrialByNameNoScope(program, observationUnitByNameNoScope, experimentImportRows);
-
+        Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = initializeStudyByNameNoScope(program, trialByNameNoScope, observationUnitByNameNoScope, experimentImportRows);
         // TODO: populate rest of data
 
         PendingData existing = PendingData.builder()
                 .observationUnitByNameNoScope(observationUnitByNameNoScope)
                 .trialByNameNoScope(trialByNameNoScope)
+                .studyByNameNoScope(studyByNameNoScope)
                 .build();
 
         return existing;
@@ -323,7 +330,149 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         return studies;
     }
 
+    /**
+     * Initializes studies by name without scope.
+     *
+     * @param program The program object.
+     * @param trialByNameNoScope A map of trial names with their corresponding pending import objects.
+     * @param experimentImportRows A list of experiment observation objects.
+     * @return A map of study names with their corresponding pending import objects.
+     * @throws InternalServerException If there is an error while processing the method.
+     */
+    private Map<String, PendingImportObject<BrAPIStudy>> initializeStudyByNameNoScope(Program program,
+                                                                                      Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope,
+                                                                                      Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope,
+                                                                                      List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIStudy>> studyByName = new HashMap<>();
+        if (trialByNameNoScope.size() != 1) {
+            return studyByName;
+        }
+
+        try {
+            initializeStudiesForExistingObservationUnits(program, studyByName, observationUnitByNameNoScope);
+        } catch (ApiException e) {
+            log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        } catch (Exception e) {
+            log.error("Error processing studies", e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        List<BrAPIStudy> existingStudies;
+        Optional<PendingImportObject<BrAPITrial>> trial = getTrialPIO(experimentImportRows, trialByNameNoScope);
+
+        try {
+            if (trial.isEmpty()) {
+                // TODO: throw ValidatorException and return 422
+            }
+            UUID experimentId = trial.get().getId();
+            existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
+            for (BrAPIStudy existingStudy : existingStudies) {
+                processAndCacheStudy(existingStudy, program, BrAPIStudy::getStudyName, studyByName);
+            }
+        } catch (ApiException e) {
+            log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        } catch (Exception e) {
+            log.error("Error processing studies: ", e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        return studyByName;
+    }
+
+    /**
+     * Retrieves the PendingImportObject of a BrAPITrial based on the given list of ExperimentObservation and trialByNameNoScope map.
+     *
+     * @param experimentImportRows The list of ExperimentObservation objects.
+     * @param trialByNameNoScope The map of trial names to PendingImportObject of BrAPITrial.
+     * @return The Optional containing the PendingImportObject of BrAPITrial, or an empty Optional if no matching trial is found.
+     */
+    private Optional<PendingImportObject<BrAPITrial>> getTrialPIO(List<ExperimentObservation> experimentImportRows,
+                                                                  Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope) {
+        Optional<String> expTitle = experimentImportRows.stream()
+                .filter(row -> StringUtils.isBlank(row.getObsUnitID()) && StringUtils.isNotBlank(row.getExpTitle()))
+                .map(ExperimentObservation::getExpTitle)
+                .findFirst();
+
+        if (expTitle.isEmpty() && trialByNameNoScope.keySet().stream().findFirst().isEmpty()) {
+            return Optional.empty();
+        }
+        if(expTitle.isEmpty()) {
+            expTitle = trialByNameNoScope.keySet().stream().findFirst();
+        }
+
+        return Optional.ofNullable(trialByNameNoScope.get(expTitle.get()));
+    }
 
 
+    private void initializeStudiesForExistingObservationUnits(
+            Program program,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
+            Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope
+    ) throws Exception {
+        Set<String> studyDbIds = observationUnitByNameNoScope.values()
+                .stream()
+                .map(pio -> pio.getBrAPIObject()
+                        .getStudyDbId())
+                .collect(Collectors.toSet());
+
+        List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
+        for (BrAPIStudy study : studies) {
+            processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
+        }
+    }
+
+    // TODO: used by both workflows
+    private PendingImportObject<BrAPIStudy> processAndCacheStudy(
+            BrAPIStudy existingStudy,
+            Program program,
+            Function<BrAPIStudy, String> getterFunction,
+            Map<String, PendingImportObject<BrAPIStudy>> studyMap) throws Exception {
+        PendingImportObject<BrAPIStudy> pendingStudy;
+        BrAPIExternalReference xref = Utilities.getExternalReference(existingStudy.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
+                .orElseThrow(() -> new IllegalStateException("External references wasn't found for study (dbid): " + existingStudy.getStudyDbId()));
+        // map season dbid to year
+        String seasonDbId = existingStudy.getSeasons().get(0); // It is assumed that the study has only one season
+        if(StringUtils.isNotBlank(seasonDbId)) {
+            String seasonYear = seasonDbIdToYear(seasonDbId, program.getId());
+            existingStudy.setSeasons(Collections.singletonList(seasonYear));
+        }
+        pendingStudy = new PendingImportObject<>(
+                ImportObjectState.EXISTING,
+                (BrAPIStudy) Utilities.formatBrapiObjForDisplay(existingStudy, BrAPIStudy.class, program),
+                UUID.fromString(xref.getReferenceId())
+        );
+        studyMap.put(
+                Utilities.removeProgramKeyAndUnknownAdditionalData(getterFunction.apply(existingStudy), program.getKey()),
+                pendingStudy
+        );
+        return pendingStudy;
+    }
+
+    // TODO: used by both workflows
+    private String seasonDbIdToYear(String seasonDbId, UUID programId) {
+        String year = null;
+        // TODO: add season objects to redis cache then just extract year from those
+        // removing this for now here
+        //if (this.seasonDbIdToYearCache.containsKey(seasonDbId)) { // get it from cache if possible
+        //    year = this.seasonDbIdToYearCache.get(seasonDbId);
+        //} else {
+        year = seasonDbIdToYearFromDatabase(seasonDbId, programId);
+        //    this.seasonDbIdToYearCache.put(seasonDbId, year);
+        //}
+        return year;
+    }
+
+    private String seasonDbIdToYearFromDatabase(String seasonDbId, UUID programId) {
+        BrAPISeason season = null;
+        try {
+            season = this.brAPISeasonDAO.getSeasonById(seasonDbId, programId);
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+        }
+        Integer yearInt = (season == null) ? null : season.getYear();
+        return (yearInt == null) ? "" : yearInt.toString();
+    }
 
 }
