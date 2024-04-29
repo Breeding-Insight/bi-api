@@ -25,6 +25,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.pipeline.ProcessingStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -39,6 +41,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     private final BrAPITrialDAO brAPITrialDAO;
     private final BrAPIStudyDAO brAPIStudyDAO;
     private final BrAPISeasonDAO brAPISeasonDAO;
+    private final ProgramLocationService locationService;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -47,11 +50,13 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     public GetExistingProcessingStep(BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                      BrAPITrialDAO brAPITrialDAO,
                                      BrAPIStudyDAO brAPIStudyDAO,
-                                     BrAPISeasonDAO brAPISeasonDAO) {
+                                     BrAPISeasonDAO brAPISeasonDAO,
+                                     ProgramLocationService locationService) {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPITrialDAO = brAPITrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
+        this.locationService = locationService;
     }
 
     @Override
@@ -64,12 +69,15 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = initializeObservationUnits(program, experimentImportRows);
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = initializeTrialByNameNoScope(program, observationUnitByNameNoScope, experimentImportRows);
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = initializeStudyByNameNoScope(program, trialByNameNoScope, observationUnitByNameNoScope, experimentImportRows);
+        // interesting we're using our data model instead of brapi for locations
+        Map<String, PendingImportObject<ProgramLocation>> locationByName = initializeUniqueLocationNames(program, studyByNameNoScope, experimentImportRows);
         // TODO: populate rest of data
 
         PendingData existing = PendingData.builder()
                 .observationUnitByNameNoScope(observationUnitByNameNoScope)
                 .trialByNameNoScope(trialByNameNoScope)
                 .studyByNameNoScope(studyByNameNoScope)
+                .locationByName(locationByName)
                 .build();
 
         return existing;
@@ -473,6 +481,53 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         }
         Integer yearInt = (season == null) ? null : season.getYear();
         return (yearInt == null) ? "" : yearInt.toString();
+    }
+
+    /**
+     * Initializes unique location names for a program.
+     *
+     * @param program The program object.
+     * @param studyByNameNoScope A map of study names and corresponding BrAPI study objects.
+     * @param experimentImportRows A list of experiment observation objects for import.
+     * @return A map of location names and their corresponding pending import objects.
+     * @throws InternalServerException If there is an error fetching locations.
+     */
+    private Map<String, PendingImportObject<ProgramLocation>> initializeUniqueLocationNames(Program program,
+                                                                                            Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope,
+                                                                                            List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<ProgramLocation>> locationByName = new HashMap<>();
+
+        List<ProgramLocation> existingLocations = new ArrayList<>();
+        if(studyByNameNoScope.size() > 0) {
+            Set<String> locationDbIds = studyByNameNoScope.values()
+                    .stream()
+                    .map(study -> study.getBrAPIObject()
+                            .getLocationDbId())
+                    .collect(Collectors.toSet());
+            try {
+                existingLocations.addAll(locationService.getLocationsByDbId(locationDbIds, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
+        List<String> uniqueLocationNames = experimentImportRows.stream()
+                .filter(experimentObservation -> StringUtils.isBlank(experimentObservation.getObsUnitID()))
+                .map(ExperimentObservation::getEnvLocation)
+                .distinct()
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+
+        try {
+            existingLocations.addAll(locationService.getLocationsByName(uniqueLocationNames, program.getId()));
+        } catch (ApiException e) {
+            log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        existingLocations.forEach(existingLocation -> locationByName.put(existingLocation.getName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation, existingLocation.getId())));
+        return locationByName;
     }
 
 }
