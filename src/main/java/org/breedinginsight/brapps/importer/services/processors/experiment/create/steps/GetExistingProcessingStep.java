@@ -10,6 +10,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.*;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
@@ -40,6 +41,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     private final BrAPISeasonDAO brAPISeasonDAO;
     private final ProgramLocationService locationService;
     private final BrAPIListDAO brAPIListDAO;
+    private final BrAPIGermplasmDAO brAPIGermplasmDAO;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -50,13 +52,15 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
                                      BrAPIStudyDAO brAPIStudyDAO,
                                      BrAPISeasonDAO brAPISeasonDAO,
                                      ProgramLocationService locationService,
-                                     BrAPIListDAO brAPIListDAO) {
+                                     BrAPIListDAO brAPIListDAO,
+                                     BrAPIGermplasmDAO brAPIGermplasmDAO) {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPITrialDAO = brAPITrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.locationService = locationService;
         this.brAPIListDAO = brAPIListDAO;
+        this.brAPIGermplasmDAO = brAPIGermplasmDAO;
     }
 
     @Override
@@ -72,8 +76,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         // interesting we're using our data model instead of brapi for locations
         Map<String, PendingImportObject<ProgramLocation>> locationByName = initializeUniqueLocationNames(program, studyByNameNoScope, experimentImportRows);
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = initializeObsVarDatasetByName(program, trialByNameNoScope, experimentImportRows);
-
-        // TODO: populate rest of data
+        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = initializeExistingGermplasmByGID(program, observationUnitByNameNoScope, experimentImportRows);
 
         PendingData existing = PendingData.builder()
                 .observationUnitByNameNoScope(observationUnitByNameNoScope)
@@ -81,6 +84,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
                 .studyByNameNoScope(studyByNameNoScope)
                 .locationByName(locationByName)
                 .obsVarDatasetByName(obsVarDatasetByName)
+                .existingGermplasmByGID(existingGermplasmByGID)
                 .build();
 
         return existing;
@@ -590,6 +594,79 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
                 .orElseThrow(() -> new IllegalStateException("External references wasn't found for list (dbid): " + existingList.getListDbId()));
         obsVarDatasetByName.put(existingList.getListName(),
                 new PendingImportObject<>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
+    }
+
+    /**
+     * Initializes existing germplasm objects by germplasm ID (GID).
+     *
+     * @param program The program object.
+     * @param observationUnitByNameNoScope A map of observation unit objects by name.
+     * @param experimentImportRows A list of experiment observation objects.
+     * @return A map of existing germplasm objects by germplasm ID.
+     *
+     * @throws InternalServerException
+     */
+    private Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program,
+                                                                                              Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope,
+                                                                                              List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+
+        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
+        if(observationUnitByNameNoScope.size() > 0) {
+            Set<String> germplasmDbIds = observationUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
+            try {
+                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
+        List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
+                .filter(experimentObservation -> StringUtils.isBlank(experimentObservation.getObsUnitID()))
+                .map(ExperimentObservation::getGid)
+                .distinct()
+                .collect(Collectors.toList());
+
+        try {
+            existingGermplasms.addAll(getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId()));
+        } catch (ApiException e) {
+            log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+
+        existingGermplasms.forEach(existingGermplasm -> {
+            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
+                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
+            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
+        });
+        return existingGermplasmByGID;
+    }
+
+    /**
+     * Retrieves a list of germplasm with the specified accession numbers.
+     *
+     * @param germplasmAccessionNumbers The list of accession numbers to search for.
+     * @param programId The ID of the program.
+     * @return An ArrayList of BrAPIGermplasm objects that match the accession numbers.
+     * @throws ApiException if there is an error retrieving the germplasm.
+     */
+    private ArrayList<BrAPIGermplasm> getGermplasmByAccessionNumber(
+            List<String> germplasmAccessionNumbers,
+            UUID programId) throws ApiException {
+        List<BrAPIGermplasm> germplasmList = brAPIGermplasmDAO.getGermplasm(programId);
+        ArrayList<BrAPIGermplasm> resultGermplasm = new ArrayList<>();
+        // Search for accession number matches
+        for (BrAPIGermplasm germplasm : germplasmList) {
+            for (String accessionNumber : germplasmAccessionNumbers) {
+                if (germplasm.getAccessionNumber()
+                        .equals(accessionNumber)) {
+                    resultGermplasm.add(germplasm);
+                    break;
+                }
+            }
+        }
+        return resultGermplasm;
     }
 
 }
