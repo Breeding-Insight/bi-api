@@ -252,12 +252,4 @@ public class Utilities {
         // See https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282
         return Character.isLetterOrDigit(c) || c == '-' || c == '_' || c == '.';
     }
-
-    public static boolean isNeitherNullNorEmpty(String s) {
-        return !isNullOrEmpty(s);
-    }
-
-    public static boolean isNullOrEmpty(String s) {
-        return s == null || s.isEmpty();
-    }
 }

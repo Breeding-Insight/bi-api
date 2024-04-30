@@ -19,7 +19,7 @@ package org.breedinginsight.utilities.email;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
-import org.breedinginsight.utilities.Utilities;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Singleton;
 import javax.mail.*;
@@ -49,7 +49,7 @@ public class EmailUtil {
         props.put("mail.smtp.port", smtpHostPort);
         props.put("mail.debug", true);
         Authenticator auth = null;
-        if (Utilities.isNeitherNullNorEmpty(smtpLogin) && Utilities.isNeitherNullNorEmpty(smtpPassword)) {
+        if (StringUtils.isNotBlank(smtpLogin) && StringUtils.isNotBlank(smtpPassword)) {
             props.put("mail.smtp.auth", true);
             props.put("mail.smtp.ssl.trust", smtpHostServer);
             props.put("mail.smtp.starttls.enable", true);
