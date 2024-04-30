@@ -8,14 +8,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPISeason;
-import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.*;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapi.v2.dao.BrAPISeasonDAO;
-import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
-import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -42,6 +39,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     private final BrAPIStudyDAO brAPIStudyDAO;
     private final BrAPISeasonDAO brAPISeasonDAO;
     private final ProgramLocationService locationService;
+    private final BrAPIListDAO brAPIListDAO;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -51,12 +49,14 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
                                      BrAPITrialDAO brAPITrialDAO,
                                      BrAPIStudyDAO brAPIStudyDAO,
                                      BrAPISeasonDAO brAPISeasonDAO,
-                                     ProgramLocationService locationService) {
+                                     ProgramLocationService locationService,
+                                     BrAPIListDAO brAPIListDAO) {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPITrialDAO = brAPITrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.locationService = locationService;
+        this.brAPIListDAO = brAPIListDAO;
     }
 
     @Override
@@ -71,6 +71,8 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = initializeStudyByNameNoScope(program, trialByNameNoScope, observationUnitByNameNoScope, experimentImportRows);
         // interesting we're using our data model instead of brapi for locations
         Map<String, PendingImportObject<ProgramLocation>> locationByName = initializeUniqueLocationNames(program, studyByNameNoScope, experimentImportRows);
+        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = initializeObsVarDatasetByName(program, trialByNameNoScope, experimentImportRows);
+
         // TODO: populate rest of data
 
         PendingData existing = PendingData.builder()
@@ -78,6 +80,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
                 .trialByNameNoScope(trialByNameNoScope)
                 .studyByNameNoScope(studyByNameNoScope)
                 .locationByName(locationByName)
+                .obsVarDatasetByName(obsVarDatasetByName)
                 .build();
 
         return existing;
@@ -528,6 +531,65 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
 
         existingLocations.forEach(existingLocation -> locationByName.put(existingLocation.getName(), new PendingImportObject<>(ImportObjectState.EXISTING, existingLocation, existingLocation.getId())));
         return locationByName;
+    }
+
+    /**
+     * Initializes observation variable dataset by name.
+     *
+     * @param program The program associated with the dataset.
+     * @param trialByNameNoScope The map of trials identified by name without scope.
+     * @param experimentImportRows The list of experiment observation rows.
+     * @return The map of observation variable dataset indexed by name.
+     *
+     * @throws InternalServerException
+     */
+    private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetByName(Program program,
+                                                                                             Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope,
+                                                                                             List<ExperimentObservation> experimentImportRows) {
+        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
+
+        Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows, trialByNameNoScope);
+
+        if (trialPIO.isPresent() && trialPIO.get().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+            String datasetId = trialPIO.get().getBrAPIObject()
+                    .getAdditionalInfo()
+                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
+                    .getAsString();
+            try {
+                List<BrAPIListSummary> existingDatasets = brAPIListDAO
+                        .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
+                                program.getId(),
+                                String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
+                                UUID.fromString(datasetId));
+                if (existingDatasets == null || existingDatasets.isEmpty()) {
+                    throw new InternalServerException("existing dataset summary not returned from brapi server");
+                }
+                BrAPIListDetails dataSetDetails = brAPIListDAO
+                        .getListById(existingDatasets.get(0).getListDbId(), program.getId())
+                        .getResult();
+                processAndCacheObsVarDataset(dataSetDetails, obsVarDatasetByName);
+            } catch (ApiException e) {
+                log.error(Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+        return obsVarDatasetByName;
+    }
+
+    /**
+     * Process and cache an object of type BrAPIListDetails.
+     *
+     * @param existingList The existing list to be processed and cached
+     * @param obsVarDatasetByName A map of ObsVarDatasets indexed by name (will be modified in place)
+     *
+     * @throws IllegalStateException
+     */
+    private void processAndCacheObsVarDataset(BrAPIListDetails existingList, Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName) {
+        BrAPIExternalReference xref = Utilities.getExternalReference(existingList.getExternalReferences(),
+                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
+                .orElseThrow(() -> new IllegalStateException("External references wasn't found for list (dbid): " + existingList.getListDbId()));
+        obsVarDatasetByName.put(existingList.getListName(),
+                new PendingImportObject<>(ImportObjectState.EXISTING, existingList, UUID.fromString(xref.getReferenceId())));
     }
 
 }
