@@ -1175,7 +1175,10 @@ public class ExperimentProcessor implements Processor {
     }
 
     boolean isTimestampMatched(String observationHash, String timeStamp) {
-        OffsetDateTime priorStamp = existingObsByObsHash.get(observationHash).getObservationTimeStamp();
+        OffsetDateTime priorStamp = null;
+        if(existingObsByObsHash.get(observationHash)!=null){
+            priorStamp = existingObsByObsHash.get(observationHash).getObservationTimeStamp();
+        }
         if (priorStamp == null) {
             return timeStamp == null;
         }
