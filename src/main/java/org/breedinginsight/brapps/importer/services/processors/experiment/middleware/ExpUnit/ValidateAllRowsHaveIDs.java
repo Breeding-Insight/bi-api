@@ -3,6 +3,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.middl
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -16,6 +17,16 @@ public class ValidateAllRowsHaveIDs extends ExpUnitMiddleware {
         context.setReferenceOUIds(collateReferenceOUIds(context));
         return processNext(context);
     }
+
+    @Override
+    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+        // tag an error if it occurred in this local transaction
+        error.tag(this.getClass().getName());
+
+        // undo the prior local transaction
+        return compensatePrior(context, error);
+    }
+
     private Set<String> collateReferenceOUIds(ExpUnitMiddlewareContext context) {
         Set<String> referenceOUIds = new HashSet<>();
         for (int rowNum = 0; rowNum < context.getImportContext().getImportRows().size(); rowNum++) {
@@ -25,8 +36,12 @@ public class ValidateAllRowsHaveIDs extends ExpUnitMiddleware {
             if (importRow.getObsUnitID() == null || importRow.getObsUnitID().isBlank()) {
                 hasAllReferenceUnitIds = false;
             } else if (referenceOUIds.contains(importRow.getObsUnitID())) {
+
                 // Throw exception if ObsUnitID is repeated
-                throw new IllegalStateException("ObsUnitId is repeated: " + importRow.getObsUnitID());
+                this.compensate(context, new MiddlewareError(()->{
+                    throw new IllegalStateException("ObsUnitId is repeated: " + importRow.getObsUnitID());
+                }));
+
             } else {
                 // Add ObsUnitID to referenceOUIds
                 referenceOUIds.add(importRow.getObsUnitID());

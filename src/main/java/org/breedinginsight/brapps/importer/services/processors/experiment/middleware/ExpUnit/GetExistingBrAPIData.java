@@ -14,6 +14,7 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessErrorConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -34,54 +35,86 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
 
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
+
         return processNext(context);
     }
 
+    @Override
+    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+        // tag an error if it occurred in this local transaction
+        error.tag(this.getClass().getName());
+
+        // handle the error in the prior local transaction
+        return compensatePrior(context, error);
+    }
     private Map<String, PendingImportObject<BrAPIObservationUnit>> fetchReferenceObservationUnits(
-            Set<String> referenceOUIds,
-            Program program
-    ) throws ApiException {
+            ExpUnitMiddlewareContext context) {
         Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = new HashMap<>();
         try {
             // Retrieve reference Observation Units based on IDs
             List<BrAPIObservationUnit> referenceObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(
-                    new ArrayList<String>(referenceOUIds),
-                    program
+                    new ArrayList<String>(context.getReferenceOUIds()),
+                    context.getImportContext().getProgram()
             );
 
             // Construct the DeltaBreed observation unit source for external references
             String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
 
-            if (referenceObsUnits.size() == referenceOUIds.size()) {
-                // Iterate through reference Observation Units
-                referenceObsUnits.forEach(unit -> {
-                    // Get external reference for the Observation Unit
-                    BrAPIExternalReference unitXref = Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource)
-                            .orElseThrow(() -> new IllegalStateException("External reference does not exist for Deltabreed ObservationUnit ID"));
+            if (referenceObsUnits.size() == context.getReferenceOUIds().size()) {
 
-                    // Set pending Observation Unit by its ID
-                    pendingUnitById.put(
-                            unitXref.getReferenceId(),
-                            new PendingImportObject<BrAPIObservationUnit>(
-                                    ImportObjectState.EXISTING, unit, UUID.fromString(unitXref.getReferenceId()))
+                // Iterate through reference Observation Units
+                for (BrAPIObservationUnit unit : referenceObsUnits) {// Get external reference for the Observation Unit
+                    Optional<BrAPIExternalReference> unitXref = Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource);
+                    unitXref.ifPresentOrElse(
+                            xref -> {
+
+                                // Set pending Observation Unit by its ID
+                                pendingUnitById.put(
+                                        xref.getReferenceId(),
+                                        new PendingImportObject<>(
+                                                ImportObjectState.EXISTING, unit, UUID.fromString(xref.getReferenceId()))
+                                );
+                            },
+                            () -> {
+
+                                // but throw an error if no unit ID
+                                this.compensate(context, new MiddlewareError(() -> {
+                                    throw new IllegalStateException("External reference does not exist for Deltabreed ObservationUnit ID");
+                                }));
+                            }
                     );
-                });
+
+
+                }
             } else {
-                // Handle missing Observation Unit IDs
-                List<String> missingIds = new ArrayList<>(referenceOUIds);
+                // Handle case of missing Observation Units in data store
+                List<String> missingIds = new ArrayList<>(context.getReferenceOUIds());
                 Set<String> fetchedIds = referenceObsUnits.stream().map(unit ->
                                 Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource)
                                         .orElseThrow(() -> new InternalServerException("External reference does not exist for Deltabreed ObservationUnit ID"))
                                         .getReferenceId())
                         .collect(Collectors.toSet());
                 missingIds.removeAll(fetchedIds);
-                throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExpImportProcessErrorConstants.COMMA_DELIMITER, missingIds));
+
+                // throw error reporting any reference IDs with no corresponding stored unit in the brapi data store
+                this.compensate(context, new MiddlewareError(() -> {
+                    throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExpImportProcessErrorConstants.COMMA_DELIMITER, missingIds));
+                }));
             }
 
             return pendingUnitById;
         } catch (ApiException e) {
-            log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new ApiException(e);
+
+            // throw an error if problem getting data from the brapi data store
+            this.compensate(context, new MiddlewareError(() -> {
+                log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
+                try {
+                    throw new ApiException(e);
+                } catch (ApiException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }));
         }
+        return pendingUnitById;
     }
 }
