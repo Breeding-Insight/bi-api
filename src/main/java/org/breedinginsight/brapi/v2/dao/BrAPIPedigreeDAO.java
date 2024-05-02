@@ -123,7 +123,11 @@ public class BrAPIPedigreeDAO {
     }
 
     /**
-     * Searches for pedigree nodes based on the given parameters. Not used by Helium TODO: Add rest of parameters
+     * Searches for pedigree nodes based on the given parameters. Not used by Helium but keeping commented out for
+     * now in case we want to implement the search endpoints in the future, work here has already been started to
+     * support that.
+     *
+     * TODO: Add rest of parameters
      *
      * @param program           The program to search for pedigree nodes.
      * @param includeParents    Optional boolean to include parents in the search.
