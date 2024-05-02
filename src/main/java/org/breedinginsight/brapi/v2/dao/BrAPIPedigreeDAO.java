@@ -187,7 +187,9 @@ public class BrAPIPedigreeDAO {
      */
 
     /**
-     * Removes the program key from the germplasm names in the list of pedigree nodes.
+     * Removes the program key from the germplasm names in the list of pedigree nodes. Not used currently but will be in
+     * future if we decide to strip the program keys when Helium has been updated to use the germplasmDbId for uniqueness
+     * rather than germplasmName.
      *
      * @param pedigreeNodes The list of pedigree nodes.
      * @param programKey The program key to be removed.
