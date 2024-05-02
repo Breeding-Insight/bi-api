@@ -106,7 +106,7 @@ public class StudyService {
      * @throws ApiException if there is an issue fetching the studies
      * @throws IllegalStateException if any requested study database IDs are not found in the result set
      */
-    private List<BrAPIStudy> fetchStudiesByDbId(Set<String> studyDbIds, Program program) throws ApiException {
+    public List<BrAPIStudy> fetchStudiesByDbId(Set<String> studyDbIds, Program program) throws ApiException {
         List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program);
         if (studies.size() != studyDbIds.size()) {
             List<String> missingIds = new ArrayList<>(studyDbIds);
@@ -115,6 +115,23 @@ public class StudyService {
                     "Study not found for studyDbId(s): " + String.join(ExperimentUtilities.COMMA_DELIMITER, missingIds));
         }
         return studies;
+    }
+
+    // TODO: used by both workflows
+    private void initializeStudiesForExistingObservationUnits(
+            Program program,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName
+    ) throws Exception {
+        Set<String> studyDbIds = observationUnitByNameNoScope.values()
+                .stream()
+                .map(pio -> pio.getBrAPIObject()
+                        .getStudyDbId())
+                .collect(Collectors.toSet());
+
+        List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
+        for (BrAPIStudy study : studies) {
+            processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
+        }
     }
 
 }

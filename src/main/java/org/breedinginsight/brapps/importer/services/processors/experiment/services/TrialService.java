@@ -16,6 +16,8 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
@@ -51,14 +53,13 @@ public class TrialService {
      * @param trialByName A map containing trials by name. (will be modified in place)
      *
      */
-    public void initializeTrialsForExistingObservationUnits(Program program,
-                                                             Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope,
-                                                             Map<String, PendingImportObject<BrAPITrial>> trialByName) {
-        if(observationUnitByNameNoScope.size() > 0) {
+    public void initializeTrialsForExistingObservationUnits(ImportContext importContext,
+                                                            PendingData pendingData) {
+        if(pendingData.getObservationUnitByNameNoScope().size() > 0) {
             Set<String> trialDbIds = new HashSet<>();
             Set<String> studyDbIds = new HashSet<>();
 
-            observationUnitByNameNoScope.values()
+            pendingData.getObservationUnitByNameNoScope().values()
                     .forEach(pio -> {
                         BrAPIObservationUnit existingOu = pio.getBrAPIObject();
                         if (StringUtils.isBlank(existingOu.getTrialDbId()) && StringUtils.isBlank(existingOu.getStudyDbId())) {
@@ -75,7 +76,7 @@ public class TrialService {
             //if the OU doesn't have the trialDbId set, then fetch the study to fetch the trialDbId
             if(!studyDbIds.isEmpty()) {
                 try {
-                    trialDbIds.addAll(fetchTrialDbidsForStudies(studyDbIds, program));
+                    trialDbIds.addAll(fetchTrialDbidsForStudies(studyDbIds, importContext.getProgram()));
                 } catch (ApiException e) {
                     log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
                     throw new InternalServerException(e.toString(), e);
@@ -83,14 +84,14 @@ public class TrialService {
             }
 
             try {
-                List<BrAPITrial> trials = brAPITrialDAO.getTrialsByDbIds(trialDbIds, program);
+                List<BrAPITrial> trials = brAPITrialDAO.getTrialsByDbIds(trialDbIds, importContext.getProgram());
                 if (trials.size() != trialDbIds.size()) {
                     List<String> missingIds = new ArrayList<>(trialDbIds);
                     missingIds.removeAll(trials.stream().map(BrAPITrial::getTrialDbId).collect(Collectors.toList()));
                     throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(ExperimentUtilities.COMMA_DELIMITER, missingIds));
                 }
 
-                trials.forEach(trial -> processAndCacheTrial(trial, program, trialByName));
+            trials.forEach(trial -> processAndCacheTrial(trial, importContext.getProgram(), pendingData.getTrialByNameNoScope()));
             } catch (ApiException e) {
                 log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
@@ -109,7 +110,7 @@ public class TrialService {
      */
     private Set<String> fetchTrialDbidsForStudies(Set<String> studyDbIds, Program program) throws ApiException {
         Set<String> trialDbIds = new HashSet<>();
-        List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
+        List<BrAPIStudy> studies = studyService.fetchStudiesByDbId(studyDbIds, program);
         studies.forEach(study -> {
             if (StringUtils.isBlank(study.getTrialDbId())) {
                 throw new IllegalStateException("TrialDbId is not set for an existing Study: " + study.getStudyDbId());
