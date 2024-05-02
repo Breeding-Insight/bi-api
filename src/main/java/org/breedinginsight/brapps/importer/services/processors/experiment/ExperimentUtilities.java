@@ -17,6 +17,12 @@ public class ExperimentUtilities {
                 .collect(Collectors.toList());
     }
 
+    public static String createObservationUnitKey(ExperimentObservation importRow) {
+        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId());
+    }
 
+    public static String createObservationUnitKey(String studyName, String obsUnitName) {
+        return studyName + obsUnitName;
+    }
 
 }
