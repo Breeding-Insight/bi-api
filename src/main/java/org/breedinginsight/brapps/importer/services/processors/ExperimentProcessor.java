@@ -1111,7 +1111,7 @@ public class ExperimentProcessor implements Processor {
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
                 if (!isValueMatched(key, value)){
                     newObservation.setValue(value);
-                } else if (!isTimestampMatched(key, timeStampValue)) {
+                } else if (!StringUtils.isBlank(timeStampValue) && !isTimestampMatched(key, timeStampValue)) {
                     DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
                     String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timeStampValue));
                     newObservation.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
