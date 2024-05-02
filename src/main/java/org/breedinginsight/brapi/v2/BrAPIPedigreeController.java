@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapi.v2;
 
-import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpResponse;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.annotation.*;
@@ -46,17 +45,13 @@ import java.util.*;
 @Controller("/${micronaut.bi.api.version}/programs/{programId}" + BrapiVersion.BRAPI_V2)
 @Secured(SecurityRule.IS_AUTHENTICATED)
 public class BrAPIPedigreeController {
-    private final String referenceSource;
-
     private final BrAPIPedigreeDAO pedigreeDAO;
 
     private final ProgramService programService;
 
     @Inject
-    public BrAPIPedigreeController(@Property(name = "brapi.server.reference-source") String referenceSource,
-                                   BrAPIPedigreeDAO pedigreeDAO,
+    public BrAPIPedigreeController(BrAPIPedigreeDAO pedigreeDAO,
                                    ProgramService programService) {
-        this.referenceSource = referenceSource;
         this.pedigreeDAO = pedigreeDAO;
         this.programService = programService;
     }
