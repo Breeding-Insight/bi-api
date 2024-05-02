@@ -1,23 +1,28 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite;
 
 import io.micronaut.context.annotation.Prototype;
-import org.breedinginsight.brapps.importer.services.processors.experiment.middleware.ExpUnit.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.middleware.ExpUnit.GetExistingBrAPIData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.middleware.ExpUnit.ValidateAllRowsHaveIDs;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.GetExistingBrAPIData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ValidateAllRowsHaveIDs;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ProcessedData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.workflow.Workflow;
 
+import javax.inject.Inject;
+import javax.inject.Provider;
+
+
 @Prototype
 public class AppendOverwritePhenotypesWorkflow implements Workflow {
 
     ExpUnitMiddleware middleware;
-    GetExistingBrAPIData getExistingBrAPIData;
-    public AppendOverwritePhenotypesWorkflow(GetExistingBrAPIData getExistingBrAPIData) {
+    Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider;
+    @Inject
+    public AppendOverwritePhenotypesWorkflow(Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider) {
         this.middleware.link(
                 new ValidateAllRowsHaveIDs(),
-                getExistingBrAPIData
+                getExistingBrAPIDataProvider.get()
         );
     }
     @Override

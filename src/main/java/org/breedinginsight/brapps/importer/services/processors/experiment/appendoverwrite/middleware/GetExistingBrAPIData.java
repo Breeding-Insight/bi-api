@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.middleware.ExpUnit;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -7,15 +7,13 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessErrorConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
-import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -53,14 +51,14 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
         try {
             // Retrieve reference Observation Units based on IDs
             List<BrAPIObservationUnit> referenceObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(
-                    new ArrayList<String>(context.getReferenceOUIds()),
+                    new ArrayList<String>(context.getExpUnitContext().getReferenceOUIds()),
                     context.getImportContext().getProgram()
             );
 
             // Construct the DeltaBreed observation unit source for external references
             String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
 
-            if (referenceObsUnits.size() == context.getReferenceOUIds().size()) {
+            if (referenceObsUnits.size() == context.getExpUnitContext().getReferenceOUIds().size()) {
 
                 // Iterate through reference Observation Units
                 for (BrAPIObservationUnit unit : referenceObsUnits) {// Get external reference for the Observation Unit
@@ -88,7 +86,7 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
                 }
             } else {
                 // Handle case of missing Observation Units in data store
-                List<String> missingIds = new ArrayList<>(context.getReferenceOUIds());
+                List<String> missingIds = new ArrayList<>(context.getExpUnitContext().getReferenceOUIds());
                 Set<String> fetchedIds = referenceObsUnits.stream().map(unit ->
                                 Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource)
                                         .orElseThrow(() -> new InternalServerException("External reference does not exist for Deltabreed ObservationUnit ID"))
