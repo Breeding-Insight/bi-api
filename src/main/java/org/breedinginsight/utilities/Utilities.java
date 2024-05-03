@@ -257,6 +257,14 @@ public class Utilities {
         return programs;
     }
 
+    /**
+     * Returns the input string with the first character capitalized, the rest lower cased.
+     * Note: does not account for whitespace, does not capitalize multiple words.
+     */
+    public static String capitalize(String input) {
+        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
+    }
+
     private static boolean isSafeChar(char c) {
         // Check if c is in the portable filename character set.
         // See https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap03.html#tag_03_282
