@@ -2,8 +2,10 @@ package org.breedinginsight.brapps.importer.services.processors.experiment;
 
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class ExperimentUtilities {
@@ -25,4 +27,18 @@ public class ExperimentUtilities {
         return studyName + obsUnitName;
     }
 
+    /**
+     * Returns the single value from the given map, throwing an UnprocessableEntityException if the map does not contain exactly one entry.
+     *
+     * @param map The map from which to retrieve the single value.
+     * @param message The error message to include in the UnprocessableEntityException if the map does not contain exactly one entry.
+     * @return The single value from the map.
+     * @throws UnprocessableEntityException if the map does not contain exactly one entry.
+     */
+    public <K, V> V getSingleEntryValue(Map<K, V> map, String message) throws UnprocessableEntityException {
+        if (map.size() != 1) {
+            throw new UnprocessableEntityException(message);
+        }
+        return map.values().iterator().next();
+    }
 }

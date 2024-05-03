@@ -214,6 +214,7 @@ public class TrialService {
     // TODO: overloaded method used by expunit workflow
     public PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
             ImportContext importContext,
+            PendingData pendingData,
             ExpUnitContext expUnitContext
     ) throws UnprocessableEntityException {
         PendingImportObject<BrAPITrial> trialPio;
@@ -227,8 +228,9 @@ public class TrialService {
     }
 
     // TODO: overloaded method used by create workflow
-    private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
-            ImportContext importContext
+    public PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
+            ImportContext importContext,
+            PendingData pendingData
     ) throws UnprocessableEntityException {
         PendingImportObject<BrAPITrial> trialPio;
 
