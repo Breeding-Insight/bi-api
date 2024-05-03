@@ -16,14 +16,19 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.User;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -204,5 +209,53 @@ public class TrialService {
         trialByOUId.put(unitId, trialByName.get(trialName));
 
         return trialByOUId;
+    }
+
+    // TODO: overloaded method used by expunit workflow
+    public PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
+            ImportContext importContext,
+            ExpUnitContext expUnitContext
+    ) throws UnprocessableEntityException {
+        PendingImportObject<BrAPITrial> trialPio;
+
+
+
+            trialPio = getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES);
+
+
+        return trialPio;
+    }
+
+    // TODO: overloaded method used by create workflow
+    private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
+            ImportContext importContext
+    ) throws UnprocessableEntityException {
+        PendingImportObject<BrAPITrial> trialPio;
+
+
+            if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
+                PendingImportObject<BrAPIStudy> envPio;
+                trialPio = trialByNameNoScope.get(importRow.getExpTitle());
+                envPio = studyByNameNoScope.get(importRow.getEnv());
+
+                // creating new units for existing experiments and environments is not possible
+                if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
+                        (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                    throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
+                }
+            } else if (!trialByNameNoScope.isEmpty()) {
+                throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
+            } else {
+                UUID id = UUID.randomUUID();
+                String expSeqValue = null;
+                if (commit) {
+                    expSeqValue = expNextVal.get().toString();
+                }
+                BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
+                trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
+                trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
+            }
+
+        return trialPio;
     }
 }
