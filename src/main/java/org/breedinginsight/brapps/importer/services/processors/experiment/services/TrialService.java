@@ -180,4 +180,29 @@ public class TrialService {
         return trialByName;
     }
 
+    // TODO: used by expunit workflow
+    public Map<String, PendingImportObject<BrAPITrial>> mapPendingTrialByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPITrial>> trialByName,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
+            Map<String, PendingImportObject<BrAPITrial>> trialByOUId,
+            Program program
+    ) {
+        String trialName;
+        if (unit.getTrialName() != null) {
+            trialName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getTrialName(), program.getKey());
+        } else if (unit.getStudyName() != null) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
+            trialName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    studyByName.get(studyName).getBrAPIObject().getTrialName(),
+                    program.getKey()
+            );
+        } else {
+            throw new IllegalStateException("Observation unit missing trial name and study name: " + unitId);
+        }
+        trialByOUId.put(unitId, trialByName.get(trialName));
+
+        return trialByOUId;
+    }
 }

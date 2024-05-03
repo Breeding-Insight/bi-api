@@ -9,6 +9,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPISeasonDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -134,4 +135,21 @@ public class StudyService {
         }
     }
 
+    // TODO: used by expunit workflow
+    public Map<String, PendingImportObject<BrAPIStudy>> mapPendingStudyByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByOUId,
+            Program program
+    ) {
+        if (unit.getStudyName() != null) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
+            studyByOUId.put(unitId, studyByName.get(studyName));
+        } else {
+            throw new IllegalStateException("Observation unit missing study name: " + unitId);
+        }
+
+        return studyByOUId;
+    }
 }
