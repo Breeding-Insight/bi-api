@@ -1,9 +1,11 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.services;
 
+import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -16,6 +18,7 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -123,5 +126,21 @@ public class ObservationUnitService {
     // TODO: used by both workflows
     public String createObservationUnitKey(String studyName, String obsUnitName) {
         return studyName + obsUnitName;
+    }
+
+    // TODO: used by create workflow
+    public void validateObservationUnits(ValidationErrors validationErrors,
+                                          Set<String> uniqueStudyAndObsUnit,
+                                          int rowNum,
+                                          ExperimentObservation importRow) {
+        validateUniqueObsUnits(validationErrors, uniqueStudyAndObsUnit, rowNum, importRow);
+
+        String key = createObservationUnitKey(importRow);
+        PendingImportObject<BrAPIObservationUnit> ouPIO = observationUnitByNameNoScope.get(key);
+        if(ouPIO.getState() == ImportObjectState.NEW && StringUtils.isNotBlank(importRow.getObsUnitID())) {
+            addRowError(ExperimentObservation.Columns.OBS_UNIT_ID, "Could not find observation unit by ObsUnitDBID", validationErrors, rowNum);
+        }
+
+        validateGeoCoordinates(validationErrors, rowNum, importRow);
     }
 }
