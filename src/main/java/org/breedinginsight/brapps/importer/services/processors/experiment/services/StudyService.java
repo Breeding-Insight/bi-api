@@ -9,19 +9,26 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPISeasonDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.math.BigInteger;
 import java.util.*;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 @Singleton
@@ -151,5 +158,100 @@ public class StudyService {
         }
 
         return studyByOUId;
+    }
+
+    // TODO: used by expunit workflow
+    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(
+            ImportContext importContext,
+            ExpUnitContext expUnitContext,
+            String expSequenceValue,
+            Supplier<BigInteger> envNextVal
+    ) throws UnprocessableEntityException {
+        PendingImportObject<BrAPIStudy> pio;
+        if (hasAllReferenceUnitIds) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName(),
+                    program.getKey()
+            );
+            pio = studyByNameNoScope.get(studyName);
+            if (!commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
+        } else if (studyByNameNoScope.containsKey(importRow.getEnv())) {
+            pio = studyByNameNoScope.get(importRow.getEnv());
+            if (!commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
+        } else {
+            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
+                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
+            UUID trialID = trialPIO.getId();
+            UUID id = UUID.randomUUID();
+            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
+            newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
+
+            // It is assumed that the study has only one season, And that the Years and not
+            // the dbId's are stored in getSeason() list.
+            String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
+            if (commit) {
+                if(StringUtils.isNotBlank(year)) {
+                    String seasonID = this.yearToSeasonDbId(year, program.getId());
+                    newStudy.setSeasons(Collections.singletonList(seasonID));
+                }
+            } else {
+                addYearToStudyAdditionalInfo(program, newStudy, year);
+            }
+
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
+            this.studyByNameNoScope.put(importRow.getEnv(), pio);
+        }
+        return pio;
+    }
+
+    // TODO: used by create workflow
+    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(
+            ImportContext importContext,
+            String expSequenceValue,
+            Supplier<BigInteger> envNextVal
+    ) throws UnprocessableEntityException {
+        PendingImportObject<BrAPIStudy> pio;
+        if (hasAllReferenceUnitIds) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName(),
+                    program.getKey()
+            );
+            pio = studyByNameNoScope.get(studyName);
+            if (!commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
+        } else if (studyByNameNoScope.containsKey(importRow.getEnv())) {
+            pio = studyByNameNoScope.get(importRow.getEnv());
+            if (!commit){
+                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+            }
+        } else {
+            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
+                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
+            UUID trialID = trialPIO.getId();
+            UUID id = UUID.randomUUID();
+            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
+            newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
+
+            // It is assumed that the study has only one season, And that the Years and not
+            // the dbId's are stored in getSeason() list.
+            String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
+            if (commit) {
+                if(StringUtils.isNotBlank(year)) {
+                    String seasonID = this.yearToSeasonDbId(year, program.getId());
+                    newStudy.setSeasons(Collections.singletonList(seasonID));
+                }
+            } else {
+                addYearToStudyAdditionalInfo(program, newStudy, year);
+            }
+
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
+            this.studyByNameNoScope.put(importRow.getEnv(), pio);
+        }
+        return pio;
     }
 }

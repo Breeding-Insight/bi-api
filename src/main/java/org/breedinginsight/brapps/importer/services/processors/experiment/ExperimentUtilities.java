@@ -1,7 +1,11 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment;
 
+import com.google.gson.JsonObject;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.List;
@@ -40,5 +44,19 @@ public class ExperimentUtilities {
             throw new UnprocessableEntityException(message);
         }
         return map.values().iterator().next();
+    }
+
+    /*
+     * this will add the given year to the additionalInfo field of the BrAPIStudy (if it does not already exist)
+     * */
+    public void addYearToStudyAdditionalInfo(Program program, BrAPIStudy study, String year) {
+        JsonObject additionalInfo = study.getAdditionalInfo();
+        if (additionalInfo==null){
+            additionalInfo = new JsonObject();
+            study.setAdditionalInfo(additionalInfo);
+        }
+        if( additionalInfo.get(BrAPIAdditionalInfoFields.ENV_YEAR)==null) {
+            additionalInfo.addProperty(BrAPIAdditionalInfoFields.ENV_YEAR, year);
+        }
     }
 }

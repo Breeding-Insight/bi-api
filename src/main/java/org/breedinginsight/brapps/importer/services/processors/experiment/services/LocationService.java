@@ -9,6 +9,8 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.utilities.Utilities;
@@ -106,5 +108,29 @@ public class LocationService {
         }
 
         return locationByOUId;
+    }
+
+    // TODO: used by expunit workflow
+    private void fetchOrCreateLocationPIO(ImportContext importContext, ExpUnitContext expUnitContext) {
+        PendingImportObject<ProgramLocation> pio;
+        String envLocationName = pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getLocationName();
+        if (!locationByName.containsKey((importRow.getEnvLocation()))) {
+            ProgramLocation newLocation = new ProgramLocation();
+            newLocation.setName(envLocationName);
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newLocation, UUID.randomUUID());
+            this.locationByName.put(envLocationName, pio);
+        }
+    }
+
+    // TODO: used by create workflow
+    private void fetchOrCreateLocationPIO(ImportContext importContext) {
+        PendingImportObject<ProgramLocation> pio;
+        String envLocationName = importRow.getEnvLocation();
+        if (!locationByName.containsKey((importRow.getEnvLocation()))) {
+            ProgramLocation newLocation = new ProgramLocation();
+            newLocation.setName(envLocationName);
+            pio = new PendingImportObject<>(ImportObjectState.NEW, newLocation, UUID.randomUUID());
+            this.locationByName.put(envLocationName, pio);
+        }
     }
 }
