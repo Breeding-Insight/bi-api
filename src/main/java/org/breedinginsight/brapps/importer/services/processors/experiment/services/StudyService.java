@@ -2,6 +2,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.servi
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import io.reactivex.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -18,8 +19,10 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
@@ -257,7 +260,7 @@ public class StudyService {
         return pio;
     }
 
-    public void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
+    private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
         // update location DbIds in studies for all distinct locations
         mappedBrAPIImport.values()
                 .stream()
@@ -291,5 +294,21 @@ public class StudyService {
                         .equals(Utilities.removeProgramKey(trial.getTrialName(), programKey)))
                 .forEach(study -> study.getBrAPIObject()
                         .setTrialDbId(trial.getTrialDbId()));
+    }
+
+    // TODO: used by both workflows
+    public List<BrAPIStudy> commitNewPendingStudiessToBrAPIStore(ImportContext context, PendingData pendingData) {
+        List<BrAPIStudy> newStudies = ProcessorData.getNewObjects(this.studyByNameNoScope);
+        updateStudyDependencyValues(mappedBrAPIImport, program.getKey());
+        List<BrAPIStudy> createdStudies = brAPIStudyDAO.createBrAPIStudies(newStudies, program.getId(), upload);
+
+        return createdStudies;
+    }
+
+    // TODO: used by both workflows
+    public List<BrAPIStudy> commitUpdatedPendingStudiesToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<BrAPIStudy> updatedStudies = new ArrayList<>();
+ 
+        return updatedStudies;
     }
 }
