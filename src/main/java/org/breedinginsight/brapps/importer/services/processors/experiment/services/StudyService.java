@@ -302,13 +302,21 @@ public class StudyService {
         updateStudyDependencyValues(mappedBrAPIImport, program.getKey());
         List<BrAPIStudy> createdStudies = brAPIStudyDAO.createBrAPIStudies(newStudies, program.getId(), upload);
 
+        // set the DbId to the for each newly created study
+        for (BrAPIStudy createdStudy : createdStudies) {
+            String createdStudy_name_no_key = Utilities.removeProgramKeyAndUnknownAdditionalData(createdStudy.getStudyName(), program.getKey());
+            this.studyByNameNoScope.get(createdStudy_name_no_key)
+                    .getBrAPIObject()
+                    .setStudyDbId(createdStudy.getStudyDbId());
+        }
+
         return createdStudies;
     }
 
     // TODO: used by both workflows
     public List<BrAPIStudy> commitUpdatedPendingStudiesToBrAPIStore(ImportContext importContext, PendingData pendingData) {
         List<BrAPIStudy> updatedStudies = new ArrayList<>();
- 
+
         return updatedStudies;
     }
 }

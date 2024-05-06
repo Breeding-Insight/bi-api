@@ -4,23 +4,23 @@ import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ObservationUnitService {
@@ -163,5 +163,77 @@ public class ObservationUnitService {
                 .distinct()
                 .map(PendingImportObject::getBrAPIObject)
                 .forEach(this::updateGermplasmDbId);
+    }
+
+    // TODO: used by both workflows
+    public List<BrAPIObservationUnit> commitNewPendingObservationUnitsToBrAPIStore(ImportContext context, PendingData pendingData) {
+        List<BrAPIObservationUnit> newObservationUnits = ProcessorData.getNewObjects(this.observationUnitByNameNoScope);
+        updateObsUnitDependencyValues(program.getKey());
+        List<BrAPIObservationUnit> createdObservationUnits = brAPIObservationUnitDAO.createBrAPIObservationUnits(newObservationUnits, program.getId(), upload);
+
+        // set the DbId to the for each newly created Observation Unit
+        for (BrAPIObservationUnit createdObservationUnit : createdObservationUnits) {
+            // retrieve the BrAPI ObservationUnit from this.observationUnitByNameNoScope
+            String createdObservationUnit_StripedStudyName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getStudyName(), program.getKey());
+            String createdObservationUnit_StripedObsUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(createdObservationUnit.getObservationUnitName(), program.getKey());
+            String createdObsUnit_key = createObservationUnitKey(createdObservationUnit_StripedStudyName, createdObservationUnit_StripedObsUnitName);
+            this.observationUnitByNameNoScope.get(createdObsUnit_key)
+                    .getBrAPIObject()
+                    .setObservationUnitDbId(createdObservationUnit.getObservationUnitDbId());
+        }
+
+        return createdObservationUnits;
+    }
+
+    // TODO: used by both workflows
+    public List<BrAPIObservationUnit> commitUpdatedPendingObservationUnitToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<BrAPIObservationUnit> updatedUnits = new ArrayList<>();
+
+        return updatedUnits;
+    }
+
+    private void updateObsUnitDependencyValues(String programKey) {
+
+        // update study DbIds
+        this.studyByNameNoScope.values()
+                .stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(study -> updateStudyDbId(study, programKey));
+
+        // update germplasm DbIds
+        this.existingGermplasmByGID.values()
+                .stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateGermplasmDbId);
+    }
+
+    private void updateStudyDbId(BrAPIStudy study, String programKey) {
+        this.observationUnitByNameNoScope.values()
+                .stream()
+                .filter(obsUnit -> obsUnit.getBrAPIObject()
+                        .getStudyName()
+                        .equals(Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), programKey)))
+                .forEach(obsUnit -> {
+                    obsUnit.getBrAPIObject()
+                            .setStudyDbId(study.getStudyDbId());
+                    obsUnit.getBrAPIObject()
+                            .setTrialDbId(study.getTrialDbId());
+                });
+    }
+
+    private void updateGermplasmDbId(BrAPIGermplasm germplasm) {
+        this.observationUnitByNameNoScope.values()
+                .stream()
+                .filter(obsUnit -> germplasm.getAccessionNumber() != null &&
+                        germplasm.getAccessionNumber().equals(obsUnit
+                                .getBrAPIObject()
+                                .getAdditionalInfo().getAsJsonObject()
+                                .get(BrAPIAdditionalInfoFields.GID).getAsString()))
+                .forEach(obsUnit -> obsUnit.getBrAPIObject()
+                        .setGermplasmDbId(germplasm.getGermplasmDbId()));
     }
 }
