@@ -275,4 +275,24 @@ public class TrialService {
         }
         return createdTrials;
     }
+
+    List<BrAPITrial> commitUpdatedPendingTrialsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<BrAPITrial> updatedTrials = new ArrayList<>();
+        Map<String, BrAPITrial> mutatedTrialsById = ProcessorData
+                .getMutationsByObjectId(trialByNameNoScope, BrAPITrial::getTrialDbId);
+        for (Map.Entry<String, BrAPITrial> entry : mutatedTrialsById.entrySet()) {
+            String id = entry.getKey();
+            BrAPITrial trial = entry.getValue();
+            try {
+                updatedTrials.add(brapiTrialDAO.updateBrAPITrial(id, trial, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException("Error saving experiment import", e);
+            } catch (Exception e) {
+                log.error("Error updating dataset observation variables: ", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+        }
+        return updatedTrials;
+    }
 }
