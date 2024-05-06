@@ -13,6 +13,7 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPISeasonDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
+import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -21,6 +22,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
@@ -253,5 +255,41 @@ public class StudyService {
             this.studyByNameNoScope.put(importRow.getEnv(), pio);
         }
         return pio;
+    }
+
+    public void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
+        // update location DbIds in studies for all distinct locations
+        mappedBrAPIImport.values()
+                .stream()
+                .map(PendingImport::getLocation)
+                .forEach(this::updateStudyLocationDbId);
+
+        // update trial DbIds in studies for all distinct trials
+        this.trialByNameNoScope.values()
+                .stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(trial -> this.updateTrialDbId(trial, programKey));
+    }
+
+    private void updateStudyLocationDbId(PendingImportObject<ProgramLocation> location) {
+        this.studyByNameNoScope.values()
+                .stream()
+                .filter(study -> location.getId().toString()
+                        .equals(study.getBrAPIObject()
+                                .getLocationDbId()))
+                .forEach(study -> study.getBrAPIObject()
+                        .setLocationDbId(location.getBrAPIObject().getLocationDbId()));
+    }
+
+    private void updateTrialDbId(BrAPITrial trial, String programKey) {
+        this.studyByNameNoScope.values()
+                .stream()
+                .filter(study -> study.getBrAPIObject()
+                        .getTrialName()
+                        .equals(Utilities.removeProgramKey(trial.getTrialName(), programKey)))
+                .forEach(study -> study.getBrAPIObject()
+                        .setTrialDbId(trial.getTrialDbId()));
     }
 }

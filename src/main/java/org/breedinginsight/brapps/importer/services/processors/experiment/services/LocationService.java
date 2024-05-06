@@ -4,12 +4,19 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.api.auth.AuthenticatedUser;
+import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
@@ -132,5 +139,34 @@ public class LocationService {
             pio = new PendingImportObject<>(ImportObjectState.NEW, newLocation, UUID.randomUUID());
             this.locationByName.put(envLocationName, pio);
         }
+    }
+
+    // TODO: used by both workflows
+    public List<ProgramLocation> commitNewPendingLocationsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        AuthenticatedUser actingUser = new AuthenticatedUser(upload.getUpdatedByUser().getName(), new ArrayList<>(), upload.getUpdatedByUser().getId(), new ArrayList<>());
+
+        List<ProgramLocationRequest> newLocations = ProcessorData.getNewObjects(this.locationByName)
+                .stream()
+                .map(location -> ProgramLocationRequest.builder()
+                        .name(location.getName())
+                        .build())
+                .collect(Collectors.toList());
+
+        List<ProgramLocation> createdLocations = new ArrayList<>(locationService.create(actingUser, program.getId(), newLocations));
+        // set the DbId to the for each newly created location
+        for (ProgramLocation createdLocation : createdLocations) {
+            String createdLocationName = createdLocation.getName();
+            this.locationByName.get(createdLocationName)
+                    .getBrAPIObject()
+                    .setLocationDbId(createdLocation.getLocationDbId());
+        }
+        return createdLocations;
+    }
+
+    // TODO: used by both workflows
+    public List<ProgramLocation> commitUpdatedPendingLocationsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<ProgramLocation> updatedLocations = new ArrayList<>();
+
+        return updatedLocations;
     }
 }

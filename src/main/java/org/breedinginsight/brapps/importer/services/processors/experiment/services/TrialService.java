@@ -263,7 +263,7 @@ public class TrialService {
     }
 
     // TODO: used by both workflows
-    List<BrAPITrial> commitNewPendingTrialsToBrAPIStore(ImportContext context, PendingData pendingData) {
+    public List<BrAPITrial> commitNewPendingTrialsToBrAPIStore(ImportContext context, PendingData pendingData) {
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(this.trialByNameNoScope);
         List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrials(newTrials, program.getId(), upload));
         // set the DbId to the for each newly created trial
@@ -276,7 +276,7 @@ public class TrialService {
         return createdTrials;
     }
 
-    List<BrAPITrial> commitUpdatedPendingTrialsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+    public List<BrAPITrial> commitUpdatedPendingTrialsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
         List<BrAPITrial> updatedTrials = new ArrayList<>();
         Map<String, BrAPITrial> mutatedTrialsById = ProcessorData
                 .getMutationsByObjectId(trialByNameNoScope, BrAPITrial::getTrialDbId);

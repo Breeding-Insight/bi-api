@@ -190,7 +190,7 @@ public class DatasetService {
     }
 
     // TODO: used by both workflows
-    List<BrAPIListSummary> commitNewPendingDatasetsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+    public List<BrAPIListSummary> commitNewPendingDatasetsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
         List<BrAPIListNewRequest> newDatasetRequests = ProcessorData.getNewObjects(obsVarDatasetByName).stream().map(details -> {
             BrAPIListNewRequest request = new BrAPIListNewRequest();
             request.setListName(details.getListName());
@@ -208,7 +208,7 @@ public class DatasetService {
     }
 
     // TODO: used by both workflows
-    List<BrAPIListSummary> commitUpdatedPendingDatasetToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+    public List<BrAPIListSummary> commitUpdatedPendingDatasetsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
         List<BrAPIListSummary> updatedDatasets = new ArrayList<>();
         Map<String, BrAPIListDetails> datasetNewDataById = ProcessorData
                 .getMutationsByObjectId(obsVarDatasetByName, BrAPIListSummary::getListDbId);
