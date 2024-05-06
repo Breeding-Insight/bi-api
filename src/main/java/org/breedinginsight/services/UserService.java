@@ -388,7 +388,7 @@ public class UserService {
         emailTemplate.add("expiration_time", expirationTime);
 
         String filledBody = emailTemplate.render();
-        String subject = "New Account Sign Up";
+        String subject = "Activate DeltaBreed Account";
 
         // Send email
         emailUtil.sendEmail(user.getEmail(), subject, filledBody);
