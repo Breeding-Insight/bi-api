@@ -5,12 +5,14 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
@@ -20,6 +22,7 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class DatasetService {
     // TODO: used by expunit worflow
@@ -186,5 +189,50 @@ public class DatasetService {
         addObsVarsToDatasetDetails(pio, referencedTraits, program);
     }
 
+    // TODO: used by both workflows
+    List<BrAPIListSummary> commitNewPendingDatasetsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<BrAPIListNewRequest> newDatasetRequests = ProcessorData.getNewObjects(obsVarDatasetByName).stream().map(details -> {
+            BrAPIListNewRequest request = new BrAPIListNewRequest();
+            request.setListName(details.getListName());
+            request.setListType(details.getListType());
+            request.setExternalReferences(details.getExternalReferences());
+            request.setAdditionalInfo(details.getAdditionalInfo());
+            request.data(details.getData());
+            return request;
+        }).collect(Collectors.toList());
+        List<BrAPIListSummary> createdDatasets = new ArrayList<>(brAPIListDAO.createBrAPILists(newDatasetRequests, program.getId(), upload));
+        for (BrAPIListSummary summary : createdDatasets) {
+            obsVarDatasetByName.get(summary.getListName()).getBrAPIObject().setListDbId(summary.getListDbId());
+        }
+        return createdDatasets;
+    }
 
+    // TODO: used by both workflows
+    List<BrAPIListSummary> commitUpdatedPendingDatasetToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<BrAPIListSummary> updatedDatasets = new ArrayList<>();
+        Map<String, BrAPIListDetails> datasetNewDataById = ProcessorData
+                .getMutationsByObjectId(obsVarDatasetByName, BrAPIListSummary::getListDbId);
+        for (Map.Entry<String, BrAPIListDetails> entry : datasetNewDataById.entrySet()) {
+            String id = entry.getKey();
+            BrAPIListDetails dataset = entry.getValue();
+            try {
+                List<String> existingObsVarIds = brAPIListDAO.getListById(id, program.getId()).getResult().getData();
+                List<String> newObsVarIds = dataset
+                        .getData()
+                        .stream()
+                        .filter(obsVarId -> !existingObsVarIds.contains(obsVarId)).collect(Collectors.toList());
+                List<String> obsVarIds = new ArrayList<>(existingObsVarIds);
+                obsVarIds.addAll(newObsVarIds);
+                dataset.setData(obsVarIds);
+                updatedDatasets.add(brAPIListDAO.updateBrAPIList(id, dataset, program.getId()));
+            } catch (ApiException e) {
+                log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException("Error saving experiment import", e);
+            } catch (Exception e) {
+                log.error("Error updating dataset observation variables: ", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+        }
+        return updatedDatasets;
+    }
 }
