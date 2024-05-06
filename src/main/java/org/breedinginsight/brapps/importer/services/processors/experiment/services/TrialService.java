@@ -15,6 +15,7 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
@@ -259,5 +260,19 @@ public class TrialService {
             }
 
         return trialPio;
+    }
+
+    // TODO: used by both workflows
+    List<BrAPITrial> commitNewPendingTrialsToBrAPIStore(ImportContext context, PendingData pendingData) {
+        List<BrAPITrial> newTrials = ProcessorData.getNewObjects(this.trialByNameNoScope);
+        List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrials(newTrials, program.getId(), upload));
+        // set the DbId to the for each newly created trial
+        for (BrAPITrial createdTrial : createdTrials) {
+            String createdTrialName = Utilities.removeProgramKey(createdTrial.getTrialName(), program.getKey());
+            this.trialByNameNoScope.get(createdTrialName)
+                    .getBrAPIObject()
+                    .setTrialDbId(createdTrial.getTrialDbId());
+        }
+        return createdTrials;
     }
 }

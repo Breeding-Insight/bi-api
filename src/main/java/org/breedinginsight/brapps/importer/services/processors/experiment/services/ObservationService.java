@@ -10,9 +10,11 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
 import tech.tablesaw.columns.Column;
@@ -139,5 +141,29 @@ public class ObservationService {
             }
         }
 
+    }
+
+    // TODO: used by both workflows
+    private void updateObservationDependencyValues(Program program) {
+        String programKey = program.getKey();
+
+        // update the observations study DbIds, Observation Unit DbIds and Germplasm DbIds
+        this.observationUnitByNameNoScope.values().stream()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(obsUnit -> updateObservationDbIds(obsUnit, programKey));
+
+        // Update ObservationVariable DbIds
+        List<Trait> traits = getTraitList(program);
+        CaseInsensitiveMap<String, Trait> traitMap = new CaseInsensitiveMap<>();
+        for ( Trait trait: traits) {
+            traitMap.put(trait.getObservationVariableName(),trait);
+        }
+        for (PendingImportObject<BrAPIObservation> observation : this.observationByHash.values()) {
+            String observationVariableName = observation.getBrAPIObject().getObservationVariableName();
+            if (observationVariableName != null && traitMap.containsKey(observationVariableName)) {
+                String observationVariableDbId = traitMap.get(observationVariableName).getObservationVariableDbId();
+                observation.getBrAPIObject().setObservationVariableDbId(observationVariableDbId);
+            }
+        }
     }
 }

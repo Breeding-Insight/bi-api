@@ -18,6 +18,7 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -142,5 +143,25 @@ public class ObservationUnitService {
         }
 
         validateGeoCoordinates(validationErrors, rowNum, importRow);
+    }
+
+    // TODO: used by both workflows
+    private void updateObsUnitDependencyValues(String programKey) {
+
+        // update study DbIds
+        this.studyByNameNoScope.values()
+                .stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(study -> updateStudyDbId(study, programKey));
+
+        // update germplasm DbIds
+        this.existingGermplasmByGID.values()
+                .stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(this::updateGermplasmDbId);
     }
 }
