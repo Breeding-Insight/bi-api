@@ -13,9 +13,9 @@ public abstract class Middleware<T> {
     public static Middleware link(Middleware first, Middleware... chain) {
         Middleware head = first;
         for (Middleware nextInChain: chain) {
-            nextInChain.prior = head;
-            head.next = nextInChain;
-            head = nextInChain;
+            nextInChain.prior = head.getLastLink();
+            head.getLastLink().next = nextInChain;
+            head = nextInChain.getLastLink();
         }
         return first;
     }
@@ -48,5 +48,9 @@ public abstract class Middleware<T> {
             return true;
         }
         return prior.compensate(context, error);
+    }
+
+    private Middleware getLastLink() {
+        return this.next == null ? this : this.next.getLastLink();
     }
 }
