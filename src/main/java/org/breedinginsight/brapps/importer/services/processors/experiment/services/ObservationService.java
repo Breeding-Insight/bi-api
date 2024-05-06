@@ -2,26 +2,35 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.servi
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.micronaut.http.server.exceptions.InternalServerException;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
+import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 public class ObservationService {
     // TODO: used with expUnit workflow
@@ -165,5 +174,61 @@ public class ObservationService {
                 observation.getBrAPIObject().setObservationVariableDbId(observationVariableDbId);
             }
         }
+    }
+
+    // TODO: used by both workflows
+    public List<BrAPIObservation> commitNewPendingObservationsToBrAPIStore(ImportContext context, PendingData pendingData) {
+        // filter out observations with no 'value' so they will not be saved
+        List<BrAPIObservation> newObservations = ProcessorData.getNewObjects(this.observationByHash)
+                .stream()
+                .filter(obs -> !obs.getValue().isBlank())
+                .collect(Collectors.toList());
+
+        updateObservationDependencyValues(program);
+        return brAPIObservationDAO.createBrAPIObservations(newObservations, program.getId(), upload);
+
+    }
+
+    // TODO: used by both workflows
+    public List<BrAPIObservation> commitUpdatedPendingObservationsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
+        List<BrAPIObservation> updatedObservations = new ArrayList<>();
+        Map<String, BrAPIObservation> mutatedObservationByDbId = ProcessorData
+                .getMutationsByObjectId(observationByHash, BrAPIObservation::getObservationDbId);
+
+        for (Map.Entry<String, BrAPIObservation> entry : mutatedObservationByDbId.entrySet()) {
+            String id = entry.getKey();
+            BrAPIObservation observation = entry.getValue();
+            try {
+                if (observation == null) {
+                    throw new Exception("Null observation");
+                }
+                BrAPIObservation updatedObs = brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
+                updatedObservations.add(updatedObs);
+
+                if (updatedObs == null) {
+                    throw new Exception("Null updated observation");
+                }
+
+                if (!Objects.equals(observation.getValue(), updatedObs.getValue())
+                        || !Objects.equals(observation.getObservationTimeStamp(), updatedObs.getObservationTimeStamp())) {
+                    String message;
+                    if (!Objects.equals(observation.getValue(), updatedObs.getValue())) {
+                        message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObs.getValue(), observation.getValue());
+                    } else {
+                        message = String.format("Updated observation timestamp, %s, from BrAPI service does not match requested update timestamp %s.", updatedObs.getObservationTimeStamp(), observation.getObservationTimeStamp());
+                    }
+                    throw new Exception(message);
+                }
+
+            } catch (ApiException e) {
+                log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException("Error saving experiment import", e);
+            } catch (Exception e) {
+                log.error("Error updating observation: ", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+        }
+
+        return updatedObservations;
     }
 }
