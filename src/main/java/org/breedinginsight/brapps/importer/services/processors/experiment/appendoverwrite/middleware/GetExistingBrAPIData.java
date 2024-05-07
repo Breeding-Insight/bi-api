@@ -10,8 +10,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessErrorConstants;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.utilities.Utilities;
@@ -96,7 +95,7 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
 
                 // throw error reporting any reference IDs with no corresponding stored unit in the brapi data store
                 this.compensate(context, new MiddlewareError(() -> {
-                    throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExpImportProcessErrorConstants.COMMA_DELIMITER, missingIds));
+                    throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExpImportProcessConstants.COMMA_DELIMITER, missingIds));
                 }));
             }
 

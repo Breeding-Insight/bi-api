@@ -5,11 +5,10 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 
 import java.util.Map;
 
-@Getter
-@Setter
+@Data
 @Builder
 @ToString
 @NoArgsConstructor
 public class ProcessedData {
-    Map<String, ImportPreviewStatistics> statistics;
+    private Map<String, ImportPreviewStatistics> statistics;
 }
