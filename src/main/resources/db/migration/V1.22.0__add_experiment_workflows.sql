@@ -19,7 +19,8 @@ CREATE TABLE importer_mapping_workflow
 (
     like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
     mapping_id      UUID NOT NULL,
-    name            TEXT
+    name            TEXT NOT NULL,
+    bean            TEXT NOT NULL
 );
 
 ALTER TABLE importer_mapping_workflow
@@ -32,10 +33,10 @@ DECLARE
 BEGIN
   exp_mapping_id := (SELECT id FROM importer_mapping WHERE name = 'ExperimentsTemplateMap');
 
-INSERT INTO public.importer_mapping_workflow (mapping_id, name)
+INSERT INTO public.importer_mapping_workflow (mapping_id, name, bean)
 VALUES
-    (exp_mapping_id, 'Create new experiment'),
-    (exp_mapping_id, 'Append experimental dataset'),
-    (exp_mapping_id, 'Create new experimental environment');
+    (exp_mapping_id, 'Create new experiment', 'CreateNewExperimentWorkflow'),
+    (exp_mapping_id, 'Append experimental dataset', 'AppendOverwritePhenotypesWorkflow'),
+    (exp_mapping_id, 'Create new experimental environment', 'CreateNewEnvironmentWorkflow');
 END
 $$;
