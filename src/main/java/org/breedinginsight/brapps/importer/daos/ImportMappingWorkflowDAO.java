@@ -30,17 +30,10 @@ public class ImportMappingWorkflowDAO extends ImporterMappingWorkflowDao {
      * @return A list of ImportMappingWorkflow objects.
      */
     public List<ImportMappingWorkflow> getWorkflowsByImportMappingId(UUID mappingId) {
-
-        List<Record> records = dsl.select()
+        return dsl.select()
                 .from(IMPORTER_MAPPING_WORKFLOW)
                 .where(IMPORTER_MAPPING_WORKFLOW.MAPPING_ID.eq(mappingId))
-                .fetch();
-
-        List<ImportMappingWorkflow> workflows = new ArrayList<>();
-        for (Record record: records) {
-            workflows.add(ImportMappingWorkflow.parseSQLRecord(record));
-        }
-        return workflows;
+                .fetch(ImportMappingWorkflow::parseSQLRecord);
     }
 
 }
