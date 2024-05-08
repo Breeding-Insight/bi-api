@@ -882,8 +882,19 @@ public class ExperimentProcessor implements Processor {
             // had been saved prior to import
             } else if (existingObsByObsHash.containsKey(importHash) && !isObservationMatched(importHash, importObsValue, phenoCol, rowNum)) {
 
+                // different data means validations still need to happen
+                // TODO consider moving these two calls into a separate method since called twice together
+                validateObservationValue(colVarMap.get(phenoCol.name()), phenoCol.getString(rowNum), phenoCol.name(), validationErrors, rowNum);
+
+                //Timestamp validation
+                if(timeStampColByPheno.containsKey(phenoCol.name())) {
+                    Column<?> timeStampCol = timeStampColByPheno.get(phenoCol.name());
+                    validateTimeStampValue(timeStampCol.getString(rowNum), timeStampCol.name(), validationErrors, rowNum);
+                }
+                
                 // add a change log entry when updating the value of an observation
-                if (commit) {
+                // only will update and thereby need change log entry if no error
+                if (commit && (!validationErrors.hasErrors())) {
                     BrAPIObservation pendingObservation = observationByHash.get(importHash).getBrAPIObject();
                     DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
                     String timestamp = formatter.format(OffsetDateTime.now());
@@ -1182,7 +1193,14 @@ public class ExperimentProcessor implements Processor {
         if (priorStamp == null) {
             return timeStamp == null;
         }
-        return priorStamp.isEqual(OffsetDateTime.parse(timeStamp));
+        boolean isMatched = false;
+        try {
+            isMatched = priorStamp.isEqual(OffsetDateTime.parse(timeStamp));
+        } catch(DateTimeParseException e){
+            //if timestamp is invalid DateTime not equal to validated priorStamp
+            log.error(e.getMessage(), e);
+        }
+        return isMatched;
     }
 
     boolean isValueMatched(String observationHash, String value) {
@@ -1232,7 +1250,7 @@ public class ExperimentProcessor implements Processor {
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
                 if (!isValueMatched(key, value)){
                     newObservation.setValue(value);
-                } else if (!isTimestampMatched(key, timeStampValue)) {
+                } else if (!StringUtils.isBlank(timeStampValue) && !isTimestampMatched(key, timeStampValue)) {
                     DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
                     String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timeStampValue));
                     newObservation.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
