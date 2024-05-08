@@ -16,11 +16,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class ExistingObservationUnits extends ExpUnitMiddleware {
+public class RequiredObservationUnits extends ExpUnitMiddleware {
     ObservationUnitService observationUnitService;
 
     @Inject
-    public ExistingObservationUnits(ObservationUnitService observationUnitService) {
+    public RequiredObservationUnits(ObservationUnitService observationUnitService) {
         this.observationUnitService = observationUnitService;
     }
 
@@ -34,7 +34,7 @@ public class ExistingObservationUnits extends ExpUnitMiddleware {
         Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById;
         Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitByNameNoScope;
 
-        log.debug("fetching existing exp units from BrAPI service");
+        log.debug("fetching required exp units from BrAPI service");
         program = context.getImportContext().getProgram();
         try {
             // Collect deltabreed-generated exp unit ids listed in the import

@@ -45,6 +45,96 @@ public class TrialService {
         this.studyService = studyService;
     }
 
+    /**
+     * Retrieves the TrialDbId belonging to a pending unit based on the provided BrAPI observation unit and program.
+     * If the TrialDbId is directly assigned to the unit, it is returned. Otherwise, the TrialDbId
+     * assigned to the study belonging to the unit is retrieved.
+     *
+     * @param pendingUnit The pending import object representing the BrAPI observation unit.
+     * @param program The program associated with the pending import.
+     * @return The TrialDbId belonging to the pending unit.
+     * @throws IllegalStateException if TrialDbId and StudyDbId are not set for an existing ObservationUnit.
+     * @throws InternalServerException if there is an internal server error while fetching the TrialDbId.
+     */
+    public String getTrialDbIdBelongingToPendingUnit(PendingImportObject<BrAPIObservationUnit> pendingUnit,
+                                                               Program program) throws IllegalStateException, InternalServerException {
+        String trialDbId = null;
+
+        BrAPIObservationUnit brapiUnit = pendingUnit.getBrAPIObject();
+        if (StringUtils.isBlank(brapiUnit.getTrialDbId()) && StringUtils.isBlank(brapiUnit.getStudyDbId())) {
+            throw new IllegalStateException("TrialDbId and StudyDbId are not set for an existing ObservationUnit");
+        }
+
+        // get the trial directly assigned to the unit
+        if (StringUtils.isNotBlank(brapiUnit.getTrialDbId())) {
+            trialDbId = brapiUnit.getTrialDbId();
+        } else {
+
+            // or get the trial directly assigned to the study belonging to the unit
+            String studyDbId = brapiUnit.getStudyDbId();
+            try {
+                trialDbId = getTrialDbIdBelongingToStudy(studyDbId, program);
+            } catch (ApiException e) {
+                log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException(e.toString(), e);
+            }
+        }
+
+        return trialDbId;
+    }
+
+    /**
+     * Fetches BrAPI trials belonging to the specified trial database IDs and program.
+     *
+     * This method retrieves a list of BrAPI trials that are associated with the provided set of trial database IDs
+     * within the context of the given program. It ensures that all specified trial IDs are found in the result
+     * to maintain data integrity.
+     *
+     * @param trialDbIds A set of trial database IDs indicating the trials to fetch.
+     * @param program The program object representing the program to which the trials belong.
+     * @return A list of BrAPITrial objects representing the fetched trials.
+     * @throws IllegalStateException If not all specified trial database IDs are found in the fetched trials.
+     * @throws InternalServerException If an error occurs during the API call to fetch the trials.
+     */
+    public List<BrAPITrial> fetchBrapiTrialsBelongingToUnits(Set<String> trialDbIds, Program program) {
+        try {
+            List<BrAPITrial> trials = brAPITrialDAO.getTrialsByDbIds(trialDbIds, program);
+            if (trials.size() != trialDbIds.size()) {
+                List<String> missingIds = new ArrayList<>(trialDbIds);
+                missingIds.removeAll(trials.stream().map(BrAPITrial::getTrialDbId).collect(Collectors.toList()));
+                throw new IllegalStateException("Trial not found for trialDbId(s): " + String.join(ExperimentUtilities.COMMA_DELIMITER, missingIds));
+            }
+
+            return trials;
+        } catch (ApiException e) {
+            log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+    }
+
+    /**
+     * Fetches a BrAPI trial belonging to a specific unit based on the provided trialDbId and program.
+     *
+     * @param trialDbId The unique identifier of the trial to be fetched.
+     * @param program The program to which the trial belongs.
+     * @return The BrAPI trial belonging to the specified unit.
+     * @throws InternalServerException If an internal server error occurs while processing the request.
+     * @throws IllegalStateException If the trial with the specified trialDbId is not found.
+     */
+    public BrAPITrial fetchBrapiTrialsBelongingToUnit(String trialDbId, Program program) throws InternalServerException {
+        try {
+            List<BrAPITrial> trials = brAPITrialDAO.getTrialsByDbIds(Set.of(trialDbId), program);
+            BrAPITrial trial = trials.get(0);
+            if (trials.size() == 0) {
+                throw new IllegalStateException("Trial not found for trialDbId(s): " + trialDbId);
+            }
+
+            return trial;
+        } catch (ApiException e) {
+            log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
+            throw new InternalServerException(e.toString(), e);
+        }
+    }
     // TODO: also used in other workflow
 
     /**
@@ -124,6 +214,30 @@ public class TrialService {
     }
 
     /**
+     * Retrieves the trialDbId that belongs to a specific study with the given studyDbId and program.
+     *
+     * @param studyDbId The unique identifier for the study in the system.
+     * @param program The program object associated with the study.
+     * @return The trialDbId associated with the study.
+     * @throws ApiException if the study with the provided studyDbId is not found in the BrAPI service.
+     * @throws IllegalStateException if the trialDbId is not set for the existing study.
+     */
+    private String getTrialDbIdBelongingToStudy(String studyDbId, Program program) throws ApiException {
+        String trialDbId = null;
+        List<BrAPIStudy> studies = studyService.fetchStudiesByDbId(Set.of(studyDbId), program);
+        if (studies.size() == 0) {
+            throw new ApiException("Study not found in BrAPI service: " + studyDbId);
+        }
+        BrAPIStudy study = studies.get(0);
+        if (StringUtils.isBlank(study.getTrialDbId())) {
+            throw new IllegalStateException("TrialDbId is not set for an existing Study: " + study.getStudyDbId());
+        }
+        trialDbId = study.getTrialDbId();
+
+        return trialDbId;
+    }
+
+    /**
      * This method processes an existing trial, retrieves the experiment ID from the trial's external references,
      * and caches the trial with the corresponding experiment ID in a map.
      *
@@ -147,6 +261,28 @@ public class TrialService {
         trialByNameNoScope.put(
                 Utilities.removeProgramKey(existingTrial.getTrialName(), program.getKey()),
                 new PendingImportObject<>(ImportObjectState.EXISTING, existingTrial, experimentId));
+    }
+
+    /**
+     * Constructs a PendingImportObject containing a BrAPITrial object based on the input BrAPITrial.
+     *
+     * This function takes a BrAPITrial object as input and constructs a PendingImportObject which
+     * encapsulates the trial along with its associated experiment ID. The experiment ID is retrieved
+     * from the external references of the trial object using utility method getExternalReference.
+     * If the experiment ID is not found in the external references, an InternalServerException is thrown.
+     *
+     * @param trial the BrAPITrial object for which the PendingImportObject is to be constructed
+     * @return a PendingImportObject containing the BrAPITrial object and its associated experiment ID
+     * @throws InternalServerException if the experiment ID is not found in the external references of the trial
+     */
+    public PendingImportObject<BrAPITrial> constructPIOFromBrapiTrial(BrAPITrial trial) throws InternalServerException {
+        PendingImportObject<BrAPITrial> pio = null;
+        BrAPIExternalReference experimentIDRef = Utilities.getExternalReference(trial.getExternalReferences(),
+                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
+                .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
+        UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
+        pio = new PendingImportObject<>(ImportObjectState.EXISTING, trial, experimentId));
+        return pio;
     }
 
     /**

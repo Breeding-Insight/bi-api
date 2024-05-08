@@ -8,12 +8,12 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 
 @Slf4j
-public class ExistingBrAPIData extends ExpUnitMiddleware {
+public class RequiredBrAPIData extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
-    Provider<ExistingObservationUnits> existingObservationUnitsProvider;
+    Provider<RequiredObservationUnits> existingObservationUnitsProvider;
 
     @Inject
-    public ExistingBrAPIData(Provider<ExistingObservationUnits> existingObservationUnitsProvider) {
+    public RequiredBrAPIData(Provider<RequiredObservationUnits> existingObservationUnitsProvider) {
         this.middleware.link(existingObservationUnitsProvider.get());
     }
 
