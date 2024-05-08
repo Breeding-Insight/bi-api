@@ -17,6 +17,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Singleton;
@@ -26,6 +27,48 @@ import java.util.stream.Collectors;
 @Singleton
 @Slf4j
 public class LocationService {
+    private final ProgramLocationService programLocationService;
+    public LocationService(ProgramLocationService programLocationService) {
+        this.programLocationService = programLocationService;
+    }
+
+    /**
+     * Fetches a ProgramLocation based on the provided locationDbId within a given program.
+     *
+     * @param locationDbId the unique identifier of the location
+     * @param program the program in which the location is to be fetched
+     * @return the ProgramLocation associated with the given locationDbId in the program
+     * @throws ApiException if the program location cannot be found for the specified locationDbId
+     */
+    public ProgramLocation fetchLocationByDbId(String locationDbId, Program program) throws ApiException {
+        ProgramLocation programLocation = null; // Initializing the ProgramLocation object
+
+        // Retrieving locations based on the locationDbId and the program's ID
+        List<ProgramLocation> locations = programLocationService.getLocationsByDbId(List.of(locationDbId), program.getId());
+
+        // If no locations are found, throw an IllegalStateException with an error message
+        if (locations.size() == 0) {
+            throw new IllegalStateException(
+                    "Location not found for locationDbId: " + locationDbId); // Throwing exception if no location is found for provided locationDbId
+        }
+
+        // Set the programLocation to the first location found in the list of locations
+        programLocation = locations.get(0);
+
+        // Return the fetched ProgramLocation
+        return programLocation;
+    }
+
+    /**
+     * Constructs a PendingImportObject of type ProgramLocation from a given BrAPI ProgramLocation.
+     * This method creates a new PendingImportObject with the state set to EXISTING and the BrAPI ProgramLocation as the source object.
+     *
+     * @param brapiLocation The BrAPI ProgramLocation from which the PendingImportObject should be constructed
+     * @return PendingImportObject<ProgramLocation> The PendingImportObject created from the BrAPI ProgramLocation
+     */
+    public PendingImportObject<ProgramLocation> constructPIOFromBrapiLocation(ProgramLocation brapiLocation) {
+        return new PendingImportObject<>(ImportObjectState.EXISTING, brapiLocation, brapiLocation.getId());
+    }
 
     // used by expunit workflow
     public Map<String, PendingImportObject<ProgramLocation>> initializeLocationByName(
@@ -41,7 +84,7 @@ public class LocationService {
                             .getLocationDbId())
                     .collect(Collectors.toSet());
             try {
-                existingLocations.addAll(locationService.getLocationsByDbId(locationDbIds, program.getId()));
+                existingLocations.addAll(programLocationService.getLocationsByDbId(locationDbIds, program.getId()));
             } catch (ApiException e) {
                 log.error("Error fetching locations: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException(e.toString(), e);
