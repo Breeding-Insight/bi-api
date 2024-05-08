@@ -77,6 +77,36 @@ public class StudyService {
         return pendingStudy;
     }
 
+    /**
+     * Constructs a PendingImportObject containing a BrAPIStudy object based on the provided BrAPIStudy and Program.
+     * This function retrieves the external reference for the study and maps the season dbid to the corresponding year.
+     *
+     * @param brAPIStudy The BrAPIStudy object to construct the PendingImportObject from.
+     * @param program The Program object associated with the study.
+     * @return A PendingImportObject containing the formatted BrAPIStudy object.
+     * @throws IllegalStateException If the external reference for the study is not found.
+     */
+    public PendingImportObject<BrAPIStudy> constructPIOFromBrapiStudy(BrAPIStudy brAPIStudy, Program program) {
+        // Retrieve external reference for the study
+        BrAPIExternalReference xref = Utilities.getExternalReference(brAPIStudy.getExternalReferences(),
+                        String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
+                .orElseThrow(() -> new IllegalStateException("External references weren't found for study (dbid): " + brAPIStudy.getStudyDbId());
+
+        // Map season dbid to year
+        String seasonDbId = brAPIStudy.getSeasons().get(0); // It is assumed that the study has only one season
+        if(StringUtils.isNotBlank(seasonDbId)) {
+            String seasonYear = seasonDbIdToYear(seasonDbId, program.getId());
+            brAPIStudy.setSeasons(Collections.singletonList(seasonYear));
+        }
+
+        // Create and return a PendingImportObject for the BrAPIStudy
+        return new PendingImportObject<>(
+                ImportObjectState.EXISTING,
+                (BrAPIStudy) Utilities.formatBrapiObjForDisplay(brAPIStudy, BrAPIStudy.class, program),
+                UUID.fromString(xref.getReferenceId())
+        );
+    }
+
     // TODO: used by both workflows
     private String seasonDbIdToYear(String seasonDbId, UUID programId) {
         String year = null;
@@ -125,6 +155,49 @@ public class StudyService {
                     "Study not found for studyDbId(s): " + String.join(ExperimentUtilities.COMMA_DELIMITER, missingIds));
         }
         return studies;
+    }
+
+    /**
+     * Fetches a BrAPI study by its unique database identifier and program.
+     * This method retrieves a BrAPI study identified by the given study database identifier
+     * and corresponding program.
+     *
+     * @param studyDbId A String representing the unique database identifier of the study.
+     * @param program The Program object specifying the program to which the study belongs.
+     * @return The BrAPIStudy object representing the study fetched from the database.
+     * @throws ApiException if the study with the provided studyDbId is not found.
+     */
+    public BrAPIStudy fetchBrapiStudyByDbId(String studyDbId, Program program) throws ApiException {
+        BrAPIStudy study = null; // Initializing the study object
+        List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(Set.of(studyDbId), program); // Retrieving studies from the database
+
+        if (studies.size() == 0) {
+            throw new IllegalStateException(
+                    "Study not found for studyDbId: " + studyDbId); // Throwing exception if no study is found for provided studyDbId
+        }
+
+        return studies.get(0); // Returning the first study from the list
+    }
+
+    /**
+     * Retrieves the study database ID belonging to a pending unit in BrAPI format.
+     *
+     * This method takes a PendingImportObject containing a BrAPIObservationUnit
+     * object and returns the study database ID associated with the unit, if it exists.
+     *
+     * @param pio The PendingImportObject containing the BrAPIObservationUnit object for which the study database ID is to be retrieved.
+     * @return The study database ID belonging to the pending unit, or null if the unit does not exist or if the study database ID is not set.
+     */
+    public String getStudyDbIdBelongingToPendingUnit(PendingImportObject<BrAPIObservationUnit> pio) {
+        String studyDbId = null;
+
+        // Check if the BrAPI object in the PendingImportObject is not null
+        if (pio.getBrAPIObject() != null) {
+            // Retrieve the study database ID from the BrAPIObservationUnit object
+            studyDbId = pio.getBrAPIObject().getStudyDbId();
+        }
+
+        return studyDbId;
     }
 
     // TODO: used by both workflows

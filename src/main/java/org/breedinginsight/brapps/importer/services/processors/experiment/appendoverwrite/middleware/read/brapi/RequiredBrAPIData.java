@@ -10,11 +10,14 @@ import javax.inject.Provider;
 @Slf4j
 public class RequiredBrAPIData extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
-    Provider<RequiredObservationUnits> existingObservationUnitsProvider;
+    Provider<RequiredObservationUnits> requiredObservationUnitsProvider;
+    Provider<RequiredTrials> requiredTrialsProvider;
 
     @Inject
-    public RequiredBrAPIData(Provider<RequiredObservationUnits> existingObservationUnitsProvider) {
-        this.middleware.link(existingObservationUnitsProvider.get());
+    public RequiredBrAPIData(Provider<RequiredObservationUnits> requiredObservationUnitsProvider,
+                             Provider<RequiredTrials> requiredTrialsProvider) {
+        this.middleware.link(requiredObservationUnitsProvider.get(), // Fetch the BrAPI units for the required exp unit ids
+                requiredTrialsProvider.get()); // Fetch the BrAPI trials belonging to the exp units
     }
 
     @Override

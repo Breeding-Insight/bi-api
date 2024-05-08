@@ -1,15 +1,11 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.read.brapi;
 
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.TrialService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
@@ -48,8 +44,8 @@ public class RequiredTrials extends ExpUnitMiddleware {
         // Get the dbIds of the trials belonging to the required exp units
         trialDbIds = pendingUnitByNameNoScope.values().stream().map(pendingUnit -> trialService.getTrialDbIdBelongingToPendingUnit(pendingUnit, program)).collect(Collectors.toSet());
 
-        // Get the trials belonging to required exp units
-        brAPITrials = trialDbIds.stream().map(dbId -> trialService.fetchBrapiTrialsBelongingToUnit(dbId, program)).collect(Collectors.toList());
+        // Get the BrAPI trials belonging to required exp units
+        brAPITrials = trialDbIds.stream().map(dbId -> trialService.fetchBrapiTrialBelongingToUnit(dbId, program)).collect(Collectors.toList());
 
         // Construct the pending trials from the BrAPI trials
         pendingTrials = brAPITrials.stream().map(trialService::constructPIOFromBrapiTrial).collect(Collectors.toList());

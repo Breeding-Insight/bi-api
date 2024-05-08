@@ -121,7 +121,7 @@ public class TrialService {
      * @throws InternalServerException If an internal server error occurs while processing the request.
      * @throws IllegalStateException If the trial with the specified trialDbId is not found.
      */
-    public BrAPITrial fetchBrapiTrialsBelongingToUnit(String trialDbId, Program program) throws InternalServerException {
+    public BrAPITrial fetchBrapiTrialBelongingToUnit(String trialDbId, Program program) throws InternalServerException {
         try {
             List<BrAPITrial> trials = brAPITrialDAO.getTrialsByDbIds(Set.of(trialDbId), program);
             BrAPITrial trial = trials.get(0);
