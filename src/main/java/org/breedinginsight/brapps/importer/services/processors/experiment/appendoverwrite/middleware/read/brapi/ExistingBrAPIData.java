@@ -19,6 +19,7 @@ public class ExistingBrAPIData extends ExpUnitMiddleware {
 
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
+        log.debug("reading required BrAPI data from BrAPI service");
         return this.middleware.process(context);
     }
 }

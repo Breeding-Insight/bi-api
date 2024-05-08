@@ -1,28 +1,168 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
+import io.micronaut.context.annotation.Property;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
+import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
+import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ObservationUnitService {
+    private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
+
+    @Inject
+    public ObservationUnitService(BrAPIObservationUnitDAO brAPIObservationUnitDAO) {
+        this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
+    }
+
+    /**
+     * Retrieves the reference Observation Units based on the provided set of experimental unit IDs and the associated Program.
+     * This function queries the database to fetch Observation Units that match the specified IDs within the given Program.
+     *
+     * @param expUnitIds A set of unique identifiers representing the Experimental Units for which reference Observation Units are required.
+     *                   These IDs serve as filters to determine the relevant Observation Units.
+     * @param program The Program to which the Observation Units belong. This parameter ensures that the fetched units are specific to the designated Program.
+     * @return A List of BrAPIObservationUnit objects that correspond to the reference Observation Units matching the provided expUnitIds within the given Program.
+     * @throws ApiException If an error occurs during the retrieval process, an ApiException is thrown to handle exceptional scenarios.
+     */
+    public List<BrAPIObservationUnit> getReferenceUnits(Set<String> expUnitIds,
+                                                        Program program) throws ApiException {
+        // Retrieve reference Observation Units based on IDs
+        return brAPIObservationUnitDAO.getObservationUnitsById(new ArrayList<String>(expUnitIds), program);
+    }
+
+    /**
+     * Constructs a PendingImportObject of type BrAPIObservationUnit from a given BrAPIObservationUnit object.
+     * This function is responsible for constructing an import object that represents an observation unit for the Deltabreed system,
+     * using a provided BrAPIObservationUnit object from a BrAPI source.
+     *
+     * @param unit the BrAPIObservationUnit object to be used for constructing the PendingImportObject
+     * @return a PendingImportObject of type BrAPIObservationUnit representing the imported observation unit
+     * @throws IllegalStateException if the external reference for the observation unit does not exist
+     */
+    public PendingImportObject<BrAPIObservationUnit> constructPIOFromBrapiUnit(BrAPIObservationUnit unit) {
+        final PendingImportObject<BrAPIObservationUnit>[] pio = new PendingImportObject[]{null};
+
+        // Construct the DeltaBreed observation unit source for external references
+        String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
+
+        // Get external reference for the Observation Unit
+        Optional<BrAPIExternalReference> unitXref = Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource);
+        unitXref.ifPresentOrElse(
+                xref -> {
+                    pio[0] = new PendingImportObject<BrAPIObservationUnit>(ImportObjectState.EXISTING, unit, UUID.fromString(xref.getReferenceId()));
+                },
+                () -> {
+
+                    // but throw an error if no unit ID
+                    throw new IllegalStateException("External reference does not exist for Deltabreed ObservationUnit ID");
+                }
+        );
+        return pio[0];
+    }
+
+    /**
+     * Maps pending observation units by their reference IDs.
+     * This function takes a list of pending import objects representing BrAPI observation units
+     * and constructs a map where the key is the external reference ID of the observation unit
+     * and the value is the pending import object itself.
+     *
+     * @param pios List of pending import objects for BrAPI observation units
+     * @return A map of pending observation units keyed by their external reference ID
+     */
+    public Map<String, PendingImportObject<BrAPIObservationUnit>> mapPendingUnitById(List<PendingImportObject<BrAPIObservationUnit>> pios) {
+        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = new HashMap<>();
+
+        // Construct the DeltaBreed observation unit source for external references
+        String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
+
+        for (PendingImportObject<BrAPIObservationUnit> pio : pios) {
+
+            // Get external reference for the Observation Unit
+            Optional<BrAPIExternalReference> xref = Utilities.getExternalReference(pio.getBrAPIObject().getExternalReferences(), deltaBreedOUSource);
+            pendingUnitById.put(xref.get().getReferenceId(),pio);
+        }
+
+        return pendingUnitById;
+    }
+
+    /**
+     * This method takes a list of PendingImportObject<BrAPIObservationUnit> objects and a Program object as input
+     * and maps the PendingImportObject<BrAPIObservationUnit> objects by their observation unit name without the program scope.
+     *
+     * @param pios A list of PendingImportObject<BrAPIObservationUnit> objects to be processed
+     * @param program The Program object representing the scope to be removed from observation unit names
+     * @return A Map<String, PendingImportObject<BrAPIObservationUnit>> mapping observation unit names without the program scope to the corresponding PendingImportObject<BrAPIObservationUnit> objects
+     */
+    public Map<String, PendingImportObject<BrAPIObservationUnit>> mapPendingUnitByNameNoScope(List<PendingImportObject<BrAPIObservationUnit>> pios,
+                                                                                              Program program) {
+        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitByNameNoScope = new HashMap<>();
+
+        for (PendingImportObject<BrAPIObservationUnit> pio : pios) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    pio.getBrAPIObject().getStudyName(),
+                    program.getKey()
+            );
+            String observationUnitName = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                    pio.getBrAPIObject().getObservationUnitName(),
+                    program.getKey()
+            );
+            pendingUnitByNameNoScope.put(ExperimentUtilities.createObservationUnitKey(studyName, observationUnitName), pio);
+        }
+
+        return pendingUnitByNameNoScope;
+    }
+
+    /**
+     * Collects missing Observation Unit IDs from a set of reference IDs and a list of existing Observation Units.
+     *
+     * This function takes a Set of reference IDs and a List of existing Observation Units, filters out the Observation Units
+     * that have external references matching a specific source, and returns a List of missing Observation Unit IDs that are
+     * present in the reference IDs but not found in the existing Observation Units.
+     *
+     * @param referenceIds The Set of reference IDs representing all possible Observation Unit IDs to match against.
+     * @param existingUnits The List of existing Observation Units to compare against the reference IDs.
+     * @return A List of Observation Unit IDs that are missing from the existing Observation Units but present in the reference IDs.
+     */
+    public List<String> collectMissingOUIds(Set<String> referenceIds, List<BrAPIObservationUnit> existingUnits) {
+        List<String> missingIds = new ArrayList<>(referenceIds);
+
+        // Construct the DeltaBreed observation unit source for external references
+        String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
+
+        Set<String> fetchedIds = existingUnits.stream()
+                .filter(unit ->Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource).isPresent())
+                .map(unit->Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource).get().getReferenceId())
+                .collect(Collectors.toSet());
+        missingIds.removeAll(fetchedIds);
+
+        return missingIds;
+    }
+
     // TODO: used by expUnit workflow
     public PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(ImportContext importContext,
                                                                              PendingData pendingData,
