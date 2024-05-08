@@ -3,7 +3,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.creat
 import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
-import io.reactivex.functions.Function;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -22,8 +21,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.pipeline.ProcessingStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.StudyService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.TrialService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.TrialService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.ProgramLocationService;

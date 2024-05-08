@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.services;
+package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
 import org.brapi.client.v2.model.exceptions.ApiException;

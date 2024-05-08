@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.services;
+package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -7,11 +7,8 @@ import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
-import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
@@ -20,7 +17,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 

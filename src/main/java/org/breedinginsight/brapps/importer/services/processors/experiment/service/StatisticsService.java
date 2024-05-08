@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.services;
+package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
