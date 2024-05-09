@@ -38,7 +38,7 @@ public abstract class Middleware<T> {
         }
         return next.process(context);
     }
-    
+
     /**
      * Runs the compensating local transaction for the prior local transaction or ends traversing if
      * we're at the first local transaction of the transaction.

@@ -2,7 +2,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -11,15 +10,11 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramLocation;
 
 import javax.inject.Inject;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Slf4j
 public class RequiredDatasets extends ExpUnitMiddleware {
@@ -49,7 +44,7 @@ public class RequiredDatasets extends ExpUnitMiddleware {
         }
         log.debug("fetching from BrAPI service, datasets belonging to required units");
 
-        // Get the dbId of the trial belonging to the required exp units
+        // Get the id of the dataset belonging to the required exp units
         datasetId = pendingTrialByNameNoScope.values().iterator().next().getBrAPIObject()
                 .getAdditionalInfo()
                 .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
@@ -65,7 +60,7 @@ public class RequiredDatasets extends ExpUnitMiddleware {
             }));
         }
 
-        // Construct the pending locations from the BrAPI locations
+        // Construct the pending dataset from the BrAPI observation variable list
         pendingDataset = datasetService.constructPIOFromDataset(dataset, program);
 
         // Construct a hashmap to look up the pending dataset by dataset name
