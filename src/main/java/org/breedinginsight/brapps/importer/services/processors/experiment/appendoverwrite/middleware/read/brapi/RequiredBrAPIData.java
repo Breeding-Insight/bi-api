@@ -13,14 +13,21 @@ public class RequiredBrAPIData extends ExpUnitMiddleware {
     Provider<RequiredObservationUnits> requiredObservationUnitsProvider;
     Provider<RequiredTrials> requiredTrialsProvider;
     Provider<RequiredStudies> requiredStudiesProvider;
+    Provider<RequiredLocations> requiredLocationsProvider;
+    Provider<RequiredDatasets> requiredDatasetsProvider;
 
     @Inject
     public RequiredBrAPIData(Provider<RequiredObservationUnits> requiredObservationUnitsProvider,
                              Provider<RequiredTrials> requiredTrialsProvider,
-                             Provider<RequiredStudies> requiredStudiesProvider) {
+                             Provider<RequiredStudies> requiredStudiesProvider,
+                             Provider<RequiredLocations> requiredLocationsProvider,
+                             Provider<RequiredDatasets> requiredDatasetsProvider) {
+
         this.middleware.link(requiredObservationUnitsProvider.get(), // Fetch the BrAPI units for the required exp unit ids
-                requiredTrialsProvider.get(),   // Fetch the BrAPI trials belonging to the exp units
-                requiredStudiesProvider.get()); // Fetch the BrAPI studies belonging to the exp units
+                requiredTrialsProvider.get(),     // Fetch the BrAPI trials belonging to the exp units
+                requiredStudiesProvider.get(),    // Fetch the BrAPI studies belonging to the exp units
+                requiredLocationsProvider.get(),  // Fetch the BrAPI locations belonging to the exp units
+                requiredDatasetsProvider.get());  // Fetch the datasets belonging to the exp units
     }
 
     @Override

@@ -25,6 +25,7 @@ public class AppendOverwritePhenotypesWorkflow implements Workflow {
     public AppendOverwritePhenotypesWorkflow(Provider<HandleErr> handleErrProvider,
                                              Provider<ValidateAllRowsHaveIDs> validateAllRowsHaveIDsProvider,
                                              Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider) {
+
         this.middleware.link(handleErrProvider.get(),
                 validateAllRowsHaveIDsProvider.get(),
                 getExistingBrAPIDataProvider.get());

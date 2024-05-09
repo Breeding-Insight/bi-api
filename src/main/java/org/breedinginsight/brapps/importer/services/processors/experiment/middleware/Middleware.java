@@ -10,12 +10,12 @@ public abstract class Middleware<T> {
     /**
      * Builds chains of middleware objects.
      */
-    public static Middleware link(Middleware first, Middleware... chain) {
+    public Middleware link(Middleware first, Middleware... chain) {
         Middleware head = first;
         for (Middleware nextInChain: chain) {
             nextInChain.prior = head.getLastLink();
             head.getLastLink().next = nextInChain;
-            head = nextInChain.getLastLink();
+            head = nextInChain;
         }
         return first;
     }
@@ -38,7 +38,7 @@ public abstract class Middleware<T> {
         }
         return next.process(context);
     }
-
+    
     /**
      * Runs the compensating local transaction for the prior local transaction or ends traversing if
      * we're at the first local transaction of the transaction.
@@ -52,5 +52,9 @@ public abstract class Middleware<T> {
 
     private Middleware getLastLink() {
         return this.next == null ? this : this.next.getLastLink();
+    }
+
+    private Middleware getFirstLink() {
+        return this.prior == null ? this : this.prior.getFirstLink();
     }
 }
