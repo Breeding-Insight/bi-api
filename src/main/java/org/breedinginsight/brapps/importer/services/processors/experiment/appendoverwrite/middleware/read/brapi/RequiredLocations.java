@@ -49,28 +49,23 @@ public class RequiredLocations extends ExpUnitMiddleware {
 
         // Get the dbIds of the studies belonging to the required exp units
         locationDbIds = pendingStudyByNameNoScope.values().stream().map(pio -> pio.getBrAPIObject().getLocationDbId()).collect(Collectors.toSet());
+        try {
+            // Get the locations belonging to required exp units
+            brapiLocations = locationService.fetchLocationsByDbId(locationDbIds, program);
 
-        // Get the locations belonging to required exp units
-        brapiLocations = locationDbIds.stream().map(dbId -> {
-            ProgramLocation location = null;
-            try {
-                location = locationService.fetchLocationByDbId(dbId, program);
-            } catch (ApiException e) {
-                this.compensate(context, new MiddlewareError(() -> {
-                    throw new RuntimeException(e);
-                }));
-            }
-            return location;
-        }).collect(Collectors.toList());
+            // Construct the pending locations from the BrAPI locations
+            pendingLocations = brapiLocations.stream().map(locationService::constructPIOFromBrapiLocation).collect(Collectors.toList());
 
-        // Construct the pending locations from the BrAPI locations
-        pendingLocations = brapiLocations.stream().map(locationService::constructPIOFromBrapiLocation).collect(Collectors.toList());
+            // Construct a hashmap to look up the pending location by location name
+            pendingLocationByName = pendingLocations.stream().collect(Collectors.toMap(pio -> pio.getBrAPIObject().getName(), pio -> pio));
 
-        // Construct a hashmap to look up the pending location by location name
-        pendingLocationByName = pendingLocations.stream().collect(Collectors.toMap(pio -> pio.getBrAPIObject().getName(), pio -> pio));
-
-        // Add the map to the context for use in processing import
-        context.getPendingData().setLocationByName(pendingLocationByName);
+            // Add the map to the context for use in processing import
+            context.getPendingData().setLocationByName(pendingLocationByName);
+        } catch (ApiException e) {
+            this.compensate(context, new MiddlewareError(() -> {
+                throw new RuntimeException(e);
+            }));
+        }
 
         return processNext(context);
     }

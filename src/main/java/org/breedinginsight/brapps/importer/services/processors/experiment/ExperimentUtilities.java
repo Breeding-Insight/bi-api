@@ -22,7 +22,7 @@ public class ExperimentUtilities {
 
     public static final CharSequence COMMA_DELIMITER = ",";
     public static final String TIMESTAMP_PREFIX = "TS:";
-
+    
     public static List<ExperimentObservation> importRowsToExperimentObservations(List<BrAPIImport> importRows) {
         return importRows.stream()
                 .map(trialImport -> (ExperimentObservation) trialImport)

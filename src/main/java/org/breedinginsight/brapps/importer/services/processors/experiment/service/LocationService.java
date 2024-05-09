@@ -24,6 +24,8 @@ import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.COMMA_DELIMITER;
+
 @Singleton
 @Slf4j
 public class LocationService {
@@ -33,30 +35,28 @@ public class LocationService {
     }
 
     /**
-     * Fetches a ProgramLocation based on the provided locationDbId within a given program.
+     * Fetches a list of ProgramLocation objects based on the provided locationDbIds and program ID.
      *
-     * @param locationDbId the unique identifier of the location
-     * @param program the program in which the location is to be fetched
-     * @return the ProgramLocation associated with the given locationDbId in the program
-     * @throws ApiException if the program location cannot be found for the specified locationDbId
+     * @param locationDbIds A set of locationDbIds used to query locations.
+     * @param program The Program object for which locations are being fetched.
+     * @return A list of ProgramLocation objects matching the given locationDbIds for the program.
+     * @throws ApiException if there is an issue with fetching the locations or if any location(s) are not found.
      */
-    public ProgramLocation fetchLocationByDbId(String locationDbId, Program program) throws ApiException {
-        ProgramLocation programLocation = null; // Initializing the ProgramLocation object
+    public List<ProgramLocation> fetchLocationsByDbId(Set<String> locationDbIds, Program program) throws ApiException {
+        List<ProgramLocation> programLocations = null; // Initializing the ProgramLocations list
 
         // Retrieving locations based on the locationDbId and the program's ID
-        List<ProgramLocation> locations = programLocationService.getLocationsByDbId(List.of(locationDbId), program.getId());
+        programLocations = programLocationService.getLocationsByDbId(locationDbIds, program.getId());
 
         // If no locations are found, throw an IllegalStateException with an error message
-        if (locations.size() == 0) {
-            throw new IllegalStateException(
-                    "Location not found for locationDbId: " + locationDbId); // Throwing exception if no location is found for provided locationDbId
+        if (locationDbIds.size() != programLocations.size()) {
+            Set<String> missingIds = new HashSet<>(locationDbIds);
+            missingIds.removeAll(programLocations.stream().map(ProgramLocation::getLocationDbId).collect(Collectors.toSet()));
+            throw new IllegalStateException("Location not found for location dbid(s): " + String.join(COMMA_DELIMITER, missingIds));
         }
 
-        // Set the programLocation to the first location found in the list of locations
-        programLocation = locations.get(0);
-
-        // Return the fetched ProgramLocation
-        return programLocation;
+        // Return the fetched ProgramLocations
+        return programLocations;
     }
 
     /**
