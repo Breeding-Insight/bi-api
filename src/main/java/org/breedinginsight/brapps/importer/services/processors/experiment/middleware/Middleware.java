@@ -10,7 +10,7 @@ public abstract class Middleware<T> {
     /**
      * Builds chains of middleware objects.
      */
-    public Middleware link(Middleware first, Middleware... chain) {
+    public static Middleware link(Middleware first, Middleware... chain) {
         Middleware head = first;
         for (Middleware nextInChain: chain) {
             nextInChain.prior = head.getLastLink();

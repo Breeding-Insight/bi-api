@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.read.brapi;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -15,11 +15,11 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class RequiredObservationUnits extends ExpUnitMiddleware {
+public class DataValidation extends ExpUnitMiddleware {
     ObservationUnitService observationUnitService;
 
     @Inject
-    public RequiredObservationUnits(ObservationUnitService observationUnitService) {
+    public DataValidation(ObservationUnitService observationUnitService) {
         this.observationUnitService = observationUnitService;
     }
 

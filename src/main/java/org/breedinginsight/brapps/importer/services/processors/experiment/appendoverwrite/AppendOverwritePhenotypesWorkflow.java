@@ -5,6 +5,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.GetExistingBrAPIData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.HandleErr;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ValidateAllRowsHaveIDs;
+import org.breedinginsight.brapps.importer.services.processors.experiment.middleware.Middleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ProcessedData;
@@ -26,7 +27,7 @@ public class AppendOverwritePhenotypesWorkflow implements Workflow {
                                              Provider<ValidateAllRowsHaveIDs> validateAllRowsHaveIDsProvider,
                                              Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider) {
 
-        this.middleware.link(handleErrProvider.get(),
+        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(handleErrProvider.get(),
                 validateAllRowsHaveIDsProvider.get(),
                 getExistingBrAPIDataProvider.get());
     }
