@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
@@ -66,12 +67,22 @@ public class ExperimentImportService implements BrAPIImportService {
     }
 
     @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
+    public ImportPreviewResponse process(ImportServiceContext context)
             throws Exception {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
-        response = processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
+        // TODO: change to calling process directly on processor (not using processor manager and pass along workflowId)
+        if (context.getWorkflowId() != null) {
+            log.info("Workflow UUID: " + context.getWorkflowId());
+        }
+        response = processorManagerProvider.get().process(context.getBrAPIImports(),
+                processors,
+                context.getData(),
+                context.getProgram(),
+                context.getUpload(),
+                context.getUser(),
+                context.isCommit());
         return response;
 
     }

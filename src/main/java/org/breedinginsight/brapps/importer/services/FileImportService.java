@@ -38,6 +38,7 @@ import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
@@ -328,7 +329,7 @@ public class FileImportService {
         return response;
     }
 
-    public ImportResponse updateUpload(UUID programId, UUID uploadId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
+    public ImportResponse updateUpload(UUID programId, UUID uploadId, UUID workflowId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
             DoesNotExistException, UnprocessableEntityException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
@@ -378,7 +379,7 @@ public class FileImportService {
             } else {
                 brAPIImportList = mappingManager.map(mappingConfig, data);
             }
-            processFile(brAPIImportList, data, program, upload, user, commit, importService, actingUser);
+            processFile(workflowId, brAPIImportList, data, program, upload, user, commit, importService, actingUser);
         } catch (UnprocessableEntityException e) {
             log.error(e.getMessage(), e);
             ImportProgress progress = upload.getProgress();
@@ -424,13 +425,22 @@ public class FileImportService {
         return newUpload;
     }
 
-    private void processFile(List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
-                                   ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
-                                   AuthenticatedUser actingUser) {
+    private void processFile(UUID workflowId, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
+                             ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
+                             AuthenticatedUser actingUser) {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
-                importService.process(finalBrAPIImportList, data, program, upload, user, commit);
+                ImportServiceContext context = ImportServiceContext.builder()
+                        .workflowId(workflowId)
+                        .brAPIImports(finalBrAPIImportList)
+                        .data(data)
+                        .program(program)
+                        .upload(upload)
+                        .user(user)
+                        .commit(commit)
+                        .build();
+                importService.process(context);
             } catch (UnprocessableEntityException e) {
                 log.error(e.getMessage(), e);
                 ImportProgress progress = upload.getProgress();
