@@ -20,6 +20,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
@@ -27,6 +28,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.COMMA_DELIMITER;
 
 @Singleton
 @Slf4j
@@ -44,6 +47,12 @@ public class TrialService {
         this.brAPITrialDAO = brAPITrialDAO;
         this.studyService = studyService;
     }
+    /**
+     * Module: BrAPITrialService
+     * Description: This module contains methods for retrieving BrAPI trials based on trial database IDs and programs.
+     * brAPITrialDAO: Data Access Object for interacting with BrAPI trials in the database.
+     * fetchBrapiTrialsByDbId: Method to fetch BrAPI trials based on provided trial database IDs and program.
+     */
 
     /**
      * Retrieves the TrialDbId belonging to a pending unit based on the provided BrAPI observation unit and program.
@@ -113,28 +122,36 @@ public class TrialService {
     }
 
     /**
-     * Fetches a BrAPI trial belonging to a specific unit based on the provided trialDbId and program.
+     * Retrieves a list of BrAPI trials based on a set of trial database IDs and a specified program.
      *
-     * @param trialDbId The unique identifier of the trial to be fetched.
-     * @param program The program to which the trial belongs.
-     * @return The BrAPI trial belonging to the specified unit.
-     * @throws InternalServerException If an internal server error occurs while processing the request.
-     * @throws IllegalStateException If the trial with the specified trialDbId is not found.
+     * @param trialDbIds a set of trial database IDs used to retrieve the BrAPI trials
+     * @param program the program associated with the trials
+     * @return a list of BrAPITrial objects that match the provided trial database IDs and program
+     * @throws InternalServerException if there is an internal server error during the retrieval process
+     * @throws ApiException if there is an exception while fetching the trials
      */
-    public BrAPITrial fetchBrapiTrialBelongingToUnit(String trialDbId, Program program) throws InternalServerException {
-        try {
-            List<BrAPITrial> trials = brAPITrialDAO.getTrialsByDbIds(Set.of(trialDbId), program);
-            BrAPITrial trial = trials.get(0);
-            if (trials.size() == 0) {
-                throw new IllegalStateException("Trial not found for trialDbId(s): " + trialDbId);
-            }
+    public List<BrAPITrial> fetchBrapiTrialsByDbId(Set<String> trialDbIds, Program program) throws InternalServerException, ApiException {
+        // Initialize the list of BrAPI trials
+        List<BrAPITrial> brapiTrials = null;
 
-            return trial;
-        } catch (ApiException e) {
-            log.error("Error fetching trials: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new InternalServerException(e.toString(), e);
+        // Retrieve the trials from the DAO based on the provided trial database IDs and program
+        brapiTrials = brAPITrialDAO.getTrialsByDbIds(trialDbIds, program);
+
+        // Check if all requested trials were found
+        if (trialDbIds.size() != brapiTrials.size()) {
+            // Identify the missing trial database IDs
+            Set<String> missingIds = new HashSet<>(trialDbIds);
+            missingIds.removeAll(brapiTrials.stream().map(BrAPITrial::getTrialDbId).collect(Collectors.toSet()));
+
+            // Throw an exception with the list of missing trial database IDs
+            throw new IllegalStateException("Trial not found for trial dbid(s): " + String.join(COMMA_DELIMITER, missingIds));
         }
+
+        // Return the list of retrieved BrAPI trials
+        return brapiTrials;
     }
+
+
     // TODO: also used in other workflow
 
     /**

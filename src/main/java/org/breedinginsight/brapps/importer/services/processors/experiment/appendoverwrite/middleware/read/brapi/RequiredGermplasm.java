@@ -32,7 +32,7 @@ public class RequiredGermplasm extends ExpUnitMiddleware {
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
         Program program;
-        Set<String> germplasmDbId;
+        Set<String> germplasmDbIds;
         List<BrAPIGermplasm> brapiGermplasm = null;
         List<PendingImportObject<BrAPIGermplasm>> pendingGermplasm;
         Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByGID;
@@ -48,25 +48,24 @@ public class RequiredGermplasm extends ExpUnitMiddleware {
         log.debug("fetching from BrAPI service, germplasm belonging to required units");
 
         // Get the dbIds of the germplasm belonging to the required exp units
-        Set<String> germplasmDbIds = pendingUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
-
-        // Get the dataset belonging to required exp units
+        germplasmDbIds = pendingUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
         try {
+            // Get the dataset belonging to required exp units
             brapiGermplasm = germplasmService.fetchGermplasmByDbId(new HashSet<>(germplasmDbIds), program);
+
+            // Construct the pending germplasm from the BrAPI locations
+            pendingGermplasm = brapiGermplasm.stream().map(germplasmService::constructPIOFromBrapiGermplasm).collect(Collectors.toList());
+
+            // Construct a hashmap to look up the pending germplasm by gid
+            pendingGermplasmByGID = pendingGermplasm.stream().collect(Collectors.toMap(germplasmService::getGIDFromGermplasmPIO, pio -> pio));
+
+            // Add the map to the context for use in processing import
+            context.getPendingData().setExistingGermplasmByGID(pendingGermplasmByGID);
         } catch (ApiException e) {
             this.compensate(context, new MiddlewareError(() -> {
                 throw new RuntimeException(e);
             }));
         }
-
-        // Construct the pending germplasm from the BrAPI locations
-        pendingGermplasm = brapiGermplasm.stream().map(germplasmService::constructPIOFromBrapiGermplasm).collect(Collectors.toList());
-
-        // Construct a hashmap to look up the pending germplasm by gid
-        pendingGermplasmByGID = pendingGermplasm.stream().collect(Collectors.toMap(germplasmService::getGIDFromGermplasmPIO, pio -> pio));
-
-        // Add the map to the context for use in processing import
-        context.getPendingData().setExistingGermplasmByGID(pendingGermplasmByGID);
 
         return processNext(context);
     }

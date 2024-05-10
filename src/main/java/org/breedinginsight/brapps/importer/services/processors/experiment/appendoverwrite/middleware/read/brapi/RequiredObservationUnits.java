@@ -36,20 +36,12 @@ public class RequiredObservationUnits extends ExpUnitMiddleware {
 
         log.debug("fetching required exp units from BrAPI service");
         program = context.getImportContext().getProgram();
+
+        // Collect deltabreed-generated exp unit ids listed in the import
+        expUnitIds = context.getExpUnitContext().getReferenceOUIds();
         try {
-            // Collect deltabreed-generated exp unit ids listed in the import
-            expUnitIds = context.getExpUnitContext().getReferenceOUIds();
-
             // For each id fetch the observation unit from the brapi data store
-            brapiUnits = observationUnitService.getReferenceUnits(new HashSet<>(expUnitIds), program);
-            if (brapiUnits.size() != expUnitIds.size()) {
-
-                // Handle case of missing Observation Units in data store
-                missingIds = observationUnitService.collectMissingOUIds(new HashSet<>(expUnitIds), new ArrayList<>(brapiUnits));
-                this.compensate(context, new MiddlewareError(() -> {
-                    throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExpImportProcessConstants.COMMA_DELIMITER, missingIds));
-                }));
-            }
+            brapiUnits = observationUnitService.getObservationUnitsByDbId(new HashSet<>(expUnitIds), program);
 
             // Construct pending import objects from the units
             pendingUnits = brapiUnits.stream().map(observationUnitService::constructPIOFromBrapiUnit).collect(Collectors.toList());

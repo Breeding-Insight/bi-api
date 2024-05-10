@@ -33,6 +33,8 @@ import java.util.*;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.COMMA_DELIMITER;
+
 @Singleton
 @Slf4j
 public class StudyService {
@@ -158,25 +160,28 @@ public class StudyService {
     }
 
     /**
-     * Fetches a BrAPI study by its unique database identifier and program.
-     * This method retrieves a BrAPI study identified by the given study database identifier
-     * and corresponding program.
+     * Fetch BrAPI studies by their database identifiers for a given program.
      *
-     * @param studyDbId A String representing the unique database identifier of the study.
-     * @param program The Program object specifying the program to which the study belongs.
-     * @return The BrAPIStudy object representing the study fetched from the database.
-     * @throws ApiException if the study with the provided studyDbId is not found.
+     * This method retrieves a list of BrAPI studies based on the provided set of study database identifiers
+     * and a specified program. It utilizes the BrAPIStudyDAO to fetch studies from the database.
+     *
+     * @param studyDbIds A set of study database identifiers for filtering the studies.
+     * @param program The program related to the studies.
+     * @return A list of BrAPIStudy objects representing the fetched studies.
+     * @throws ApiException If there are issues in retrieving studies or if any study database identifier is missing.
      */
-    public BrAPIStudy fetchBrapiStudyByDbId(String studyDbId, Program program) throws ApiException {
-        BrAPIStudy study = null; // Initializing the study object
-        List<BrAPIStudy> studies = brAPIStudyDAO.getStudiesByStudyDbId(Set.of(studyDbId), program); // Retrieving studies from the database
+    public List<BrAPIStudy> fetchBrapiStudiesByDbId(Set<String> studyDbIds, Program program) throws ApiException {
+        List<BrAPIStudy> brapiStudies = null; // Initializing the study object
+        brapiStudies = brAPIStudyDAO.getStudiesByStudyDbId(studyDbIds, program); // Retrieving studies from the database
 
-        if (studies.size() == 0) {
-            throw new IllegalStateException(
-                    "Study not found for studyDbId: " + studyDbId); // Throwing exception if no study is found for provided studyDbId
+        // If no studies are found, throw an IllegalStateException with an error message
+        if (studyDbIds.size() != brapiStudies.size()) {
+            Set<String> missingIds = new HashSet<>(studyDbIds);
+            missingIds.removeAll(brapiStudies.stream().map(BrAPIStudy::getStudyDbId).collect(Collectors.toSet()));
+            throw new IllegalStateException("Study not found for location dbid(s): " + String.join(COMMA_DELIMITER, missingIds));
         }
 
-        return studies.get(0); // Returning the first study from the list
+        return brapiStudies;
     }
 
     /**

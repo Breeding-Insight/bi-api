@@ -21,6 +21,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
@@ -28,6 +29,8 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.COMMA_DELIMITER;
 
 public class ObservationUnitService {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
@@ -40,19 +43,36 @@ public class ObservationUnitService {
     }
 
     /**
-     * Retrieves the reference Observation Units based on the provided set of experimental unit IDs and the associated Program.
-     * This function queries the database to fetch Observation Units that match the specified IDs within the given Program.
+     * Retrieves a list of BrAPI (Breeding API) observation units by their database IDs for a given set of experimental unit IDs and program.
      *
-     * @param expUnitIds A set of unique identifiers representing the Experimental Units for which reference Observation Units are required.
-     *                   These IDs serve as filters to determine the relevant Observation Units.
-     * @param program The Program to which the Observation Units belong. This parameter ensures that the fetched units are specific to the designated Program.
-     * @return A List of BrAPIObservationUnit objects that correspond to the reference Observation Units matching the provided expUnitIds within the given Program.
-     * @throws ApiException If an error occurs during the retrieval process, an ApiException is thrown to handle exceptional scenarios.
+     * This method queries the BrAPIObservationUnitDAO to retrieve BrAPI observation units based on the provided experimental unit IDs and program.
+     * If the database IDs of the retrieved BrAPI observation units do not match the provided experimental unit IDs, an IllegalStateException is thrown.
+     * The exception includes information on the missing observation unit database IDs.
+     *
+     * @param expUnitIds a set of experimental unit IDs for which to retrieve BrAPI observation units
+     * @param program the program for which to retrieve BrAPI observation units
+     * @return a list of BrAPIObservationUnit objects corresponding to the provided experimental unit IDs
+     * @throws ApiException if an error occurs during the retrieval of observation units
+     * @throws IllegalStateException if the retrieved observation units do not match the provided experimental unit IDs
      */
-    public List<BrAPIObservationUnit> getReferenceUnits(Set<String> expUnitIds,
-                                                        Program program) throws ApiException {
+    public List<BrAPIObservationUnit> getObservationUnitsByDbId(Set<String> expUnitIds, Program program) throws ApiException, IllegalStateException {
+        List<BrAPIObservationUnit> brapiUnits = null;
+
         // Retrieve reference Observation Units based on IDs
-        return brAPIObservationUnitDAO.getObservationUnitsById(new ArrayList<String>(expUnitIds), program);
+        brapiUnits = brAPIObservationUnitDAO.getObservationUnitsById(expUnitIds, program);
+
+        // If no BrAPI units are found, throw an IllegalStateException with an error message
+        if (expUnitIds.size() != brapiUnits.size()) {
+            Set<String> missingIds = new HashSet<>(expUnitIds);
+
+            // Calculate missing IDs based on retrieved BrAPI units
+            missingIds.removeAll(brapiUnits.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toSet()));
+
+            // Throw exception with missing IDs information
+            throw new IllegalStateException("Observation unit not found for unit dbid(s): " + String.join(COMMA_DELIMITER, missingIds));
+        }
+
+        return brapiUnits;
     }
 
     /**

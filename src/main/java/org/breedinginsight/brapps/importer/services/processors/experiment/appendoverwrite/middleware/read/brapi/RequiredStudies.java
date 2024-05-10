@@ -50,28 +50,23 @@ public class RequiredStudies extends ExpUnitMiddleware {
         // Get the dbIds of the studies belonging to the required exp units
         studyDbIds = pendingUnitByNameNoScope.values().stream().map(studyService::getStudyDbIdBelongingToPendingUnit).collect(Collectors.toSet());
 
-        // Get the BrAPI studies belonging to required exp units
-        brAPIStudies = studyDbIds.stream().map(dbId -> {
-            BrAPIStudy study = null;
-            try {
-                study = studyService.fetchBrapiStudyByDbId(dbId, program);
-            } catch (ApiException e) {
-                this.compensate(context, new MiddlewareError(() -> {
-                    throw new RuntimeException(e);
-                }));
-            }
-            return study;
-        }).collect(Collectors.toList());
+        try {
+            // Get the BrAPI studies belonging to required exp units
+            brAPIStudies = studyService.fetchBrapiStudiesByDbId(studyDbIds, program);
 
-        // Construct the pending studies from the BrAPI trials
-        pendingStudies = brAPIStudies.stream().map(pio -> studyService.constructPIOFromBrapiStudy(pio, program)).collect(Collectors.toList());
+            // Construct the pending studies from the BrAPI trials
+            pendingStudies = brAPIStudies.stream().map(pio -> studyService.constructPIOFromBrapiStudy(pio, program)).collect(Collectors.toList());
 
-        // Construct a hashmap to look up the pending study by study name with the program key removed
-        pendingStudyByNameNoScope = pendingStudies.stream().collect(Collectors.toMap(pio -> Utilities.removeProgramKeyAndUnknownAdditionalData(pio.getBrAPIObject().getStudyName(), program.getKey()), pio -> pio));
+            // Construct a hashmap to look up the pending study by study name with the program key removed
+            pendingStudyByNameNoScope = pendingStudies.stream().collect(Collectors.toMap(pio -> Utilities.removeProgramKeyAndUnknownAdditionalData(pio.getBrAPIObject().getStudyName(), program.getKey()), pio -> pio));
 
-        // Add the map to the context for use in processing import
-        context.getPendingData().setStudyByNameNoScope(pendingStudyByNameNoScope);
-
+            // Add the map to the context for use in processing import
+            context.getPendingData().setStudyByNameNoScope(pendingStudyByNameNoScope);
+        } catch (ApiException e) {
+            this.compensate(context, new MiddlewareError(() -> {
+                throw new RuntimeException(e);
+            }));
+        }
 
         return processNext(context);
     }
