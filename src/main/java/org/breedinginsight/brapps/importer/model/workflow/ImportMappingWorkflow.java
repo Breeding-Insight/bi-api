@@ -36,15 +36,19 @@ import static org.breedinginsight.dao.db.tables.ImporterMappingWorkflowTable.IMP
 @NoArgsConstructor
 @SuperBuilder()
 public class ImportMappingWorkflow extends ImporterMappingWorkflowEntity {
+
+
     public ImportMappingWorkflow(ImporterMappingWorkflowEntity importMappingWorkflowEntity) {
         this.setId(importMappingWorkflowEntity.getId());
         this.setName(importMappingWorkflowEntity.getName());
+        this.setBean(importMappingWorkflowEntity.getBean());
     }
     public static ImportMappingWorkflow parseSQLRecord(Record record) {
 
         return ImportMappingWorkflow.builder()
                 .id(record.getValue(IMPORTER_MAPPING_WORKFLOW.ID))
                 .name(record.getValue(IMPORTER_MAPPING_WORKFLOW.NAME))
+                .bean(record.getValue(IMPORTER_MAPPING_WORKFLOW.BEAN))
                 .build();
     }
 }

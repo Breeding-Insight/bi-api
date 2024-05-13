@@ -23,7 +23,6 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistic
 import java.util.Map;
 
 @Data
-@Builder
 @ToString
 @NoArgsConstructor
 public class ProcessedData {
