@@ -1,5 +1,9 @@
 package org.breedinginsight.brapi.v2.services;
 
+import com.github.filosganga.geogson.model.Coordinates;
+import com.github.filosganga.geogson.model.Point;
+import com.github.filosganga.geogson.model.positions.SinglePosition;
+import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -465,9 +469,18 @@ public class BrAPITrialService {
         row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         row.put(ExperimentObservation.Columns.ENV, Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
         row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
+
+        Coordinates coordinates = extractCoordinates(ou);
+        row.put( ExperimentObservation.Columns.LAT, coordinates==null? null : String.valueOf(coordinates.getLat()) );
+        row.put( ExperimentObservation.Columns.LONG, coordinates==null? null : String.valueOf(coordinates.getLon()) );
+        row.put( ExperimentObservation.Columns.ELEVATION, coordinates==null? null : String.valueOf(coordinates.getAlt()) );
+
         BrAPISeason season = seasonDAO.getSeasonById(study.getSeasons().get(0), program.getId());
         row.put(ExperimentObservation.Columns.ENV_YEAR, season.getYear());
         row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
+
+        JsonObject additionalInfo = ou.getAdditionalInfo();
+        row.put(ExperimentObservation.Columns.RTK, additionalInfo.get(BrAPIAdditionalInfoFields.RTK).getAsString());
 
         // get replicate number
         Optional<BrAPIObservationUnitLevelRelationship> repLevel = ou.getObservationUnitPosition()
@@ -484,9 +497,12 @@ public class BrAPITrialService {
                 .findFirst();
         blockLevel.ifPresent(brAPIObservationUnitLevelRelationship ->
                 row.put(ExperimentObservation.Columns.BLOCK_NUM, Integer.parseInt(brAPIObservationUnitLevelRelationship.getLevelCode())));
-        if (ou.getObservationUnitPosition() != null && ou.getObservationUnitPosition().getPositionCoordinateX() != null &&
-                ou.getObservationUnitPosition().getPositionCoordinateY() != null) {
+        if (ou.getObservationUnitPosition() != null && ou.getObservationUnitPosition().getPositionCoordinateX() != null
+        ) {
             row.put(ExperimentObservation.Columns.ROW, ou.getObservationUnitPosition().getPositionCoordinateX());
+        }
+          if (ou.getObservationUnitPosition() != null &&
+                ou.getObservationUnitPosition().getPositionCoordinateY() != null) {
             row.put(ExperimentObservation.Columns.COLUMN, ou.getObservationUnitPosition().getPositionCoordinateY());
         }
         if (ou.getTreatments() != null && !ou.getTreatments().isEmpty()) {
@@ -499,7 +515,22 @@ public class BrAPITrialService {
         return row;
     }
 
-
+    private Coordinates extractCoordinates(BrAPIObservationUnit ou){
+        Coordinates coordinates = null;
+        if (        ou.getObservationUnitPosition()!=null
+                &&  ou.getObservationUnitPosition().getGeoCoordinates()!=null
+                &&  ou.getObservationUnitPosition().getGeoCoordinates().getGeometry()!=null
+                &&  ou.getObservationUnitPosition().getGeoCoordinates().getGeometry().positions()!=null
+        )
+        {
+            Object o = ou.getObservationUnitPosition().getGeoCoordinates().getGeometry().positions();
+            if (o instanceof SinglePosition){
+                SinglePosition sp = (SinglePosition)o;
+                coordinates= sp.coordinates();
+            }
+        }
+        return coordinates;
+    }
 
     private void addObsVarColumns(
             List<Column> columns,
