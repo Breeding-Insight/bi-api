@@ -72,10 +72,12 @@ public class ExperimentImportService implements BrAPIImportService {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(experimentProcessorProvider.get());
-        // TODO: change to calling process directly on processor (not using processor manager and pass along workflowId)
-        if (context.getWorkflowId() != null) {
-            log.info("Workflow UUID: " + context.getWorkflowId());
+
+        if (context.getWorkflow() != null) {
+            log.info("Workflow: " + context.getWorkflow().getName());
         }
+
+        // TODO: change to calling workflow process instead of processor manager
         response = processorManagerProvider.get().process(context.getBrAPIImports(),
                 processors,
                 context.getData(),

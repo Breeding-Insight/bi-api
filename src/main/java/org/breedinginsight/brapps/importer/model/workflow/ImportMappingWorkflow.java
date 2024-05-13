@@ -36,12 +36,10 @@ import static org.breedinginsight.dao.db.tables.ImporterMappingWorkflowTable.IMP
 @NoArgsConstructor
 @SuperBuilder()
 public class ImportMappingWorkflow extends ImporterMappingWorkflowEntity {
-
     public ImportMappingWorkflow(ImporterMappingWorkflowEntity importMappingWorkflowEntity) {
         this.setId(importMappingWorkflowEntity.getId());
         this.setName(importMappingWorkflowEntity.getName());
     }
-
     public static ImportMappingWorkflow parseSQLRecord(Record record) {
 
         return ImportMappingWorkflow.builder()

@@ -44,6 +44,8 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
 import org.breedinginsight.brapps.importer.model.workflow.ImportMappingWorkflow;
+import org.breedinginsight.brapps.importer.model.workflow.Workflow;
+import org.breedinginsight.brapps.importer.services.workflow.WorkflowFactory;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingWorkflowEntity;
@@ -86,12 +88,13 @@ public class FileImportService {
     private final DSLContext dsl;
     private final ImportMappingProgramDAO importMappingProgramDAO;
     private final ImportMappingWorkflowDAO importMappingWorkflowDAO;
+    private final WorkflowFactory workflowFactory;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
                       ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl, ImportMappingProgramDAO importMappingProgramDAO,
-                      ImportMappingWorkflowDAO importMappingWorkflowDAO, UserService userService) {
+                      ImportMappingWorkflowDAO importMappingWorkflowDAO, WorkflowFactory workflowFactory, UserService userService) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -104,6 +107,7 @@ public class FileImportService {
         this.importMappingProgramDAO = importMappingProgramDAO;
         this.userService = userService;
         this.importMappingWorkflowDAO = importMappingWorkflowDAO;
+        this.workflowFactory = workflowFactory;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -431,8 +435,14 @@ public class FileImportService {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
+                Workflow workflow = null;
+                if (workflowId != null) {
+                    Optional<Workflow> optionalWorkflow = workflowFactory.getWorkflow(workflowId);
+                    workflow = optionalWorkflow.orElse(null);
+                }
+                
                 ImportServiceContext context = ImportServiceContext.builder()
-                        .workflowId(workflowId)
+                        .workflow(workflow)
                         .brAPIImports(finalBrAPIImportList)
                         .data(data)
                         .program(program)

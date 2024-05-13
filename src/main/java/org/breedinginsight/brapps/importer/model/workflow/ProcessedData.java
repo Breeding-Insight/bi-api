@@ -15,28 +15,17 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.workflow;
 
 import lombok.*;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
-import tech.tablesaw.api.Table;
-import java.util.List;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 
-@Getter
-@Setter
+import java.util.Map;
+
+@Data
 @Builder
 @ToString
-@AllArgsConstructor
 @NoArgsConstructor
-public class ImportServiceContext {
-    private Workflow workflow;
-    private List<BrAPIImport> brAPIImports;
-    private Table data;
-    private Program program;
-    private ImportUpload upload;
-    private User user;
-    private boolean commit;
+public class ProcessedData {
+    private Map<String, ImportPreviewStatistics> statistics;
 }

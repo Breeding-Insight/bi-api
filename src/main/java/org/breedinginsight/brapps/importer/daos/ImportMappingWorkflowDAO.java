@@ -9,6 +9,7 @@ import org.jooq.Record;
 import javax.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.breedinginsight.dao.db.Tables.*;
@@ -34,6 +35,17 @@ public class ImportMappingWorkflowDAO extends ImporterMappingWorkflowDao {
                 .from(IMPORTER_MAPPING_WORKFLOW)
                 .where(IMPORTER_MAPPING_WORKFLOW.MAPPING_ID.eq(mappingId))
                 .fetch(ImportMappingWorkflow::parseSQLRecord);
+    }
+
+    /**
+     * Retrieves a workflow by its ID.
+     *
+     * @param workflowId The ID of the workflow to retrieve.
+     * @return An Optional containing the ImportMappingWorkflow if found, otherwise an empty Optional.
+     */
+    public Optional<ImportMappingWorkflow> getWorkflowById(UUID workflowId) {
+        return Optional.ofNullable(fetchOneById(workflowId))
+                .map(ImportMappingWorkflow::new);
     }
 
 }

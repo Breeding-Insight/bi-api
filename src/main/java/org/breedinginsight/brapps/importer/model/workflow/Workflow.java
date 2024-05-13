@@ -15,28 +15,22 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports;
+package org.breedinginsight.brapps.importer.model.workflow;
 
-import lombok.*;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
-import tech.tablesaw.api.Table;
-import java.util.List;
+public interface Workflow {
 
-@Getter
-@Setter
-@Builder
-@ToString
-@AllArgsConstructor
-@NoArgsConstructor
-public class ImportServiceContext {
-    private Workflow workflow;
-    private List<BrAPIImport> brAPIImports;
-    private Table data;
-    private Program program;
-    private ImportUpload upload;
-    private User user;
-    private boolean commit;
+    /**
+     * Processes the given import context and returns the processed data.
+     *
+     * @param context the import context containing the necessary data for processing
+     * @return the processed data
+     */
+    ProcessedData process(ImportContext context);
+
+    /**
+     * Retrieves the name of the Workflow for logging display purposes.
+     *
+     * @return the name of the Workflow
+     */
+    String getName();
 }
