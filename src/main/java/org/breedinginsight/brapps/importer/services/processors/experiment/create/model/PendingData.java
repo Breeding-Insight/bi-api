@@ -9,6 +9,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.ProgramLocation;
+import tech.tablesaw.columns.Column;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,5 +27,6 @@ public class PendingData {
     private Map<String, PendingImportObject<ProgramLocation>> locationByName;
     private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName;
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID;
+    private Map<String, Column<?>> timeStampColByPheno;
     private ValidationErrors validationErrors;
 }

@@ -17,6 +17,7 @@
 
 package org.breedinginsight.api.model.v1.response;
 
+import io.micronaut.http.HttpStatus;
 import lombok.*;
 import lombok.experimental.Accessors;
 
@@ -46,7 +47,6 @@ public class ValidationErrors {
         newRow.addError(validationError);
         rowErrors.add(newRow);
     }
-
     public void merge(ValidationErrors validationErrors){
         for (RowValidationErrors rowValidationErrors: validationErrors.getRowErrors()){
             for (ValidationError validationError: rowValidationErrors.getErrors()) {
