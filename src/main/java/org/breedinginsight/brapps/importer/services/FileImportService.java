@@ -440,7 +440,7 @@ public class FileImportService {
                     Optional<Workflow> optionalWorkflow = workflowFactory.getWorkflow(workflowId);
                     workflow = optionalWorkflow.orElse(null);
                 }
-                
+
                 ImportServiceContext context = ImportServiceContext.builder()
                         .workflow(workflow)
                         .brAPIImports(finalBrAPIImportList)
