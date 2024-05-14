@@ -40,7 +40,8 @@ public class ImportMappingWorkflowDAO extends ImporterMappingWorkflowDao {
     }
 
     /**
-     * Retrieves a list of ImportMappingWorkflow objects associated with the given mappingId.
+     * Retrieves a list of ImportMappingWorkflow objects associated with the given mappingId. They are ordered by
+     * position for proper ordering on the front end.
      *
      * @param mappingId The UUID of the mapping to retrieve the workflows for.
      * @return A list of ImportMappingWorkflow objects.
@@ -49,6 +50,7 @@ public class ImportMappingWorkflowDAO extends ImporterMappingWorkflowDao {
         return dsl.select()
                 .from(IMPORTER_MAPPING_WORKFLOW)
                 .where(IMPORTER_MAPPING_WORKFLOW.MAPPING_ID.eq(mappingId))
+                .orderBy(IMPORTER_MAPPING_WORKFLOW.POSITION.asc())
                 .fetch(ImportMappingWorkflow::parseSQLRecord);
     }
 

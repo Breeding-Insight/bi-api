@@ -42,6 +42,7 @@ public class ImportMappingWorkflow extends ImporterMappingWorkflowEntity {
         this.setId(importMappingWorkflowEntity.getId());
         this.setName(importMappingWorkflowEntity.getName());
         this.setBean(importMappingWorkflowEntity.getBean());
+        this.setPosition(importMappingWorkflowEntity.getPosition());
     }
     public static ImportMappingWorkflow parseSQLRecord(Record record) {
 
@@ -49,6 +50,7 @@ public class ImportMappingWorkflow extends ImporterMappingWorkflowEntity {
                 .id(record.getValue(IMPORTER_MAPPING_WORKFLOW.ID))
                 .name(record.getValue(IMPORTER_MAPPING_WORKFLOW.NAME))
                 .bean(record.getValue(IMPORTER_MAPPING_WORKFLOW.BEAN))
+                .position(record.getValue(IMPORTER_MAPPING_WORKFLOW.POSITION))
                 .build();
     }
 }

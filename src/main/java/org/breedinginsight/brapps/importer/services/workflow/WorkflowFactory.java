@@ -48,7 +48,7 @@ public class WorkflowFactory {
      * Produces the appropriate workflow instance based on the import context
      *
      * @param context the import context
-     * @return an Optional containing the workflow if found, otherwise an empty Optional
+     * @return an Optional containing the workflow if id is not null, otherwise an empty Optional
      *
      * @throws IllegalStateException
      * @throws NoSuchBeanException
@@ -58,6 +58,8 @@ public class WorkflowFactory {
         if (workflowId != null) {
             // construct workflow from db record
             Optional<ImportMappingWorkflow> workflowOptional = importMappingWorkflowDAO.getWorkflowById(workflowId);
+
+            // TODO: look at this optional handling
             if (workflowOptional.isPresent()) {
                 ImportMappingWorkflow importMappingworkflow = workflowOptional.orElseThrow(() -> {
                     String msg = "Must have record in db for workflowId";

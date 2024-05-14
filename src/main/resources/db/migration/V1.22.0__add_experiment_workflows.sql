@@ -15,12 +15,21 @@
  * limitations under the License.
  */
 
+/**
+  Table maps workflows to import mappings and provides required configuration options
+
+  mapping_id - link to importer_mapping that this provides a workflow for
+  name - name that will be displayed on front end
+  bean - must match @Named("<bean>") annotation on Workflow class
+  position - for ordering records explicitly, wanted for front end default option and order
+ */
 CREATE TABLE importer_mapping_workflow
 (
     like base_entity INCLUDING DEFAULTS INCLUDING CONSTRAINTS INCLUDING INDEXES,
     mapping_id      UUID NOT NULL,
     name            TEXT NOT NULL,
-    bean            TEXT NOT NULL
+    bean            TEXT NOT NULL,
+    position        INTEGER NOT NULL
 );
 
 ALTER TABLE importer_mapping_workflow
@@ -33,10 +42,10 @@ DECLARE
 BEGIN
   exp_mapping_id := (SELECT id FROM importer_mapping WHERE name = 'ExperimentsTemplateMap');
 
-INSERT INTO public.importer_mapping_workflow (mapping_id, name, bean)
+INSERT INTO public.importer_mapping_workflow (mapping_id, name, bean, position)
 VALUES
-    (exp_mapping_id, 'Create new experiment', 'CreateNewExperimentWorkflow'),
-    (exp_mapping_id, 'Append experimental dataset', 'AppendOverwritePhenotypesWorkflow'),
-    (exp_mapping_id, 'Create new experimental environment', 'CreateNewEnvironmentWorkflow');
+    (exp_mapping_id, 'Create new experiment', 'CreateNewExperimentWorkflow', 0),
+    (exp_mapping_id, 'Append experimental dataset', 'AppendOverwritePhenotypesWorkflow', 1),
+    (exp_mapping_id, 'Create new experimental environment', 'CreateNewEnvironmentWorkflow', 2);
 END
 $$;
