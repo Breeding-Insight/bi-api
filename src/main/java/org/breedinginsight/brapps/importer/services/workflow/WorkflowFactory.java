@@ -59,26 +59,23 @@ public class WorkflowFactory {
             // construct workflow from db record
             Optional<ImportMappingWorkflow> workflowOptional = importMappingWorkflowDAO.getWorkflowById(workflowId);
 
-            // TODO: look at this optional handling
-            if (workflowOptional.isPresent()) {
-                ImportMappingWorkflow importMappingworkflow = workflowOptional.orElseThrow(() -> {
-                    String msg = "Must have record in db for workflowId";
-                    log.error(msg);
-                    return new IllegalStateException(msg);
-                });
+            ImportMappingWorkflow importMappingworkflow = workflowOptional.orElseThrow(() -> {
+                String msg = "Must have record in db for workflowId";
+                log.error(msg);
+                return new IllegalStateException(msg);
+            });
 
-                // newer versions of micronaut have fancier ways to do this using annotations with provider but as
-                // far as I can tell it's not available in 2.5
-                Workflow workflow;
-                try {
-                    workflow = applicationContext.getBean(Workflow.class, Qualifiers.byName(importMappingworkflow.getBean()));
-                } catch (NoSuchBeanException e) {
-                    log.error("Could not find workflow class implementation for bean: " + importMappingworkflow.getBean());
-                    throw e;
-                }
-
-                return Optional.of(workflow);
+            // newer versions of micronaut have fancier ways to do this using annotations with provider but as
+            // far as I can tell it's not available in 2.5
+            Workflow workflow;
+            try {
+                workflow = applicationContext.getBean(Workflow.class, Qualifiers.byName(importMappingworkflow.getBean()));
+            } catch (NoSuchBeanException e) {
+                log.error("Could not find workflow class implementation for bean: " + importMappingworkflow.getBean());
+                throw e;
             }
+
+            return Optional.of(workflow);
         }
 
         return Optional.empty();
