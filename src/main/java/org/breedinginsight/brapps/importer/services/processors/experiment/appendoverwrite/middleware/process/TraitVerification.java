@@ -73,7 +73,8 @@ public class TraitVerification extends ExpUnitMiddleware {
         List<BrAPIImport> importRows = context.getImportContext().getImportRows();
         ValidationErrors validationErrors = context.getPendingData().getValidationErrors();
         List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(varNames, timestampCols).orElse(new ArrayList<>());
-        for (int rowNum = 0; rowNum < importRows.size(); i++) {
+        for (int i = 0; i < importRows.size(); i++) {
+            int rowNum = i;
             tsValErrs.forEach(validationError -> validationErrors.addError(rowNum, validationError));
         }
 
