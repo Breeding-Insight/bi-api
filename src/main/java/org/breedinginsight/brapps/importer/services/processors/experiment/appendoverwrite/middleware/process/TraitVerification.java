@@ -99,6 +99,7 @@ public class TraitVerification extends ExpUnitMiddleware {
             List<Trait> sortedTraits = fileMappingUtil.sortByField(List.copyOf(varNames), new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
             // Read any observation data stored for these traits
+            log.debug("fetching observation data stored for traits");
             Set<String> ouDbIds = context.getExpUnitContext().getPendingObsUnitByOUId().values().stream().map(u -> u.getBrAPIObject().getObservationUnitDbId()).collect(Collectors.toSet());
             Set<String> varDbIds = sortedTraits.stream().map(t->t.getObservationVariableDbId()).collect(Collectors.toSet());
             List<BrAPIObservation> observations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, varDbIds, program);
