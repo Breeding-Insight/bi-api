@@ -471,9 +471,9 @@ public class BrAPITrialService {
 
         // Lat, Long, Elevation
         Coordinates coordinates = extractCoordinates(ou);
-        row.put( ExperimentObservation.Columns.LAT, coordinates==null? null : String.valueOf(coordinates.getLat()) );
-        row.put( ExperimentObservation.Columns.LONG, coordinates==null? null : String.valueOf(coordinates.getLon()) );
-        row.put( ExperimentObservation.Columns.ELEVATION, coordinates==null? null : String.valueOf(coordinates.getAlt()) );
+        row.put( ExperimentObservation.Columns.LAT, coordinates==null? null : doubleToString(coordinates.getLat()) );
+        row.put( ExperimentObservation.Columns.LONG, coordinates==null? null : doubleToString(coordinates.getLon()) );
+        row.put( ExperimentObservation.Columns.ELEVATION, coordinates==null? null : doubleToString(coordinates.getAlt()) );
 
         // RTK
         JsonObject additionalInfo = ou.getAdditionalInfo();
@@ -518,6 +518,9 @@ public class BrAPITrialService {
         return row;
     }
 
+    private String doubleToString(double val){
+        return Double.isNaN(val) ? null : String.valueOf( val );
+    }
     private Coordinates extractCoordinates(BrAPIObservationUnit ou){
         Coordinates coordinates = null;
         if (        ou.getObservationUnitPosition()!=null
