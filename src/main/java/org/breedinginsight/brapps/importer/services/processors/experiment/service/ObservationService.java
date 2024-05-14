@@ -3,9 +3,11 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.servi
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
@@ -22,13 +24,59 @@ import tech.tablesaw.columns.Column;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ObservationService {
+    public String getObservationHash(String observationUnitName, String variableName, String studyName) {
+        String concat = DigestUtils.sha256Hex(observationUnitName) +
+                DigestUtils.sha256Hex(variableName) +
+                DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
+        return DigestUtils.sha256Hex(concat);
+    }
+    public Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits, Program program) throws ApiException {
+        Set<String> ouDbIds = new HashSet<>();
+        Set<String> variableDbIds = new HashSet<>();
+        Map<String, String> variableNameByDbId = new HashMap<>();
+        Map<String, String> ouNameByDbId = new HashMap<>();
+        Map<String, String> studyNameByDbId = studyByNameNoScope.values()
+                .stream()
+                .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
+                .map(PendingImportObject::getBrAPIObject)
+                .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
+
+        studyNameByDbId.keySet().forEach(studyDbId -> {
+            try {
+                brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyDbId, program).forEach(ou -> {
+                    if(StringUtils.isNotBlank(ou.getObservationUnitDbId())) {
+                        ouDbIds.add(ou.getObservationUnitDbId());
+                    }
+                    ouNameByDbId.put(ou.getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
+                });
+            } catch (ApiException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        for (Trait referencedTrait : referencedTraits) {
+            variableDbIds.add(referencedTrait.getObservationVariableDbId());
+            variableNameByDbId.put(referencedTrait.getObservationVariableDbId(), referencedTrait.getObservationVariableName());
+        }
+
+        List<BrAPIObservation> existingObservations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, variableDbIds, program);
+
+        return existingObservations.stream()
+                .map(obs -> {
+                    String studyName = studyNameByDbId.get(obs.getStudyDbId());
+                    String variableName = variableNameByDbId.get(obs.getObservationVariableDbId());
+                    String ouName = ouNameByDbId.get(obs.getObservationUnitDbId());
+
+                    String key = getObservationHash(createObservationUnitKey(studyName, ouName), variableName, studyName);
+
+                    return Map.entry(key, obs);
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
     // TODO: used with expUnit workflow
     public void validateObservations(PendingData pendingData,
                                      int rowNum,
