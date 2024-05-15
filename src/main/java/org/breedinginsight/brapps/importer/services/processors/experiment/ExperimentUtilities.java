@@ -12,10 +12,9 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class ExperimentUtilities {
@@ -50,6 +49,14 @@ public class ExperimentUtilities {
             throw new UnprocessableEntityException(message);
         }
         return map.values().iterator().next();
+    }
+
+    public static <K, V> Optional<V> getSingleEntryValue(Map<K, V> map) {
+        Optional<V> value = Optional.empty();
+        if (map.size() == 1) {
+            value = Optional.ofNullable(map.values().iterator().next());
+        }
+        return value;
     }
 
     /*

@@ -24,10 +24,30 @@ import tech.tablesaw.columns.Column;
 
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class ObservationService {
+    public boolean validDateTimeValue(String value) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
+        try {
+            formatter.parse(value);
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+        return true;
+    }
+
+    public boolean validDateValue(String value) {
+        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
+        try {
+            formatter.parse(value);
+        } catch (DateTimeParseException e) {
+            return false;
+        }
+        return true;
+    }
     public String getObservationHash(String observationUnitName, String variableName, String studyName) {
         String concat = DigestUtils.sha256Hex(observationUnitName) +
                 DigestUtils.sha256Hex(variableName) +

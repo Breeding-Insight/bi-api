@@ -38,7 +38,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 @Singleton
 @Slf4j
 public class StudyService {
-
+    private final Map<String, String> seasonDbIdToYearCache = new HashMap<>();
     private final BrAPISeasonDAO brAPISeasonDAO;
     private final BrAPIStudyDAO brAPIStudyDAO;
 
@@ -51,7 +51,6 @@ public class StudyService {
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
     }
-
 
     // TODO: used by both workflows
     public PendingImportObject<BrAPIStudy> processAndCacheStudy(
@@ -111,7 +110,7 @@ public class StudyService {
     }
 
     // TODO: used by both workflows
-    private String seasonDbIdToYear(String seasonDbId, UUID programId) {
+    public String seasonDbIdToYear(String seasonDbId, UUID programId) {
         String year = null;
         // TODO: add season objects to redis cache then just extract year from those
         // removing this for now here

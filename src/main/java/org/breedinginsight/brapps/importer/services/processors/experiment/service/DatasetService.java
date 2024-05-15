@@ -55,8 +55,8 @@ public class DatasetService {
      * @return BrAPIListDetails object containing the details of the dataset
      * @throws ApiException if there is an issue with fetching the dataset details from the data source
      */
-    public BrAPIListDetails fetchDatasetById(String id, Program program) throws ApiException {
-        BrAPIListDetails dataSetDetails = null;
+    public Optional<BrAPIListDetails> fetchDatasetById(String id, Program program) throws ApiException {
+        Optional<BrAPIListDetails> dataSetDetails = Optional.empty();
 
         // Retrieve existing dataset summaries based on program ID and external reference
         List<BrAPIListSummary> existingDatasets = brAPIListDAO
@@ -71,9 +71,9 @@ public class DatasetService {
         }
 
         // Retrieve dataset details using the list DB ID from the existing dataset summary
-        dataSetDetails = brAPIListDAO
+        dataSetDetails = Optional.ofNullable(brAPIListDAO
                 .getListById(existingDatasets.get(0).getListDbId(), program.getId())
-                .getResult();
+                .getResult());
 
         return dataSetDetails;
     }

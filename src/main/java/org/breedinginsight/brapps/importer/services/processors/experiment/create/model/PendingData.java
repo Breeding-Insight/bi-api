@@ -28,6 +28,7 @@ public class PendingData {
     private Map<String, PendingImportObject<ProgramLocation>> locationByName;
     private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName;
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID;
+    private Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash;
     private Map<String, Column<?>> timeStampColByPheno;
     private Map<String, BrAPIObservation> existingObsByObsHash;
     private ValidationErrors validationErrors;

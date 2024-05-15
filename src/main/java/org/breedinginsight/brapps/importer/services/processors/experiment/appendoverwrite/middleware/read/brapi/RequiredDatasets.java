@@ -49,27 +49,24 @@ public class RequiredDatasets extends ExpUnitMiddleware {
                 .getAdditionalInfo()
                 .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
                 .getAsString();
-
-
-        // Get the dataset belonging to required exp units
         try {
-            dataset = datasetService.fetchDatasetById(datasetId, program);
+            // Get the dataset belonging to required exp units
+            dataset = datasetService.fetchDatasetById(datasetId, program).orElseThrow(ApiException::new);
+
+            // Construct the pending dataset from the BrAPI observation variable list
+            pendingDataset = datasetService.constructPIOFromDataset(dataset, program);
+
+            // Construct a hashmap to look up the pending dataset by dataset name
+            pendingDatasetByName = new HashMap<>();
+            pendingDatasetByName.put(dataset.getListName(), pendingDataset);
+
+            // Add the map to the context for use in processing import
+            context.getPendingData().setObsVarDatasetByName(pendingDatasetByName);
         } catch (ApiException e) {
             this.compensate(context, new MiddlewareError(() -> {
                 throw new RuntimeException(e);
             }));
         }
-
-        // Construct the pending dataset from the BrAPI observation variable list
-        pendingDataset = datasetService.constructPIOFromDataset(dataset, program);
-
-        // Construct a hashmap to look up the pending dataset by dataset name
-        pendingDatasetByName = new HashMap<>();
-        pendingDatasetByName.put(dataset.getListName(), pendingDataset);
-
-        // Add the map to the context for use in processing import
-        context.getPendingData().setObsVarDatasetByName(pendingDatasetByName);
-
         return processNext(context);
     }
 }
