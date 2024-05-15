@@ -37,6 +37,7 @@ import org.breedinginsight.api.model.v1.response.metadata.Status;
 import org.breedinginsight.api.model.v1.response.metadata.StatusCode;
 import org.breedinginsight.api.v1.controller.metadata.AddMetadata;
 import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
+import org.breedinginsight.brapps.importer.model.workflow.ImportMappingWorkflow;
 import org.breedinginsight.brapps.importer.services.ImportConfigManager;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
 import org.breedinginsight.brapps.importer.services.FileImportService;
@@ -206,6 +207,23 @@ public class ImportController {
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
         Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+        return HttpResponse.ok(response);
+    }
+
+    @Get("/import/mappings/{mappingId}/workflows")
+    @Produces(MediaType.APPLICATION_JSON)
+    @AddMetadata
+    @Secured(SecurityRule.IS_ANONYMOUS)
+    public HttpResponse<Response<DataResponse<ImportMappingWorkflow>>> getWorkflowsForSystemMapping(@PathVariable UUID mappingId) {
+
+        List<ImportMappingWorkflow> workflows = fileImportService.getWorkflowsForSystemMapping(mappingId);
+
+        List<Status> metadataStatus = new ArrayList<>();
+        metadataStatus.add(new Status(StatusCode.INFO, "Successful Query"));
+        Pagination pagination = new Pagination(workflows.size(), workflows.size(), 1, 0);
+        Metadata metadata = new Metadata(pagination, metadataStatus);
+
+        Response<DataResponse<ImportMappingWorkflow>> response = new Response(metadata, new DataResponse<>(workflows));
         return HttpResponse.ok(response);
     }
 }

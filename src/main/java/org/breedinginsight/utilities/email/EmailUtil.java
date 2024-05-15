@@ -19,12 +19,10 @@ package org.breedinginsight.utilities.email;
 
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.HttpServerException;
+import org.apache.commons.lang3.StringUtils;
 
 import javax.inject.Singleton;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
+import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import java.io.UnsupportedEncodingException;
@@ -40,13 +38,29 @@ public class EmailUtil {
     private Integer smtpHostPort;
     @Property(name = "email.from")
     private String fromEmail;
+    @Property(name = "email.relay-server.login")
+    private String smtpLogin;
+    @Property(name = "email.relay-server.password")
+    private String smtpPassword;
 
     private Session getSmtpHost() {
         Properties props = new Properties();
         props.put("mail.smtp.host", smtpHostServer);
         props.put("mail.smtp.port", smtpHostPort);
         props.put("mail.debug", true);
-        return Session.getInstance(props, null);
+        Authenticator auth = null;
+        if (StringUtils.isNotBlank(smtpLogin) && StringUtils.isNotBlank(smtpPassword)) {
+            props.put("mail.smtp.auth", true);
+            props.put("mail.smtp.ssl.trust", smtpHostServer);
+            props.put("mail.smtp.starttls.enable", true);
+            auth = new Authenticator() {
+                @Override
+                protected PasswordAuthentication getPasswordAuthentication() {
+                    return new PasswordAuthentication(smtpLogin, smtpPassword);
+                }
+            };
+        }
+        return Session.getInstance(props, auth);
     }
 
     public void sendEmail(String toEmail, String subject, String body){

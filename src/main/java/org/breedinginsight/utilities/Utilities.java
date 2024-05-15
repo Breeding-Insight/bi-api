@@ -86,6 +86,16 @@ public class Utilities {
         return original.replaceAll("\\[.*\\]", "").trim();
     }
 
+    /**
+     * Removes the program key from a string with any accession number.
+     *
+     * @param str The string to remove the program key from
+     * @param programKey The program key to remove
+     * @return The modified string
+     */
+    public static String removeProgramKeyAnyAccession(String str, String programKey) {
+        return str.replaceAll("\\[" + programKey + "-.*\\]", "").trim();
+    }
 
     /**
      * Remove program key from a string. Returns a new value instead of altering original string.
@@ -245,6 +255,14 @@ public class Utilities {
             }
         }
         return programs;
+    }
+
+    /**
+     * Returns the input string with the first character capitalized, the rest lower cased.
+     * Note: does not account for whitespace, does not capitalize multiple words.
+     */
+    public static String capitalize(String input) {
+        return input.substring(0, 1).toUpperCase() + input.substring(1).toLowerCase();
     }
 
     private static boolean isSafeChar(char c) {
