@@ -825,7 +825,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     Scenario:
     - an experiment was created with observations
     - an overwrite operation is attempted with blank observation values
-    - verify blank obervation values do not overwrite original values
+    - verify blank observation values do not overwrite original values
      */
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
