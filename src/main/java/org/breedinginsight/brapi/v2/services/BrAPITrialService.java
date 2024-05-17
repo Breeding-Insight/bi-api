@@ -471,9 +471,15 @@ public class BrAPITrialService {
 
         // Lat, Long, Elevation
         Coordinates coordinates = extractCoordinates(ou);
-        row.put( ExperimentObservation.Columns.LAT, coordinates==null? null : doubleToString(coordinates.getLat()) );
-        row.put( ExperimentObservation.Columns.LONG, coordinates==null? null : doubleToString(coordinates.getLon()) );
-        row.put( ExperimentObservation.Columns.ELEVATION, coordinates==null? null : doubleToString(coordinates.getAlt()) );
+        Optional.ofNullable(coordinates)
+                .map(c -> doubleToString(c.getLat()))
+                .ifPresent(lat -> row.put(ExperimentObservation.Columns.LAT, lat));
+        Optional.ofNullable(coordinates)
+                .map(c -> doubleToString(c.getLon()))
+                .ifPresent(lon -> row.put(ExperimentObservation.Columns.LONG, lon));
+        Optional.ofNullable(coordinates)
+                .map(c -> doubleToString(c.getAlt()))
+                .ifPresent(elevation -> row.put(ExperimentObservation.Columns.ELEVATION, elevation));
 
         // RTK
         JsonObject additionalInfo = ou.getAdditionalInfo();
