@@ -57,6 +57,7 @@ public class ProcessorManager {
 
         // check existing brapi objects and map data for each registered type
         for (Processor processor : processors) {
+            processor.initialize(importRows);
             log.debug("Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             statusService.updateMessage(upload, "Checking existing " + processor.getName().toLowerCase() + " objects in brapi service and mapping data");
             processor.getExistingBrapiData(importRows, program);

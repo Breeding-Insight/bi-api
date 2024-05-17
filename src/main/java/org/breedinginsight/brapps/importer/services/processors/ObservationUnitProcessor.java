@@ -57,6 +57,10 @@ public class ObservationUnitProcessor implements Processor {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
+
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         // get unique observation unit names

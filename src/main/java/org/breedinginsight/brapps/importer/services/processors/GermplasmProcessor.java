@@ -111,6 +111,11 @@ public class GermplasmProcessor implements Processor {
         this.brAPIGermplasmService = brAPIGermplasmService;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
+
+    @Override
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) throws ApiException {
 
         // Get all of our objects specified in the data file by their unique attributes

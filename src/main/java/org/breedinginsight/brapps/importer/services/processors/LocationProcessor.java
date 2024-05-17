@@ -57,6 +57,9 @@ public class LocationProcessor implements Processor {
         this.locationService = locationService;
     }
 
+    @Override
+    public void initialize(List<BrAPIImport> importRows) {
+    }
     public void getExistingBrapiData(List<BrAPIImport> importRows, Program program) {
 
         List<String> uniqueLocationNames = importRows.stream()
