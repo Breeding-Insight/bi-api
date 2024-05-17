@@ -298,7 +298,7 @@ public class TrialService {
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()))
                 .orElseThrow(() -> new InternalServerException("An Experiment ID was not found in any of the external references"));
         UUID experimentId = UUID.fromString(experimentIDRef.getReferenceId());
-        pio = new PendingImportObject<>(ImportObjectState.EXISTING, trial, experimentId));
+        pio = new PendingImportObject<>(ImportObjectState.EXISTING, trial, experimentId);
         return pio;
     }
 
@@ -333,6 +333,9 @@ public class TrialService {
         }
 
         return trialByName;
+    }
+
+    private void initializeTrialsForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
     }
 
     // TODO: used by expunit workflow

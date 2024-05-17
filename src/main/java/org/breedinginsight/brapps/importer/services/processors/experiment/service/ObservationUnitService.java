@@ -351,25 +351,6 @@ public class ObservationUnitService {
         return updatedUnits;
     }
 
-    private void updateObsUnitDependencyValues(String programKey) {
-
-        // update study DbIds
-        this.studyByNameNoScope.values()
-                .stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(PendingImportObject::getBrAPIObject)
-                .forEach(study -> updateStudyDbId(study, programKey));
-
-        // update germplasm DbIds
-        this.existingGermplasmByGID.values()
-                .stream()
-                .filter(Objects::nonNull)
-                .distinct()
-                .map(PendingImportObject::getBrAPIObject)
-                .forEach(this::updateGermplasmDbId);
-    }
-
     private void updateStudyDbId(BrAPIStudy study, String programKey) {
         this.observationUnitByNameNoScope.values()
                 .stream()

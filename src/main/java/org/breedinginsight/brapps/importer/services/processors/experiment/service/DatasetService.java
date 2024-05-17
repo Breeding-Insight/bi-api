@@ -93,7 +93,7 @@ public class DatasetService {
         // Get the external reference for the dataset from the existing list
         BrAPIExternalReference xref = Utilities.getExternalReference(dataset.getExternalReferences(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()))
-                .orElseThrow(() -> new IllegalStateException("External references weren't found for list (dbid): " + dataset.getListDbId());
+                .orElseThrow(() -> new IllegalStateException("External references weren't found for list (dbid): " + dataset.getListDbId()));
 
         // Create a PendingImportObject for the dataset with the existing list and reference ID
         return new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, dataset, UUID.fromString(xref.getReferenceId()));

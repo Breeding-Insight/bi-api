@@ -16,6 +16,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -161,16 +162,27 @@ public class PendingObservation extends ExpUnitMiddleware {
 
             // Build new pending observation data for each phenotype
             Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash = new HashMap<>();
-            for (Column<?> column : phenotypeCols) {
 
-                // Checking all import rows for data
-                for (int i = 0; i < context.getImportContext().getImportRows().size(); i++) {
-                    Integer rowNum = i;
-                    ExperimentObservation row = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
+
+            // Checking all import rows for data
+            for (int i = 0; i < context.getImportContext().getImportRows().size(); i++) {
+                Integer rowNum = i;
+                ExperimentObservation row = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
+
+                // Construct the pending import for the row
+                PendingImport mappedImportRow = context.getImportContext().getMappedBrAPIImport().getOrDefault(rowNum, new PendingImport());
+                String unitId = row.getObsUnitID();
+                mappedImportRow.setTrial(context.getExpUnitContext().getPendingTrialByOUId().get(unitId));
+                mappedImportRow.setLocation(context.getExpUnitContext().getPendingLocationByOUId().get(unitId));
+                mappedImportRow.setStudy(context.getExpUnitContext().getPendingStudyByOUId().get(unitId));
+                mappedImportRow.setObservationUnit(context.getExpUnitContext().getPendingObsUnitByOUId().get(unitId));
+                mappedImportRow.setGermplasm(context.getExpUnitContext().getPendingGermplasmByOUId().get(unitId));
+
+                // For each phenotype, construct the pending observations
+                for (Column<?> column : phenotypeCols) {
                     String cellData = column.getString(rowNum);
 
                     // Generate hash for looking up prior observation
-                    String unitId = row.getExpUnitId();
                     String studyName = context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
                     String unitName = context.getExpUnitContext().getPendingObsUnitByOUId().get(unitId).getBrAPIObject().getObservationUnitName();
                     String phenoColumnName = column.name();
@@ -178,7 +190,7 @@ public class PendingObservation extends ExpUnitMiddleware {
 
                     // Get timestamp if associated column
                     String timestamp = null;
-                    if ( tsColByPheno.containsKey(phenoColumnName) ) {
+                    if (tsColByPheno.containsKey(phenoColumnName)) {
                         timestamp = tsColByPheno.get(phenoColumnName).getString(rowNum);
 
                         // If timestamp is not valid, set to midnight
@@ -191,31 +203,34 @@ public class PendingObservation extends ExpUnitMiddleware {
                         }
                     }
 
-                    // Construct a pending observation for updates made to prior observations
+                    // Construct a pending observation if this is a prior observation
                     if (observationByObsHash.containsKey(observationHash)) {
 
                         // Clone the prior observation
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Construct a pending observation
-                        PendingImportObject<BrAPIObservation> pendingObservation = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(observation, BrAPIObservation.class, program));
+                        PendingImportObject<BrAPIObservation> pendingPriorObservation = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(observation, BrAPIObservation.class, program));
 
                         // Update the pending phenotypic data
                         if (!cellData.equals(observation.getValue())) {
-                            pendingObservation.getBrAPIObject().setValue(cellData);
-                            pendingObservation.setState(ImportObjectState.MUTATED);
+                            pendingPriorObservation.getBrAPIObject().setValue(cellData);
+                            pendingPriorObservation.setState(ImportObjectState.MUTATED);
                         }
 
                         // Update the pending timestamp
                         if (timestamp != null && !OffsetDateTime.parse(timestamp).equals(observation.getObservationTimeStamp())) {
                             DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
                             String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timestamp));
-                            pendingObservation.getBrAPIObject().setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
-                            pendingObservation.setState(ImportObjectState.MUTATED);
+                            pendingPriorObservation.getBrAPIObject().setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
+                            pendingPriorObservation.setState(ImportObjectState.MUTATED);
                         }
 
+                        // Set the pending prior observation in the pending import for the row
+                        mappedImportRow.getObservations().add(pendingPriorObservation);
+
                         // Add pending observation to map
-                        pendingObservationByHash.put(observationHash, pendingObservation);
+                        pendingObservationByHash.put(observationHash, pendingPriorObservation);
 
                         // Construct a pending observation for new data if no prior observation
                     } else {
@@ -234,15 +249,22 @@ public class PendingObservation extends ExpUnitMiddleware {
                         BrAPIObservation newObservation = row.constructBrAPIObservation(cellData, phenoColumnName, seasonDbId, observationUnit, context.getImportContext().isCommit(), program, context.getImportContext().getUser(), BRAPI_REFERENCE_SOURCE, trialId, studyId, UUID.fromString(unitId), observationID);
 
                         // Construct a pending observation
-                        PendingImportObject<BrAPIObservation> pendingObservation = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
+                        PendingImportObject<BrAPIObservation> pendingNewObservation = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
+
+                        // Set the new pending observation in the pending import for the row
+                        mappedImportRow.getObservations().add(pendingNewObservation);
 
                         // Add pending observation to map
-                        pendingObservationByHash.put(observationHash, pendingObservation);
+                        pendingObservationByHash.put(observationHash, pendingNewObservation);
                     }
                 }
-                // Add the pending observation map to the context for use in processing the import
-                context.getPendingData().setPendingObservationByHash(pendingObservationByHash);
+
+                // Set the pending import for the row
+                context.getImportContext().getMappedBrAPIImport().put(rowNum, mappedImportRow);
             }
+
+            // Add the pending observation map to the context for use in processing the import
+            context.getPendingData().setPendingObservationByHash(pendingObservationByHash);
         } catch (DoesNotExistException | ApiException | UnprocessableEntityException e) {
             this.compensate(context, new MiddlewareError(() -> {
                 throw new RuntimeException(e);

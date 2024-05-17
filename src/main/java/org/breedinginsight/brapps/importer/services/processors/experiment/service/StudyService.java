@@ -92,7 +92,7 @@ public class StudyService {
         // Retrieve external reference for the study
         BrAPIExternalReference xref = Utilities.getExternalReference(brAPIStudy.getExternalReferences(),
                         String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.STUDIES.getName()))
-                .orElseThrow(() -> new IllegalStateException("External references weren't found for study (dbid): " + brAPIStudy.getStudyDbId());
+                .orElseThrow(() -> new IllegalStateException("External references weren't found for study (dbid): " + brAPIStudy.getStudyDbId()));
 
         // Map season dbid to year
         String seasonDbId = brAPIStudy.getSeasons().get(0); // It is assumed that the study has only one season

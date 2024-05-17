@@ -3,7 +3,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.brapi.NewPendingBrAPIObjects;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.brapi.PendingObservation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import javax.inject.Inject;
@@ -13,12 +12,12 @@ import javax.inject.Provider;
 public class ImportPreviewStatistics extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
     private Provider<NewPendingBrAPIObjects> newPendingBrAPIObjectsProvider;
-    private Provider<DataValidation> dataValidationProvider;
+    private Provider<ValidationPrep> dataValidationProvider;
     private Provider<FieldValidation> fieldValidationProvider;
 
     @Inject
     public ImportPreviewStatistics(Provider<NewPendingBrAPIObjects> newPendingBrAPIObjectsProvider,
-                                   Provider<DataValidation> dataValidationProvider,
+                                   Provider<ValidationPrep> dataValidationProvider,
                                    Provider<FieldValidation> fieldValidationProvider) {
 
         this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(
