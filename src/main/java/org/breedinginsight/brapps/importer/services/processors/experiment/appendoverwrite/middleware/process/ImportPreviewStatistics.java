@@ -12,17 +12,14 @@ import javax.inject.Provider;
 public class ImportPreviewStatistics extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
     private Provider<NewPendingBrAPIObjects> newPendingBrAPIObjectsProvider;
-    private Provider<ValidationPrep> dataValidationProvider;
     private Provider<FieldValidation> fieldValidationProvider;
 
     @Inject
     public ImportPreviewStatistics(Provider<NewPendingBrAPIObjects> newPendingBrAPIObjectsProvider,
-                                   Provider<ValidationPrep> dataValidationProvider,
                                    Provider<FieldValidation> fieldValidationProvider) {
 
         this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(
                 newPendingBrAPIObjectsProvider.get(),   // Construct Pending import objects for new BrAPI data
-                dataValidationProvider.get(),           // Validate data
                 fieldValidationProvider.get());         // Validate fields
     }
 
