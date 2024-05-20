@@ -15,7 +15,6 @@
  * limitations under the License.
  */
 
-
 package org.breedinginsight.brapps.importer.services.pipeline;
 
 public interface ProcessingStep<I, O> {
