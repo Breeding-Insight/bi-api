@@ -21,21 +21,42 @@ import io.micronaut.context.annotation.Prototype;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
+import org.breedinginsight.brapps.importer.services.pipeline.Pipeline;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.GetExistingProcessingStep;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.ProcessStep;
 
+import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 
 /**
  * This class represents a workflow for creating a new experiment. The bean name must match the appropriate bean column
  * value in the import_mapping_workflow db table
  */
+
 @Prototype
 @Named("CreateNewExperimentWorkflow")
 public class CreateNewExperimentWorkflow implements Workflow {
 
+    private final Provider<GetExistingProcessingStep> getExistingStepProvider;
+    private final Provider<ProcessStep> processStepProvider;
+
+    @Inject
+    public CreateNewExperimentWorkflow(Provider<GetExistingProcessingStep> getExistingStepProvider,
+                                       Provider<ProcessStep> processStepProvider) {
+        this.getExistingStepProvider = getExistingStepProvider;
+        this.processStepProvider = processStepProvider;
+    }
+
     @Override
     public ProcessedData process(ImportContext context) {
         // TODO
-        return null;
+        Pipeline<ImportContext, ProcessedData> pipeline = new Pipeline<>(getExistingStepProvider.get())
+                .addProcessingStep(processStepProvider.get());
+        ProcessedData processed = pipeline.execute(context);
+
+        // TODO: return actual data
+        return processed;
     }
 
     /**
@@ -43,8 +64,10 @@ public class CreateNewExperimentWorkflow implements Workflow {
      *
      * @return the name of the workflow
      */
+
     @Override
     public String getName() {
         return "CreateNewExperimentWorkflow";
     }
 }
+
