@@ -3,9 +3,8 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import io.micronaut.context.annotation.Prototype;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.GetExistingBrAPIData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.HandleErr;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.Transaction;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ValidateAllRowsHaveIDs;
-import org.breedinginsight.brapps.importer.services.processors.experiment.middleware.Middleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ProcessedData;
@@ -19,15 +18,15 @@ import javax.inject.Provider;
 public class AppendOverwritePhenotypesWorkflow implements Workflow {
 
     ExpUnitMiddleware middleware;
-    Provider<HandleErr> handleErrProvider;
+    Provider<Transaction> transactionProvider;
     Provider<ValidateAllRowsHaveIDs> validateAllRowsHaveIDsProvider;
     Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider;
     @Inject
-    public AppendOverwritePhenotypesWorkflow(Provider<HandleErr> handleErrProvider,
+    public AppendOverwritePhenotypesWorkflow(Provider<Transaction> transactionProvider,
                                              Provider<ValidateAllRowsHaveIDs> validateAllRowsHaveIDsProvider,
                                              Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider) {
 
-        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(handleErrProvider.get(),
+        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(transactionProvider.get(),
                 validateAllRowsHaveIDsProvider.get(),
                 getExistingBrAPIDataProvider.get());
     }

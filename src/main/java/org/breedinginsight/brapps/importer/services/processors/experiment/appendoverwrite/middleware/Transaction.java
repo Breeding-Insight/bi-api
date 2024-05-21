@@ -5,7 +5,9 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
 @Slf4j
-public class HandleErr extends ExpUnitMiddleware {
+public class Transaction extends ExpUnitMiddleware {
+    // TODO: add member for ExpUnitContext
+
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
         return processNext(context);

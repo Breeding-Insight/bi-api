@@ -14,6 +14,7 @@ import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
@@ -170,14 +171,7 @@ public class ObservationVariableService {
                 );
 
                 // create the changelog field in additional info if it does not already exist
-                if (pendingObservation.getAdditionalInfo().isJsonNull()) {
-                    pendingObservation.setAdditionalInfo(new JsonObject());
-                    pendingObservation.getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
-                }
-
-                if (pendingObservation.getAdditionalInfo() != null && !pendingObservation.getAdditionalInfo().has(BrAPIAdditionalInfoFields.CHANGELOG)) {
-                    pendingObservation.getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
-                }
+                OverwrittenData.createChangeLog(pendingObservation);
 
                 // add a new entry to the changelog
                 pendingObservation.getAdditionalInfo().get(BrAPIAdditionalInfoFields.CHANGELOG).getAsJsonArray().add(gson.toJsonTree(change).getAsJsonObject());

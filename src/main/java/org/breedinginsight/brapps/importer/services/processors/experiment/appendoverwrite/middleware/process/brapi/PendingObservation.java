@@ -4,6 +4,8 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.micronaut.http.HttpStatus;
+import io.reactivex.rxjava3.core.Completable;
+import io.reactivex.rxjava3.core.Maybe;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -26,6 +28,10 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.InitialData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.UnchangedData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.VisitedObservationData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
@@ -186,7 +192,7 @@ public class PendingObservation extends ExpUnitMiddleware {
                 for (Column<?> column : phenotypeCols) {
                     String cellData = column.getString(rowNum);
 
-                    // Generate hash for looking up prior observation
+                    // Generate hash for looking up prior observation data
                     String studyName = context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
                     String unitName = context.getExpUnitContext().getPendingObsUnitByOUId().get(unitId).getBrAPIObject().getObservationUnitName();
                     String phenoColumnName = column.name();
@@ -194,8 +200,10 @@ public class PendingObservation extends ExpUnitMiddleware {
 
                     // Get timestamp if associated column
                     String timestamp = null;
+                    String tsColumnName = null;
                     if (tsColByPheno.containsKey(phenoColumnName)) {
                         timestamp = tsColByPheno.get(phenoColumnName).getString(rowNum);
+                        tsColumnName = tsColByPheno.get(phenoColumnName).name();
 
                         // If timestamp is not valid, set to midnight
                         if (timestamp != null && !timestamp.isBlank() && (!observationService.validDateTimeValue(timestamp) || !observationService.validDateValue(timestamp))) {
@@ -207,105 +215,67 @@ public class PendingObservation extends ExpUnitMiddleware {
                         }
                     }
 
-                    // Construct a pending observation if this is a prior observation
+                    VisitedObservationData processedData = null;
+                    // Is there prior observation data for this unit + var?
                     if (observationByObsHash.containsKey(observationHash)) {
 
                         // Clone the prior observation
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
-                        // Construct a pending observation
-                        PendingImportObject<BrAPIObservation> pendingPriorObservation = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(observation, BrAPIObservation.class, program));
+                        // Is there a change to the prior data?
+                        if (!cellData.equals(observation.getValue()) || (timestamp != null && !OffsetDateTime.parse(timestamp).equals(observation.getObservationTimeStamp()))) {
 
-                        // Are overwrites authorized?
-                        boolean canOverwrite = context.getImportContext().isCommit() && "false".equals( row.getOverwrite() == null ? "false" : row.getOverwrite());
-                        String original = null;
+                            // Is prior data protected?
+                            boolean canOverwrite = context.getImportContext().isCommit() && "false".equals( row.getOverwrite() == null ? "false" : row.getOverwrite());
 
-                        // Update the pending phenotypic data
-                        if (!cellData.equals(observation.getValue())) {
-                            pendingPriorObservation.getBrAPIObject().setValue(cellData);
-                            pendingPriorObservation.setState(ImportObjectState.MUTATED);
+                            // create new instance of OverwrittenData
+                            processedData = new OverwrittenData(canOverwrite,
+                                    context.getImportContext().isCommit(),
+                                    unitId,
+                                    phenoColumnName,
+                                    tsColumnName,
+                                    cellData,
+                                    timestamp,
+                                    Optional.ofNullable(row.getOverwriteReason()).orElse(""),
+                                    observation,
+                                    context.getImportContext().getUser().getId(),
+                                    program);
+                        } else {
 
-                            // Validation error if user has not chosen to overwrite existing data
-                            if (StringUtils.isNotBlank(cellData) && !canOverwrite) {
-                                ValidationError overwriteValErr = new ValidationError(tsColByPheno.get(phenoColumnName).name(), String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", unitId, phenoColumnName), HttpStatus.UNPROCESSABLE_ENTITY);
-                                validationErrors.addError(rowNum, overwriteValErr);
-                            }
-
-                            // Record original value in changelog entry
-                            original = observation.getValue();
+                            // create new instance of UnchangedData
+                            processedData = new UnchangedData(observation, program);
                         }
 
-                        // Update the pending timestamp
-                        if (timestamp != null && !OffsetDateTime.parse(timestamp).equals(observation.getObservationTimeStamp())) {
-                            DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
-                            String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timestamp));
-                            pendingPriorObservation.getBrAPIObject().setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
-                            pendingPriorObservation.setState(ImportObjectState.MUTATED);
-
-                            // Validation error if user has not chosen to overwrite existing timestamp
-                            if (StringUtils.isNotBlank(cellData) && !canOverwrite) {
-                                ValidationError overwriteValErr = new ValidationError(tsColByPheno.get(phenoColumnName).name(), String.format("Value already exists for ObsUnitId: %s, Timestamp: %s", unitId, tsColByPheno.get(phenoColumnName).name()), HttpStatus.UNPROCESSABLE_ENTITY);
-                                validationErrors.addError(rowNum, overwriteValErr);
-                            }
-
-                            // Add original timestamp to changelog entry
-                            original = Optional.ofNullable(original).map(o -> o + " " + observation.getObservationTimeStamp()).orElse(String.valueOf(observation.getObservationTimeStamp()));
-
-                        }
-
-                        // Record any updates as BrAPI observation additional info
-                        if (context.getImportContext().isCommit()) {
-
-                            // Create the changelog field in observation additional info if it does not already exist
-                            if (pendingPriorObservation.getBrAPIObject().getAdditionalInfo().isJsonNull()) {
-                                pendingPriorObservation.getBrAPIObject().setAdditionalInfo(new JsonObject());
-                                pendingPriorObservation.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
-                            }
-                            if (pendingPriorObservation.getBrAPIObject().getAdditionalInfo() != null && !pendingPriorObservation.getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.CHANGELOG)) {
-                                pendingPriorObservation.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.CHANGELOG, new JsonArray());
-                            }
-
-                            // Construct a changelog entry
-                            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd:hh-mm-ssZ");
-                            String rightNow = formatter.format(OffsetDateTime.now());
-                            String reason = Optional.ofNullable(row.getOverwriteReason()).orElse("");
-                            ChangeLogEntry entry = new ChangeLogEntry(original, reason, context.getImportContext().getUser().getId(), rightNow);
-
-                            // Add the entry to the changelog
-                            pendingPriorObservation.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.CHANGELOG).getAsJsonArray().add(gson.toJsonTree(entry).getAsJsonObject());
-                        }
-
-                        // Set the pending prior observation in the pending import for the row
-                        mappedImportRow.getObservations().add(pendingPriorObservation);
-
-                        // Add pending observation to map
-                        pendingObservationByHash.put(observationHash, pendingPriorObservation);
-
-                        // Construct a pending observation for new data if no prior observation
                     } else {
-                        UUID trialId = pendingTrial.getId();
-                        UUID studyId = context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getId();
-                        String studyYear = context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getSeasons().get(0);
-                        String seasonDbId = studyService.seasonDbIdToYear(studyYear, program.getId());
 
                         // Clone the observation unit
                         BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getExpUnitContext().getPendingObsUnitByOUId().get(row.getExpUnitId()).getBrAPIObject()), BrAPIObservationUnit.class);
 
-                        // Generate a new ID for the observation
-                        UUID observationID = UUID.randomUUID();
-
-                        // Construct the new observation
-                        BrAPIObservation newObservation = row.constructBrAPIObservation(cellData, phenoColumnName, seasonDbId, observationUnit, context.getImportContext().isCommit(), program, context.getImportContext().getUser(), BRAPI_REFERENCE_SOURCE, trialId, studyId, UUID.fromString(unitId), observationID);
-
-                        // Construct a pending observation
-                        PendingImportObject<BrAPIObservation> pendingNewObservation = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
-
-                        // Set the new pending observation in the pending import for the row
-                        mappedImportRow.getObservations().add(pendingNewObservation);
-
-                        // Add pending observation to map
-                        pendingObservationByHash.put(observationHash, pendingNewObservation);
+                        // create new instance of InitialData
+                        processedData = new InitialData(context.getImportContext().isCommit(),
+                                cellData,
+                                phenoColumnName,
+                                row,
+                                pendingTrial.getId(),
+                                context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getId(),
+                                unitId,
+                                context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getSeasons().get(0),
+                                observationUnit,
+                                context.getImportContext().getUser(),
+                                context.getImportContext().getProgram());
                     }
+
+                    // Validate processed data
+                    processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum, e)));
+
+                    // Construct a pending observation
+                    PendingImportObject<BrAPIObservation> pendingProcessedData = processedData.constructPendingObservation();
+
+                    // Set the new pending observation in the pending import for the row
+                    mappedImportRow.getObservations().add(pendingProcessedData);
+
+                    // Add pending observation to map
+                    pendingObservationByHash.put(observationHash, pendingProcessedData);
                 }
 
                 // Set the pending import for the row
