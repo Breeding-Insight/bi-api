@@ -3,12 +3,14 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.servi
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.micronaut.http.server.exceptions.InternalServerException;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -19,10 +21,12 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 
+import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -30,6 +34,33 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ObservationService {
+    public boolean validCategory(List<BrAPIScaleValidValuesCategories> categories, String value) {
+        Set<String> categoryValues = categories.stream()
+                .map(category -> category.getValue().toLowerCase())
+                .collect(Collectors.toSet());
+        return categoryValues.contains(value.toLowerCase());
+    }
+    public boolean validNumericRange(BigDecimal value, Scale validValues) {
+        // account for empty min or max in valid determination
+        return (validValues.getValidValueMin() == null || value.compareTo(BigDecimal.valueOf(validValues.getValidValueMin())) >= 0) &&
+                (validValues.getValidValueMax() == null || value.compareTo(BigDecimal.valueOf(validValues.getValidValueMax())) <= 0);
+    }
+    public Optional<BigDecimal> validNumericValue(String value) {
+        BigDecimal number;
+        try {
+            number = new BigDecimal(value);
+        } catch (NumberFormatException e) {
+            return Optional.empty();
+        }
+        return Optional.of(number);
+    }
+
+    public boolean isBlankObservation(String value) {
+        return StringUtils.isBlank(value);
+    }
+    public boolean isNAObservation(String value){
+        return value.equalsIgnoreCase("NA");
+    }
     public boolean validDateTimeValue(String value) {
         DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
         try {
