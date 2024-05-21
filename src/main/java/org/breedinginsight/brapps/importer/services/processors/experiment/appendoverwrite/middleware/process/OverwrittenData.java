@@ -10,7 +10,9 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate.field.FieldValidator;
 import org.breedinginsight.model.Program;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -24,10 +26,13 @@ import java.util.UUID;
 
 public class OverwrittenData extends VisitedObservationData {
     @Inject
+    FieldValidator fieldValidator;
+    @Inject
     Gson gson;
     boolean canOverwrite;
     boolean isCommit;
     String unitId;
+    Trait trait;
     String phenoColumnName;
     String timestampColumnName;
     String cellData;
@@ -40,6 +45,7 @@ public class OverwrittenData extends VisitedObservationData {
     public OverwrittenData(boolean canOverwrite,
                            boolean isCommit,
                            String unitId,
+                           Trait trait,
                            String phenoColumnName,
                            String timestampColumnName,
                            String cellData,
@@ -51,6 +57,7 @@ public class OverwrittenData extends VisitedObservationData {
         this.canOverwrite = canOverwrite;
         this.isCommit = isCommit;
         this.unitId = unitId;
+        this.trait = trait;
         this.phenoColumnName = phenoColumnName;
         this.timestampColumnName = timestampColumnName;
         this.cellData = cellData;
@@ -63,11 +70,10 @@ public class OverwrittenData extends VisitedObservationData {
 
     @Override
     public Optional<List<ValidationError>> getValidationErrors() {
-        List<ValidationError> errors = null;
+        List<ValidationError> errors = new ArrayList<>();
 
         // Errors for trying to change protected data
         if (!canOverwrite) {
-            errors = new ArrayList<>();
             if (!isValueMatched()) {
                 errors.add(new ValidationError(phenoColumnName, String.format("Value already exists for ObsUnitId: %s, Phenotype: %s", unitId, phenoColumnName), HttpStatus.UNPROCESSABLE_ENTITY));
             }
@@ -76,7 +82,13 @@ public class OverwrittenData extends VisitedObservationData {
             }
         }
 
-        return Optional.ofNullable(errors);
+        // Validate observation value
+        fieldValidator.validateField(phenoColumnName, cellData, trait).ifPresent(errors::add);
+
+        // Validate timestamp
+        fieldValidator.validateField(timestampColumnName, timestamp, null).ifPresent(errors::add);
+
+        return Optional.ofNullable(errors.isEmpty() ? null : errors);
     }
 
     @Override

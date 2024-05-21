@@ -18,6 +18,8 @@ import static org.breedinginsight.dao.db.enums.DataType.DATE;
 public class DateValidator implements ObservationValidator {
     @Inject
     ObservationService observationService;
+    private final String dateMessage = "Incorrect date format detected. Expected YYYY-MM-DD";
+    private final String dateTimeMessage = "Incorrect datetime format detected. Expected YYYY-MM-DD or YYYY-MM-DDThh:mm:ss+hh:mm";
 
     public DateValidator(ObservationService observationService) {
         this.observationService = observationService;
@@ -36,25 +38,27 @@ public class DateValidator implements ObservationValidator {
 
         // Is this a timestamp field?
         if (fieldName.startsWith(TIMESTAMP_PREFIX)) {
+            if (!observationService.validDateValue(value) || !observationService.validDateTimeValue(value)) {
+                return Optional.of(new ValidationError(fieldName, dateTimeMessage, HttpStatus.UNPROCESSABLE_ENTITY));
+            }
 
         } else {
 
-            // skip if there is no trait data
+            // Skip if there is no trait data
             if (variable == null || variable.getScale() == null || variable.getScale().getDataType() == null) {
                 return Optional.empty();
             }
 
-            // skip if this is not a date trait
+            // Skip if this is not a date trait
             if (!DATE.equals(variable.getScale().getDataType())) {
                 return Optional.empty();
             }
 
+            // Validate date
             if (!observationService.validDateValue(value)) {
-                return Optional.of(new ValidationError(fieldName, "Incorrect date format detected. Expected YYYY-MM-DD", HttpStatus.UNPROCESSABLE_ENTITY));
+                return Optional.of(new ValidationError(fieldName, dateMessage, HttpStatus.UNPROCESSABLE_ENTITY));
             }
         }
-
-
 
         return Optional.empty();
     }

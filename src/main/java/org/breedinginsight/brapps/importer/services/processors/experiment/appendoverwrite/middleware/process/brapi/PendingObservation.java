@@ -1,12 +1,8 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.brapi;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import io.micronaut.http.HttpStatus;
-import io.reactivex.rxjava3.core.Completable;
-import io.reactivex.rxjava3.core.Maybe;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
@@ -20,7 +16,6 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -32,7 +27,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.UnchangedData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.VisitedObservationData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate.field.FieldValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
@@ -44,13 +39,11 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
-import org.jooq.impl.QOM;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -65,6 +58,7 @@ public class PendingObservation extends ExpUnitMiddleware {
     BrAPIObservationDAO brAPIObservationDAO;
     FileMappingUtil fileMappingUtil;
     Gson gson;
+    FieldValidator fieldValidator;
 
     @Inject
     public PendingObservation(StudyService studyService,
@@ -72,7 +66,8 @@ public class PendingObservation extends ExpUnitMiddleware {
                               BrAPIObservationDAO brAPIObservationDAO,
                               ObservationService observationService,
                               FileMappingUtil fileMappingUtil,
-                              Gson gson) {
+                              Gson gson,
+                              FieldValidator fieldValidator) {
         this.studyService = studyService;
         this.observationVariableService = observationVariableService;
         this.brAPIObservationDAO = brAPIObservationDAO;
@@ -126,6 +121,16 @@ public class PendingObservation extends ExpUnitMiddleware {
             Program program = context.getImportContext().getProgram();
             List<Trait> traits = observationVariableService.fetchTraitsByName(varNames, program);
 
+            // Map trait by phenotype column name
+            Map<String, Trait> traitByPhenoColName = traits.stream().collect(
+                    Collectors.toMap(
+                            trait -> trait.getObservationVariableName().toUpperCase(),  // Use uppercase keys for case-insensitivity
+                            trait -> trait,
+                            (trait1, trait2) -> trait1,  // Merge function
+                            CaseInsensitiveMap::new  // Supplier for creating a CaseInsensitiveMap
+                    )
+            );
+
             // Sort the traits to match the order of the headers in the import file
             List<Trait> sortedTraits = fileMappingUtil.sortByField(List.copyOf(varNames), new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
@@ -173,8 +178,7 @@ public class PendingObservation extends ExpUnitMiddleware {
             // Build new pending observation data for each phenotype
             Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash = new HashMap<>();
 
-
-            // Checking all import rows for data
+            // Process observation data for each row
             for (int i = 0; i < context.getImportContext().getImportRows().size(); i++) {
                 Integer rowNum = i;
                 ExperimentObservation row = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
@@ -199,20 +203,20 @@ public class PendingObservation extends ExpUnitMiddleware {
                     String observationHash = observationService.getObservationHash(unitName, phenoColumnName, studyName);
 
                     // Get timestamp if associated column
-                    String timestamp = null;
+                    var cell = new Object() {   // mutable reference object to make timestamp accessible in anonymous methods
+                        String timestamp = null;
+                    };
                     String tsColumnName = null;
                     if (tsColByPheno.containsKey(phenoColumnName)) {
-                        timestamp = tsColByPheno.get(phenoColumnName).getString(rowNum);
+                        cell.timestamp = tsColByPheno.get(phenoColumnName).getString(rowNum);
                         tsColumnName = tsColByPheno.get(phenoColumnName).name();
 
                         // If timestamp is not valid, set to midnight
-                        if (timestamp != null && !timestamp.isBlank() && (!observationService.validDateTimeValue(timestamp) || !observationService.validDateValue(timestamp))) {
-                            timestamp += MIDNIGHT;
+                        fieldValidator.validateField(tsColumnName, cell.timestamp, null).ifPresent(err->{
+                            cell.timestamp += MIDNIGHT;
+                            validationErrors.addError(rowNum, err);
+                        });
 
-                            // Add a validation error
-                            ValidationError timestampValErr = new ValidationError(tsColByPheno.get(phenoColumnName).name(), String.format("Timestamp format is not valid for %s", tsColByPheno.get(phenoColumnName).name()), HttpStatus.UNPROCESSABLE_ENTITY);
-                            validationErrors.addError(rowNum, timestampValErr);
-                        }
                     }
 
                     VisitedObservationData processedData = null;
@@ -223,19 +227,23 @@ public class PendingObservation extends ExpUnitMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if (!cellData.equals(observation.getValue()) || (timestamp != null && !OffsetDateTime.parse(timestamp).equals(observation.getObservationTimeStamp()))) {
+                        if (!cellData.equals(observation.getValue()) || (cell.timestamp != null && !OffsetDateTime.parse(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
 
                             // Is prior data protected?
                             boolean canOverwrite = context.getImportContext().isCommit() && "false".equals( row.getOverwrite() == null ? "false" : row.getOverwrite());
 
-                            // create new instance of OverwrittenData
+                            // Clone the trait
+                            Trait changeTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
+
+                            // Create new instance of OverwrittenData
                             processedData = new OverwrittenData(canOverwrite,
                                     context.getImportContext().isCommit(),
                                     unitId,
+                                    changeTrait,
                                     phenoColumnName,
                                     tsColumnName,
                                     cellData,
-                                    timestamp,
+                                    cell.timestamp,
                                     Optional.ofNullable(row.getOverwriteReason()).orElse(""),
                                     observation,
                                     context.getImportContext().getUser().getId(),
@@ -248,13 +256,15 @@ public class PendingObservation extends ExpUnitMiddleware {
 
                     } else {
 
-                        // Clone the observation unit
+                        // Clone the observation unit and trait
                         BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getExpUnitContext().getPendingObsUnitByOUId().get(row.getExpUnitId()).getBrAPIObject()), BrAPIObservationUnit.class);
+                        Trait initialTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
 
                         // create new instance of InitialData
                         processedData = new InitialData(context.getImportContext().isCommit(),
                                 cellData,
                                 phenoColumnName,
+                                initialTrait,
                                 row,
                                 pendingTrial.getId(),
                                 context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getId(),
