@@ -10,7 +10,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate.field.FieldValidator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate.FieldValidator;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.utilities.Utilities;
@@ -131,6 +131,11 @@ public class OverwrittenData extends VisitedObservationData {
         }
 
         return pendingUpdatedObservation;
+    }
+
+    @Override
+    public void updateTally(AppendStatistic statistic) {
+        statistic.incrementMutatedCount(1);
     }
 
     private void createAdditionalInfoChangeLog(BrAPIObservation update) {

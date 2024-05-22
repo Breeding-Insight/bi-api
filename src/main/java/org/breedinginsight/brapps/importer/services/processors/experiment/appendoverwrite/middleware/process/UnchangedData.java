@@ -30,4 +30,9 @@ public class UnchangedData extends VisitedObservationData {
 
         return pendingExistingObservation;
     }
+
+    @Override
+    public void updateTally(AppendStatistic statistic) {
+        statistic.incrementExistingCount(1);
+    }
 }

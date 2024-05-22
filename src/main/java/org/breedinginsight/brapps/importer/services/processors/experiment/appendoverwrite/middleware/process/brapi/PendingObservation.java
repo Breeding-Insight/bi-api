@@ -23,11 +23,8 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.InitialData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.UnchangedData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.VisitedObservationData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate.field.FieldValidator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.*;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate.FieldValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
@@ -59,6 +56,7 @@ public class PendingObservation extends ExpUnitMiddleware {
     FileMappingUtil fileMappingUtil;
     Gson gson;
     FieldValidator fieldValidator;
+    AppendStatistic statistic;
 
     @Inject
     public PendingObservation(StudyService studyService,
@@ -67,13 +65,15 @@ public class PendingObservation extends ExpUnitMiddleware {
                               ObservationService observationService,
                               FileMappingUtil fileMappingUtil,
                               Gson gson,
-                              FieldValidator fieldValidator) {
+                              FieldValidator fieldValidator,
+                              AppendStatistic statistic) {
         this.studyService = studyService;
         this.observationVariableService = observationVariableService;
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.observationService = observationService;
         this.fileMappingUtil = fileMappingUtil;
         this.gson = gson;
+        this.statistic = statistic;
     }
 
     @Override
@@ -277,6 +277,14 @@ public class PendingObservation extends ExpUnitMiddleware {
 
                     // Validate processed data
                     processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum, e)));
+
+                    // Update import preview statistics
+                    processedData.updateTally(statistic);
+                    statistic.addEnvironmentName(studyName);
+                    // TODO: change null values to actual data
+                    // TODO: change signature to take two args, studyName and unitName
+                    statistic.addObservationUnitId(null);
+                    statistic.addGid(null);
 
                     // Construct a pending observation
                     PendingImportObject<BrAPIObservation> pendingProcessedData = processedData.constructPendingObservation();

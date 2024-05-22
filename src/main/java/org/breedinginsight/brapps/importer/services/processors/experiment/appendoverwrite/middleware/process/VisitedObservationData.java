@@ -10,4 +10,5 @@ import java.util.Optional;
 public abstract class VisitedObservationData {
     abstract public Optional<List<ValidationError>> getValidationErrors();
     abstract public PendingImportObject<BrAPIObservation> constructPendingObservation();
+    abstract public void updateTally(AppendStatistic statistic);
 }
