@@ -178,7 +178,7 @@ public class PendingObservation extends ExpUnitMiddleware {
             // Build new pending observation data for each phenotype
             Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash = new HashMap<>();
 
-            // Process observation data for each row
+            // Build pending import data maps for each row
             for (int i = 0; i < context.getImportContext().getImportRows().size(); i++) {
                 Integer rowNum = i;
                 ExperimentObservation row = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
@@ -192,7 +192,7 @@ public class PendingObservation extends ExpUnitMiddleware {
                 mappedImportRow.setObservationUnit(context.getExpUnitContext().getPendingObsUnitByOUId().get(unitId));
                 mappedImportRow.setGermplasm(context.getExpUnitContext().getPendingGermplasmByOUId().get(unitId));
 
-                // For each phenotype, construct the pending observations
+                // Assemble the pending observation data for all phenotypes
                 for (Column<?> column : phenotypeCols) {
                     String cellData = column.getString(rowNum);
 
