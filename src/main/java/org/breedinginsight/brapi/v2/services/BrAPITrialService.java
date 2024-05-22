@@ -244,7 +244,8 @@ public class BrAPITrialService {
                 List<Map<String, Object>> rows = entry.getValue();
                 sortDefaultForExportRows(rows);
                 StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
-                String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName()) + fileType.getExtension();
+                // TODO: remove hardcoded datasetName, use observation level.
+                String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName(), "Observation Dataset") + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
             }
@@ -265,7 +266,8 @@ public class BrAPITrialService {
             StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
             // Set filename.
             String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
-            String fileName = makeFileName(experiment, program, envFilenameFragment) + fileType.getExtension();
+            // TODO: remove hardcoded datasetName, use observation level.
+            String fileName = makeFileName(experiment, program, envFilenameFragment, "Observation Dataset") + fileType.getExtension();
             downloadFile = new DownloadFile(fileName, streamedFile);
         }
 
@@ -298,17 +300,17 @@ public class BrAPITrialService {
         return new StreamedFile(in, new MediaType(MediaType.APPLICATION_OCTET_STREAM));
     }
 
-    public Dataset getDatasetData(Program program, UUID experimentId, UUID datsetId, Boolean stats) throws ApiException, DoesNotExistException {
-        log.debug("fetching dataset: " + datsetId + " for experiment: " + experimentId + ".  including stats: " + stats);
-        log.debug("fetching observationUnits for dataset: " + datsetId);
-        List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datsetId.toString(), program);
-        log.debug("fetching dataset variables dataset: " + datsetId);
-        List<Trait> datasetObsVars = getDatasetObsVars(datsetId.toString(), program);
+    public Dataset getDatasetData(Program program, UUID experimentId, UUID datasetId, Boolean stats) throws ApiException, DoesNotExistException {
+        log.debug("fetching dataset: " + datasetId + " for experiment: " + experimentId + ".  including stats: " + stats);
+        log.debug("fetching observationUnits for dataset: " + datasetId);
+        List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(datasetId.toString(), program);
+        log.debug("fetching dataset variables dataset: " + datasetId);
+        List<Trait> datasetObsVars = getDatasetObsVars(datasetId.toString(), program);
         List<String> ouDbIds = datasetOUs.stream().map(BrAPIObservationUnit::getObservationUnitDbId).collect(Collectors.toList());
         List<String> obsVarDbIds = datasetObsVars.stream().map(Trait::getObservationVariableDbId).collect(Collectors.toList());
-        log.debug("fetching observations for dataset: " + datsetId);
+        log.debug("fetching observations for dataset: " + datasetId);
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
-        log.debug("building dataset object for dataset: " + datsetId);
+        log.debug("building dataset object for dataset: " + datasetId);
         sortDefaultForObservationUnit(datasetOUs);
         Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
         if (stats) {
@@ -521,12 +523,14 @@ public class BrAPITrialService {
             }
         }
     }
-    private String makeFileName(BrAPITrial experiment, Program program, String envName) {
-        // <exp-title>_Observation Dataset_<environment>_<export-timestamp>
+
+    private String makeFileName(BrAPITrial experiment, Program program, String envName, String datasetName) {
+        // <exp-title>_<dataset-name>_<environment>_<export-timestamp>
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd_hh-mm-ssZ");
         String timestamp = formatter.format(OffsetDateTime.now());
-        String unsafeName = String.format("%s_Observation Dataset_%s_%s",
+        String unsafeName = String.format("%s_%s_%s_%s",
                 Utilities.removeProgramKey(experiment.getTrialName(), program.getKey()),
+                datasetName,
                 Utilities.removeProgramKeyAndUnknownAdditionalData(envName, program.getKey()),
                 timestamp);
         // Make file name safe for all platforms.
