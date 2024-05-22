@@ -63,7 +63,7 @@ public class ExperimentWorkflowFactory {
 
         } else {
             // No ObsUnitIDs so creating experiment or appending env
-            return createNewExperimentWorkflowProvider.get();
+            return (Workflow) createNewExperimentWorkflowProvider.get();
             // TODO: different workflow for appending envs? Would have a dependency on DAO to check for existing trial name
         }
     }

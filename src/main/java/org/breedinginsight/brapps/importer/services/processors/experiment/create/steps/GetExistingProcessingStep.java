@@ -96,6 +96,10 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         return existing;
     }
 
+    private Map<String, PendingImportObject<BrAPITrial>> initializeTrialByNameNoScope(Program program, Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope, List<ExperimentObservation> experimentImportRows) {
+        return null;
+    }
+
     /**
      * Initializes the observation units for the given program and experimentImportRows.
      *
@@ -280,6 +284,10 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
         for (BrAPIStudy study : studies) {
             studyService.processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
         }
+    }
+
+    private List<BrAPIStudy> fetchStudiesByDbId(Set<String> studyDbIds, Program program) {
+        return null;
     }
 
     /**

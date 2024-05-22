@@ -78,65 +78,65 @@ public class GermplasmService {
     }
 
     // TODO: used by expunit workflow
-    public Map<String, PendingImportObject<BrAPIGermplasm>> initializeGermplasmByGIDForExistingObservationUnits(
-            Map<String, PendingImportObject<BrAPIObservationUnit>> unitByName,
-            Program program) {
-        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
-
-        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
-        if(unitByName.size() > 0) {
-            Set<String> germplasmDbIds = unitByName.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
-            try {
-                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
-            } catch (ApiException e) {
-                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        }
-
-        existingGermplasms.forEach(existingGermplasm -> {
-            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
-                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
-            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
-        });
-        return existingGermplasmByGID;
-    }
+//    public Map<String, PendingImportObject<BrAPIGermplasm>> initializeGermplasmByGIDForExistingObservationUnits(
+//            Map<String, PendingImportObject<BrAPIObservationUnit>> unitByName,
+//            Program program) {
+//        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+//
+//        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
+//        if(unitByName.size() > 0) {
+//            Set<String> germplasmDbIds = unitByName.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
+//            try {
+//                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
+//            } catch (ApiException e) {
+//                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+//                throw new InternalServerException(e.toString(), e);
+//            }
+//        }
+//
+//        existingGermplasms.forEach(existingGermplasm -> {
+//            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
+//                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
+//            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
+//        });
+//        return existingGermplasmByGID;
+//    }
 
     // TODO: used by create worflow
-    public Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
-        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
-
-        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
-        if(observationUnitByNameNoScope.size() > 0) {
-            Set<String> germplasmDbIds = observationUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
-            try {
-                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
-            } catch (ApiException e) {
-                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
-                throw new InternalServerException(e.toString(), e);
-            }
-        }
-
-        List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
-                .filter(experimentObservation -> StringUtils.isBlank(experimentObservation.getObsUnitID()))
-                .map(ExperimentObservation::getGid)
-                .distinct()
-                .collect(Collectors.toList());
-
-        try {
-            existingGermplasms.addAll(this.getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId()));
-        } catch (ApiException e) {
-            log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
-            throw new InternalServerException(e.toString(), e);
-        }
-
-        existingGermplasms.forEach(existingGermplasm -> {
-            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
-                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
-            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
-        });
-        return existingGermplasmByGID;
-    }
+//    public Map<String, PendingImportObject<BrAPIGermplasm>> initializeExistingGermplasmByGID(Program program, List<ExperimentObservation> experimentImportRows) {
+//        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = new HashMap<>();
+//
+//        List<BrAPIGermplasm> existingGermplasms = new ArrayList<>();
+//        if(observationUnitByNameNoScope.size() > 0) {
+//            Set<String> germplasmDbIds = observationUnitByNameNoScope.values().stream().map(ou -> ou.getBrAPIObject().getGermplasmDbId()).collect(Collectors.toSet());
+//            try {
+//                existingGermplasms.addAll(brAPIGermplasmDAO.getGermplasmsByDBID(germplasmDbIds, program.getId()));
+//            } catch (ApiException e) {
+//                log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+//                throw new InternalServerException(e.toString(), e);
+//            }
+//        }
+//
+//        List<String> uniqueGermplasmGIDs = experimentImportRows.stream()
+//                .filter(experimentObservation -> StringUtils.isBlank(experimentObservation.getObsUnitID()))
+//                .map(ExperimentObservation::getGid)
+//                .distinct()
+//                .collect(Collectors.toList());
+//
+//        try {
+//            existingGermplasms.addAll(this.getGermplasmByAccessionNumber(uniqueGermplasmGIDs, program.getId()));
+//        } catch (ApiException e) {
+//            log.error("Error fetching germplasm: " + Utilities.generateApiExceptionLogMessage(e), e);
+//            throw new InternalServerException(e.toString(), e);
+//        }
+//
+//        existingGermplasms.forEach(existingGermplasm -> {
+//            BrAPIExternalReference xref = Utilities.getExternalReference(existingGermplasm.getExternalReferences(), String.format("%s", BRAPI_REFERENCE_SOURCE))
+//                    .orElseThrow(() -> new IllegalStateException("External references wasn't found for germplasm (dbid): " + existingGermplasm.getGermplasmDbId()));
+//            existingGermplasmByGID.put(existingGermplasm.getAccessionNumber(), new PendingImportObject<>(ImportObjectState.EXISTING, existingGermplasm, UUID.fromString(xref.getReferenceId())));
+//        });
+//        return existingGermplasmByGID;
+//    }
 
     // TODO: used by expunit workflow
     public Map<String, PendingImportObject<BrAPIGermplasm>> mapGermplasmByOUId(
