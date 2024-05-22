@@ -18,10 +18,14 @@
 package org.breedinginsight.brapps.importer.model.imports;
 
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.Action;
+
+import java.util.List;
 
 public interface BrAPIImportService {
     String getImportTypeId();
     BrAPIImport getImportClass();
+    List<Action> getWorkflows();
     default String getInvalidIntegerMsg(String columnName) {
         return String.format("Column name \"%s\" must be integer type, but non-integer type provided.", columnName);
     }

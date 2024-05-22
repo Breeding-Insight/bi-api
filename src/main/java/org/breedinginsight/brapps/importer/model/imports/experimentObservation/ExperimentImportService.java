@@ -23,6 +23,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.Action;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
@@ -71,6 +72,10 @@ public class ExperimentImportService implements BrAPIImportService {
     @Override
     public String getMissingColumnMsg(String columnName) {
         return "Column heading does not match template or ontology";
+    }
+    @Override
+    public List<Action> getWorkflows() {
+        return workflow.getWorkflows();
     }
 
     @Override
