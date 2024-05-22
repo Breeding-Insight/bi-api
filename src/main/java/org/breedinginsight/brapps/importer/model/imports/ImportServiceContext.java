@@ -32,6 +32,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ImportServiceContext {
+    private String action;
     private Workflow workflow;
     private List<BrAPIImport> brAPIImports;
     private Table data;

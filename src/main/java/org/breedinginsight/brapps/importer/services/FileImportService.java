@@ -435,14 +435,12 @@ public class FileImportService {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
-                Workflow workflow = null;
-                if (workflowId != null) {
-                    Optional<Workflow> optionalWorkflow = workflowFactory.getWorkflow(workflowId);
-                    workflow = optionalWorkflow.orElse(null);
-                }
+
+                final Workflow[] workflow = {null};
+                Optional.ofNullable(workflowId).ifPresent(id -> workflow[0] = workflowFactory.getWorkflow(id).orElse(null));
 
                 ImportServiceContext context = ImportServiceContext.builder()
-                        .workflow(workflow)
+                        .workflow(workflow[0])
                         .brAPIImports(finalBrAPIImportList)
                         .data(data)
                         .program(program)
