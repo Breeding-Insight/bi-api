@@ -5,6 +5,7 @@ import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -13,6 +14,7 @@ import org.brapi.v2.model.core.response.BrAPIListsSingleResponse;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 
 import org.brapi.v2.model.pheno.*;
+import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
@@ -327,6 +329,20 @@ public class BrAPITrialService {
         }
 
         return dataset;
+    }
+
+    public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request) throws ApiException {
+        log.debug("creating sub-entity dataset: \"" + request.getName() + "\" for experiment: \"" + experimentId + "\" with: \"" + request.getRepeatedMeasures() + "\" repeated measures.");
+        BrAPITrial experiment = getExperiment(program, experimentId);
+        String a = "b";
+        List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(experiment.getAdditionalInfo().get("observationDatasetId").toString(), program);
+        // TODO:
+        // fetch top level dataset obs units
+        // foreach obs unit in top-level dataset
+            // for (i=0;i<repeatedMeasures;i++)
+                // create (sub) obs unit with xref for new dataset and top level obs unit
+        // return the new dataset
+        throw new NotImplementedException();
     }
 
     private void addBrAPIObsToRecords(

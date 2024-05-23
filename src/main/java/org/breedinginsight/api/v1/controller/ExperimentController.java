@@ -11,6 +11,7 @@ import io.micronaut.security.rules.SecurityRule;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.auth.ProgramSecured;
 import org.breedinginsight.api.auth.ProgramSecuredRoleGroup;
+import org.breedinginsight.api.model.v1.request.SubEntityDatasetRequest;
 import org.breedinginsight.api.model.v1.response.Response;
 import org.breedinginsight.brapi.v2.model.request.query.ExperimentExportQuery;
 import org.breedinginsight.brapi.v2.services.BrAPITrialService;
@@ -19,6 +20,7 @@ import org.breedinginsight.model.DownloadFile;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.response.mappers.ExperimentQueryMapper;
 
 import javax.inject.Inject;
@@ -89,4 +91,20 @@ public class ExperimentController {
         }
     }
 
+    @Post("/${micronaut.bi.api.version}/programs/{programId}/experiments/{experimentId}/dataset")
+    @ProgramSecured(roleGroups = {ProgramSecuredRoleGroup.ALL})
+    @Produces(MediaType.APPLICATION_JSON)
+    public HttpResponse<Response<Dataset>> getDatasetData(
+            @PathVariable("programId") UUID programId,
+            @PathVariable("experimentId") UUID experimentId,
+            @Body @Valid SubEntityDatasetRequest datasetRequest) {
+        try {
+            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
+            Response<Dataset> response = new Response(experimentService.createSubEntityDataset(program, experimentId, datasetRequest));
+            return HttpResponse.ok(response);
+        } catch (Exception e){
+            log.info(e.getMessage());
+            return HttpResponse.status(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+        }
+    }
 }
