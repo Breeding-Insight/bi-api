@@ -41,7 +41,7 @@ import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
-import org.breedinginsight.brapps.importer.model.workflow.Action;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
 import org.breedinginsight.model.Program;
@@ -427,7 +427,7 @@ public class FileImportService {
         CompletableFuture.supplyAsync(() -> {
             try {
                 ImportServiceContext context = ImportServiceContext.builder()
-                        .action(workflow)
+                        .workflow(workflow)
                         .brAPIImports(finalBrAPIImportList)
                         .data(data)
                         .program(program)
@@ -571,7 +571,7 @@ public class FileImportService {
         return importMappings;
     }
 
-    public List<Action> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
+    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
         ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)
                 .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
         BrAPIImportService importService = configManager.getImportServiceById(mappingConfig.getImportTypeId())

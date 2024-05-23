@@ -2,8 +2,8 @@ package org.breedinginsight.brapps.importer.services.processors.experiment;
 
 import io.micronaut.context.annotation.Primary;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
-import org.breedinginsight.brapps.importer.model.workflow.Action;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
+import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 
 import javax.inject.Singleton;
@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 
 @Primary
 @Singleton
-public class ExperimentImportWorkflow implements ImportWorkflow {
-    private final List<ImportWorkflow> workflows;
+public class ExperimentWorkflow implements Workflow {
+    private final List<org.breedinginsight.brapps.importer.model.workflow.Workflow> workflows;
 
-    public ExperimentImportWorkflow(List<ImportWorkflow> workflows) {
+    public ExperimentWorkflow(List<org.breedinginsight.brapps.importer.model.workflow.Workflow> workflows) {
         this.workflows = workflows;
     }
 
@@ -28,29 +28,33 @@ public class ExperimentImportWorkflow implements ImportWorkflow {
                 .map(Optional::get)
                 .findFirst();
     }
-    public List<Action> getWorkflows() {
+    public List<ImportWorkflow> getWorkflows() {
         return workflows.stream()
                 .map(workflow->workflow.process(null))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .map(result->result.getAction())
+                .map(result->result.getWorkflow())
                 .collect(Collectors.toList());
     }
 
-    public enum ImportAction {
-        APPEND_OVERWRITE("append-overwrite-observation"),
-        NEW_OBSERVATION("new-observation"),
-        APPEND_ENVIRONMENT("append-environment");
+    public enum Workflow {
+        NEW_OBSERVATION("new-experiment","Create new experiment"),
+        APPEND_OVERWRITE("append-dataset", "Append experimental dataset"),
+        APPEND_ENVIRONMENT("append-environment", "Create new experimental environment");
 
         private String urlFragment;
+        private String displayName;
 
-        ImportAction(String urlFragment) {
+        Workflow(String urlFragment, String displayName) {
+
             this.urlFragment = urlFragment;
+            this.displayName = displayName;
         }
 
         public String getUrlFragment() {
             return urlFragment;
         }
+        public String getDisplayName() { return displayName; }
 
         public boolean isEqual(String value) {
             return Optional.ofNullable(urlFragment.equals(value)).orElse(false);

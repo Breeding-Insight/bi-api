@@ -28,6 +28,6 @@ import java.util.Optional;
 @ToString
 @AllArgsConstructor
 public class ImportWorkflowResult {
-    private Action action;
+    private ImportWorkflow workflow;
     private Optional<ImportPreviewResponse> importPreviewResponse;
 }
