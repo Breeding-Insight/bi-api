@@ -24,7 +24,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
-import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflow;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -39,16 +39,16 @@ public class ExperimentImportService implements BrAPIImportService {
 
     private final Provider<ExperimentProcessor> experimentProcessorProvider;
     private final Provider<ProcessorManager> processorManagerProvider;
-    private final ExperimentWorkflow workflow;
+    private final ExperimentWorkflowNavigator workflowNavigator;
 
     @Inject
     public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
                                    Provider<ProcessorManager> processorManagerProvider,
-                                   ExperimentWorkflow workflow)
+                                   ExperimentWorkflowNavigator workflowNavigator)
     {
         this.experimentProcessorProvider = experimentProcessorProvider;
         this.processorManagerProvider = processorManagerProvider;
-        this.workflow = workflow;
+        this.workflowNavigator = workflowNavigator;
     }
 
     @Override
@@ -67,7 +67,7 @@ public class ExperimentImportService implements BrAPIImportService {
     }
     @Override
     public List<ImportWorkflow> getWorkflows() {
-        return workflow.getWorkflows();
+        return workflowNavigator.getWorkflows();
     }
 
     @Override
@@ -78,7 +78,7 @@ public class ExperimentImportService implements BrAPIImportService {
             log.info("Workflow: " + context.getWorkflow());
         }
 
-        return workflow.process(context).flatMap(r->r.getImportPreviewResponse()).orElse(null);
+        return workflowNavigator.process(context).flatMap(r->r.getImportPreviewResponse()).orElse(null);
     }
 }
 

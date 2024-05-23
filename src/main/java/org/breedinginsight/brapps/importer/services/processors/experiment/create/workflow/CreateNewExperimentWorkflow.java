@@ -4,19 +4,19 @@ import lombok.Getter;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflow;
+import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
 import javax.inject.Singleton;
 import java.util.Optional;
 
 @Getter
 @Singleton
-public class CreateNewExperimentWorkflow implements Workflow {
-    private final ExperimentWorkflow.Workflow workflow;
+public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
+    private final ExperimentWorkflowNavigator.Workflow workflow;
 
     public CreateNewExperimentWorkflow(){
-        this.workflow = ExperimentWorkflow.Workflow.NEW_OBSERVATION;
+        this.workflow = ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION;
     }
 
     @Override

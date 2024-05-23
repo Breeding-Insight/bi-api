@@ -3,7 +3,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment;
 import io.micronaut.context.annotation.Primary;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
+import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 
 import javax.inject.Singleton;
@@ -13,10 +13,10 @@ import java.util.stream.Collectors;
 
 @Primary
 @Singleton
-public class ExperimentWorkflow implements Workflow {
-    private final List<org.breedinginsight.brapps.importer.model.workflow.Workflow> workflows;
+public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
+    private final List<ExperimentWorkflow> workflows;
 
-    public ExperimentWorkflow(List<org.breedinginsight.brapps.importer.model.workflow.Workflow> workflows) {
+    public ExperimentWorkflowNavigator(List<ExperimentWorkflow> workflows) {
         this.workflows = workflows;
     }
 
