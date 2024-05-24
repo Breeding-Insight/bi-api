@@ -35,7 +35,7 @@ public class BrAPITrialCreation extends ExpUnitMiddleware {
         try {
             List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrials(newBrAPITrials, context.getImportContext().getProgram().getId(), context.getImportContext().getUpload()));
 
-            // Update the context by setting the system-generated dbId for each newly created trial
+            // Update the context cache by setting the system-generated dbId for each newly created trial
             for (BrAPITrial createdTrial : createdTrials) {
                 String createdTrialNameNoScope = Utilities.removeProgramKey(createdTrial.getTrialName(), context.getImportContext().getProgram().getKey());
                 context.getPendingData().getTrialByNameNoScope().get(createdTrialNameNoScope).getBrAPIObject().setTrialDbId(createdTrial.getTrialDbId());
