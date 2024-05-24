@@ -10,28 +10,22 @@ import javax.inject.Provider;
 @Slf4j
 public class RequiredBrAPIData extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
-    Provider<RequiredObservationUnits> requiredObservationUnitsProvider;
-    Provider<RequiredTrials> requiredTrialsProvider;
-    Provider<RequiredStudies> requiredStudiesProvider;
-    Provider<RequiredLocations> requiredLocationsProvider;
-    Provider<RequiredDatasets> requiredDatasetsProvider;
-    Provider<RequiredGermplasm> requiredGermplasmProvider;
 
     @Inject
-    public RequiredBrAPIData(Provider<RequiredObservationUnits> requiredObservationUnitsProvider,
-                             Provider<RequiredTrials> requiredTrialsProvider,
-                             Provider<RequiredStudies> requiredStudiesProvider,
-                             Provider<RequiredLocations> requiredLocationsProvider,
-                             Provider<RequiredDatasets> requiredDatasetsProvider,
-                             Provider<RequiredGermplasm> requiredGermplasmProvider) {
+    public RequiredBrAPIData(RequiredObservationUnits requiredObservationUnits,
+                             RequiredTrials requiredTrials,
+                             RequiredStudies requiredStudies,
+                             RequiredLocations requiredLocations,
+                             RequiredDatasets requiredDatasets,
+                             RequiredGermplasm requiredGermplasm) {
 
         this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(
-                requiredObservationUnitsProvider.get(), // Fetch the BrAPI units for the required exp unit ids
-                requiredTrialsProvider.get(),           // Fetch the BrAPI trials belonging to the exp units
-                requiredStudiesProvider.get(),          // Fetch the BrAPI studies belonging to the exp units
-                requiredLocationsProvider.get(),        // Fetch the BrAPI locations belonging to the exp units
-                requiredDatasetsProvider.get(),         // Fetch the dataset belonging to the exp units
-                requiredGermplasmProvider.get());       // Fetch the germplasm belonging to the exp units
+                requiredObservationUnits, // Fetch the BrAPI units for the required exp unit ids
+                requiredTrials,           // Fetch the BrAPI trials belonging to the exp units
+                requiredStudies,          // Fetch the BrAPI studies belonging to the exp units
+                requiredLocations,        // Fetch the BrAPI locations belonging to the exp units
+                requiredDatasets,         // Fetch the dataset belonging to the exp units
+                requiredGermplasm);       // Fetch the germplasm belonging to the exp units
     }
 
     @Override

@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.brapi;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
@@ -7,16 +7,17 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import javax.inject.Inject;
 
 @Slf4j
-public class NewPendingBrAPIObjects extends ExpUnitMiddleware {
+public class ChangeCommit extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
     @Inject
-    public NewPendingBrAPIObjects(PendingObservation pendingObservation) {
-        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(pendingObservation); // Construct new pending observation
+    public ChangeCommit(ExpUnitMiddleware brAPITrialCreation) {
+        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(brAPITrialCreation);
     }
 
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
-        log.debug("constructing new pending BrAPI objects");
+        log.debug("starting post of experiment data to BrAPI server");
+
 
 
         return processNext(context);

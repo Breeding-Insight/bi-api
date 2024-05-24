@@ -18,17 +18,12 @@ import javax.inject.Provider;
 public class AppendOverwritePhenotypesWorkflow implements Workflow {
 
     ExpUnitMiddleware middleware;
-    Provider<Transaction> transactionProvider;
-    Provider<ValidateAllRowsHaveIDs> validateAllRowsHaveIDsProvider;
-    Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider;
     @Inject
-    public AppendOverwritePhenotypesWorkflow(Provider<Transaction> transactionProvider,
-                                             Provider<ValidateAllRowsHaveIDs> validateAllRowsHaveIDsProvider,
-                                             Provider<GetExistingBrAPIData> getExistingBrAPIDataProvider) {
+    public AppendOverwritePhenotypesWorkflow(Transaction transaction,
+                                             ValidateAllRowsHaveIDs validateAllRowsHaveIDs,
+                                             GetExistingBrAPIData getExistingBrAPIData) {
 
-        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(transactionProvider.get(),
-                validateAllRowsHaveIDsProvider.get(),
-                getExistingBrAPIDataProvider.get());
+        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(transaction, validateAllRowsHaveIDs, getExistingBrAPIData);
     }
     @Override
     public ProcessedData process(ImportContext context) {
