@@ -1,11 +1,11 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import java.util.List;
@@ -14,11 +14,13 @@ import java.util.Optional;
 public abstract class BrAPICreation<T> implements BrAPIAction<T> {
     ExperimentImportEntity<T> entity;
 
-    BrAPICreation(ExpUnitMiddlewareContext context) {
+    protected BrAPICreation(ExpUnitMiddlewareContext context) {
         this.entity = getEntity(context);
     }
 
-    public Optional<BrAPIState> execute() {
+    public abstract ExperimentImportEntity<T> getEntity(ExpUnitMiddlewareContext context);
+
+    public Optional<BrAPIState> execute() throws ApiException {
         List<T> newMembers = entity.copyWorkflowMembers(ImportObjectState.NEW);
         try {
             List<T> createdMembers = entity.brapiPost(newMembers);

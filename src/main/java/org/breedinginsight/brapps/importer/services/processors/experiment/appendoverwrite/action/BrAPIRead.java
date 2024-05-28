@@ -1,12 +1,10 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.read.brapi;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action;
 
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.BrAPIAction;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.BrAPIState;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.ExperimentImportEntity;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import java.util.List;
@@ -16,10 +14,10 @@ import java.util.Optional;
 public abstract class BrAPIRead<T> implements BrAPIAction<T> {
     ExperimentImportEntity<T> entity;
 
-    BrAPIRead(ExpUnitMiddlewareContext context) {
+    protected BrAPIRead(ExpUnitMiddlewareContext context) {
         this.entity = getEntity(context);
     }
-    public Optional<BrAPIState> execute() {
+    public Optional<BrAPIState> execute() throws ApiException {
         try {
             List<T> fetchedMembers = entity.brapiRead();
             // TODO: update workflow ref by creating hashmaps

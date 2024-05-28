@@ -5,7 +5,6 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
@@ -27,16 +26,9 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     @Inject
     ExperimentUtilities experimentUtilities;
 
-    public PendingTrial(ExpUnitMiddlewareContext context,
-                        TrialService trialService,
-                        BrAPITrialDAO brapiTrialDAO,
-                        ExperimentUtilities experimentUtilities) {
+    public PendingTrial(ExpUnitMiddlewareContext context) {
         this.cache = context.getExpUnitContext();
         this.importContext = context.getImportContext();
-        this.trialService = trialService;
-        this.brapiTrialDAO = brapiTrialDAO;
-        this.experimentUtilities = experimentUtilities;
-
     }
     @Override
     public List<BrAPITrial> brapiPost(List<BrAPITrial> members) throws ApiException {

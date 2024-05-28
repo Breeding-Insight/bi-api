@@ -12,20 +12,18 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @Slf4j
 @Prototype
-public class BrAPITrialUpdate extends ExpUnitMiddleware {
+public class BrAPITrialUpdateMiddleware extends ExpUnitMiddleware {
 
     ExperimentUtilities experimentUtilities;
     BrAPITrialDAO brapiTrialDAO;
     private Map<String, BrAPITrial> mutatedTrialsById;
 
     @Inject
-    public BrAPITrialUpdate(ExperimentUtilities experimentUtilities, BrAPITrialDAO brapiTrialDAO) {
+    public BrAPITrialUpdateMiddleware(ExperimentUtilities experimentUtilities, BrAPITrialDAO brapiTrialDAO) {
         this.experimentUtilities = experimentUtilities;
         this.brapiTrialDAO = brapiTrialDAO;
     }
