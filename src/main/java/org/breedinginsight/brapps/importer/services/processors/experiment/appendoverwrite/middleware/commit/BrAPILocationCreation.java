@@ -41,6 +41,7 @@ public class BrAPILocationCreation extends ExpUnitMiddleware {
     }
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
+        // Construct request
         newLocations = experimentUtilities.getNewObjects(context.getPendingData().getLocationByName(), ProgramLocation.class)
                 .stream()
                 .map(location -> ProgramLocationRequest.builder()

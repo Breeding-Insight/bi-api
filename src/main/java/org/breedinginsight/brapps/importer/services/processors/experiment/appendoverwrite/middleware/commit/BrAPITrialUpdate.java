@@ -31,11 +31,12 @@ public class BrAPITrialUpdate extends ExpUnitMiddleware {
     }
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
-
-    mutatedTrialsById = experimentUtilities.getMutationsByObjectId(context.getPendingData().getTrialByNameNoScope(), BrAPITrial::getTrialDbId, BrAPITrial.class);
+        // Construct request
+        mutatedTrialsById = experimentUtilities.getMutationsByObjectId(context.getPendingData().getTrialByNameNoScope(), BrAPITrial::getTrialDbId, BrAPITrial.class);
 
         mutatedTrialsById.forEach((id, trial) -> {
             try {
+                // Update entities in the brapi service
                 brapiTrialDAO.updateBrAPITrial(id, trial, context.getImportContext().getProgram().getId());
             } catch (ApiException e) {
                 log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);

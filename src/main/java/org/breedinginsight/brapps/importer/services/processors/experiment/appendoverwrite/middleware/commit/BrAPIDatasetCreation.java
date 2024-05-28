@@ -34,6 +34,7 @@ public class BrAPIDatasetCreation extends ExpUnitMiddleware {
     }
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
+        // Construct request
         newDatasetRequests = experimentUtilities.getNewObjects(context.getPendingData().getObsVarDatasetByName(), BrAPIListDetails.class).stream().map(details -> {
             BrAPIListNewRequest request = new BrAPIListNewRequest();
             request.setListName(details.getListName());
@@ -46,6 +47,7 @@ public class BrAPIDatasetCreation extends ExpUnitMiddleware {
 
         List<BrAPIListSummary> createdDatasets = null;
         try {
+            // Create entities in brapi service
             createdDatasets = new ArrayList<>(brapiListDAO.createBrAPILists(newDatasetRequests, context.getImportContext().getProgram().getId(), context.getImportContext().getUpload()));
 
             // Update the context cache by setting the system-generated dbId for each newly created dataset
