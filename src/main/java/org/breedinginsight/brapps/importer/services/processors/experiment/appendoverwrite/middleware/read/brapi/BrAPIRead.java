@@ -22,7 +22,8 @@ public abstract class BrAPIRead<T> implements BrAPIAction<T> {
     public Optional<BrAPIState> execute() {
         try {
             List<T> fetchedMembers = entity.brapiRead();
-            entity.updateCache(fetchedMembers);
+            // TODO: update workflow ref by creating hashmaps
+            //entity.updateWorkflow(fetchedMembers);
             return Optional.of(new BrAPIReadState<T>(fetchedMembers));
         } catch(ApiException e) {
             // TODO: add specific error messages to entity service

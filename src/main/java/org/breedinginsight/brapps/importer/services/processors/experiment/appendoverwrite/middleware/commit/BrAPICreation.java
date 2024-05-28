@@ -4,6 +4,8 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import java.util.List;
@@ -17,9 +19,10 @@ public abstract class BrAPICreation<T> implements BrAPIAction<T> {
     }
 
     public Optional<BrAPIState> execute() {
-        List<T> newMembers = entity.getNewBrAPIMembers();
+        List<T> newMembers = entity.copyWorkflowMembers(ImportObjectState.NEW);
         try {
             List<T> createdMembers = entity.brapiPost(newMembers);
+            entity.updateWorkflowWithDbId(createdMembers);
             return Optional.of(new BrAPICreationState<T>(createdMembers));
         } catch (ApiException e) {
             // TODO: add specific error messages to entity service

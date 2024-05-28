@@ -1,14 +1,12 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.reactivex.functions.Function;
 import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -18,12 +16,9 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.checkerframework.checker.units.qual.C;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,6 +34,13 @@ public class ExperimentUtilities {
     public ExperimentUtilities(Gson gson) {
         this.gson = gson;
     }
+    public boolean isPopulated(List<?> list, Class<?> clazz) {
+        // Check if the input list is of type
+        if (list == null || list.isEmpty() || !clazz.isInstance(list.get(0))) {
+            return false;
+        }
+        return true;
+    }
 
     public <T> Optional<T> clone(T obj, Class<T> clazz) {
         try {
@@ -50,6 +52,26 @@ public class ExperimentUtilities {
     public <T, V> List<T> getNewObjects(Map<V, PendingImportObject<T>> objectsByName, Class<T> clazz) {
         return objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
+                .map(PendingImportObject::getBrAPIObject)
+                .map(b->clone(b, clazz))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+    }
+    public <T, V> List<T> copyMutationsFromCache(Map<V, PendingImportObject<T>> pendingCacheMap, Class<T> clazz) {
+        return pendingCacheMap.values().stream()
+                .filter(preview -> preview != null && preview.getState() == ImportObjectState.MUTATED)
+                .map(PendingImportObject::getBrAPIObject)
+                .map(b->clone(b, clazz))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toList());
+    }
+    public <T, V> List<T> copyWorkflowCachePendingBrAPIObjects(Map<V, PendingImportObject<T>> pendingCacheMap,
+                                                               Class<T> clazz,
+                                                               ImportObjectState status) {
+        return pendingCacheMap.values().stream()
+                .filter(preview -> preview != null && preview.getState() == status)
                 .map(PendingImportObject::getBrAPIObject)
                 .map(b->clone(b, clazz))
                 .filter(Optional::isPresent)

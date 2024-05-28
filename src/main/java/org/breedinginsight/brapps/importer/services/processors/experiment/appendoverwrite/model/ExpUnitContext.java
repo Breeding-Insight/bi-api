@@ -6,6 +6,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -28,4 +29,15 @@ public class ExpUnitContext {
     private Map<String, PendingImportObject<ProgramLocation>> pendingLocationByOUId = new HashMap<>();
     private Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByOUId = new HashMap<>();
 
+    // Carry over from PendingData
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope;
+    private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope;
+    private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope;
+    private Map<String, PendingImportObject<ProgramLocation>> locationByName;
+    private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName;
+    private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID;
+    private Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash;
+    private Map<String, Column<?>> timeStampColByPheno;
+    private Map<String, BrAPIObservation> existingObsByObsHash;
+    private ValidationErrors validationErrors;
 }

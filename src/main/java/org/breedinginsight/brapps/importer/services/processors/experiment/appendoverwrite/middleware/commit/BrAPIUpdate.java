@@ -4,6 +4,7 @@ import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import java.util.List;
@@ -18,12 +19,12 @@ public abstract class BrAPIUpdate<T> implements BrAPIAction<T> {
     }
 
     public Optional<BrAPIState> execute() {
-        return saveAndUpdateCache(entity.getMutatedBrAPIMembers());
+        return saveAndUpdateCache(entity.copyWorkflowMembers(ImportObjectState.MUTATED));
     }
 
     public Optional<BrAPIUpdateState<T>> getBrAPIState() {
         try {
-            return Optional.of(new BrAPIUpdateState<T>(entity.getBrAPIStateMutatedMembers()));
+            return Optional.of(new BrAPIUpdateState<T>(entity.getBrAPIState(ImportObjectState.MUTATED)));
         } catch (ApiException e) {
             // TODO: add specific error messages to entity service
             log.error("Error getting...");
@@ -36,7 +37,8 @@ public abstract class BrAPIUpdate<T> implements BrAPIAction<T> {
         return Optional.ofNullable(members).map(changes -> {
             try {
                 List<V> savedMembers = entity.brapiPut(changes);
-                entity.updateCache(savedMembers);
+                // TODO: set updated fields of workflow brapi object
+                // entity.updateWorkflow(savedMembers);
                 return new BrAPIUpdateState<V>(savedMembers);
             } catch (ApiException e) {
                 // TODO: add specific error messages to entity service
