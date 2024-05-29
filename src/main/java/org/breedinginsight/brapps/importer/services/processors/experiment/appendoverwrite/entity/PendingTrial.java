@@ -4,6 +4,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
@@ -12,9 +13,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
@@ -36,7 +35,12 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     }
     @Override
     public List<BrAPITrial> brapiRead() throws ApiException {
-        return null;
+        // Get the dbIds of the trials belonging to the required exp units
+        Set<String> trialDbIds = cache.getObservationUnitByNameNoScope().values().stream()
+                .map(pendingUnit -> trialService.getTrialDbIdBelongingToPendingUnit(pendingUnit, importContext.getProgram())).collect(Collectors.toSet());
+
+        // Get the BrAPI trials belonging to required exp units
+        return trialService.fetchBrapiTrialsByDbId(trialDbIds, importContext.getProgram());
     }
     @Override
     public <U> List<U> brapiPut(List<U> members) throws ApiException, IllegalArgumentException {
@@ -81,6 +85,25 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
             String createdTrialNameNoScope = Utilities.removeProgramKey(trial.getTrialName(), importContext.getProgram().getKey());
             cache.getTrialByNameNoScope().get(createdTrialNameNoScope).getBrAPIObject().setTrialDbId(trial.getTrialDbId());
         }
+    }
+
+    @Override
+    public <U> void initializeWorkflow(List<U> members) {
+        // Check if the input list is of type List<BrAPITrial>
+        if (!experimentUtilities.isPopulated(members, BrAPITrial.class)) {
+            return;
+        }
+
+        // Construct the pending trials from the BrAPI trials
+        List<PendingImportObject<BrAPITrial>> pendingTrials = members.stream()
+                .map(t -> (BrAPITrial) t).map(trialService::constructPIOFromBrapiTrial).collect(Collectors.toList());
+
+        // Construct a hashmap to look up the pending trial by trial name with the program key removed
+        Map<String, PendingImportObject<BrAPITrial>> pendingTrialByNameNoScope = pendingTrials.stream()
+                .collect(Collectors.toMap(pio -> Utilities.removeProgramKey(pio.getBrAPIObject().getTrialName(), importContext.getProgram().getKey()), pio -> pio));
+
+        // Add the map to the context for use in processing import
+        cache.setTrialByNameNoScope(pendingTrialByNameNoScope);
     }
 
 }

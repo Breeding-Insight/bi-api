@@ -15,4 +15,5 @@ public interface ExperimentImportEntity<T> {
     public List<T> getBrAPIState(ImportObjectState status) throws ApiException;
     public List<T> copyWorkflowMembers(ImportObjectState status);
     public <U> void updateWorkflowWithDbId(List<U> members);
+    public <U> void initializeWorkflow(List<U> members);
 }

@@ -6,6 +6,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.BrAPITrialReadWorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
@@ -29,43 +30,21 @@ public class RequiredTrials extends ExpUnitMiddleware {
 
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
-        Program program;
-        Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitByNameNoScope;
-        Set<String> trialDbIds;
-        List<BrAPITrial> brAPITrials;
-        List<PendingImportObject<BrAPITrial>> pendingTrials;
-        Map<String, PendingImportObject<BrAPITrial>> pendingTrialByNameNoScope;
-
-        program = context.getImportContext().getProgram();
-        pendingUnitByNameNoScope = context.getPendingData().getObservationUnitByNameNoScope();
-
-        // nothing to do if there are no required units
-        if (pendingUnitByNameNoScope.size() == 0) {
+        // Nothing to do if there are no required units
+        if (context.getPendingData().getObservationUnitByNameNoScope().size() == 0) {
             return processNext(context);
         }
-        log.debug("fetching from BrAPI service, trials belonging to required units");
 
-        // Get the dbIds of the trials belonging to the required exp units
-        trialDbIds = pendingUnitByNameNoScope.values().stream().map(pendingUnit -> trialService.getTrialDbIdBelongingToPendingUnit(pendingUnit, program)).collect(Collectors.toSet());
         try {
-            // Get the BrAPI trials belonging to required exp units
-            brAPITrials = trialService.fetchBrapiTrialsByDbId(trialDbIds, program);
+            log.debug("fetching from BrAPI service, trials belonging to required units");
+            BrAPITrialReadWorkflowInitialization brAPITrialReadWorkflowInitialization = new BrAPITrialReadWorkflowInitialization(context);
+            brAPITrialReadWorkflowInitialization.execute();
 
-            // Construct the pending trials from the BrAPI trials
-            pendingTrials = brAPITrials.stream().map(trialService::constructPIOFromBrapiTrial).collect(Collectors.toList());
-
-            // Construct a hashmap to look up the pending trial by trial name with the program key removed
-            pendingTrialByNameNoScope = pendingTrials.stream().collect(Collectors.toMap(pio -> Utilities.removeProgramKey(pio.getBrAPIObject().getTrialName(), program.getKey()), pio -> pio));
-
-            // Add the map to the context for use in processing import
-            context.getPendingData().setTrialByNameNoScope(pendingTrialByNameNoScope);
         } catch (ApiException e) {
             this.compensate(context, new MiddlewareError(() -> {
                 throw new RuntimeException(e);
             }));
         }
-
-
 
         return processNext(context);
     }

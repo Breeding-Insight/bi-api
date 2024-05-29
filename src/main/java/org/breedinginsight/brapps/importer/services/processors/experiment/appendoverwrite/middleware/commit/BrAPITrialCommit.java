@@ -4,10 +4,10 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPICreation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPITrialCreation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPITrialUpdate;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIUpdate;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPITrialCreation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPITrialUpdate;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
@@ -17,7 +17,7 @@ import java.util.Optional;
 @Slf4j
 @Prototype
 @NoArgsConstructor
-public class BrAPITrial extends ExpUnitMiddleware {
+public class BrAPITrialCommit extends ExpUnitMiddleware {
     private BrAPITrialCreation brAPITrialCreation;
     private BrAPITrialUpdate brAPITrialUpdate;
     private Optional<BrAPICreation.BrAPICreationState> createdBrAPITrials;
@@ -34,7 +34,9 @@ public class BrAPITrial extends ExpUnitMiddleware {
             updatedTrials = brAPITrialUpdate.execute().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);
 
         } catch (ApiException e) {
-            throw new RuntimeException(e);
+            this.compensate(context, new MiddlewareError(() -> {
+                throw new RuntimeException(e);
+            }));
         }
 
         return processNext(context);
