@@ -26,7 +26,7 @@ public abstract class BrAPICreation<T> implements BrAPIAction<T> {
         List<T> newMembers = entity.copyWorkflowMembers(ImportObjectState.NEW);
         try {
             List<T> createdMembers = entity.brapiPost(newMembers);
-            entity.updateWorkflowWithDbId(createdMembers);
+            entity.updateWorkflow(createdMembers);
             return Optional.of(new BrAPICreationState<T>(createdMembers));
         } catch (ApiException e) {
             // TODO: add specific error messages to entity service

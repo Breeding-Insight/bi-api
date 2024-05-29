@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator;
 
 import io.micronaut.context.annotation.Primary;
 import org.breedinginsight.api.model.v1.response.ValidationError;

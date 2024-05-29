@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator;
 
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;

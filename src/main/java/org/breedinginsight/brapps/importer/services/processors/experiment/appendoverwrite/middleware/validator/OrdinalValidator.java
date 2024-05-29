@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validate;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator;
 
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
@@ -11,15 +11,15 @@ import javax.inject.Singleton;
 import java.util.Optional;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
-import static org.breedinginsight.dao.db.enums.DataType.NOMINAL;
+import static org.breedinginsight.dao.db.enums.DataType.ORDINAL;
 
 @Slf4j
 @Singleton
-public class NominalValidator implements ObservationValidator {
+public class OrdinalValidator implements ObservationValidator {
     @Inject
     ObservationService observationService;
 
-    public NominalValidator(ObservationService observationService) {
+    public OrdinalValidator(ObservationService observationService) {
         this.observationService = observationService;
     }
     @Override
@@ -45,13 +45,13 @@ public class NominalValidator implements ObservationValidator {
         }
 
         // Skip if this is not an ordinal trait
-        if (!NOMINAL.equals(variable.getScale().getDataType())) {
+        if (!ORDINAL.equals(variable.getScale().getDataType())) {
             return Optional.empty();
         }
 
         // Validate categories
         if (!observationService.validCategory(variable.getScale().getCategories(), value)) {
-            return Optional.of(new ValidationError(fieldName, "Undefined nominal category detected", HttpStatus.UNPROCESSABLE_ENTITY));
+            return Optional.of(new ValidationError(fieldName, "Undefined ordinal category detected", HttpStatus.UNPROCESSABLE_ENTITY));
         }
 
         return Optional.empty();

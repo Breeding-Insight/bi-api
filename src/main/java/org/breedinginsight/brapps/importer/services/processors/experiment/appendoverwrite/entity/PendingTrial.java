@@ -73,7 +73,7 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     }
 
     @Override
-    public <U> void updateWorkflowWithDbId(List<U> members) {
+    public <U> void updateWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPITrial>
         if (!experimentUtilities.isPopulated(members, BrAPITrial.class)) {
             return;
