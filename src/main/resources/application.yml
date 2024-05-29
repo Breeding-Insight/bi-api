@@ -31,6 +31,8 @@ micronaut:
       mixed: true
       threshold: '10MB'
     max-request-size: '100MB'
+  serialization:
+    enum-values: true
   bi:
     api:
       version: v1

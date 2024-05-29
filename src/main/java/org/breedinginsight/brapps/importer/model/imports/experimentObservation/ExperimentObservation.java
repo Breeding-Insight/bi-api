@@ -33,10 +33,7 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.config.*;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.model.BrAPIConstants;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.model.User;
+import org.breedinginsight.model.*;
 import org.breedinginsight.utilities.Utilities;
 
 import java.math.BigInteger;
@@ -284,7 +281,7 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
-        level.setLevelName("plot");  //BreedBase only accepts "plot" or "plant"
+        level.setLevelName(getExpUnit());
         level.setLevelCode(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
         position.setObservationLevel(level);
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
@@ -365,6 +362,69 @@ public class ExperimentObservation implements BrAPIImport {
             observationUnit.setObservationUnitDbId(getObsUnitID());
         }
 
+        return observationUnit;
+    }
+
+    /**
+     * Constructs a BrAPI sub-observation unit based on the given parameters. Only a subset of the information is
+     * included as the exp unit level contains all the relevant top-level details and is linked from this unit
+     *
+     * Uses only the following methods from ExperimentObservation:
+     * - getSubObsUnit
+     * - getSubUnitId
+     *
+     * Existing ExpUnit data is from passed in BrAPI object which is looked up based on ObsUnitID, no other values
+     * in import file are required for creating a sub observation unit dataset
+     */
+    public BrAPIObservationUnit constructBrAPISubObservationUnit(
+            Program program,
+            String seqVal,
+            boolean commit,
+            BrAPIObservationUnit expUnit,
+            String referenceSource,
+            UUID datasetId,
+            UUID id
+    ) {
+
+        BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
+        if (commit) {
+            observationUnit.setObservationUnitName(Utilities.appendProgramKey(getSubObsUnit(), program.getKey(), seqVal));
+            observationUnit.setExternalReferences(getObsUnitExternalReferences(program, referenceSource, UUID.fromString(expUnit.getTrialDbId()),
+                    datasetId, UUID.fromString(expUnit.getStudyDbId()), id));
+        } else {
+            observationUnit.setObservationUnitName(getSubObsUnit());
+        }
+        observationUnit.setStudyName(expUnit.getStudyName());
+
+        observationUnit.setGermplasmName(expUnit.getGermplasmName());
+        String gid = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID).getAsString();
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid);
+
+        BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
+
+        // observationLevel entry for Sub-Obs Unit
+        BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
+        level.setLevelName(getSubObsUnit());
+        level.setLevelCode(Utilities.appendProgramKey(getSubUnitId(), program.getKey(), seqVal));
+        level.setLevelOrder(DatasetLevel.SUB_OBS_UNIT.getValue());
+        position.setObservationLevel(level);
+
+        // keep this in case we decide to rename levels in future
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getSubObsUnit());
+
+        // observationLevelRelationships for top-level Exp Unit linking
+        List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
+        BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
+
+        // set name without added keys
+        expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+        expUnitLevel.setLevelCode(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
+        expUnitLevel.setLevelOrder(DatasetLevel.EXP_UNIT.getValue());
+        levelRelationships.add(expUnitLevel);
+
+        // TODO: Do replicate and block matter for field book?
+
+        observationUnit.setObservationUnitPosition(position);
         return observationUnit;
     }
 

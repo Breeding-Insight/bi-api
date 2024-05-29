@@ -65,6 +65,7 @@ import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.services.exceptions.ValidatorException;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
@@ -131,6 +132,10 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId = new HashMap<>();
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPIObservationUnit>> pendingObsUnitByOUId = new HashMap<>();
+
+    // For use when creating sub obs units.
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> obsUnitByExpObsUnitId = null;
+    private Map<String, PendingImportObject<BrAPIObservationUnit>> subObsUnitBySubObsUnitId = null;
 
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
@@ -1132,6 +1137,7 @@ public class ExperimentProcessor implements Processor {
 
     private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException {
         PendingImportObject<BrAPIObservationUnit> pio;
+        // TODO: should be based on ObsUnitId.
         String key = createObservationUnitKey(importRow);
         if (hasAllReferenceUnitIds) {
             pio = pendingObsUnitByOUId.get(importRow.getObsUnitID());
@@ -1148,9 +1154,10 @@ public class ExperimentProcessor implements Processor {
             UUID trialID = trialPIO.getId();
             UUID datasetId = null;
             if (commit) {
-                datasetId = UUID.fromString(trialPIO.getBrAPIObject()
-                        .getAdditionalInfo().getAsJsonObject()
-                        .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+                // TODO: get dataset id from array on ObsUnit. Lookup by dataset.level=="ExpUnit" from the importRow.
+                JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+                // TODO: handle possible NPE (null case).
+                datasetId = DatasetUtil.getDatasetByNameFromJson(datasetsJson, importRow.getExpUnit()).getId();
             }
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
@@ -1280,11 +1287,14 @@ public class ExperimentProcessor implements Processor {
             }
         });
     }
+
     private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) throws UnprocessableEntityException {
         PendingImportObject<BrAPIListDetails> pio;
         PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
                 getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
-        String name = String.format("Observation Dataset [%s-%s]",
+        String datasetName = StringUtils.isNotBlank(importRow.getSubObsUnit()) ? importRow.getSubObsUnit() : importRow.getExpUnit();
+        String name = String.format("%s Observation Dataset [%s-%s]",
+                datasetName,
                 program.getKey(),
                 trialPIO.getBrAPIObject()
                         .getAdditionalInfo()
@@ -1301,7 +1311,24 @@ public class ExperimentProcessor implements Processor {
                     program,
                     trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
+            // TODO: remove old id and update code to use datasets array - existing will need migration
             trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
+
+            JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            // If datasets property does not yet exist, create it
+
+            List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
+            DatasetMetadata dataset = DatasetMetadata.builder()
+                    .name(datasetName)
+                    .id(id)
+                    .level(StringUtils.isNotBlank(importRow.getSubObsUnit()) ? DatasetLevel.SUB_OBS_UNIT : DatasetLevel.EXP_UNIT)
+                    .build();
+
+            log.debug(dataset.getName());
+            datasets.add(dataset);
+            datasetsJson = DatasetUtil.jsonArrayFromDatasets(datasets);
+            trialPIO.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);
+
             if (ImportObjectState.EXISTING == trialPIO.getState()) {
                 trialPIO.setState(ImportObjectState.MUTATED);
             }
@@ -1614,6 +1641,13 @@ public class ExperimentProcessor implements Processor {
 
         try {
             List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
+
+            // TODO: grab from externalReferences
+            /*
+            observationUnitByObsUnitId = existingObsUnits.stream()
+                    .collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId,
+                            (BrAPIObservationUnit unit) -> new PendingImportObject<>(unit, false)));
+             */
 
             String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
             if (existingObsUnits.size() == rowByObsUnitId.size()) {
@@ -2013,8 +2047,9 @@ public class ExperimentProcessor implements Processor {
             Map<String, PendingImportObject<BrAPITrial>> trialByOUId,
             Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName,
             Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByOUId) {
-        if (!trialByOUId.isEmpty() && !obsVarDatasetByName.isEmpty() &&
-                trialByOUId.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+        if (!trialByOUId.isEmpty() &&
+                !obsVarDatasetByName.isEmpty() &&
+                !trialByOUId.values().iterator().next().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
             obsVarDatasetByOUId.put(unitId, obsVarDatasetByName.values().iterator().next());
         }
 
@@ -2029,17 +2064,18 @@ public class ExperimentProcessor implements Processor {
      * @return A map of observation variable dataset objects indexed by dataset name.
      * @throws InternalServerException If the existing dataset summary is not retrieved from the BrAPI server, or an error occurs during API communication.
      */
+    // TODO: add dataset name or id parameter? This only supports top level for now.
     private Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnits(
             Map<String, PendingImportObject<BrAPITrial>> trialByName,
             Program program) {
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
 
         if (trialByName.size() > 0 &&
-                trialByName.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String datasetId = trialByName.values().iterator().next().getBrAPIObject()
-                    .getAdditionalInfo()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
-                    .getAsString();
+                !trialByName.values().iterator().next().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
+            String datasetId = DatasetUtil.getDatasetIdByNameFromJson(
+                    trialByName.values().iterator().next().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS),
+                    trialByName.values().iterator().next().getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString()
+                );
 
             try {
                 List<BrAPIListSummary> existingDatasets = brAPIListDAO
@@ -2067,11 +2103,12 @@ public class ExperimentProcessor implements Processor {
 
         Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows);
 
-        if (trialPIO.isPresent() && trialPIO.get().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String datasetId = trialPIO.get().getBrAPIObject()
-                    .getAdditionalInfo()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
-                    .getAsString();
+        // TODO: use value in datasets array instead
+        if (trialPIO.isPresent() && !trialPIO.get().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
+            String datasetId = DatasetUtil.getDatasetIdByNameFromJson(
+                    trialPIO.get().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS),
+                    trialPIO.get().getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).toString()
+                );
           try {
             List<BrAPIListSummary> existingDatasets = brAPIListDAO
                     .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,

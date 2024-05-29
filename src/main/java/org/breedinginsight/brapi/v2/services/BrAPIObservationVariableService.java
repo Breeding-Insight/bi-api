@@ -31,6 +31,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.model.*;
 import org.breedinginsight.services.ProgramService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jetbrains.annotations.NotNull;
 
@@ -55,6 +56,8 @@ public class BrAPIObservationVariableService {
         this.referenceSource = referenceSource;
     }
 
+    // TODO: handle non-top level dataset.
+    // This gets the observation variables for the top-level dataset in an experiment.
     public List<Trait> getBrAPIObservationVariablesForExperiment(
             UUID programId,
             Optional<String> experimentId,
@@ -78,12 +81,10 @@ public class BrAPIObservationVariableService {
         }
 
         BrAPITrial experiment = trialService.getExperiment(program.get(), expId);
-        if(experiment
-                .getAdditionalInfo().getAsJsonObject()
-                .has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String obsDatasetId = experiment
-                    .getAdditionalInfo().getAsJsonObject()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
+        if(!experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
+            String obsDatasetId = DatasetUtil.getDatasetIdByNameFromJson(
+                    experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS),
+                    experiment.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString());
             return trialService.getDatasetObsVars(obsDatasetId, program.get());
         }
 

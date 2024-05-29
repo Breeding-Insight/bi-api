@@ -1,5 +1,6 @@
 package org.breedinginsight.brapi.v2.services;
 
+import com.google.gson.JsonArray;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -32,6 +33,7 @@ import org.breedinginsight.model.*;
 import org.breedinginsight.services.TraitService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.IntOrderComparator;
 import org.breedinginsight.utilities.FileUtil;
 import org.breedinginsight.utilities.Utilities;
@@ -167,14 +169,12 @@ public class BrAPITrialService {
             log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
-
-        if ((StringUtils.isBlank(params.getDataset()) || "observations".equalsIgnoreCase(params.getDataset())) &&
-                experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID) != null) {
-            String obsDatasetId = experiment
-                    .getAdditionalInfo().getAsJsonObject()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString();
+        String defaultObsLevel = experiment.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString();
+        DatasetMetadata datasetMetadata = DatasetUtil.getDatasetByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS), defaultObsLevel);
+        if ((StringUtils.isBlank(params.getDataset()) || defaultObsLevel.equalsIgnoreCase(params.getDataset())) && datasetMetadata != null) {
+            String obsDatasetId = datasetMetadata.toString();
             isDataset = true;
-            log.debug(logHash + ": fetching dataset observation variables for export");
+            log.debug(logHash + ": fetching " + datasetMetadata.getName() + " dataset observation variables for export");
             obsVars = getDatasetObsVars(obsDatasetId, program);
 
             // make additional columns in the export for each obs variable and obs variable timestamp
@@ -329,6 +329,22 @@ public class BrAPITrialService {
         }
 
         return dataset;
+    }
+
+    /**
+     * Retrieves the metadata of datasets associated with a program and experiment.
+     *
+     * @param program The program object representing the program that the datasets belong to.
+     * @param experimentId The UUID of the experiment that the datasets are associated with.
+     * @return A list of DatasetMetadata objects containing the metadata of the datasets.
+     * @throws DoesNotExistException If the trial does not exist for the program and experimentId combination.
+     * @throws ApiException If there is an error retrieving the trial or parsing the datasets metadata.
+     */
+    public List<DatasetMetadata> getDatasetsMetadata(Program program, UUID experimentId) throws DoesNotExistException, ApiException {
+        BrAPITrial trial = trialDAO.getTrialById(program.getId(), experimentId).orElseThrow(() -> new DoesNotExistException("Trial does not exist"));
+        JsonArray datasetsJson = trial.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+        List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
+        return datasets;
     }
 
     public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request) throws ApiException {
