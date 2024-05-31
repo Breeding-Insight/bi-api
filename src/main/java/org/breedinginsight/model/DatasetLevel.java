@@ -17,8 +17,12 @@
 
 package org.breedinginsight.model;
 
+import com.google.gson.annotations.SerializedName;
+
 public enum DatasetLevel {
+    @SerializedName("0")
     EXP_UNIT(0),
+    @SerializedName("1")
     SUB_OBS_UNIT(1);
 
     private final int value;
