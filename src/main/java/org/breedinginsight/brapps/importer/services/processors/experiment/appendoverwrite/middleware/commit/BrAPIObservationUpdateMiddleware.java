@@ -4,11 +4,8 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
-import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
@@ -20,14 +17,14 @@ import java.util.Objects;
 
 @Slf4j
 @Prototype
-public class BrAPIObservationUpdate extends ExpUnitMiddleware {
+public class BrAPIObservationUpdateMiddleware extends ExpUnitMiddleware {
 
     ExperimentUtilities experimentUtilities;
     BrAPIObservationDAO brapiObservationDAO;
     private Map<String, BrAPIObservation> mutatedObservationByDbId;
 
     @Inject
-    public BrAPIObservationUpdate(ExperimentUtilities experimentUtilities, BrAPIObservationDAO brapiObservationDAO) {
+    public BrAPIObservationUpdateMiddleware(ExperimentUtilities experimentUtilities, BrAPIObservationDAO brapiObservationDAO) {
         this.experimentUtilities = experimentUtilities;
         this.brapiObservationDAO = brapiObservationDAO;
     }

@@ -21,6 +21,7 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     ImportContext importContext;
     @Inject
     TrialService trialService;
+    @Inject
     BrAPITrialDAO brapiTrialDAO;
     @Inject
     ExperimentUtilities experimentUtilities;
