@@ -40,6 +40,7 @@ import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.pipeline.ProcessingStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedStudyService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedTrialService;
 import org.breedinginsight.model.Program;
@@ -58,7 +59,7 @@ import java.util.stream.Collectors;
 
 @Prototype
 @Slf4j
-public class GetExistingProcessingStep implements ProcessingStep<ImportContext, PendingData> {
+public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<ImportContext, ProcessContext> {
 
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final BrAPITrialDAO brAPITrialDAO;
@@ -73,14 +74,14 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     private String BRAPI_REFERENCE_SOURCE;
 
     @Inject
-    public GetExistingProcessingStep(BrAPIObservationUnitDAO brAPIObservationUnitDAO,
-                                     BrAPITrialDAO brAPITrialDAO,
-                                     BrAPIStudyDAO brAPIStudyDAO,
-                                     ProgramLocationService locationService,
-                                     BrAPIListDAO brAPIListDAO,
-                                     BrAPIGermplasmDAO brAPIGermplasmDAO,
-                                     SharedStudyService sharedStudyService,
-                                     SharedTrialService sharedTrialService) {
+    public PopulateExistingPendingImportObjectsStep(BrAPIObservationUnitDAO brAPIObservationUnitDAO,
+                                                    BrAPITrialDAO brAPITrialDAO,
+                                                    BrAPIStudyDAO brAPIStudyDAO,
+                                                    ProgramLocationService locationService,
+                                                    BrAPIListDAO brAPIListDAO,
+                                                    BrAPIGermplasmDAO brAPIGermplasmDAO,
+                                                    SharedStudyService sharedStudyService,
+                                                    SharedTrialService sharedTrialService) {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPITrialDAO = brAPITrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
@@ -92,7 +93,7 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
     }
 
     @Override
-    public PendingData process(ImportContext input) {
+    public ProcessContext process(ImportContext input) {
 
         List<ExperimentObservation> experimentImportRows = ExperimentUtilities.importRowsToExperimentObservations(input.getImportRows());
         Program program = input.getProgram();
@@ -115,7 +116,10 @@ public class GetExistingProcessingStep implements ProcessingStep<ImportContext, 
                 .existingGermplasmByGID(existingGermplasmByGID)
                 .build();
 
-        return existing;
+        return ProcessContext.builder()
+                .importContext(input)
+                .pendingData(existing)
+                .build();
     }
 
     /**

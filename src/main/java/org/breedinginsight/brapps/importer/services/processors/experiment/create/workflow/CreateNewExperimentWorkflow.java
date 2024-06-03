@@ -22,7 +22,7 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.pipeline.Pipeline;
-import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.GetExistingProcessingStep;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateExistingPendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.ProcessStep;
 
 import javax.inject.Inject;
@@ -38,11 +38,11 @@ import javax.inject.Provider;
 @Named("CreateNewExperimentWorkflow")
 public class CreateNewExperimentWorkflow implements Workflow {
 
-    private final Provider<GetExistingProcessingStep> getExistingStepProvider;
+    private final Provider<PopulateExistingPendingImportObjectsStep> getExistingStepProvider;
     private final Provider<ProcessStep> processStepProvider;
 
     @Inject
-    public CreateNewExperimentWorkflow(Provider<GetExistingProcessingStep> getExistingStepProvider,
+    public CreateNewExperimentWorkflow(Provider<PopulateExistingPendingImportObjectsStep> getExistingStepProvider,
                                        Provider<ProcessStep> processStepProvider) {
         this.getExistingStepProvider = getExistingStepProvider;
         this.processStepProvider = processStepProvider;
