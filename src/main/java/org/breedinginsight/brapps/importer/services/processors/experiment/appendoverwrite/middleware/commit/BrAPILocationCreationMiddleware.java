@@ -2,20 +2,11 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
-import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.request.BrAPIListNewRequest;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
-import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
-import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -29,15 +20,15 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Prototype
-public class BrAPILocationCreation extends ExpUnitMiddleware {
+public class BrAPILocationCreationMiddleware extends ExpUnitMiddleware {
 
     ExperimentUtilities experimentUtilities;
-    ProgramLocationService locationService;
+    ProgramLocationService programLocationService;
     private List<ProgramLocationRequest> newLocations;
     @Inject
-    public BrAPILocationCreation(ExperimentUtilities experimentUtilities, ProgramLocationService locationService) {
+    public BrAPILocationCreationMiddleware(ExperimentUtilities experimentUtilities, ProgramLocationService programLocationService) {
         this.experimentUtilities = experimentUtilities;
-        this.locationService = locationService;
+        this.programLocationService = programLocationService;
     }
     @Override
     public boolean process(ExpUnitMiddlewareContext context) {
@@ -55,7 +46,7 @@ public class BrAPILocationCreation extends ExpUnitMiddleware {
         // Create new locations in brapi service
         List<ProgramLocation> createdLocations = null;
         try {
-            createdLocations = new ArrayList<>(locationService.create(actingUser, context.getImportContext().getProgram().getId(), newLocations));
+            createdLocations = new ArrayList<>(programLocationService.create(actingUser, context.getImportContext().getProgram().getId(), newLocations));
 
             // Update the context cache
             for (ProgramLocation createdLocation : createdLocations) {

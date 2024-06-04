@@ -139,7 +139,7 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
             cache.getTrialByNameNoScope().get(createdTrialNameNoScope).getBrAPIObject().setTrialDbId(trial.getTrialDbId());
         }
 
-        // update trial DbIds in studies for all distinct trials
+        // Update trial DbIds in studies for all distinct trials
         cache.getTrialByNameNoScope().values().stream()
                 .filter(Objects::nonNull)
                 .distinct()

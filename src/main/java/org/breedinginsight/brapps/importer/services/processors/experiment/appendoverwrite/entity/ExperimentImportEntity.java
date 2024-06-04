@@ -2,6 +2,9 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.List;
 
@@ -16,7 +19,7 @@ public interface ExperimentImportEntity<T> {
      * @return List of created entities
      * @throws ApiException if there is an issue with the API call
      */
-    public List<T> brapiPost(List<T> members) throws ApiException;
+    public List<T> brapiPost(List<T> members) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException;
 
     /**
      * Fetch objects required by the workflow from the BrAPI service.
