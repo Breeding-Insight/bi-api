@@ -106,7 +106,7 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
     }
 
     /**
-     * For workflow pending import objects of a given state, fetch deep copies of the objects from the workflow context.
+     * For workflow pending import objects of a given state, construct deep copies of the objects from the workflow context.
      *
      * @param status State of the objects
      * @return List of deep copies of entities from workflow context
