@@ -181,6 +181,17 @@ public class Utilities {
         return externalReferences.stream().filter(externalReference -> externalReference.getReferenceSource().equals(source)).findFirst();
     }
 
+    public static Optional<BrAPIExternalReference> getExternalReference(List<BrAPIExternalReference> externalReferences, String referenceSourceBase, ExternalReferenceSource referenceSource) {
+        return getExternalReference(externalReferences, generateReferenceSource(referenceSourceBase, referenceSource));
+    }
+
+    public static void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, ExternalReferenceSource refSourceName) {
+        BrAPIExternalReference reference = new BrAPIExternalReference();
+        reference.setReferenceSource(String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()));
+        reference.setReferenceId(uuid.toString());
+        refs.add(reference);
+    }
+
     /**
      * For a list of items, if the list has only one item, return that item, otherwise return an empty {@link Optional}
      * @param items {@link List} of items

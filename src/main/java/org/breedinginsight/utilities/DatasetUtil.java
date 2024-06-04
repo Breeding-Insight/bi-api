@@ -4,6 +4,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.reflect.TypeToken;
 import org.brapi.client.v2.JSON;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
+import org.breedinginsight.model.DatasetLevel;
 import org.breedinginsight.model.DatasetMetadata;
 
 import java.lang.reflect.Type;
@@ -44,4 +47,15 @@ public class DatasetUtil {
         }
         return null;
     }
+
+    public static DatasetMetadata getTopLevelDatasetFromJson(JsonArray datasetsJsonArray) {
+        List<DatasetMetadata> datasets = datasetsFromJson(datasetsJsonArray);
+        // Return the top level dataset if it exists, otherwise null.
+        return datasets.stream().filter(dataset -> dataset.getLevel().equals(DatasetLevel.EXP_UNIT)).findFirst().orElse(null);
+    }
+
+    public static DatasetMetadata getTopLevelDataset(BrAPITrial experiment) {
+        return getTopLevelDatasetFromJson(experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS));
+    }
+
 }

@@ -58,6 +58,7 @@ public class BrAPITrialService {
     private final String referenceSource;
     private final BrAPITrialDAO trialDAO;
     private final BrAPIObservationDAO observationDAO;
+    private final BrAPIObservationUnitDAO observationUnitDAO;
     private final BrAPIListDAO listDAO;
 
     private final TraitService traitService;
@@ -72,6 +73,7 @@ public class BrAPITrialService {
     public BrAPITrialService(@Property(name = "brapi.server.reference-source") String referenceSource,
                              BrAPITrialDAO trialDAO,
                              BrAPIObservationDAO observationDAO,
+                             BrAPIObservationUnitDAO observationUnitDAO,
                              BrAPIListDAO listDAO,
                              TraitService traitService,
                              BrAPIStudyDAO studyDAO,
@@ -83,6 +85,7 @@ public class BrAPITrialService {
         this.referenceSource = referenceSource;
         this.trialDAO = trialDAO;
         this.observationDAO = observationDAO;
+        this.observationUnitDAO = observationUnitDAO;
         this.listDAO = listDAO;
         this.traitService = traitService;
         this.studyDAO = studyDAO;
@@ -347,18 +350,140 @@ public class BrAPITrialService {
         return datasets;
     }
 
-    public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request) throws ApiException {
+    public Dataset createSubEntityDataset(Program program, UUID experimentId, SubEntityDatasetRequest request) throws ApiException, DoesNotExistException {
         log.debug("creating sub-entity dataset: \"" + request.getName() + "\" for experiment: \"" + experimentId + "\" with: \"" + request.getRepeatedMeasures() + "\" repeated measures.");
+        UUID subEntityDatasetId = UUID.randomUUID();
+        List<BrAPIObservationUnit> subObsUnits = new ArrayList<>();
         BrAPITrial experiment = getExperiment(program, experimentId);
-        String a = "b";
-        List<BrAPIObservationUnit> datasetOUs = ouDAO.getObservationUnitsForDataset(experiment.getAdditionalInfo().get("observationDatasetId").toString(), program);
-        // TODO:
-        // fetch top level dataset obs units
-        // foreach obs unit in top-level dataset
-            // for (i=0;i<repeatedMeasures;i++)
-                // create (sub) obs unit with xref for new dataset and top level obs unit
-        // return the new dataset
-        throw new NotImplementedException();
+        // Get top level dataset ObservationUnits.
+        DatasetMetadata topLevelDataset = DatasetUtil.getTopLevelDataset(experiment);
+        if (topLevelDataset == null) {
+            log.error("Experiment {} has no top level dataset.", experiment.getTrialDbId());
+            throw new RuntimeException("Cannot create sub-entity dataset for experiment without top level dataset.");
+        }
+
+        List<BrAPIObservationUnit> expOUs = ouDAO.getObservationUnitsForDataset(topLevelDataset.getId().toString(), program);
+        for (BrAPIObservationUnit expUnit : expOUs) {
+
+            // Get environment number from study.
+            String envSeqValue = studyDAO.getStudyByDbId(expUnit.getStudyDbId(), program).orElseThrow()
+                    .getAdditionalInfo().get(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER).getAsString();
+
+            for (int i=0; i<request.getRepeatedMeasures(); i++) {
+                // Create subObsUnit and add to list.
+                subObsUnits.add(
+                    createSubObservationUnit(
+                        request.getName(),
+                        Integer.toString(i),
+                        program,
+                        envSeqValue,
+                        expUnit,
+                        this.referenceSource,
+                        subEntityDatasetId,
+                        UUID.randomUUID()
+                    )
+                );
+            }
+        }
+
+        List<BrAPIObservationUnit> createdObservationUnits = observationUnitDAO.createBrAPIObservationUnits(subObsUnits, program.getId());
+
+        // Update trial with the new dataset to collection in additionalInfo.
+        DatasetMetadata subEntityDatasetMetadata = DatasetMetadata.builder()
+                .id(subEntityDatasetId)
+                .name(request.getName())
+                .level(DatasetLevel.SUB_OBS_UNIT)
+                .build();
+        List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS));
+        datasets.add(subEntityDatasetMetadata);
+        experiment.getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, DatasetUtil.jsonArrayFromDatasets(datasets));
+        // Ask the DAO to persist the updated trial.
+        trialDAO.updateBrAPITrial(experiment.getTrialDbId(), experiment, program.getId());
+
+        // Return the new dataset.
+        return getDatasetData(program, experimentId, subEntityDatasetId, false);  // TODO: stats?
+    }
+
+    public BrAPIObservationUnit createSubObservationUnit(
+            String subEntityDatasetName,
+            String subUnitId,
+            Program program,
+            String seqVal,
+            BrAPIObservationUnit expUnit,
+            String referenceSource,
+            UUID datasetId,
+            UUID id
+    ) {
+
+        BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
+        observationUnit.setObservationUnitName(Utilities.appendProgramKey(subEntityDatasetName, program.getKey(), seqVal));
+
+        // Build ExternalReferences.
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+
+        // Program ref.
+        Utilities.addReference(refs, program.getId(), referenceSource, ExternalReferenceSource.PROGRAMS);
+
+        // Trial and Study refs can be copied from expUnit to subUnit.
+        Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.TRIALS)
+            .ifPresent(refs::add);
+        Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.STUDIES)
+            .ifPresent(refs::add);
+
+        // Dataset and ObservationUnit refs are specific to the subUnit.
+        if (datasetId != null) {
+            Utilities.addReference(refs, datasetId, referenceSource, ExternalReferenceSource.DATASET);
+        }
+        if (id != null) {
+            Utilities.addReference(refs, id, referenceSource, ExternalReferenceSource.OBSERVATION_UNITS);
+        }
+
+        // Set ExternalReferences.
+        observationUnit.setExternalReferences(refs);
+
+        // Set Trial.
+        observationUnit.setTrialName(expUnit.getTrialName());
+        observationUnit.setTrialDbId(expUnit.getTrialDbId());
+
+        // Set Study.
+        observationUnit.setStudyName(expUnit.getStudyName());
+        observationUnit.setStudyDbId(expUnit.getStudyDbId());
+
+        // Set Germplasm.
+        observationUnit.setGermplasmName(expUnit.getGermplasmName());
+        observationUnit.setGermplasmDbId(expUnit.getGermplasmDbId());
+        String gid = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID).getAsString();
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid);
+
+        // keep this in case we decide to rename levels in future
+        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
+
+        // Build ObservationUnitPosition.
+        BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
+
+        // ObservationLevel entry for Sub-Obs Unit.
+        BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
+        level.setLevelName(subEntityDatasetName);
+        level.setLevelCode(Utilities.appendProgramKey(subUnitId, program.getKey(), seqVal));
+        level.setLevelOrder(DatasetLevel.SUB_OBS_UNIT.getValue());
+        position.setObservationLevel(level);
+
+        // ObservationLevelRelationships for top-level Exp Unit linking.
+        List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
+        BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
+        expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+        String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
+        expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnitUUID, program.getKey(), seqVal));
+        expUnitLevel.setLevelOrder(DatasetLevel.EXP_UNIT.getValue());
+        levelRelationships.add(expUnitLevel);
+        position.setObservationLevelRelationships(levelRelationships);
+
+        // Set ObservationUnitPosition.
+        observationUnit.setObservationUnitPosition(position);
+
+        // TODO: Do replicate and block matter for field book?
+
+        return observationUnit;
     }
 
     private void addBrAPIObsToRecords(

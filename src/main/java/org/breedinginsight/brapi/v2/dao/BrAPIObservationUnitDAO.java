@@ -170,7 +170,8 @@ public class BrAPIObservationUnitDAO {
     }
 
     /**
-     * Create observation units, mutates brAPIObservationUnitList
+     * Create observation units with import progress.
+     * Mutates brAPIObservationUnitList.
      */
     public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId, ImportUpload upload) throws ApiException, DoesNotExistException {
         Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
@@ -180,6 +181,28 @@ public class BrAPIObservationUnitDAO {
                 Callable<Map<String, BrAPIObservationUnit>> postFunction = () -> {
                     preprocessObservationUnits(brAPIObservationUnitList);
                     List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, upload, api::observationunitsPost, importDAO::update);
+                    return processObservationUnitsForCache(ous, program, false);
+                };
+                return programObservationUnitCache.post(programId, postFunction);
+            }
+            return new ArrayList<>();
+        } catch (Exception e) {
+            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Create observation units without import progress.
+     * Mutates brAPIObservationUnitList.
+     */
+    public List<BrAPIObservationUnit> createBrAPIObservationUnits(List<BrAPIObservationUnit> brAPIObservationUnitList, UUID programId) throws ApiException, DoesNotExistException {
+        Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program id does not exist"));
+        ObservationUnitsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationUnitsApi.class);
+        try {
+            if (!brAPIObservationUnitList.isEmpty()) {
+                Callable<Map<String, BrAPIObservationUnit>> postFunction = () -> {
+                    preprocessObservationUnits(brAPIObservationUnitList);
+                    List<BrAPIObservationUnit> ous = brAPIDAOUtil.post(brAPIObservationUnitList, api::observationunitsPost);
                     return processObservationUnitsForCache(ous, program, false);
                 };
                 return programObservationUnitCache.post(programId, postFunction);
