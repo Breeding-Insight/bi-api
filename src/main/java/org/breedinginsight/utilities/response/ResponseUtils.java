@@ -71,6 +71,19 @@ public class ResponseUtils {
         return processBrapiResponse(data, null, queryParams, mapper, new Metadata());
     }
 
+    public static <T> HttpResponse<Response<DataResponse<T>>> getBrapiSingleResponse(
+            List data) {
+
+        Pagination pagination = new Pagination();
+        pagination.setCurrentPage(0);
+        pagination.setPageSize(1);
+        pagination.setTotalPages(1);
+        pagination.setTotalCount(1);
+        Metadata metadata = constructMetadata(new Metadata(), pagination);
+
+        return HttpResponse.ok(new Response(metadata, new DataResponse(data)));
+    }
+
     // All
     public static HttpResponse<Response<ProgramUpload>> getUploadQueryResponse(
             ProgramUpload upload, AbstractQueryMapper mapper, SearchRequest searchRequest, QueryParams queryParams) {

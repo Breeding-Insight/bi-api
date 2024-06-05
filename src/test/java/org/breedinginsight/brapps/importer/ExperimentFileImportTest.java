@@ -85,7 +85,6 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class ExperimentFileImportTest extends BrAPITest {
-    private static final String OVERWRITE = "overwrite";
 
     private FannyPack securityFp;
     private String mappingId;
@@ -822,6 +821,81 @@ public class ExperimentFileImportTest extends BrAPITest {
         }
     }
 
+    /*
+    Scenario:
+    - an experiment was created with observations
+    - an overwrite operation is attempted with blank observation values
+    - verify blank observation values do not overwrite original values
+     */
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    @SneakyThrows
+    public void verifyBlankObsInOverwriteIsNoOp(boolean commit) {
+        List<Trait> traits = importTestUtils.createTraits(1);
+        Program program = createProgram("Overwrite Attempt With Blank Obs"+(commit ? "C" : "P"), "NOOP"+(commit ? "C" : "P"), "NOOP"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
+        Map<String, Object> newExp = new HashMap<>();
+        newExp.put(Columns.GERMPLASM_GID, "1");
+        newExp.put(Columns.TEST_CHECK, "T");
+        newExp.put(Columns.EXP_TITLE, "Test Exp");
+        newExp.put(Columns.EXP_UNIT, "Plot");
+        newExp.put(Columns.EXP_TYPE, "Phenotyping");
+        newExp.put(Columns.ENV, "New Env");
+        newExp.put(Columns.ENV_LOCATION, "Location A");
+        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.EXP_UNIT_ID, "a-1");
+        newExp.put(Columns.REP_NUM, "1");
+        newExp.put(Columns.BLOCK_NUM, "1");
+        newExp.put(Columns.ROW, "1");
+        newExp.put(Columns.COLUMN, "1");
+        newExp.put(traits.get(0).getObservationVariableName(), "1");   // Valid observation value.
+
+        importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
+
+        // Fetch the ObsUnitId to use in the overwrite upload.
+        BrAPITrial brAPITrial = brAPITrialDAO.getTrialsByName(List.of((String)newExp.get(Columns.EXP_TITLE)), program).get(0);
+        Optional<BrAPIExternalReference> trialIdXref = Utilities.getExternalReference(brAPITrial.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.TRIALS.getName()));
+        assertTrue(trialIdXref.isPresent());
+        BrAPIStudy brAPIStudy = brAPIStudyDAO.getStudiesByExperimentID(UUID.fromString(trialIdXref.get().getReferenceId()), program).get(0);
+        BrAPIObservationUnit ou = ouDAO.getObservationUnitsForStudyDbId(brAPIStudy.getStudyDbId(), program).get(0);
+        Optional<BrAPIExternalReference> ouIdXref = Utilities.getExternalReference(ou.getExternalReferences(), String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName()));
+        assertTrue(ouIdXref.isPresent());
+
+        assertRowSaved(newExp, program, traits);
+
+        Map<String, Object> newObsVar = new HashMap<>();
+        newObsVar.put(Columns.GERMPLASM_GID, "1");
+        newObsVar.put(Columns.TEST_CHECK, "T");
+        newObsVar.put(Columns.EXP_TITLE, "Test Exp");
+        newObsVar.put(Columns.EXP_UNIT, "Plot");
+        newObsVar.put(Columns.EXP_TYPE, "Phenotyping");
+        newObsVar.put(Columns.ENV, "New Env");
+        newObsVar.put(Columns.ENV_LOCATION, "Location A");
+        newObsVar.put(Columns.ENV_YEAR, "2023");
+        newObsVar.put(Columns.EXP_UNIT_ID, "a-1");
+        newObsVar.put(Columns.REP_NUM, "1");
+        newObsVar.put(Columns.BLOCK_NUM, "1");
+        newObsVar.put(Columns.ROW, "1");
+        newObsVar.put(Columns.COLUMN, "1");
+        newObsVar.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());  // Indicates this is an overwrite.
+        newObsVar.put(traits.get(0).getObservationVariableName(), "");  // Empty string should be no op.
+
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("overwrite", "true");
+        requestBody.put("overwriteReason", "testing");
+
+        JsonObject result = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newObsVar), traits), requestBody, commit, client, program, mappingId);
+        JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
+        assertEquals(1, previewRows.size());
+        JsonObject row = previewRows.get(0).getAsJsonObject();
+
+        // Verify that the overwrite attempt with blank observation value did not overwrite the original value.
+        assertRowSaved(newExp, program, traits);
+        if(commit) {
+            assertRowSaved(newExp, program, traits);
+        } else {
+            assertValidPreviewRow(newExp, row, program, traits);
+        }
+    }
 
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
@@ -1086,15 +1160,15 @@ public class ExperimentFileImportTest extends BrAPITest {
 
     /*
     Scenario:
-    - an experiment was created with observations
-    - do a second upload with additional observations for the experiment.  Make sure the original observations are blank values
-    - verify the second set of observations get uploaded successfully
+    - Create an experiment with valid observations.
+    - Upload a second file with (1) a blank observation, (2) a changed valid observation, and (3) a new observation for the experiment.
+    - Verify that (1) the blank observation makes no change, (2) the changed observation is overwritten, and (3) new observations are appended to the experiment.
      */
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importNewObsAfterFirstExpWithObs_blank(boolean commit) {
-        List<Trait> traits = importTestUtils.createTraits(2);
+        List<Trait> traits = importTestUtils.createTraits(3);
         Program program = createProgram("Exp with additional Uploads (blank) "+(commit ? "C" : "P"), "EXAUB"+(commit ? "C" : "P"), "EXAUB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
@@ -1110,7 +1184,9 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.BLOCK_NUM, "1");
         newExp.put(Columns.ROW, "1");
         newExp.put(Columns.COLUMN, "1");
-        newExp.put(traits.get(0).getObservationVariableName(), "1");
+        String originalValue = "1";  // Convenience variable, this value is reused.
+        newExp.put(traits.get(0).getObservationVariableName(), originalValue);
+        newExp.put(traits.get(1).getObservationVariableName(), "2");
 
         importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newExp), traits), null, true, client, program, mappingId);
 
@@ -1140,10 +1216,15 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.ROW, "1");
         newObservation.put(Columns.COLUMN, "1");
         newObservation.put(Columns.OBS_UNIT_ID, ouIdXref.get().getReferenceId());
-        newObservation.put(traits.get(0).getObservationVariableName(), "");
-        newObservation.put(traits.get(1).getObservationVariableName(), "2");
+        newObservation.put(traits.get(0).getObservationVariableName(), "");    // This blank value should not overwrite.
+        newObservation.put(traits.get(1).getObservationVariableName(), "3");   // This valid value should overwrite.
+        newObservation.put(traits.get(2).getObservationVariableName(), "4");   // This valid new observation should be appended.
 
-        JsonObject result = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), null, commit, client, program, mappingId);
+        Map<String, String> requestBody = new HashMap<>();
+        requestBody.put("overwrite", "true");
+        requestBody.put("overwriteReason", "testing");
+
+        JsonObject result = importTestUtils.uploadAndFetch(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), requestBody, commit, client, program, mappingId);
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
@@ -1154,6 +1235,9 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
 
+        // The blank value should not have produced an overwrite.
+        // This change is to make the "expected" value correct.
+        newObservation.put(traits.get(0).getObservationVariableName(), originalValue);
         if(commit) {
             assertRowSaved(newObservation, program, traits);
         } else {
