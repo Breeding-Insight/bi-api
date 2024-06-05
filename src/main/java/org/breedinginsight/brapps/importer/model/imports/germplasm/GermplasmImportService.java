@@ -23,6 +23,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
@@ -55,6 +56,11 @@ public class GermplasmImportService implements BrAPIImportService {
     @Override
     public GermplasmImport getImportClass() {
         return new GermplasmImport();
+    }
+
+    @Override
+    public List<ImportWorkflow> getWorkflows() {
+        return null;
     }
 
     @Override

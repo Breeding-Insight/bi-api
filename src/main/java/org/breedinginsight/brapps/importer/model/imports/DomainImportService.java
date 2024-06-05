@@ -15,12 +15,10 @@
  * limitations under the License.
  */
 
-package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
+package org.breedinginsight.brapps.importer.model.imports;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.brapps.importer.model.imports.DomainImportService;
-import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
@@ -35,34 +33,40 @@ import java.util.List;
 
 @Singleton
 @Slf4j
-public class ExperimentImportService extends DomainImportService {
+public abstract class DomainImportService implements BrAPIImportService {
 
-    private final String IMPORT_TYPE_ID = "ExperimentImport";
-    private final ExperimentWorkflowNavigator workflowNavigator;
+    private final Provider<ExperimentProcessor> experimentProcessorProvider;
+    private final Provider<ProcessorManager> processorManagerProvider;
+    private final Workflow workflowNavigator;
 
     @Inject
-    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
-                                   Provider<ProcessorManager> processorManagerProvider,
-                                   ExperimentWorkflowNavigator workflowNavigator)
+    public DomainImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
+                               Provider<ProcessorManager> processorManagerProvider)
     {
-        super(experimentProcessorProvider, processorManagerProvider);
-        this.workflowNavigator = workflowNavigator;
+        this.experimentProcessorProvider = experimentProcessorProvider;
+        this.processorManagerProvider = processorManagerProvider;
+        this.workflowNavigator = getNavigator();
+    }
+
+    protected abstract Workflow getNavigator();
+    @Override
+    public String getMissingColumnMsg(String columnName) {
+        return "Column heading does not match template or ontology";
     }
     @Override
-    public Workflow getNavigator() {
-        return this.workflowNavigator;
+    public List<ImportWorkflow> getWorkflows() {
+        return workflowNavigator.getWorkflows();
     }
 
     @Override
-    public ExperimentObservation getImportClass() {
-        return new ExperimentObservation();
+    public ImportPreviewResponse process(ImportServiceContext context)
+            throws Exception {
+
+        if (!context.getWorkflow().isEmpty()) {
+            log.info("Workflow: " + context.getWorkflow());
+        }
+
+        return workflowNavigator.process(context).flatMap(r->r.getImportPreviewResponse()).orElse(null);
     }
-
-    @Override
-    public String getImportTypeId() {
-        return IMPORT_TYPE_ID;
-    }
-
-
 }
 
