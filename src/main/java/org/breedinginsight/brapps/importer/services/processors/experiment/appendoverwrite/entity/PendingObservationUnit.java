@@ -43,6 +43,25 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
      */
     @Override
     public List<BrAPIObservationUnit> brapiPost(List<BrAPIObservationUnit> members) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
+        // TODO: move the germplasm foreign key assignment out one level
+        // Set the germplasm foreign key for observation unit requests
+        cache.getExistingGermplasmByGID().values()
+                .stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(PendingImportObject::getBrAPIObject)
+                .forEach(germplasm -> {
+
+                    // Collect all observation units that are associated with a germplasm GID
+                    members.stream().filter(obsUnit -> germplasm.getAccessionNumber() != null &&
+                                    germplasm.getAccessionNumber().equals(obsUnit
+                                            .getAdditionalInfo().getAsJsonObject()
+                                            .get(BrAPIAdditionalInfoFields.GID).getAsString()))
+
+                            // Set the foreign key for each unit
+                            .forEach(obsUnit -> obsUnit.setGermplasmDbId(germplasm.getGermplasmDbId()));
+                });
+
         return observationUnitDAO.createBrAPIObservationUnits(members, importContext.getProgram().getId(), importContext.getUpload());
     }
 
