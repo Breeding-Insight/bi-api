@@ -1,19 +1,17 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create;
 
-import lombok.extern.slf4j.Slf4j;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingDataset;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingObservationUnit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
-@Slf4j
-public class BrAPIDatasetCreation extends BrAPICreation<BrAPIListDetails> {
+public class BrAPIObservationUnitCreation extends BrAPICreation<BrAPIObservationUnit> {
     /**
      * Constructor for BrAPICreation class.
      *
      * @param context the ExpUnitMiddlewareContext object
      */
-    public BrAPIDatasetCreation(ExpUnitMiddlewareContext context) {
+    public BrAPIObservationUnitCreation(ExpUnitMiddlewareContext context) {
         super(context);
     }
 
@@ -24,7 +22,7 @@ public class BrAPIDatasetCreation extends BrAPICreation<BrAPIListDetails> {
      * @return the ExperimentImportEntity object
      */
     @Override
-    public ExperimentImportEntity<BrAPIListDetails> getEntity(ExpUnitMiddlewareContext context) {
-        return new PendingDataset(context);
+    public ExperimentImportEntity<BrAPIObservationUnit> getEntity(ExpUnitMiddlewareContext context) {
+        return new PendingObservationUnit(context);
     }
 }

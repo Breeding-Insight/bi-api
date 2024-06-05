@@ -160,7 +160,8 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
                 .map(pio -> studyService.constructPIOFromBrapiStudy(pio, importContext.getProgram())).collect(Collectors.toList());
 
         // Construct a hashmap to look up the pending study by study name with the program key removed
-        Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByNameNoScope = pendingStudies.stream().collect(Collectors.toMap(pio -> Utilities.removeProgramKeyAndUnknownAdditionalData(pio.getBrAPIObject().getStudyName(), importContext.getProgram().getKey()), pio -> pio));
+        Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByNameNoScope = pendingStudies.stream()
+                .collect(Collectors.toMap(pio -> Utilities.removeProgramKeyAndUnknownAdditionalData(pio.getBrAPIObject().getStudyName(), importContext.getProgram().getKey()), pio -> pio));
 
         // Add the map to the context for use in processing import
         cache.setStudyByNameNoScope(pendingStudyByNameNoScope);
