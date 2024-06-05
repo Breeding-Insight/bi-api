@@ -1,14 +1,19 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
 
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
+import org.breedinginsight.model.Trait;
+import org.breedinginsight.services.OntologyService;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -23,6 +28,8 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
     ObservationService observationService;
     @Inject
     BrAPIObservationDAO brAPIObservationDAO;
+    @Inject
+    OntologyService ontologyService;
     @Inject
     ExperimentUtilities experimentUtilities;
 
@@ -40,8 +47,30 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
      * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIObservation> brapiPost(List<BrAPIObservation> members) throws ApiException {
-        return brAPIObservationDAO.createBrAPIObservations(members, importContext.getProgram().getId(), importContext.getUpload());
+    public List<BrAPIObservation> brapiPost(List<BrAPIObservation> members) throws ApiException, DoesNotExistException {
+        // TODO: move the trait setting out to a higher level
+        // Fetch the program traits
+        List<Trait> traits = ontologyService.getTraitsByProgramId(importContext.getProgram().getId(), true);
+        CaseInsensitiveMap<String, Trait> traitMap = new CaseInsensitiveMap<>();
+        for ( Trait trait: traits) {
+            traitMap.put(trait.getObservationVariableName(),trait);
+        }
+
+        // Set the trait dbId on the observation requests
+        for (BrAPIObservation observation : members) {
+            String observationVariableName = observation.getObservationVariableName();
+            if (observationVariableName != null && traitMap.containsKey(observationVariableName)) {
+                String observationVariableDbId = traitMap.get(observationVariableName).getObservationVariableDbId();
+                observation.setObservationVariableDbId(observationVariableDbId);
+            }
+        }
+
+        // TODO: move this logic out to a higher level
+        // Do not create observations in the BrAPI service if there is no value
+        List<BrAPIObservation> nonBlankMembers = members.stream().filter(obs -> !obs.getValue().isBlank()).collect(Collectors.toList());
+
+        // Create the observations
+        return brAPIObservationDAO.createBrAPIObservations(nonBlankMembers, importContext.getProgram().getId(), importContext.getUpload());
     }
 
     /**
