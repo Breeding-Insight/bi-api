@@ -17,8 +17,11 @@
 
 package org.breedinginsight.model;
 
+import com.fasterxml.jackson.annotation.JsonValue;
 import com.google.gson.annotations.SerializedName;
 
+// The @SerializedName annotations are to make gson serialize correctly in the data access layer.
+// The @JsonValue annotation is to make micronaut (via jackson) serialize correctly in the controller response.
 public enum DatasetLevel {
     @SerializedName("0")
     EXP_UNIT(0),
@@ -31,6 +34,7 @@ public enum DatasetLevel {
         this.value = value;
     }
 
+    @JsonValue
     public int getValue() {
         return value;
     }
