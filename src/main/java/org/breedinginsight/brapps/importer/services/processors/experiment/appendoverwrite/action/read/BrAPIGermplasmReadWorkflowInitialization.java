@@ -12,7 +12,7 @@ public class BrAPIGermplasmReadWorkflowInitialization extends BrAPIReadWorkflowI
      *
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
-    protected BrAPIGermplasmReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
+    public BrAPIGermplasmReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
         super(context);
     }
 

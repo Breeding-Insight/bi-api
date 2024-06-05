@@ -12,7 +12,7 @@ public class BrAPIDatasetReadWorkflowInitialization extends BrAPIReadWorkflowIni
      *
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
-    protected BrAPIDatasetReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
+    public BrAPIDatasetReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
         super(context);
     }
 

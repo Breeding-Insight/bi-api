@@ -12,7 +12,7 @@ public class BrAPIObservationUnitReadWorkflowInitialization extends BrAPIReadWor
      *
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
-    protected BrAPIObservationUnitReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
+    public BrAPIObservationUnitReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
         super(context);
     }
 

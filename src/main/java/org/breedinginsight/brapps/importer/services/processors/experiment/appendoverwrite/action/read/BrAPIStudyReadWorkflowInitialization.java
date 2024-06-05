@@ -7,7 +7,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 
 public class BrAPIStudyReadWorkflowInitialization extends BrAPIReadWorkflowInitialization<BrAPIStudy> {
 
-    protected BrAPIStudyReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
+    public BrAPIStudyReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
         super(context);
     }
 

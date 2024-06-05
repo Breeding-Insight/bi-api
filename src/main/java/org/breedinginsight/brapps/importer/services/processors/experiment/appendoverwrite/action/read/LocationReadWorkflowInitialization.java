@@ -14,7 +14,7 @@ public class LocationReadWorkflowInitialization extends BrAPIReadWorkflowInitial
      *
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
-    protected LocationReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
+    public LocationReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
         super(context);
     }
 
