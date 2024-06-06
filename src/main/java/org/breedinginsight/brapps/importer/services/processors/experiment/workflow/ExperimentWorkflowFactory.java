@@ -3,7 +3,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.workf
 import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.AppendOverwritePhenotypesWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.CreateNewExperimentWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 

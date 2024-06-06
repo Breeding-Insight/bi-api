@@ -2,6 +2,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.ImportTableProcess;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import javax.inject.Inject;
@@ -10,8 +11,8 @@ import javax.inject.Inject;
 public class NewPendingBrAPIObjects extends ExpUnitMiddleware {
     ExpUnitMiddleware middleware;
     @Inject
-    public NewPendingBrAPIObjects(PendingObservation pendingObservation) {
-        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(pendingObservation); // Construct new pending observation
+    public NewPendingBrAPIObjects(ImportTableProcess importTableProcess) {
+        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(importTableProcess); // Construct new pending observation
     }
 
     @Override

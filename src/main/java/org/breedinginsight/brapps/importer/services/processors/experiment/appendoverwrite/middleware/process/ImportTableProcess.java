@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.brapi;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
 import com.google.gson.Gson;
 import lombok.extern.slf4j.Slf4j;
@@ -23,7 +23,6 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.FileMappingUtil;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.*;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.FieldValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
@@ -48,7 +47,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
 
 @Slf4j
-public class PendingObservation extends ExpUnitMiddleware {
+public class ImportTableProcess extends ExpUnitMiddleware {
     StudyService studyService;
     ObservationVariableService observationVariableService;
     ObservationService observationService;
@@ -59,7 +58,7 @@ public class PendingObservation extends ExpUnitMiddleware {
     AppendStatistic statistic;
 
     @Inject
-    public PendingObservation(StudyService studyService,
+    public ImportTableProcess(StudyService studyService,
                               ObservationVariableService observationVariableService,
                               BrAPIObservationDAO brAPIObservationDAO,
                               ObservationService observationService,
