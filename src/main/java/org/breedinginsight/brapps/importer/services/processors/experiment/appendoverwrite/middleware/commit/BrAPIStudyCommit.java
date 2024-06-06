@@ -20,7 +20,7 @@ public class BrAPIStudyCommit extends ExpUnitMiddleware {
     private Optional<BrAPICreation.BrAPICreationState> createdBrAPIStudies;
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPIStudyCreation = new BrAPIStudyCreation(context);
             createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
@@ -34,7 +34,7 @@ public class BrAPIStudyCommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // Tag an error if it occurred in this local transaction
         error.tag(this.getClass().getName());
 

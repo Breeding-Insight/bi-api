@@ -28,7 +28,7 @@ public class RequiredDatasets extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         Program program;
         String datasetId;
         BrAPIListDetails dataset = null;

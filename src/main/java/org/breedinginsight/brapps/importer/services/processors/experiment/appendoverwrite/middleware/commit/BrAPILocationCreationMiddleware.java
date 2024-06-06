@@ -31,7 +31,7 @@ public class BrAPILocationCreationMiddleware extends ExpUnitMiddleware {
         this.programLocationService = programLocationService;
     }
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         // Construct request
         newLocations = experimentUtilities.getNewObjects(context.getPendingData().getLocationByName(), ProgramLocation.class)
                 .stream()

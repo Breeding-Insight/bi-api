@@ -4,16 +4,13 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import java.util.List;
@@ -32,7 +29,7 @@ public class RequiredLocations extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         Program program;
         Set<String> locationDbIds;
         List<ProgramLocation> brapiLocations;

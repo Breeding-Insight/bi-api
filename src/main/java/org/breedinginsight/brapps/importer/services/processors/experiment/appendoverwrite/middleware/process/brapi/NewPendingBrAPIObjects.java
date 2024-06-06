@@ -15,7 +15,7 @@ public class NewPendingBrAPIObjects extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         log.debug("constructing new pending BrAPI objects");
 
 

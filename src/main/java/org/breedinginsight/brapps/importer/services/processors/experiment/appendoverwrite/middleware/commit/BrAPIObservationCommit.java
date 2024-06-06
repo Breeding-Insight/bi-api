@@ -7,7 +7,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPIObservationCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIObservationUpdate;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPITrialUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
@@ -26,7 +25,7 @@ public class BrAPIObservationCommit extends ExpUnitMiddleware {
     private Optional<BrAPIUpdate.BrAPIUpdateState> updatedObservations;
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPIObservationCreation = new BrAPIObservationCreation(context);
             createdBrAPIObservations = brAPIObservationCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
@@ -44,7 +43,7 @@ public class BrAPIObservationCommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // Tag an error if it occurred in this local transaction
         error.tag(this.getClass().getName());
 

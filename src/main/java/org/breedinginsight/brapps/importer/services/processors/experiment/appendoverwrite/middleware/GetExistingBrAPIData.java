@@ -31,13 +31,13 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
 
         return processNext(context);
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // tag an error if it occurred in this local transaction
         error.tag(this.getClass().getName());
 

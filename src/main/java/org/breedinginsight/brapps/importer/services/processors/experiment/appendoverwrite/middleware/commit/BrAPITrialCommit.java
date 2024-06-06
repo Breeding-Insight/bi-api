@@ -25,7 +25,7 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
     private Optional<BrAPIUpdate.BrAPIUpdateState> updatedTrials;
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPITrialCreation = new BrAPITrialCreation(context);
             createdBrAPITrials = brAPITrialCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
@@ -43,7 +43,7 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // Tag an error if it occurred in this local transaction
         error.tag(this.getClass().getName());
 

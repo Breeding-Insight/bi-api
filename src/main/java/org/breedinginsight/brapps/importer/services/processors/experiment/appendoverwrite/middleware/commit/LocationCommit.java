@@ -14,7 +14,7 @@ public class LocationCommit extends ExpUnitMiddleware {
     private Optional<BrAPICreation.BrAPICreationState> createdLocations;
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             locationCreation = new LocationCreation(context);
             createdLocations = locationCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
@@ -27,7 +27,7 @@ public class LocationCommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // Tag an error if it occurred in this local transaction
         error.tag(this.getClass().getName());
 

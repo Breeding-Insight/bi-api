@@ -77,7 +77,7 @@ public class PendingObservation extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         log.debug("verifying traits listed in import");
 
         // Get all the dynamic columns of the import

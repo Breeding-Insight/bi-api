@@ -15,7 +15,7 @@ public class BrAPICommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         log.debug("starting post of experiment data to BrAPI server");
 
 

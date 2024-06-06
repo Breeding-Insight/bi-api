@@ -29,7 +29,7 @@ public class BrAPIObservationUpdateMiddleware extends ExpUnitMiddleware {
         this.brapiObservationDAO = brapiObservationDAO;
     }
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
 
         mutatedObservationByDbId = experimentUtilities.getMutationsByObjectId(context.getPendingData().getPendingObservationByHash(), BrAPIObservation::getObservationDbId, BrAPIObservation.class);
 

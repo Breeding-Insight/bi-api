@@ -28,7 +28,7 @@ public class BrAPITrialUpdateMiddleware extends ExpUnitMiddleware {
         this.brapiTrialDAO = brapiTrialDAO;
     }
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         // Construct request
         mutatedTrialsById = experimentUtilities.getMutationsByObjectId(context.getPendingData().getTrialByNameNoScope(), BrAPITrial::getTrialDbId, BrAPITrial.class);
 

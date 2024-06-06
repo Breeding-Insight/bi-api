@@ -7,8 +7,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
-import javax.inject.Inject;
-
 @Slf4j
 public class WorkflowInitialization extends ExpUnitMiddleware {
     BrAPIObservationUnitReadWorkflowInitialization brAPIObservationUnitReadWorkflowInitialization;
@@ -19,7 +17,7 @@ public class WorkflowInitialization extends ExpUnitMiddleware {
     BrAPIGermplasmReadWorkflowInitialization brAPIGermplasmReadWorkflowInitialization;
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         brAPIObservationUnitReadWorkflowInitialization = new BrAPIObservationUnitReadWorkflowInitialization(context);
         brAPITrialReadWorkflowInitialization = new BrAPITrialReadWorkflowInitialization(context);
         brAPIStudyReadWorkflowInitialization = new BrAPIStudyReadWorkflowInitialization(context);

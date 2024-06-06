@@ -13,7 +13,7 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
     private BrAPIDatasetCreation datasetCreation;
     private Optional<BrAPICreation.BrAPICreationState> createdDatasets;
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
 
         try {
             datasetCreation = new BrAPIDatasetCreation(context);
@@ -27,7 +27,7 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // Tag an error if it occurred in this local transaction
         error.tag(this.getClass().getName());
 

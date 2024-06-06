@@ -24,7 +24,7 @@ public class ImportPreviewStatistics extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         log.debug("generating import preview statistics");
         return this.middleware.process(context);
     }

@@ -4,16 +4,12 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
-import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
@@ -33,7 +29,7 @@ public class BrAPIDatasetCreation extends ExpUnitMiddleware {
         this.brapiListDAO = brapiListDAO;
     }
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         // Construct request
         newDatasetRequests = experimentUtilities.getNewObjects(context.getPendingData().getObsVarDatasetByName(), BrAPIListDetails.class).stream().map(details -> {
             BrAPIListNewRequest request = new BrAPIListNewRequest();

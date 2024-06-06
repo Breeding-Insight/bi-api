@@ -26,7 +26,7 @@ public class RequiredObservationUnits extends ExpUnitMiddleware {
     }
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         Program program;
         Set<String> expUnitIds;
         List<String> missingIds;

@@ -23,31 +23,31 @@ public abstract class Middleware<T> {
     /**
      * Subclasses will implement this local transaction.
      */
-    public abstract boolean process(T context);
+    public abstract T process(T context);
     /**
      * Subclasses will implement this method to handle errors and possibly undo the local transaction.
      */
-    public abstract boolean compensate(T context, MiddlewareError error);
+    public abstract T compensate(T context, MiddlewareError error);
     /**
      * Processes the next local transaction or ends traversing if we're at the
      * last local transaction of the transaction.
      */
-    protected boolean processNext(T context) {
+    protected T processNext(T context) {
         if (next == null) {
-            return true;
+            return context;
         }
-        return next.process(context);
+        return (T) next.process(context);
     }
 
     /**
      * Runs the compensating local transaction for the prior local transaction or ends traversing if
      * we're at the first local transaction of the transaction.
      */
-    protected boolean compensatePrior(T context, MiddlewareError error) {
+    protected T compensatePrior(T context, MiddlewareError error) {
         if (prior == null) {
-            return true;
+            return context;
         }
-        return prior.compensate(context, error);
+        return (T) prior.compensate(context, error);
     }
 
     private Middleware getLastLink() {

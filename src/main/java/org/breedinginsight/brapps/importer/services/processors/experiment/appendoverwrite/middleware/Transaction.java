@@ -9,12 +9,12 @@ public class Transaction extends ExpUnitMiddleware {
     // TODO: add member for ExpUnitContext
 
     @Override
-    public boolean process(ExpUnitMiddlewareContext context) {
+    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         return processNext(context);
     }
 
     @Override
-    public boolean compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
         // TODO: handle any error here
 
         return true;
