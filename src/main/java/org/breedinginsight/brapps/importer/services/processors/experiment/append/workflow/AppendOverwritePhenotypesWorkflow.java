@@ -2,6 +2,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import lombok.Getter;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
@@ -15,6 +16,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.Optional;
 
 @Getter
@@ -65,7 +67,14 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
                 .commit(context.isCommit())
                 .build();
         ExpUnitMiddlewareContext workflowContext = ExpUnitMiddlewareContext.builder().importContext(importContext).build();
-        this.middleware.process(workflowContext);
+        ExpUnitMiddlewareContext processedContext = this.middleware.process(workflowContext);
+        ImportPreviewResponse response = new ImportPreviewResponse();
+        response.setStatistics(processedContext.getExpUnitContext().getStatistic().constructPreviewMap());
+        response.setRows(new ArrayList<>(processedContext.getImportContext().getMappedBrAPIImport().values()));
+        response.setDynamicColumnNames(processedContext.getImportContext().getUpload().getDynamicColumnNamesList());
+
+        result.ifPresent(importWorkflowResult -> importWorkflowResult.setImportPreviewResponse(Optional.of(response)));
+
         return result;
     }
 

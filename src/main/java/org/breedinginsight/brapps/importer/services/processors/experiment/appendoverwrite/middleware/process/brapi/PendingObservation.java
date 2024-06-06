@@ -278,13 +278,14 @@ public class PendingObservation extends ExpUnitMiddleware {
                     // Validate processed data
                     processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum, e)));
 
-                    // Update import preview statistics
+                    // Update import preview statistics and set in the context
                     processedData.updateTally(statistic);
                     statistic.addEnvironmentName(studyName);
                     // TODO: change null values to actual data
                     // TODO: change signature to take two args, studyName and unitName
                     statistic.addObservationUnitId(null);
                     statistic.addGid(null);
+                    context.getExpUnitContext().setStatistic(statistic);
 
                     // Construct a pending observation
                     PendingImportObject<BrAPIObservation> pendingProcessedData = processedData.constructPendingObservation();
@@ -302,6 +303,8 @@ public class PendingObservation extends ExpUnitMiddleware {
 
             // Add the pending observation map to the context for use in processing the import
             context.getPendingData().setPendingObservationByHash(pendingObservationByHash);
+
+            return context;
         } catch (DoesNotExistException | ApiException | UnprocessableEntityException e) {
             this.compensate(context, new MiddlewareError(() -> {
                 throw new RuntimeException(e);
