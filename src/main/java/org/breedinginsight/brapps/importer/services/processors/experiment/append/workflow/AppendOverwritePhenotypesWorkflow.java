@@ -6,7 +6,14 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.GetExistingBrAPIData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.Transaction;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ValidateAllRowsHaveIDs;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Optional;
 
@@ -14,9 +21,14 @@ import java.util.Optional;
 @Singleton
 public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
     private final ExperimentWorkflowNavigator.Workflow workflow;
+    private final ExpUnitMiddleware middleware;
 
-    public AppendOverwritePhenotypesWorkflow(){
+    @Inject
+    public AppendOverwritePhenotypesWorkflow(Transaction transaction,
+                                             ValidateAllRowsHaveIDs validateAllRowsHaveIDs,
+                                             GetExistingBrAPIData getExistingBrAPIData){
         this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE;
+        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(transaction, validateAllRowsHaveIDs, getExistingBrAPIData);
     }
 
     @Override
@@ -44,6 +56,16 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
         }
 
         // Start processing the import...
+        ImportContext importContext = ImportContext.builder()
+                .upload(context.getUpload())
+                .importRows(context.getBrAPIImports())
+                .data(context.getData())
+                .program(context.getProgram())
+                .user(context.getUser())
+                .commit(context.isCommit())
+                .build();
+        ExpUnitMiddlewareContext workflowContext = ExpUnitMiddlewareContext.builder().importContext(importContext).build();
+        this.middleware.process(workflowContext);
         return result;
     }
 
