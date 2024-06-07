@@ -3,7 +3,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 
 import javax.inject.Inject;
@@ -23,9 +22,7 @@ public class FieldValidation extends ExpUnitMiddleware {
         try {
 
         } catch (Exception e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            this.compensate(context);
         }
 
         return processNext(context);

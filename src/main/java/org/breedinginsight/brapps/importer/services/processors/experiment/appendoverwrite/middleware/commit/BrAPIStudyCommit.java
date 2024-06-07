@@ -25,23 +25,22 @@ public class BrAPIStudyCommit extends ExpUnitMiddleware {
             brAPIStudyCreation = new BrAPIStudyCreation(context);
             createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
         } catch (ApiException e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            context.getExpUnitContext().setProcessError(new MiddlewareError(e));
+            return this.compensate(context);
         }
 
         return processNext(context);
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
         // Tag an error if it occurred in this local transaction
-        error.tag(this.getClass().getName());
+        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created studies from the BrAPI service
         createdBrAPIStudies.ifPresent(BrAPICreation.BrAPICreationState::undo);
 
         // Undo the prior local transaction
-        return compensatePrior(context, error);
+        return compensatePrior(context);
     }
 }

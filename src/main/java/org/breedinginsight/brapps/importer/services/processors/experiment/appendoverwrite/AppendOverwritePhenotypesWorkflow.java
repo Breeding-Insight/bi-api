@@ -18,6 +18,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -79,6 +80,13 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
         // Process the workflow
         ExpUnitMiddlewareContext processedContext = this.middleware.process(workflowContext);
+
+        // TODO: Rethrow any exceptions caught during processing the context
+//        Optional.ofNullable(processedContext.getExpUnitContext().getMiddlewareError()).ifPresent(e -> {
+//            Constructor<? extends Exception> constructor = e.getError().getClass().getConstructor(String.class, Throwable.class);
+//            Exception newException = constructor.newInstance(e.getError().getMessage(), e);
+//            throw newException;
+//        });
 
         // Shape and return the workflow response
         ImportPreviewResponse response = new ImportPreviewResponse();

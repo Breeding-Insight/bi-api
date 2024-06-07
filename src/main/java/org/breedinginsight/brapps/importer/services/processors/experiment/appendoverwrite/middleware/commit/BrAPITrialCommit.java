@@ -34,18 +34,17 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
             updatedTrials = brAPITrialUpdate.execute().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);
 
         } catch (ApiException e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            context.getExpUnitContext().setProcessError(new MiddlewareError(e));
+            return this.compensate(context);
         }
 
         return processNext(context);
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
         // Tag an error if it occurred in this local transaction
-        error.tag(this.getClass().getName());
+        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created trials from the BrAPI service
         createdBrAPITrials.ifPresent(BrAPICreation.BrAPICreationState::undo);
@@ -54,6 +53,6 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
         priorBrAPITrials.ifPresent(BrAPIUpdate.BrAPIUpdateState::restore);
 
         // Undo the prior local transaction
-        return compensatePrior(context, error);
+        return compensatePrior(context);
     }
 }

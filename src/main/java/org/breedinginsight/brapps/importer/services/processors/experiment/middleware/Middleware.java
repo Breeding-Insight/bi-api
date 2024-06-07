@@ -1,7 +1,5 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.middleware;
 
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
-
 public abstract class Middleware<T> {
 
     Middleware next;
@@ -27,7 +25,7 @@ public abstract class Middleware<T> {
     /**
      * Subclasses will implement this method to handle errors and possibly undo the local transaction.
      */
-    public abstract T compensate(T context, MiddlewareError error);
+    public abstract T compensate(T context);
     /**
      * Processes the next local transaction or ends traversing if we're at the
      * last local transaction of the transaction.
@@ -43,11 +41,11 @@ public abstract class Middleware<T> {
      * Runs the compensating local transaction for the prior local transaction or ends traversing if
      * we're at the first local transaction of the transaction.
      */
-    protected T compensatePrior(T context, MiddlewareError error) {
+    protected T compensatePrior(T context) {
         if (prior == null) {
             return context;
         }
-        return (T) prior.compensate(context, error);
+        return (T) prior.compensate(context);
     }
 
     private Middleware getLastLink() {

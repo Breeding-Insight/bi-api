@@ -7,10 +7,13 @@ public class MiddlewareError {
     @Getter
     @Setter
     String localTransactionName;
-    Runnable handler;
 
-    public MiddlewareError(Runnable handler) {
-        this.handler = handler;
+    @Getter
+    @Setter
+    Exception error;
+
+    public MiddlewareError(Exception error) {
+        this.error = error;
     }
 
     public void tag(String name) {

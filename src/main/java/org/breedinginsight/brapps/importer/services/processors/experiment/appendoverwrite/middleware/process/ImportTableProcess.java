@@ -34,6 +34,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.api.Table;
 import tech.tablesaw.columns.Column;
@@ -102,20 +103,18 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             tsValErrs.forEach(validationError -> validationErrors.addError(rowNum, validationError));
         }
 
-        // Stop processing the import if there are unmatched timestamp columns
-        if (tsValErrs.size() > 0) {
-            this.compensate(context, new MiddlewareError(() -> {
-                // any handling...
-            }));
-        }
-
-        //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
-        Map<String, Column<?>> tsColByPheno = timestampCols.stream().collect(Collectors.toMap(col -> col.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), col -> col));
-
-        // Add the map to the context for use in processing import
-        context.getPendingData().setTimeStampColByPheno(tsColByPheno);
-
         try {
+            // Stop processing the import if there are unmatched timestamp columns
+            if (tsValErrs.size() > 0) {
+                throw new UnprocessableEntityException("One or more timestamp columns do not have a matching observation variable");
+            }
+
+            //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval
+            Map<String, Column<?>> tsColByPheno = timestampCols.stream().collect(Collectors.toMap(col -> col.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), col -> col));
+
+            // Add the map to the context for use in processing import
+            context.getPendingData().setTimeStampColByPheno(tsColByPheno);
+
             // Fetch the traits named in the observation variable columns
             Program program = context.getImportContext().getProgram();
             List<Trait> traits = observationVariableService.fetchTraitsByName(varNames, program);
@@ -276,6 +275,9 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
                     // Validate processed data
                     processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum, e)));
+                    if (validationErrors.hasErrors()) {
+                        throw new ValidatorException(validationErrors);
+                    }
 
                     // Update import preview statistics and set in the context
                     processedData.updateTally(statistic);
@@ -303,13 +305,10 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             // Add the pending observation map to the context for use in processing the import
             context.getPendingData().setPendingObservationByHash(pendingObservationByHash);
 
-            return context;
-        } catch (DoesNotExistException | ApiException | UnprocessableEntityException e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            return processNext(context);
+        } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException e) {
+            context.getExpUnitContext().setProcessError(new MiddlewareError(e));
+            return this.compensate(context);
         }
-
-        return processNext(context);
     }
 }

@@ -6,7 +6,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.BrAPITrialReadWorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.TrialService;
 
 import javax.inject.Inject;
@@ -34,9 +33,7 @@ public class RequiredTrials extends ExpUnitMiddleware {
             brAPITrialReadWorkflowInitialization.execute();
 
         } catch (ApiException e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            this.compensate(context);
         }
 
         return processNext(context);

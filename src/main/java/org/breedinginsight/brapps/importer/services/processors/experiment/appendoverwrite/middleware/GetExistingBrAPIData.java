@@ -10,9 +10,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -37,12 +35,12 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
         // tag an error if it occurred in this local transaction
-        error.tag(this.getClass().getName());
+        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // handle the error in the prior local transaction
-        return compensatePrior(context, error);
+        return compensatePrior(context);
     }
     private Map<String, PendingImportObject<BrAPIObservationUnit>> fetchReferenceObservationUnits(
             ExpUnitMiddlewareContext context) {
@@ -75,9 +73,7 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
                             () -> {
 
                                 // but throw an error if no unit ID
-                                this.compensate(context, new MiddlewareError(() -> {
-                                    throw new IllegalStateException("External reference does not exist for Deltabreed ObservationUnit ID");
-                                }));
+                                this.compensate(context);
                             }
                     );
 
@@ -94,23 +90,14 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
                 missingIds.removeAll(fetchedIds);
 
                 // throw error reporting any reference IDs with no corresponding stored unit in the brapi data store
-                this.compensate(context, new MiddlewareError(() -> {
-                    throw new IllegalStateException("Observation Units not found for ObsUnitId(s): " + String.join(ExpImportProcessConstants.COMMA_DELIMITER, missingIds));
-                }));
+                this.compensate(context);
             }
 
             return pendingUnitById;
         } catch (ApiException e) {
 
             // throw an error if problem getting data from the brapi data store
-            this.compensate(context, new MiddlewareError(() -> {
-                log.error("Error fetching observation units: " + Utilities.generateApiExceptionLogMessage(e), e);
-                try {
-                    throw new ApiException(e);
-                } catch (ApiException ex) {
-                    throw new RuntimeException(ex);
-                }
-            }));
+            this.compensate(context);
         }
         return pendingUnitById;
     }

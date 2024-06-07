@@ -2,9 +2,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
-
-import javax.inject.Inject;
 
 @Slf4j
 public class Transaction extends ExpUnitMiddleware {
@@ -15,8 +12,7 @@ public class Transaction extends ExpUnitMiddleware {
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
-        // TODO: handle any error here
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
 
         return context;
     }

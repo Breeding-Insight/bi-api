@@ -2,7 +2,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import org.breedinginsight.brapps.importer.services.processors.experiment.middleware.Middleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
 /**
  * ExpUnitMiddleware class extends Middleware class to handle compensating transactions in the context of ExpUnitMiddlewareContext.
@@ -13,15 +12,14 @@ public abstract class ExpUnitMiddleware extends Middleware<ExpUnitMiddlewareCont
      * Compensates for an error that occurred in the current local transaction, tagging the error and undoing the previous local transaction.
      *
      * @param context The context in which the compensation is to be performed.
-     * @param error   The error that occurred and needs to be compensated.
      * @return True if the prior local transaction was successfully compensated, false otherwise.
      */
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
         // tag an error if it occurred in this local transaction
-        error.tag(this.getClass().getName());
+        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // undo the prior local transaction
-        return compensatePrior(context, error);
+        return compensatePrior(context);
     }
 }

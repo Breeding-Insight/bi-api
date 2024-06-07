@@ -9,7 +9,6 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 import org.breedinginsight.model.Program;
 
@@ -65,9 +64,7 @@ public class RequiredDatasets extends ExpUnitMiddleware {
             // Add the map to the context for use in processing import
             context.getPendingData().setObsVarDatasetByName(pendingDatasetByName);
         } catch (ApiException e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            this.compensate(context);
         }
         return processNext(context);
     }

@@ -7,7 +7,6 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 import org.breedinginsight.model.Program;
 
@@ -57,9 +56,7 @@ public class RequiredObservationUnits extends ExpUnitMiddleware {
             context.getExpUnitContext().setPendingObsUnitByOUId(pendingUnitById);
             context.getPendingData().setObservationUnitByNameNoScope(pendingUnitByNameNoScope);
         } catch (ApiException e) {
-            this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
-            }));
+            this.compensate(context);
         }
 
         return processNext(context);

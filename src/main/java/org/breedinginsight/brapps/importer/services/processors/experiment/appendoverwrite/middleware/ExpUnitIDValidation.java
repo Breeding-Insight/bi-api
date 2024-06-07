@@ -3,7 +3,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
 @Slf4j
 public class ExpUnitIDValidation extends ExpUnitMiddleware {
@@ -15,12 +14,12 @@ public class ExpUnitIDValidation extends ExpUnitMiddleware {
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context, MiddlewareError error) {
+    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
         // tag an error if it occurred in this local transaction
-        error.tag(this.getClass().getName());
+        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // undo the prior local transaction
-        return compensatePrior(context, error);
+        return compensatePrior(context);
     }
 
 
