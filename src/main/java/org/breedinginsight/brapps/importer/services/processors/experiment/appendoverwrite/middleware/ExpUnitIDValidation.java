@@ -6,7 +6,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
 @Slf4j
-public class ValidateAllRowsHaveIDs extends ExpUnitMiddleware {
+public class ExpUnitIDValidation extends ExpUnitMiddleware {
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
 

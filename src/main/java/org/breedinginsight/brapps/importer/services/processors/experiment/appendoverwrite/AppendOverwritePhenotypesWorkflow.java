@@ -9,7 +9,7 @@ import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.Transaction;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ValidateAllRowsHaveIDs;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitIDValidation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.BrAPICommit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize.WorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.ImportTableProcess;
@@ -29,14 +29,14 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
     @Inject
     public AppendOverwritePhenotypesWorkflow(Transaction transaction,
-                                             ValidateAllRowsHaveIDs validateAllRowsHaveIDs,
+                                             ExpUnitIDValidation expUnitIDValidation,
                                              WorkflowInitialization workflowInitialization,
                                              ImportTableProcess importTableProcess,
                                              BrAPICommit brAPICommit){
         this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE;
         this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(
                 transaction,
-                validateAllRowsHaveIDs,
+                expUnitIDValidation,
                 workflowInitialization,
                 importTableProcess,
                 brAPICommit);

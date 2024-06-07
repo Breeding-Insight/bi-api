@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize;
 
+import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.*;
@@ -35,7 +36,7 @@ public class WorkflowInitialization extends ExpUnitMiddleware {
             brAPIGermplasmReadWorkflowInitialization.execute();
         } catch (ApiException e) {
             this.compensate(context, new MiddlewareError(() -> {
-                throw new RuntimeException(e);
+                throw new InternalServerException(e.toString(), e);
             }));
         }
 

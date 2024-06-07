@@ -8,12 +8,7 @@ import javax.inject.Inject;
 
 @Slf4j
 public class Transaction extends ExpUnitMiddleware {
-    ExpUnitMiddlewareContext middleware;
 
-    @Inject
-    public Transaction() {
-
-    }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         return processNext(context);

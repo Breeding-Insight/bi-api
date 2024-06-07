@@ -8,6 +8,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.utilities.Utilities;
 
 import java.util.List;
 import java.util.Optional;
@@ -45,9 +46,8 @@ public abstract class BrAPIReadWorkflowInitialization<T> implements BrAPIAction<
             entity.initializeWorkflow(fetchedMembers);
             return Optional.of(new BrAPIReadState<T>(fetchedMembers));
         } catch(ApiException e) {
-            // TODO: add specific error messages to entity service
-            log.error("Error reading...");
-            throw new InternalServerException("Error reading...", e);
+            log.error(String.format("Error fetching %s: %s", entity.getClass().getName(), Utilities.generateApiExceptionLogMessage(e)), e);
+            throw new ApiException(e);
         }
     }
 
