@@ -117,8 +117,8 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
      */
     @Override
     public <U> void updateWorkflow(List<U> members) {
-        // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, BrAPIStudy.class)) {
+        // Check if the input list is of type List<BrAPIStudy>
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIStudy.class)) {
             return;
         }
 
@@ -150,7 +150,7 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
     @Override
     public <U> void initializeWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPIStudy>
-        if (!experimentUtilities.isPopulated(members, BrAPIStudy.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIStudy.class)) {
             return;
         }
 

@@ -2,7 +2,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -20,7 +19,6 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -147,8 +145,8 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
      */
     @Override
     public <U> void updateWorkflow(List<U> members) {
-        // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, BrAPITrial.class)) {
+        // Check if the input list is of type List<BrAPIListDetails>
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIListDetails.class)) {
             return;
         }
 
@@ -169,7 +167,7 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
     @Override
     public <U> void initializeWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPIListDetails>
-        if (!experimentUtilities.isPopulated(members, BrAPIListDetails.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIListDetails.class)) {
             return;
         }
 

@@ -6,6 +6,7 @@ import com.google.gson.JsonSyntaxException;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.reactivex.functions.Function;
+import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
@@ -17,7 +18,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -28,18 +28,14 @@ public class ExperimentUtilities {
     public static final CharSequence COMMA_DELIMITER = ",";
     public static final String TIMESTAMP_PREFIX = "TS:";
 
-    @Inject
     Gson gson;
 
-    public ExperimentUtilities(Gson gson) {
-        this.gson = gson;
+    public ExperimentUtilities() {
+        this.gson = new Gson();
     }
-    public boolean isPopulated(List<?> list, Class<?> clazz) {
+    public boolean isInvalidMemberListForClass(List<?> list, Class<?> clazz) {
         // Check if the input list is of type
-        if (list == null || list.isEmpty() || !clazz.isInstance(list.get(0))) {
-            return false;
-        }
-        return true;
+        return list == null || list.isEmpty() || !list.stream().allMatch(clazz::isInstance);
     }
 
     public <T> Optional<T> clone(T obj, Class<T> clazz) {
@@ -172,5 +168,24 @@ public class ExperimentUtilities {
             throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, ExpImportProcessConstants.ErrMessage.MISSING_OBS_UNIT_ID_ERROR);
         }
         return referenceOUIds;
+    }
+
+    public <T> List<T> sortByField(List<String> sortedFields, List<T> unsortedItems, Function<T, String> fieldGetter) {
+        CaseInsensitiveMap<String, Integer> sortOrder = new CaseInsensitiveMap<>();
+        for (int i = 0; i < sortedFields.size(); i++) {
+            sortOrder.put(sortedFields.get(i), i);
+        }
+
+        unsortedItems.sort((i1, i2) -> {
+            try {
+                String field1 = fieldGetter.apply(i1);
+                String field2 = fieldGetter.apply(i2);
+                return Integer.compare(sortOrder.get(field1), sortOrder.get(field2));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        return unsortedItems;
     }
 }

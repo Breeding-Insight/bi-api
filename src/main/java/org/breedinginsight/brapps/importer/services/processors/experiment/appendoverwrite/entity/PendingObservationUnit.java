@@ -136,7 +136,7 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
     @Override
     public <U> void updateWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPIObservationUnit>
-        if (!experimentUtilities.isPopulated(members, BrAPIObservationUnit.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservationUnit.class)) {
             return;
         }
 
@@ -183,7 +183,7 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
     @Override
     public <U> void initializeWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPIObservationUnit>
-        if (!experimentUtilities.isPopulated(members, BrAPIObservationUnit.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservationUnit.class)) {
             return;
         }
 

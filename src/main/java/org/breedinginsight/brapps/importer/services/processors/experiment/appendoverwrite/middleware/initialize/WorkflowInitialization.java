@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize;
 
+import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.*;
@@ -8,6 +9,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
 @Slf4j
+@Prototype
 public class WorkflowInitialization extends ExpUnitMiddleware {
     BrAPIObservationUnitReadWorkflowInitialization brAPIObservationUnitReadWorkflowInitialization;
     BrAPITrialReadWorkflowInitialization brAPITrialReadWorkflowInitialization;

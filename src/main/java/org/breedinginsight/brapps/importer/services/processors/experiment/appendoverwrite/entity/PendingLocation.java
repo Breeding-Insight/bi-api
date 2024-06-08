@@ -1,7 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -131,8 +130,8 @@ public class PendingLocation implements ExperimentImportEntity<ProgramLocation> 
      */
     @Override
     public <U> void updateWorkflow(List<U> members) {
-        // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, ProgramLocation.class)) {
+        // Check if the input list is of type List<ProgramLocation>
+        if (experimentUtilities.isInvalidMemberListForClass(members, ProgramLocation.class)) {
             return;
         }
 
@@ -158,7 +157,7 @@ public class PendingLocation implements ExperimentImportEntity<ProgramLocation> 
     @Override
     public <U> void initializeWorkflow(List<U> members) {
         // Check if the input list is of type List<ProgramLocation>
-        if (!experimentUtilities.isPopulated(members, ProgramLocation.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, ProgramLocation.class)) {
             return;
         }
 

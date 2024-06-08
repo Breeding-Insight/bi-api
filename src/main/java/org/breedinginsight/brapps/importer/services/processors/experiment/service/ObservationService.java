@@ -26,6 +26,7 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 
+import javax.inject.Singleton;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
@@ -33,6 +34,7 @@ import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Singleton
 public class ObservationService {
     public boolean validCategory(List<BrAPIScaleValidValuesCategories> categories, String value) {
         Set<String> categoryValues = categories.stream()

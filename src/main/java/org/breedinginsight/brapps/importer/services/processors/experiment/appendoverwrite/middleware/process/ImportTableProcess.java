@@ -1,6 +1,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
 import com.google.gson.Gson;
+import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
@@ -48,12 +49,13 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.ErrMessage.MULTIPLE_EXP_TITLES;
 
 @Slf4j
+@Prototype
 public class ImportTableProcess extends ExpUnitMiddleware {
     StudyService studyService;
     ObservationVariableService observationVariableService;
     ObservationService observationService;
     BrAPIObservationDAO brAPIObservationDAO;
-    FileMappingUtil fileMappingUtil;
+    ExperimentUtilities experimentUtil;
     Gson gson;
     FieldValidator fieldValidator;
     AppendStatistic statistic;
@@ -63,16 +65,15 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                               ObservationVariableService observationVariableService,
                               BrAPIObservationDAO brAPIObservationDAO,
                               ObservationService observationService,
-                              FileMappingUtil fileMappingUtil,
-                              Gson gson,
+                              ExperimentUtilities experimentUtil,
                               FieldValidator fieldValidator,
                               AppendStatistic statistic) {
         this.studyService = studyService;
         this.observationVariableService = observationVariableService;
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.observationService = observationService;
-        this.fileMappingUtil = fileMappingUtil;
-        this.gson = gson;
+        this.experimentUtil = experimentUtil;
+        this.gson = new Gson();
         this.statistic = statistic;
     }
 
@@ -130,7 +131,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             );
 
             // Sort the traits to match the order of the headers in the import file
-            List<Trait> sortedTraits = fileMappingUtil.sortByField(List.copyOf(varNames), new ArrayList<>(traits), TraitEntity::getObservationVariableName);
+            List<Trait> sortedTraits = experimentUtil.sortByField(List.copyOf(varNames), new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
             // Get the pending observation dataset
             PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getPendingData().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));

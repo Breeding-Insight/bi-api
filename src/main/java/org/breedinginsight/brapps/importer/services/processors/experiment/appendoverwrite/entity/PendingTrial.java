@@ -70,7 +70,7 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     @Override
     public <U> List<U> brapiPut(List<U> members) throws ApiException, IllegalArgumentException {
         // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, BrAPITrial.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPITrial.class)) {
             return new ArrayList<U>();
         }
 
@@ -128,7 +128,7 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     @Override
     public <U> void updateWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, BrAPITrial.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPITrial.class)) {
             return;
         }
 
@@ -160,7 +160,7 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     @Override
     public <U> void initializeWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, BrAPITrial.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPITrial.class)) {
             return;
         }
 

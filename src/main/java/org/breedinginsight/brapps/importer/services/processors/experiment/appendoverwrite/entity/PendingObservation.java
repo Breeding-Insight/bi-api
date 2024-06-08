@@ -5,7 +5,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
-import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
@@ -95,7 +94,7 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
     @Override
     public <U> List<U> brapiPut(List<U> members) throws ApiException, IllegalArgumentException {
         // Check if the input list is of type List<BrAPIObservation>
-        if (!experimentUtilities.isPopulated(members, BrAPIObservation.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservation.class)) {
             return new ArrayList<U>();
         }
 
@@ -153,7 +152,7 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
     @Override
     public <U> void updateWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPIObservation>
-        if (!experimentUtilities.isPopulated(members, BrAPIObservation.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservation.class)) {
             return;
         }
 
@@ -172,7 +171,7 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
     @Override
     public <U> void initializeWorkflow(List<U> members) {
         // Check if the input list is of type List<BrAPIObservation>
-        if (!experimentUtilities.isPopulated(members, BrAPIObservation.class)) {
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIObservation.class)) {
             return;
         }
 

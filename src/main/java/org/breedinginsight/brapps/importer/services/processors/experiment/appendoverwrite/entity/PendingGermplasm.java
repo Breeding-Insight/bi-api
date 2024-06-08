@@ -121,8 +121,8 @@ public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> 
      */
     @Override
     public <U> void initializeWorkflow(List<U> members) {
-        // Check if the input list is of type List<BrAPITrial>
-        if (!experimentUtilities.isPopulated(members, BrAPIGermplasm.class)) {
+        // Check if the input list is of type List<BrAPIGermplasm>
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIGermplasm.class)) {
             return;
         }
 

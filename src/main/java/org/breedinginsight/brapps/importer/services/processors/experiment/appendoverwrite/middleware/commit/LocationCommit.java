@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit;
 
+import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.LocationCreation;
@@ -9,6 +10,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 
 import java.util.Optional;
 
+@Prototype
 public class LocationCommit extends ExpUnitMiddleware {
     private LocationCreation locationCreation;
     private Optional<BrAPICreation.BrAPICreationState> createdLocations;

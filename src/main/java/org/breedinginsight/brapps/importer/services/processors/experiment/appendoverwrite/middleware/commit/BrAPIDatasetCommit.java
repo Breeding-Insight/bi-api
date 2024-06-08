@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit;
 
+import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPIDatasetCreation;
@@ -9,6 +10,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 
 import java.util.Optional;
 
+@Prototype
 public class BrAPIDatasetCommit extends ExpUnitMiddleware {
     private BrAPIDatasetCreation datasetCreation;
     private Optional<BrAPICreation.BrAPICreationState> createdDatasets;
