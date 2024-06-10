@@ -461,6 +461,14 @@ public class BrAPITrialService {
         // Build ObservationUnitPosition.
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
 
+        // Set subUnit's basic position attributes from expUnit.
+        position.setEntryType(expUnit.getObservationUnitPosition().getEntryType());
+        position.setGeoCoordinates(expUnit.getObservationUnitPosition().getGeoCoordinates());
+        position.setPositionCoordinateX(expUnit.getObservationUnitPosition().getPositionCoordinateX());
+        position.setPositionCoordinateY(expUnit.getObservationUnitPosition().getPositionCoordinateY());
+        position.setPositionCoordinateXType(expUnit.getObservationUnitPosition().getPositionCoordinateXType());
+        position.setPositionCoordinateYType(expUnit.getObservationUnitPosition().getPositionCoordinateYType());
+
         // ObservationLevel entry for Sub-Obs Unit.
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
         level.setLevelName(subEntityDatasetName);
@@ -468,8 +476,31 @@ public class BrAPITrialService {
         level.setLevelOrder(DatasetLevel.SUB_OBS_UNIT.getValue());
         position.setObservationLevel(level);
 
-        // ObservationLevelRelationships for top-level Exp Unit linking.
+        // ObservationLevelRelationships.
         List<BrAPIObservationUnitLevelRelationship> levelRelationships = new ArrayList<>();
+        // ObservationLevelRelationships for block.
+        BrAPIObservationUnitLevelRelationship expBlockLevel = expUnit.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(x -> x.getLevelName().equals(BrAPIConstants.REPLICATE.getValue())).findFirst().orElse(null);
+        if (expBlockLevel != null) {
+            BrAPIObservationUnitLevelRelationship blockLevel = new BrAPIObservationUnitLevelRelationship();
+            blockLevel.setLevelName(expBlockLevel.getLevelName());
+            blockLevel.setLevelCode(expBlockLevel.getLevelCode());
+            blockLevel.setLevelOrder(expBlockLevel.getLevelOrder());
+            levelRelationships.add(blockLevel);
+        }
+        // ObservationLevelRelationships for rep.
+        BrAPIObservationUnitLevelRelationship expRepLevel = expUnit.getObservationUnitPosition()
+                .getObservationLevelRelationships().stream()
+                .filter(x -> x.getLevelName().equals(BrAPIConstants.BLOCK.getValue())).findFirst().orElse(null);
+        if (expRepLevel != null) {
+            BrAPIObservationUnitLevelRelationship repLevel = new BrAPIObservationUnitLevelRelationship();
+            repLevel.setLevelName(expRepLevel.getLevelName());
+            repLevel.setLevelCode(expRepLevel.getLevelCode());
+            repLevel.setLevelOrder(expRepLevel.getLevelOrder());
+            levelRelationships.add(repLevel);
+        }
+        // ObservationLevelRelationships for top-level Exp Unit linking.
         BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
         expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
         String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
@@ -480,8 +511,6 @@ public class BrAPITrialService {
 
         // Set ObservationUnitPosition.
         observationUnit.setObservationUnitPosition(position);
-
-        // TODO: Do replicate and block matter for field book?
 
         return observationUnit;
     }
