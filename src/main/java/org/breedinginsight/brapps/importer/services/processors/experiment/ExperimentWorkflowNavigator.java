@@ -42,22 +42,22 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
         APPEND_OVERWRITE("append-dataset", "Append experimental dataset"),
         APPEND_ENVIRONMENT("append-environment", "Create new experimental environment");
 
-        private String urlFragment;
-        private String displayName;
+        private String id;
+        private String name;
 
-        Workflow(String urlFragment, String displayName) {
+        Workflow(String id, String name) {
 
-            this.urlFragment = urlFragment;
-            this.displayName = displayName;
+            this.id = id;
+            this.name = name;
         }
 
-        public String getUrlFragment() {
-            return urlFragment;
+        public String getId() {
+            return id;
         }
-        public String getDisplayName() { return displayName; }
+        public String getName() { return name; }
 
         public boolean isEqual(String value) {
-            return Optional.ofNullable(urlFragment.equals(value)).orElse(false);
+            return Optional.ofNullable(id.equals(value)).orElse(false);
         }
     }
 }
