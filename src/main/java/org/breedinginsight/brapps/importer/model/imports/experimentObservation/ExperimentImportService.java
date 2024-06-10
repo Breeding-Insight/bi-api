@@ -38,19 +38,14 @@ import java.util.List;
 public class ExperimentImportService extends DomainImportService {
 
     private final String IMPORT_TYPE_ID = "ExperimentImport";
-    private final ExperimentWorkflowNavigator workflowNavigator;
 
+    // TODO: delete processor fields once WorkflowNavigator is used
     @Inject
     public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
                                    Provider<ProcessorManager> processorManagerProvider,
                                    ExperimentWorkflowNavigator workflowNavigator)
     {
-        super(experimentProcessorProvider, processorManagerProvider);
-        this.workflowNavigator = workflowNavigator;
-    }
-    @Override
-    public Workflow getNavigator() {
-        return this.workflowNavigator;
+        super(experimentProcessorProvider, processorManagerProvider, workflowNavigator);
     }
 
     @Override

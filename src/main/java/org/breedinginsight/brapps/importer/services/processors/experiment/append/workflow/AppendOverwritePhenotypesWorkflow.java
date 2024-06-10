@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.newenv.workflow;
+package org.breedinginsight.brapps.importer.services.processors.experiment.append.workflow;
 
 import lombok.Getter;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
@@ -12,11 +12,11 @@ import java.util.Optional;
 
 @Getter
 @Singleton
-public class CreateNewEnvironmentWorkflow implements ExperimentWorkflow {
+public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
     private final ExperimentWorkflowNavigator.Workflow workflow;
 
-    public CreateNewEnvironmentWorkflow(){
-        this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_ENVIRONMENT;
+    public AppendOverwritePhenotypesWorkflow(){
+        this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE;
     }
 
     @Override
@@ -33,7 +33,7 @@ public class CreateNewEnvironmentWorkflow implements ExperimentWorkflow {
                 .importPreviewResponse(Optional.empty())
                 .build());
 
-        // Skip this workflow unless appending a new environment
+        // Skip this workflow unless appending or overwriting observation data
         if (context != null && !this.workflow.isEqual(context.getWorkflow())) {
             return Optional.empty();
         }
@@ -49,7 +49,7 @@ public class CreateNewEnvironmentWorkflow implements ExperimentWorkflow {
 
     @Override
     public int getOrder() {
-        return 3;
+        return 2;
     }
 
 }

@@ -23,8 +23,8 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
     public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
         // Workflow processing the context
         ImportWorkflow workflow = ImportWorkflow.builder()
-                .urlFragment(getWorkflow().getUrlFragment())
-                .displayName(getWorkflow().getDisplayName())
+                .id(getWorkflow().getId())
+                .name(getWorkflow().getName())
                 .build();
 
         // No-preview result

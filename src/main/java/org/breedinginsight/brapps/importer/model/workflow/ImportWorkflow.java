@@ -25,7 +25,7 @@ import lombok.*;
 @ToString
 @AllArgsConstructor
 public class ImportWorkflow {
-    private String urlFragment;
-    private String displayName;
+    private String id;
+    private String name;
     private int order;
 }

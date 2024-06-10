@@ -29,12 +29,21 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
                 .findFirst();
     }
     public List<ImportWorkflow> getWorkflows() {
-        return workflows.stream()
+        // Each workflow returns in the field workflow the metadata about the workflow that processed the import context.
+        // Loop over all workflows, processing a null context, to collect just the metadata
+        List<ImportWorkflow> workflowSummaryList = workflows.stream()
                 .map(workflow->workflow.process(null))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(result->result.getWorkflow())
                 .collect(Collectors.toList());
+
+        // The order field for each workflow is set to the order in the list
+        for (int i = 0; i < workflowSummaryList.size(); i++) {
+            workflowSummaryList.get(i).setOrder(i);
+        }
+
+        return workflowSummaryList;
     }
 
     public enum Workflow {
@@ -42,22 +51,22 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
         APPEND_OVERWRITE("append-dataset", "Append experimental dataset"),
         APPEND_ENVIRONMENT("append-environment", "Create new experimental environment");
 
-        private String urlFragment;
-        private String displayName;
+        private String id;
+        private String name;
 
-        Workflow(String urlFragment, String displayName) {
+        Workflow(String id, String name) {
 
-            this.urlFragment = urlFragment;
-            this.displayName = displayName;
+            this.id = id;
+            this.name = name;
         }
 
-        public String getUrlFragment() {
-            return urlFragment;
+        public String getId() {
+            return id;
         }
-        public String getDisplayName() { return displayName; }
+        public String getName() { return name; }
 
         public boolean isEqual(String value) {
-            return Optional.ofNullable(urlFragment.equals(value)).orElse(false);
+            return Optional.ofNullable(id.equals(value)).orElse(false);
         }
     }
 }

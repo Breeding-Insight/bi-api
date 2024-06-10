@@ -34,6 +34,7 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -62,7 +63,7 @@ public class SampleSubmissionImportService implements BrAPIImportService {
 
     @Override
     public List<ImportWorkflow> getWorkflows() {
-        return null;
+        return new ArrayList<>();
     }
 
     @Override
