@@ -21,6 +21,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
@@ -35,6 +36,7 @@ import java.util.List;
 @Slf4j
 public abstract class DomainImportService implements BrAPIImportService {
 
+    // TODO: delete processor fields once WorkflowNavigator is used
     private final Provider<ExperimentProcessor> experimentProcessorProvider;
     private final Provider<ProcessorManager> processorManagerProvider;
     private final Workflow workflowNavigator;
@@ -66,7 +68,15 @@ public abstract class DomainImportService implements BrAPIImportService {
             log.info("Workflow: " + context.getWorkflow());
         }
 
-        return workflowNavigator.process(context).flatMap(r->r.getImportPreviewResponse()).orElse(null);
+        // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
+        // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
+        return processorManagerProvider.get().process(context.getBrAPIImports(),
+                List.of(experimentProcessorProvider.get()),
+                context.getData(),
+                context.getProgram(),
+                context.getUpload(),
+                context.getUser(),
+                context.isCommit());
     }
 }
 
