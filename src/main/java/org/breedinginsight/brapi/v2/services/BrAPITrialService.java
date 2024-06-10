@@ -1,6 +1,7 @@
 package org.breedinginsight.brapi.v2.services;
 
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -452,8 +453,10 @@ public class BrAPITrialService {
         // Set Germplasm.
         observationUnit.setGermplasmName(expUnit.getGermplasmName());
         observationUnit.setGermplasmDbId(expUnit.getGermplasmDbId());
-        String gid = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID).getAsString();
-        observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid);
+        JsonElement gid = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID);
+        if (gid != null) {
+            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid.getAsString());
+        }
 
         // Set treatment factors.
         List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
@@ -468,9 +471,9 @@ public class BrAPITrialService {
         // Put level in additional info: keep this in case we decide to rename levels in future.
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
         // Put RTK in additional info.
-        String rtk = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.RTK).getAsString();
+        JsonElement rtk = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.RTK);
         if (rtk != null) {
-            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.RTK, rtk);
+            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.RTK, rtk.getAsString());
         }
 
         // Build ObservationUnitPosition.
