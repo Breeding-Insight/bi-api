@@ -32,7 +32,7 @@ import java.util.UUID;
 
 @Singleton
 @Slf4j
-public class SharedSeasonService {
+public class ExperimentSeasonService {
 
     private final BrAPISeasonDAO brAPISeasonDAO;
 
@@ -40,7 +40,7 @@ public class SharedSeasonService {
     private Map<String, String> yearToSeasonDbIdCache = new HashMap<>();
 
     @Inject
-    public SharedSeasonService(BrAPISeasonDAO brAPISeasonDAO) {
+    public ExperimentSeasonService(BrAPISeasonDAO brAPISeasonDAO) {
         this.brAPISeasonDAO = brAPISeasonDAO;
     }
 

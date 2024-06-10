@@ -18,8 +18,13 @@
 package org.breedinginsight.brapps.importer.model.workflow;
 
 import lombok.*;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Data
@@ -27,4 +32,5 @@ import java.util.Map;
 @NoArgsConstructor
 public class ProcessedData {
     private Map<String, ImportPreviewStatistics> statistics;
+    private Map<Integer, PendingImport> mappedBrAPIImport;
 }

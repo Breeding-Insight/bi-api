@@ -16,7 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.services;
 
-public class SharedPendingImportService {
+public class ExperimentPendingImportService {
 
 
 }

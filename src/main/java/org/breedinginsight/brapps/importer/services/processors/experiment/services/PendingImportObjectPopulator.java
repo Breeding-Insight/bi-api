@@ -17,6 +17,7 @@
 
 package org.breedinginsight.brapps.importer.services.processors.experiment.services;
 
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -36,6 +37,9 @@ public interface PendingImportObjectPopulator {
         Supplier<BigInteger> expNextVal
     ) throws UnprocessableEntityException;
 
-
-
+    PendingImportObject<BrAPIStudy> populateStudy(
+            ImportContext importContext,
+            Supplier<BigInteger> expSeqValue,
+            ExperimentObservation importRow,
+            Supplier<BigInteger> envNextVal);
 }

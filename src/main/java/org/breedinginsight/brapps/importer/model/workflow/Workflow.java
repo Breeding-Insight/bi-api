@@ -17,6 +17,8 @@
 
 package org.breedinginsight.brapps.importer.model.workflow;
 
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+
 public interface Workflow {
 
     /**
@@ -25,7 +27,7 @@ public interface Workflow {
      * @param context the import context containing the necessary data for processing
      * @return the processed data
      */
-    ProcessedData process(ImportContext context);
+    ImportPreviewResponse process(ImportContext context);
 
     /**
      * Retrieves the name of the Workflow for logging display purposes.

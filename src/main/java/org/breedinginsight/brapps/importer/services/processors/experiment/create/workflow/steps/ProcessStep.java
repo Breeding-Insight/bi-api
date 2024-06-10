@@ -20,18 +20,14 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -43,64 +39,55 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.PendingImportObjectPopulator;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedPhenotypeService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedSeasonService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedValidateService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentPhenotypeService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentValidateService;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
-import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
 import org.breedinginsight.model.Trait;
-import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import java.math.BigInteger;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
-
-import static org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities.*;
 
 @Prototype
 @Slf4j
-public class ProcessStep implements ProcessingStep<ProcessContext, ProcessedData> {
+public class ProcessStep implements {
 
-    private final SharedValidateService sharedValidateService;
-    private final SharedSeasonService sharedSeasonService;
-    private final SharedPhenotypeService sharedPhenotypeService;
+    private final ExperimentValidateService experimentValidateService;
+    private final ExperimentSeasonService experimentSeasonService;
+    private final ExperimentPhenotypeService experimentPhenotypeService;
     private final BrAPIObservationDAO brAPIObservationDAO;
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
 
     @Inject
-    public ProcessStep(SharedValidateService sharedValidateService,
-                       SharedSeasonService sharedSeasonService,
-                       SharedPhenotypeService sharedPhenotypeService,
+    public ProcessStep(ExperimentValidateService experimentValidateService,
+                       ExperimentSeasonService experimentSeasonService,
+                       ExperimentPhenotypeService experimentPhenotypeService,
                        BrAPIObservationDAO brAPIObservationDAO,
                        BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                        DSLContext dsl) {
-        this.sharedValidateService = sharedValidateService;
-        this.sharedSeasonService = sharedSeasonService;
-        this.sharedPhenotypeService = sharedPhenotypeService;
+        this.experimentValidateService = experimentValidateService;
+        this.experimentSeasonService = experimentSeasonService;
+        this.experimentPhenotypeService = experimentPhenotypeService;
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
     }
 
-    @Override
     public ProcessedData process(ProcessContext context) {
 
         Table data = context.getImportContext().getData();
         ImportUpload upload = context.getImportContext().getUpload();
         ImportContext importContext = context.getImportContext();
 
-        ProcessedPhenotypeData phenotypeData = sharedPhenotypeService.extractPhenotypes(importContext);
+        ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(importContext);
 
 
 

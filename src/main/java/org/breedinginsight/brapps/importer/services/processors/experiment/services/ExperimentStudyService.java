@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 
 @Singleton
 @Slf4j
-public class SharedStudyService {
+public class ExperimentStudyService {
 
     private final BrAPISeasonDAO brAPISeasonDAO;
     private final BrAPIStudyDAO brAPIStudyDAO;
@@ -49,8 +49,8 @@ public class SharedStudyService {
     private String BRAPI_REFERENCE_SOURCE;
 
     @Inject
-    public SharedStudyService(BrAPISeasonDAO brAPISeasonDAO,
-                              BrAPIStudyDAO brAPIStudyDAO) {
+    public ExperimentStudyService(BrAPISeasonDAO brAPISeasonDAO,
+                                  BrAPIStudyDAO brAPIStudyDAO) {
         this.brAPISeasonDAO = brAPISeasonDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
     }

@@ -37,13 +37,13 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Singleton
 @Slf4j
-public class SharedPhenotypeService {
+public class ExperimentPhenotypeService {
 
-    private final SharedValidateService sharedValidateService;
+    private final ExperimentValidateService experimentValidateService;
 
     @Inject
-    public SharedPhenotypeService(SharedValidateService sharedValidateService) {
-        this.sharedValidateService = sharedValidateService;
+    public ExperimentPhenotypeService(ExperimentValidateService experimentValidateService) {
+        this.experimentValidateService = experimentValidateService;
     }
 
     /**
@@ -58,7 +58,7 @@ public class SharedPhenotypeService {
         Program program = importContext.getProgram();
 
         DynamicColumnParser.DynamicColumnParseResult result = DynamicColumnParser.parse(data, upload.getDynamicColumnNames());
-        List<Trait> traits = sharedValidateService.verifyTraits(program.getId(), result);
+        List<Trait> traits = experimentValidateService.verifyTraits(program.getId(), result);
 
         Map<String, Column<?>> timeStampColByPheno = new HashMap<>();
         //Now know timestamps all valid phenotypes, can associate with phenotype column name for easy retrieval

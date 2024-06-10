@@ -17,7 +17,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
 import io.micronaut.context.annotation.Property;
-import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +28,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.*;
@@ -37,18 +37,20 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.pipeline.ProcessingStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedStudyService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.SharedTrialService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentStudyService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentTrialService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.ProgramLocationService;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -57,9 +59,9 @@ import java.util.stream.Collectors;
  * steps rather than another layer of services.
  */
 
-@Prototype
+@Singleton
 @Slf4j
-public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<ImportContext, ProcessContext> {
+public class PopulateExistingPendingImportObjectsStep {
 
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final BrAPITrialDAO brAPITrialDAO;
@@ -67,8 +69,9 @@ public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<
     private final ProgramLocationService locationService;
     private final BrAPIListDAO brAPIListDAO;
     private final BrAPIGermplasmDAO brAPIGermplasmDAO;
-    private final SharedStudyService sharedStudyService;
-    private final SharedTrialService sharedTrialService;
+    private final BrAPIObservationDAO brAPIObservationDAO;
+    private final ExperimentStudyService experimentStudyService;
+    private final ExperimentTrialService experimentTrialService;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -80,32 +83,34 @@ public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<
                                                     ProgramLocationService locationService,
                                                     BrAPIListDAO brAPIListDAO,
                                                     BrAPIGermplasmDAO brAPIGermplasmDAO,
-                                                    SharedStudyService sharedStudyService,
-                                                    SharedTrialService sharedTrialService) {
+                                                    BrAPIObservationDAO brAPIObservationDAO,
+                                                    ExperimentStudyService experimentStudyService,
+                                                    ExperimentTrialService experimentTrialService) {
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.brAPITrialDAO = brAPITrialDAO;
         this.brAPIStudyDAO = brAPIStudyDAO;
         this.locationService = locationService;
         this.brAPIListDAO = brAPIListDAO;
         this.brAPIGermplasmDAO = brAPIGermplasmDAO;
-        this.sharedStudyService = sharedStudyService;
-        this.sharedTrialService = sharedTrialService;
+        this.brAPIObservationDAO = brAPIObservationDAO;
+        this.experimentStudyService = experimentStudyService;
+        this.experimentTrialService = experimentTrialService;
     }
 
-    @Override
-    public ProcessContext process(ImportContext input) {
+    public ProcessContext process(ImportContext input, ProcessedPhenotypeData phenotypeData) {
 
         List<ExperimentObservation> experimentImportRows = ExperimentUtilities.importRowsToExperimentObservations(input.getImportRows());
         Program program = input.getProgram();
 
         // Populate pending objects with existing status
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = initializeObservationUnits(program, experimentImportRows);
-        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = sharedTrialService.initializeTrialByNameNoScope(program, observationUnitByNameNoScope, experimentImportRows);
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = experimentTrialService.initializeTrialByNameNoScope(program, observationUnitByNameNoScope, experimentImportRows);
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = initializeStudyByNameNoScope(program, trialByNameNoScope, observationUnitByNameNoScope, experimentImportRows);
         // interesting we're using our data model instead of brapi for locations
         Map<String, PendingImportObject<ProgramLocation>> locationByName = initializeUniqueLocationNames(program, studyByNameNoScope, experimentImportRows);
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = initializeObsVarDatasetByName(program, trialByNameNoScope, experimentImportRows);
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = initializeExistingGermplasmByGID(program, observationUnitByNameNoScope, experimentImportRows);
+        Map<String, BrAPIObservation> existingObsByObsHash = fetchExistingObservations(phenotypeData.getReferencedTraits(), studyByNameNoScope, program);
 
         PendingData existing = PendingData.builder()
                 .observationUnitByNameNoScope(observationUnitByNameNoScope)
@@ -114,6 +119,7 @@ public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<
                 .locationByName(locationByName)
                 .obsVarDatasetByName(obsVarDatasetByName)
                 .existingGermplasmByGID(existingGermplasmByGID)
+                .existingObsByObsHash(existingObsByObsHash)
                 .build();
 
         return ProcessContext.builder()
@@ -253,7 +259,7 @@ public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<
             UUID experimentId = trial.get().getId();
             existingStudies = brAPIStudyDAO.getStudiesByExperimentID(experimentId, program);
             for (BrAPIStudy existingStudy : existingStudies) {
-                sharedStudyService.processAndCacheStudy(existingStudy, program, BrAPIStudy::getStudyName, studyByName);
+                experimentStudyService.processAndCacheStudy(existingStudy, program, BrAPIStudy::getStudyName, studyByName);
             }
         } catch (ApiException e) {
             log.error("Error fetching studies: " + Utilities.generateApiExceptionLogMessage(e), e);
@@ -302,9 +308,9 @@ public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<
                         .getStudyDbId())
                 .collect(Collectors.toSet());
 
-        List<BrAPIStudy> studies = sharedStudyService.fetchStudiesByDbId(studyDbIds, program);
+        List<BrAPIStudy> studies = experimentStudyService.fetchStudiesByDbId(studyDbIds, program);
         for (BrAPIStudy study : studies) {
-            sharedStudyService.processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
+            experimentStudyService.processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
         }
     }
 
@@ -485,6 +491,65 @@ public class PopulateExistingPendingImportObjectsStep implements ProcessingStep<
             }
         }
         return resultGermplasm;
+    }
+
+    /**
+     * Fetches existing observations based on the given referenced traits, studyByNameNoScope map, and program.
+     *
+     * @param referencedTraits       The list of referenced traits.
+     * @param studyByNameNoScope     The map of studies by name without scope.
+     * @param program                The program.
+     * @return A map of existing observations with their unique keys.
+     */
+    private Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits,
+                                                                    Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope,
+                                                                    Program program) {
+        Set<String> ouDbIds = new HashSet<>();
+        Set<String> variableDbIds = new HashSet<>();
+        Map<String, String> variableNameByDbId = new HashMap<>();
+        Map<String, String> ouNameByDbId = new HashMap<>();
+        Map<String, String> studyNameByDbId = studyByNameNoScope.values()
+                .stream()
+                .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
+                .map(PendingImportObject::getBrAPIObject)
+                .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
+
+        studyNameByDbId.keySet().forEach(studyDbId -> {
+            try {
+                brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyDbId, program).forEach(ou -> {
+                    if(StringUtils.isNotBlank(ou.getObservationUnitDbId())) {
+                        ouDbIds.add(ou.getObservationUnitDbId());
+                    }
+                    ouNameByDbId.put(ou.getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
+                });
+            } catch (ApiException e) {
+                throw new RuntimeException(e);
+            }
+        });
+
+        for (Trait referencedTrait : referencedTraits) {
+            variableDbIds.add(referencedTrait.getObservationVariableDbId());
+            variableNameByDbId.put(referencedTrait.getObservationVariableDbId(), referencedTrait.getObservationVariableName());
+        }
+
+        List<BrAPIObservation> existingObservations = new ArrayList<>();
+        try {
+            existingObservations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, variableDbIds, program);
+        } catch (ApiException e) {
+            throw new RuntimeException(e);
+        }
+
+        return existingObservations.stream()
+                .map(obs -> {
+                    String studyName = studyNameByDbId.get(obs.getStudyDbId());
+                    String variableName = variableNameByDbId.get(obs.getObservationVariableDbId());
+                    String ouName = ouNameByDbId.get(obs.getObservationUnitDbId());
+
+                    String key = ExperimentUtilities.getObservationHash(createObservationUnitKey(studyName, ouName), variableName, studyName);
+
+                    return Map.entry(key, obs);
+                })
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 
 }

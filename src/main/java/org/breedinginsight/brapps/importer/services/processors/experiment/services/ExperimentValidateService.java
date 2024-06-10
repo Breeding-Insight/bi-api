@@ -42,13 +42,13 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Singleton
 @Slf4j
-public class SharedValidateService {
+public class ExperimentValidateService {
 
     private final OntologyService ontologyService;
     private final FileMappingUtil fileMappingUtil;
 
     @Inject
-    public SharedValidateService(OntologyService ontologyService, FileMappingUtil fileMappingUtil) {
+    public ExperimentValidateService(OntologyService ontologyService, FileMappingUtil fileMappingUtil) {
         this.ontologyService = ontologyService;
         this.fileMappingUtil = fileMappingUtil;
     }

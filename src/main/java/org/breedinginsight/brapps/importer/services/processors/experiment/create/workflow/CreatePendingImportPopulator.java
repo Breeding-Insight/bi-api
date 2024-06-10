@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow;
 
+import io.micronaut.context.annotation.Property;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -18,7 +19,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.function.Supplier;
 
-public class CreatePendingImportPopulator implements PendingImportObjectPopulator  {
+import static org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities.MULTIPLE_EXP_TITLES;
+import static org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities.PREEXISTING_EXPERIMENT_TITLE;
+
+public class CreatePendingImportPopulator implements PendingImportObjectPopulator {
+
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
 
     @Override
     public PendingImportObject<BrAPITrial> populateTrial(ImportContext importContext,
@@ -54,14 +61,20 @@ public class CreatePendingImportPopulator implements PendingImportObjectPopulato
             }
             BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
             trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-            // TODO: move
+            // NOTE: moved up a level
             //trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
         }
 
         return trialPio;
     }
 
+    @Override
+    public PendingImportObject<BrAPIStudy> populateStudy(ImportContext importContext,
+                                                         Supplier<BigInteger> expSeqValue,
+                                                         ExperimentObservation importRow,
+                                                         Supplier<BigInteger> envNextVal) {
+        return null;
+    }
 
-    
 
 }

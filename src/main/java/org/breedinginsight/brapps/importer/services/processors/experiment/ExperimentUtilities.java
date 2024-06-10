@@ -16,6 +16,8 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 
@@ -30,6 +32,10 @@ public class ExperimentUtilities {
     public static final String TIMESTAMP_PREFIX = "TS:";
     public static final String TIMESTAMP_REGEX = "^"+TIMESTAMP_PREFIX+"\\s*";
     public static final String MIDNIGHT = "T00:00:00-00:00";
+    public static final String MULTIPLE_EXP_TITLES = "File contains more than one Experiment Title";
+    public static final String PREEXISTING_EXPERIMENT_TITLE = "Experiment Title already exists";
+
+
 
     public static List<ExperimentObservation> importRowsToExperimentObservations(List<BrAPIImport> importRows) {
         return importRows.stream()
@@ -45,5 +51,12 @@ public class ExperimentUtilities {
             return false;
         }
         return true;
+    }
+
+    public static String getObservationHash(String observationUnitName, String variableName, String studyName) {
+        String concat = DigestUtils.sha256Hex(observationUnitName) +
+                DigestUtils.sha256Hex(variableName) +
+                DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
+        return DigestUtils.sha256Hex(concat);
     }
 }

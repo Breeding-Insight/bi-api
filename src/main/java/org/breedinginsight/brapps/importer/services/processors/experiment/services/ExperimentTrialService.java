@@ -41,17 +41,17 @@ import java.util.stream.Collectors;
 
 @Singleton
 @Slf4j
-public class SharedTrialService {
+public class ExperimentTrialService {
     private final BrAPITrialDAO brAPITrialDAO;
 
-    private final SharedStudyService studyService;
+    private final ExperimentStudyService studyService;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
 
     @Inject
-    public SharedTrialService(BrAPITrialDAO brAPITrialDAO,
-                              SharedStudyService studyService) {
+    public ExperimentTrialService(BrAPITrialDAO brAPITrialDAO,
+                                  ExperimentStudyService studyService) {
         this.brAPITrialDAO = brAPITrialDAO;
         this.studyService = studyService;
     }

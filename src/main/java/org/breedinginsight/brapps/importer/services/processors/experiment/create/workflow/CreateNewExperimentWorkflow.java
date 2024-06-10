@@ -18,16 +18,32 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow;
 
 import io.micronaut.context.annotation.Prototype;
+import io.micronaut.http.HttpStatus;
+import io.micronaut.http.exceptions.HttpStatusException;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.breedinginsight.brapps.importer.model.ImportUpload;
+import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
+import org.breedinginsight.brapps.importer.model.imports.PendingImport;
+import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.brapps.importer.services.pipeline.Pipeline;
+import org.breedinginsight.brapps.importer.services.ImportStatusService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.CommitPendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateExistingPendingImportObjectsStep;
-import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.ProcessStep;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateNewPendingImportObjectsStep;
+import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentPhenotypeService;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.inject.Provider;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This class represents a workflow for creating a new experiment. The bean name must match the appropriate bean column
@@ -35,28 +51,65 @@ import javax.inject.Provider;
  */
 
 @Prototype
+@Slf4j
 @Named("CreateNewExperimentWorkflow")
 public class CreateNewExperimentWorkflow implements Workflow {
 
-    private final Provider<PopulateExistingPendingImportObjectsStep> getExistingStepProvider;
-    private final Provider<ProcessStep> processStepProvider;
+    private final PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep;
+    private final PopulateNewPendingImportObjectsStep populateNewPendingImportObjectsStep;
+    private final CommitPendingImportObjectsStep commitPendingImportObjectsStep;
+    private final ImportStatusService statusService;
+    private final ExperimentPhenotypeService experimentPhenotypeService;
 
     @Inject
-    public CreateNewExperimentWorkflow(Provider<PopulateExistingPendingImportObjectsStep> getExistingStepProvider,
-                                       Provider<ProcessStep> processStepProvider) {
-        this.getExistingStepProvider = getExistingStepProvider;
-        this.processStepProvider = processStepProvider;
+    public CreateNewExperimentWorkflow(PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep,
+                                       PopulateNewPendingImportObjectsStep populateNewPendingImportObjectsStep,
+                                       CommitPendingImportObjectsStep commitPendingImportObjectsStep,
+                                       ImportStatusService statusService,
+                                       ExperimentPhenotypeService experimentPhenotypeService) {
+        this.populateExistingPendingImportObjectsStep = populateExistingPendingImportObjectsStep;
+        this.populateNewPendingImportObjectsStep = populateNewPendingImportObjectsStep;
+        this.commitPendingImportObjectsStep = commitPendingImportObjectsStep;
+        this.statusService = statusService;
+        this.experimentPhenotypeService = experimentPhenotypeService;
     }
 
     @Override
-    public ProcessedData process(ImportContext context) {
-        // TODO
-        Pipeline<ImportContext, ProcessedData> pipeline = new Pipeline<>(getExistingStepProvider.get())
-                .addProcessingStep(processStepProvider.get());
-        ProcessedData processed = pipeline.execute(context);
+    public ImportPreviewResponse process(ImportContext context) {
 
-        // TODO: return actual data
-        return processed;
+        ImportUpload upload = context.getUpload();
+        boolean commit = context.isCommit();
+
+        // Make sure the file does not contain obs unit ids before proceeding
+        if (containsObsUnitIDs(context)) {
+            // TODO: get file name
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Error detected in file, XXX.xls. ObsUnitIDs are detected. Import cannot proceed");
+        }
+
+        statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
+
+        ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
+        ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
+        ProcessedData processedData = populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
+        ImportPreviewResponse response = buildImportPreviewResponse(processedData, upload);
+
+        statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
+
+        // preview data
+        if (!commit) {
+            statusService.updateOk(upload);
+            return response;
+        }
+
+        // commit data
+        long totalObjects = getNewObjectCount(processedData);
+        statusService.startUpload(upload, totalObjects, "Starting upload to brapi service");
+        statusService.updateMessage(upload, "Creating new experiment objects in brapi service");
+
+        commitPendingImportObjectsStep.process(processContext, processedData);
+
+        statusService.finishUpload(upload, totalObjects, "Completed upload to brapi service");
+        return response;
     }
 
     /**
@@ -68,6 +121,39 @@ public class CreateNewExperimentWorkflow implements Workflow {
     @Override
     public String getName() {
         return "CreateNewExperimentWorkflow";
+    }
+
+    // TODO: move to shared area
+    private ImportPreviewResponse buildImportPreviewResponse(ProcessedData processedData,
+                                                             ImportUpload upload) {
+        Map<String, ImportPreviewStatistics> statistics = processedData.getStatistics();
+        Map<Integer, PendingImport> mappedBrAPIImport = processedData.getMappedBrAPIImport();
+
+        ImportPreviewResponse response = new ImportPreviewResponse();
+        response.setStatistics(statistics);
+        List<PendingImport> mappedBrAPIImportList = new ArrayList<>(mappedBrAPIImport.values());
+        response.setRows(mappedBrAPIImportList);
+        response.setDynamicColumnNames(upload.getDynamicColumnNamesList());
+        return response;
+    }
+
+    // TODO: move to shared area
+    private long getNewObjectCount(ProcessedData processedData) {
+        // get total number of new brapi objects to create
+        long totalObjects = 0;
+        for (ImportPreviewStatistics stats : processedData.getStatistics().values()) {
+            totalObjects += stats.getNewObjectCount();
+        }
+        return totalObjects;
+    }
+
+    private boolean containsObsUnitIDs(ImportContext importContext) {
+        List<BrAPIImport> importRows = importContext.getImportRows();
+        return importRows.stream()
+                .anyMatch(row -> {
+                    ExperimentObservation expRow = (ExperimentObservation) row;
+                    return StringUtils.isNotBlank(expRow.getObsUnitID());
+                });
     }
 }
 

@@ -21,6 +21,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.ProgramLocation;
@@ -40,4 +41,6 @@ public class PendingData {
     private Map<String, PendingImportObject<ProgramLocation>> locationByName;
     private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName;
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID;
+    // TODO: see if we can change this to match PendingImport<>
+    private Map<String, BrAPIObservation> existingObsByObsHash;
 }

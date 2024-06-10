@@ -26,27 +26,27 @@ import java.util.stream.Collectors;
 
 public class ProcessorData {
 
-    static <T, V> int getNumNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
+    public static <T, V> int getNumNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
         long numNewObjects = objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
                 .count();
         return Math.toIntExact(numNewObjects);
     }
 
-    static <T, V> int getNumExistingObjects(Map<V, PendingImportObject<T>> objectsByName) {
+    public static <T, V> int getNumExistingObjects(Map<V, PendingImportObject<T>> objectsByName) {
         long numExistingObjects = objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.EXISTING)
                 .count();
         return Math.toIntExact(numExistingObjects);
     }
 
-    static <T, V> List<T> getNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
+    public static <T, V> List<T> getNewObjects(Map<V, PendingImportObject<T>> objectsByName) {
         return objectsByName.values().stream()
                 .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
                 .map(preview -> preview.getBrAPIObject())
                 .collect(Collectors.toList());
     }
-    static <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName, Function<T, String> dbIdFilter) {
+    public static <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName, Function<T, String> dbIdFilter) {
         return objectsByName.entrySet().stream()
                 .filter(entry -> ImportObjectState.MUTATED == entry.getValue().getState())
                 .collect(Collectors
