@@ -416,7 +416,7 @@ public class BrAPITrialService {
     ) {
 
         BrAPIObservationUnit observationUnit = new BrAPIObservationUnit();
-        observationUnit.setObservationUnitName(Utilities.appendProgramKey(subEntityDatasetName, program.getKey(), seqVal));
+        observationUnit.setObservationUnitName(Utilities.appendProgramKey(subUnitId, program.getKey(), seqVal));
 
         // Build ExternalReferences.
         List<BrAPIExternalReference> refs = new ArrayList<>();
