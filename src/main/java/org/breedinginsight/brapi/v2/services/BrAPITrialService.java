@@ -369,7 +369,7 @@ public class BrAPITrialService {
             String envSeqValue = studyDAO.getStudyByDbId(expUnit.getStudyDbId(), program).orElseThrow()
                     .getAdditionalInfo().get(BrAPIAdditionalInfoFields.ENVIRONMENT_NUMBER).getAsString();
 
-            for (int i=0; i<request.getRepeatedMeasures(); i++) {
+            for (int i=1; i<=request.getRepeatedMeasures(); i++) {
                 // Create subObsUnit and add to list.
                 subObsUnits.add(
                     createSubObservationUnit(
