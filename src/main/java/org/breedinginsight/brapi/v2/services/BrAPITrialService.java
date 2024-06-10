@@ -455,8 +455,23 @@ public class BrAPITrialService {
         String gid = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.GID).getAsString();
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.GID, gid);
 
-        // keep this in case we decide to rename levels in future
+        // Set treatment factors.
+        List<BrAPIObservationTreatment> treatmentFactors = new ArrayList<>();
+        for (BrAPIObservationTreatment t : expUnit.getTreatments()) {
+            BrAPIObservationTreatment treatment = new BrAPIObservationTreatment();
+            treatment.setFactor(t.getFactor());
+            treatment.setModality(t.getModality());
+            treatmentFactors.add(treatment);
+        }
+        observationUnit.setTreatments(treatmentFactors);
+
+        // Put level in additional info: keep this in case we decide to rename levels in future.
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, subEntityDatasetName);
+        // Put RTK in additional info.
+        String rtk = expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.RTK).getAsString();
+        if (rtk != null) {
+            observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.RTK, rtk);
+        }
 
         // Build ObservationUnitPosition.
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
