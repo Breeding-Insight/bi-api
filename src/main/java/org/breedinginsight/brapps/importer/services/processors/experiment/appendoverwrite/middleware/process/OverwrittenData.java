@@ -27,7 +27,6 @@ import java.util.UUID;
 public class OverwrittenData extends VisitedObservationData {
     @Inject
     FieldValidator fieldValidator;
-    @Inject
     Gson gson;
     boolean canOverwrite;
     boolean isCommit;
@@ -66,6 +65,7 @@ public class OverwrittenData extends VisitedObservationData {
         this.observation = observation;
         this.userId = userId;
         this.program = program;
+        this.gson = new Gson();
     }
 
     @Override

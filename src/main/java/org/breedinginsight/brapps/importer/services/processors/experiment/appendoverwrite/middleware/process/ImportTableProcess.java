@@ -74,6 +74,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
         this.observationService = observationService;
         this.experimentUtil = experimentUtil;
         this.gson = new Gson();
+        this.fieldValidator = fieldValidator;
         this.statistic = statistic;
     }
 

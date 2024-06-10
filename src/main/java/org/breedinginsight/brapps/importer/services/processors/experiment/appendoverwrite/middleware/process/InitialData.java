@@ -39,7 +39,6 @@ public class InitialData extends VisitedObservationData {
     FieldValidator fieldValidator;
     @Inject
     StudyService studyService;
-    @Inject
     Gson gson;
 
     public InitialData(boolean isCommit,
@@ -65,6 +64,7 @@ public class InitialData extends VisitedObservationData {
         this.observationUnit = observationUnit;
         this.user = user;
         this.program = program;
+        this.gson = new Gson();
     }
     @Override
     public Optional<List<ValidationError>> getValidationErrors() {
