@@ -14,22 +14,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
-package org.breedinginsight.brapps.importer.services.pipeline;
+import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
+import org.breedinginsight.brapps.importer.services.pipeline.ProcessingStep;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 
-public class Pipeline<I, O> {
-
-    private final ProcessingStep<I, O> currentStep;
-
-    public Pipeline(ProcessingStep<I, O> currentStep) {
-        this.currentStep = currentStep;
-    }
-
-    public <K> Pipeline<I, K> addProcessingStep(ProcessingStep<O, K> newStep) {
-        return new Pipeline<>(input -> newStep.process(currentStep.process(input)));
-    }
-
-    public O execute(I input) {
-        return currentStep.process(input);
-    }
+public class CommitPendingImportDataStep implements ProcessingStep<ProcessContext, ProcessedData> {
+    
 }
