@@ -29,12 +29,21 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
                 .findFirst();
     }
     public List<ImportWorkflow> getWorkflows() {
-        return workflows.stream()
+        // Each workflow returns in the field workflow the metadata about the workflow that processed the import context.
+        // Loop over all workflows, processing a null context, to collect just the metadata
+        List<ImportWorkflow> workflowSummaryList = workflows.stream()
                 .map(workflow->workflow.process(null))
                 .filter(Optional::isPresent)
                 .map(Optional::get)
                 .map(result->result.getWorkflow())
                 .collect(Collectors.toList());
+
+        // The order field for each workflow is set to the order in the list
+        for (int i = 0; i < workflowSummaryList.size(); i++) {
+            workflowSummaryList.get(i).setOrder(i);
+        }
+
+        return workflowSummaryList;
     }
 
     public enum Workflow {
