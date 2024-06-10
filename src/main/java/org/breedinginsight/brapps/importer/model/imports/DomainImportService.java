@@ -64,7 +64,7 @@ public abstract class DomainImportService implements BrAPIImportService {
     public ImportPreviewResponse process(ImportServiceContext context)
             throws Exception {
 
-        if (!context.getWorkflow().isEmpty()) {
+        if (context.getWorkflow() != null && !context.getWorkflow().isEmpty()) {
             log.info("Workflow: " + context.getWorkflow());
         }
 
