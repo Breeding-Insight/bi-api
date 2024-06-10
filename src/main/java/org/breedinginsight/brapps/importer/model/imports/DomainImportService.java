@@ -41,16 +41,16 @@ public abstract class DomainImportService implements BrAPIImportService {
     private final Provider<ProcessorManager> processorManagerProvider;
     private final Workflow workflowNavigator;
 
-    @Inject
+
     public DomainImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
-                               Provider<ProcessorManager> processorManagerProvider)
+                               Provider<ProcessorManager> processorManagerProvider,
+                               Workflow workflowNavigator)
     {
         this.experimentProcessorProvider = experimentProcessorProvider;
         this.processorManagerProvider = processorManagerProvider;
-        this.workflowNavigator = getNavigator();
+        this.workflowNavigator = workflowNavigator;
     }
 
-    protected abstract Workflow getNavigator();
     @Override
     public String getMissingColumnMsg(String columnName) {
         return "Column heading does not match template or ontology";
