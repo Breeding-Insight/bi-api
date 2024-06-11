@@ -318,7 +318,7 @@ public class BrAPITrialService {
         List<BrAPIObservation> data = observationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, obsVarDbIds, program);
         log.debug("building dataset object for dataset: " + datasetId);
         sortDefaultForObservationUnit(datasetOUs);
-        Dataset dataset = new Dataset(experimentId.toString(), data, datasetOUs, datasetObsVars);
+        Dataset dataset = new Dataset(datasetId.toString(), experimentId.toString(), data, datasetOUs, datasetObsVars);
         if (stats) {
             Integer ouCount = datasetOUs.size();
             Integer obsVarCount = datasetObsVars.size();

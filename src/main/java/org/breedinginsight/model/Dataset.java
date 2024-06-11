@@ -29,6 +29,7 @@ import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_ABSENT)
 public class Dataset {
+    public String id;
     public String experimentId;
     public JsonObject additionalInfo;
     public List<BrAPIObservation> data;
@@ -50,10 +51,12 @@ public class Dataset {
     }
 
     public Dataset(
+            String id,
             String experimentId,
             List<BrAPIObservation> data,
             List<BrAPIObservationUnit> observationUnits,
             List<Trait> observationVariables) {
+        this.id = id;
         this.experimentId = experimentId;
         this.additionalInfo = new JsonObject();
         this.data = data;
