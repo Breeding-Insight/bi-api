@@ -1,9 +1,13 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read;
 
+import io.micronaut.context.ApplicationContext;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingDataset;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 
 public class BrAPIDatasetReadWorkflowInitialization extends BrAPIReadWorkflowInitialization<BrAPIListDetails>{
     /**
@@ -24,6 +28,12 @@ public class BrAPIDatasetReadWorkflowInitialization extends BrAPIReadWorkflowIni
      */
     @Override
     public ExperimentImportEntity<BrAPIListDetails> getEntity(ExpUnitMiddlewareContext context) {
-        return new PendingDataset(context);
+        try (ApplicationContext appContext = ApplicationContext.run()) {
+            BrAPIListDAO brAPIListDAO = appContext.getBean(BrAPIListDAO.class);
+            DatasetService datasetService = appContext.getBean(DatasetService.class);
+            ExperimentUtilities experimentUtilities = appContext.getBean(ExperimentUtilities.class);
+
+            return new PendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
+        }
     }
 }
