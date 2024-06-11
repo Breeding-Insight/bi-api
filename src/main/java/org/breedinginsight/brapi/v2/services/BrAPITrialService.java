@@ -2,12 +2,14 @@ package org.breedinginsight.brapi.v2.services;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.github.filosganga.geogson.model.Coordinates;
+import com.github.filosganga.geogson.model.positions.SinglePosition;
+import com.google.gson.JsonObject;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.MediaType;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import io.micronaut.http.server.types.files.StreamedFile;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -671,6 +673,26 @@ public class BrAPITrialService {
         row.put(ExperimentObservation.Columns.EXP_TYPE, experiment.getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.EXPERIMENT_TYPE).getAsString());
         row.put(ExperimentObservation.Columns.ENV, Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
         row.put(ExperimentObservation.Columns.ENV_LOCATION, Utilities.removeProgramKey(study.getLocationName(), program.getKey()));
+
+        // Lat, Long, Elevation
+        Coordinates coordinates = extractCoordinates(ou);
+        Optional.ofNullable(coordinates)
+                .map(c -> doubleToString(c.getLat()))
+                .ifPresent(lat -> row.put(ExperimentObservation.Columns.LAT, lat));
+        Optional.ofNullable(coordinates)
+                .map(c -> doubleToString(c.getLon()))
+                .ifPresent(lon -> row.put(ExperimentObservation.Columns.LONG, lon));
+        Optional.ofNullable(coordinates)
+                .map(c -> doubleToString(c.getAlt()))
+                .ifPresent(elevation -> row.put(ExperimentObservation.Columns.ELEVATION, elevation));
+
+        // RTK
+        JsonObject additionalInfo = ou.getAdditionalInfo();
+        String rtk = ( additionalInfo==null || additionalInfo.get(BrAPIAdditionalInfoFields.RTK) ==null )
+                        ?   null
+                        :   additionalInfo.get(BrAPIAdditionalInfoFields.RTK).getAsString();
+        row.put(ExperimentObservation.Columns.RTK, rtk);
+
         BrAPISeason season = seasonDAO.getSeasonById(study.getSeasons().get(0), program.getId());
         row.put(ExperimentObservation.Columns.ENV_YEAR, season.getYear());
         row.put(ExperimentObservation.Columns.EXP_UNIT_ID, Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
@@ -690,11 +712,13 @@ public class BrAPITrialService {
                 .findFirst();
         blockLevel.ifPresent(brAPIObservationUnitLevelRelationship ->
                 row.put(ExperimentObservation.Columns.BLOCK_NUM, Integer.parseInt(brAPIObservationUnitLevelRelationship.getLevelCode())));
-        if (ou.getObservationUnitPosition() != null && ou.getObservationUnitPosition().getPositionCoordinateX() != null &&
-                ou.getObservationUnitPosition().getPositionCoordinateY() != null) {
+
+        //Row and Column
+        if ( ou.getObservationUnitPosition() != null ) {
             row.put(ExperimentObservation.Columns.ROW, ou.getObservationUnitPosition().getPositionCoordinateX());
             row.put(ExperimentObservation.Columns.COLUMN, ou.getObservationUnitPosition().getPositionCoordinateY());
         }
+
         if (ou.getTreatments() != null && !ou.getTreatments().isEmpty()) {
             row.put(ExperimentObservation.Columns.TREATMENT_FACTORS, ou.getTreatments().get(0).getFactor());
         } else {
@@ -705,7 +729,25 @@ public class BrAPITrialService {
         return row;
     }
 
-
+    private String doubleToString(double val){
+        return Double.isNaN(val) ? null : String.valueOf( val );
+    }
+    private Coordinates extractCoordinates(BrAPIObservationUnit ou){
+        Coordinates coordinates = null;
+        if (        ou.getObservationUnitPosition()!=null
+                &&  ou.getObservationUnitPosition().getGeoCoordinates()!=null
+                &&  ou.getObservationUnitPosition().getGeoCoordinates().getGeometry()!=null
+                &&  ou.getObservationUnitPosition().getGeoCoordinates().getGeometry().positions()!=null
+        )
+        {
+            Object o = ou.getObservationUnitPosition().getGeoCoordinates().getGeometry().positions();
+            if (o instanceof SinglePosition){
+                SinglePosition sp = (SinglePosition)o;
+                coordinates= sp.coordinates();
+            }
+        }
+        return coordinates;
+    }
 
     private void addObsVarColumns(
             List<Column> columns,
