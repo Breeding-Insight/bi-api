@@ -28,11 +28,13 @@ import tech.tablesaw.columns.Column;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Singleton
 public class ObservationVariableService {
     private final OntologyService ontologyService;
 

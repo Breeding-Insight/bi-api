@@ -15,9 +15,11 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.utilities.Utilities;
 
+import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Singleton
 public class GermplasmService {
     private final BrAPIGermplasmDAO germplasmDAO;
     @Property(name = "brapi.server.reference-source")

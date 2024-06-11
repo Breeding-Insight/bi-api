@@ -26,15 +26,19 @@ import java.util.stream.Collectors;
 public class PendingLocation implements ExperimentImportEntity<ProgramLocation> {
     ExpUnitContext cache;
     ImportContext importContext;
-    @Inject
     ProgramLocationService programLocationService;
-    @Inject
     LocationService locationService;
-    @Inject
     ExperimentUtilities experimentUtilities;
-    public PendingLocation(ExpUnitMiddlewareContext context) {
+    @Inject
+    public PendingLocation(ExpUnitMiddlewareContext context,
+                           ProgramLocationService programLocationService,
+                           LocationService locationService,
+                           ExperimentUtilities experimentUtilities) {
         this.cache = context.getExpUnitContext();
         this.importContext = context.getImportContext();
+        this.programLocationService = programLocationService;
+        this.locationService = locationService;
+        this.experimentUtilities = experimentUtilities;
     }
 
     /**

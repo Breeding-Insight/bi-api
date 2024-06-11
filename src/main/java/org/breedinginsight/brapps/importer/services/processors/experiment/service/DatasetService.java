@@ -25,9 +25,11 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Singleton
 public class DatasetService {
     private final BrAPIListDAO brAPIListDAO;
     @Property(name = "brapi.server.reference-source")
