@@ -29,6 +29,7 @@ import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.util.List;
+import java.util.Optional;
 
 @Singleton
 @Slf4j
@@ -62,19 +63,23 @@ public abstract class DomainImportService implements BrAPIImportService {
     public ImportPreviewResponse process(ImportServiceContext context)
             throws Exception {
 
-        if (context.getWorkflow() != null && !context.getWorkflow().isEmpty()) {
-            log.info("Workflow: " + context.getWorkflow());
-        }
+        Optional.ofNullable(context.getWorkflow())
+                .filter(workflow -> !workflow.isEmpty())
+                .ifPresent(workflow -> log.info("Workflow: " + workflow));
 
         // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
         // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
-        return processorManagerProvider.get().process(context.getBrAPIImports(),
-                List.of(experimentProcessorProvider.get()),
-                context.getData(),
-                context.getProgram(),
-                context.getUpload(),
-                context.getUser(),
-                context.isCommit());
+        if ("append-dataset".equals(context.getWorkflow())) {
+            return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
+        } else {
+            return processorManagerProvider.get().process(context.getBrAPIImports(),
+                    List.of(experimentProcessorProvider.get()),
+                    context.getData(),
+                    context.getProgram(),
+                    context.getUpload(),
+                    context.getUser(),
+                    context.isCommit());
+        }
     }
 }
 

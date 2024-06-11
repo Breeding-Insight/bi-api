@@ -27,11 +27,13 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.COMMA_DELIMITER;
 
+@Singleton
 public class ObservationUnitService {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     @Property(name = "brapi.server.reference-source")
