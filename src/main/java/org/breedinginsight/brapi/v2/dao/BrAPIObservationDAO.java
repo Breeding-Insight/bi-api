@@ -250,10 +250,54 @@ public class BrAPIObservationDAO {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         var program = programDAO.fetchOneById(programId);
         try {
+
             Callable<Map<String, BrAPIObservation>> postFunction = () -> {
+
                 ApiResponse<BrAPIObservationSingleResponse> response = api.observationsObservationDbIdPut(dbId, observation);
-                    if (response == null)
-                    {
+                if (response == null) {
+                    throw new ApiException("Response is null", 0, null, null);
+                }
+                BrAPIObservationSingleResponse body = response.getBody();
+                if (body == null) {
+                    throw new ApiException("Response is missing body", 0, response.getHeaders(), null);
+                }
+                BrAPIObservation updatedObservation = body.getResult();
+                if (updatedObservation == null) {
+                    throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
+                }
+                return processObservationsForCache(List.of(updatedObservation), program.getKey());
+            };
+            // returns ListArray<> = postFunction.call().values()
+            return programObservationCache.post(programId, postFunction).get(0);
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e));
+            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        } catch (Exception e) {
+            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
+        }
+    }
+
+    public void updateBrAPIObservation(Map<String, BrAPIObservation> mutatedObservationByDbId, UUID programId) throws ApiException {
+        ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
+        var program = programDAO.fetchOneById(programId);
+
+        List <BrAPIObservation> updatedObservations = new ArrayList<>();
+        try {
+                Map<String, BrAPIObservation> updatedObservationsByDbId = new HashMap<>();
+                for (Map.Entry<String, BrAPIObservation> entry : mutatedObservationByDbId.entrySet()) {
+                    String dbId = entry.getKey();
+                    BrAPIObservation observation = entry.getValue();
+                    if (observation == null) {
+                        throw new Exception("Null observation");
+                    }
+
+                    ApiResponse<BrAPIObservationSingleResponse> response = null;
+                    try {
+                        response = api.observationsObservationDbIdPut(dbId, observation);
+                    } catch (ApiException e) {
+                        throw new RuntimeException(e);
+                    }
+                    if (response == null) {
                         throw new ApiException("Response is null", 0, null, null);
                     }
                     BrAPIObservationSingleResponse body = response.getBody();
@@ -264,14 +308,29 @@ public class BrAPIObservationDAO {
                     if (updatedObservation == null) {
                         throw new ApiException("Response body is missing result", 0, response.getHeaders(), response.getBody().toString());
                     }
-                    return processObservationsForCache(List.of(updatedObservation), program.getKey());
-            };
-            return programObservationCache.post(programId, postFunction).get(0);
-        } catch (ApiException e) {
-            log.error(Utilities.generateApiExceptionLogMessage(e));
-            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
-        } catch (Exception e) {
-            throw new InternalServerException("Unknown error has occurred: " + e.getMessage(), e);
-        }
+                    updatedObservations.add(updatedObservation);
+
+                    if (!Objects.equals(observation.getValue(), updatedObservation.getValue())
+                            || !Objects.equals(observation.getObservationTimeStamp(), updatedObservation.getObservationTimeStamp())) {
+                        String message;
+                        if (!Objects.equals(observation.getValue(), updatedObservation.getValue())) {
+                            message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObservation.getValue(), observation.getValue());
+                        } else {
+                            message = String.format("Updated observation timestamp, %s, from BrAPI service does not match requested update timestamp %s.", updatedObservation.getObservationTimeStamp(), observation.getObservationTimeStamp());
+                        }
+                        throw new Exception(message);
+                    }
+                }
+
+            } catch (ApiException e) {
+                log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
+                throw new InternalServerException("Error saving experiment import", e);
+            } catch (Exception e) {
+                log.error("Error updating observation: ", e);
+                throw new InternalServerException(e.getMessage(), e);
+            }
+            processObservationsForCache(updatedObservations, program.getKey());
+            programObservationCache.populate(programId);
+            return;
     }
 }

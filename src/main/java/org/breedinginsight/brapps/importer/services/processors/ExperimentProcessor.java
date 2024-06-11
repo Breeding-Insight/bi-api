@@ -300,13 +300,16 @@ public class ExperimentProcessor implements Processor {
     }
 
     @Override
-    public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload) {
+    public void postBrapiData(Map<Integer, PendingImport> mappedBrAPIImport, Program program, ImportUpload upload)  {
         log.debug("starting post of experiment data to BrAPI server");
 
         List<BrAPITrial> newTrials = ProcessorData.getNewObjects(this.trialByNameNoScope);
         Map<String, BrAPITrial> mutatedTrialsById = ProcessorData
                 .getMutationsByObjectId(trialByNameNoScope, BrAPITrial::getTrialDbId);
 
+        //getMutationsByObjectId() will return a HashMap of just the mutated Observations,
+        //      key   = BrAPIObservation::getObservationDbId
+        //      value = mutated BrAPIObservation
         Map<String, BrAPIObservation> mutatedObservationByDbId = ProcessorData
                 .getMutationsByObjectId(observationByHash, BrAPIObservation::getObservationDbId);
 
@@ -420,6 +423,7 @@ public class ExperimentProcessor implements Processor {
                 obsVarIds.addAll(newObsVarIds);
                 dataset.setData(obsVarIds);
                 brAPIListDAO.updateBrAPIList(id, dataset, program.getId());
+               // Map<String, BrAPIObservation> updatedObservationByDbId = brAPIObservationDAO.updateBrAPIObservation( mutatedObservationByDbId, program.getId() );
             } catch (ApiException e) {
                 log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException("Error saving experiment import", e);
@@ -428,36 +432,16 @@ public class ExperimentProcessor implements Processor {
                 throw new InternalServerException(e.getMessage(), e);
             }
         });
-
-        mutatedObservationByDbId.forEach((id, observation) ->  {
-            try {
-                if (observation == null) {
-                    throw new Exception("Null observation");
-                }
-                BrAPIObservation updatedObs = brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
-
-                if (updatedObs == null) {
-                    throw new Exception("Null updated observation");
-                }
-
-                if (!Objects.equals(observation.getValue(), updatedObs.getValue())
-                        || !Objects.equals(observation.getObservationTimeStamp(), updatedObs.getObservationTimeStamp())) {
-                    String message;
-                    if(!Objects.equals(observation.getValue(), updatedObs.getValue())) {
-                        message = String.format("Updated observation, %s, from BrAPI service does not match requested update %s.", updatedObs.getValue(), observation.getValue());
-                    } else {
-                        message = String.format("Updated observation timestamp, %s, from BrAPI service does not match requested update timestamp %s.", updatedObs.getObservationTimeStamp(), observation.getObservationTimeStamp());
-                    }
-                    throw new Exception(message);
-                }
-            } catch (ApiException e) {
+        try {
+            brAPIObservationDAO.updateBrAPIObservation( mutatedObservationByDbId, program.getId() );
+        } catch (ApiException e) {
                 log.error("Error updating observation: " + Utilities.generateApiExceptionLogMessage(e), e);
                 throw new InternalServerException("Error saving experiment import", e);
             } catch (Exception e) {
                 log.error("Error updating observation: ", e);
                 throw new InternalServerException(e.getMessage(), e);
             }
-        });
+
         log.debug("experiment import complete");
     }
 

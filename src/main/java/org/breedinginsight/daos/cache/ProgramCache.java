@@ -169,6 +169,11 @@ public class ProgramCache<R> {
 
     public List<R> post(UUID key, Callable<Map<String, R>> postMethod) throws Exception {
         log.debug("posting for key: " + generateCacheKey(key));
+        Map<String, R> response = post_map(key,postMethod);
+        return new ArrayList<>(response.values());
+    }
+    public Map<String, R> post_map(UUID key, Callable<Map<String, R>> postMethod) throws Exception {
+        log.debug("posting for key: " + generateCacheKey(key));
         Map<String, R> response = null;
         try {
             response = postMethod.call();
@@ -181,14 +186,13 @@ public class ProgramCache<R> {
             }
             populate(key);
 
-            return new ArrayList<>(response.values());
+            return response;
         } catch (Exception e) {
             log.error("Error posting data and populating the cache", e);
             invalidate(key);
             throw e;
         }
     }
-
     public boolean isRefreshing(UUID key) {
         RAtomicLong isRefreshing = connection.getAtomicLong(generateCacheKey(key) + ":refreshing");
 
