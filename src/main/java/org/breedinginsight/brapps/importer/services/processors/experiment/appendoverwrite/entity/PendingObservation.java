@@ -23,18 +23,20 @@ import java.util.stream.Collectors;
 public class PendingObservation implements ExperimentImportEntity<BrAPIObservation> {
     ExpUnitContext cache;
     ImportContext importContext;
-    @Inject
-    ObservationService observationService;
-    @Inject
     BrAPIObservationDAO brAPIObservationDAO;
-    @Inject
     OntologyService ontologyService;
-    @Inject
     ExperimentUtilities experimentUtilities;
 
-    public PendingObservation(ExpUnitMiddlewareContext context) {
+    @Inject
+    public PendingObservation(ExpUnitMiddlewareContext context,
+                              BrAPIObservationDAO brAPIObservationDAO,
+                              OntologyService ontologyService,
+                              ExperimentUtilities experimentUtilities) {
         this.cache = context.getExpUnitContext();
         this.importContext = context.getImportContext();
+        this.brAPIObservationDAO = brAPIObservationDAO;
+        this.ontologyService = ontologyService;
+        this.experimentUtilities = experimentUtilities;
     }
 
 
