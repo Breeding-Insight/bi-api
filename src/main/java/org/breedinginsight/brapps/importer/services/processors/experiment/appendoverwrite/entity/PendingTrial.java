@@ -19,16 +19,20 @@ import java.util.stream.Collectors;
 public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     ExpUnitContext cache;
     ImportContext importContext;
-    @Inject
     TrialService trialService;
-    @Inject
     BrAPITrialDAO brapiTrialDAO;
-    @Inject
     ExperimentUtilities experimentUtilities;
 
-    public PendingTrial(ExpUnitMiddlewareContext context) {
+    @Inject
+    public PendingTrial(ExpUnitMiddlewareContext context,
+                        TrialService trialService,
+                        BrAPITrialDAO brAPITrialDAO,
+                        ExperimentUtilities experimentUtilities) {
         this.cache = context.getExpUnitContext();
         this.importContext = context.getImportContext();
+        this.trialService = trialService;
+        this.brapiTrialDAO = brAPITrialDAO;
+        this.experimentUtilities = experimentUtilities;
     }
 
     /**
