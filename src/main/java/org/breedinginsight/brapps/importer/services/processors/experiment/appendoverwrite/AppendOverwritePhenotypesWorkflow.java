@@ -13,6 +13,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit.BrAPICommit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize.WorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.ImportTableProcess;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 
@@ -47,8 +48,8 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
     public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
         // Workflow processing the context
         ImportWorkflow workflow = ImportWorkflow.builder()
-                .urlFragment(getWorkflow().getUrlFragment())
-                .displayName(getWorkflow().getDisplayName())
+                .id(getWorkflow().getId())
+                .name(getWorkflow().getName())
                 .build();
 
         // No-preview result
@@ -76,7 +77,10 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
                 .user(context.getUser())
                 .commit(context.isCommit())
                 .build();
-        ExpUnitMiddlewareContext workflowContext = ExpUnitMiddlewareContext.builder().importContext(importContext).build();
+        ExpUnitMiddlewareContext workflowContext = ExpUnitMiddlewareContext.builder()
+                .importContext(importContext)
+                .expUnitContext(new ExpUnitContext())
+                .build();
 
         // Process the workflow
         ExpUnitMiddlewareContext processedContext = this.middleware.process(workflowContext);
