@@ -207,19 +207,13 @@ public class PopulateExistingPendingImportObjectsStep {
 
         ExperimentObservation row = rowByObsUnitId.get(idRef.getReferenceId());
         row.setExpUnitId(Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIObservationUnit.getObservationUnitName(), program.getKey()));
-        observationUnitByName.put(createObservationUnitKey(row),
+        observationUnitByName.put(ExperimentUtilities.createObservationUnitKey(row),
                 new PendingImportObject<>(ImportObjectState.EXISTING,
                         brAPIObservationUnit,
                         UUID.fromString(idRef.getReferenceId())));
     }
 
-    private String createObservationUnitKey(ExperimentObservation importRow) {
-        return createObservationUnitKey(importRow.getEnv(), importRow.getExpUnitId());
-    }
 
-    private String createObservationUnitKey(String studyName, String obsUnitName) {
-        return studyName + obsUnitName;
-    }
 
     /**
      * Initializes studies by name without scope.

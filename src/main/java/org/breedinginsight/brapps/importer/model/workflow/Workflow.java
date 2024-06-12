@@ -27,7 +27,7 @@ public interface Workflow {
      * @param context the import context containing the necessary data for processing
      * @return the processed data
      */
-    ImportPreviewResponse process(ImportContext context);
+    ImportPreviewResponse process(ImportContext context) throws Exception;
 
     /**
      * Retrieves the name of the Workflow for logging display purposes.

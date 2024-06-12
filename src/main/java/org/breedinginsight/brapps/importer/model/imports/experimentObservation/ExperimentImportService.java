@@ -23,6 +23,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
@@ -75,9 +76,23 @@ public class ExperimentImportService implements BrAPIImportService {
 
         if (context.getWorkflow() != null) {
             log.info("Workflow: " + context.getWorkflow().getName());
+
+            // TODO: change when workflows selection is ready
+            if (context.getWorkflow().getName().equals("CreateNewExperimentWorkflow")) {
+                ImportContext importContext = ImportContext.builder()
+                        .importRows(context.getBrAPIImports())
+                        .user(context.getUser())
+                        .data(context.getData())
+                        .commit(context.isCommit())
+                        .upload(context.getUpload())
+                        .build();
+
+               return context.getWorkflow().process(importContext);
+            }
         }
 
         // TODO: change to calling workflow process instead of processor manager
+        // other workflows besides create will pass through to old flow
         response = processorManagerProvider.get().process(context.getBrAPIImports(),
                 processors,
                 context.getData(),

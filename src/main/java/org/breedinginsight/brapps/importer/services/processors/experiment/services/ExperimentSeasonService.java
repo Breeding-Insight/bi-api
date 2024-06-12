@@ -16,6 +16,8 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.services;
 
+import io.micronaut.context.annotation.Property;
+import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -30,7 +32,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-@Singleton
+// reset cache across uses by creating new instance each time this service is injected
+@Prototype
 @Slf4j
 public class ExperimentSeasonService {
 

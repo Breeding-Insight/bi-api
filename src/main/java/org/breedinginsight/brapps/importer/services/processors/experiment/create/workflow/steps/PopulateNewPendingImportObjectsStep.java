@@ -16,14 +16,17 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
+import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.xmlbeans.impl.xb.xsdschema.ImportDocument;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
@@ -36,11 +39,11 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingImportObjectData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.PendingImportObjectPopulator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentValidateService;
 import org.breedinginsight.model.Program;
@@ -75,6 +78,9 @@ public class PopulateNewPendingImportObjectsStep {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
 
+    @Property(name = "brapi.server.reference-source")
+    private String BRAPI_REFERENCE_SOURCE;
+
     @Inject
     public PopulateNewPendingImportObjectsStep(ExperimentValidateService experimentValidateService,
                                                ExperimentSeasonService experimentSeasonService,
@@ -88,12 +94,14 @@ public class PopulateNewPendingImportObjectsStep {
         this.dsl = dsl;
     }
 
-    public ProcessedData process(ProcessContext context, ProcessedPhenotypeData phenotypeData) {
+    public ProcessedData process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
+            throws MissingRequiredInfoException, UnprocessableEntityException, ApiException {
 
         Table data = context.getImportContext().getData();
         ImportUpload upload = context.getImportContext().getUpload();
         ImportContext importContext = context.getImportContext();
 
+        populatePendingImportObjects(context, phenotypeData);
 
 
         // TODO: implement
@@ -101,15 +109,18 @@ public class PopulateNewPendingImportObjectsStep {
     }
 
 
-    // initNew
+    // NOTE: was called initNew
+    // initNewBrapiData(importRows, phenotypeCols, program, user, referencedTraits, commit);
     // TODO: move to shared service
-    private void populatePendingImportObjects(ImportContext importContext,
-                                              ProcessedPhenotypeData phenotypeData,
-                                              PendingImportObjectPopulator pioPopulator) {
+    private void populatePendingImportObjects(ProcessContext processContext,
+                                              ProcessedPhenotypeData phenotypeData)
+            throws MissingRequiredInfoException, UnprocessableEntityException, ApiException {
 
+        ImportContext importContext = processContext.getImportContext();
         List<BrAPIImport> importRows = importContext.getImportRows();
         Program program = importContext.getProgram();
         boolean commit = importContext.isCommit();
+        PendingData pendingData = processContext.getPendingData();
 
         Supplier<BigInteger> expNextVal = getNextExperimentSequenceNumber(program);
         Supplier<BigInteger> envNextVal = getNextEnvironmentSequenceNumber(program);
@@ -120,7 +131,7 @@ public class PopulateNewPendingImportObjectsStep {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
-            populateIndependentVariablePIOsForRow();
+            populateIndependentVariablePIOsForRow(importContext, phenotypeData, pendingData, importRow, expNextVal, envNextVal);
 
             // ... (Common logic from the original method)
 
@@ -130,7 +141,7 @@ public class PopulateNewPendingImportObjectsStep {
         }
     }
 
-
+    // TODO: these sequence methods could be moved to common area
     /**
      * Returns a Supplier that generates the next experiment sequence number based on the given Program.
      *
@@ -172,19 +183,18 @@ public class PopulateNewPendingImportObjectsStep {
      * @param importRow The import row.
      * @param expNextVal The supplier for generating experiment next value.
      * @param envNextVal The supplier for generating environment next value.
-     * @param pioPopulator The pending import object populator.
      * @return The populated independent variable PendingImportObjectData.
      * @throws MissingRequiredInfoException If any required information is missing.
      * @throws UnprocessableEntityException If the entity is unprocessable.
      * @throws ApiException If there is an API exception.
      */
+    // TODO: this could potentially be made reusable between workflows in the future
     private PendingImportObjectData populateIndependentVariablePIOsForRow(ImportContext importContext,
                                                                           ProcessedPhenotypeData phenotypeData,
                                                                           PendingData pendingData,
                                                                           ExperimentObservation importRow,
                                                                           Supplier<BigInteger> expNextVal,
-                                                                          Supplier<BigInteger> envNextVal,
-                                                                          PendingImportObjectPopulator pioPopulator)
+                                                                          Supplier<BigInteger> envNextVal)
             throws MissingRequiredInfoException, UnprocessableEntityException, ApiException {
 
         Program program = importContext.getProgram();
@@ -194,9 +204,9 @@ public class PopulateNewPendingImportObjectsStep {
 
         PendingImportObject<BrAPITrial> trialPIO = null;
         try {
-            trialPIO = pioPopulator.populateTrial(importContext, pendingData, importRow, expNextVal);
+            trialPIO = populateTrial(importContext, pendingData, importRow, expNextVal);
 
-            // moved up a level
+            // NOTE: moved up a level
             if (trialPIO.getState() == ImportObjectState.NEW) {
                 pendingData.getTrialByNameNoScope().put(importRow.getExpTitle(), trialPIO);
             }
@@ -210,15 +220,15 @@ public class PopulateNewPendingImportObjectsStep {
                     .getAdditionalInfo()
                     .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
                     .getAsString();
+
+            // updates pendingData obsVarDatasetByName PIO
+            fetchOrCreateDatasetPIO(importContext, pendingData, importRow, referencedTraits);
         }
 
-        if (commit) {
-            fetchOrCreateDatasetPIO(importRow, program, referencedTraits);
-        }
+        // updates pendingData locationByName PIO
+        fetchOrCreateLocationPIO(pendingData, importRow);
 
-        fetchOrCreateLocationPIO(importRow);
-
-        PendingImportObject<BrAPIStudy> studyPIO = fetchOrCreateStudyPIO(program, commit, expSeqValue, importRow, envNextVal);
+        PendingImportObject<BrAPIStudy> studyPIO = fetchOrCreateStudyPIO(importContext, pendingData, expSeqValue, importRow, envNextVal);
 
         String envSeqValue = null;
         if (commit) {
@@ -228,7 +238,7 @@ public class PopulateNewPendingImportObjectsStep {
                     .getAsString();
         }
 
-        PendingImportObject<BrAPIObservationUnit> obsUnitPIO = fetchOrCreateObsUnitPIO(program, commit, envSeqValue, importRow);
+        PendingImportObject<BrAPIObservationUnit> obsUnitPIO = fetchOrCreateObsUnitPIO(importContext, pendingData, envSeqValue, importRow);
 
         return PendingImportObjectData.builder()
                 .trialPIO(trialPIO)
@@ -302,98 +312,67 @@ public class PopulateNewPendingImportObjectsStep {
         }
     }
 
-    private Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits, Program program) throws ApiException {
-        Set<String> ouDbIds = new HashSet<>();
-        Set<String> variableDbIds = new HashSet<>();
-        Map<String, String> variableNameByDbId = new HashMap<>();
-        Map<String, String> ouNameByDbId = new HashMap<>();
-        Map<String, String> studyNameByDbId = studyByNameNoScope.values()
-                .stream()
-                .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
-                .map(PendingImportObject::getBrAPIObject)
-                .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
+    public PendingImportObject<BrAPITrial> populateTrial(ImportContext importContext,
+                                                         PendingData pendingData,
+                                                         ExperimentObservation importRow,
+                                                         Supplier<BigInteger> expNextVal)
+            throws UnprocessableEntityException {
 
-        studyNameByDbId.keySet().forEach(studyDbId -> {
-            try {
-                brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyDbId, program).forEach(ou -> {
-                    if(StringUtils.isNotBlank(ou.getObservationUnitDbId())) {
-                        ouDbIds.add(ou.getObservationUnitDbId());
-                    }
-                    ouNameByDbId.put(ou.getObservationUnitDbId(), Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()));
-                });
-            } catch (ApiException e) {
-                throw new RuntimeException(e);
-            }
-        });
-
-        for (Trait referencedTrait : referencedTraits) {
-            variableDbIds.add(referencedTrait.getObservationVariableDbId());
-            variableNameByDbId.put(referencedTrait.getObservationVariableDbId(), referencedTrait.getObservationVariableName());
-        }
-
-        List<BrAPIObservation> existingObservations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, variableDbIds, program);
-
-        return existingObservations.stream()
-                .map(obs -> {
-                    String studyName = studyNameByDbId.get(obs.getStudyDbId());
-                    String variableName = variableNameByDbId.get(obs.getObservationVariableDbId());
-                    String ouName = ouNameByDbId.get(obs.getObservationUnitDbId());
-
-                    String key = getObservationHash(createObservationUnitKey(studyName, ouName), variableName, studyName);
-
-                    return Map.entry(key, obs);
-                })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-    }
-
-    private PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
-            Program program,
-            User user,
-            boolean commit,
-            ExperimentObservation importRow,
-            Supplier<BigInteger> expNextVal
-    ) throws UnprocessableEntityException {
         PendingImportObject<BrAPITrial> trialPio;
+        Program program = importContext.getProgram();
+        User user = importContext.getUser();
+        boolean commit = importContext.isCommit();
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
+        Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = pendingData.getStudyByNameNoScope();
 
-        // use the prior trial if observation unit IDs are supplied
-        // TODO: handle multiple workflows
-        if (hasAllReferenceUnitIds) {
-            trialPio = getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES);
+        if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
+            PendingImportObject<BrAPIStudy> envPio;
+            trialPio = trialByNameNoScope.get(importRow.getExpTitle());
+            envPio = studyByNameNoScope.get(importRow.getEnv());
 
-            // otherwise create a new trial, but there can be only one allowed
-        } else {
-            if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
-                PendingImportObject<BrAPIStudy> envPio;
-                trialPio = trialByNameNoScope.get(importRow.getExpTitle());
-                envPio = studyByNameNoScope.get(importRow.getEnv());
-
-                // creating new units for existing experiments and environments is not possible
-                if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
-                        (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
-                    throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
-                }
-            } else if (!trialByNameNoScope.isEmpty()) {
-                throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
-            } else {
-                UUID id = UUID.randomUUID();
-                String expSeqValue = null;
-                if (commit) {
-                    expSeqValue = expNextVal.get().toString();
-                }
-                BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
-                trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-                trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
+            // creating new units for existing experiments and environments is not possible
+            if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
+                    (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
+                throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
             }
+        } else if (!trialByNameNoScope.isEmpty()) {
+            throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
+        } else {
+            UUID id = UUID.randomUUID();
+            String expSeqValue = null;
+            if (commit) {
+                expSeqValue = expNextVal.get().toString();
+            }
+            BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
+            trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
+            // NOTE: moved up a level
+            //trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
         }
+
         return trialPio;
     }
 
-    private void fetchOrCreateDatasetPIO(ExperimentObservation importRow, Program program, List<Trait> referencedTraits) throws UnprocessableEntityException {
+    /**
+     * Fetches or creates a dataset for import.
+     *
+     * @param importContext      The import context
+     * @param pendingData        The pending data containing information about the import (modified in place)
+     * @param importRow          The import row representing an observation
+     * @param referencedTraits   The list of referenced Trait objects
+     * @throws UnprocessableEntityException if the import data is invalid
+     */
+    public void fetchOrCreateDatasetPIO(ImportContext importContext,
+                                        PendingData pendingData,
+                                        ExperimentObservation importRow,
+                                        List<Trait> referencedTraits) throws UnprocessableEntityException {
         PendingImportObject<BrAPIListDetails> pio;
+        Program program = importContext.getProgram();
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
+        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = pendingData.getObsVarDatasetByName();
 
-        // TODO: multiple workflows
-        PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
-                getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
+        PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
+
+        // TODO: this is common to both workflows
         String name = String.format("Observation Dataset [%s-%s]",
                 program.getKey(),
                 trialPIO.getBrAPIObject()
@@ -420,80 +399,137 @@ public class PopulateNewPendingImportObjectsStep {
         addObsVarsToDatasetDetails(pio, referencedTraits, program);
     }
 
-    private void fetchOrCreateLocationPIO(ExperimentObservation importRow) {
+    /**
+     * Add observation variable IDs to the dataset details of a pending import object.
+     *
+     * @param pio               The pending import object with BrAPIListDetails (modified in place)
+     * @param referencedTraits  The list of referenced Trait objects
+     * @param program           The Program object
+     */
+    // TODO: common to both workflows
+    private void addObsVarsToDatasetDetails(PendingImportObject<BrAPIListDetails> pio, List<Trait> referencedTraits, Program program) {
+        BrAPIListDetails details = pio.getBrAPIObject();
+        referencedTraits.forEach(trait -> {
+            String id = Utilities.appendProgramKey(trait.getObservationVariableName(), program.getKey());
+
+            // TODO - Don't append the key if connected to a brapi service operating with legacy data(no appended program key)
+
+            if (!details.getData().contains(id) && ImportObjectState.EXISTING != pio.getState()) {
+                details.getData().add(id);
+            }
+            if (!details.getData().contains(id) && ImportObjectState.EXISTING == pio.getState()) {
+                details.getData().add(id);
+                pio.setState(ImportObjectState.MUTATED);
+            }
+        });
+    }
+
+    /**
+     * Fetches or creates a ProgramLocation object for import.
+     *
+     * @param pendingData  The PendingData object containing information about the import (modified in place)
+     * @param importRow    The ExperimentObservation object representing an observation
+     */
+    public void fetchOrCreateLocationPIO(PendingData pendingData, ExperimentObservation importRow) {
         PendingImportObject<ProgramLocation> pio;
-        // TODO: multiple workflows
-        String envLocationName = hasAllReferenceUnitIds ?
-                pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getLocationName() : importRow.getEnvLocation();
+        String envLocationName = importRow.getEnvLocation();
+        // NOTE: other worklow referenced map specific to itself
+        Map<String, PendingImportObject<ProgramLocation>> locationByName = pendingData.getLocationByName();
+
+        // TODO: common to both workflows
         if (!locationByName.containsKey((importRow.getEnvLocation()))) {
             ProgramLocation newLocation = new ProgramLocation();
             newLocation.setName(envLocationName);
             pio = new PendingImportObject<>(ImportObjectState.NEW, newLocation, UUID.randomUUID());
-            this.locationByName.put(envLocationName, pio);
+            locationByName.put(envLocationName, pio);
         }
     }
 
+    /**
+     * Fetches an existing study or creates a new study for the given import row.
+     *
+     * @param importContext   the import context
+     * @param pendingData     the pending data
+     * @param expSequenceValue    the experiment sequence value
+     * @param importRow       the import row
+     * @param envNextVal      the supplier for generating the next environment ID
+     *
+     * @return the pending import object containing the study
+     *
+     * @throws UnprocessableEntityException if the study is not processable
+     */
     private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(
-            Program program,
-            boolean commit,
+            ImportContext importContext,
+            PendingData pendingData,
             String expSequenceValue,
             ExperimentObservation importRow,
             Supplier<BigInteger> envNextVal
     ) throws UnprocessableEntityException {
+
+        Program program = importContext.getProgram();
+        boolean commit = importContext.isCommit();
+
+        Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = pendingData.getStudyByNameNoScope();
+        Map<String, PendingImportObject<ProgramLocation>> locationByName = pendingData.getLocationByName();
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
+
         PendingImportObject<BrAPIStudy> pio;
         // TODO: multiple workflows
-        if (hasAllReferenceUnitIds) {
-            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
-                    pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName(),
-                    program.getKey()
-            );
-            pio = studyByNameNoScope.get(studyName);
-            if (!commit){
-                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
-            }
-        } else if (studyByNameNoScope.containsKey(importRow.getEnv())) {
+        if (studyByNameNoScope.containsKey(importRow.getEnv())) {
             pio = studyByNameNoScope.get(importRow.getEnv());
             if (!commit){
-                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
+                ExperimentUtilities.addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
             }
         } else {
-            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
-                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
+            // NOTE: specific to this workflow, rest common
+            PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
             UUID trialID = trialPIO.getId();
             UUID id = UUID.randomUUID();
             BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
-            newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
+            newStudy.setLocationDbId(locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
 
             // It is assumed that the study has only one season, And that the Years and not
             // the dbId's are stored in getSeason() list.
             String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
             if (commit) {
                 if(StringUtils.isNotBlank(year)) {
-                    String seasonID = this.yearToSeasonDbId(year, program.getId());
+                    // TODO: look at if this needs to be cleared across runs
+                    String seasonID = experimentSeasonService.yearToSeasonDbId(year, program.getId());
                     newStudy.setSeasons(Collections.singletonList(seasonID));
                 }
             } else {
-                addYearToStudyAdditionalInfo(program, newStudy, year);
+                ExperimentUtilities.addYearToStudyAdditionalInfo(program, newStudy, year);
             }
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
-            this.studyByNameNoScope.put(importRow.getEnv(), pio);
+            studyByNameNoScope.put(importRow.getEnv(), pio);
         }
         return pio;
     }
 
-    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException {
+    private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(ImportContext importContext,
+                                                                              PendingData pendingData,
+                                                                              String envSeqValue,
+                                                                              ExperimentObservation importRow)
+            throws ApiException, MissingRequiredInfoException, UnprocessableEntityException {
         PendingImportObject<BrAPIObservationUnit> pio;
-        String key = createObservationUnitKey(importRow);
-        // TODO: multiple workflows
-        if (hasAllReferenceUnitIds) {
-            pio = pendingObsUnitByOUId.get(importRow.getObsUnitID());
-        } else if (observationUnitByNameNoScope.containsKey(key)) {
+
+        Program program = importContext.getProgram();
+        boolean commit = importContext.isCommit();
+        Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = pendingData.getStudyByNameNoScope();
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
+        Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
+        Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = pendingData.getExistingGermplasmByGID();
+
+        String key = ExperimentUtilities.createObservationUnitKey(importRow);
+        // NOTE: removed other workflow
+
+        if (observationUnitByNameNoScope.containsKey(key)) {
             pio = observationUnitByNameNoScope.get(key);
         } else {
             String germplasmName = "";
-            if (this.existingGermplasmByGID.get(importRow.getGid()) != null) {
-                germplasmName = this.existingGermplasmByGID.get(importRow.getGid())
+            if (existingGermplasmByGID.get(importRow.getGid()) != null) {
+                germplasmName = existingGermplasmByGID.get(importRow.getGid())
                         .getBrAPIObject()
                         .getGermplasmName();
             }
@@ -505,7 +541,7 @@ public class PopulateNewPendingImportObjectsStep {
                         .getAdditionalInfo().getAsJsonObject()
                         .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
             }
-            PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
+            PendingImportObject<BrAPIStudy> studyPIO = studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
             UUID id = UUID.randomUUID();
             BrAPIObservationUnit newObservationUnit = importRow.constructBrAPIObservationUnit(program, envSeqValue, commit, germplasmName, importRow.getGid(), BRAPI_REFERENCE_SOURCE, trialID, datasetId, studyID, id);
@@ -515,14 +551,14 @@ public class PopulateNewPendingImportObjectsStep {
                 List<BrAPIObservationUnit> existingOUs = brAPIObservationUnitDAO.getObservationUnitsForStudyDbId(studyPIO.getBrAPIObject().getStudyDbId(), program);
                 List<BrAPIObservationUnit> matchingOU = existingOUs.stream().filter(ou -> importRow.getExpUnitId().equals(Utilities.removeProgramKeyAndUnknownAdditionalData(ou.getObservationUnitName(), program.getKey()))).collect(Collectors.toList());
                 if (matchingOU.isEmpty()) {
-                    throw new MissingRequiredInfoException(MISSING_OBS_UNIT_ID_ERROR);
+                    throw new MissingRequiredInfoException(ExperimentUtilities.MISSING_OBS_UNIT_ID_ERROR);
                 } else {
                     pio = new PendingImportObject<>(ImportObjectState.EXISTING, (BrAPIObservationUnit) Utilities.formatBrapiObjForDisplay(matchingOU.get(0), BrAPIObservationUnit.class, program));
                 }
             } else {
                 pio = new PendingImportObject<>(ImportObjectState.NEW, newObservationUnit, id);
             }
-            this.observationUnitByNameNoScope.put(key, pio);
+            observationUnitByNameNoScope.put(key, pio);
         }
         return pio;
     }

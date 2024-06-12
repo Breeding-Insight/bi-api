@@ -26,6 +26,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.model.ProgramLocation;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Getter
@@ -35,6 +36,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 public class PendingData {
+    //NOTE: populated in populate existing and new steps depending on import
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope;
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope;
@@ -43,4 +45,7 @@ public class PendingData {
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID;
     // TODO: see if we can change this to match PendingImport<>
     private Map<String, BrAPIObservation> existingObsByObsHash;
+
+    // NOTE: populated in populate new step
+    private Map<String, PendingImportObject<BrAPIObservation>> observationByHash;
 }

@@ -21,7 +21,9 @@ import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
+import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
@@ -37,7 +39,9 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.create
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.CommitPendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateExistingPendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.PopulateNewPendingImportObjectsStep;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.ValidatePendingImportObjectsStep;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentPhenotypeService;
+import org.breedinginsight.services.exceptions.ValidatorException;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -58,6 +62,7 @@ public class CreateNewExperimentWorkflow implements Workflow {
     private final PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep;
     private final PopulateNewPendingImportObjectsStep populateNewPendingImportObjectsStep;
     private final CommitPendingImportObjectsStep commitPendingImportObjectsStep;
+    private final ValidatePendingImportObjectsStep validatePendingImportObjectsStep;
     private final ImportStatusService statusService;
     private final ExperimentPhenotypeService experimentPhenotypeService;
 
@@ -65,17 +70,19 @@ public class CreateNewExperimentWorkflow implements Workflow {
     public CreateNewExperimentWorkflow(PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep,
                                        PopulateNewPendingImportObjectsStep populateNewPendingImportObjectsStep,
                                        CommitPendingImportObjectsStep commitPendingImportObjectsStep,
+                                       ValidatePendingImportObjectsStep validatePendingImportObjectsStep,
                                        ImportStatusService statusService,
                                        ExperimentPhenotypeService experimentPhenotypeService) {
         this.populateExistingPendingImportObjectsStep = populateExistingPendingImportObjectsStep;
         this.populateNewPendingImportObjectsStep = populateNewPendingImportObjectsStep;
         this.commitPendingImportObjectsStep = commitPendingImportObjectsStep;
+        this.validatePendingImportObjectsStep = validatePendingImportObjectsStep;
         this.statusService = statusService;
         this.experimentPhenotypeService = experimentPhenotypeService;
     }
 
     @Override
-    public ImportPreviewResponse process(ImportContext context) {
+    public ImportPreviewResponse process(ImportContext context) throws Exception {
 
         ImportUpload upload = context.getUpload();
         boolean commit = context.isCommit();
@@ -91,6 +98,13 @@ public class CreateNewExperimentWorkflow implements Workflow {
         ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
         ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
         ProcessedData processedData = populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
+        ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context);
+
+        // short circuit if there were validation errors
+        if (validationErrors.hasErrors()) {
+            throw new ValidatorException(validationErrors);
+        }
+
         ImportPreviewResponse response = buildImportPreviewResponse(processedData, upload);
 
         statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
