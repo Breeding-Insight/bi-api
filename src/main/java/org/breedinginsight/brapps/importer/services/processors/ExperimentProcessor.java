@@ -1144,7 +1144,6 @@ public class ExperimentProcessor implements Processor {
 
     private PendingImportObject<BrAPIObservationUnit> fetchOrCreateObsUnitPIO(Program program, boolean commit, String envSeqValue, ExperimentObservation importRow) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException {
         PendingImportObject<BrAPIObservationUnit> pio;
-        // TODO: should be based on ObsUnitId.
         String key = createObservationUnitKey(importRow);
         if (hasAllReferenceUnitIds) {
             pio = pendingObsUnitByOUId.get(importRow.getObsUnitID());
@@ -1161,10 +1160,11 @@ public class ExperimentProcessor implements Processor {
             UUID trialID = trialPIO.getId();
             UUID datasetId = null;
             if (commit) {
-                // TODO: get dataset id from array on ObsUnit. Lookup by dataset.level=="ExpUnit" from the importRow.
                 JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
-                // TODO: handle possible NPE (null case).
-                datasetId = DatasetUtil.getDatasetByNameFromJson(datasetsJson, importRow.getExpUnit()).getId();
+                DatasetMetadata dataset = DatasetUtil.getDatasetByNameFromJson(datasetsJson, importRow.getExpUnit());
+                 if (dataset != null) {
+                     datasetId = dataset.getId();
+                 }
             }
             PendingImportObject<BrAPIStudy> studyPIO = this.studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
