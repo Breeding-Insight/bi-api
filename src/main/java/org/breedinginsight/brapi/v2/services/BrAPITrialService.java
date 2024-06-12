@@ -252,7 +252,7 @@ public class BrAPITrialService {
                 List<Map<String, Object>> rows = entry.getValue();
                 sortDefaultForExportRows(rows);
                 StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, rows, fileType, SHEET_NAME);
-                // TODO: remove hardcoded datasetName, use observation level.
+                // TODO: [BI-2183] remove hardcoded datasetName, use observation level.
                 String name = makeFileName(experiment, program, studyByDbId.get(entry.getKey()).getStudyName(), "Observation Dataset") + fileType.getExtension();
                 // Add to file list.
                 files.add(new DownloadFile(name, streamedFile));
@@ -274,7 +274,7 @@ public class BrAPITrialService {
             StreamedFile streamedFile = FileUtil.writeToStreamedFile(columns, exportRows, fileType, SHEET_NAME);
             // Set filename.
             String envFilenameFragment = params.getEnvironments() == null ? "All Environments" : params.getEnvironments();
-            // TODO: remove hardcoded datasetName, use observation level.
+            // TODO: [BI-2183] remove hardcoded datasetName, use observation level.
             String fileName = makeFileName(experiment, program, envFilenameFragment, "Observation Dataset") + fileType.getExtension();
             downloadFile = new DownloadFile(fileName, streamedFile);
         }
@@ -391,7 +391,7 @@ public class BrAPITrialService {
 
         List<BrAPIObservationUnit> createdObservationUnits = observationUnitDAO.createBrAPIObservationUnits(subObsUnits, program.getId());
 
-        // Update trial with the new dataset to collection in additionalInfo.
+        // Add the new dataset metadata to the datasets array in the trial's additionalInfo.
         DatasetMetadata subEntityDatasetMetadata = DatasetMetadata.builder()
                 .id(subEntityDatasetId)
                 .name(request.getName())
@@ -404,7 +404,7 @@ public class BrAPITrialService {
         trialDAO.updateBrAPITrial(experiment.getTrialDbId(), experiment, program.getId());
 
         // Return the new dataset.
-        return getDatasetData(program, experimentId, subEntityDatasetId, false);  // TODO: stats?
+        return getDatasetData(program, experimentId, subEntityDatasetId, false);
     }
 
     public BrAPIObservationUnit createSubObservationUnit(
