@@ -133,10 +133,6 @@ public class ExperimentProcessor implements Processor {
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = null;
     private Map<String, PendingImportObject<BrAPIObservationUnit>> pendingObsUnitByOUId = new HashMap<>();
 
-    // For use when creating sub obs units.
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> obsUnitByExpObsUnitId = null;
-    private Map<String, PendingImportObject<BrAPIObservationUnit>> subObsUnitBySubObsUnitId = null;
-
     private final Map<String, PendingImportObject<BrAPIObservation>> observationByHash = new HashMap<>();
     private Map<String, BrAPIObservation> existingObsByObsHash = new HashMap<>();
     // existingGermplasmByGID is populated by getExistingBrapiData(), but not updated by the initNewBrapiData() method

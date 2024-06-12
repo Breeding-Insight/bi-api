@@ -56,7 +56,7 @@ public class BrAPIObservationVariableService {
         this.referenceSource = referenceSource;
     }
 
-    // TODO: handle non-top level dataset.
+    // TODO: support sub-entity datasets.
     // This gets the observation variables for the top-level dataset in an experiment.
     public List<Trait> getBrAPIObservationVariablesForExperiment(
             UUID programId,
@@ -82,9 +82,9 @@ public class BrAPIObservationVariableService {
 
         BrAPITrial experiment = trialService.getExperiment(program.get(), expId);
         if(!experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
-            String obsDatasetId = DatasetUtil.getDatasetIdByNameFromJson(
-                    experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS),
-                    experiment.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString());
+            String obsDatasetId = DatasetUtil
+                    .getTopLevelDatasetFromJson(experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS))
+                    .getId().toString();
             return trialService.getDatasetObsVars(obsDatasetId, program.get());
         }
 

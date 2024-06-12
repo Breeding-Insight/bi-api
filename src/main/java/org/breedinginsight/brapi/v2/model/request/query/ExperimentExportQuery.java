@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
 @ToString
 public class ExperimentExportQuery {
     private FileType fileExtension;
-    private String dataset;  // TODO: rename so it's clear this is dataset NAME, not ID. Also change on frontend.
+    private String dataset;  // TODO: rename so it's clear if this is dataset NAME or ID. Also change on frontend.
     private String environments;
     @NotNull
     private boolean includeTimestamps;
