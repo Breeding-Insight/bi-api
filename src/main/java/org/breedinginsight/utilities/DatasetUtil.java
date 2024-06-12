@@ -39,6 +39,10 @@ public class DatasetUtil {
     }
 
     public static DatasetMetadata getDatasetByNameFromJson(JsonArray datasetsJsonArray, String datasetName) {
+        // Short-circuiting null check.
+        if (datasetsJsonArray == null || datasetName == null) {
+            return null;
+        }
         List<DatasetMetadata> datasets = datasetsFromJson(datasetsJsonArray);
         for (DatasetMetadata dataset : datasets) {
             if (dataset.getName().equals(datasetName)) {
