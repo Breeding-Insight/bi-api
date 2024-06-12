@@ -2,6 +2,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -56,8 +57,11 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
     @Override
     public List<BrAPITrial> brapiRead() throws ApiException {
         // Get the dbIds of the trials belonging to the required exp units
-        Set<String> trialDbIds = cache.getObservationUnitByNameNoScope().values().stream()
-                .map(pendingUnit -> trialService.getTrialDbIdBelongingToPendingUnit(pendingUnit, importContext.getProgram())).collect(Collectors.toSet());
+        Set<String> trialDbIds = Optional.ofNullable(cache.getObservationUnitByNameNoScope()).map(Map::values)
+                .orElse(Collections.emptySet())
+                .stream()
+                .map(pendingUnit -> trialService.getTrialDbIdBelongingToPendingUnit(pendingUnit, importContext.getProgram()))
+                .collect(Collectors.toSet());
 
         // Get the BrAPI trials belonging to required exp units
         return trialService.fetchBrapiTrialsByDbId(trialDbIds, importContext.getProgram());

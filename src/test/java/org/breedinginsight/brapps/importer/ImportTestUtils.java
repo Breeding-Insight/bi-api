@@ -129,6 +129,21 @@ public class ImportTestUtils {
 
     }
 
+    public HttpResponse<String> getUploadedFileWorkflow(String importId, RxHttpClient client, Program program, String mappingId, String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET(String.format("/programs/%s/import/mappings/%s/workflows/%s/data/%s?mapping=true", program.getId(), mappingId, workflowId, importId))
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+
+        if (response.getStatus().equals(HttpStatus.ACCEPTED)) {
+            Thread.sleep(1000);
+            return getUploadedFile(importId, client, program, mappingId);
+        } else {
+            return response;
+        }
+    }
     public HttpResponse<String> getUploadedFile(String importId, RxHttpClient client, Program program, String mappingId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/import/mappings/%s/data/%s?mapping=true", program.getId(), mappingId, importId))
@@ -215,7 +230,7 @@ public class ImportTestUtils {
 
         String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
 
-        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+        HttpResponse<String> upload = getUploadedFileWorkflow(importId, client, program, mappingId, workflowId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
         return result;
