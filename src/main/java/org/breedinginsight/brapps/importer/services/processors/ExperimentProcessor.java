@@ -1310,9 +1310,7 @@ public class ExperimentProcessor implements Processor {
         PendingImportObject<BrAPIListDetails> pio;
         PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
                 getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
-        String datasetName = StringUtils.isNotBlank(importRow.getSubObsUnit()) ? importRow.getSubObsUnit() : importRow.getExpUnit();
-        String name = String.format("%s Observation Dataset [%s-%s]",
-                datasetName,
+        String name = String.format("Observation Dataset [%s-%s]",
                 program.getKey(),
                 trialPIO.getBrAPIObject()
                         .getAdditionalInfo()
@@ -1329,12 +1327,10 @@ public class ExperimentProcessor implements Processor {
                     program,
                     trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
-            // TODO: remove old id and update code to use datasets array - existing will need migration
-            trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
 
             JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
             // If datasets property does not yet exist, create it
-
+            String datasetName = StringUtils.isNotBlank(importRow.getSubObsUnit()) ? importRow.getSubObsUnit() : importRow.getExpUnit();
             List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
             DatasetMetadata dataset = DatasetMetadata.builder()
                     .name(datasetName)
