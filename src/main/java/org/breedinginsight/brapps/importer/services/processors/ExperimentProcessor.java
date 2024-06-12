@@ -1660,13 +1660,6 @@ public class ExperimentProcessor implements Processor {
         try {
             List<BrAPIObservationUnit> existingObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(rowByObsUnitId.keySet(), program);
 
-            // TODO: grab from externalReferences
-            /*
-            observationUnitByObsUnitId = existingObsUnits.stream()
-                    .collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId,
-                            (BrAPIObservationUnit unit) -> new PendingImportObject<>(unit, false)));
-             */
-
             String refSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
             if (existingObsUnits.size() == rowByObsUnitId.size()) {
                 existingObsUnits.forEach(brAPIObservationUnit -> {
@@ -2121,12 +2114,10 @@ public class ExperimentProcessor implements Processor {
 
         Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows);
 
-        // TODO: use value in datasets array instead
         if (trialPIO.isPresent() && !trialPIO.get().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
-            String datasetId = DatasetUtil.getDatasetIdByNameFromJson(
-                    trialPIO.get().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS),
-                    trialPIO.get().getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).toString()
-                );
+            String datasetId = DatasetUtil.getTopLevelDatasetFromJson(
+                        trialPIO.get().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS)
+                    ).getId().toString();
           try {
             List<BrAPIListSummary> existingDatasets = brAPIListDAO
                     .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
