@@ -2,7 +2,6 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import java.util.Optional;
 
@@ -27,10 +26,9 @@ public interface BrAPIAction<T> {
     /**
      * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.
      *
-     * @param context The ExpUnitMiddlewareContext providing information about the entity.
      * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
      */
-    ExperimentImportEntity<T> getEntity(ExpUnitMiddlewareContext context);
+    ExperimentImportEntity<T> getEntity();
 }
 
 

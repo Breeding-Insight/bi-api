@@ -4,6 +4,7 @@ import io.micronaut.context.ApplicationContext;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingLocation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
@@ -12,6 +13,7 @@ import org.breedinginsight.services.ProgramLocationService;
 
 @Slf4j
 public class LocationReadWorkflowInitialization extends BrAPIReadWorkflowInitialization<ProgramLocation>{
+    ExpUnitMiddlewareContext context;
     /**
      * Constructs a new BrAPIReadWorkflowInitialization object with the given ExpUnitMiddlewareContext.
      * Initializes the entity based on the provided context.
@@ -19,17 +21,16 @@ public class LocationReadWorkflowInitialization extends BrAPIReadWorkflowInitial
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
     public LocationReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
-        super(context);
+        this.context = context;
     }
 
     /**
      * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.
      *
-     * @param context The ExpUnitMiddlewareContext providing information about the entity.
      * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
      */
     @Override
-    public ExperimentImportEntity<ProgramLocation> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<ProgramLocation> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             ProgramLocationService programLocationService = appContext.getBean(ProgramLocationService.class);
             LocationService locationService = appContext.getBean(LocationService.class);

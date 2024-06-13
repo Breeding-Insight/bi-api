@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.misc;
 
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
@@ -29,9 +29,9 @@ public class RequiredTrials extends ExpUnitMiddleware {
 
         try {
             log.debug("fetching from BrAPI service, trials belonging to required units");
-            BrAPITrialReadWorkflowInitialization brAPITrialReadWorkflowInitialization = new BrAPITrialReadWorkflowInitialization(context);
-            brAPITrialReadWorkflowInitialization.execute();
-
+            //BrAPITrialReadWorkflowInitialization brAPITrialReadWorkflowInitialization = new BrAPITrialReadWorkflowInitialization(context);
+            //brAPITrialReadWorkflowInitialization.execute();
+            throw new ApiException();
         } catch (ApiException e) {
             this.compensate(context);
         }

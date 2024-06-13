@@ -13,18 +13,19 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 @Slf4j
 public class BrAPIStudyCreation extends BrAPICreation<BrAPIStudy> {
 
+    ExpUnitMiddlewareContext context;
     public BrAPIStudyCreation(ExpUnitMiddlewareContext context) {
-        super(context);
+
+        this.context = context;
     }
 
     /**
      * Abstract method to get the ExperimentImportEntity based on the ExpUnitMiddlewareContext.
      *
-     * @param context the ExpUnitMiddlewareContext object
      * @return the ExperimentImportEntity object
      */
     @Override
-    public ExperimentImportEntity<BrAPIStudy> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<BrAPIStudy> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             StudyService studyService = appContext.getBean(StudyService.class);
             BrAPIStudyDAO brAPIStudyDAO = appContext.getBean(BrAPIStudyDAO.class);

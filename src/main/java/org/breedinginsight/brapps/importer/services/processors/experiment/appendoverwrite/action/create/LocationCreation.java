@@ -10,23 +10,24 @@ import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.services.ProgramLocationService;
 
 public class LocationCreation extends BrAPICreation<ProgramLocation>{
+    ExpUnitMiddlewareContext context;
     /**
      * Constructor for BrAPICreation class.
      *
      * @param context the ExpUnitMiddlewareContext object
      */
     public LocationCreation(ExpUnitMiddlewareContext context) {
-        super(context);
+
+        this.context = context;
     }
 
     /**
      * Abstract method to get the ExperimentImportEntity based on the ExpUnitMiddlewareContext.
      *
-     * @param context the ExpUnitMiddlewareContext object
      * @return the ExperimentImportEntity object
      */
     @Override
-    public ExperimentImportEntity<ProgramLocation> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<ProgramLocation> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             ProgramLocationService programLocationService = appContext.getBean(ProgramLocationService.class);
             LocationService locationService = appContext.getBean(LocationService.class);

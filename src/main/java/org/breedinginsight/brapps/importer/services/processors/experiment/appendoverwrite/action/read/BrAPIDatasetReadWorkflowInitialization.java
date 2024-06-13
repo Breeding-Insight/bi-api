@@ -6,6 +6,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingDataset;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 
@@ -16,18 +17,18 @@ public class BrAPIDatasetReadWorkflowInitialization extends BrAPIReadWorkflowIni
      *
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
+    ExpUnitMiddlewareContext context;
     public BrAPIDatasetReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
-        super(context);
+        this.context = context;
     }
 
     /**
      * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.
      *
-     * @param context The ExpUnitMiddlewareContext providing information about the entity.
      * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
      */
     @Override
-    public ExperimentImportEntity<BrAPIListDetails> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<BrAPIListDetails> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             BrAPIListDAO brAPIListDAO = appContext.getBean(BrAPIListDAO.class);
             DatasetService datasetService = appContext.getBean(DatasetService.class);

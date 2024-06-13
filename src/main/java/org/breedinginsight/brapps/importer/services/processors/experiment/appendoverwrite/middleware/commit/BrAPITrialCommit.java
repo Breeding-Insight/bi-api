@@ -8,10 +8,12 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPITrialCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPITrialUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIUpdate;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
+import javax.inject.Inject;
 import java.util.Optional;
 
 @Slf4j
@@ -23,11 +25,16 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
     private Optional<BrAPICreation.BrAPICreationState> createdBrAPITrials;
     private Optional<BrAPIUpdate.BrAPIUpdateState> priorBrAPITrials;
     private Optional<BrAPIUpdate.BrAPIUpdateState> updatedTrials;
+    PendingEntityFactory pendingEntityFactory;
 
+    @Inject
+    public BrAPITrialCommit(PendingEntityFactory pendingEntityFactory) {
+        this.pendingEntityFactory = pendingEntityFactory;
+    }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
-            brAPITrialCreation = new BrAPITrialCreation(context);
+            brAPITrialCreation = new BrAPITrialCreation(context, pendingEntityFactory);
             createdBrAPITrials = brAPITrialCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
             brAPITrialUpdate = new BrAPITrialUpdate(context);
             priorBrAPITrials = brAPITrialUpdate.getBrAPIState().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);

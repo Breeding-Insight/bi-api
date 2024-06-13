@@ -12,13 +12,14 @@ import org.breedinginsight.services.OntologyService;
 
 @Slf4j
 public class BrAPIObservationUpdate extends BrAPIUpdate<BrAPIObservation> {
-
+    ExpUnitMiddlewareContext context;
     public BrAPIObservationUpdate(ExpUnitMiddlewareContext context) {
-        super(context);
+
+        this.context = context;
     }
 
     @Override
-    public ExperimentImportEntity<BrAPIObservation> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<BrAPIObservation> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             BrAPIObservationDAO brAPIObservationDAO = appContext.getBean(BrAPIObservationDAO.class);
             OntologyService ontologyService = appContext.getBean(OntologyService.class);

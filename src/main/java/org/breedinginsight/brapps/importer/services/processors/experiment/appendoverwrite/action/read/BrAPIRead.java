@@ -17,8 +17,12 @@ public abstract class BrAPIRead<T> implements BrAPIAction<T> {
     ExperimentImportEntity<T> entity;
 
     protected BrAPIRead(ExpUnitMiddlewareContext context) {
-        this.entity = getEntity(context);
+        this.entity = getEntity();
     }
+
+    protected BrAPIRead() {
+    }
+
     public Optional<BrAPIState> execute() throws ApiException {
         try {
             List<T> fetchedMembers = entity.brapiRead();

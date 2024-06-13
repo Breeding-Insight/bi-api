@@ -1,6 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read;
 
-import io.micronaut.http.server.exceptions.InternalServerException;
+import io.micronaut.context.annotation.Prototype;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
@@ -8,6 +8,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize.WorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.utilities.Utilities;
 
@@ -15,33 +16,15 @@ import javax.inject.Inject;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * This abstract class, BrAPIReadWorkflowInitialization, is responsible for initializing and executing a read workflow for a given BrAPI entity.
- * It implements the BrAPIAction interface and uses the ExperimentImportEntity to perform read operations.
- *
- * @param <T> the type of entity for which the workflow is initialized
- */
 @Slf4j
-public abstract class BrAPIReadWorkflowInitialization<T> implements BrAPIAction<T> {
+@Prototype
+public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
+    private final ExperimentImportEntity<T> entity; // The entity used for read operations initialization
 
-    ExperimentImportEntity<T> entity; // The entity used for read operations initialization
-    PendingEntityFactory pendingEntityFactory;
-
-    /**
-     * Constructs a new BrAPIReadWorkflowInitialization object with the given ExpUnitMiddlewareContext.
-     * Initializes the entity based on the provided context.
-     *
-     * @param context the ExpUnitMiddlewareContext used for initialization.
-     */
-    @Inject
-    protected BrAPIReadWorkflowInitialization(PendingEntityFactory pendingEntityFactory) {
-        this.entity = getEntity();
-        this.pendingEntityFactory = pendingEntityFactory;
+    protected WorkflowReadInitialization(ExperimentImportEntity entity) {
+        this.entity = entity;
     }
 
-    @Inject
-    protected BrAPIReadWorkflowInitialization() {
-    }
 
     /**
      * Executes the read workflow by fetching members from the entity and initializing the workflow.
@@ -53,11 +36,21 @@ public abstract class BrAPIReadWorkflowInitialization<T> implements BrAPIAction<
         try {
             List<T> fetchedMembers = entity.brapiRead();
             entity.initializeWorkflow(fetchedMembers);
-            return Optional.of(new BrAPIReadState<T>(fetchedMembers));
+            return Optional.of(new BrAPIReadWorkflowInitialization.BrAPIReadState<T>(fetchedMembers));
         } catch(ApiException e) {
             log.error(String.format("Error fetching %s: %s", entity.getClass().getName(), Utilities.generateApiExceptionLogMessage(e)), e);
             throw new ApiException(e);
         }
+    }
+
+    /**
+     * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.
+     *
+     * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
+     */
+    @Override
+    public ExperimentImportEntity<T> getEntity() {
+        return null;
     }
 
     /**

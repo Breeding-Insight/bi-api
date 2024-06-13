@@ -30,15 +30,18 @@ public abstract class BrAPICreation<T> implements BrAPIAction<T> {
      * @param context the ExpUnitMiddlewareContext object
      */
     protected BrAPICreation(ExpUnitMiddlewareContext context) {
-        this.entity = getEntity(context);
+        this.entity = getEntity();
+    }
+
+    protected BrAPICreation() {
     }
 
     /**
      * Abstract method to get the ExperimentImportEntity based on the ExpUnitMiddlewareContext.
-     * @param context the ExpUnitMiddlewareContext object
+     *
      * @return the ExperimentImportEntity object
      */
-    public abstract ExperimentImportEntity<T> getEntity(ExpUnitMiddlewareContext context);
+    public abstract ExperimentImportEntity<T> getEntity();
 
     /**
      * Executes the creation process for entities.

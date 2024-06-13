@@ -10,23 +10,24 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 
 public class BrAPIObservationUnitCreation extends BrAPICreation<BrAPIObservationUnit> {
+    ExpUnitMiddlewareContext context;
     /**
      * Constructor for BrAPICreation class.
      *
      * @param context the ExpUnitMiddlewareContext object
      */
     public BrAPIObservationUnitCreation(ExpUnitMiddlewareContext context) {
-        super(context);
+
+        this.context = context;
     }
 
     /**
      * Abstract method to get the ExperimentImportEntity based on the ExpUnitMiddlewareContext.
      *
-     * @param context the ExpUnitMiddlewareContext object
      * @return the ExperimentImportEntity object
      */
     @Override
-    public ExperimentImportEntity<BrAPIObservationUnit> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<BrAPIObservationUnit> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             BrAPIObservationUnitDAO observationUnitDAO = appContext.getBean(BrAPIObservationUnitDAO.class);
             ObservationUnitService observationUnitService = appContext.getBean(ObservationUnitService.class);

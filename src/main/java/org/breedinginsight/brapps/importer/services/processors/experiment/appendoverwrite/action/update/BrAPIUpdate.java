@@ -8,6 +8,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIAction;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import java.util.List;
@@ -16,9 +17,15 @@ import java.util.Optional;
 @Slf4j
 public abstract class BrAPIUpdate<T> implements BrAPIAction<T> {
     ExperimentImportEntity<T> entity;
+    PendingEntityFactory pendingEntityFactory;
 
-    protected BrAPIUpdate(ExpUnitMiddlewareContext context) {
-        this.entity = getEntity(context);
+    protected BrAPIUpdate(PendingEntityFactory pendingEntityFactory) {
+
+        this.entity = getEntity();
+        this.pendingEntityFactory = pendingEntityFactory;
+    }
+
+    protected BrAPIUpdate() {
     }
 
     public Optional<BrAPIState> execute() throws ApiException {

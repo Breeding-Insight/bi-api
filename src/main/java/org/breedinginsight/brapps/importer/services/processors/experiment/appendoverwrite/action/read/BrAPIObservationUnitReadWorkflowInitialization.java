@@ -5,11 +5,13 @@ import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingObservationUnit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationUnitService;
 
 public class BrAPIObservationUnitReadWorkflowInitialization extends BrAPIReadWorkflowInitialization<BrAPIObservationUnit> {
+    ExpUnitMiddlewareContext context;
     /**
      * Constructs a new BrAPIReadWorkflowInitialization object with the given ExpUnitMiddlewareContext.
      * Initializes the entity based on the provided context.
@@ -17,17 +19,16 @@ public class BrAPIObservationUnitReadWorkflowInitialization extends BrAPIReadWor
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
     public BrAPIObservationUnitReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
-        super(context);
+        this.context = context;
     }
 
     /**
      * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.
      *
-     * @param context The ExpUnitMiddlewareContext providing information about the entity.
      * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
      */
     @Override
-    public ExperimentImportEntity<BrAPIObservationUnit> getEntity(ExpUnitMiddlewareContext context) {
+    public ExperimentImportEntity<BrAPIObservationUnit> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
             BrAPIObservationUnitDAO observationUnitDAO = appContext.getBean(BrAPIObservationUnitDAO.class);
             ObservationUnitService observationUnitService = appContext.getBean(ObservationUnitService.class);

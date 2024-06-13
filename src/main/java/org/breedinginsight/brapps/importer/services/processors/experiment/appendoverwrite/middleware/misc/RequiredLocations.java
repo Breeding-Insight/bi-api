@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.initialize;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.misc;
 
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
