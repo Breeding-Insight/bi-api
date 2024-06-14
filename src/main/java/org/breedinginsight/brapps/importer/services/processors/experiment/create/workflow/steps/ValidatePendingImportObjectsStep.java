@@ -39,6 +39,7 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
+import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
@@ -54,10 +55,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 @Singleton
 @Slf4j
@@ -78,18 +76,27 @@ public class ValidatePendingImportObjectsStep {
         this.gson = new JSON().getGson();
     }
 
-    public ValidationErrors process(ImportContext input) {
-        ValidationErrors validationErrors = new ValidationErrors();
+    public ValidationErrors process(ImportContext importContext, PendingData pendingData, ProcessedPhenotypeData phenotypeData, ProcessedData processedData) {
 
+        //Map<Integer, PendingImport> mappedBrAPIImport = processedData.getMappedBrAPIImport();
+        List<BrAPIImport> importRows = importContext.getImportRows();
+        List<Column<?>> phenotypeCols = phenotypeData.getPhenotypeCols();
+        Program program = importContext.getProgram();
+        List<Trait> referencedTraits = phenotypeData.getReferencedTraits();
+        boolean commit = importContext.isCommit();
+        User user = importContext.getUser();
 
+        Map<Integer, PendingImport> mappedBrAPIImport = prepareDataForValidation(importRows, pendingData, phenotypeCols);
+        ValidationErrors validationErrors = validateFields(importRows, mappedBrAPIImport, referencedTraits, program, phenotypeCols, commit, user, pendingData, phenotypeData);
+        processedData.setMappedBrAPIImport(mappedBrAPIImport);
         return validationErrors;
-
     }
 
-    private void prepareDataForValidation(List<BrAPIImport> importRows,
+    private Map<Integer, PendingImport> prepareDataForValidation(List<BrAPIImport> importRows,
                                           PendingData pendingData,
-                                          List<Column<?>> phenotypeCols,
-                                          Map<Integer, PendingImport> mappedBrAPIImport) {
+                                          List<Column<?>> phenotypeCols) {
+
+        Map<Integer, PendingImport> mappedBrAPIImport = new HashMap<>();
 
         Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope = pendingData.getObservationUnitByNameNoScope();
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
@@ -97,7 +104,7 @@ public class ValidatePendingImportObjectsStep {
         Map<String, PendingImportObject<ProgramLocation>> locationByName = pendingData.getLocationByName();
         Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = pendingData.getObsVarDatasetByName();
         Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID = pendingData.getExistingGermplasmByGID();
-
+        Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
 
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
@@ -121,6 +128,8 @@ public class ValidatePendingImportObjectsStep {
 
             mappedBrAPIImport.put(rowNum, mappedImportRow);
         }
+
+        return mappedBrAPIImport;
     }
 
     private PendingImportObject<BrAPIGermplasm> getGidPIO(PendingData pendingData, ExperimentObservation importRow) {
@@ -368,6 +377,7 @@ public class ValidatePendingImportObjectsStep {
 
         Map<String, BrAPIObservation> existingObsByObsHash = pendingData.getExistingObsByObsHash();
         Map<String, Column<?>> timeStampColByPheno = phenotypeData.getTimeStampColByPheno();
+        Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
 
         phenotypeCols.forEach(phenoCol -> {
             String importHash;
@@ -458,7 +468,4 @@ public class ValidatePendingImportObjectsStep {
             }
         });
     }
-
-
-
 }

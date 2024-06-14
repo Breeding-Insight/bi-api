@@ -34,6 +34,7 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.HashMap;
 import java.util.List;
 
 @Singleton
@@ -85,6 +86,7 @@ public class ExperimentImportService implements BrAPIImportService {
                         .data(context.getData())
                         .commit(context.isCommit())
                         .upload(context.getUpload())
+                        .program(context.getProgram())
                         .build();
 
                return context.getWorkflow().process(importContext);

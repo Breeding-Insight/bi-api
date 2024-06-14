@@ -40,7 +40,7 @@ public class ImportContext {
     private ImportUpload upload;
     private List<BrAPIImport> importRows;
     // TODO: move this out potentially
-    private Map<Integer, PendingImport> mappedBrAPIImport;
+    //private Map<Integer, PendingImport> mappedBrAPIImport;
     private Table data;
     private Program program;
     private User user;

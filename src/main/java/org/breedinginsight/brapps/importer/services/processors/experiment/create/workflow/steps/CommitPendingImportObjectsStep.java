@@ -95,6 +95,7 @@ public class CommitPendingImportObjectsStep {
 
         ImportUpload upload = importContext.getUpload();
         Program program = importContext.getProgram();
+        Map<Integer, PendingImport> mappedBrAPIImport = processedData.getMappedBrAPIImport();
 
         Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
         Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope = pendingData.getStudyByNameNoScope();
@@ -159,7 +160,7 @@ public class CommitPendingImportObjectsStep {
                         .setLocationDbId(createdLocation.getLocationDbId());
             }
 
-            updateStudyDependencyValues(mappedBrAPIImport, program.getKey());
+            updateStudyDependencyValues(pendingData, mappedBrAPIImport, program.getKey());
             List<BrAPIStudy> createdStudies = brAPIStudyDAO.createBrAPIStudies(newStudies, program.getId(), upload);
 
             // set the DbId to the for each newly created study

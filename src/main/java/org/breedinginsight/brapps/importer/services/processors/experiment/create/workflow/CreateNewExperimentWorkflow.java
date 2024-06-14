@@ -23,17 +23,22 @@ import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
 import lombok.val;
 import org.apache.commons.lang3.StringUtils;
+import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.model.v1.response.ValidationErrors;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
+import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.ImportStatusService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
+import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps.CommitPendingImportObjectsStep;
@@ -46,6 +51,7 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -86,11 +92,13 @@ public class CreateNewExperimentWorkflow implements Workflow {
 
         ImportUpload upload = context.getUpload();
         boolean commit = context.isCommit();
+        List<BrAPIImport> importRows = context.getImportRows();
 
         // Make sure the file does not contain obs unit ids before proceeding
         if (containsObsUnitIDs(context)) {
             // TODO: get file name
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Error detected in file, XXX.xls. ObsUnitIDs are detected. Import cannot proceed");
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Error detected in file, " +
+                    upload.getUploadFileName() + ". ObsUnitIDs are detected. Import cannot proceed");
         }
 
         statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
@@ -98,14 +106,15 @@ public class CreateNewExperimentWorkflow implements Workflow {
         ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
         ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
         ProcessedData processedData = populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
-        ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context);
+        ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context, processContext.getPendingData(), phenotypeData, processedData);
 
         // short circuit if there were validation errors
         if (validationErrors.hasErrors()) {
             throw new ValidatorException(validationErrors);
         }
 
-        ImportPreviewResponse response = buildImportPreviewResponse(processedData, upload);
+        // TODO: move to experiment import service
+        ImportPreviewResponse response = buildImportPreviewResponse(importRows, processContext.getPendingData(), processedData, upload);
 
         statusService.updateMappedData(upload, response, "Finished mapping data to brapi objects");
 
@@ -116,7 +125,7 @@ public class CreateNewExperimentWorkflow implements Workflow {
         }
 
         // commit data
-        long totalObjects = getNewObjectCount(processedData);
+        long totalObjects = getNewObjectCount(response);
         statusService.startUpload(upload, totalObjects, "Starting upload to brapi service");
         statusService.updateMessage(upload, "Creating new experiment objects in brapi service");
 
@@ -138,10 +147,11 @@ public class CreateNewExperimentWorkflow implements Workflow {
     }
 
     // TODO: move to shared area
-    private ImportPreviewResponse buildImportPreviewResponse(ProcessedData processedData,
+    private ImportPreviewResponse buildImportPreviewResponse(List<BrAPIImport> importRows, PendingData pendingData, ProcessedData processedData,
                                                              ImportUpload upload) {
-        Map<String, ImportPreviewStatistics> statistics = processedData.getStatistics();
+
         Map<Integer, PendingImport> mappedBrAPIImport = processedData.getMappedBrAPIImport();
+        Map<String, ImportPreviewStatistics> statistics = generateStatisticsMap(pendingData, importRows);
 
         ImportPreviewResponse response = new ImportPreviewResponse();
         response.setStatistics(statistics);
@@ -152,10 +162,10 @@ public class CreateNewExperimentWorkflow implements Workflow {
     }
 
     // TODO: move to shared area
-    private long getNewObjectCount(ProcessedData processedData) {
+    private long getNewObjectCount(ImportPreviewResponse response) {
         // get total number of new brapi objects to create
         long totalObjects = 0;
-        for (ImportPreviewStatistics stats : processedData.getStatistics().values()) {
+        for (ImportPreviewStatistics stats : response.getStatistics().values()) {
             totalObjects += stats.getNewObjectCount();
         }
         return totalObjects;
@@ -168,6 +178,86 @@ public class CreateNewExperimentWorkflow implements Workflow {
                     ExperimentObservation expRow = (ExperimentObservation) row;
                     return StringUtils.isNotBlank(expRow.getObsUnitID());
                 });
+    }
+
+    // TODO: move to shared area: experiment import service
+    private Map<String, ImportPreviewStatistics> generateStatisticsMap(PendingData pendingData, List<BrAPIImport> importRows) {
+        // Data for stats.
+        HashSet<String> environmentNameCounter = new HashSet<>(); // set of unique environment names
+        HashSet<String> obsUnitsIDCounter = new HashSet<>(); // set of unique observation unit ID's
+        HashSet<String> gidCounter = new HashSet<>(); // set of unique GID's
+
+        Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
+
+        for (BrAPIImport row : importRows) {
+            ExperimentObservation importRow = (ExperimentObservation) row;
+            // Collect date for stats.
+            addIfNotNull(environmentNameCounter, importRow.getEnv());
+            addIfNotNull(obsUnitsIDCounter, ExperimentUtilities.createObservationUnitKey(importRow));
+            addIfNotNull(gidCounter, importRow.getGid());
+        }
+
+        int numNewObservations = Math.toIntExact(
+                observationByHash.values()
+                        .stream()
+                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW &&
+                                !StringUtils.isBlank(preview.getBrAPIObject()
+                                        .getValue()))
+                        .count()
+        );
+
+        int numExistingObservations = Math.toIntExact(
+                observationByHash.values()
+                        .stream()
+                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.EXISTING &&
+                                !StringUtils.isBlank(preview.getBrAPIObject()
+                                        .getValue()))
+                        .count()
+        );
+
+        int numMutatedObservations = Math.toIntExact(
+                observationByHash.values()
+                        .stream()
+                        .filter(preview -> preview != null && preview.getState() == ImportObjectState.MUTATED &&
+                                !StringUtils.isBlank(preview.getBrAPIObject()
+                                        .getValue()))
+                        .count()
+        );
+
+        ImportPreviewStatistics environmentStats = ImportPreviewStatistics.builder()
+                .newObjectCount(environmentNameCounter.size())
+                .build();
+        ImportPreviewStatistics obdUnitStats = ImportPreviewStatistics.builder()
+                .newObjectCount(obsUnitsIDCounter.size())
+                .build();
+        ImportPreviewStatistics gidStats = ImportPreviewStatistics.builder()
+                .newObjectCount(gidCounter.size())
+                .build();
+        ImportPreviewStatistics observationStats = ImportPreviewStatistics.builder()
+                .newObjectCount(numNewObservations)
+                .build();
+        ImportPreviewStatistics existingObservationStats = ImportPreviewStatistics.builder()
+                .newObjectCount(numExistingObservations)
+                .build();
+        ImportPreviewStatistics mutatedObservationStats = ImportPreviewStatistics.builder()
+                .newObjectCount(numMutatedObservations)
+                .build();
+
+        return Map.of(
+                "Environments", environmentStats,
+                "Observation_Units", obdUnitStats,
+                "GIDs", gidStats,
+                "Observations", observationStats,
+                "Existing_Observations", existingObservationStats,
+                "Mutated_Observations", mutatedObservationStats
+        );
+    }
+
+    // TODO: move to common area
+    private void addIfNotNull(HashSet<String> set, String setValue) {
+        if (setValue != null) {
+            set.add(setValue);
+        }
     }
 }
 

@@ -120,6 +120,7 @@ public class PopulateExistingPendingImportObjectsStep {
                 .obsVarDatasetByName(obsVarDatasetByName)
                 .existingGermplasmByGID(existingGermplasmByGID)
                 .existingObsByObsHash(existingObsByObsHash)
+                .observationByHash(new HashMap<>())
                 .build();
 
         return ProcessContext.builder()
@@ -539,7 +540,7 @@ public class PopulateExistingPendingImportObjectsStep {
                     String variableName = variableNameByDbId.get(obs.getObservationVariableDbId());
                     String ouName = ouNameByDbId.get(obs.getObservationUnitDbId());
 
-                    String key = ExperimentUtilities.getObservationHash(createObservationUnitKey(studyName, ouName), variableName, studyName);
+                    String key = ExperimentUtilities.getObservationHash(ExperimentUtilities.createObservationUnitKey(studyName, ouName), variableName, studyName);
 
                     return Map.entry(key, obs);
                 })

@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.append.workflow;
 
 import io.micronaut.context.annotation.Prototype;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
 import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
@@ -33,7 +34,7 @@ import javax.inject.Named;
 @Named("AppendOverwritePhenotypesWorkflow")
 public class AppendOverwritePhenotypesWorkflow implements Workflow {
     @Override
-    public ProcessedData process(ImportContext context) {
+    public ImportPreviewResponse process(ImportContext context) {
         // TODO
         return null;
     }

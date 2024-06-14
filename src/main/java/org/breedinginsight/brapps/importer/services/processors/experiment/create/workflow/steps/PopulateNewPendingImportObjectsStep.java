@@ -16,12 +16,13 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
+import com.google.gson.Gson;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.xmlbeans.impl.xb.xsdschema.ImportDocument;
+import org.brapi.client.v2.JSON;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.core.BrAPITrial;
@@ -77,6 +78,7 @@ public class PopulateNewPendingImportObjectsStep {
     private final BrAPIObservationDAO brAPIObservationDAO;
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
+    private final Gson gson;
 
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -92,6 +94,7 @@ public class PopulateNewPendingImportObjectsStep {
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
+        this.gson = new JSON().getGson();
     }
 
     public ProcessedData process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
@@ -131,13 +134,11 @@ public class PopulateNewPendingImportObjectsStep {
         for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
             ExperimentObservation importRow = (ExperimentObservation) importRows.get(rowNum);
 
-            populateIndependentVariablePIOsForRow(importContext, phenotypeData, pendingData, importRow, expNextVal, envNextVal);
+            PendingImportObjectData pioData = populateIndependentVariablePIOsForRow(importContext,
+                    phenotypeData, pendingData, importRow, expNextVal, envNextVal);
 
-            // ... (Common logic from the original method)
-
-            PendingImportObject<BrAPIObservationUnit> obsUnitPIO = fetchOrCreateObsUnitPIO(program, commit, envSeqValue, importRow);
-
-            processObservations(importContext, phenotypeData, importRow, rowNum, commit, importRow.getEnvYear(), obsUnitPIO, studyPIO);
+            processObservations(importContext,
+                    phenotypeData, pendingData, importRow, rowNum, commit, pioData.getObsUnitPIO(), pioData.getStudyPIO());
         }
     }
 
@@ -247,10 +248,14 @@ public class PopulateNewPendingImportObjectsStep {
                 .build();
     }
 
-    private void processObservations(ImportContext importContext, ProcessedPhenotypeData phenotypeData, ExperimentObservation importRow,
-                                             int rowNum, boolean commit, String studyYear,
-                                             PendingImportObject<BrAPIObservationUnit> obsUnitPIO,
-                                             PendingImportObject<BrAPIStudy> studyPIO)
+    // TODO: some reusable stuff between workflows that could potentially be broken out
+    private void processObservations(ImportContext importContext,
+                                     ProcessedPhenotypeData phenotypeData,
+                                     PendingData pendingData,
+                                     ExperimentObservation importRow,
+                                     int rowNum, boolean commit,
+                                     PendingImportObject<BrAPIObservationUnit> obsUnitPIO,
+                                     PendingImportObject<BrAPIStudy> studyPIO)
             throws UnprocessableEntityException, ApiException, MissingRequiredInfoException {
         Program program = importContext.getProgram();
         User user = importContext.getUser();
@@ -259,56 +264,35 @@ public class PopulateNewPendingImportObjectsStep {
         List<Trait> referencedTraits = phenotypeData.getReferencedTraits();
 
         for (Column<?> column : phenotypeCols) {
-            // ... (Logic for processing observations)
-        }
-    }
-
-    // TODO: move common code out
-    private void initNewBrapiData(ImportContext importContext, ProcessedPhenotypeData phenotypeData)
-            throws UnprocessableEntityException, ApiException, MissingRequiredInfoException {
-
-        Program program = importContext.getProgram();
-        List<BrAPIImport> importRows = importContext.getImportRows();
-        User user = importContext.getUser();
-        boolean commit = importContext.isCommit();
-        Map<String, BrAPIObservation> existingObsByObsHash;
-
-        List<Trait> referencedTraits = phenotypeData.getReferencedTraits();
-        List<Column<?>> phenotypeCols = phenotypeData.getPhenotypeCols();
-        Map<String, Column<?>> timeStampColByPheno = phenotypeData.getTimeStampColByPheno();
-
-        for (int rowNum = 0; rowNum < importRows.size(); rowNum++) {
-
-
-            for (Column<?> column : phenotypeCols) {
-                //If associated timestamp column, add
-                String dateTimeValue = null;
-                if (timeStampColByPheno.containsKey(column.name())) {
-                    dateTimeValue = timeStampColByPheno.get(column.name()).getString(rowNum);
-                    //If no timestamp, set to midnight
-                    if (!dateTimeValue.isBlank() && !validDateTimeValue(dateTimeValue)) {
-                        dateTimeValue += MIDNIGHT;
-                    }
+            //If associated timestamp column, add
+            String dateTimeValue = null;
+            if (timeStampColByPheno.containsKey(column.name())) {
+                dateTimeValue = timeStampColByPheno.get(column.name()).getString(rowNum);
+                //If no timestamp, set to midnight
+                if (!dateTimeValue.isBlank() && !validDateTimeValue(dateTimeValue)) {
+                    dateTimeValue += MIDNIGHT;
                 }
-
-                // get the study year either referenced from the observation unit or listed explicitly on the import row
-                // TODO: handle this different workflows
-                String studyYear = hasAllReferenceUnitIds ? studyPIO.getBrAPIObject().getSeasons().get(0) : importRow.getEnvYear();
-                String seasonDbId = experimentSeasonService.yearToSeasonDbId(studyYear, program.getId());
-                fetchOrCreateObservationPIO(
-                        program,
-                        user,
-                        importRow,
-                        column,    //column.name() gets phenotype name
-                        rowNum,
-                        dateTimeValue,
-                        commit,
-                        seasonDbId,
-                        obsUnitPIO,
-                        studyPIO,
-                        referencedTraits
-                );
             }
+
+            // get the study year either referenced from the observation unit or listed explicitly on the import row
+            // NOTE: removed append / update code
+            String studyYear = importRow.getEnvYear();
+            String seasonDbId = experimentSeasonService.yearToSeasonDbId(studyYear, program.getId());
+            fetchOrCreateObservationPIO(
+                    phenotypeData,
+                    pendingData,
+                    program,
+                    user,
+                    importRow,
+                    column,    //column.name() gets phenotype name
+                    rowNum,
+                    dateTimeValue,
+                    commit,
+                    seasonDbId,
+                    obsUnitPIO,
+                    studyPIO,
+                    referencedTraits
+            );
         }
     }
 
@@ -563,7 +547,9 @@ public class PopulateNewPendingImportObjectsStep {
         return pio;
     }
 
-    private void fetchOrCreateObservationPIO(Program program,
+    private void fetchOrCreateObservationPIO(ProcessedPhenotypeData phenotypeData,
+                                             PendingData pendingData,
+                                             Program program,
                                              User user,
                                              ExperimentObservation importRow,
                                              Column column,
@@ -579,24 +565,21 @@ public class PopulateNewPendingImportObjectsStep {
         String variableName = column.name();
         String value = column.getString(rowNum);
         String key;
+        Map<String, BrAPIObservation> existingObsByObsHash = pendingData.getExistingObsByObsHash();
+        Map<String, PendingImportObject<BrAPIObservation>> observationByHash = pendingData.getObservationByHash();
+        Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope = pendingData.getTrialByNameNoScope();
 
-        // TODO: multiple workflows
-        if (hasAllReferenceUnitIds) {
-            String unitName = obsUnitPIO.getBrAPIObject().getObservationUnitName();
-            String studyName = studyPIO.getBrAPIObject().getStudyName();
-            key = getObservationHash(studyName + unitName, variableName, studyName);
-        } else {
-            key = getImportObservationHash(importRow, variableName);
-        }
+        // NOTE: removed append / update
+        key = getImportObservationHash(importRow, variableName);
 
         if (existingObsByObsHash.containsKey(key)) {
-            if (!isObservationMatched(key, value, column, rowNum)){
+            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum)){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
-                if (!isValueMatched(key, value)){
+                if (!isValueMatched(pendingData, key, value)){
                     newObservation.setValue(value);
-                } else if (!StringUtils.isBlank(timeStampValue) && !isTimestampMatched(key, timeStampValue)) {
+                } else if (!StringUtils.isBlank(timeStampValue) && !isTimestampMatched(pendingData, key, timeStampValue)) {
                     DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
                     String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timeStampValue));
                     newObservation.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
@@ -609,12 +592,11 @@ public class PopulateNewPendingImportObjectsStep {
             }
 
             observationByHash.put(key, pio);
-        } else if (!this.observationByHash.containsKey(key)){
+        } else if (!observationByHash.containsKey(key)){
 
             // new observation
-            // TODO: multiple workflows
-            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
-                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
+            // NOTE: removed append / update code
+            PendingImportObject<BrAPITrial> trialPIO = trialByNameNoScope.get(importRow.getExpTitle());
 
             UUID trialID = trialPIO.getId();
             UUID studyID = studyPIO.getId();
@@ -629,7 +611,7 @@ public class PopulateNewPendingImportObjectsStep {
             newObservation.setStudyDbId(studyPIO.getId().toString()); //set as the BI ID to facilitate looking up studies when saving new observations
 
             pio = new PendingImportObject<>(ImportObjectState.NEW, newObservation);
-            this.observationByHash.put(key, pio);
+            observationByHash.put(key, pio);
         }
     }
 
