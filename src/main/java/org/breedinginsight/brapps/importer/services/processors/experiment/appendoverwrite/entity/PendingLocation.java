@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
 
+import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
@@ -23,13 +24,14 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Prototype
 public class PendingLocation implements ExperimentImportEntity<ProgramLocation> {
     ExpUnitContext cache;
     ImportContext importContext;
     ProgramLocationService programLocationService;
     LocationService locationService;
     ExperimentUtilities experimentUtilities;
-    @Inject
+
     public PendingLocation(ExpUnitMiddlewareContext context,
                            ProgramLocationService programLocationService,
                            LocationService locationService,

@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
 
+import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+@Prototype
 public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
     ExpUnitContext cache;
     ImportContext importContext;
@@ -29,7 +31,6 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
     BrAPIStudyDAO brAPIStudyDAO;
     ExperimentUtilities experimentUtilities;
 
-    @Inject
     public PendingStudy(ExpUnitMiddlewareContext context,
                         StudyService studyService,
                         BrAPIStudyDAO brAPIStudyDAO,

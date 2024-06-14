@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
 
+import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -17,13 +18,13 @@ import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Prototype
 public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> {
     ExpUnitContext cache;
     ImportContext importContext;
     GermplasmService germplasmService;
     ExperimentUtilities experimentUtilities;
 
-    @Inject
     public PendingGermplasm(ExpUnitMiddlewareContext context,
                             GermplasmService germplasmService,
                             ExperimentUtilities experimentUtilities) {

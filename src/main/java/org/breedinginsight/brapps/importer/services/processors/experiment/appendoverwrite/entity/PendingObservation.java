@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
 
+import io.micronaut.context.annotation.Prototype;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Prototype
 public class PendingObservation implements ExperimentImportEntity<BrAPIObservation> {
     ExpUnitContext cache;
     ImportContext importContext;
@@ -27,7 +29,6 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
     OntologyService ontologyService;
     ExperimentUtilities experimentUtilities;
 
-    @Inject
     public PendingObservation(ExpUnitMiddlewareContext context,
                               BrAPIObservationDAO brAPIObservationDAO,
                               OntologyService ontologyService,
