@@ -132,19 +132,19 @@ public class PendingEntityFactory {
 
     @Bean
     @Prototype
-    public PendingDataset pendingDataset(ExpUnitMiddlewareContext context) {
+    public PendingDataset pendingDatasetBean(ExpUnitMiddlewareContext context) {
         return pendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingObservation pendingObservation(ExpUnitMiddlewareContext context) {
+    public PendingObservation pendingObservationBean(ExpUnitMiddlewareContext context) {
         return pendingObservation(context, brAPIObservationDAO, ontologyService, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingLocation pendingLocation(ExpUnitMiddlewareContext context) {
+    public PendingLocation pendingLocationBean(ExpUnitMiddlewareContext context) {
         return pendingLocation(context, programLocationService, locationService, experimentUtilities);
     }
 }

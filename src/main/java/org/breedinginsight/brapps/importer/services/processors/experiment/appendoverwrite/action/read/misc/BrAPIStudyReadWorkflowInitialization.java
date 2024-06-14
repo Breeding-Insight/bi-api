@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.misc;
 
 import io.micronaut.context.ApplicationContext;
 import org.brapi.v2.model.core.BrAPIStudy;

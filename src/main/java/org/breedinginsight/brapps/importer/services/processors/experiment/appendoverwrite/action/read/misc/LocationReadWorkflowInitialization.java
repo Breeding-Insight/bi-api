@@ -1,24 +1,26 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.misc;
 
 import io.micronaut.context.ApplicationContext;
-import org.brapi.v2.model.core.response.BrAPIListDetails;
-import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.misc.BrAPIReadWorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingDataset;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingLocation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
+import org.breedinginsight.model.ProgramLocation;
+import org.breedinginsight.services.ProgramLocationService;
 
-public class BrAPIDatasetReadWorkflowInitialization extends BrAPIReadWorkflowInitialization<BrAPIListDetails> {
+@Slf4j
+public class LocationReadWorkflowInitialization extends BrAPIReadWorkflowInitialization<ProgramLocation> {
+    ExpUnitMiddlewareContext context;
     /**
      * Constructs a new BrAPIReadWorkflowInitialization object with the given ExpUnitMiddlewareContext.
      * Initializes the entity based on the provided context.
      *
      * @param context the ExpUnitMiddlewareContext used for initialization.
      */
-    ExpUnitMiddlewareContext context;
-    public BrAPIDatasetReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
+    public LocationReadWorkflowInitialization(ExpUnitMiddlewareContext context) {
         this.context = context;
     }
 
@@ -28,13 +30,13 @@ public class BrAPIDatasetReadWorkflowInitialization extends BrAPIReadWorkflowIni
      * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
      */
     @Override
-    public ExperimentImportEntity<BrAPIListDetails> getEntity() {
+    public ExperimentImportEntity<ProgramLocation> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
-            BrAPIListDAO brAPIListDAO = appContext.getBean(BrAPIListDAO.class);
-            DatasetService datasetService = appContext.getBean(DatasetService.class);
+            ProgramLocationService programLocationService = appContext.getBean(ProgramLocationService.class);
+            LocationService locationService = appContext.getBean(LocationService.class);
             ExperimentUtilities experimentUtilities = appContext.getBean(ExperimentUtilities.class);
 
-            return new PendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
+            return new PendingLocation(context, programLocationService, locationService, experimentUtilities);
         }
     }
 }
