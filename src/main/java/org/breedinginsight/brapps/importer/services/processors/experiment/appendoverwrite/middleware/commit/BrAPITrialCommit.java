@@ -4,6 +4,9 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreationFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPICreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPITrialCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPITrialUpdate;
@@ -18,23 +21,22 @@ import java.util.Optional;
 
 @Slf4j
 @Prototype
-@NoArgsConstructor
 public class BrAPITrialCommit extends ExpUnitMiddleware {
-    private BrAPITrialCreation brAPITrialCreation;
+    private BrAPICreationFactory brAPICreationFactory;
+    private WorkflowCreation<BrAPITrial> brAPITrialCreation;
     private BrAPITrialUpdate brAPITrialUpdate;
     private Optional<BrAPICreation.BrAPICreationState> createdBrAPITrials;
     private Optional<BrAPIUpdate.BrAPIUpdateState> priorBrAPITrials;
     private Optional<BrAPIUpdate.BrAPIUpdateState> updatedTrials;
-    PendingEntityFactory pendingEntityFactory;
 
     @Inject
-    public BrAPITrialCommit(PendingEntityFactory pendingEntityFactory) {
-        this.pendingEntityFactory = pendingEntityFactory;
+    public BrAPITrialCommit(BrAPICreationFactory brAPICreationFactory) {
+        this.brAPICreationFactory = brAPICreationFactory;
     }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
-            brAPITrialCreation = new BrAPITrialCreation(context, pendingEntityFactory);
+            brAPITrialCreation = brAPICreationFactory.trialWorkflowCreationBean(context);
             createdBrAPITrials = brAPITrialCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
             brAPITrialUpdate = new BrAPITrialUpdate(context);
             priorBrAPITrials = brAPITrialUpdate.getBrAPIState().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);

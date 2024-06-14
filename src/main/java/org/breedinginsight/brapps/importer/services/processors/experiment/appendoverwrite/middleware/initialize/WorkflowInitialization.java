@@ -29,12 +29,10 @@ public class WorkflowInitialization extends ExpUnitMiddleware {
     WorkflowReadInitialization<ProgramLocation> locationReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPIListDetails> brAPIDatasetReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPIGermplasm> brAPIGermplasmReadWorkflowInitialization;
-    PendingEntityFactory pendingEntityFactory;
     BrAPIReadFactory brAPIReadFactory;
 
     @Inject
-    public WorkflowInitialization(PendingEntityFactory pendingEntityFactory, BrAPIReadFactory brAPIReadFactory) {
-        this.pendingEntityFactory = pendingEntityFactory;
+    public WorkflowInitialization(BrAPIReadFactory brAPIReadFactory) {
         this.brAPIReadFactory = brAPIReadFactory;
     }
     @Override

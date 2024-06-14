@@ -2,23 +2,31 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreationFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPICreation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.LocationCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
+import org.breedinginsight.model.ProgramLocation;
 
+import javax.inject.Inject;
 import java.util.Optional;
 
 @Prototype
 public class LocationCommit extends ExpUnitMiddleware {
-    private LocationCreation locationCreation;
+    private BrAPICreationFactory brAPICreationFactory;
+    private WorkflowCreation<ProgramLocation> locationCreation;
     private Optional<BrAPICreation.BrAPICreationState> createdLocations;
 
+    @Inject
+    public LocationCommit(BrAPICreationFactory brAPICreationFactory) {
+        this.brAPICreationFactory = brAPICreationFactory;
+    }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
-            locationCreation = new LocationCreation(context);
+            locationCreation = brAPICreationFactory.locationWorkflowCreationBean(context);
             createdLocations = locationCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));

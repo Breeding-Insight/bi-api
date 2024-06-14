@@ -4,6 +4,9 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreationFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPICreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPIObservationCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIObservationUpdate;
@@ -12,22 +15,27 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
 
+import javax.inject.Inject;
 import java.util.Optional;
 
 @Slf4j
 @Prototype
-@NoArgsConstructor
 public class BrAPIObservationCommit extends ExpUnitMiddleware {
-    private BrAPIObservationCreation brAPIObservationCreation;
+    private BrAPICreationFactory brAPICreationFactory;
+    private WorkflowCreation<BrAPIObservation> brAPIObservationCreation;
     private BrAPIObservationUpdate brAPIObservationUpdate;
     private Optional<BrAPICreation.BrAPICreationState> createdBrAPIObservations;
     private Optional<BrAPIUpdate.BrAPIUpdateState> priorBrAPIObservations;
     private Optional<BrAPIUpdate.BrAPIUpdateState> updatedObservations;
 
+    @Inject
+    public BrAPIObservationCommit(BrAPICreationFactory brAPICreationFactory) {
+        this.brAPICreationFactory = brAPICreationFactory;
+    }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
-            brAPIObservationCreation = new BrAPIObservationCreation(context);
+            brAPIObservationCreation = brAPICreationFactory.observationWorkflowCreationBean(context);
             createdBrAPIObservations = brAPIObservationCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
             brAPIObservationUpdate = new BrAPIObservationUpdate(context);
             priorBrAPIObservations = brAPIObservationUpdate.getBrAPIState().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);
