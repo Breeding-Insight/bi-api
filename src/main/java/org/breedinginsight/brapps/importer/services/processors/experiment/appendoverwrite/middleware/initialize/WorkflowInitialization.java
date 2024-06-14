@@ -3,7 +3,10 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.*;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.BrAPIStudyReadWorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
@@ -14,8 +17,8 @@ import javax.inject.Inject;
 @Slf4j
 @Prototype
 public class WorkflowInitialization extends ExpUnitMiddleware {
-    BrAPIObservationUnitReadWorkflowInitialization brAPIObservationUnitReadWorkflowInitialization;
-    WorkflowReadInitialization brAPITrialReadWorkflowInitialization;
+    WorkflowReadInitialization<BrAPIObservationUnit> brAPIObservationUnitReadWorkflowInitialization;
+    WorkflowReadInitialization<BrAPITrial> brAPITrialReadWorkflowInitialization;
     BrAPIStudyReadWorkflowInitialization brAPIStudyReadWorkflowInitialization;
     LocationReadWorkflowInitialization locationReadWorkflowInitialization;
     BrAPIDatasetReadWorkflowInitialization brAPIDatasetReadWorkflowInitialization;
@@ -30,7 +33,7 @@ public class WorkflowInitialization extends ExpUnitMiddleware {
     }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
-        brAPIObservationUnitReadWorkflowInitialization = new BrAPIObservationUnitReadWorkflowInitialization(context);
+        brAPIObservationUnitReadWorkflowInitialization = brAPIReadFactory.observationUnitWorkflowReadInitialization(context);
         brAPITrialReadWorkflowInitialization = brAPIReadFactory.trialWorkflowReadInitialization(context);
         brAPIStudyReadWorkflowInitialization = new BrAPIStudyReadWorkflowInitialization(context);
         locationReadWorkflowInitialization = new LocationReadWorkflowInitialization(context);

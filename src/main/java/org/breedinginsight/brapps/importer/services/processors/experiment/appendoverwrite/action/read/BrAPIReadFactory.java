@@ -4,6 +4,7 @@ import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
@@ -23,9 +24,20 @@ public class BrAPIReadFactory {
         return new WorkflowReadInitialization<BrAPITrial>(pendingEntityFactory.pendingTrialBean(context));
     }
 
+    public static WorkflowReadInitialization<BrAPIObservationUnit> observationUnitWorkflowReadInitialization(ExpUnitMiddlewareContext context,
+                                                                                                   PendingEntityFactory pendingEntityFactory) {
+        return new WorkflowReadInitialization<BrAPIObservationUnit>(pendingEntityFactory.pendingTrialBean(context));
+    }
+
     @Bean
     @Prototype
     public WorkflowReadInitialization<BrAPITrial> trialWorkflowReadInitialization(ExpUnitMiddlewareContext context) {
         return trialWorkflowReadInitialization(context, pendingEntityFactory);
+    }
+
+    @Bean
+    @Prototype
+    public WorkflowReadInitialization<BrAPIObservationUnit> observationUnitWorkflowReadInitialization(ExpUnitMiddlewareContext context) {
+        return observationUnitWorkflowReadInitialization(context, pendingEntityFactory);
     }
 }
