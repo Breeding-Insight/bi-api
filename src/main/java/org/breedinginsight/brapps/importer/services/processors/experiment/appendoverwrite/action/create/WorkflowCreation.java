@@ -1,5 +1,6 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create;
 
+import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
@@ -15,33 +16,19 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.List;
 import java.util.Optional;
-/**
- * The BrAPICreation class is an abstract class that implements the BrAPIAction interface. It is responsible for creating entities in a BrAPI system.
- *
- * @param <T> the type of entity being created
- */
+
 @Slf4j
-public abstract class BrAPICreation<T> implements BrAPIAction<T> {
+@Prototype
+public class WorkflowCreation<T> implements BrAPIAction<T> {
 
-    ExperimentImportEntity<T> entity;
+    private final ExperimentImportEntity<T> entity;
 
-    /**
-     * Constructor for BrAPICreation class.
-     * @param context the ExpUnitMiddlewareContext object
-     */
-    protected BrAPICreation(ExpUnitMiddlewareContext context) {
-        this.entity = getEntity();
+
+    protected WorkflowCreation(ExperimentImportEntity entity) {
+        this.entity = entity;
     }
 
-    protected BrAPICreation() {
-    }
 
-    /**
-     * Abstract method to get the ExperimentImportEntity based on the ExpUnitMiddlewareContext.
-     *
-     * @return the ExperimentImportEntity object
-     */
-    public abstract ExperimentImportEntity<T> getEntity();
 
     /**
      * Executes the creation process for entities.
@@ -58,6 +45,16 @@ public abstract class BrAPICreation<T> implements BrAPIAction<T> {
             log.error("Error creating...");
             throw new InternalServerException("Error creating...", e);
         }
+    }
+
+    /**
+     * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.
+     *
+     * @return The ExperimentImportEntity representing the BrAPI entity being acted on.
+     */
+    @Override
+    public ExperimentImportEntity<T> getEntity() {
+        return null;
     }
 
     /**

@@ -1,22 +1,24 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc;
 
 import io.micronaut.context.ApplicationContext;
+import lombok.extern.slf4j.Slf4j;
+import org.brapi.v2.model.core.response.BrAPIListDetails;
+import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingLocation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingDataset;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
-import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.services.ProgramLocationService;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
 
-public class LocationCreation extends BrAPICreation<ProgramLocation>{
+@Slf4j
+public class BrAPIDatasetCreation extends BrAPICreation<BrAPIListDetails> {
     ExpUnitMiddlewareContext context;
     /**
      * Constructor for BrAPICreation class.
      *
      * @param context the ExpUnitMiddlewareContext object
      */
-    public LocationCreation(ExpUnitMiddlewareContext context) {
+    public BrAPIDatasetCreation(ExpUnitMiddlewareContext context) {
 
         this.context = context;
     }
@@ -27,13 +29,13 @@ public class LocationCreation extends BrAPICreation<ProgramLocation>{
      * @return the ExperimentImportEntity object
      */
     @Override
-    public ExperimentImportEntity<ProgramLocation> getEntity() {
+    public ExperimentImportEntity<BrAPIListDetails> getEntity() {
         try (ApplicationContext appContext = ApplicationContext.run()) {
-            ProgramLocationService programLocationService = appContext.getBean(ProgramLocationService.class);
-            LocationService locationService = appContext.getBean(LocationService.class);
+            BrAPIListDAO brAPIListDAO = appContext.getBean(BrAPIListDAO.class);
+            DatasetService datasetService = appContext.getBean(DatasetService.class);
             ExperimentUtilities experimentUtilities = appContext.getBean(ExperimentUtilities.class);
 
-            return new PendingLocation(context, programLocationService, locationService, experimentUtilities);
+            return new PendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
         }
     }
 }
