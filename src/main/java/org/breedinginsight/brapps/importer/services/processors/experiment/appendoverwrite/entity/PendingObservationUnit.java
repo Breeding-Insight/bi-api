@@ -29,7 +29,7 @@ public class PendingObservationUnit implements ExperimentImportEntity<BrAPIObser
     BrAPIObservationUnitDAO observationUnitDAO;
     ObservationUnitService observationUnitService;
     ExperimentUtilities experimentUtilities;
-    @Inject
+
     public PendingObservationUnit(ExpUnitMiddlewareContext context,
                                   BrAPIObservationUnitDAO observationUnitDAO,
                                   ObservationUnitService observationUnitService,

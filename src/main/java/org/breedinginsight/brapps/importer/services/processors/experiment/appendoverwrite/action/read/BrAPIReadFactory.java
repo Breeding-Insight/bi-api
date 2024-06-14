@@ -26,7 +26,7 @@ public class BrAPIReadFactory {
 
     public static WorkflowReadInitialization<BrAPIObservationUnit> observationUnitWorkflowReadInitialization(ExpUnitMiddlewareContext context,
                                                                                                    PendingEntityFactory pendingEntityFactory) {
-        return new WorkflowReadInitialization<BrAPIObservationUnit>(pendingEntityFactory.pendingTrialBean(context));
+        return new WorkflowReadInitialization<BrAPIObservationUnit>(pendingEntityFactory.pendingObservationUnitBean(context));
     }
 
     @Bean
