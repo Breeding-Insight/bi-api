@@ -18,7 +18,7 @@ import java.util.Optional;
 public class BrAPIObservationUnitCommit extends ExpUnitMiddleware {
     private BrAPICreationFactory brAPICreationFactory;
     private WorkflowCreation<BrAPIObservationUnit> brAPIObservationUnitCreation;
-    private Optional<BrAPICreation.BrAPICreationState> createdBrAPIObservationUnits;
+    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPIObservationUnits;
 
     @Inject
     public BrAPIObservationUnitCommit(BrAPICreationFactory brAPICreationFactory) {
@@ -28,7 +28,7 @@ public class BrAPIObservationUnitCommit extends ExpUnitMiddleware {
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try{
             brAPIObservationUnitCreation = brAPICreationFactory.observationUnitWorkflowCreationBean(context);
-            createdBrAPIObservationUnits = brAPIObservationUnitCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
+            createdBrAPIObservationUnits = brAPIObservationUnitCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
@@ -42,7 +42,7 @@ public class BrAPIObservationUnitCommit extends ExpUnitMiddleware {
         context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created trials from the BrAPI service
-        createdBrAPIObservationUnits.ifPresent(BrAPICreation.BrAPICreationState::undo);
+        createdBrAPIObservationUnits.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
         // Undo the prior local transaction
         return compensatePrior(context);

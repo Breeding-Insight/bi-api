@@ -1,17 +1,13 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit;
 
 import io.micronaut.context.annotation.Prototype;
-import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreationFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.WorkflowCreation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPICreation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPITrialCreation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPITrialUpdate;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIUpdate;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.PendingEntityFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIUpdateFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.WorkflowUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
@@ -22,25 +18,27 @@ import java.util.Optional;
 @Slf4j
 @Prototype
 public class BrAPITrialCommit extends ExpUnitMiddleware {
-    private BrAPICreationFactory brAPICreationFactory;
+    private final BrAPICreationFactory brAPICreationFactory;
+    private final BrAPIUpdateFactory brAPIUpdateFactory;
     private WorkflowCreation<BrAPITrial> brAPITrialCreation;
-    private BrAPITrialUpdate brAPITrialUpdate;
-    private Optional<BrAPICreation.BrAPICreationState> createdBrAPITrials;
-    private Optional<BrAPIUpdate.BrAPIUpdateState> priorBrAPITrials;
-    private Optional<BrAPIUpdate.BrAPIUpdateState> updatedTrials;
+    private WorkflowUpdate<BrAPITrial> brAPITrialUpdate;
+    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPITrials;
+    private Optional<WorkflowUpdate.BrAPIUpdateState> priorBrAPITrials;
+    private Optional<WorkflowUpdate.BrAPIUpdateState> updatedTrials;
 
     @Inject
-    public BrAPITrialCommit(BrAPICreationFactory brAPICreationFactory) {
+    public BrAPITrialCommit(BrAPICreationFactory brAPICreationFactory, BrAPIUpdateFactory brAPIUpdateFactory) {
         this.brAPICreationFactory = brAPICreationFactory;
+        this.brAPIUpdateFactory = brAPIUpdateFactory;
     }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPITrialCreation = brAPICreationFactory.trialWorkflowCreationBean(context);
-            createdBrAPITrials = brAPITrialCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
-            brAPITrialUpdate = new BrAPITrialUpdate(context);
-            priorBrAPITrials = brAPITrialUpdate.getBrAPIState().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);
-            updatedTrials = brAPITrialUpdate.execute().map(s -> (BrAPIUpdate.BrAPIUpdateState) s);
+            createdBrAPITrials = brAPITrialCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
+            brAPITrialUpdate = brAPIUpdateFactory.trialWorkflowUpdateBean(context);
+            priorBrAPITrials = brAPITrialUpdate.getBrAPIState().map(s -> s);
+            updatedTrials = brAPITrialUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
 
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
@@ -56,10 +54,10 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
         context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created trials from the BrAPI service
-        createdBrAPITrials.ifPresent(BrAPICreation.BrAPICreationState::undo);
+        createdBrAPITrials.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
         // Revert any changes made to trials in the BrAPI service
-        priorBrAPITrials.ifPresent(BrAPIUpdate.BrAPIUpdateState::restore);
+        priorBrAPITrials.ifPresent(WorkflowUpdate.BrAPIUpdateState::restore);
 
         // Undo the prior local transaction
         return compensatePrior(context);

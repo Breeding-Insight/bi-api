@@ -18,7 +18,7 @@ import java.util.Optional;
 public class BrAPIDatasetCommit extends ExpUnitMiddleware {
     private BrAPICreationFactory brAPICreationFactory;
     private WorkflowCreation<BrAPIListDetails> datasetCreation;
-    private Optional<BrAPICreation.BrAPICreationState> createdDatasets;
+    private Optional<WorkflowCreation.BrAPICreationState> createdDatasets;
 
     @Inject
     public BrAPIDatasetCommit(BrAPICreationFactory brAPICreationFactory) {
@@ -29,7 +29,7 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
 
         try {
             datasetCreation = brAPICreationFactory.datasetWorkflowCreationBean(context);
-            createdDatasets = datasetCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
+            createdDatasets = datasetCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
@@ -43,7 +43,7 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
         context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created datasets
-        createdDatasets.ifPresent(BrAPICreation.BrAPICreationState::undo);
+        createdDatasets.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
         // Undo the prior local transaction
         return compensatePrior(context);

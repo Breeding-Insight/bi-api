@@ -17,7 +17,7 @@ import java.util.Optional;
 public class LocationCommit extends ExpUnitMiddleware {
     private BrAPICreationFactory brAPICreationFactory;
     private WorkflowCreation<ProgramLocation> locationCreation;
-    private Optional<BrAPICreation.BrAPICreationState> createdLocations;
+    private Optional<WorkflowCreation.BrAPICreationState> createdLocations;
 
     @Inject
     public LocationCommit(BrAPICreationFactory brAPICreationFactory) {
@@ -27,7 +27,7 @@ public class LocationCommit extends ExpUnitMiddleware {
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             locationCreation = brAPICreationFactory.locationWorkflowCreationBean(context);
-            createdLocations = locationCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
+            createdLocations = locationCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
@@ -41,7 +41,7 @@ public class LocationCommit extends ExpUnitMiddleware {
         context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created locations
-        createdLocations.ifPresent(BrAPICreation.BrAPICreationState::undo);
+        createdLocations.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
         // Undo the prior local transaction
         return compensatePrior(context);

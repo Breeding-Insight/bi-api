@@ -21,7 +21,7 @@ import java.util.Optional;
 public class BrAPIStudyCommit extends ExpUnitMiddleware {
     private BrAPICreationFactory brAPICreationFactory;
     private WorkflowCreation<BrAPIStudy> brAPIStudyCreation;
-    private Optional<BrAPICreation.BrAPICreationState> createdBrAPIStudies;
+    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPIStudies;
 
     @Inject
     public BrAPIStudyCommit(BrAPICreationFactory brAPICreationFactory) {
@@ -31,7 +31,7 @@ public class BrAPIStudyCommit extends ExpUnitMiddleware {
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPIStudyCreation = brAPICreationFactory.studyWorkflowCreationBean(context);
-            createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (BrAPICreation.BrAPICreationState) s);
+            createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
@@ -46,7 +46,7 @@ public class BrAPIStudyCommit extends ExpUnitMiddleware {
         context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created studies from the BrAPI service
-        createdBrAPIStudies.ifPresent(BrAPICreation.BrAPICreationState::undo);
+        createdBrAPIStudies.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
         // Undo the prior local transaction
         return compensatePrior(context);
