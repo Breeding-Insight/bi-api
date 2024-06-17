@@ -3,6 +3,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPIStudyDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -17,10 +18,7 @@ import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Prototype
@@ -159,7 +157,7 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
             return;
         }
 
-        // Construct the pending studies from the BrAPI trials
+        // Construct the pending studies from the BrAPI studies
         List<PendingImportObject<BrAPIStudy>> pendingStudies = members.stream()
                 .map(s->(BrAPIStudy) s)
                 .map(pio -> studyService.constructPIOFromBrapiStudy(pio, importContext.getProgram())).collect(Collectors.toList());
@@ -168,7 +166,16 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
         Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByNameNoScope = pendingStudies.stream()
                 .collect(Collectors.toMap(pio -> Utilities.removeProgramKeyAndUnknownAdditionalData(pio.getBrAPIObject().getStudyName(), importContext.getProgram().getKey()), pio -> pio));
 
-        // Add the map to the context for use in processing import
+        // Construct a hashmap to look up the pending study by the observation unit ID of a unit stored in the BrAPI service
+        Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
+                .collect(Collectors.toMap(e -> e.getKey(),
+                        e -> Optional.ofNullable(e.getValue().getBrAPIObject().getStudyName())
+                                .map(studyNameScoped -> Utilities.removeProgramKeyAndUnknownAdditionalData(studyNameScoped, importContext.getProgram().getKey()))
+                                .map(nameNoScope -> pendingStudyByNameNoScope.get(nameNoScope))
+                                .orElseThrow(() -> new IllegalStateException("Observation unit missing study name: " + e.getKey()))));
+
+        // Add the maps to the context for use in processing import
         cache.setStudyByNameNoScope(pendingStudyByNameNoScope);
+        cache.setPendingStudyByOUId(pendingStudyByOUId);
     }
 }

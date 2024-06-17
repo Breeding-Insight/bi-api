@@ -222,23 +222,22 @@ public class StudyService {
 //        }
 //    }
 
-    // TODO: used by expunit workflow
-//    public Map<String, PendingImportObject<BrAPIStudy>> mapPendingStudyByOUId(
-//            String unitId,
-//            BrAPIObservationUnit unit,
-//            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
-//            Map<String, PendingImportObject<BrAPIStudy>> studyByOUId,
-//            Program program
-//    ) {
-//        if (unit.getStudyName() != null) {
-//            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
-//            studyByOUId.put(unitId, studyByName.get(studyName));
-//        } else {
-//            throw new IllegalStateException("Observation unit missing study name: " + unitId);
-//        }
-//
-//        return studyByOUId;
-//    }
+    public Map<String, PendingImportObject<BrAPIStudy>> mapPendingStudyByOUId(
+            String unitId,
+            BrAPIObservationUnit unit,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
+            Map<String, PendingImportObject<BrAPIStudy>> studyByOUId,
+            Program program
+    ) {
+        if (unit.getStudyName() != null) {
+            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
+            studyByOUId.put(unitId, studyByName.get(studyName));
+        } else {
+            throw new IllegalStateException("Observation unit missing study name: " + unitId);
+        }
+
+        return studyByOUId;
+    }
 
     // TODO: used by expunit workflow
 //    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(

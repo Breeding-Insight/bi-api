@@ -98,7 +98,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
         // Construct validation errors for any timestamp columns that don't have a matching variable column
         List<BrAPIImport> importRows = context.getImportContext().getImportRows();
-        ValidationErrors validationErrors = context.getPendingData().getValidationErrors();
+        ValidationErrors validationErrors = context.getExpUnitContext().getValidationErrors();
         List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(varNames, timestampCols).orElse(new ArrayList<>());
         for (int i = 0; i < importRows.size(); i++) {
             int rowNum = i;
@@ -115,7 +115,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             Map<String, Column<?>> tsColByPheno = timestampCols.stream().collect(Collectors.toMap(col -> col.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), col -> col));
 
             // Add the map to the context for use in processing import
-            context.getPendingData().setTimeStampColByPheno(tsColByPheno);
+            context.getExpUnitContext().setTimeStampColByPheno(tsColByPheno);
 
             // Fetch the traits named in the observation variable columns
             Program program = context.getImportContext().getProgram();
@@ -135,9 +135,9 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             List<Trait> sortedTraits = experimentUtil.sortByField(List.copyOf(varNames), new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
             // Get the pending observation dataset
-            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getPendingData().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
+            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getExpUnitContext().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
             String datasetName = String.format("Observation Dataset [%s-%s]", program.getKey(), pendingTrial.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString());
-            PendingImportObject<BrAPIListDetails> pendingDataset = context.getPendingData().getObsVarDatasetByName().get(datasetName);
+            PendingImportObject<BrAPIListDetails> pendingDataset = context.getExpUnitContext().getObsVarDatasetByName().get(datasetName);
 
             // Add new phenotypes to the pending observation dataset list (NOTE: "obsVarName [programKey]" is used instead of obsVarDbId)
             // TODO: Change to using actual dbIds as per the BrAPI spec, instead of namespaced obsVar names (necessary for Breedbase)
@@ -160,7 +160,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             // Construct helper lookup tables to use for hashing stored observation data
             Map<String, String> unitNameByDbId = context.getExpUnitContext().getPendingObsUnitByOUId().values().stream().map(PendingImportObject::getBrAPIObject).collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId, BrAPIObservationUnit::getObservationUnitName));
             Map<String, String> variableNameByDbId = sortedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableDbId, Trait::getObservationVariableName));
-            Map<String, String> studyNameByDbId = context.getPendingData().getStudyByNameNoScope().values().stream()
+            Map<String, String> studyNameByDbId = context.getExpUnitContext().getStudyByNameNoScope().values().stream()
                     .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
                     .map(PendingImportObject::getBrAPIObject)
                     .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
@@ -173,7 +173,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             }, o->o));
 
             // Add the observation data map to the context for use in processing import
-            context.getPendingData().setExistingObsByObsHash(observationByObsHash);
+            context.getExpUnitContext().setExistingObsByObsHash(observationByObsHash);
 
             // Build new pending observation data for each phenotype
             Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash = new HashMap<>();
@@ -184,6 +184,10 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                 ExperimentObservation row = (ExperimentObservation) context.getImportContext().getImportRows().get(rowNum);
 
                 // Construct the pending import for the row
+                Optional.ofNullable(context.getImportContext().getMappedBrAPIImport()).orElseGet(() -> {
+                        context.getImportContext().setMappedBrAPIImport(new HashMap<>());
+                        return new HashMap<>();
+                });
                 PendingImport mappedImportRow = context.getImportContext().getMappedBrAPIImport().getOrDefault(rowNum, new PendingImport());
                 String unitId = row.getObsUnitID();
                 mappedImportRow.setTrial(context.getExpUnitContext().getPendingTrialByOUId().get(unitId));
@@ -305,7 +309,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             }
 
             // Add the pending observation map to the context for use in processing the import
-            context.getPendingData().setPendingObservationByHash(pendingObservationByHash);
+            context.getExpUnitContext().setPendingObservationByHash(pendingObservationByHash);
 
             return processNext(context);
         } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException e) {
