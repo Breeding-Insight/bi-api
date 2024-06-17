@@ -329,11 +329,6 @@ public class TrialService {
     private void initializeTrialsForExistingObservationUnits(Program program, Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope, Map<String, PendingImportObject<BrAPITrial>> trialByName) {
     }
 
-    public PendingImportObject<BrAPITrial> getPendingTrialByNameNoScope(Map<String, PendingImportObject<BrAPITrial>> pendingTrialByNameNoScope, String nameNoScope) {
-        return Optional.ofNullable(pendingTrialByNameNoScope.get(nameNoScope))
-                .orElseThrow(() -> new IllegalStateException("Failed to find pending trial for observation unit"));
-    }
-
     // TODO: used by expunit workflow
     public Map<String, PendingImportObject<BrAPITrial>> mapPendingTrialByOUId(
             String unitId,

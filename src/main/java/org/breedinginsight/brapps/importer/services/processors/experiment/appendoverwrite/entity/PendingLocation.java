@@ -2,6 +2,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
@@ -18,10 +19,7 @@ import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Prototype
@@ -173,7 +171,26 @@ public class PendingLocation implements ExperimentImportEntity<ProgramLocation> 
         // Construct a hashmap to look up the pending location by location name
         Map<String, PendingImportObject<ProgramLocation>> pendingLocationByName = pendingLocations.stream().collect(Collectors.toMap(pio -> pio.getBrAPIObject().getName(), pio -> pio));
 
-        // Add the map to the context for use in processing import
+        // Construct a hashmap to look up the pending location by the observation unit ID of a unit stored in the BrAPI service
+        Map<String, PendingImportObject<ProgramLocation>> pendingLocationByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            String name = Optional.ofNullable(e.getValue().getBrAPIObject().getLocationName())
+                                    .orElseGet(() -> {
+                                        PendingImportObject<BrAPIStudy> pendingStudy = cache.getPendingStudyByOUId().get(e.getKey());
+                                        if (pendingStudy == null) {
+                                            throw new IllegalStateException("Observation unit missing study: " + e.getKey());
+                                        }
+                                        return pendingStudy.getBrAPIObject().getLocationName();
+                                    });
+                            return Optional.ofNullable(pendingLocationByName.get(name))
+                                    .orElseThrow(() -> new IllegalStateException("Observation unit missing location: " + e.getKey()));
+                        }
+                ));
+
+        // Add the maps to the context for use in processing import
         cache.setLocationByName(pendingLocationByName);
+        cache.setPendingLocationByOUId(pendingLocationByOUId);
     }
 }
