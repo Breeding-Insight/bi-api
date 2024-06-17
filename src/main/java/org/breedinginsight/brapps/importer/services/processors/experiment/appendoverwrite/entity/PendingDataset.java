@@ -187,7 +187,22 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
         Map<String, PendingImportObject<BrAPIListDetails>> pendingDatasetByName = pendingDatasets.stream()
                 .collect(Collectors.toMap(pio -> pio.getBrAPIObject().getListName(),pio -> pio));
 
-        // Add the map to the context for use in processing import
+        // Construct a hashmap to look up the pending location by the observation unit ID of a unit stored in the BrAPI service
+        Map<String, PendingImportObject<BrAPIListDetails>> pendingObsDatasetByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            if (cache.getPendingTrialByOUId().isEmpty() ||
+                                    cache.getObsVarDatasetByName().isEmpty() ||
+                                    !cache.getPendingTrialByOUId().values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+                                throw new IllegalStateException("There is not an observation data set for this unit: " + e.getKey());
+                            }
+                            return cache.getObsVarDatasetByName().values().iterator().next();
+                        }
+                ));
+
+        // Add the maps to the context for use in processing import
         cache.setObsVarDatasetByName(pendingDatasetByName);
+        cache.setPendingObsDatasetByOUId(pendingObsDatasetByOUId);
     }
 }
