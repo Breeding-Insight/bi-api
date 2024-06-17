@@ -181,7 +181,33 @@ public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
         Map<String, PendingImportObject<BrAPITrial>> pendingTrialByNameNoScope = pendingTrials.stream()
                 .collect(Collectors.toMap(pio -> Utilities.removeProgramKey(pio.getBrAPIObject().getTrialName(), importContext.getProgram().getKey()), pio -> pio));
 
-        // Add the map to the context for use in processing import
+        // Construct a hashmap to look up the pending trial by the observation unit ID of a unit stored in the BrAPI service
+        Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            String trialName = e.getValue().getBrAPIObject().getTrialName();
+                            String studyName = e.getValue().getBrAPIObject().getStudyName();
+
+                            if (trialName != null) {
+                                String nameNoScope = Utilities.removeProgramKeyAndUnknownAdditionalData(trialName, importContext.getProgram().getKey());
+                                return Optional.ofNullable(pendingTrialByNameNoScope.get(nameNoScope))
+                                        .orElseThrow(() -> new IllegalStateException("Failed to find pending trial for observation unit" + e.getKey()));
+                            } else if (studyName != null) {
+                                String nameNoScope = Utilities.removeProgramKeyAndUnknownAdditionalData(
+                                        cache.getStudyByNameNoScope().get(studyName).getBrAPIObject().getTrialName(),
+                                        importContext.getProgram().getKey()
+                                );
+                                return Optional.ofNullable(pendingTrialByNameNoScope.get(nameNoScope))
+                                        .orElseThrow(() -> new IllegalStateException("Failed to find pending trial for observation unit" + e.getKey()));
+                            } else {
+                                throw new IllegalStateException("Observation Unit missing trial name and study name: " + e.getKey());
+                            }
+                        }
+                ));
+
+        // Add the maps to the context for use in processing import
         cache.setTrialByNameNoScope(pendingTrialByNameNoScope);
+        cache.setPendingTrialByOUId(pendingTrialByOUId);
     }
 }

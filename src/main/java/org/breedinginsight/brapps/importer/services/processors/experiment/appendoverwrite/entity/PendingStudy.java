@@ -168,7 +168,7 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
 
         // Construct a hashmap to look up the pending study by the observation unit ID of a unit stored in the BrAPI service
         Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey(),
+                .collect(Collectors.toMap(Map.Entry::getKey,
                         e -> Optional.ofNullable(e.getValue().getBrAPIObject().getStudyName())
                                 .map(studyNameScoped -> Utilities.removeProgramKeyAndUnknownAdditionalData(studyNameScoped, importContext.getProgram().getKey()))
                                 .map(nameNoScope -> pendingStudyByNameNoScope.get(nameNoScope))
