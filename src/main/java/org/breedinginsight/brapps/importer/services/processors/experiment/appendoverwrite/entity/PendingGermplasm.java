@@ -3,6 +3,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
+import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
@@ -136,7 +137,19 @@ public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> 
         // Construct a hashmap to look up the pending germplasm by gid
         Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByGID = pendingGermplasm.stream().collect(Collectors.toMap(germplasmService::getGIDFromGermplasmPIO, pio -> pio));
 
-        // Add the map to the context for use in processing import
+        // Construct a hashmap to look up the pending germplasm by the observation unit ID of a unit stored in the BrAPI service
+        Map<String, PendingImportObject<BrAPIGermplasm>> pendingGermplasmByOUId = cache.getPendingObsUnitByOUId().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            String gid = Optional.ofNullable(e.getValue().getBrAPIObject().getAdditionalInfo().getAsJsonObject().get(BrAPIAdditionalInfoFields.GID).getAsString())
+                                    .orElseThrow(() -> new IllegalStateException("GID not set for unit: " + e.getKey()));
+                            return Optional.ofNullable(pendingGermplasmByGID.get(gid)).orElseThrow(() -> new IllegalStateException("Observation unit missing germplasm: " + e.getKey()));
+                        }
+                ));
+
+        // Add the maps to the context for use in processing import
         cache.setExistingGermplasmByGID(pendingGermplasmByGID);
+        cache.setPendingGermplasmByOUId(pendingGermplasmByOUId);
     }
 }
