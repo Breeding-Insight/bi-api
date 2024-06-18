@@ -53,12 +53,12 @@ public class NumericalValidator implements ObservationValidator {
         Optional<BigDecimal> number = observationService.validNumericValue(value);
         Optional<ValidationError> validationError = number
                 .flatMap(num -> {
-                    if (!observationService.validNumericRange(num, variable.getScale())) {
+                    if (observationService.validNumericRange(num, variable.getScale())) {
+                        return Optional.empty(); // Return empty Optional if value is in numeric range
+                    } else {
                         return Optional.of(new ValidationError(fieldName, "Value outside of min/max range detected", HttpStatus.UNPROCESSABLE_ENTITY));
                     }
-                    return Optional.empty();
-                })
-                .or(() -> Optional.of(new ValidationError(fieldName, "Non-numeric text detected", HttpStatus.UNPROCESSABLE_ENTITY)));
+                });
 
         return validationError;
 
