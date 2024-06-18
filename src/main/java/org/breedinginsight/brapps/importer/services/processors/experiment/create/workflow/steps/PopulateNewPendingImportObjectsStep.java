@@ -73,9 +73,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 @Slf4j
 public class PopulateNewPendingImportObjectsStep {
 
-    private final ExperimentValidateService experimentValidateService;
     private final ExperimentSeasonService experimentSeasonService;
-    private final BrAPIObservationDAO brAPIObservationDAO;
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     private final DSLContext dsl;
     private final Gson gson;
@@ -84,14 +82,10 @@ public class PopulateNewPendingImportObjectsStep {
     private String BRAPI_REFERENCE_SOURCE;
 
     @Inject
-    public PopulateNewPendingImportObjectsStep(ExperimentValidateService experimentValidateService,
-                                               ExperimentSeasonService experimentSeasonService,
-                                               BrAPIObservationDAO brAPIObservationDAO,
+    public PopulateNewPendingImportObjectsStep(ExperimentSeasonService experimentSeasonService,
                                                BrAPIObservationUnitDAO brAPIObservationUnitDAO,
                                                DSLContext dsl) {
-        this.experimentValidateService = experimentValidateService;
         this.experimentSeasonService = experimentSeasonService;
-        this.brAPIObservationDAO = brAPIObservationDAO;
         this.brAPIObservationUnitDAO = brAPIObservationUnitDAO;
         this.dsl = dsl;
         this.gson = new JSON().getGson();

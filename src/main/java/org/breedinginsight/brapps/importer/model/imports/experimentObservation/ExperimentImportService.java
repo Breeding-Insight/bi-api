@@ -19,6 +19,7 @@ package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.imports.DomainImportService;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
@@ -26,12 +27,14 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.Experi
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.List;
 
 @Singleton
 @Slf4j
 public class ExperimentImportService extends DomainImportService {
 
     private final String IMPORT_TYPE_ID = "ExperimentImport";
+    private final ExperimentWorkflowNavigator workflowNavigator;
 
     // TODO: delete processor fields once WorkflowNavigator is used
     @Inject
@@ -40,6 +43,7 @@ public class ExperimentImportService extends DomainImportService {
                                    ExperimentWorkflowNavigator workflowNavigator)
     {
         super(experimentProcessorProvider, processorManagerProvider, workflowNavigator);
+        this.workflowNavigator = workflowNavigator;
     }
 
     @Override
@@ -50,6 +54,11 @@ public class ExperimentImportService extends DomainImportService {
     @Override
     public String getImportTypeId() {
         return IMPORT_TYPE_ID;
+    }
+
+    @Override
+    public List<ImportWorkflow> getWorkflows() throws Exception{
+        return workflowNavigator.getWorkflows();
     }
 }
 
