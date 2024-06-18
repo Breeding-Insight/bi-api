@@ -55,16 +55,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-/**
- * This class represents a workflow for creating a new experiment. The bean name must match the appropriate bean column
- * value in the import_mapping_workflow db table
- */
+import lombok.Getter;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
+import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
-@Prototype
+import javax.inject.Singleton;
+import java.util.Optional;
+
 @Slf4j
-@Named("CreateNewExperimentWorkflow")
-public class CreateNewExperimentWorkflow implements Workflow {
-
+@Getter
+@Singleton
+public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
+    private final ExperimentWorkflowNavigator.Workflow workflow;
     private final PopulateExistingPendingImportObjectsStep populateExistingPendingImportObjectsStep;
     private final PopulateNewPendingImportObjectsStep populateNewPendingImportObjectsStep;
     private final CommitPendingImportObjectsStep commitPendingImportObjectsStep;
@@ -85,10 +90,10 @@ public class CreateNewExperimentWorkflow implements Workflow {
         this.validatePendingImportObjectsStep = validatePendingImportObjectsStep;
         this.statusService = statusService;
         this.experimentPhenotypeService = experimentPhenotypeService;
+        this.workflow = ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION;
     }
 
-    @Override
-    public ImportPreviewResponse process(ImportContext context) throws Exception {
+    private ImportPreviewResponse runWorkflow(ImportContext context) throws Exception {
 
         ImportUpload upload = context.getUpload();
         boolean commit = context.isCommit();
@@ -140,10 +145,48 @@ public class CreateNewExperimentWorkflow implements Workflow {
      *
      * @return the name of the workflow
      */
+    public Optional<ImportWorkflowResult> process(ImportServiceContext context) throws Exception {
+        // Workflow processing the context
+        ImportWorkflow workflow = ImportWorkflow.builder()
+                .id(getWorkflow().getId())
+                .name(getWorkflow().getName())
+                .build();
+
+        // No-preview result
+        Optional<ImportWorkflowResult> result;
+
+        result = Optional.of(ImportWorkflowResult.builder()
+                .workflow(workflow)
+                .importPreviewResponse(Optional.empty())
+                .build());
+
+        // Skip this workflow unless creating a new experiment
+        if (context != null && !this.workflow.isEqual(context.getWorkflow())) {
+            return Optional.empty();
+        }
+
+        // Skip processing if no context, but return no-preview result for this workflow
+        if (context == null) {
+            return result;
+        }
+
+        // TODO: unify usage of single import context type throughout
+        ImportContext importContext = ImportContext.from(context);
+
+        // Start processing the import...
+        ImportPreviewResponse response = runWorkflow(importContext);
+
+        result = Optional.of(ImportWorkflowResult.builder()
+                .workflow(workflow)
+                .importPreviewResponse(Optional.of(response))
+                .build());
+
+        return result;
+    }
 
     @Override
-    public String getName() {
-        return "CreateNewExperimentWorkflow";
+    public int getOrder() {
+        return 1;
     }
 
     // TODO: move to shared area

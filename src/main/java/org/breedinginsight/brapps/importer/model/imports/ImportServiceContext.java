@@ -19,10 +19,10 @@ package org.breedinginsight.brapps.importer.model.imports;
 
 import lombok.*;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import tech.tablesaw.api.Table;
+
 import java.util.List;
 
 @Getter
@@ -32,7 +32,7 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ImportServiceContext {
-    private Workflow workflow;
+    private String workflow;
     private List<BrAPIImport> brAPIImports;
     private Table data;
     private Program program;

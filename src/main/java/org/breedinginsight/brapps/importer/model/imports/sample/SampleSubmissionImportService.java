@@ -23,6 +23,7 @@ import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 import org.breedinginsight.brapps.importer.services.processors.SampleSubmissionProcessor;
@@ -33,6 +34,7 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -57,6 +59,11 @@ public class SampleSubmissionImportService implements BrAPIImportService {
     @Override
     public BrAPIImport getImportClass() {
         return new SampleSubmissionImport();
+    }
+
+    @Override
+    public List<ImportWorkflow> getWorkflows() {
+        return new ArrayList<>();
     }
 
     @Override

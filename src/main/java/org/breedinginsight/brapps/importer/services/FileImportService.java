@@ -20,7 +20,6 @@ package org.breedinginsight.brapps.importer.services;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.annotation.PathVariable;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.micronaut.http.multipart.CompletedFileUpload;
 import io.micronaut.http.server.exceptions.InternalServerException;
@@ -33,7 +32,6 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.api.auth.AuthenticatedUser;
 import org.breedinginsight.brapps.importer.daos.ImportDAO;
 import org.breedinginsight.brapps.importer.daos.ImportMappingProgramDAO;
-import org.breedinginsight.brapps.importer.daos.ImportMappingWorkflowDAO;
 import org.breedinginsight.brapps.importer.model.ImportProgress;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.config.ImportConfigResponse;
@@ -43,12 +41,9 @@ import org.breedinginsight.brapps.importer.model.mapping.ImportMapping;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.response.ImportResponse;
 import org.breedinginsight.brapps.importer.daos.ImportMappingDAO;
-import org.breedinginsight.brapps.importer.model.workflow.ImportMappingWorkflow;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.brapps.importer.services.workflow.WorkflowFactory;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingEntity;
 import org.breedinginsight.dao.db.tables.pojos.ImporterMappingProgramEntity;
-import org.breedinginsight.dao.db.tables.pojos.ImporterMappingWorkflowEntity;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.ProgramService;
@@ -87,14 +82,12 @@ public class FileImportService {
     private final ImportDAO importDAO;
     private final DSLContext dsl;
     private final ImportMappingProgramDAO importMappingProgramDAO;
-    private final ImportMappingWorkflowDAO importMappingWorkflowDAO;
-    private final WorkflowFactory workflowFactory;
 
     @Inject
     FileImportService(ProgramUserService programUserService, ProgramService programService, MimeTypeParser mimeTypeParser,
                       ImportMappingDAO importMappingDAO, ObjectMapper objectMapper, MappingManager mappingManager,
                       ImportConfigManager configManager, ImportDAO importDAO, DSLContext dsl, ImportMappingProgramDAO importMappingProgramDAO,
-                      ImportMappingWorkflowDAO importMappingWorkflowDAO, WorkflowFactory workflowFactory, UserService userService) {
+                      UserService userService) {
         this.programUserService = programUserService;
         this.programService = programService;
         this.mimeTypeParser = mimeTypeParser;
@@ -106,8 +99,6 @@ public class FileImportService {
         this.dsl = dsl;
         this.importMappingProgramDAO = importMappingProgramDAO;
         this.userService = userService;
-        this.importMappingWorkflowDAO = importMappingWorkflowDAO;
-        this.workflowFactory = workflowFactory;
     }
 
     public List<ImportConfigResponse> getAllImportTypeConfigs() {
@@ -333,7 +324,7 @@ public class FileImportService {
         return response;
     }
 
-    public ImportResponse updateUpload(UUID programId, UUID uploadId, UUID workflowId, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
+    public ImportResponse updateUpload(UUID programId, UUID uploadId, String workflow, AuthenticatedUser actingUser, Map<String, Object> userInput, Boolean commit) throws
             DoesNotExistException, UnprocessableEntityException, AuthorizationException {
 
         Program program = validateRequest(programId, actingUser);
@@ -383,7 +374,7 @@ public class FileImportService {
             } else {
                 brAPIImportList = mappingManager.map(mappingConfig, data);
             }
-            processFile(workflowId, brAPIImportList, data, program, upload, user, commit, importService, actingUser);
+            processFile(workflow, brAPIImportList, data, program, upload, user, commit, importService, actingUser);
         } catch (UnprocessableEntityException e) {
             log.error(e.getMessage(), e);
             ImportProgress progress = upload.getProgress();
@@ -429,18 +420,12 @@ public class FileImportService {
         return newUpload;
     }
 
-    private void processFile(UUID workflowId, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
+    private void processFile(String workflow, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
                              ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
                              AuthenticatedUser actingUser) {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
-                Workflow workflow = null;
-                if (workflowId != null) {
-                    Optional<Workflow> optionalWorkflow = workflowFactory.getWorkflow(workflowId);
-                    workflow = optionalWorkflow.orElse(null);
-                }
-
                 ImportServiceContext context = ImportServiceContext.builder()
                         .workflow(workflow)
                         .brAPIImports(finalBrAPIImportList)
@@ -586,8 +571,12 @@ public class FileImportService {
         return importMappings;
     }
 
-    public List<ImportMappingWorkflow> getWorkflowsForSystemMapping(UUID mappingId) {
-        return importMappingWorkflowDAO.getWorkflowsByImportMappingId(mappingId);
+    public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException, Exception {
+        ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)
+                .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
+        BrAPIImportService importService = configManager.getImportServiceById(mappingConfig.getImportTypeId())
+                .orElseThrow(() -> new DoesNotExistException("Config with that id does not exist"));
+        return importService.getWorkflows();
     }
 
 
