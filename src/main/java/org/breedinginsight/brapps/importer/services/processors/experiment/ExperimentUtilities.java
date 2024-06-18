@@ -191,7 +191,7 @@ public class ExperimentUtilities {
         return unsortedItems;
     }
 
-    public List<BrAPIExternalReference> getBrAPIExternalReferences(
+    public List<BrAPIExternalReference> constructBrAPIExternalReferences(
             Program program, String referenceSourceBaseName, UUID trialId, UUID datasetId, UUID studyId, UUID obsUnitId, UUID observationId) {
         List<BrAPIExternalReference> refs = new ArrayList<>();
 

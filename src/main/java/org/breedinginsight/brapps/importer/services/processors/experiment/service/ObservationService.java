@@ -1,34 +1,18 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import io.micronaut.http.server.exceptions.InternalServerException;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
-import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
-import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
-import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Scale;
-import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
-import tech.tablesaw.columns.Column;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -137,7 +121,7 @@ public class ObservationService {
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.now()));
 
-            observation.setExternalReferences(experimentUtilities.getBrAPIExternalReferences(program, referenceSource, trialId,null, studyId, obsUnitId, observationId));
+            observation.setExternalReferences(experimentUtilities.constructBrAPIExternalReferences(program, referenceSource, trialId,null, studyId, obsUnitId, observationId));
         }
         return observation;
     }

@@ -34,7 +34,8 @@ public class ProcessedDataFactory {
         this.observationService = observationService;
     }
 
-    public static InitialData initialData(boolean isCommit,
+    public static InitialData initialData(String brapiReferenceSource,
+                                          boolean isCommit,
                                           String germplasmName,
                                           BrAPIStudy study,
                                           String cellData,
@@ -51,7 +52,7 @@ public class ProcessedDataFactory {
                                           FieldValidator fieldValidator,
                                           StudyService studyService,
                                           ObservationService observationService) {
-        return new InitialData(isCommit, germplasmName, study, cellData, phenoColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
+        return new InitialData(brapiReferenceSource, isCommit, germplasmName, study, cellData, phenoColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
     }
 
     public static OverwrittenData overwrittenData(boolean canOverwrite,
@@ -76,7 +77,8 @@ public class ProcessedDataFactory {
 
     @Bean
     @Prototype
-    public InitialData initialDataBean(boolean isCommit,
+    public InitialData initialDataBean(String brapiReferenceSource,
+                                       boolean isCommit,
                                        String germplasmName,
                                        BrAPIStudy study,
                                        String cellData,
@@ -90,7 +92,7 @@ public class ProcessedDataFactory {
                                        BrAPIObservationUnit observationUnit,
                                        User user,
                                        Program program) {
-        return initialData(isCommit, germplasmName, study, cellData, phenoColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
+        return initialData(brapiReferenceSource, isCommit, germplasmName, study, cellData, phenoColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
     }
 
     @Bean

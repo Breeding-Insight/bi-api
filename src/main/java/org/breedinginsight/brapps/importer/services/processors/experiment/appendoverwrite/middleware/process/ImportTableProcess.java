@@ -1,6 +1,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
 import com.google.gson.Gson;
+import io.micronaut.context.annotation.Property;
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
@@ -51,6 +52,8 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 @Slf4j
 @Prototype
 public class ImportTableProcess extends ExpUnitMiddleware {
+    @Property(name = "brapi.server.reference-source")
+    String brapiReferenceSource;
     StudyService studyService;
     ObservationVariableService observationVariableService;
     ObservationService observationService;
@@ -272,7 +275,8 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                         Trait initialTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
 
                         // create new instance of InitialData
-                        processedData = processedDataFactory.initialDataBean(context.getImportContext().isCommit(),
+                        processedData = processedDataFactory.initialDataBean(brapiReferenceSource,
+                                context.getImportContext().isCommit(),
                                 context.getExpUnitContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getGermplasmName(),
                                 context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject(),
                                 cellData,
