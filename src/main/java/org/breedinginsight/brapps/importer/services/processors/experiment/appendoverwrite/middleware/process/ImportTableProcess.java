@@ -273,13 +273,15 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
                         // create new instance of InitialData
                         processedData = processedDataFactory.initialDataBean(context.getImportContext().isCommit(),
+                                context.getExpUnitContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getGermplasmName(),
+                                context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject(),
                                 cellData,
                                 phenoColumnName,
                                 initialTrait,
                                 row,
                                 pendingTrial.getId(),
                                 context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getId(),
-                                unitId,
+                                UUID.fromString(unitId),
                                 context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getSeasons().get(0),
                                 observationUnit,
                                 context.getImportContext().getUser(),

@@ -135,6 +135,46 @@ public class StudyService {
         return (yearInt == null) ? "" : yearInt.toString();
     }
 
+    public String yearToSeasonDbIdFromDatabase(String year, UUID programId) {
+        BrAPISeason targetSeason = null;
+        List<BrAPISeason> seasons;
+        try {
+            seasons = this.brAPISeasonDAO.getSeasonsByYear(year, programId);
+            for (BrAPISeason season : seasons) {
+                if (null == season.getSeasonName() || season.getSeasonName().isBlank() || season.getSeasonName().equals(year)) {
+                    targetSeason = season;
+                    break;
+                }
+            }
+            if (targetSeason == null) {
+                BrAPISeason newSeason = new BrAPISeason();
+                Integer intYear = null;
+                if( StringUtils.isNotBlank(year) ){
+                    intYear = Integer.parseInt(year);
+                }
+                newSeason.setYear(intYear);
+                newSeason.setSeasonName(year);
+                targetSeason = this.brAPISeasonDAO.addOneSeason(newSeason, programId);
+            }
+
+        } catch (ApiException e) {
+            log.warn(Utilities.generateApiExceptionLogMessage(e));
+            log.error(e.getResponseBody(), e);
+        }
+
+        return (targetSeason == null) ? null : targetSeason.getSeasonDbId();
+    }
+
+    public List<BrAPISeason> seasonsFromDatabase(String year, UUID programId) {
+        List<BrAPISeason> seasons = null;
+        try {
+            seasons = this.brAPISeasonDAO.getSeasonsByYear(year, programId);
+        } catch (ApiException e) {
+            log.error(Utilities.generateApiExceptionLogMessage(e), e);
+        }
+
+        return seasons;
+    }
     /**
      * Fetches a list of BrAPI studies by their study database IDs for a given program.
      *

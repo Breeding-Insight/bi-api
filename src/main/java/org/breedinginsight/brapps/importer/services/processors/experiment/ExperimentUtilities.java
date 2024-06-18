@@ -7,12 +7,14 @@ import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
 import io.reactivex.functions.Function;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
+import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.model.Program;
@@ -187,5 +189,36 @@ public class ExperimentUtilities {
         });
 
         return unsortedItems;
+    }
+
+    public List<BrAPIExternalReference> getBrAPIExternalReferences(
+            Program program, String referenceSourceBaseName, UUID trialId, UUID datasetId, UUID studyId, UUID obsUnitId, UUID observationId) {
+        List<BrAPIExternalReference> refs = new ArrayList<>();
+
+        addReference(refs, program.getId(), referenceSourceBaseName, ExternalReferenceSource.PROGRAMS);
+        if (trialId != null) {
+            addReference(refs, trialId, referenceSourceBaseName, ExternalReferenceSource.TRIALS);
+        }
+        if (datasetId != null) {
+            addReference(refs, datasetId, referenceSourceBaseName, ExternalReferenceSource.DATASET);
+        }
+        if (studyId != null) {
+            addReference(refs, studyId, referenceSourceBaseName, ExternalReferenceSource.STUDIES);
+        }
+        if (obsUnitId != null) {
+            addReference(refs, obsUnitId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATION_UNITS);
+        }
+        if (observationId != null) {
+            addReference(refs, observationId, referenceSourceBaseName, ExternalReferenceSource.OBSERVATIONS);
+        }
+
+        return refs;
+    }
+
+    private void addReference(List<BrAPIExternalReference> refs, UUID uuid, String referenceBaseNameSource, ExternalReferenceSource refSourceName) {
+        BrAPIExternalReference reference = new BrAPIExternalReference();
+        reference.setReferenceSource(String.format("%s/%s", referenceBaseNameSource, refSourceName.getName()));
+        reference.setReferenceID(uuid.toString());
+        refs.add(reference);
     }
 }

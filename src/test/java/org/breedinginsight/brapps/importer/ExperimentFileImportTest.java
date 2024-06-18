@@ -1030,7 +1030,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newExp.put(Columns.EXP_TYPE, "Phenotyping");
         newExp.put(Columns.ENV, "New Env");
         newExp.put(Columns.ENV_LOCATION, "Location A");
-        newExp.put(Columns.ENV_YEAR, "2023");
+        newExp.put(Columns.ENV_YEAR, "2025");
         newExp.put(Columns.EXP_UNIT_ID, "a-1");
         newExp.put(Columns.REP_NUM, "1");
         newExp.put(Columns.BLOCK_NUM, "1");
@@ -1058,7 +1058,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         newObservation.put(Columns.EXP_TYPE, "Phenotyping");
         newObservation.put(Columns.ENV, "New Env");
         newObservation.put(Columns.ENV_LOCATION, "Location A");
-        newObservation.put(Columns.ENV_YEAR, "2023");
+        newObservation.put(Columns.ENV_YEAR, "2025");
         newObservation.put(Columns.EXP_UNIT_ID, "a-1");
         newObservation.put(Columns.REP_NUM, "1");
         newObservation.put(Columns.BLOCK_NUM, "1");

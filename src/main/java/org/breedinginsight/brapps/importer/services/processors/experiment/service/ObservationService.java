@@ -8,14 +8,17 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
+import org.brapi.v2.model.core.BrAPISeason;
 import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.brapi.v2.model.pheno.BrAPIScaleValidValuesCategories;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
@@ -23,9 +26,11 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Scale;
 import org.breedinginsight.model.Trait;
+import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
@@ -36,6 +41,13 @@ import java.util.stream.Collectors;
 
 @Singleton
 public class ObservationService {
+    private final ExperimentUtilities experimentUtilities;
+
+    @Inject
+    public ObservationService(ExperimentUtilities experimentUtilities) {
+        this.experimentUtilities = experimentUtilities;
+    }
+
     public boolean validCategory(List<BrAPIScaleValidValuesCategories> categories, String value) {
         Set<String> categoryValues = categories.stream()
                 .map(category -> category.getValue().toLowerCase())
@@ -87,6 +99,47 @@ public class ObservationService {
                 DigestUtils.sha256Hex(variableName) +
                 DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
         return DigestUtils.sha256Hex(concat);
+    }
+
+    public BrAPIObservation constructNewBrAPIObservation(boolean commit,
+                                                      String germplasmName,
+                                                      String variableName,
+                                                      BrAPIStudy study,
+                                                      String seasonDbId,
+                                                      BrAPIObservationUnit obsUnit,
+                                                      String value,
+                                                      UUID trialId,
+                                                      UUID studyId,
+                                                      UUID obsUnitId,
+                                                      UUID observationId,
+                                                      String referenceSource,
+                                                      User user,
+                                                      Program program) {
+        BrAPIObservation observation = new BrAPIObservation();
+        observation.setGermplasmName(germplasmName);
+
+        observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.STUDY_NAME, Utilities.removeProgramKeyAndUnknownAdditionalData(study.getStudyName(), program.getKey()));
+
+        observation.setObservationVariableName(variableName);
+        observation.setObservationUnitDbId(obsUnit.getObservationUnitDbId());
+        observation.setObservationUnitName(obsUnit.getObservationUnitName());
+        observation.setValue(value);
+
+        // The BrApi server needs this.  Breedbase does not.
+        BrAPISeason season = new BrAPISeason();
+        season.setSeasonDbId(seasonDbId);
+        observation.setSeason(season);
+
+        if(commit) {
+            Map<String, Object> createdBy = new HashMap<>();
+            createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId());
+            createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
+            observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.now()));
+
+            observation.setExternalReferences(experimentUtilities.getBrAPIExternalReferences(program, referenceSource, trialId,null, studyId, obsUnitId, observationId));
+        }
+        return observation;
     }
 //    public Map<String, BrAPIObservation> fetchExistingObservations(List<Trait> referencedTraits, Program program) throws ApiException {
 //        Set<String> ouDbIds = new HashSet<>();

@@ -2,6 +2,8 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import com.google.gson.Gson;
 import io.micronaut.context.annotation.Prototype;
+import org.brapi.v2.model.core.BrAPISeason;
+import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationError;
@@ -9,6 +11,7 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.FieldValidator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
@@ -26,36 +29,44 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 @Prototype
 public class InitialData extends VisitedObservationData {
     boolean isCommit;
+    String germplasmName;
+    BrAPIStudy study;
     String cellData;
     String phenoColumnName;
     Trait trait;
     ExperimentObservation row;
     UUID trialId;
     UUID studyId;
-    String unitId;
+    UUID unitId;
     String studyYear;
     BrAPIObservationUnit observationUnit;
     User user;
     Program program;
     private final FieldValidator fieldValidator;
     private final StudyService studyService;
+    private final ObservationService observationService;
     Gson gson;
 
     InitialData(boolean isCommit,
+                String germplasmName,
+                BrAPIStudy study,
                 String cellData,
                 String phenoColumnName,
                 Trait trait,
                 ExperimentObservation row,
                 UUID trialId,
                 UUID studyId,
-                String unitId,
+                UUID unitId,
                 String studyYear,
                 BrAPIObservationUnit observationUnit,
                 User user,
                 Program program,
                 FieldValidator fieldValidator,
-                StudyService studyService) {
+                StudyService studyService,
+                ObservationService observationService) {
         this.isCommit = isCommit;
+        this.germplasmName = germplasmName;
+        this.study = study;
         this.cellData = cellData;
         this.phenoColumnName = phenoColumnName;
         this.trait = trait;
@@ -69,6 +80,7 @@ public class InitialData extends VisitedObservationData {
         this.program = program;
         this.fieldValidator = fieldValidator;
         this.studyService = studyService;
+        this.observationService = observationService;
         this.gson = new Gson();
     }
     @Override
@@ -83,13 +95,27 @@ public class InitialData extends VisitedObservationData {
 
     @Override
     public PendingImportObject<BrAPIObservation> constructPendingObservation() {
-        String seasonDbId = studyService.seasonDbIdToYear(studyYear, program.getId());
+        String seasonDbId = studyService.yearToSeasonDbIdFromDatabase(studyYear, program.getId());
 
         // Generate a new ID for the observation
-        UUID observationID = UUID.randomUUID();
+        UUID observationId = UUID.randomUUID();
 
         // Construct the new observation
-        BrAPIObservation newObservation = row.constructBrAPIObservation(cellData, phenoColumnName, seasonDbId, observationUnit, isCommit, program, user, BRAPI_REFERENCE_SOURCE, trialId, studyId, UUID.fromString(unitId), observationID);
+        BrAPIObservation newObservation = observationService.constructNewBrAPIObservation(isCommit,
+                germplasmName,
+                phenoColumnName,
+                study,
+                seasonDbId,
+                observationUnit,
+                cellData,
+                trialId,
+                studyId,
+                unitId,
+                observationId,
+                BRAPI_REFERENCE_SOURCE,
+                user,
+                program);
+        //row.constructBrAPIObservation(cellData, phenoColumnName, seasonDbId, observationUnit, isCommit, program, user, BRAPI_REFERENCE_SOURCE, trialId, studyId, UUID.fromString(unitId), observationID);
 
         // Construct a pending observation with a status set to NEW
         return new PendingImportObject<>(ImportObjectState.NEW, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(newObservation, BrAPIObservation.class, program));
