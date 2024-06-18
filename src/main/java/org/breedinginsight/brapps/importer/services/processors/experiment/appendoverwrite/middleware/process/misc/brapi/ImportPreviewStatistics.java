@@ -1,8 +1,9 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.misc.brapi;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.brapi.NewPendingBrAPIObjects;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.misc.brapi.FieldValidation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.misc.brapi.NewPendingBrAPIObjects;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 import javax.inject.Inject;

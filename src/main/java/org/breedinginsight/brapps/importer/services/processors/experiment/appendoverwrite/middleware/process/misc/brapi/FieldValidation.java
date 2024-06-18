@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.misc.brapi;
 
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;

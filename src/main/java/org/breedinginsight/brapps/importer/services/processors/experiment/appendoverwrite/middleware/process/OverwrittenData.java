@@ -3,6 +3,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import io.micronaut.context.annotation.Prototype;
 import io.micronaut.http.HttpStatus;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.model.v1.response.ValidationError;
@@ -24,8 +25,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+@Prototype
 public class OverwrittenData extends VisitedObservationData {
-    @Inject
+
     FieldValidator fieldValidator;
     Gson gson;
     boolean canOverwrite;
@@ -41,6 +43,7 @@ public class OverwrittenData extends VisitedObservationData {
     UUID userId;
     Program program;
 
+    @Inject
     public OverwrittenData(boolean canOverwrite,
                            boolean isCommit,
                            String unitId,
@@ -52,7 +55,8 @@ public class OverwrittenData extends VisitedObservationData {
                            String reason,
                            BrAPIObservation observation,
                            UUID userId,
-                           Program program) {
+                           Program program,
+                           FieldValidator fieldValidator) {
         this.canOverwrite = canOverwrite;
         this.isCommit = isCommit;
         this.unitId = unitId;
@@ -65,6 +69,7 @@ public class OverwrittenData extends VisitedObservationData {
         this.observation = observation;
         this.userId = userId;
         this.program = program;
+        this.fieldValidator = fieldValidator;
         this.gson = new Gson();
     }
 

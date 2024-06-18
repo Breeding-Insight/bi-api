@@ -193,11 +193,11 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
                         Map.Entry::getKey,
                         e -> {
                             if (cache.getPendingTrialByOUId().isEmpty() ||
-                                    cache.getObsVarDatasetByName().isEmpty() ||
+                                    pendingDatasetByName.isEmpty() ||
                                     !cache.getPendingTrialByOUId().values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
                                 throw new IllegalStateException("There is not an observation data set for this unit: " + e.getKey());
                             }
-                            return cache.getObsVarDatasetByName().values().iterator().next();
+                            return pendingDatasetByName.values().iterator().next();
                         }
                 ));
 

@@ -1,6 +1,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
 
 import com.google.gson.Gson;
+import io.micronaut.context.annotation.Prototype;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.api.model.v1.response.ValidationError;
@@ -22,6 +23,7 @@ import java.util.UUID;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.BRAPI_REFERENCE_SOURCE;
 
+@Prototype
 public class InitialData extends VisitedObservationData {
     boolean isCommit;
     String cellData;
@@ -35,23 +37,24 @@ public class InitialData extends VisitedObservationData {
     BrAPIObservationUnit observationUnit;
     User user;
     Program program;
-    @Inject
-    FieldValidator fieldValidator;
-    @Inject
-    StudyService studyService;
+    private final FieldValidator fieldValidator;
+    private final StudyService studyService;
     Gson gson;
 
-    public InitialData(boolean isCommit,
-                       String cellData,
-                       String phenoColumnName,
-                       Trait trait,
-                       ExperimentObservation row,
-                       UUID trialId,
-                       UUID studyId,
-                       String unitId,
-                       String studyYear,
-                       BrAPIObservationUnit observationUnit, User user,
-                       Program program) {
+    InitialData(boolean isCommit,
+                String cellData,
+                String phenoColumnName,
+                Trait trait,
+                ExperimentObservation row,
+                UUID trialId,
+                UUID studyId,
+                String unitId,
+                String studyYear,
+                BrAPIObservationUnit observationUnit,
+                User user,
+                Program program,
+                FieldValidator fieldValidator,
+                StudyService studyService) {
         this.isCommit = isCommit;
         this.cellData = cellData;
         this.phenoColumnName = phenoColumnName;
@@ -64,6 +67,8 @@ public class InitialData extends VisitedObservationData {
         this.observationUnit = observationUnit;
         this.user = user;
         this.program = program;
+        this.fieldValidator = fieldValidator;
+        this.studyService = studyService;
         this.gson = new Gson();
     }
     @Override

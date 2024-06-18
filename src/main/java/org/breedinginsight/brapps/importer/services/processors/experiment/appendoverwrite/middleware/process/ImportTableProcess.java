@@ -59,6 +59,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
     Gson gson;
     FieldValidator fieldValidator;
     AppendStatistic statistic;
+    ProcessedDataFactory processedDataFactory;
 
     @Inject
     public ImportTableProcess(StudyService studyService,
@@ -67,7 +68,8 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                               ObservationService observationService,
                               ExperimentUtilities experimentUtil,
                               FieldValidator fieldValidator,
-                              AppendStatistic statistic) {
+                              AppendStatistic statistic,
+                              ProcessedDataFactory processedDataFactory) {
         this.studyService = studyService;
         this.observationVariableService = observationVariableService;
         this.brAPIObservationDAO = brAPIObservationDAO;
@@ -76,6 +78,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
         this.gson = new Gson();
         this.fieldValidator = fieldValidator;
         this.statistic = statistic;
+        this.processedDataFactory = processedDataFactory;
     }
 
     @Override
@@ -98,6 +101,10 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
         // Construct validation errors for any timestamp columns that don't have a matching variable column
         List<BrAPIImport> importRows = context.getImportContext().getImportRows();
+        Optional.ofNullable(context.getExpUnitContext().getValidationErrors()).orElseGet(() -> {
+            context.getExpUnitContext().setValidationErrors(new ValidationErrors());
+            return new ValidationErrors();
+        });
         ValidationErrors validationErrors = context.getExpUnitContext().getValidationErrors();
         List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(varNames, timestampCols).orElse(new ArrayList<>());
         for (int i = 0; i < importRows.size(); i++) {
@@ -240,7 +247,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                             Trait changeTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
 
                             // Create new instance of OverwrittenData
-                            processedData = new OverwrittenData(canOverwrite,
+                            processedData = processedDataFactory.overwrittenDataBean(canOverwrite,
                                     context.getImportContext().isCommit(),
                                     unitId,
                                     changeTrait,
@@ -255,17 +262,17 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                         } else {
 
                             // create new instance of UnchangedData
-                            processedData = new UnchangedData(observation, program);
+                            processedData = processedDataFactory.unchangedDataBean(observation, program);
                         }
 
                     } else {
 
                         // Clone the observation unit and trait
-                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getExpUnitContext().getPendingObsUnitByOUId().get(row.getExpUnitId()).getBrAPIObject()), BrAPIObservationUnit.class);
+                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getExpUnitContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
                         Trait initialTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
 
                         // create new instance of InitialData
-                        processedData = new InitialData(context.getImportContext().isCommit(),
+                        processedData = processedDataFactory.initialDataBean(context.getImportContext().isCommit(),
                                 cellData,
                                 phenoColumnName,
                                 initialTrait,
