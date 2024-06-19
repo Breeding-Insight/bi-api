@@ -21,7 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.GermplasmProcessor;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
@@ -32,6 +34,7 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -57,17 +60,28 @@ public class GermplasmImportService implements BrAPIImportService {
     }
 
     @Override
+    public List<ImportWorkflow> getWorkflows() {
+        return new ArrayList<>();
+    }
+
+    @Override
     public String getImportTypeId() {
         return IMPORT_TYPE_ID;
     }
 
     @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
+    public ImportPreviewResponse process(ImportServiceContext context)
             throws Exception {
 
         ImportPreviewResponse response = null;
         List<Processor> processors = List.of(germplasmProcessorProvider.get());
-        response = processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
+        response = processorManagerProvider.get().process(context.getBrAPIImports(),
+                processors,
+                context.getData(),
+                context.getProgram(),
+                context.getUpload(),
+                context.getUser(),
+                context.isCommit());
         return response;
     }
 }

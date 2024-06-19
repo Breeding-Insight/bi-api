@@ -183,6 +183,16 @@ public class BrAPIObservationDAO {
         );
     }
 
+    public List<BrAPIObservation> getObservationsByDbIds(List<String> dbIds, Program program) throws ApiException {
+        if(dbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> dbIds.contains(o.getObservationUnitDbId()))
+                .collect(Collectors.toList());
+    }
+
     public List<BrAPIObservation> getObservationsByTrialDbId(List<String> trialDbIds, Program program) throws ApiException {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();
