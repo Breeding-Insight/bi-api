@@ -35,9 +35,11 @@ public class BrAPIObservationCommit extends ExpUnitMiddleware {
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPIObservationCreation = brAPICreationFactory.observationWorkflowCreationBean(context);
+            log.info("creating new observations in the BrAPI service");
             createdBrAPIObservations = brAPIObservationCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
             brAPIObservationUpdate = brAPIUpdateFactory.observationWorkflowUpdateBean(context);
             priorBrAPIObservations = brAPIObservationUpdate.getBrAPIState().map(s -> s);
+            log.info("updating existing observations in the BrAPI service");
             updatedObservations = brAPIObservationUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
 
         } catch (ApiException e) {

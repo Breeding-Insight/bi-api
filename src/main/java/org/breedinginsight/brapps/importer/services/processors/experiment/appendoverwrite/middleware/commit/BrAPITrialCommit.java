@@ -35,9 +35,11 @@ public class BrAPITrialCommit extends ExpUnitMiddleware {
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPITrialCreation = brAPICreationFactory.trialWorkflowCreationBean(context);
+            log.info("creating new trials in the BrAPI service");
             createdBrAPITrials = brAPITrialCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
             brAPITrialUpdate = brAPIUpdateFactory.trialWorkflowUpdateBean(context);
             priorBrAPITrials = brAPITrialUpdate.getBrAPIState().map(s -> s);
+            log.info("updating existing trials in the BrAPI service");
             updatedTrials = brAPITrialUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
 
         } catch (ApiException e) {

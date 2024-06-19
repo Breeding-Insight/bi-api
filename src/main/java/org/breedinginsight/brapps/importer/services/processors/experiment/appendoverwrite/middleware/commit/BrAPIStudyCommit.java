@@ -31,6 +31,7 @@ public class BrAPIStudyCommit extends ExpUnitMiddleware {
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
         try {
             brAPIStudyCreation = brAPICreationFactory.studyWorkflowCreationBean(context);
+            log.info("creating new studies in the BrAPI service");
             createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));

@@ -1,6 +1,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.commit;
 
 import io.micronaut.context.annotation.Prototype;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.BrAPICreationFactory;
@@ -14,6 +15,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import javax.inject.Inject;
 import java.util.Optional;
 
+@Slf4j
 @Prototype
 public class BrAPIDatasetCommit extends ExpUnitMiddleware {
     private BrAPICreationFactory brAPICreationFactory;
@@ -29,6 +31,7 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
 
         try {
             datasetCreation = brAPICreationFactory.datasetWorkflowCreationBean(context);
+            log.info("creating new datasets in the BrAPI service");
             createdDatasets = datasetCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
