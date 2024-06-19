@@ -1,11 +1,14 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
+import org.breedinginsight.brapps.importer.services.ImportStatusService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.Transaction;
@@ -19,29 +22,32 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.Optional;
-
+@Slf4j
 @Getter
 @Singleton
 public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
     private final ExperimentWorkflowNavigator.Workflow workflow;
-    private final ExpUnitMiddleware middleware;
+    private final ExpUnitMiddleware importPreviewMiddleware;
+    private final ExpUnitMiddleware brapiCommitMiddleware;
+    private final ImportStatusService statusService;
 
     @Inject
     public AppendOverwritePhenotypesWorkflow(Transaction transaction,
                                              ExpUnitIDValidation expUnitIDValidation,
                                              WorkflowInitialization workflowInitialization,
                                              ImportTableProcess importTableProcess,
-                                             BrAPICommit brAPICommit){
+                                             BrAPICommit brAPICommit,
+                                             ImportStatusService statusService){
+        this.statusService = statusService;
         this.workflow = ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE;
-        this.middleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(
+        this.importPreviewMiddleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(
                 transaction,
                 expUnitIDValidation,
                 workflowInitialization,
-                importTableProcess,
-                brAPICommit);
+                importTableProcess);
+        this.brapiCommitMiddleware = (ExpUnitMiddleware) ExpUnitMiddleware.link(brAPICommit);
     }
 
     @Override
@@ -82,8 +88,8 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
                 .expUnitContext(new ExpUnitContext())
                 .build();
 
-        // Process the workflow
-        ExpUnitMiddlewareContext processedContext = this.middleware.process(workflowContext);
+        // Process the import preview
+        ExpUnitMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(workflowContext);
 
         // TODO: Rethrow any exceptions caught during processing the context
 //        Optional.ofNullable(processedContext.getExpUnitContext().getMiddlewareError()).ifPresent(e -> {
@@ -92,13 +98,37 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 //            throw newException;
 //        });
 
-        // Shape and return the workflow response
+        // BUild and return the preview response
         ImportPreviewResponse response = new ImportPreviewResponse();
-        response.setStatistics(processedContext.getExpUnitContext().getStatistic().constructPreviewMap());
-        response.setRows(new ArrayList<>(processedContext.getImportContext().getMappedBrAPIImport().values()));
-        response.setDynamicColumnNames(processedContext.getImportContext().getUpload().getDynamicColumnNamesList());
+        response.setStatistics(processedPreviewContext.getExpUnitContext().getStatistic().constructPreviewMap());
+        response.setRows(new ArrayList<>(processedPreviewContext.getImportContext().getMappedBrAPIImport().values()));
+        response.setDynamicColumnNames(processedPreviewContext.getImportContext().getUpload().getDynamicColumnNamesList());
 
         result.ifPresent(importWorkflowResult -> importWorkflowResult.setImportPreviewResponse(Optional.of(response)));
+
+        log.debug("Finished mapping data to brapi objects");
+        statusService.updateMappedData(context.getUpload(), response, "Finished mapping data to brapi objects");
+
+        if (!context.isCommit()) {
+            statusService.updateOk(context.getUpload());
+            return result;
+        } else {
+
+            // get total number of new brapi objects to create
+            long totalObjects = response.getStatistics().values().stream()
+                    .mapToLong(ImportPreviewStatistics::getNewObjectCount)  // Extract newObjectCount from each ImportStatistics entry
+                    .sum();  // Sum the newObjectCount values
+            log.debug("Starting upload to brapi service");
+            statusService.startUpload(context.getUpload(), totalObjects, "Starting upload to brapi service");
+            log.debug("Creating new objects in brapi service");
+            statusService.updateMessage(context.getUpload(), "Creating new objects in brapi service");
+
+            // Commit the changes from the processed import preview to the BrAPI service
+            ExpUnitMiddlewareContext brapiCommittedContext = this.brapiCommitMiddleware.process(processedPreviewContext);
+
+            log.debug("Completed upload to brapi service");
+            statusService.finishUpload(context.getUpload(), totalObjects, "Completed upload to brapi service");
+        }
 
         return result;
     }
