@@ -52,7 +52,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
     @Override
     public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
-        // Workflow processing the context
+        // Metadata about this workflow processing the context
         ImportWorkflow workflow = ImportWorkflow.builder()
                 .id(getWorkflow().getId())
                 .name(getWorkflow().getName())
@@ -60,7 +60,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
         // No-preview result
         Optional<ImportWorkflowResult> result = Optional.of(ImportWorkflowResult.builder()
-                .workflow(workflow)
+                .workflow(workflow)  // attach metadata of this workflow to response
                 .importPreviewResponse(Optional.empty())
                 .build());
 
@@ -69,7 +69,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
             return Optional.empty();
         }
 
-        // Skip processing if no context, but return no-preview result for this workflow
+        // Skip processing if no context, but return no-preview result with metadata for this workflow
         if (context == null) {
             return result;
         }
