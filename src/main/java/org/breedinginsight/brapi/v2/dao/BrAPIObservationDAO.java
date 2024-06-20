@@ -277,6 +277,9 @@ public class BrAPIObservationDAO {
         }
     }
 
+    // This method overloads updateBrAPIObservation(String dbId, BrAPIObservation observation, UUID programId)
+    // It was added to increase efficiency.  It insures that ProgramCache<BrAPIObservation>.populate() is called only once
+    // not once per observation.
     public void updateBrAPIObservation(Map<String, BrAPIObservation> mutatedObservationByDbId, UUID programId) throws ApiException {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
         var program = programDAO.fetchOneById(programId);
