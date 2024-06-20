@@ -53,8 +53,7 @@ public class WorkflowUpdate<T> implements BrAPIAction<T> {
         return Optional.ofNullable(members).map(changes -> {
             try {
                 List<V> savedMembers = entity.brapiPut(changes);
-                // TODO: set updated fields of workflow brapi object
-                // entity.updateWorkflow(savedMembers);
+                entity.updateWorkflow(savedMembers);
                 return new BrAPIUpdateState<V>(savedMembers);
             } catch (ApiException e) {
                 // TODO: add specific error messages to entity service

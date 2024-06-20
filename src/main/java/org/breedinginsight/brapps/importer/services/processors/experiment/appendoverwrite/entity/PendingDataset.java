@@ -105,7 +105,32 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
      */
     @Override
     public <U> List<U> brapiPut(List<U> members) throws ApiException, IllegalArgumentException {
-        return new ArrayList<>();
+        if (experimentUtilities.isInvalidMemberListForClass(members, BrAPIListDetails.class)) {
+            return new ArrayList<U>();
+        }
+
+        List<U> updatedDatasets = new ArrayList<>();
+        for (U member : members) {
+            BrAPIListDetails obsVarList = (BrAPIListDetails) member;
+            String obsVarListDbId = obsVarList.getListDbId();
+
+            // Get the current observation variables for the dataset from the BrAPI service
+            List<String> existingObsVarIds = brAPIListDAO.getListById(obsVarListDbId, importContext.getProgram().getId()).getResult().getData();
+
+            // Find any observation variables that need to be added to the list in the BrAPI service
+            List<String> newObsVarIds = obsVarList
+                    .getData()
+                    .stream()
+                    .filter(obsVarId -> !existingObsVarIds.contains(obsVarId)).collect(Collectors.toList());
+
+            // Save the additions to the list in the BrAPI service
+            List<String> obsVarIds = new ArrayList<>(existingObsVarIds);
+            obsVarIds.addAll(newObsVarIds);
+            obsVarList.setData(obsVarIds);
+            brAPIListDAO.updateBrAPIList(obsVarListDbId, obsVarList, importContext.getProgram().getId());
+        }
+
+        return updatedDatasets;
     }
 
     /**

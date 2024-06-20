@@ -8,6 +8,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPICreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.create.misc.BrAPIDatasetCreation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.BrAPIUpdateFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.update.WorkflowUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;
@@ -18,13 +20,18 @@ import java.util.Optional;
 @Slf4j
 @Prototype
 public class BrAPIDatasetCommit extends ExpUnitMiddleware {
-    private BrAPICreationFactory brAPICreationFactory;
+    private final BrAPICreationFactory brAPICreationFactory;
+    private final BrAPIUpdateFactory brAPIUpdateFactory;
     private WorkflowCreation<BrAPIListDetails> datasetCreation;
+    private WorkflowUpdate<BrAPIListDetails> datasetUpdate;
     private Optional<WorkflowCreation.BrAPICreationState> createdDatasets;
+    private Optional<WorkflowUpdate.BrAPIUpdateState> priorDatasets;
+    private Optional<WorkflowUpdate.BrAPIUpdateState> updatedDatasets;
 
     @Inject
-    public BrAPIDatasetCommit(BrAPICreationFactory brAPICreationFactory) {
+    public BrAPIDatasetCommit(BrAPICreationFactory brAPICreationFactory, BrAPIUpdateFactory brAPIUpdateFactory) {
         this.brAPICreationFactory = brAPICreationFactory;
+        this.brAPIUpdateFactory = brAPIUpdateFactory;
     }
     @Override
     public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
@@ -33,6 +40,10 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
             datasetCreation = brAPICreationFactory.datasetWorkflowCreationBean(context);
             log.info("creating new datasets in the BrAPI service");
             createdDatasets = datasetCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
+            datasetUpdate = brAPIUpdateFactory.datasetWorkflowUpdateBean(context);
+            priorDatasets = datasetUpdate.getBrAPIState().map(d -> d);
+            log.info("adding new observation variables to datasets");
+            updatedDatasets = datasetUpdate.execute().map(d -> (WorkflowUpdate.BrAPIUpdateState) d);
         } catch (ApiException e) {
             context.getExpUnitContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
@@ -47,6 +58,9 @@ public class BrAPIDatasetCommit extends ExpUnitMiddleware {
 
         // Delete any created datasets
         createdDatasets.ifPresent(WorkflowCreation.BrAPICreationState::undo);
+
+        // Revert any changes made to datasets in the BrAPI service
+        priorDatasets.ifPresent(WorkflowUpdate.BrAPIUpdateState::restore);
 
         // Undo the prior local transaction
         return compensatePrior(context);
