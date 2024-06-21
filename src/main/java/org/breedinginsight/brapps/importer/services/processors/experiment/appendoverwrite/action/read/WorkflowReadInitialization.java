@@ -6,7 +6,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIAction;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIState;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read.misc.BrAPIReadWorkflowInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.utilities.Utilities;
 
@@ -33,7 +32,7 @@ public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
         try {
             List<T> fetchedMembers = entity.brapiRead();
             entity.initializeWorkflow(fetchedMembers);
-            return Optional.of(new BrAPIReadWorkflowInitialization.BrAPIReadState<T>(fetchedMembers));
+            return Optional.of(new WorkflowReadInitialization.BrAPIReadState<T>(fetchedMembers));
         } catch(ApiException e) {
             log.error(String.format("Error fetching %s: %s", entity.getClass().getName(), Utilities.generateApiExceptionLogMessage(e)), e);
             throw new ApiException(e);
