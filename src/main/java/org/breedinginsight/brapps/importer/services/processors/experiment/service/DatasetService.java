@@ -7,27 +7,22 @@ import org.brapi.v2.model.BrAPIExternalReference;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.BrAPIListTypes;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.core.request.BrAPIListNewRequest;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
-import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 @Singleton
 public class DatasetService {
@@ -101,39 +96,7 @@ public class DatasetService {
         return new PendingImportObject<BrAPIListDetails>(ImportObjectState.EXISTING, dataset, UUID.fromString(xref.getReferenceId()));
     }
 
-    // TODO: used by expunit worflow
-//    public Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetForExistingObservationUnits(
-//            Map<String, PendingImportObject<BrAPITrial>> trialByName,
-//            Program program) {
-//        Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName = new HashMap<>();
-//
-//        if (trialByName.size() > 0 &&
-//                trialByName.values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-//            String datasetId = trialByName.values().iterator().next().getBrAPIObject()
-//                    .getAdditionalInfo()
-//                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
-//                    .getAsString();
-//
-//            try {
-//                List<BrAPIListSummary> existingDatasets = brAPIListDAO
-//                        .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,
-//                                program.getId(),
-//                                String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.DATASET.getName()),
-//                                UUID.fromString(datasetId));
-//                if (existingDatasets == null || existingDatasets.isEmpty()) {
-//                    throw new InternalServerException("existing dataset summary not returned from brapi server");
-//                }
-//                BrAPIListDetails dataSetDetails = brAPIListDAO
-//                        .getListById(existingDatasets.get(0).getListDbId(), program.getId())
-//                        .getResult();
-//                processAndCacheObsVarDataset(dataSetDetails, obsVarDatasetByName);
-//            } catch (ApiException e) {
-//                log.error(Utilities.generateApiExceptionLogMessage(e), e);
-//                throw new InternalServerException(e.toString(), e);
-//            }
-//        }
-//        return obsVarDatasetByName;
-//    }
+
 
     // TODO: used by create workflow
 //    public Map<String, PendingImportObject<BrAPIListDetails>> initializeObsVarDatasetByName(Program program, List<ExperimentObservation> experimentImportRows) {
@@ -199,38 +162,6 @@ public class DatasetService {
         });
     }
 
-    // TODO: used by expunit workflow
-//    public void fetchOrCreateDatasetPIO(ImportContext importContext,
-//                                        PendingData pendingData,
-//                                        ExpUnitContext expUnitContext,
-//                                        List<Trait> referencedTraits) throws UnprocessableEntityException {
-//        PendingImportObject<BrAPIListDetails> pio;
-//        PendingImportObject<BrAPITrial> trialPIO = getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES);
-//        String name = String.format("Observation Dataset [%s-%s]",
-//                program.getKey(),
-//                trialPIO.getBrAPIObject()
-//                        .getAdditionalInfo()
-//                        .get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER)
-//                        .getAsString());
-//        if (obsVarDatasetByName.containsKey(name)) {
-//            pio = obsVarDatasetByName.get(name);
-//        } else {
-//            UUID id = UUID.randomUUID();
-//            BrAPIListDetails newDataset = importRow.constructDatasetDetails(
-//                    name,
-//                    id,
-//                    BRAPI_REFERENCE_SOURCE,
-//                    program,
-//                    trialPIO.getId().toString());
-//            pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
-//            trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
-//            if (ImportObjectState.EXISTING == trialPIO.getState()) {
-//                trialPIO.setState(ImportObjectState.MUTATED);
-//            }
-//            obsVarDatasetByName.put(name, pio);
-//        }
-//        addObsVarsToDatasetDetails(pio, referencedTraits, program);
-//    }
 
     // TODO: used by create workflow
 //    public void fetchOrCreateDatasetPIO(ImportContext importContext,
