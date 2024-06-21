@@ -101,9 +101,7 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
 
         // Make sure the file does not contain obs unit ids before proceeding
         if (containsObsUnitIDs(context)) {
-            // TODO: get file name
-            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Error detected in file, " +
-                    upload.getUploadFileName() + ". ObsUnitIDs are detected. Import cannot proceed");
+            throw new HttpStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ObsUnitIDs are detected");
         }
 
         statusService.updateMessage(upload, "Checking existing experiment objects in brapi service and mapping data");
