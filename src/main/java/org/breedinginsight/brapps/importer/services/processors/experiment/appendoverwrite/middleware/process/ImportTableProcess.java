@@ -96,7 +96,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
         // Collect the columns for observation variable data
         List<Column<?>> phenotypeCols = dynamicCols.stream().filter(col -> !col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
-        Set<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toSet());
+        List<String> varNames = phenotypeCols.stream().map(Column::name).collect(Collectors.toList());
 
         // Collect the columns for observation timestamps
         List<Column<?>> timestampCols = dynamicCols.stream().filter(col -> col.name().startsWith(TIMESTAMP_PREFIX)).collect(Collectors.toList());
@@ -109,7 +109,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             return new ValidationErrors();
         });
         ValidationErrors validationErrors = context.getExpUnitContext().getValidationErrors();
-        List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(varNames, timestampCols).orElse(new ArrayList<>());
+        List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(Set.copyOf(varNames), timestampCols).orElse(new ArrayList<>());
         for (int i = 0; i < importRows.size(); i++) {
             int rowNum = i;
             tsValErrs.forEach(validationError -> validationErrors.addError(rowNum, validationError));
@@ -129,7 +129,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
             // Fetch the traits named in the observation variable columns
             Program program = context.getImportContext().getProgram();
-            List<Trait> traits = observationVariableService.fetchTraitsByName(varNames, program);
+            List<Trait> traits = observationVariableService.fetchTraitsByName(Set.copyOf(varNames), program);
 
             // Map trait by phenotype column name
             Map<String, Trait> traitByPhenoColName = traits.stream().collect(
@@ -142,7 +142,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             );
 
             // Sort the traits to match the order of the headers in the import file
-            List<Trait> sortedTraits = experimentUtil.sortByField(List.copyOf(varNames), new ArrayList<>(traits), TraitEntity::getObservationVariableName);
+            List<Trait> sortedTraits = experimentUtil.sortByField(varNames, new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
             // Get the pending observation dataset
             PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getExpUnitContext().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
@@ -150,9 +150,9 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             PendingImportObject<BrAPIListDetails> pendingDataset = context.getExpUnitContext().getObsVarDatasetByName().get(datasetName);
 
             // Add new phenotypes to the pending observation dataset list (NOTE: "obsVarName [programKey]" is used instead of obsVarDbId)
-            // TODO: Change to using actual dbIds as per the BrAPI spec, instead of namespaced obsVar names (necessary for Breedbase)
-            Set<String> datasetObsVarDbIds = pendingDataset.getBrAPIObject().getData().stream().collect(Collectors.toSet());
-            Set<String> phenoDbIds = sortedTraits.stream().map(t->Utilities.appendProgramKey(t.getObservationVariableName(), program.getKey())).collect(Collectors.toSet());
+            // TODO: Change to using actual dbIds as per the BrAPI spec, instead of namespaced obsVar names (was necessary for Breedbase)
+            List<String> datasetObsVarDbIds = pendingDataset.getBrAPIObject().getData().stream().collect(Collectors.toList());
+            List<String> phenoDbIds = sortedTraits.stream().map(t->Utilities.appendProgramKey(t.getObservationVariableName(), program.getKey())).collect(Collectors.toList());
             phenoDbIds.removeAll(datasetObsVarDbIds);
             pendingDataset.getBrAPIObject().getData().addAll(phenoDbIds);
 
