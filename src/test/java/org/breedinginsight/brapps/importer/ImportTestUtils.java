@@ -97,6 +97,38 @@ public class ImportTestUtils {
         return processCall;
     }
 
+    public Flowable<HttpResponse<String>> uploadWorkflowDataFile(File file,
+                                                                 Map<String, String> userData,
+                                                                 Boolean commit,
+                                                                 RxHttpClient client,
+                                                                 Program program,
+                                                                 String mappingId,
+                                                                 String workflowId) {
+
+        MultipartBody requestBody = MultipartBody.builder().addPart("file", file).build();
+
+        // Upload file
+        String uploadUrl = String.format("/programs/%s/import/mappings/%s/data", program.getId(), mappingId);
+        Flowable<HttpResponse<String>> call = client.exchange(
+                POST(uploadUrl, requestBody)
+                        .contentType(MediaType.MULTIPART_FORM_DATA_TYPE)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.OK, response.getStatus());
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+        String importId = result.get("importId").getAsString();
+
+        // Process data
+        String url = String.format("/programs/%s/import/mappings/%s/workflows/%s/data/%s/%s", program.getId(), mappingId, workflowId, importId, commit ? "commit" : "preview");
+        Flowable<HttpResponse<String>> processCall = client.exchange(
+                PUT(url, userData)
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        return processCall;
+
+    }
+
     public HttpResponse<String> getUploadedFile(String importId, RxHttpClient client, Program program, String mappingId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/import/mappings/%s/data/%s?mapping=true", program.getId(), mappingId, importId))
@@ -123,16 +155,16 @@ public class ImportTestUtils {
         // Species
         Species validSpecies = speciesService.getAll().get(0);
         SpeciesRequest speciesRequest = SpeciesRequest.builder()
-                                                      .commonName(validSpecies.getCommonName())
-                                                      .id(validSpecies.getId())
-                                                      .build();
+                .commonName(validSpecies.getCommonName())
+                .id(validSpecies.getId())
+                .build();
 
         // Insert program
         ProgramRequest program = ProgramRequest.builder()
-                                               .name("Test Program")
-                                               .species(speciesRequest)
-                                               .key("TEST")
-                                               .build();
+                .name("Test Program")
+                .species(speciesRequest)
+                .key("TEST")
+                .build();
         Program validProgram = this.insertAndFetchTestProgram(program, client, gson);
 
         // Get import
@@ -141,18 +173,18 @@ public class ImportTestUtils {
         );
         HttpResponse<String> response = call.blockingFirst();
         String mappingId = JsonParser.parseString(response.body()).getAsJsonObject()
-                                       .getAsJsonObject("result")
-                                       .getAsJsonArray("data")
-                                       .get(0).getAsJsonObject().get("id").getAsString();
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(0).getAsJsonObject().get("id").getAsString();
 
         BiUserEntity testUser = userDAO.getUserByOrcId(TestTokenValidator.TEST_USER_ORCID).get();
         dsl.execute(securityFp.get("InsertProgramRolesBreeder"), testUser.getId().toString(), validProgram.getId());
         dsl.execute(securityFp.get("InsertSystemRoleAdmin"), testUser.getId().toString());
 
         return Map.of("program", validProgram,
-                      "mappingId", mappingId,
-                      "testUser", testUser,
-                      "securityFp", securityFp);
+                "mappingId", mappingId,
+                "testUser", testUser,
+                "securityFp", securityFp);
     }
 
 
@@ -167,6 +199,43 @@ public class ImportTestUtils {
         HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        return result;
+    }
+
+    public JsonObject uploadAndFetchWorkflow(File file,
+                                             Map<String, String> userData,
+                                             Boolean commit,
+                                             RxHttpClient client,
+                                             Program program,
+                                             String mappingId,
+                                             String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
+        assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        return result;
+    }
+
+    public JsonObject uploadAndFetchWorkflowNoStatusCheck(File file,
+                                                          Map<String, String> userData,
+                                                          Boolean commit,
+                                                          RxHttpClient client,
+                                                          Program program,
+                                                          String mappingId,
+                                                          String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         return result;
     }
 
