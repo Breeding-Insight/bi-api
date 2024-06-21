@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.factory.entity;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;

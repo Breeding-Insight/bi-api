@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.factory.action;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action;
 
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
@@ -8,7 +8,7 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.brapps.importer.services.processors.experiment.factory.entity.PendingEntityFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity.PendingEntityFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.model.ProgramLocation;
 
