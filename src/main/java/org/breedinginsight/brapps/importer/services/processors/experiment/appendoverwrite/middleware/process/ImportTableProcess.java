@@ -241,7 +241,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if (!cellData.equals(observation.getValue()) || (cell.timestamp != null && !OffsetDateTime.parse(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
+                        if ((!cellData.isBlank() && !cellData.equals(observation.getValue())) || (cell.timestamp != null && !OffsetDateTime.parse(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
 
                             // Is prior data protected?
                             boolean canOverwrite = context.getImportContext().isCommit() && "false".equals( row.getOverwrite() == null ? "false" : row.getOverwrite());

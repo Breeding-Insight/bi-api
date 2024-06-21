@@ -1156,10 +1156,12 @@ public class ExperimentFileImportTest extends BrAPITest {
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
 
+        Map<String, Object> bothPhenotypeObservations = new HashMap<>(newObservation);
+        bothPhenotypeObservations.put(traits.get(0).getObservationVariableName(), "1");
         if(commit) {
-            assertRowSaved(newObservation, program, traits);
+            assertRowSaved(bothPhenotypeObservations, program, traits);
         } else {
-            assertValidPreviewRow(newObservation, row, program, traits);
+            assertValidPreviewRow(bothPhenotypeObservations, row, program, traits);
         }
     }
 
