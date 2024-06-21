@@ -567,7 +567,9 @@ public class PopulateNewPendingImportObjectsStep {
         key = getImportObservationHash(importRow, variableName);
 
         if (existingObsByObsHash.containsKey(key)) {
-            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum)){
+            // NOTE: BI-2128 change added after refactor branch
+            // Update observation value only if it is changed and new value is not blank.
+            if (!isObservationMatched(phenotypeData, pendingData, key, value, column, rowNum) && StringUtils.isNotBlank(value)){
 
                 // prior observation with updated value
                 newObservation = gson.fromJson(gson.toJson(existingObsByObsHash.get(key)), BrAPIObservation.class);
