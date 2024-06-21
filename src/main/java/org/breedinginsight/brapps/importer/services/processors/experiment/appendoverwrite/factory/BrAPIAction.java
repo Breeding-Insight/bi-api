@@ -1,7 +1,8 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory;
 
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.BrAPIState;
 
 import java.util.Optional;
 

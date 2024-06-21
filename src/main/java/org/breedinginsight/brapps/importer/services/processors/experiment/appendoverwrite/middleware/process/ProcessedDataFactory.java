@@ -7,7 +7,7 @@ import org.brapi.v2.model.core.BrAPIStudy;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.FieldValidator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.field.FieldValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;
 import org.breedinginsight.model.Program;

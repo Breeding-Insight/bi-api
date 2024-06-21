@@ -1,8 +1,9 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.field;
 
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.response.ValidationError;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.field.ObservationValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.model.Trait;
 

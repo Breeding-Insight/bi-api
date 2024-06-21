@@ -1,11 +1,9 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory;
 
 import io.micronaut.context.annotation.Prototype;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIAction;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity.ExperimentImportEntity;
 import org.breedinginsight.utilities.Utilities;
 

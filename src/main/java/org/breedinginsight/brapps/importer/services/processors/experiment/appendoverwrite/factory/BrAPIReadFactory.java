@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.action.read;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory;
 
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
