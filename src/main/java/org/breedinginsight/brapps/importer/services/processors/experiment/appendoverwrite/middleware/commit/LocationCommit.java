@@ -3,8 +3,8 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.BrAPICreationFactory;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.WorkflowCreation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.factory.action.BrAPICreationFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.factory.action.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.ExpUnitMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.MiddlewareError;

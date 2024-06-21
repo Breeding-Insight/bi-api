@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.middleware;
+package org.breedinginsight.brapps.importer.services.processors.experiment.model.middleware;
 
 public abstract class Middleware<T> {
 

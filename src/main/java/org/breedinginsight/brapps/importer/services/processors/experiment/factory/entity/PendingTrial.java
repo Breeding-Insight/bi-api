@@ -1,9 +1,8 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.entity;
+package org.breedinginsight.brapps.importer.services.processors.experiment.factory.entity;
 
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
@@ -14,7 +13,6 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.TrialService;
 import org.breedinginsight.utilities.Utilities;
 
-import javax.inject.Inject;
 import java.util.*;
 import java.util.stream.Collectors;
 

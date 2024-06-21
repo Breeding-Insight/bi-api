@@ -1,27 +1,25 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.field;
+package org.breedinginsight.brapps.importer.services.processors.experiment.validator.field;
 
 import io.micronaut.http.HttpStatus;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.response.ValidationError;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.validator.field.ObservationValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.model.Trait;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
-import static org.breedinginsight.dao.db.enums.DataType.NUMERICAL;
+import static org.breedinginsight.dao.db.enums.DataType.NOMINAL;
 
 @Slf4j
 @Singleton
-public class NumericalValidator implements ObservationValidator {
+public class NominalValidator implements ObservationValidator {
     @Inject
     ObservationService observationService;
 
-    public NumericalValidator(ObservationService observationService) {
+    public NominalValidator(ObservationService observationService) {
         this.observationService = observationService;
     }
     @Override
@@ -46,22 +44,16 @@ public class NumericalValidator implements ObservationValidator {
             return Optional.empty();
         }
 
-        // Skip if this is not a numerical trait
-        if (!NUMERICAL.equals(variable.getScale().getDataType())) {
+        // Skip if this is not an ordinal trait
+        if (!NOMINAL.equals(variable.getScale().getDataType())) {
             return Optional.empty();
         }
 
-        Optional<BigDecimal> number = observationService.validNumericValue(value);
-        Optional<ValidationError> validationError = number
-                .flatMap(num -> {
-                    if (observationService.validNumericRange(num, variable.getScale())) {
-                        return Optional.empty(); // Return empty Optional if value is in numeric range
-                    } else {
-                        return Optional.of(new ValidationError(fieldName, "Value outside of min/max range detected", HttpStatus.UNPROCESSABLE_ENTITY));
-                    }
-                });
+        // Validate categories
+        if (!observationService.validCategory(variable.getScale().getCategories(), value)) {
+            return Optional.of(new ValidationError(fieldName, "Undefined nominal category detected", HttpStatus.UNPROCESSABLE_ENTITY));
+        }
 
-        return validationError;
-
+        return Optional.empty();
     }
 }
