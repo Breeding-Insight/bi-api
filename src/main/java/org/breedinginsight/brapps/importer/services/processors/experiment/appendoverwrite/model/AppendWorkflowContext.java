@@ -21,7 +21,8 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class ExpUnitContext {
+public class AppendWorkflowContext {
+    // Cache maps keyed by existing observation unit ids
     private Set<String> referenceOUIds = new HashSet<>();
     private Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = new HashMap<>();
     private Map<String, PendingImportObject<BrAPIStudy>> pendingStudyByOUId = new HashMap<>();
@@ -35,16 +36,18 @@ public class ExpUnitContext {
 
     // Exceptions
     private MiddlewareError processError;
+    private ValidationErrors validationErrors;
 
-    // Carry over from PendingData
+    // Cache maps keyed by name without program scope
     private Map<String, PendingImportObject<BrAPIObservationUnit>> observationUnitByNameNoScope;
     private Map<String, PendingImportObject<BrAPITrial>> trialByNameNoScope;
     private Map<String, PendingImportObject<BrAPIStudy>> studyByNameNoScope;
     private Map<String, PendingImportObject<ProgramLocation>> locationByName;
     private Map<String, PendingImportObject<BrAPIListDetails>> obsVarDatasetByName;
+
+    // Other helpful cache maps
     private Map<String, PendingImportObject<BrAPIGermplasm>> existingGermplasmByGID;
     private Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash;
     private Map<String, Column<?>> timeStampColByPheno;
     private Map<String, BrAPIObservation> existingObsByObsHash;
-    private ValidationErrors validationErrors;
 }

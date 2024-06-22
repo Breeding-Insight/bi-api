@@ -7,7 +7,7 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Trait;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 
 @Prototype
 public class PendingObservation implements ExperimentImportEntity<BrAPIObservation> {
-    ExpUnitContext cache;
+    AppendWorkflowContext cache;
     ImportContext importContext;
     BrAPIObservationDAO brAPIObservationDAO;
     OntologyService ontologyService;

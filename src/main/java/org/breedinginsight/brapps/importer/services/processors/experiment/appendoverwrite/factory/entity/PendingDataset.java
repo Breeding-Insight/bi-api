@@ -10,7 +10,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPIListDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.DatasetService;
@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
 
 @Prototype
 public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> {
-    ExpUnitContext cache;
+    AppendWorkflowContext cache;
     ImportContext importContext;
     BrAPIListDAO brAPIListDAO;
     DatasetService datasetService;

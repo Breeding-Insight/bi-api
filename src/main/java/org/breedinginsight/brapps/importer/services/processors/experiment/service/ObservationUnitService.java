@@ -1,29 +1,16 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
-import org.apache.commons.lang3.StringUtils;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.BrAPIExternalReference;
-import org.brapi.v2.model.core.BrAPIStudy;
-import org.brapi.v2.model.core.BrAPITrial;
-import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
-import org.breedinginsight.api.model.v1.response.ValidationErrors;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
-import org.breedinginsight.model.ProgramLocation;
-import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
-import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;

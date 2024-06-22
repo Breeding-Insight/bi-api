@@ -7,7 +7,7 @@ import org.breedinginsight.brapi.v2.dao.BrAPITrialDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.TrialService;
@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 
 @Prototype
 public class PendingTrial implements ExperimentImportEntity<BrAPITrial> {
-    private final ExpUnitContext cache;
+    private final AppendWorkflowContext cache;
     private final ImportContext importContext;
     private final TrialService trialService;
     private final BrAPITrialDAO brapiTrialDAO;
