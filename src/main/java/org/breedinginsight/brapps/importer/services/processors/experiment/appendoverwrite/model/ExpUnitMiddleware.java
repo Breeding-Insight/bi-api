@@ -1,6 +1,5 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model;
 
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.middleware.Middleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
 
 /**

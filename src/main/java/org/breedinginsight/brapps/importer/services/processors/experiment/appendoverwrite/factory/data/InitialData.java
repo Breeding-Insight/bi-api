@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data;
 
 import com.google.gson.Gson;
 import io.micronaut.context.annotation.Prototype;
@@ -9,6 +9,8 @@ import org.breedinginsight.api.model.v1.response.ValidationError;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.VisitedObservationData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.AppendStatistic;
 import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.StudyService;

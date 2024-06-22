@@ -1,36 +1,18 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
 import io.micronaut.http.HttpStatus;
-import io.micronaut.http.server.exceptions.InternalServerException;
-import org.apache.commons.collections4.map.CaseInsensitiveMap;
 import org.apache.commons.lang3.StringUtils;
-import org.brapi.client.v2.model.exceptions.ApiException;
-import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.api.model.v1.response.ValidationError;
-import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
-import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
-import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.OverwrittenData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
-import org.breedinginsight.utilities.Utilities;
 import tech.tablesaw.columns.Column;
 import org.breedinginsight.dao.db.tables.pojos.TraitEntity;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 

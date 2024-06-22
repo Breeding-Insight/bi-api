@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -11,6 +11,8 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.VisitedObservationData;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.AppendStatistic;
 import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;

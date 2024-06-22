@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.model;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model;
 
 import lombok.Getter;
 import lombok.Setter;

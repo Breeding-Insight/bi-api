@@ -1,4 +1,4 @@
-package org.breedinginsight.brapps.importer.services.processors.experiment.model.middleware;
+package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model;
 
 public abstract class Middleware<T> {
 
