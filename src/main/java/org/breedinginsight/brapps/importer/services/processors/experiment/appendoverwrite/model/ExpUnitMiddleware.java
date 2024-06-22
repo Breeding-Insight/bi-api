@@ -1,7 +1,5 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model;
 
-import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpUnitMiddlewareContext;
-
 /**
  * ExpUnitMiddleware class extends Middleware class to handle compensating transactions in the context of ExpUnitMiddlewareContext.
  */
