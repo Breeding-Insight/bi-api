@@ -7,8 +7,8 @@ import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendWorkflowContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.GermplasmService;
 import org.breedinginsight.services.exceptions.DoesNotExistException;
@@ -20,15 +20,15 @@ import java.util.stream.Collectors;
 
 @Prototype
 public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> {
-    AppendWorkflowContext cache;
+    AppendOverwriteWorkflowContext cache;
     ImportContext importContext;
     GermplasmService germplasmService;
     ExperimentUtilities experimentUtilities;
 
-    public PendingGermplasm(ExpUnitMiddlewareContext context,
+    public PendingGermplasm(AppendOverwriteMiddlewareContext context,
                             GermplasmService germplasmService,
                             ExperimentUtilities experimentUtilities) {
-        this.cache = context.getExpUnitContext();
+        this.cache = context.getAppendOverwriteWorkflowContext();
         this.importContext = context.getImportContext();
         this.germplasmService = germplasmService;
         this.experimentUtilities = experimentUtilities;

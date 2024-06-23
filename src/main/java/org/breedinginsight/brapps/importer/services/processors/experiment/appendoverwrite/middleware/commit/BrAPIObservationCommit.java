@@ -8,8 +8,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPIUpdateFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowUpdate;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareError;
 
 import javax.inject.Inject;
@@ -17,7 +17,7 @@ import java.util.Optional;
 
 @Slf4j
 @Prototype
-public class BrAPIObservationCommit extends ExpUnitMiddleware {
+public class BrAPIObservationCommit extends AppendOverwriteMiddleware {
     private final BrAPICreationFactory brAPICreationFactory;
     private final BrAPIUpdateFactory brAPIUpdateFactory;
     private WorkflowCreation<BrAPIObservation> brAPIObservationCreation;
@@ -32,7 +32,7 @@ public class BrAPIObservationCommit extends ExpUnitMiddleware {
         this.brAPIUpdateFactory = brAPIUpdateFactory;
     }
     @Override
-    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
             brAPIObservationCreation = brAPICreationFactory.observationWorkflowCreationBean(context);
             log.info("creating new observations in the BrAPI service");
@@ -43,7 +43,7 @@ public class BrAPIObservationCommit extends ExpUnitMiddleware {
             updatedObservations = brAPIObservationUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
 
         } catch (ApiException e) {
-            context.getExpUnitContext().setProcessError(new MiddlewareError(e));
+            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
         }
 
@@ -51,9 +51,9 @@ public class BrAPIObservationCommit extends ExpUnitMiddleware {
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext compensate(AppendOverwriteMiddlewareContext context) {
         // Tag an error if it occurred in this local transaction
-        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
+        context.getAppendOverwriteWorkflowContext().getProcessError().tag(this.getClass().getName());
 
         // Delete any created observations from the BrAPI service
         createdBrAPIObservations.ifPresent(WorkflowCreation.BrAPICreationState::undo);

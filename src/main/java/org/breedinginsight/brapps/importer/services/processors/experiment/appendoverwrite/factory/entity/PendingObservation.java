@@ -7,8 +7,8 @@ import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendWorkflowContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.OntologyService;
@@ -21,17 +21,17 @@ import java.util.stream.Collectors;
 
 @Prototype
 public class PendingObservation implements ExperimentImportEntity<BrAPIObservation> {
-    AppendWorkflowContext cache;
+    AppendOverwriteWorkflowContext cache;
     ImportContext importContext;
     BrAPIObservationDAO brAPIObservationDAO;
     OntologyService ontologyService;
     ExperimentUtilities experimentUtilities;
 
-    public PendingObservation(ExpUnitMiddlewareContext context,
+    public PendingObservation(AppendOverwriteMiddlewareContext context,
                               BrAPIObservationDAO brAPIObservationDAO,
                               OntologyService ontologyService,
                               ExperimentUtilities experimentUtilities) {
-        this.cache = context.getExpUnitContext();
+        this.cache = context.getAppendOverwriteWorkflowContext();
         this.importContext = context.getImportContext();
         this.brAPIObservationDAO = brAPIObservationDAO;
         this.ontologyService = ontologyService;

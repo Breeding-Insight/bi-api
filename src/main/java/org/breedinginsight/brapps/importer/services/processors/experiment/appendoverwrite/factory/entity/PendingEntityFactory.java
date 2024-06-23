@@ -5,7 +5,7 @@ import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Prototype;
 import org.breedinginsight.brapi.v2.dao.*;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.*;
 import org.breedinginsight.services.OntologyService;
 import org.breedinginsight.services.ProgramLocationService;
@@ -58,48 +58,48 @@ public class PendingEntityFactory {
         this.experimentUtilities = experimentUtilities;
     }
 
-    public static PendingTrial pendingTrial(ExpUnitMiddlewareContext context,
+    public static PendingTrial pendingTrial(AppendOverwriteMiddlewareContext context,
                                             TrialService trialService,
                                             BrAPITrialDAO brapiTrialDAO,
                                             ExperimentUtilities experimentUtilities) {
         return new PendingTrial(context, trialService, brapiTrialDAO, experimentUtilities);
     }
 
-    public static PendingObservationUnit pendingObservationUnit(ExpUnitMiddlewareContext context,
+    public static PendingObservationUnit pendingObservationUnit(AppendOverwriteMiddlewareContext context,
                                                                 BrAPIObservationUnitDAO observationUnitDAO,
                                                                 ObservationUnitService observationUnitService,
                                                                 ExperimentUtilities experimentUtilities) {
         return new PendingObservationUnit(context, observationUnitDAO, observationUnitService, experimentUtilities);
     }
 
-    public static PendingStudy pendingStudy(ExpUnitMiddlewareContext context,
+    public static PendingStudy pendingStudy(AppendOverwriteMiddlewareContext context,
                                             StudyService studyService,
                                             BrAPIStudyDAO brAPIStudyDAO,
                                             ExperimentUtilities experimentUtilities) {
         return new PendingStudy(context, studyService, brAPIStudyDAO, experimentUtilities);
     }
 
-    public static PendingGermplasm pendingGermplasm(ExpUnitMiddlewareContext context,
+    public static PendingGermplasm pendingGermplasm(AppendOverwriteMiddlewareContext context,
                                                     GermplasmService germplasmService,
                                                     ExperimentUtilities experimentUtilities) {
         return new PendingGermplasm(context, germplasmService, experimentUtilities);
     }
 
-    public static PendingDataset pendingDataset(ExpUnitMiddlewareContext context,
+    public static PendingDataset pendingDataset(AppendOverwriteMiddlewareContext context,
                                                 BrAPIListDAO brAPIListDAO,
                                                 DatasetService datasetService,
                                                 ExperimentUtilities experimentUtilities) {
         return new PendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
     }
 
-    public static PendingObservation pendingObservation(ExpUnitMiddlewareContext context,
+    public static PendingObservation pendingObservation(AppendOverwriteMiddlewareContext context,
                                                         BrAPIObservationDAO brAPIObservationDAO,
                                                         OntologyService ontologyService,
                                                         ExperimentUtilities experimentUtilities) {
         return new PendingObservation(context, brAPIObservationDAO, ontologyService, experimentUtilities);
     }
 
-    public static PendingLocation pendingLocation(ExpUnitMiddlewareContext context,
+    public static PendingLocation pendingLocation(AppendOverwriteMiddlewareContext context,
                                                   ProgramLocationService programLocationService,
                                                   LocationService locationService,
                                                   ExperimentUtilities experimentUtilities) {
@@ -108,43 +108,43 @@ public class PendingEntityFactory {
 
     @Bean
     @Prototype
-    public PendingTrial pendingTrialBean(ExpUnitMiddlewareContext context) {
+    public PendingTrial pendingTrialBean(AppendOverwriteMiddlewareContext context) {
         return pendingTrial(context, trialService, brapiTrialDAO, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingObservationUnit pendingObservationUnitBean(ExpUnitMiddlewareContext context) {
+    public PendingObservationUnit pendingObservationUnitBean(AppendOverwriteMiddlewareContext context) {
         return pendingObservationUnit(context, observationUnitDAO, observationUnitService, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingStudy pendingStudyBean(ExpUnitMiddlewareContext context) {
+    public PendingStudy pendingStudyBean(AppendOverwriteMiddlewareContext context) {
         return pendingStudy(context, studyService, brAPIStudyDAO, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingGermplasm pendingGermplasmBean(ExpUnitMiddlewareContext context) {
+    public PendingGermplasm pendingGermplasmBean(AppendOverwriteMiddlewareContext context) {
         return pendingGermplasm(context, germplasmService, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingDataset pendingDatasetBean(ExpUnitMiddlewareContext context) {
+    public PendingDataset pendingDatasetBean(AppendOverwriteMiddlewareContext context) {
         return pendingDataset(context, brAPIListDAO, datasetService, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingObservation pendingObservationBean(ExpUnitMiddlewareContext context) {
+    public PendingObservation pendingObservationBean(AppendOverwriteMiddlewareContext context) {
         return pendingObservation(context, brAPIObservationDAO, ontologyService, experimentUtilities);
     }
 
     @Bean
     @Prototype
-    public PendingLocation pendingLocationBean(ExpUnitMiddlewareContext context) {
+    public PendingLocation pendingLocationBean(AppendOverwriteMiddlewareContext context) {
         return pendingLocation(context, programLocationService, locationService, experimentUtilities);
     }
 }

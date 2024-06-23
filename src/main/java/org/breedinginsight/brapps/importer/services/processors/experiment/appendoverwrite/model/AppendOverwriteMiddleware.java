@@ -3,7 +3,7 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 /**
  * ExpUnitMiddleware class extends Middleware class to handle compensating transactions in the context of ExpUnitMiddlewareContext.
  */
-public abstract class ExpUnitMiddleware extends Middleware<ExpUnitMiddlewareContext> {
+public abstract class AppendOverwriteMiddleware extends Middleware<AppendOverwriteMiddlewareContext> {
 
     /**
      * Compensates for an error that occurred in the current local transaction, tagging the error and undoing the previous local transaction.
@@ -12,9 +12,9 @@ public abstract class ExpUnitMiddleware extends Middleware<ExpUnitMiddlewareCont
      * @return True if the prior local transaction was successfully compensated, false otherwise.
      */
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext compensate(AppendOverwriteMiddlewareContext context) {
         // tag an error if it occurred in this local transaction
-        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
+        context.getAppendOverwriteWorkflowContext().getProcessError().tag(this.getClass().getName());
 
         // undo the prior local transaction
         return compensatePrior(context);

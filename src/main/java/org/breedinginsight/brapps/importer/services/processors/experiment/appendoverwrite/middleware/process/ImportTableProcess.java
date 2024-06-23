@@ -25,9 +25,9 @@ import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.ProcessedDataFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.data.VisitedObservationData;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareError;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationVariableService;
@@ -52,7 +52,7 @@ import static org.breedinginsight.brapps.importer.services.processors.experiment
 
 @Slf4j
 @Prototype
-public class ImportTableProcess extends ExpUnitMiddleware {
+public class ImportTableProcess extends AppendOverwriteMiddleware {
     @Property(name = "brapi.server.reference-source")
     String brapiReferenceSource;
     StudyService studyService;
@@ -86,7 +86,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
     }
 
     @Override
-    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         log.debug("verifying traits listed in import");
 
         // Get all the dynamic columns of the import
@@ -105,11 +105,11 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
         // Construct validation errors for any timestamp columns that don't have a matching variable column
         List<BrAPIImport> importRows = context.getImportContext().getImportRows();
-        Optional.ofNullable(context.getExpUnitContext().getValidationErrors()).orElseGet(() -> {
-            context.getExpUnitContext().setValidationErrors(new ValidationErrors());
+        Optional.ofNullable(context.getAppendOverwriteWorkflowContext().getValidationErrors()).orElseGet(() -> {
+            context.getAppendOverwriteWorkflowContext().setValidationErrors(new ValidationErrors());
             return new ValidationErrors();
         });
-        ValidationErrors validationErrors = context.getExpUnitContext().getValidationErrors();
+        ValidationErrors validationErrors = context.getAppendOverwriteWorkflowContext().getValidationErrors();
         List<ValidationError> tsValErrs = observationVariableService.validateMatchedTimestamps(Set.copyOf(varNames), timestampCols).orElse(new ArrayList<>());
         for (int i = 0; i < importRows.size(); i++) {
             int rowNum = i;
@@ -126,7 +126,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             Map<String, Column<?>> tsColByPheno = timestampCols.stream().collect(Collectors.toMap(col -> col.name().replaceFirst(TIMESTAMP_REGEX, StringUtils.EMPTY), col -> col));
 
             // Add the map to the context for use in processing import
-            context.getExpUnitContext().setTimeStampColByPheno(tsColByPheno);
+            context.getAppendOverwriteWorkflowContext().setTimeStampColByPheno(tsColByPheno);
 
             // Fetch the traits named in the observation variable columns
             Program program = context.getImportContext().getProgram();
@@ -146,9 +146,9 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             List<Trait> sortedTraits = experimentUtil.sortByField(varNames, new ArrayList<>(traits), TraitEntity::getObservationVariableName);
 
             // Get the pending observation dataset
-            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getExpUnitContext().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
+            PendingImportObject<BrAPITrial> pendingTrial = ExperimentUtilities.getSingleEntryValue(context.getAppendOverwriteWorkflowContext().getTrialByNameNoScope()).orElseThrow(()->new UnprocessableEntityException(MULTIPLE_EXP_TITLES.getValue()));
             String datasetName = String.format("Observation Dataset [%s-%s]", program.getKey(), pendingTrial.getBrAPIObject().getAdditionalInfo().get(BrAPIAdditionalInfoFields.EXPERIMENT_NUMBER).getAsString());
-            PendingImportObject<BrAPIListDetails> pendingDataset = context.getExpUnitContext().getObsVarDatasetByName().get(datasetName);
+            PendingImportObject<BrAPIListDetails> pendingDataset = context.getAppendOverwriteWorkflowContext().getObsVarDatasetByName().get(datasetName);
 
             // Add new phenotypes to the pending observation dataset list (NOTE: "obsVarName [programKey]" is used instead of obsVarDbId)
             // TODO: Change to using actual dbIds as per the BrAPI spec, instead of namespaced obsVar names (was necessary for Breedbase)
@@ -164,14 +164,14 @@ public class ImportTableProcess extends ExpUnitMiddleware {
 
             // Read any observation data stored for these traits
             log.debug("fetching observation data stored for traits");
-            Set<String> ouDbIds = context.getExpUnitContext().getPendingObsUnitByOUId().values().stream().map(u -> u.getBrAPIObject().getObservationUnitDbId()).collect(Collectors.toSet());
+            Set<String> ouDbIds = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().values().stream().map(u -> u.getBrAPIObject().getObservationUnitDbId()).collect(Collectors.toSet());
             Set<String> varDbIds = sortedTraits.stream().map(t->t.getObservationVariableDbId()).collect(Collectors.toSet());
             List<BrAPIObservation> observations = brAPIObservationDAO.getObservationsByObservationUnitsAndVariables(ouDbIds, varDbIds, program);
 
             // Construct helper lookup tables to use for hashing stored observation data
-            Map<String, String> unitNameByDbId = context.getExpUnitContext().getPendingObsUnitByOUId().values().stream().map(PendingImportObject::getBrAPIObject).collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId, BrAPIObservationUnit::getObservationUnitName));
+            Map<String, String> unitNameByDbId = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().values().stream().map(PendingImportObject::getBrAPIObject).collect(Collectors.toMap(BrAPIObservationUnit::getObservationUnitDbId, BrAPIObservationUnit::getObservationUnitName));
             Map<String, String> variableNameByDbId = sortedTraits.stream().collect(Collectors.toMap(Trait::getObservationVariableDbId, Trait::getObservationVariableName));
-            Map<String, String> studyNameByDbId = context.getExpUnitContext().getStudyByNameNoScope().values().stream()
+            Map<String, String> studyNameByDbId = context.getAppendOverwriteWorkflowContext().getStudyByNameNoScope().values().stream()
                     .filter(pio -> StringUtils.isNotBlank(pio.getBrAPIObject().getStudyDbId()))
                     .map(PendingImportObject::getBrAPIObject)
                     .collect(Collectors.toMap(BrAPIStudy::getStudyDbId, brAPIStudy -> Utilities.removeProgramKeyAndUnknownAdditionalData(brAPIStudy.getStudyName(), program.getKey())));
@@ -184,7 +184,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             }, o->o));
 
             // Add the observation data map to the context for use in processing import
-            context.getExpUnitContext().setExistingObsByObsHash(observationByObsHash);
+            context.getAppendOverwriteWorkflowContext().setExistingObsByObsHash(observationByObsHash);
 
             // Build new pending observation data for each phenotype
             Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash = new HashMap<>();
@@ -201,19 +201,19 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                 });
                 PendingImport mappedImportRow = context.getImportContext().getMappedBrAPIImport().getOrDefault(rowNum, new PendingImport());
                 String unitId = row.getObsUnitID();
-                mappedImportRow.setTrial(context.getExpUnitContext().getPendingTrialByOUId().get(unitId));
-                mappedImportRow.setLocation(context.getExpUnitContext().getPendingLocationByOUId().get(unitId));
-                mappedImportRow.setStudy(context.getExpUnitContext().getPendingStudyByOUId().get(unitId));
-                mappedImportRow.setObservationUnit(context.getExpUnitContext().getPendingObsUnitByOUId().get(unitId));
-                mappedImportRow.setGermplasm(context.getExpUnitContext().getPendingGermplasmByOUId().get(unitId));
+                mappedImportRow.setTrial(context.getAppendOverwriteWorkflowContext().getPendingTrialByOUId().get(unitId));
+                mappedImportRow.setLocation(context.getAppendOverwriteWorkflowContext().getPendingLocationByOUId().get(unitId));
+                mappedImportRow.setStudy(context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId));
+                mappedImportRow.setObservationUnit(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(unitId));
+                mappedImportRow.setGermplasm(context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId));
 
                 // Assemble the pending observation data for all phenotypes
                 for (Column<?> column : phenotypeCols) {
                     String cellData = column.getString(rowNum);
 
                     // Generate hash for looking up prior observation data
-                    String studyName = context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
-                    String unitName = context.getExpUnitContext().getPendingObsUnitByOUId().get(unitId).getBrAPIObject().getObservationUnitName();
+                    String studyName = context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getStudyName();
+                    String unitName = context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(unitId).getBrAPIObject().getObservationUnitName();
                     String phenoColumnName = column.name();
                     String observationHash = observationService.getObservationHash(unitName, phenoColumnName, studyName);
 
@@ -272,22 +272,22 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                     } else {
 
                         // Clone the observation unit and trait
-                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getExpUnitContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
+                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
                         Trait initialTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
 
                         // create new instance of InitialData
                         processedData = processedDataFactory.initialDataBean(brapiReferenceSource,
                                 context.getImportContext().isCommit(),
-                                context.getExpUnitContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getGermplasmName(),
-                                context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject(),
+                                context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getGermplasmName(),
+                                context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject(),
                                 cellData,
                                 phenoColumnName,
                                 initialTrait,
                                 row,
                                 pendingTrial.getId(),
-                                context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getId(),
+                                context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getId(),
                                 UUID.fromString(unitId),
-                                context.getExpUnitContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getSeasons().get(0),
+                                context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getSeasons().get(0),
                                 observationUnit,
                                 context.getImportContext().getUser(),
                                 context.getImportContext().getProgram());
@@ -306,7 +306,7 @@ public class ImportTableProcess extends ExpUnitMiddleware {
                     // TODO: change signature to take two args, studyName and unitName
                     statistic.addObservationUnitId(null);
                     statistic.addGid(null);
-                    context.getExpUnitContext().setStatistic(statistic);
+                    context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
 
                     // Construct a pending observation
                     PendingImportObject<BrAPIObservation> pendingProcessedData = processedData.constructPendingObservation();
@@ -323,11 +323,11 @@ public class ImportTableProcess extends ExpUnitMiddleware {
             }
 
             // Add the pending observation map to the context for use in processing the import
-            context.getExpUnitContext().setPendingObservationByHash(pendingObservationByHash);
+            context.getAppendOverwriteWorkflowContext().setPendingObservationByHash(pendingObservationByHash);
 
             return processNext(context);
         } catch (DoesNotExistException | ApiException | UnprocessableEntityException | ValidatorException e) {
-            context.getExpUnitContext().setProcessError(new MiddlewareError(e));
+            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
         }
     }

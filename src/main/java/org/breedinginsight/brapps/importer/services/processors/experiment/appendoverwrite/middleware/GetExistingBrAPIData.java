@@ -10,8 +10,8 @@ import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -19,7 +19,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
-public class GetExistingBrAPIData extends ExpUnitMiddleware {
+public class GetExistingBrAPIData extends AppendOverwriteMiddleware {
     private final BrAPIObservationUnitDAO brAPIObservationUnitDAO;
     @Property(name = "brapi.server.reference-source")
     private String BRAPI_REFERENCE_SOURCE;
@@ -30,33 +30,33 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
     }
 
     @Override
-    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
 
         return processNext(context);
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext compensate(AppendOverwriteMiddlewareContext context) {
         // tag an error if it occurred in this local transaction
-        context.getExpUnitContext().getProcessError().tag(this.getClass().getName());
+        context.getAppendOverwriteWorkflowContext().getProcessError().tag(this.getClass().getName());
 
         // handle the error in the prior local transaction
         return compensatePrior(context);
     }
     private Map<String, PendingImportObject<BrAPIObservationUnit>> fetchReferenceObservationUnits(
-            ExpUnitMiddlewareContext context) {
+            AppendOverwriteMiddlewareContext context) {
         Map<String, PendingImportObject<BrAPIObservationUnit>> pendingUnitById = new HashMap<>();
         try {
             // Retrieve reference Observation Units based on IDs
             List<BrAPIObservationUnit> referenceObsUnits = brAPIObservationUnitDAO.getObservationUnitsById(
-                    new ArrayList<String>(context.getExpUnitContext().getReferenceOUIds()),
+                    new ArrayList<String>(context.getAppendOverwriteWorkflowContext().getReferenceOUIds()),
                     context.getImportContext().getProgram()
             );
 
             // Construct the DeltaBreed observation unit source for external references
             String deltaBreedOUSource = String.format("%s/%s", BRAPI_REFERENCE_SOURCE, ExternalReferenceSource.OBSERVATION_UNITS.getName());
 
-            if (referenceObsUnits.size() == context.getExpUnitContext().getReferenceOUIds().size()) {
+            if (referenceObsUnits.size() == context.getAppendOverwriteWorkflowContext().getReferenceOUIds().size()) {
 
                 // Iterate through reference Observation Units
                 for (BrAPIObservationUnit unit : referenceObsUnits) {// Get external reference for the Observation Unit
@@ -82,7 +82,7 @@ public class GetExistingBrAPIData extends ExpUnitMiddleware {
                 }
             } else {
                 // Handle case of missing Observation Units in data store
-                List<String> missingIds = new ArrayList<>(context.getExpUnitContext().getReferenceOUIds());
+                List<String> missingIds = new ArrayList<>(context.getAppendOverwriteWorkflowContext().getReferenceOUIds());
                 Set<String> fetchedIds = referenceObsUnits.stream().map(unit ->
                                 Utilities.getExternalReference(unit.getExternalReferences(), deltaBreedOUSource)
                                         .orElseThrow(() -> new InternalServerException("External reference does not exist for Deltabreed ObservationUnit ID"))

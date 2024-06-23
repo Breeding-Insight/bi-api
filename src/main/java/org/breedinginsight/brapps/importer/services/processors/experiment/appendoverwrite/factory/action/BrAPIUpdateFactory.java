@@ -7,7 +7,7 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.core.response.BrAPIListDetails;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity.PendingEntityFactory;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 
 import javax.inject.Inject;
 
@@ -20,36 +20,36 @@ public class BrAPIUpdateFactory {
         this.pendingEntityFactory = pendingEntityFactory;
     }
 
-    public static WorkflowUpdate<BrAPITrial> trialWorkflowUpdate(ExpUnitMiddlewareContext context,
+    public static WorkflowUpdate<BrAPITrial> trialWorkflowUpdate(AppendOverwriteMiddlewareContext context,
                                                                  PendingEntityFactory pendingEntityFactory) {
         return new WorkflowUpdate<BrAPITrial>(pendingEntityFactory.pendingTrialBean(context));
     }
 
-    public static WorkflowUpdate<BrAPIObservation> observationWorkflowUpdate(ExpUnitMiddlewareContext context,
-                                                                       PendingEntityFactory pendingEntityFactory) {
+    public static WorkflowUpdate<BrAPIObservation> observationWorkflowUpdate(AppendOverwriteMiddlewareContext context,
+                                                                             PendingEntityFactory pendingEntityFactory) {
         return new WorkflowUpdate<BrAPIObservation>(pendingEntityFactory.pendingObservationBean(context));
     }
 
-    public static WorkflowUpdate<BrAPIListDetails> datasetWorkflowUpdate(ExpUnitMiddlewareContext context,
+    public static WorkflowUpdate<BrAPIListDetails> datasetWorkflowUpdate(AppendOverwriteMiddlewareContext context,
                                                                          PendingEntityFactory pendingEntityFactory) {
         return new WorkflowUpdate<BrAPIListDetails>(pendingEntityFactory.pendingDatasetBean(context));
     }
 
     @Bean
     @Prototype
-    public WorkflowUpdate<BrAPITrial> trialWorkflowUpdateBean(ExpUnitMiddlewareContext context) {
+    public WorkflowUpdate<BrAPITrial> trialWorkflowUpdateBean(AppendOverwriteMiddlewareContext context) {
         return trialWorkflowUpdate(context, pendingEntityFactory);
     }
 
     @Bean
     @Prototype
-    public WorkflowUpdate<BrAPIObservation> observationWorkflowUpdateBean(ExpUnitMiddlewareContext context) {
+    public WorkflowUpdate<BrAPIObservation> observationWorkflowUpdateBean(AppendOverwriteMiddlewareContext context) {
         return observationWorkflowUpdate(context, pendingEntityFactory);
     }
 
     @Bean
     @Prototype
-    public WorkflowUpdate<BrAPIListDetails> datasetWorkflowUpdateBean(ExpUnitMiddlewareContext context) {
+    public WorkflowUpdate<BrAPIListDetails> datasetWorkflowUpdateBean(AppendOverwriteMiddlewareContext context) {
         return datasetWorkflowUpdate(context, pendingEntityFactory);
     }
 }

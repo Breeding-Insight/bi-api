@@ -15,8 +15,8 @@ import org.breedinginsight.brapps.importer.model.imports.experimentObservation.E
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.ExternalReferenceSource;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
@@ -144,7 +144,7 @@ public class ExperimentUtilities {
         }
     }
 
-    public static Set<String> collateReferenceOUIds(ExpUnitMiddlewareContext context) {
+    public static Set<String> collateReferenceOUIds(AppendOverwriteMiddlewareContext context) {
         Set<String> referenceOUIds = new HashSet<>();
         boolean hasNoReferenceUnitIds = true;
         boolean hasAllReferenceUnitIds = true;

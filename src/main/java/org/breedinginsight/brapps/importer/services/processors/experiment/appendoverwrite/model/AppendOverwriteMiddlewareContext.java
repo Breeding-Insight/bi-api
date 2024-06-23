@@ -8,8 +8,8 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.model.
 @Getter
 @Setter
 @Builder
-public class ExpUnitMiddlewareContext {
+public class AppendOverwriteMiddlewareContext {
 
     private ImportContext importContext;
-    private AppendWorkflowContext expUnitContext;
+    private AppendOverwriteWorkflowContext appendOverwriteWorkflowContext;
 }

@@ -21,7 +21,7 @@ import java.util.Set;
 
 @Getter
 @Setter
-public class AppendWorkflowContext {
+public class AppendOverwriteWorkflowContext {
     // Cache maps keyed by existing observation unit ids
     private Set<String> referenceOUIds = new HashSet<>();
     private Map<String, PendingImportObject<BrAPITrial>> pendingTrialByOUId = new HashMap<>();

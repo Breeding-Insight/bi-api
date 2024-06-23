@@ -2,20 +2,20 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 
 import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 
 @Slf4j
 @Prototype
-public class Transaction extends ExpUnitMiddleware {
+public class Transaction extends AppendOverwriteMiddleware {
 
     @Override
-    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         return processNext(context);
     }
 
     @Override
-    public ExpUnitMiddlewareContext compensate(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext compensate(AppendOverwriteMiddlewareContext context) {
 
         return context;
     }

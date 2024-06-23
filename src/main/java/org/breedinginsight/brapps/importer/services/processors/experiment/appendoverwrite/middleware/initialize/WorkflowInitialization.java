@@ -10,8 +10,8 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPIReadFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowReadInitialization;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareError;
 import org.breedinginsight.model.ProgramLocation;
 
@@ -19,7 +19,7 @@ import javax.inject.Inject;
 
 @Slf4j
 @Prototype
-public class WorkflowInitialization extends ExpUnitMiddleware {
+public class WorkflowInitialization extends AppendOverwriteMiddleware {
     WorkflowReadInitialization<BrAPIObservationUnit> brAPIObservationUnitReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPITrial> brAPITrialReadWorkflowInitialization;
     WorkflowReadInitialization<BrAPIStudy> brAPIStudyReadWorkflowInitialization;
@@ -33,7 +33,7 @@ public class WorkflowInitialization extends ExpUnitMiddleware {
         this.brAPIReadFactory = brAPIReadFactory;
     }
     @Override
-    public ExpUnitMiddlewareContext process(ExpUnitMiddlewareContext context) {
+    public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         brAPIObservationUnitReadWorkflowInitialization = brAPIReadFactory.observationUnitWorkflowReadInitializationBean(context);
         brAPITrialReadWorkflowInitialization = brAPIReadFactory.trialWorkflowReadInitializationBean(context);
         brAPIStudyReadWorkflowInitialization = brAPIReadFactory.studyWorkflowReadInitializationBean(context);
@@ -50,7 +50,7 @@ public class WorkflowInitialization extends ExpUnitMiddleware {
             brAPIDatasetReadWorkflowInitialization.execute();
             brAPIGermplasmReadWorkflowInitialization.execute();
         } catch (ApiException e) {
-            context.getExpUnitContext().setProcessError(new MiddlewareError(e));
+            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareError(e));
             return this.compensate(context);
         }
 

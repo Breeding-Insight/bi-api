@@ -8,8 +8,8 @@ import org.breedinginsight.api.model.v1.request.ProgramLocationRequest;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendWorkflowContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.ExpUnitMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.service.LocationService;
 import org.breedinginsight.model.ProgramLocation;
@@ -23,17 +23,17 @@ import java.util.stream.Collectors;
 
 @Prototype
 public class PendingLocation implements ExperimentImportEntity<ProgramLocation> {
-    AppendWorkflowContext cache;
+    AppendOverwriteWorkflowContext cache;
     ImportContext importContext;
     ProgramLocationService programLocationService;
     LocationService locationService;
     ExperimentUtilities experimentUtilities;
 
-    public PendingLocation(ExpUnitMiddlewareContext context,
+    public PendingLocation(AppendOverwriteMiddlewareContext context,
                            ProgramLocationService programLocationService,
                            LocationService locationService,
                            ExperimentUtilities experimentUtilities) {
-        this.cache = context.getExpUnitContext();
+        this.cache = context.getAppendOverwriteWorkflowContext();
         this.importContext = context.getImportContext();
         this.programLocationService = programLocationService;
         this.locationService = locationService;
