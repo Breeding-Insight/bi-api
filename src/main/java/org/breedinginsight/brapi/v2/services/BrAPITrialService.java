@@ -178,7 +178,7 @@ public class BrAPITrialService {
         String defaultObsLevel = experiment.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString();
         DatasetMetadata datasetMetadata = DatasetUtil.getDatasetByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS), defaultObsLevel);
         if ((StringUtils.isBlank(params.getDataset()) || defaultObsLevel.equalsIgnoreCase(params.getDataset())) && datasetMetadata != null) {
-            String obsDatasetId = datasetMetadata.toString();
+            String obsDatasetId = datasetMetadata.getId().toString();
             isDataset = true;
             log.debug(logHash + ": fetching " + datasetMetadata.getName() + " dataset observation variables for export");
             obsVars = getDatasetObsVars(obsDatasetId, program);
