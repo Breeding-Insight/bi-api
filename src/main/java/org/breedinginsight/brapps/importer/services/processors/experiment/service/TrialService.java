@@ -1,3 +1,20 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
@@ -350,88 +367,4 @@ public class TrialService {
 
         return trialByOUId;
     }
-
-    // TODO: overloaded method used by expunit workflow
-//    public PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
-//            ImportContext importContext,
-//            PendingData pendingData,
-//            ExpUnitContext expUnitContext
-//    ) throws UnprocessableEntityException {
-//        PendingImportObject<BrAPITrial> trialPio;
-//
-//
-//
-//            trialPio = getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES);
-//
-//
-//        return trialPio;
-//    }
-
-    // TODO: overloaded method used by create workflow
-//    public PendingImportObject<BrAPITrial> fetchOrCreateTrialPIO(
-//            ImportContext importContext,
-//            PendingData pendingData
-//    ) throws UnprocessableEntityException {
-//        PendingImportObject<BrAPITrial> trialPio;
-//
-//
-//            if (trialByNameNoScope.containsKey(importRow.getExpTitle())) {
-//                PendingImportObject<BrAPIStudy> envPio;
-//                trialPio = trialByNameNoScope.get(importRow.getExpTitle());
-//                envPio = studyByNameNoScope.get(importRow.getEnv());
-//
-//                // creating new units for existing experiments and environments is not possible
-//                if  (trialPio!=null &&  ImportObjectState.EXISTING==trialPio.getState() &&
-//                        (StringUtils.isBlank( importRow.getObsUnitID() )) && (envPio!=null && ImportObjectState.EXISTING==envPio.getState() ) ){
-//                    throw new UnprocessableEntityException(PREEXISTING_EXPERIMENT_TITLE);
-//                }
-//            } else if (!trialByNameNoScope.isEmpty()) {
-//                throw new UnprocessableEntityException(MULTIPLE_EXP_TITLES);
-//            } else {
-//                UUID id = UUID.randomUUID();
-//                String expSeqValue = null;
-//                if (commit) {
-//                    expSeqValue = expNextVal.get().toString();
-//                }
-//                BrAPITrial newTrial = importRow.constructBrAPITrial(program, user, commit, BRAPI_REFERENCE_SOURCE, id, expSeqValue);
-//                trialPio = new PendingImportObject<>(ImportObjectState.NEW, newTrial, id);
-//                trialByNameNoScope.put(importRow.getExpTitle(), trialPio);
-//            }
-//
-//        return trialPio;
-//    }
-
-    // TODO: used by both workflows
-//    public List<BrAPITrial> commitNewPendingTrialsToBrAPIStore(ImportContext context, PendingData pendingData) {
-//        List<BrAPITrial> newTrials = ProcessorData.getNewObjects(this.trialByNameNoScope);
-//        List<BrAPITrial> createdTrials = new ArrayList<>(brapiTrialDAO.createBrAPITrials(newTrials, program.getId(), upload));
-//        // set the DbId to the for each newly created trial
-//        for (BrAPITrial createdTrial : createdTrials) {
-//            String createdTrialName = Utilities.removeProgramKey(createdTrial.getTrialName(), program.getKey());
-//            this.trialByNameNoScope.get(createdTrialName)
-//                    .getBrAPIObject()
-//                    .setTrialDbId(createdTrial.getTrialDbId());
-//        }
-//        return createdTrials;
-//    }
-
-//    public List<BrAPITrial> commitUpdatedPendingTrialsToBrAPIStore(ImportContext importContext, PendingData pendingData) {
-//        List<BrAPITrial> updatedTrials = new ArrayList<>();
-//        Map<String, BrAPITrial> mutatedTrialsById = ProcessorData
-//                .getMutationsByObjectId(trialByNameNoScope, BrAPITrial::getTrialDbId);
-//        for (Map.Entry<String, BrAPITrial> entry : mutatedTrialsById.entrySet()) {
-//            String id = entry.getKey();
-//            BrAPITrial trial = entry.getValue();
-//            try {
-//                updatedTrials.add(brapiTrialDAO.updateBrAPITrial(id, trial, program.getId()));
-//            } catch (ApiException e) {
-//                log.error("Error updating dataset observation variables: " + Utilities.generateApiExceptionLogMessage(e), e);
-//                throw new InternalServerException("Error saving experiment import", e);
-//            } catch (Exception e) {
-//                log.error("Error updating dataset observation variables: ", e);
-//                throw new InternalServerException(e.getMessage(), e);
-//            }
-//        }
-//        return updatedTrials;
-//    }
 }

@@ -1,3 +1,20 @@
+/*
+ * See the NOTICE file distributed with this work for additional information
+ * regarding copyright ownership.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.breedinginsight.brapps.importer.services.processors.experiment.service;
 
 import io.micronaut.context.annotation.Property;
@@ -235,194 +252,5 @@ public class StudyService {
         }
 
         return studyDbId;
-    }
-
-    // TODO: used by both workflows
-//    private void initializeStudiesForExistingObservationUnits(
-//            Program program,
-//            Map<String, PendingImportObject<BrAPIStudy>> studyByName
-//    ) throws Exception {
-//        Set<String> studyDbIds = observationUnitByNameNoScope.values()
-//                .stream()
-//                .map(pio -> pio.getBrAPIObject()
-//                        .getStudyDbId())
-//                .collect(Collectors.toSet());
-//
-//        List<BrAPIStudy> studies = fetchStudiesByDbId(studyDbIds, program);
-//        for (BrAPIStudy study : studies) {
-//            processAndCacheStudy(study, program, BrAPIStudy::getStudyName, studyByName);
-//        }
-//    }
-
-//    public Map<String, PendingImportObject<BrAPIStudy>> mapPendingStudyByOUId(
-//            String unitId,
-//            BrAPIObservationUnit unit,
-//            Map<String, PendingImportObject<BrAPIStudy>> studyByName,
-//            Map<String, PendingImportObject<BrAPIStudy>> studyByOUId,
-//            Program program
-//    ) {
-//        if (unit.getStudyName() != null) {
-//            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(unit.getStudyName(), program.getKey());
-//            studyByOUId.put(unitId, studyByName.get(studyName));
-//        } else {
-//            throw new IllegalStateException("Observation unit missing study name: " + unitId);
-//        }
-//
-//        return studyByOUId;
-//    }
-
-    // TODO: used by expunit workflow
-//    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(
-//            ImportContext importContext,
-//            ExpUnitContext expUnitContext,
-//            String expSequenceValue,
-//            Supplier<BigInteger> envNextVal
-//    ) throws UnprocessableEntityException {
-//        PendingImportObject<BrAPIStudy> pio;
-//        if (hasAllReferenceUnitIds) {
-//            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
-//                    pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName(),
-//                    program.getKey()
-//            );
-//            pio = studyByNameNoScope.get(studyName);
-//            if (!commit){
-//                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
-//            }
-//        } else if (studyByNameNoScope.containsKey(importRow.getEnv())) {
-//            pio = studyByNameNoScope.get(importRow.getEnv());
-//            if (!commit){
-//                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
-//            }
-//        } else {
-//            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
-//                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
-//            UUID trialID = trialPIO.getId();
-//            UUID id = UUID.randomUUID();
-//            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
-//            newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
-//
-//            // It is assumed that the study has only one season, And that the Years and not
-//            // the dbId's are stored in getSeason() list.
-//            String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
-//            if (commit) {
-//                if(StringUtils.isNotBlank(year)) {
-//                    String seasonID = this.yearToSeasonDbId(year, program.getId());
-//                    newStudy.setSeasons(Collections.singletonList(seasonID));
-//                }
-//            } else {
-//                addYearToStudyAdditionalInfo(program, newStudy, year);
-//            }
-//
-//            pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
-//            this.studyByNameNoScope.put(importRow.getEnv(), pio);
-//        }
-//        return pio;
-//    }
-
-    // TODO: used by create workflow
-//    private PendingImportObject<BrAPIStudy> fetchOrCreateStudyPIO(
-//            ImportContext importContext,
-//            String expSequenceValue,
-//            Supplier<BigInteger> envNextVal
-//    ) throws UnprocessableEntityException {
-//        PendingImportObject<BrAPIStudy> pio;
-//        if (hasAllReferenceUnitIds) {
-//            String studyName = Utilities.removeProgramKeyAndUnknownAdditionalData(
-//                    pendingObsUnitByOUId.get(importRow.getObsUnitID()).getBrAPIObject().getStudyName(),
-//                    program.getKey()
-//            );
-//            pio = studyByNameNoScope.get(studyName);
-//            if (!commit){
-//                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
-//            }
-//        } else if (studyByNameNoScope.containsKey(importRow.getEnv())) {
-//            pio = studyByNameNoScope.get(importRow.getEnv());
-//            if (!commit){
-//                addYearToStudyAdditionalInfo(program, pio.getBrAPIObject());
-//            }
-//        } else {
-//            PendingImportObject<BrAPITrial> trialPIO = hasAllReferenceUnitIds ?
-//                    getSingleEntryValue(trialByNameNoScope, MULTIPLE_EXP_TITLES) : trialByNameNoScope.get(importRow.getExpTitle());
-//            UUID trialID = trialPIO.getId();
-//            UUID id = UUID.randomUUID();
-//            BrAPIStudy newStudy = importRow.constructBrAPIStudy(program, commit, BRAPI_REFERENCE_SOURCE, expSequenceValue, trialID, id, envNextVal);
-//            newStudy.setLocationDbId(this.locationByName.get(importRow.getEnvLocation()).getId().toString()); //set as the BI ID to facilitate looking up locations when saving new studies
-//
-//            // It is assumed that the study has only one season, And that the Years and not
-//            // the dbId's are stored in getSeason() list.
-//            String year = newStudy.getSeasons().get(0); // It is assumed that the study has only one season
-//            if (commit) {
-//                if(StringUtils.isNotBlank(year)) {
-//                    String seasonID = this.yearToSeasonDbId(year, program.getId());
-//                    newStudy.setSeasons(Collections.singletonList(seasonID));
-//                }
-//            } else {
-//                addYearToStudyAdditionalInfo(program, newStudy, year);
-//            }
-//
-//            pio = new PendingImportObject<>(ImportObjectState.NEW, newStudy, id);
-//            this.studyByNameNoScope.put(importRow.getEnv(), pio);
-//        }
-//        return pio;
-//    }
-
-//    private void updateStudyDependencyValues(Map<Integer, PendingImport> mappedBrAPIImport, String programKey) {
-//        // update location DbIds in studies for all distinct locations
-//        mappedBrAPIImport.values()
-//                .stream()
-//                .map(PendingImport::getLocation)
-//                .forEach(this::updateStudyLocationDbId);
-//
-//        // update trial DbIds in studies for all distinct trials
-//        this.trialByNameNoScope.values()
-//                .stream()
-//                .filter(Objects::nonNull)
-//                .distinct()
-//                .map(PendingImportObject::getBrAPIObject)
-//                .forEach(trial -> this.updateTrialDbId(trial, programKey));
-//    }
-//
-//    private void updateStudyLocationDbId(PendingImportObject<ProgramLocation> location) {
-//        this.studyByNameNoScope.values()
-//                .stream()
-//                .filter(study -> location.getId().toString()
-//                        .equals(study.getBrAPIObject()
-//                                .getLocationDbId()))
-//                .forEach(study -> study.getBrAPIObject()
-//                        .setLocationDbId(location.getBrAPIObject().getLocationDbId()));
-//    }
-//
-//    private void updateTrialDbId(BrAPITrial trial, String programKey) {
-//        this.studyByNameNoScope.values()
-//                .stream()
-//                .filter(study -> study.getBrAPIObject()
-//                        .getTrialName()
-//                        .equals(Utilities.removeProgramKey(trial.getTrialName(), programKey)))
-//                .forEach(study -> study.getBrAPIObject()
-//                        .setTrialDbId(trial.getTrialDbId()));
-//    }
-
-    // TODO: used by both workflows
-//    public List<BrAPIStudy> commitNewPendingStudiessToBrAPIStore(ImportContext context, PendingData pendingData) {
-//        List<BrAPIStudy> newStudies = ProcessorData.getNewObjects(this.studyByNameNoScope);
-//        updateStudyDependencyValues(mappedBrAPIImport, program.getKey());
-//        List<BrAPIStudy> createdStudies = brAPIStudyDAO.createBrAPIStudies(newStudies, program.getId(), upload);
-//
-//        // set the DbId to the for each newly created study
-//        for (BrAPIStudy createdStudy : createdStudies) {
-//            String createdStudy_name_no_key = Utilities.removeProgramKeyAndUnknownAdditionalData(createdStudy.getStudyName(), program.getKey());
-//            this.studyByNameNoScope.get(createdStudy_name_no_key)
-//                    .getBrAPIObject()
-//                    .setStudyDbId(createdStudy.getStudyDbId());
-//        }
-//
-//        return createdStudies;
-//    }
-
-    // TODO: used by both workflows
-    public List<BrAPIStudy> commitUpdatedPendingStudiesToBrAPIStore(ImportContext importContext, PendingData pendingData) {
-        List<BrAPIStudy> updatedStudies = new ArrayList<>();
-
-        return updatedStudies;
     }
 }
