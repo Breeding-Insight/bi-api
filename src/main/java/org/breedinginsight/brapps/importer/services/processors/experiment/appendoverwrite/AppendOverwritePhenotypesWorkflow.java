@@ -159,7 +159,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
     @Override
     public int getOrder() {
-        return 2;
+        return 20;
     }
 
 }

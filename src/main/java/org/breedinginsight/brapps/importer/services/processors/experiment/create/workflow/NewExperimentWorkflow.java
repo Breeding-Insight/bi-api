@@ -82,6 +82,8 @@ public class NewExperimentWorkflow implements ExperimentWorkflow {
         // Build and return the preview response
         try {
             ImportPreviewResponse successResponse;
+
+            // TODO: replace ProcessorManager#process with new-experiment workflow process from BI-2132
             successResponse = processorManagerProvider.get().process(context.getBrAPIImports(),
                     List.of(experimentProcessorProvider.get()),
                     context.getData(),
