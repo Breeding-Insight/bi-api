@@ -243,10 +243,10 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         cell.timestamp = tsColByPheno.get(phenoColumnName).getString(rowNum);
                         tsColumnName = tsColByPheno.get(phenoColumnName).name();
 
-                        // If timestamp is not valid, set to midnight
+                        // If timestamp is not valid, add a validation error
                         fieldValidator.validateField(tsColumnName, cell.timestamp, null).ifPresent(err->{
-                            cell.timestamp += MIDNIGHT;
-                            validationErrors.addError(rowNum, err);
+                            cell.timestamp = null;
+                            validationErrors.addError(rowNum + 2, err); // +2 because of excel header row and 1-based row index
                         });
 
                     }
@@ -259,7 +259,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         BrAPIObservation observation = gson.fromJson(gson.toJson(observationByObsHash.get(observationHash)), BrAPIObservation.class);
 
                         // Is there a change to the prior data?
-                        if ((!cellData.isBlank() && !cellData.equals(observation.getValue())) || (cell.timestamp != null && !OffsetDateTime.parse(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
+                        if ((!cellData.isBlank() && !cellData.equals(observation.getValue())) || (cell.timestamp != null && !observationService.parseDateTime(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
 
                             // Is prior data protected?
                             boolean canOverwrite = context.getImportContext().isCommit() && "false".equals( row.getOverwrite() == null ? "false" : row.getOverwrite());
@@ -312,9 +312,6 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
                     // Validate processed data
                     processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum + 2, e)));  // +2 to account for header row and excel file 1-based row index
-                    if (validationErrors.hasErrors()) {
-                        throw new ValidatorException(validationErrors);
-                    }
 
                     // Update import preview statistics and set in the context
                     processedData.updateTally(statistic);
@@ -337,6 +334,11 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
 
                 // Set the pending import for the row
                 context.getImportContext().getMappedBrAPIImport().put(rowNum, mappedImportRow);
+            }
+
+            // Throw the total list of all validation errors for the import
+            if (validationErrors.hasErrors()) {
+                throw new ValidatorException(validationErrors);
             }
 
             // Add the pending observation map to the context for use in processing the import

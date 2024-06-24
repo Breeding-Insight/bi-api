@@ -29,6 +29,7 @@ import org.breedinginsight.brapps.importer.model.imports.ChangeLogEntry;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.middleware.process.AppendStatistic;
+import org.breedinginsight.brapps.importer.services.processors.experiment.service.ObservationService;
 import org.breedinginsight.brapps.importer.services.processors.experiment.validator.field.FieldValidator;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.Trait;
@@ -47,6 +48,7 @@ import java.util.UUID;
 public class OverwrittenData extends VisitedObservationData {
 
     FieldValidator fieldValidator;
+    ObservationService observationService;
     Gson gson;
     boolean canOverwrite;
     boolean isCommit;
@@ -74,7 +76,8 @@ public class OverwrittenData extends VisitedObservationData {
                            BrAPIObservation observation,
                            UUID userId,
                            Program program,
-                           FieldValidator fieldValidator) {
+                           FieldValidator fieldValidator,
+                           ObservationService observationService) {
         this.canOverwrite = canOverwrite;
         this.isCommit = isCommit;
         this.unitId = unitId;
@@ -88,6 +91,7 @@ public class OverwrittenData extends VisitedObservationData {
         this.userId = userId;
         this.program = program;
         this.fieldValidator = fieldValidator;
+        this.observationService = observationService;
         this.gson = new Gson();
     }
 
@@ -132,7 +136,7 @@ public class OverwrittenData extends VisitedObservationData {
         if (!isTimestampMatched()) {
             // Update the timestamp
             DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
-            String formattedTimeStampValue = formatter.format(OffsetDateTime.parse(timestamp));
+            String formattedTimeStampValue = formatter.format(observationService.parseDateTime(timestamp));
             update.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
 
             // Add original timestamp to changelog entry
@@ -179,7 +183,7 @@ public class OverwrittenData extends VisitedObservationData {
         if (timestamp == null) {
             return observation.getObservationTimeStamp() == null;
         } else {
-            return !OffsetDateTime.parse(timestamp).equals(observation.getObservationTimeStamp());
+            return !observationService.parseDateTime(timestamp).equals(observation.getObservationTimeStamp());
         }
     }
 //    private void validateTimeStampValue(String value,

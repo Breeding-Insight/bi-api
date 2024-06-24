@@ -34,7 +34,9 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.*;
@@ -100,6 +102,23 @@ public class ObservationService {
                 DigestUtils.sha256Hex(variableName) +
                 DigestUtils.sha256Hex(StringUtils.defaultString(studyName));
         return DigestUtils.sha256Hex(concat);
+    }
+
+    public OffsetDateTime parseDateTime(String dateString) {
+        // Try parsing as ISO-8601
+        try {
+            return OffsetDateTime.parse(dateString);
+        } catch (DateTimeParseException e) {
+            // If ISO-8601 parsing fails, try YY-MM-DD format
+            try {
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                LocalDate localDate = LocalDate.parse(dateString, formatter);
+                return localDate.atStartOfDay().atOffset(ZoneOffset.UTC);
+            } catch (DateTimeParseException ex) {
+                // If both parsing attempts fail, return null
+                return null;
+            }
+        }
     }
 
     public BrAPIObservation constructNewBrAPIObservation(boolean commit,

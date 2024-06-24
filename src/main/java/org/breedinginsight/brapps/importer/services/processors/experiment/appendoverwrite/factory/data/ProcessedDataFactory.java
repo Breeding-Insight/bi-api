@@ -84,8 +84,9 @@ public class ProcessedDataFactory {
                                                   BrAPIObservation observation,
                                                   UUID userId,
                                                   Program program,
-                                                  FieldValidator fieldValidator) {
-        return new OverwrittenData(canOverwrite, isCommit, unitId, trait, phenoColumnName, timestampColumnName, cellData, timestamp, reason, observation, userId, program, fieldValidator);
+                                                  FieldValidator fieldValidator,
+                                                  ObservationService observationService) {
+        return new OverwrittenData(canOverwrite, isCommit, unitId, trait, phenoColumnName, timestampColumnName, cellData, timestamp, reason, observation, userId, program, fieldValidator, observationService);
     }
 
     public static UnchangedData unchangedData(BrAPIObservation observation, Program program) {
@@ -126,7 +127,7 @@ public class ProcessedDataFactory {
                                                BrAPIObservation observation,
                                                UUID userId,
                                                Program program) {
-        return overwrittenData(canOverwrite, isCommit, unitId, trait, phenoColumnName, timestampColumnName, cellData, timestamp, reason, observation, userId, program, fieldValidator);
+        return overwrittenData(canOverwrite, isCommit, unitId, trait, phenoColumnName, timestampColumnName, cellData, timestamp, reason, observation, userId, program, fieldValidator, observationService);
     }
 
     @Bean

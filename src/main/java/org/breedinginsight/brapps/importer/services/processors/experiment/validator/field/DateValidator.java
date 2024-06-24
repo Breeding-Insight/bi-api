@@ -55,7 +55,7 @@ public class DateValidator implements ObservationValidator {
 
         // Is this a timestamp field?
         if (fieldName.startsWith(TIMESTAMP_PREFIX)) {
-            if (!observationService.validDateValue(value) || !observationService.validDateTimeValue(value)) {
+            if (!observationService.validDateValue(value) && !observationService.validDateTimeValue(value)) {
                 return Optional.of(new ValidationError(fieldName, dateTimeMessage, HttpStatus.UNPROCESSABLE_ENTITY));
             }
 
