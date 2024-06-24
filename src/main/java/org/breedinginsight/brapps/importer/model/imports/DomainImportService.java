@@ -71,9 +71,10 @@ public abstract class DomainImportService implements BrAPIImportService {
             Optional<ImportWorkflowResult> result = workflowNavigator.process(context);
 
             // Throw any exceptions caught during workflow processing
-            result.flatMap(ImportWorkflowResult::getCaughtException).ifPresent(error -> {
-                throw new RuntimeException(error.getCause());
-            });
+            if (result.flatMap(ImportWorkflowResult::getCaughtException).isPresent()) {
+                throw result.flatMap(ImportWorkflowResult::getCaughtException).get();
+            }
+
 
             return result.flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
         } else {

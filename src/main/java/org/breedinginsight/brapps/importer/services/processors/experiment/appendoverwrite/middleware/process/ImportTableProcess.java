@@ -311,7 +311,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     }
 
                     // Validate processed data
-                    processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum, e)));
+                    processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum + 2, e)));  // +2 to account for header row and excel file 1-based row index
                     if (validationErrors.hasErrors()) {
                         throw new ValidatorException(validationErrors);
                     }

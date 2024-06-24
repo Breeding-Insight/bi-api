@@ -110,7 +110,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
         // Stop and return any errors that occurred while processing
         Optional<MiddlewareException> previewException = Optional.ofNullable(processedPreviewContext.getAppendOverwriteWorkflowContext().getProcessError());
         if (previewException.isPresent() ) {
-            log.debug(String.format("%s in %s", previewException.get().getException().getClass()), previewException.get().getLocalTransactionName());
+            log.debug(String.format("%s in %s", previewException.get().getException().getClass().getName(), previewException.get().getLocalTransactionName()));
             result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(previewException.get().getException())));
             return result;
         }
@@ -159,7 +159,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
     @Override
     public int getOrder() {
-        return 20;
+        return 2;
     }
 
 }

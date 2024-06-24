@@ -67,7 +67,12 @@ public class NumericalValidator implements ObservationValidator {
             return Optional.empty();
         }
 
+        // Make new validation error if the value is non-numeric
         Optional<BigDecimal> number = observationService.validNumericValue(value);
+        if (number.isEmpty()) {
+            return Optional.of(new ValidationError(fieldName, "Non-numeric text in a numerical field", HttpStatus.UNPROCESSABLE_ENTITY));
+        }
+
         Optional<ValidationError> validationError = number
                 .flatMap(num -> {
                     if (observationService.validNumericRange(num, variable.getScale())) {
