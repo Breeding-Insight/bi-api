@@ -281,7 +281,12 @@ public class ExperimentObservation implements BrAPIImport {
 
         BrAPIObservationUnitPosition position = new BrAPIObservationUnitPosition();
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
-        level.setLevelName(getExpUnit());
+        // If expUnit is null, a validation error will be produced later on.
+        if (getExpUnit() != null)
+        {
+            // TODO: [BI-2219] BJTS only accepts hardcoded levels, need to handle dynamic levels.
+            level.setLevelName(getExpUnit().toLowerCase());  // HACK: toLowerCase() is needed to match BJTS hardcoded levels.
+        }
         level.setLevelCode(Utilities.appendProgramKey(getExpUnitId(), program.getKey(), seqVal));
         position.setObservationLevel(level);
         observationUnit.putAdditionalInfoItem(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL, getExpUnit());
