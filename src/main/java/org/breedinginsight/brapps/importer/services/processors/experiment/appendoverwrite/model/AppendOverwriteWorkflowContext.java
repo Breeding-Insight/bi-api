@@ -35,7 +35,7 @@ public class AppendOverwriteWorkflowContext {
     private AppendStatistic statistic;
 
     // Exceptions
-    private MiddlewareError processError;
+    private MiddlewareException processError;
     private ValidationErrors validationErrors;
 
     // Cache maps keyed by name without program scope

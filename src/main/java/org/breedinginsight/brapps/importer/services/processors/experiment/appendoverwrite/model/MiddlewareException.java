@@ -3,17 +3,17 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import lombok.Getter;
 import lombok.Setter;
 
-public class MiddlewareError {
+public class MiddlewareException {
     @Getter
     @Setter
     String localTransactionName;
 
     @Getter
     @Setter
-    Exception error;
+    Exception exception;
 
-    public MiddlewareError(Exception error) {
-        this.error = error;
+    public MiddlewareException(Exception exception) {
+        this.exception = exception;
     }
 
     public void tag(String name) {

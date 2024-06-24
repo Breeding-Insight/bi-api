@@ -12,7 +12,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowReadInitialization;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareError;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
 import org.breedinginsight.model.ProgramLocation;
 
 import javax.inject.Inject;
@@ -50,7 +50,7 @@ public class WorkflowInitialization extends AppendOverwriteMiddleware {
             brAPIDatasetReadWorkflowInitialization.execute();
             brAPIGermplasmReadWorkflowInitialization.execute();
         } catch (ApiException e) {
-            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareError(e));
+            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
 

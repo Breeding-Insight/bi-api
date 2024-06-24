@@ -10,7 +10,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareError;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
 
 import javax.inject.Inject;
 import java.util.Optional;
@@ -43,7 +43,7 @@ public class BrAPIDatasetCommit extends AppendOverwriteMiddleware {
             log.info("adding new observation variables to datasets");
             updatedDatasets = datasetUpdate.execute().map(d -> (WorkflowUpdate.BrAPIUpdateState) d);
         } catch (ApiException e) {
-            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareError(e));
+            context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
         return processNext(context);

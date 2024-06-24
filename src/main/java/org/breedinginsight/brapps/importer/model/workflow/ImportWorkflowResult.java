@@ -30,4 +30,5 @@ import java.util.Optional;
 public class ImportWorkflowResult {
     private ImportWorkflow workflow;
     private Optional<ImportPreviewResponse> importPreviewResponse;
+    private Optional<Exception> caughtException;
 }

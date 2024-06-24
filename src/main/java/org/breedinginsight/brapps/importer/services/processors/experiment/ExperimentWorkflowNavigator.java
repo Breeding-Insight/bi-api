@@ -16,12 +16,20 @@ import java.util.stream.Collectors;
 public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
     private final List<ExperimentWorkflow> workflows;
 
+    /** Micronaut scans and collects in a List all instances of ExperimentWorkflow not annotated as @Primary and
+     * automatically makes the list available to inject into the constructor, which is set here to the workflows field.
+     * The order in the list is determined by the sort value returned from each instance by calling getOrder().
+     * Instances returning a lower sort value will appear in the list before instances returning higher sort values.
+     */
     public ExperimentWorkflowNavigator(List<ExperimentWorkflow> workflows) {
         this.workflows = workflows;
     }
 
     @Override
     public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
+        /**
+         * Have each workflow in order process the context, returning the first non-empty result
+         */
         return workflows.stream()
                 .map(workflow->workflow.process(context))
                 .filter(Optional::isPresent)
@@ -29,8 +37,9 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
                 .findFirst();
     }
     public List<ImportWorkflow> getWorkflows() {
-        // Each workflow returns in the field workflow the metadata about the workflow that processed the import context.
-        // Loop over all workflows, processing a null context, to collect just the metadata
+        /** Each workflow returns in the field workflow the metadata about the workflow that processed the import context.
+         *  Loop over all workflows, processing a null context, to collect just the metadata for each workflow
+         */
         List<ImportWorkflow> workflowSummaryList = workflows.stream()
                 .map(workflow->workflow.process(null))
                 .filter(Optional::isPresent)
@@ -38,7 +47,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
                 .map(result->result.getWorkflow())
                 .collect(Collectors.toList());
 
-        // The order field for each workflow is set to the order in the list
+        // The order field for each workflow is set to the order in the navigator list
         for (int i = 0; i < workflowSummaryList.size(); i++) {
             workflowSummaryList.get(i).setOrder(i);
         }
@@ -46,6 +55,9 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
         return workflowSummaryList;
     }
 
+    /**
+     * Possible choices of metadata that an experiment workflow instance can use to identify itself
+     */
     public enum Workflow {
         NEW_OBSERVATION("new-experiment","Create new experiment"),
         APPEND_OVERWRITE("append-dataset", "Append experimental dataset"),

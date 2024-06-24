@@ -17,6 +17,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteWorkflowContext;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.model.ImportContext;
 
 import javax.inject.Inject;
@@ -59,6 +60,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
         Optional<ImportWorkflowResult> result = Optional.of(ImportWorkflowResult.builder()
                 .workflow(workflow)  // attach metadata of this workflow to response
                 .importPreviewResponse(Optional.empty())
+                .caughtException(Optional.empty())
                 .build());
 
         // Skip this workflow unless appending or overwriting observation data
@@ -71,7 +73,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
             return result;
         }
 
-        // Build the context for processing the import
+        // Build the workflow context for processing the import
         ImportContext importContext = ImportContext.builder()
                 .upload(context.getUpload())
                 .importRows(context.getBrAPIImports())
@@ -88,12 +90,13 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
         // Process the import preview
         AppendOverwriteMiddlewareContext processedPreviewContext = this.importPreviewMiddleware.process(workflowContext);
 
-        // TODO: Rethrow any exceptions caught during processing the context
-//        Optional.ofNullable(processedContext.getExpUnitContext().getMiddlewareError()).ifPresent(e -> {
-//            Constructor<? extends Exception> constructor = e.getError().getClass().getConstructor(String.class, Throwable.class);
-//            Exception newException = constructor.newInstance(e.getError().getMessage(), e);
-//            throw newException;
-//        });
+        // Stop and return any errors that occurred while processing
+        Optional<MiddlewareException> previewException = Optional.ofNullable(processedPreviewContext.getAppendOverwriteWorkflowContext().getProcessError());
+        if (previewException.isPresent() ) {
+            log.debug(String.format("%s in %s", previewException.get().getException().getClass()), previewException.get().getLocalTransactionName());
+            result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(previewException.get().getException())));
+            return result;
+        }
 
         // BUild and return the preview response
         ImportPreviewResponse response = new ImportPreviewResponse();
@@ -122,6 +125,13 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
             // Commit the changes from the processed import preview to the BrAPI service
             AppendOverwriteMiddlewareContext brapiCommittedContext = this.brapiCommitMiddleware.process(processedPreviewContext);
+
+            Optional<MiddlewareException> brapiCommitException = Optional.ofNullable(brapiCommittedContext.getAppendOverwriteWorkflowContext().getProcessError());
+            if (brapiCommitException.isPresent() ) {
+                log.debug(String.format("%s in %s", brapiCommitException.get().getException().getClass()), brapiCommitException.get().getLocalTransactionName());
+                result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(brapiCommitException.get().getException())));
+                return result;
+            }
 
             log.debug("Completed upload to brapi service");
             statusService.finishUpload(context.getUpload(), totalObjects, "Completed upload to brapi service");

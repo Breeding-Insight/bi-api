@@ -24,8 +24,8 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
-import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.util.List;
@@ -67,11 +67,17 @@ public abstract class DomainImportService implements BrAPIImportService {
                 .filter(workflow -> !workflow.isEmpty())
                 .ifPresent(workflow -> log.info("Workflow: " + workflow));
 
-        // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
-        // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
-        if ("append-dataset".equals(context.getWorkflow())) {
-            return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
+        if (ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE.getId().equals(context.getWorkflow()) || ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION.getId().equals(context.getWorkflow())) {
+            Optional<ImportWorkflowResult> result = workflowNavigator.process(context);
+
+            // Throw any exceptions caught during workflow processing
+            result.flatMap(ImportWorkflowResult::getCaughtException).ifPresent(error -> {
+                throw new RuntimeException(error.getCause());
+            });
+
+            return result.flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
         } else {
+            // TODO: remove this case and just use workflow navigator once all integration tests have been updated to use workflow ids
             return processorManagerProvider.get().process(context.getBrAPIImports(),
                     List.of(experimentProcessorProvider.get()),
                     context.getData(),
