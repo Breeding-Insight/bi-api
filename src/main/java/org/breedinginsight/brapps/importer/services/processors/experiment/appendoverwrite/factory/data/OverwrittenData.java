@@ -176,14 +176,14 @@ public class OverwrittenData extends VisitedObservationData {
     }
 
     private boolean isValueMatched() {
-        return !cellData.equals(observation.getValue());
+        return cellData.equals(observation.getValue());
     }
 
     private boolean isTimestampMatched() {
         if (timestamp == null) {
             return observation.getObservationTimeStamp() == null;
         } else {
-            return !observationService.parseDateTime(timestamp).equals(observation.getObservationTimeStamp());
+            return observationService.parseDateTime(timestamp).equals(observation.getObservationTimeStamp());
         }
     }
 //    private void validateTimeStampValue(String value,
