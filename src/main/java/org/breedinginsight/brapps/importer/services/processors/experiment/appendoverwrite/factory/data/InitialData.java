@@ -35,6 +35,8 @@ import org.breedinginsight.model.Trait;
 import org.breedinginsight.model.User;
 import org.breedinginsight.utilities.Utilities;
 
+import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +49,9 @@ public class InitialData extends VisitedObservationData {
     String germplasmName;
     BrAPIStudy study;
     String cellData;
+    String timestamp;
     String phenoColumnName;
+    String timestampColumnName;
     Trait trait;
     ExperimentObservation row;
     UUID trialId;
@@ -67,7 +71,9 @@ public class InitialData extends VisitedObservationData {
                 String germplasmName,
                 BrAPIStudy study,
                 String cellData,
+                String timestamp,
                 String phenoColumnName,
+                String timestampColumnName,
                 Trait trait,
                 ExperimentObservation row,
                 UUID trialId,
@@ -85,7 +91,9 @@ public class InitialData extends VisitedObservationData {
         this.germplasmName = germplasmName;
         this.study = study;
         this.cellData = cellData;
+        this.timestamp = timestamp;
         this.phenoColumnName = phenoColumnName;
+        this.timestampColumnName = timestampColumnName;
         this.trait = trait;
         this.row = row;
         this.trialId = trialId;
@@ -106,6 +114,9 @@ public class InitialData extends VisitedObservationData {
 
         // Validate observation value
         fieldValidator.validateField(phenoColumnName, cellData, trait).ifPresent(errors::add);
+
+        // Validate timestamp
+        fieldValidator.validateField(timestampColumnName, timestamp, null).ifPresent(errors::add);
 
         return Optional.ofNullable(errors.isEmpty() ? null : errors);
     }
@@ -132,6 +143,13 @@ public class InitialData extends VisitedObservationData {
                 brapiReferenceSource,
                 user,
                 program);
+
+        // Add a timestamp if included
+        if (timestamp != null && !timestamp.isBlank()) {
+            DateTimeFormatter formatter = DateTimeFormatter.ISO_INSTANT;
+            String formattedTimeStampValue = formatter.format(observationService.parseDateTime(timestamp));
+            newObservation.setObservationTimeStamp(OffsetDateTime.parse(formattedTimeStampValue));
+        }
 
         // Construct a pending observation with a status set to NEW
         return new PendingImportObject<>(ImportObjectState.NEW, (BrAPIObservation) Utilities.formatBrapiObjForDisplay(newObservation, BrAPIObservation.class, program));

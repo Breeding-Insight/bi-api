@@ -56,7 +56,9 @@ public class ProcessedDataFactory {
                                           String germplasmName,
                                           BrAPIStudy study,
                                           String cellData,
+                                          String timestamp,
                                           String phenoColumnName,
+                                          String timestampColumnName,
                                           Trait trait,
                                           ExperimentObservation row,
                                           UUID trialId,
@@ -69,7 +71,7 @@ public class ProcessedDataFactory {
                                           FieldValidator fieldValidator,
                                           StudyService studyService,
                                           ObservationService observationService) {
-        return new InitialData(brapiReferenceSource, isCommit, germplasmName, study, cellData, phenoColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
+        return new InitialData(brapiReferenceSource, isCommit, germplasmName, study, cellData, timestamp, phenoColumnName, timestampColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
     }
 
     public static OverwrittenData overwrittenData(boolean canOverwrite,
@@ -100,7 +102,9 @@ public class ProcessedDataFactory {
                                        String germplasmName,
                                        BrAPIStudy study,
                                        String cellData,
+                                       String timestamp,
                                        String phenoColumnName,
+                                       String timestampColumnName,
                                        Trait trait,
                                        ExperimentObservation row,
                                        UUID trialId,
@@ -110,7 +114,7 @@ public class ProcessedDataFactory {
                                        BrAPIObservationUnit observationUnit,
                                        User user,
                                        Program program) {
-        return initialData(brapiReferenceSource, isCommit, germplasmName, study, cellData, phenoColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
+        return initialData(brapiReferenceSource, isCommit, germplasmName, study, cellData, timestamp, phenoColumnName, timestampColumnName, trait, row, trialId, studyId, unitId, studyYear, observationUnit, user, program, fieldValidator, studyService, observationService);
     }
 
     @Bean
