@@ -343,7 +343,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     // TODO: change null values to actual data
                     // TODO: change signature to take two args, studyName and unitName
                     statistic.addObservationUnitId(null);
-                    statistic.addGid(null);
+                    statistic.addGid(context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getAccessionNumber());
                     context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
 
                     // Construct a pending observation
