@@ -206,6 +206,9 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
             // Build new pending observation data for each phenotype
             Map<String, PendingImportObject<BrAPIObservation>> pendingObservationByHash = new HashMap<>();
 
+            // In case the user aborted an import, clear any old preview statistics before processing the import
+            statistic.clearData();
+
             // Build pending import data maps for each row
             for (int i = 0; i < context.getImportContext().getImportRows().size(); i++) {
                 Integer rowNum = i;

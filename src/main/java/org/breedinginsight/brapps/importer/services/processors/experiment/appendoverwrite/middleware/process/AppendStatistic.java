@@ -26,14 +26,18 @@ import java.util.Optional;
 
 @Prototype
 public class AppendStatistic {
-    private final HashSet<String> environmentNames;
-    private final HashSet<String> observationUnitIds;
-    private final HashSet<String> gids;
+    private HashSet<String> environmentNames;
+    private HashSet<String> observationUnitIds;
+    private HashSet<String> gids;
     private int newCount;
     private int existingCount;
     private int mutatedCount;
 
     public AppendStatistic() {
+        this.clearData();
+    }
+
+    public void clearData() {
         this.environmentNames = new HashSet<>();
         this.observationUnitIds = new HashSet<>();
         this.gids = new HashSet<>();
@@ -41,7 +45,6 @@ public class AppendStatistic {
         this.existingCount = 0;
         this.mutatedCount = 0;
     }
-
     public int incrementNewCount(Integer value) {
         int increment = 0;
         if (value == null) {

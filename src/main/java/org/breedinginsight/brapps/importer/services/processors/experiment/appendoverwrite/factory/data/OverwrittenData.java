@@ -186,36 +186,4 @@ public class OverwrittenData extends VisitedObservationData {
             return observationService.parseDateTime(timestamp).equals(observation.getObservationTimeStamp());
         }
     }
-//    private void validateTimeStampValue(String value,
-//                                        String columnHeader, ValidationErrors validationErrors, int row) {
-//        if (StringUtils.isBlank(value)) {
-//            log.debug(String.format("skipping validation of observation timestamp because there is no value.\n\tvariable: %s\n\trow: %d", columnHeader, row));
-//            return;
-//        }
-//        if (!validDateValue(value) && !validDateTimeValue(value)) {
-//            addRowError(columnHeader, "Incorrect datetime format detected. Expected YYYY-MM-DD or YYYY-MM-DDThh:mm:ss+hh:mm", validationErrors, row);
-//        }
-//
-//    }
-
-    private boolean validDateValue(String value) {
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE;
-        try {
-            formatter.parse(value);
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-        return true;
-    }
-
-    private boolean validDateTimeValue(String value) {
-        DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
-        try {
-            formatter.parse(value);
-        } catch (DateTimeParseException e) {
-            return false;
-        }
-        return true;
-    }
-
 }
