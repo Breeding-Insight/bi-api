@@ -247,7 +247,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         tsColumnName = tsColByPheno.get(phenoColumnName).name();
 
                         // If timestamp is not valid, add a validation error
-                        fieldValidator.validateField(tsColumnName, cell.timestamp, null).ifPresent(err->{
+                        fieldValidator.validateField(tsColumnName, cell.timestamp, null).ifPresent(err -> {
                             cell.timestamp = null;
                             validationErrors.addError(rowNum + 2, err); // +2 because of excel header row and 1-based row index
                         });
@@ -255,6 +255,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     }
 
                     VisitedObservationData processedData = null;
+
                     // Is there prior observation data for this unit + var?
                     if (observationByObsHash.containsKey(observationHash)) {
 
@@ -265,7 +266,7 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         if ((!cellData.isBlank() && !cellData.equals(observation.getValue())) || (cell.timestamp != null && !observationService.parseDateTime(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
 
                             // Is prior data protected?
-                            boolean canOverwrite = "false".equals( row.getOverwrite() == null ? "false" : row.getOverwrite());
+                            boolean canOverwrite = "false".equals(row.getOverwrite() == null ? "false" : row.getOverwrite());
 
                             // Clone the trait
                             Trait changeTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);
@@ -289,7 +290,8 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                             processedData = processedDataFactory.unchangedDataBean(observation, program);
                         }
 
-                    } else {
+                        //
+                    } else if (!cellData.isBlank()) {
 
                         // Clone the observation unit and trait
                         BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
@@ -313,10 +315,27 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                                 observationUnit,
                                 context.getImportContext().getUser(),
                                 context.getImportContext().getProgram());
+                    } else {
+                        // Clone the observation unit
+                        BrAPIObservationUnit observationUnit = gson.fromJson(gson.toJson(context.getAppendOverwriteWorkflowContext().getPendingObsUnitByOUId().get(row.getObsUnitID()).getBrAPIObject()), BrAPIObservationUnit.class);
+
+                        processedData = processedDataFactory.emptyDataBean(brapiReferenceSource,
+                                context.getImportContext().isCommit(),
+                                context.getAppendOverwriteWorkflowContext().getPendingGermplasmByOUId().get(unitId).getBrAPIObject().getGermplasmName(),
+                                context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject(),
+                                phenoColumnName,
+                                pendingTrial.getId(),
+                                context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getId(),
+                                UUID.fromString(unitId),
+                                context.getAppendOverwriteWorkflowContext().getPendingStudyByOUId().get(unitId).getBrAPIObject().getSeasons().get(0),
+                                observationUnit,
+                                context.getImportContext().getUser(),
+                                context.getImportContext().getProgram()
+                        );
                     }
 
                     // Validate processed data
-                    processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e->validationErrors.addError(rowNum + 2, e)));  // +2 to account for header row and excel file 1-based row index
+                    processedData.getValidationErrors().ifPresent(errList -> errList.forEach(e -> validationErrors.addError(rowNum + 2, e)));  // +2 to account for header row and excel file 1-based row index
 
                     // Update import preview statistics and set in the context
                     processedData.updateTally(statistic);
@@ -328,13 +347,13 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                     context.getAppendOverwriteWorkflowContext().setStatistic(statistic);
 
                     // Construct a pending observation
-                    PendingImportObject<BrAPIObservation> pendingProcessedData = processedData.constructPendingObservation();
+                    Optional<PendingImportObject<BrAPIObservation>> pendingProcessedData = Optional.ofNullable(processedData.constructPendingObservation());
 
                     // Set the new pending observation in the pending import for the row
-                    mappedImportRow.getObservations().add(pendingProcessedData);
+                    pendingProcessedData.ifPresent(observation -> mappedImportRow.getObservations().add(observation));
 
                     // Add pending observation to map
-                    pendingObservationByHash.put(observationHash, pendingProcessedData);
+                    pendingProcessedData.ifPresent(observation -> pendingObservationByHash.put(observationHash, observation));
                 }
 
                 // Set the pending import for the row

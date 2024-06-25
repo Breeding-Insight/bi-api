@@ -95,6 +95,23 @@ public class ProcessedDataFactory {
         return new UnchangedData(observation, program);
     }
 
+    public static EmptyData emptyData(String brapiReferenceSource,
+                                      boolean isCommit,
+                                      String germplasmName,
+                                      BrAPIStudy study,
+                                      String phenoColumnName,
+                                      UUID trialId,
+                                      UUID studyId,
+                                      UUID unitId,
+                                      String studyYear,
+                                      BrAPIObservationUnit observationUnit,
+                                      User user,
+                                      Program program,
+                                      StudyService studyService,
+                                      ObservationService observationService) {
+        return new EmptyData(brapiReferenceSource, isCommit, germplasmName, study, phenoColumnName, trialId, studyId, unitId, studyYear, observationUnit, user, program, studyService, observationService);
+    }
+
     @Bean
     @Prototype
     public InitialData initialDataBean(String brapiReferenceSource,
@@ -138,6 +155,23 @@ public class ProcessedDataFactory {
     @Prototype
     public UnchangedData unchangedDataBean(BrAPIObservation observation, Program program) {
         return unchangedData(observation, program);
+    }
+
+    @Bean
+    @Prototype
+    public EmptyData emptyDataBean(String brapiReferenceSource,
+                                   boolean isCommit,
+                                   String germplasmName,
+                                   BrAPIStudy study,
+                                   String phenoColumnName,
+                                   UUID trialId,
+                                   UUID studyId,
+                                   UUID unitId,
+                                   String studyYear,
+                                   BrAPIObservationUnit observationUnit,
+                                   User user,
+                                   Program program) {
+        return emptyData(brapiReferenceSource, isCommit, germplasmName, study, phenoColumnName, trialId, studyId, unitId, studyYear, observationUnit, user, program, studyService, observationService);
     }
 }
 
