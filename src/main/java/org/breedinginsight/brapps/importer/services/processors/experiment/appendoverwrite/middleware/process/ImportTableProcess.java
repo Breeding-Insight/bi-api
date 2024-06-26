@@ -266,7 +266,11 @@ public class ImportTableProcess extends AppendOverwriteMiddleware {
                         if ((!cellData.isBlank() && !cellData.equals(observation.getValue())) || (cell.timestamp != null && !observationService.parseDateTime(cell.timestamp).equals(observation.getObservationTimeStamp()))) {
 
                             // Is prior data protected?
-                            boolean canOverwrite = "false".equals(row.getOverwrite() == null ? "false" : row.getOverwrite());
+                            /**
+                             * For preview purposes all data can be treated as overwritable, but data cannot be
+                             * overwritten if changes are to be committed and the user has not chosen to overwrite
+                              */
+                            boolean canOverwrite = !context.getImportContext().isCommit() || !"false".equals(row.getOverwrite() == null ? "false" : row.getOverwrite());
 
                             // Clone the trait
                             Trait changeTrait = gson.fromJson(gson.toJson(traitByPhenoColName.get(phenoColumnName)), Trait.class);

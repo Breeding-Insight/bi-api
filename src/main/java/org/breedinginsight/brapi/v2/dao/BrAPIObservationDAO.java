@@ -189,7 +189,7 @@ public class BrAPIObservationDAO {
         }
 
         return getProgramObservations(program.getId()).values().stream()
-                .filter(o -> dbIds.contains(o.getObservationUnitDbId()))
+                .filter(o -> dbIds.contains(o.getObservationDbId()))
                 .collect(Collectors.toList());
     }
 

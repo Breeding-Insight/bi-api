@@ -36,7 +36,6 @@ public class BrAPICommit extends AppendOverwriteMiddleware {
                        BrAPIObservationUnitCommit brAPIObservationUnitCommit,
                        BrAPIObservationCommit brAPIObservationCommit) {
 
-        // TODO: add methods to entity/action classes to register and watch for required foreign key values so order does not have to be hard-wired
         // Note: the order is important because system-generated dbIds from prior steps are used as foreign keys in
         // subsequent steps
         this.middleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(

@@ -25,6 +25,7 @@ import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity.ExperimentImportEntity;
+import org.checkerframework.checker.units.qual.A;
 
 import java.util.List;
 import java.util.Optional;
@@ -63,20 +64,16 @@ public class WorkflowUpdate<T> implements BrAPIAction<T> {
         }
 
     }
+    protected <V> Optional<BrAPIState> saveAndUpdateCache(List<V> members) throws IllegalArgumentException, ApiException {
 
-    protected <V> Optional<BrAPIState> saveAndUpdateCache(List<V> members) {
-        return Optional.ofNullable(members).map(changes -> {
-            try {
-                List<V> savedMembers = entity.brapiPut(changes);
-                entity.updateWorkflow(savedMembers);
-                return new BrAPIUpdateState<V>(savedMembers);
-            } catch (ApiException e) {
-                // TODO: add specific error messages to entity service
-                log.error("Error updating...");
-                throw new InternalServerException("Error updating...", e);
-            }
-        });
-    }
+        if (members == null) {
+            throw new IllegalArgumentException("BrAPI entity cannot be null");
+        }
+            List<V> savedMembers = entity.brapiPut(members);
+            entity.updateWorkflow(savedMembers);
+            return Optional.of(new BrAPIUpdateState<V>(savedMembers));
+        }
+
 
     @Getter
     public class BrAPIUpdateState<U> implements BrAPIState {
@@ -84,7 +81,7 @@ public class WorkflowUpdate<T> implements BrAPIAction<T> {
 
         public BrAPIUpdateState(List<U> existingMembers) { this.members = existingMembers; }
 
-        public boolean restore() {
+        public boolean restore() throws ApiException {
             return saveAndUpdateCache(this.getMembers()).isPresent();
         }
     }

@@ -50,7 +50,7 @@ public class WorkflowCreation<T> implements BrAPIAction<T> {
      * @return an Optional containing the BrAPI state after execution
      * @throws ApiException if an error occurs during execution
      */
-    public Optional<BrAPIState> execute() throws ApiException {
+    public Optional<BrAPIState> execute() throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
         List<T> newMembers = entity.copyWorkflowMembers(ImportObjectState.NEW);
         try {
             List<T> createdMembers = entity.brapiPost(newMembers);
@@ -58,7 +58,7 @@ public class WorkflowCreation<T> implements BrAPIAction<T> {
             return Optional.of(new BrAPICreationState<>(createdMembers));
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             log.error("Error creating...");
-            throw new InternalServerException("Error creating...", e);
+            throw e;
         }
     }
 

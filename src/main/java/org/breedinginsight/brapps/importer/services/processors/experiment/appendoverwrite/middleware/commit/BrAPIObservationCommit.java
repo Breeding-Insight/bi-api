@@ -28,6 +28,10 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import java.util.Optional;
@@ -59,7 +63,7 @@ public class BrAPIObservationCommit extends AppendOverwriteMiddleware {
             log.info("updating existing observations in the BrAPI service");
             updatedObservations = brAPIObservationUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
 
-        } catch (ApiException e) {
+        } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
@@ -72,11 +76,18 @@ public class BrAPIObservationCommit extends AppendOverwriteMiddleware {
         // Tag an error if it occurred in this local transaction
         context.getAppendOverwriteWorkflowContext().getProcessError().tag(this.getClass().getName());
 
-        // Delete any created observations from the BrAPI service
-        createdBrAPIObservations.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
-        // Revert any changes made to observations in the BrAPI service
-        priorBrAPIObservations.ifPresent(WorkflowUpdate.BrAPIUpdateState::restore);
+            // Delete any created observations from the BrAPI service
+            createdBrAPIObservations.ifPresent(WorkflowCreation.BrAPICreationState::undo);
+
+            // Revert any changes made to observations in the BrAPI service
+            priorBrAPIObservations.ifPresent(state -> {
+                try {
+                    state.restore();
+                } catch (ApiException e) {
+                    log.error("Error trying to restore BrAPI variable state: " + Utilities.generateApiExceptionLogMessage(e), e);
+                }
+            });
 
         // Undo the prior local transaction
         return compensatePrior(context);

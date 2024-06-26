@@ -28,6 +28,10 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
 import java.util.Optional;
@@ -59,7 +63,7 @@ public class BrAPIDatasetCommit extends AppendOverwriteMiddleware {
             priorDatasets = datasetUpdate.getBrAPIState().map(d -> d);
             log.info("adding new observation variables to datasets");
             updatedDatasets = datasetUpdate.execute().map(d -> (WorkflowUpdate.BrAPIUpdateState) d);
-        } catch (ApiException e) {
+        } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }
@@ -75,7 +79,13 @@ public class BrAPIDatasetCommit extends AppendOverwriteMiddleware {
         createdDatasets.ifPresent(WorkflowCreation.BrAPICreationState::undo);
 
         // Revert any changes made to datasets in the BrAPI service
-        priorDatasets.ifPresent(WorkflowUpdate.BrAPIUpdateState::restore);
+        priorDatasets.ifPresent(state -> {
+            try {
+                state.restore();
+            } catch (ApiException e) {
+                log.error("Error trying to restore BrAPI variable state: " + Utilities.generateApiExceptionLogMessage(e), e);
+            }
+        });
 
         // Undo the prior local transaction
         return compensatePrior(context);

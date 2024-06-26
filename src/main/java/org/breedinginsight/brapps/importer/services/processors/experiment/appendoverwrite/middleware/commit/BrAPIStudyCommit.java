@@ -26,6 +26,9 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.append
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import javax.inject.Inject;
 import java.util.Optional;
@@ -47,7 +50,7 @@ public class BrAPIStudyCommit extends AppendOverwriteMiddleware {
             brAPIStudyCreation = brAPICreationFactory.studyWorkflowCreationBean(context);
             log.info("creating new studies in the BrAPI service");
             createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
-        } catch (ApiException e) {
+        } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);
         }

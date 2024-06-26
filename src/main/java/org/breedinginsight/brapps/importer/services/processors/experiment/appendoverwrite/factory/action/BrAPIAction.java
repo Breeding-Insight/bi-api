@@ -20,6 +20,9 @@ package org.breedinginsight.brapps.importer.services.processors.experiment.appen
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity.ExperimentImportEntity;
+import org.breedinginsight.services.exceptions.DoesNotExistException;
+import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
+import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 
 import java.util.Optional;
 
@@ -39,7 +42,7 @@ public interface BrAPIAction<T> {
      * @return An Optional containing the relevant BrAPI state after executing the action.
      * @throws ApiException if an error occurs during the execution of the action.
      */
-    Optional<BrAPIState> execute() throws ApiException;
+    Optional<BrAPIState> execute() throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException;
 
     /**
      * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.

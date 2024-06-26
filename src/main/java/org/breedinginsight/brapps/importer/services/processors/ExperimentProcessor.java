@@ -433,6 +433,7 @@ public class ExperimentProcessor implements Processor {
                 if (observation == null) {
                     throw new Exception("Null observation");
                 }
+
                 BrAPIObservation updatedObs = brAPIObservationDAO.updateBrAPIObservation(id, observation, program.getId());
 
                 if (updatedObs == null) {
