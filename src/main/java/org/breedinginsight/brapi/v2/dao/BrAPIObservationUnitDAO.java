@@ -254,6 +254,21 @@ public class BrAPIObservationUnitDAO {
                 .collect(Collectors.toList());
     }
 
+    public List<BrAPIObservationUnit> getObservationUnitsForDatasetAndEnvs(@NotNull String datasetId, Collection<String> envIds, @NotNull Program program) throws ApiException {
+        String datasetReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.DATASET);
+        String studyReferenceSource = Utilities.generateReferenceSource(referenceSource, ExternalReferenceSource.STUDIES);
+        return getProgramObservationUnits(program.getId()).values().stream()
+                .filter(ou -> {
+                    Optional<BrAPIExternalReference> datasetExRef = Utilities.getExternalReference(ou.getExternalReferences(), datasetReferenceSource);
+                    Optional<BrAPIExternalReference> studyExRef = Utilities.getExternalReference(ou.getExternalReferences(), studyReferenceSource);
+                    return Boolean.logicalAnd(
+                            datasetExRef.map(x -> x.getReferenceId().equals(datasetId)).orElse(false),
+                            studyExRef.map(x -> envIds.contains(x.getReferenceId())).orElse(false)
+                    );
+                })
+                .collect(Collectors.toList());
+    }
+
     // Note: does not use cache, impractical to implement all search parameters client-side.
     public List<BrAPIObservationUnit> getObservationUnits(Program program,
                                                           Optional<String> observationUnitId,

@@ -133,7 +133,6 @@ public class BrAPITrialService {
         String logHash = UUID.randomUUID().toString();
         log.debug(logHash + ": exporting experiment: "+experimentId+", params: " + params);
         DownloadFile downloadFile;
-        boolean isDataset = false;
         List<BrAPIObservation> dataset = new ArrayList<>();
         List<Trait> obsVars = new ArrayList<>();
         Map<String, Map<String, Object>> rowByOUId = new HashMap<>();
@@ -161,42 +160,32 @@ public class BrAPITrialService {
         }
         expStudies.forEach(study -> studyByDbId.putIfAbsent(study.getStudyDbId(), study));
 
-        // get the OUs for the requested environments
+        // Get the OUs for the requested environments.
         log.debug(logHash + ": fetching OUs for export");
         List<BrAPIObservationUnit> ous = new ArrayList<>();
         Map<String, BrAPIObservationUnit> ouByOUDbId = new HashMap<>();
         try {
-            for (BrAPIStudy study: expStudies) {
-                List<BrAPIObservationUnit> studyOUs = ouDAO.getObservationUnitsForStudyDbId(study.getStudyDbId(), program);
-                studyOUs.forEach(ou -> ouByOUDbId.put(ou.getObservationUnitDbId(), ou));
-                ous.addAll(studyOUs);
+            if (requestedEnvIds.isEmpty()) {
+                ous.addAll(ouDAO.getObservationUnitsForDataset(params.getDatasetId(), program));
+            } else {
+                ous.addAll(ouDAO.getObservationUnitsForDatasetAndEnvs(params.getDatasetId(), requestedEnvIds, program));
             }
+            ous.forEach(ou -> ouByOUDbId.put(ou.getObservationUnitDbId(), ou));
         } catch (ApiException err) {
             log.error(logHash + ": Error fetching observation units for a study by its DbId" +
                     Utilities.generateApiExceptionLogMessage(err), err);
         }
-        String defaultObsLevel = experiment.getAdditionalInfo().get(BrAPIAdditionalInfoFields.DEFAULT_OBSERVATION_LEVEL).getAsString();
-        DatasetMetadata datasetMetadata = DatasetUtil.getDatasetByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS), defaultObsLevel);
-        if ((StringUtils.isBlank(params.getDataset()) || defaultObsLevel.equalsIgnoreCase(params.getDataset())) && datasetMetadata != null) {
-            String obsDatasetId = datasetMetadata.getId().toString();
-            isDataset = true;
-            log.debug(logHash + ": fetching " + datasetMetadata.getName() + " dataset observation variables for export");
-            obsVars = getDatasetObsVars(obsDatasetId, program);
+        if (params.getDatasetId() != null) {
+            log.debug(logHash + ": fetching " + params.getDatasetId() + " dataset observation variables for export");
+            obsVars = getDatasetObsVars(params.getDatasetId(), program);
 
-            // make additional columns in the export for each obs variable and obs variable timestamp
+            // Make additional columns in the export for each obs variable and obs variable timestamp.
             addObsVarColumns(columns, obsVars, params.isIncludeTimestamps(), program);
-
         }
 
-        // make export rows from any observations
-        if (isDataset) {
-            log.debug(logHash + ": fetching observations for export");
-            dataset = observationDAO.getObservationsByTrialDbId(List.of(experiment.getTrialDbId()), program);
-        }
-        if (!requestedEnvIds.isEmpty()) {
-            log.debug(logHash + ": filtering observations to only requested environments for export");
-            dataset = filterDatasetByEnvironment(dataset, requestedEnvIds, studyByDbId);
-        }
+        // Make export rows from any observations.
+        log.debug(logHash + ": fetching observations for export");
+        dataset = observationDAO.getObservationsByObservationUnits(ouByOUDbId.keySet(), program);
 
         log.debug(logHash + ": fetching program's germplasm for export");
         List<BrAPIGermplasm> programGermplasm = germplasmDAO.getGermplasmsByDBID(ouByOUDbId.values().stream().map(BrAPIObservationUnit::getGermplasmDbId).collect(Collectors.toList()), program.getId());
@@ -216,7 +205,6 @@ public class BrAPITrialService {
                 studyDbIdByOUId,
                 programGermplasmByDbId
         );
-
 
         // make export rows for OUs without observations
         if (rowByOUId.size() < ous.size()) {
