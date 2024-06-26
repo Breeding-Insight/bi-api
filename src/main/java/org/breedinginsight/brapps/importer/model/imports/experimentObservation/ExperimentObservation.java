@@ -321,11 +321,11 @@ public class ExperimentObservation implements BrAPIImport {
         try {
             double lat = Double.parseDouble(getLatitude());
             double lon = Double.parseDouble(getLongitude());
-            Point geoPoint = Point.from(lat, lon);
+            Point geoPoint = Point.from(lon, lat);
 
             if (getElevation() != null) {
                 double elevation = Double.parseDouble(getElevation());
-                geoPoint = Point.from(lat, lon, elevation); // geoPoint.withAlt(elevation) did not work
+                geoPoint = Point.from(lon, lat, elevation); // geoPoint.withAlt(elevation) did not work
             }
 
             BrApiGeoJSON coords = BrApiGeoJSON.builder()
