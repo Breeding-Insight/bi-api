@@ -15,4 +15,4 @@
  * limitations under the License.
  */
 
-update breeding_method set category = 'Increase' where abbreviation = 'UNK';
+update breeding_method set name = 'Unknown', category = 'Increase' where abbreviation = 'UNK';
