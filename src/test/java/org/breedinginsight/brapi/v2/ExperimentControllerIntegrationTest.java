@@ -22,6 +22,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -73,6 +74,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private SpeciesDAO speciesDAO;
     @Inject
     private OntologyService ontologyService;
+    @Inject
+    private BrAPITrialService experimentService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
 
@@ -220,12 +223,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             String envs = numberOfEnvsRequested == 1 ? envIds.get(0) : String.join(",", envIds);
             envParam = "environments=" + envs;
         }
-        // TODO:Get available datasets for experiment.
-        //  Get datasetId.
-        //  Send datasetId in request.
+        // Get datasetId to include in export request.
+        String datasetId = experimentService.getDatasetsMetadata(program, UUID.fromString(experimentId)).stream().findFirst().get().getId().toString();
         Flowable<HttpResponse<byte[]>> call = client.exchange(
-                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
-                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension))
+                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s&datasetId=%s",
+                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension, datasetId))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
         HttpResponse<byte[]> response = call.blockingFirst();
