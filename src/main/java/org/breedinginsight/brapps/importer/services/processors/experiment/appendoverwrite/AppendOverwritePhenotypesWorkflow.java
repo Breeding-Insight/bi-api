@@ -115,7 +115,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
             return result;
         }
 
-        // BUild and return the preview response
+        // Build and return the preview response
         ImportPreviewResponse response = new ImportPreviewResponse();
         response.setStatistics(processedPreviewContext.getAppendOverwriteWorkflowContext().getStatistic().constructPreviewMap());
         response.setRows(new ArrayList<>(processedPreviewContext.getImportContext().getMappedBrAPIImport().values()));
