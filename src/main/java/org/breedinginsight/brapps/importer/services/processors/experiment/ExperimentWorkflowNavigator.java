@@ -77,8 +77,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
      */
     public enum Workflow {
         NEW_OBSERVATION("new-experiment","Create new experiment"),
-        APPEND_OVERWRITE("append-dataset", "Append experimental dataset"),
-        APPEND_ENVIRONMENT("append-environment", "Create new experimental environment");
+        APPEND_OVERWRITE("append-dataset", "Append experimental dataset");
 
         private String id;
         private String name;
