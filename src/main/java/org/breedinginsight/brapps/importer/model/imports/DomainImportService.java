@@ -34,19 +34,11 @@ import java.util.Optional;
 @Singleton
 @Slf4j
 public abstract class DomainImportService implements BrAPIImportService {
-
-    // TODO: delete processor fields once WorkflowNavigator is used
-    private final Provider<ExperimentProcessor> experimentProcessorProvider;
-    private final Provider<ProcessorManager> processorManagerProvider;
     private final Workflow workflowNavigator;
 
 
-    public DomainImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
-                               Provider<ProcessorManager> processorManagerProvider,
-                               Workflow workflowNavigator)
+    public DomainImportService(Workflow workflowNavigator)
     {
-        this.experimentProcessorProvider = experimentProcessorProvider;
-        this.processorManagerProvider = processorManagerProvider;
         this.workflowNavigator = workflowNavigator;
     }
 
@@ -67,7 +59,7 @@ public abstract class DomainImportService implements BrAPIImportService {
                 .filter(workflow -> !workflow.isEmpty())
                 .ifPresent(workflow -> log.info("Workflow: " + workflow));
 
-        if (ExperimentWorkflowNavigator.Workflow.APPEND_OVERWRITE.getId().equals(context.getWorkflow()) || ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION.getId().equals(context.getWorkflow())) {
+
             Optional<ImportWorkflowResult> result = workflowNavigator.process(context);
 
             // Throw any exceptions caught during workflow processing
@@ -75,18 +67,7 @@ public abstract class DomainImportService implements BrAPIImportService {
                 throw result.flatMap(ImportWorkflowResult::getCaughtException).get();
             }
 
-
             return result.flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
-        } else {
-            // TODO: remove this case and just use workflow navigator once all integration tests have been updated to use workflow ids
-            return processorManagerProvider.get().process(context.getBrAPIImports(),
-                    List.of(experimentProcessorProvider.get()),
-                    context.getData(),
-                    context.getProgram(),
-                    context.getUpload(),
-                    context.getUser(),
-                    context.isCommit());
-        }
     }
 }
 

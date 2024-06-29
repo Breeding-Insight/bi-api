@@ -39,13 +39,10 @@ public class ExperimentImportService extends DomainImportService {
 
     private final String IMPORT_TYPE_ID = "ExperimentImport";
 
-    // TODO: delete processor fields once WorkflowNavigator is used
     @Inject
-    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
-                                   Provider<ProcessorManager> processorManagerProvider,
-                                   ExperimentWorkflowNavigator workflowNavigator)
+    public ExperimentImportService(ExperimentWorkflowNavigator workflowNavigator)
     {
-        super(experimentProcessorProvider, processorManagerProvider, workflowNavigator);
+        super(workflowNavigator);
     }
 
     @Override

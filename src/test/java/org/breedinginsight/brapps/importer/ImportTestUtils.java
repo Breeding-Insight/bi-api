@@ -128,6 +128,7 @@ public class ImportTestUtils {
         return processCall;
 
     }
+
     public HttpResponse<String> getUploadedFile(String importId, RxHttpClient client, Program program, String mappingId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = client.exchange(
                 GET(String.format("/programs/%s/import/mappings/%s/data/%s?mapping=true", program.getId(), mappingId, importId))
@@ -217,6 +218,24 @@ public class ImportTestUtils {
         HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
         JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         assertEquals(200, result.getAsJsonObject("progress").get("statuscode").getAsInt(), "Returned data: " + result);
+        return result;
+    }
+
+    public JsonObject uploadAndFetchWorkflowNoStatusCheck(File file,
+                                             Map<String, String> userData,
+                                             Boolean commit,
+                                             RxHttpClient client,
+                                             Program program,
+                                             String mappingId,
+                                             String workflowId) throws InterruptedException {
+        Flowable<HttpResponse<String>> call = uploadWorkflowDataFile(file, userData, commit, client, program, mappingId, workflowId);
+        HttpResponse<String> response = call.blockingFirst();
+        assertEquals(HttpStatus.ACCEPTED, response.getStatus());
+
+        String importId = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result").get("importId").getAsString();
+
+        HttpResponse<String> upload = getUploadedFile(importId, client, program, mappingId);
+        JsonObject result = JsonParser.parseString(upload.body()).getAsJsonObject().getAsJsonObject("result");
         return result;
     }
 
