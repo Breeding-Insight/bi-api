@@ -91,18 +91,19 @@ public class PopulateNewPendingImportObjectsStep {
         this.gson = new JSON().getGson();
     }
 
-    public ProcessedData process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
+    /**
+     * TODO: in the future returning ProcessedData rather than modifying in-place would be preferrable.
+     *
+     * @param context (modified in-place)
+     * @param phenotypeData
+     * @return
+     * @throws MissingRequiredInfoException
+     * @throws UnprocessableEntityException
+     * @throws ApiException
+     */
+    public void process(ProcessContext context, ProcessedPhenotypeData phenotypeData)
             throws MissingRequiredInfoException, UnprocessableEntityException, ApiException {
-
-        Table data = context.getImportContext().getData();
-        ImportUpload upload = context.getImportContext().getUpload();
-        ImportContext importContext = context.getImportContext();
-
         populatePendingImportObjects(context, phenotypeData);
-
-
-        // TODO: implement
-        return new ProcessedData();
     }
 
 

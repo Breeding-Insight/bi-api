@@ -98,6 +98,7 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
         ImportUpload upload = context.getUpload();
         boolean commit = context.isCommit();
         List<BrAPIImport> importRows = context.getImportRows();
+        ProcessedData processedData = new ProcessedData();
 
         // Make sure the file does not contain obs unit ids before proceeding
         if (containsObsUnitIDs(context)) {
@@ -108,7 +109,7 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
 
         ProcessedPhenotypeData phenotypeData = experimentPhenotypeService.extractPhenotypes(context);
         ProcessContext processContext = populateExistingPendingImportObjectsStep.process(context, phenotypeData);
-        ProcessedData processedData = populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
+        populateNewPendingImportObjectsStep.process(processContext, phenotypeData);
         ValidationErrors validationErrors = validatePendingImportObjectsStep.process(context, processContext.getPendingData(), phenotypeData, processedData);
 
         // short circuit if there were validation errors

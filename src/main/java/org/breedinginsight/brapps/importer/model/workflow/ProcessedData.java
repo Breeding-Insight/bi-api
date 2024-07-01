@@ -29,5 +29,4 @@ import java.util.Map;
 @NoArgsConstructor
 public class ProcessedData {
     private Map<Integer, PendingImport> mappedBrAPIImport;
-    private ImportPreviewResponse importPreviewResponse;
 }
