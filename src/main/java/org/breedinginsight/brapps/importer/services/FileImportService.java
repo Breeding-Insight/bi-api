@@ -576,11 +576,6 @@ public class FileImportService {
                 .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
         BrAPIImportService importService = configManager.getImportServiceById(mappingConfig.getImportTypeId())
                 .orElseThrow(() -> new DoesNotExistException("Config with that id does not exist"));
-        // NOTE:
-        // this is creating a workflow navigator to call getWorkflows
-        // workflowNavigator.getWorkflows();
-        // getWorkflows is creating the ExperimentWorkflow which is injecting the file import service and
-        // resulting in a circular dependency
         return importService.getWorkflows();
     }
 
