@@ -20,6 +20,7 @@ package org.breedinginsight.brapps.importer.model.imports;
 import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
@@ -71,7 +72,7 @@ public abstract class DomainImportService implements BrAPIImportService {
 
         // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
         // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
-        if ("new-experiment".equals(context.getWorkflow())) {
+        if (ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION.getId().equals(context.getWorkflow())) {
             return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
         } else {
             return processorManagerProvider.get().process(context.getBrAPIImports(),
