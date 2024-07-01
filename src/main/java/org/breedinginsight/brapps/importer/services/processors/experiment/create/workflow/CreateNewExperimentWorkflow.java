@@ -139,9 +139,12 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
     }
 
     /**
-     * Retrieves the name of the workflow. This is used for logging display purposes.
+     * Process the import service context and returns an Optional ImportWorkflowResult.
      *
-     * @return the name of the workflow
+     * @param context The import service context to be processed. If null, then it skips processing but returns the result with no-preview.
+     * @return An Optional ImportWorkflowResult which contains the workflow and import preview response (if available).
+     *         If the context is null, it returns the result with no-preview.
+     * @throws Exception If any error occurs during the processing.
      */
     public Optional<ImportWorkflowResult> process(ImportServiceContext context) throws Exception {
         // Workflow processing the context
