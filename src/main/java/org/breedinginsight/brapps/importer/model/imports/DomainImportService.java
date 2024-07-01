@@ -67,8 +67,8 @@ public abstract class DomainImportService implements BrAPIImportService {
             throws Exception {
 
         Optional.ofNullable(context.getWorkflow())
-                .filter(workflow -> !workflow.isEmpty())
-                .ifPresent(workflow -> log.info("Workflow: " + workflow));
+                .filter(workflowName -> !workflowName.isEmpty())
+                .ifPresent(workflowName -> log.info("Workflow: " + workflowName));
 
         // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
         // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
