@@ -30,24 +30,44 @@ import java.util.Optional;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
 import static org.breedinginsight.dao.db.enums.DataType.NOMINAL;
 
+/**
+ * This class represents a NominalValidator which implements the ObservationValidator interface.
+ * It is responsible for validating nominal fields within observations.
+ */
 @Slf4j
 @Singleton
 public class NominalValidator implements ObservationValidator {
+
     @Inject
     ObservationService observationService;
 
+    /**
+     * Constructor for NominalValidator class that takes an ObservationService as a parameter.
+     * @param observationService the ObservationService used for validation
+     */
     public NominalValidator(ObservationService observationService) {
         this.observationService = observationService;
     }
+
+    /**
+     * Validates a field within an observation for nominal data.
+     *
+     * @param fieldName the name of the field being validated
+     * @param value the value of the field being validated
+     * @param variable the Trait variable associated with the field
+     * @return an Optional containing a ValidationError if validation fails, otherwise an empty Optional
+     */
     @Override
     public Optional<ValidationError> validateField(String fieldName, String value, Trait variable) {
+        // Skip validation if observation is blank
         if (observationService.isBlankObservation(value)) {
-            log.debug(String.format("skipping validation of observation because there is no value.\n\tvariable: %s", fieldName));
+            log.debug(String.format("Skipping validation of observation because there is no value.\n\tvariable: %s", fieldName));
             return Optional.empty();
         }
 
+        // Skip validation if observation is NA
         if (observationService.isNAObservation(value)) {
-            log.debug(String.format("skipping validation of observation because it is NA.\n\tvariable: %s", fieldName));
+            log.debug(String.format("Skipping validation of observation because it is NA.\n\tvariable: %s", fieldName));
             return Optional.empty();
         }
 
@@ -61,7 +81,7 @@ public class NominalValidator implements ObservationValidator {
             return Optional.empty();
         }
 
-        // Skip if this is not an ordinal trait
+        // Skip if this is not a nominal trait
         if (!NOMINAL.equals(variable.getScale().getDataType())) {
             return Optional.empty();
         }

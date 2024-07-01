@@ -31,58 +31,76 @@ import java.util.Optional;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
 import static org.breedinginsight.dao.db.enums.DataType.NUMERICAL;
 
+/**
+ * NumericalValidator class is responsible for validating numerical observations against specified constraints.
+ * This class implements the ObservationValidator interface.
+ *
+ * The class provides a validateField method which takes the field name, value, and trait as inputs and
+ * returns an Optional containing a ValidationError if any validation error is encountered, or Optional.empty() if
+ * the validation passes successfully.
+ */
 @Slf4j
 @Singleton
 public class NumericalValidator implements ObservationValidator {
+
     @Inject
     ObservationService observationService;
 
+    /**
+     * Constructor for NumericalValidator class.
+     * @param observationService An instance of ObservationService to perform observation-related operations.
+     */
     public NumericalValidator(ObservationService observationService) {
         this.observationService = observationService;
     }
+
+    /**
+     * Validates a numerical observation against specified constraints.
+     * Returns an Optional containing a ValidationError if validation fails, or Optional.empty() if successful.
+     * @param fieldName The name of the observation field to be validated.
+     * @param value The value of the observation to be validated.
+     * @param variable The trait associated with the observation.
+     * @return Optional containing a ValidationError if validation fails, or Optional.empty() if successful.
+     */
     @Override
     public Optional<ValidationError> validateField(String fieldName, String value, Trait variable) {
         if (observationService.isBlankObservation(value)) {
-            log.debug(String.format("skipping validation of observation because there is no value.\n\tvariable: %s", fieldName));
+            log.debug(String.format("Skipping validation of observation because there is no value.\n\tVariable: %s", fieldName));
             return Optional.empty();
         }
 
         if (observationService.isNAObservation(value)) {
-            log.debug(String.format("skipping validation of observation because it is NA.\n\tvariable: %s", fieldName));
+            log.debug(String.format("Skipping validation of observation because it is NA.\n\tVariable: %s", fieldName));
             return Optional.empty();
         }
 
-        // Skip if field is a timestamp
+        // Skip validation if field is a timestamp
         if (fieldName.startsWith(TIMESTAMP_PREFIX)) {
             return Optional.empty();
         }
 
-        // Skip if there is no trait data
-        if (variable == null || variable.getScale() == null || variable.getScale().getDataType() == null) {
+        // Skip validation if there is no trait data or if the trait is not numerical
+        if (variable == null || variable.getScale() == null || variable.getScale().getDataType() == null ||
+                !NUMERICAL.equals(variable.getScale().getDataType())) {
             return Optional.empty();
         }
 
-        // Skip if this is not a numerical trait
-        if (!NUMERICAL.equals(variable.getScale().getDataType())) {
-            return Optional.empty();
-        }
-
-        // Make new validation error if the value is non-numeric
+        // Check if the value is a valid numeric value
         Optional<BigDecimal> number = observationService.validNumericValue(value);
         if (number.isEmpty()) {
             return Optional.of(new ValidationError(fieldName, "Non-numeric text in a numerical field", HttpStatus.UNPROCESSABLE_ENTITY));
         }
 
+        // Perform range validation for numeric value
         Optional<ValidationError> validationError = number
                 .flatMap(num -> {
                     if (observationService.validNumericRange(num, variable.getScale())) {
-                        return Optional.empty(); // Return empty Optional if value is in numeric range
+                        return Optional.empty(); // Return empty Optional if value is within numeric range
                     } else {
                         return Optional.of(new ValidationError(fieldName, "Value outside of min/max range detected", HttpStatus.UNPROCESSABLE_ENTITY));
                     }
                 });
 
         return validationError;
-
     }
 }

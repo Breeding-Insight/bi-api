@@ -571,13 +571,23 @@ public class FileImportService {
         return importMappings;
     }
 
+    /**
+     * Retrieves the list of import workflows associated with a specific system mapping.
+     *
+     * @param mappingId The ID of the system mapping for which to retrieve workflows
+     * @return A list of ImportWorkflow objects representing the workflows for the specified system mapping
+     * @throws DoesNotExistException If the system mapping with the given ID does not exist
+     */
     public List<ImportWorkflow> getWorkflowsForSystemMapping(UUID mappingId) throws DoesNotExistException {
+        // Retrieve the import mapping configuration based on the provided mapping ID
         ImportMapping mappingConfig = importMappingDAO.getMapping(mappingId)
                 .orElseThrow(() -> new DoesNotExistException("Cannot find mapping config associated with upload."));
+
+        // Get the import service associated with the import type ID from the configuration manager
         BrAPIImportService importService = configManager.getImportServiceById(mappingConfig.getImportTypeId())
                 .orElseThrow(() -> new DoesNotExistException("Config with that id does not exist"));
+
+        // Retrieve and return the list of import workflows for the specified system mapping
         return importService.getWorkflows();
     }
-
-
 }

@@ -65,8 +65,19 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
         this.brapiCommitMiddleware = (AppendOverwriteMiddleware) AppendOverwriteMiddleware.link(brAPICommit);
     }
 
+    /**
+     * Processes the import workflow based on the provided import service context.
+     * If the provided context is not valid or if the workflow is not equal to the context workflow, returns an empty Optional.
+     * If the context is null, returns a no-preview result with metadata for this workflow.
+     * Processes the import preview using middleware, catches and handles any processing errors, and builds the import preview response.
+     * Updates status based on the processing and commit actions if applicable.
+     *
+     * @param context The import service context containing upload, data, program, user, commit flag, and workflow information.
+     * @return Optional containing ImportWorkflowResult with workflow metadata and import preview response if successful, else empty Optional.
+     */
     @Override
     public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
+
         // Metadata about this workflow processing the context
         ImportWorkflow workflow = ImportWorkflow.builder()
                 .id(getWorkflow().getId())
@@ -109,7 +120,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
         // Stop and return any errors that occurred while processing
         Optional<MiddlewareException> previewException = Optional.ofNullable(processedPreviewContext.getAppendOverwriteWorkflowContext().getProcessError());
-        if (previewException.isPresent() ) {
+        if (previewException.isPresent()) {
             log.debug(String.format("%s in %s", previewException.get().getException().getClass().getName(), previewException.get().getLocalTransactionName()));
             result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(previewException.get().getException())));
             return result;
@@ -144,7 +155,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
             AppendOverwriteMiddlewareContext brapiCommittedContext = this.brapiCommitMiddleware.process(processedPreviewContext);
 
             Optional<MiddlewareException> brapiCommitException = Optional.ofNullable(brapiCommittedContext.getAppendOverwriteWorkflowContext().getProcessError());
-            if (brapiCommitException.isPresent() ) {
+            if (brapiCommitException.isPresent()) {
                 log.debug(String.format("%s in %s", brapiCommitException.get().getException().getClass()), brapiCommitException.get().getLocalTransactionName());
                 result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(brapiCommitException.get().getException())));
                 return result;

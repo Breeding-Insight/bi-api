@@ -24,9 +24,27 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * This Functional Interface represents a Workflow that can be executed as part of an import process.
+ * It extends the Ordered interface to allow workflows to be ordered in a sequence.
+ */
 @FunctionalInterface
 public interface Workflow extends Ordered {
+
+    /**
+     * Process method that defines the logic to be executed as part of the workflow.
+     *
+     * @param context the ImportServiceContext object containing necessary information for the workflow
+     * @return an Optional of ImportWorkflowResult representing the result of the workflow execution
+     */
     Optional<ImportWorkflowResult> process(ImportServiceContext context);
+
+    /**
+     * Default method to get a list of workflows.
+     * This method provides a default implementation returning an empty list.
+     *
+     * @return a List of ImportWorkflow containing workflows
+     */
     default List<ImportWorkflow> getWorkflows() {
         // Default implementation for getWorkflows method
         return new ArrayList<>();

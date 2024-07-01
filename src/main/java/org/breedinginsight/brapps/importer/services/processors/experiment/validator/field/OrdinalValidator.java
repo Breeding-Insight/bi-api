@@ -30,38 +30,57 @@ import java.util.Optional;
 import static org.breedinginsight.brapps.importer.services.processors.experiment.model.ExpImportProcessConstants.TIMESTAMP_PREFIX;
 import static org.breedinginsight.dao.db.enums.DataType.ORDINAL;
 
+/**
+ * This class represents a validator specifically designed for ordinal traits.
+ * It implements the ObservationValidator interface.
+ */
 @Slf4j
 @Singleton
 public class OrdinalValidator implements ObservationValidator {
+
     @Inject
     ObservationService observationService;
 
+    /**
+     * Constructs an instance of OrdinalValidator with the specified ObservationService.
+     *
+     * @param observationService the ObservationService used for validation
+     */
     public OrdinalValidator(ObservationService observationService) {
         this.observationService = observationService;
     }
+
+    /**
+     * Validates a field for ordinal traits.
+     *
+     * @param fieldName the name of the field being validated
+     * @param value the value of the field
+     * @param variable the trait related to the field
+     * @return an Optional containing a ValidationError if validation fails, empty otherwise
+     */
     @Override
     public Optional<ValidationError> validateField(String fieldName, String value, Trait variable) {
         if (observationService.isBlankObservation(value)) {
-            log.debug(String.format("skipping validation of observation because there is no value.\n\tvariable: %s", fieldName));
+            log.debug(String.format("Skipping validation of observation because there is no value.\n\tVariable: %s", fieldName));
             return Optional.empty();
         }
 
         if (observationService.isNAObservation(value)) {
-            log.debug(String.format("skipping validation of observation because it is NA.\n\tvariable: %s", fieldName));
+            log.debug(String.format("Skipping validation of observation because it is NA.\n\tVariable: %s", fieldName));
             return Optional.empty();
         }
 
-        // Skip if field is a timestamp
+        // Skip validation if field is a timestamp
         if (fieldName.startsWith(TIMESTAMP_PREFIX)) {
             return Optional.empty();
         }
 
-        // Skip if there is no trait data
+        // Skip validation if there is no trait data
         if (variable == null || variable.getScale() == null || variable.getScale().getDataType() == null) {
             return Optional.empty();
         }
 
-        // Skip if this is not an ordinal trait
+        // Skip validation if this is not an ordinal trait
         if (!ORDINAL.equals(variable.getScale().getDataType())) {
             return Optional.empty();
         }
