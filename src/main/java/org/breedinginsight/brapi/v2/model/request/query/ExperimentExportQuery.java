@@ -12,7 +12,7 @@ import javax.validation.constraints.NotNull;
 @ToString
 public class ExperimentExportQuery {
     private FileType fileExtension;
-    private String dataset;
+    private String datasetId;
     private String environments;
     @NotNull
     private boolean includeTimestamps;
