@@ -42,17 +42,20 @@ public class ImportStatusService {
     }
 
     public void updateMessage(ImportUpload upload, String message) {
+        log.debug(message);
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
     }
 
     public void startUpload(ImportUpload upload, long numberObjects, String message) {
+        log.debug(message);
         upload.getProgress().setTotal(numberObjects);
         upload.getProgress().setMessage(message);
         importDAO.update(upload);
     }
 
     public void finishUpload(ImportUpload upload, long numberObjects, String message) {
+        log.debug(message);
         // Update progress to reflect final finished and inProgress counts.
         upload.updateProgress(Math.toIntExact(numberObjects), 0);
         upload.getProgress().setMessage(message);
@@ -61,6 +64,7 @@ public class ImportStatusService {
     }
 
     public void updateMappedData(ImportUpload upload, ImportPreviewResponse response, String message) {
+        log.debug(message);
         // Save our results to the db
         JSON config = new JSON();
         String json = config.getGson().toJson(response);
