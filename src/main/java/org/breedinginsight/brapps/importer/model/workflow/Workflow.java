@@ -9,8 +9,8 @@ import java.util.Optional;
 
 @FunctionalInterface
 public interface Workflow extends Ordered {
-    Optional<ImportWorkflowResult> process(ImportServiceContext context) throws Exception;
-    default List<ImportWorkflow> getWorkflows() throws Exception {
+    Optional<ImportWorkflowResult> process(ImportServiceContext context);
+    default List<ImportWorkflow> getWorkflows() {
         // Default implementation for getWorkflows method
         return new ArrayList<>();
     }

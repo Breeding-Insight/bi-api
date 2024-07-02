@@ -145,9 +145,8 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
      * @param context The import service context to be processed. If null, then it skips processing but returns the result with no-preview.
      * @return An Optional ImportWorkflowResult which contains the workflow and import preview response (if available).
      *         If the context is null, it returns the result with no-preview.
-     * @throws Exception If any error occurs during the processing.
      */
-    public Optional<ImportWorkflowResult> process(ImportServiceContext context) throws Exception {
+    public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
         // Workflow processing the context
         ImportWorkflow workflow = ImportWorkflow.builder()
                 .id(getWorkflow().getId())
@@ -155,12 +154,11 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
                 .build();
 
         // No-preview result
-        Optional<ImportWorkflowResult> result;
-
-        result = Optional.of(ImportWorkflowResult.builder()
+        ImportWorkflowResult workflowResult = ImportWorkflowResult.builder()
                 .workflow(workflow)
                 .importPreviewResponse(Optional.empty())
-                .build());
+                .caughtException(Optional.empty())
+                .build();
 
         // Skip this workflow unless creating a new experiment
         if (context != null && !this.workflow.isEqual(context.getWorkflowId())) {
@@ -169,21 +167,22 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
 
         // Skip processing if no context, but return no-preview result for this workflow
         if (context == null) {
-            return result;
+            return Optional.of(workflowResult);
         }
 
         // TODO: unify usage of single import context type throughout
         ImportContext importContext = ImportContext.from(context);
 
         // Start processing the import...
-        ImportPreviewResponse response = runWorkflow(importContext);
+        ImportPreviewResponse response;
+        try {
+            response = runWorkflow(importContext);
+            workflowResult.setImportPreviewResponse(Optional.of(response));
+        } catch(Exception e) {
+            workflowResult.setCaughtException(Optional.of(e));
+        }
 
-        result = Optional.of(ImportWorkflowResult.builder()
-                .workflow(workflow)
-                .importPreviewResponse(Optional.of(response))
-                .build());
-
-        return result;
+        return Optional.of(workflowResult);
     }
 
     @Override

@@ -7,9 +7,9 @@ import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 
 import javax.inject.Singleton;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Primary
 @Singleton
@@ -20,39 +20,46 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
         this.workflows = workflows;
     }
 
+    /**
+     * Process the import service context by executing a series of workflows in order
+     *
+     * This method iterates over the list of workflows provided, executing each workflow's process method
+     * with the given import service context. It then filters out empty results and returns the first non-empty result.
+     *
+     * @param context The import service context containing the data to be processed
+     * @return An Optional containing the first non-empty ImportWorkflowResult from the executed workflows, or an empty Optional if no non-empty result is found
+     */
     @Override
-    public Optional<ImportWorkflowResult> process(ImportServiceContext context) throws Exception {
-
-        // NOTE: Couldn't throw exception from map lambda
-        for (ExperimentWorkflow workflow : workflows) {
-            Optional<ImportWorkflowResult> result = workflow.process(context);
-            if (result.isPresent()) {
-                return result;
-            }
-        }
-
-        return Optional.empty();
+    public Optional<ImportWorkflowResult> process(ImportServiceContext context) {
+        /**
+         * Have each workflow in order process the context, returning the first non-empty result
+         */
+        return workflows.stream()
+                .map(workflow->workflow.process(context))
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .findFirst();
     }
 
-    @Override
-    public List<ImportWorkflow> getWorkflows() throws Exception {
-        // Each workflow returns in the field workflow the metadata about the workflow that processed the import context.
-        // Loop over all workflows, processing a null context, to collect just the metadata
+    /**
+     * Retrieves a list of ImportWorkflow objects containing metadata about each workflow that processed the import context.
+     *
+     * @return List of ImportWorkflow objects with workflow metadata
+     */
+    public List<ImportWorkflow> getWorkflows() {
+        List<ImportWorkflow> workflowSummaryList = workflows.stream()
+                .map(workflow -> workflow.process(null)) // Process each workflow with a null context
+                .filter(Optional::isPresent) // Filter out any workflows that do not return a result
+                .map(Optional::get) // Extract the result from Optional
+                .map(result -> result.getWorkflow()) // Retrieve the workflow metadata
+                .collect(Collectors.toList()); // Collect the workflow metadata into a list
 
-        // NOTE: Couldn't throw exception from map lambda
-        List<ImportWorkflow> workflowSummaryList = new ArrayList<>();
-
-        for (ExperimentWorkflow workflow : workflows) {
-            Optional<ImportWorkflowResult> result = workflow.process(null);
-            result.ifPresent(importWorkflowResult -> workflowSummaryList.add(importWorkflowResult.getWorkflow()));
-        }
-
-        // The order field for each workflow is set to the order in the list
+        // Set the order field for each workflow based on its position in the list
         for (int i = 0; i < workflowSummaryList.size(); i++) {
-            workflowSummaryList.get(i).setOrder(i);
+            workflowSummaryList.get(i).setOrder(i); // Set the order for each workflow
         }
 
-        return workflowSummaryList;
+        return workflowSummaryList; // Return the list of workflow metadata
     }
 
     public enum Workflow {
