@@ -33,7 +33,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
                 .build());
 
         // Skip this workflow unless appending or overwriting observation data
-        if (context != null && !this.workflow.isEqual(context.getWorkflow())) {
+        if (context != null && !this.workflow.isEqual(context.getWorkflowId())) {
             return Optional.empty();
         }
 

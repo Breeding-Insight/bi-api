@@ -163,7 +163,7 @@ public class CreateNewExperimentWorkflow implements ExperimentWorkflow {
                 .build());
 
         // Skip this workflow unless creating a new experiment
-        if (context != null && !this.workflow.isEqual(context.getWorkflow())) {
+        if (context != null && !this.workflow.isEqual(context.getWorkflowId())) {
             return Optional.empty();
         }
 

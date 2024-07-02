@@ -420,14 +420,14 @@ public class FileImportService {
         return newUpload;
     }
 
-    private void processFile(String workflow, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
+    private void processFile(String workflowId, List<BrAPIImport> finalBrAPIImportList, Table data, Program program,
                              ImportUpload upload, User user, Boolean commit, BrAPIImportService importService,
                              AuthenticatedUser actingUser) {
         // Spin off new process for processing the file
         CompletableFuture.supplyAsync(() -> {
             try {
                 ImportServiceContext context = ImportServiceContext.builder()
-                        .workflow(workflow)
+                        .workflowId(workflowId)
                         .brAPIImports(finalBrAPIImportList)
                         .data(data)
                         .program(program)

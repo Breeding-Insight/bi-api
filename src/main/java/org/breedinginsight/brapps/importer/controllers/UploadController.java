@@ -158,15 +158,15 @@ public class UploadController {
         }
     }
 
-    @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflow}/data/{uploadId}/preview")
+    @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflowId}/data/{uploadId}/preview")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> previewData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                              @PathVariable String workflow, @PathVariable UUID uploadId) {
+                                                              @PathVariable String workflowId, @PathVariable UUID uploadId) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflow, actingUser, null, false);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflowId, actingUser, null, false);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
@@ -184,16 +184,16 @@ public class UploadController {
         }
     }
 
-    @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflow}/data/{uploadId}/commit")
+    @Put("programs/{programId}/import/mappings/{mappingId}/workflows/{workflowId}/data/{uploadId}/commit")
     @Produces(MediaType.APPLICATION_JSON)
     @AddMetadata
     @ProgramSecured(roles = {ProgramSecuredRole.BREEDER, ProgramSecuredRole.SYSTEM_ADMIN})
     public HttpResponse<Response<ImportResponse>> commitData(@PathVariable UUID programId, @PathVariable UUID mappingId,
-                                                             @PathVariable String workflow, @PathVariable UUID uploadId,
+                                                             @PathVariable String workflowId, @PathVariable UUID uploadId,
                                                              @Body @Nullable Map<String, Object> userInput) {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
-            ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflow, actingUser, userInput, true);
+            ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflowId, actingUser, userInput, true);
             Response<ImportResponse> response = new Response(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {

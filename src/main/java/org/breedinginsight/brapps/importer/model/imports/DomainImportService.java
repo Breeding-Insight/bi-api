@@ -66,13 +66,13 @@ public abstract class DomainImportService implements BrAPIImportService {
     public ImportPreviewResponse process(ImportServiceContext context)
             throws Exception {
 
-        Optional.ofNullable(context.getWorkflow())
-                .filter(workflowName -> !workflowName.isEmpty())
-                .ifPresent(workflowName -> log.info("Workflow: " + workflowName));
+        Optional.ofNullable(context.getWorkflowId())
+                .filter(workflowId -> !workflowId.isEmpty())
+                .ifPresent(workflowId -> log.info("Workflow: " + workflowId));
 
         // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
         // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
-        if (ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION.getId().equals(context.getWorkflow())) {
+        if (ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION.getId().equals(context.getWorkflowId())) {
             return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
         } else {
             return processorManagerProvider.get().process(context.getBrAPIImports(),
