@@ -28,6 +28,7 @@ import io.micronaut.http.netty.cookies.NettyCookie;
 import io.micronaut.test.extensions.junit5.annotation.MicronautTest;
 import io.reactivex.Flowable;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.client.v2.typeAdapters.PaginationTypeAdapter;
 import org.brapi.v2.model.BrAPIExternalReference;
@@ -83,6 +84,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.jupiter.api.Assertions.*;
 
+@Slf4j
 @MicronautTest
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
@@ -203,6 +205,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importNewExpNewLocNoObsSuccess() {
+        log.debug("importNewExpNewLocNoObsSuccess");
         Program program = createProgram("New Exp and Loc", "NEXPL", "NEXPL", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> validRow = new HashMap<>();
         validRow.put(Columns.GERMPLASM_GID, "1");
@@ -248,6 +251,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importNewExpMultiNewEnvSuccess() {
+        log.debug("importNewExpMultiNewEnvSucces");
         Program program = createProgram("New Exp and Multi New Env", "MULENV", "MULENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> firstEnv = new HashMap<>();
         firstEnv.put(Columns.GERMPLASM_GID, "1");
@@ -316,6 +320,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importExistingExpAndEnvErrorMessage() {
+        log.debug("importExistingExpAndEnvErrorMessage");
         Program program = createProgram("New Env Existing Exp", "DUPENV", "DUPENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
@@ -366,6 +371,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importNewEnvNoObsSuccess() {
+        log.debug("importNewEnvNoObsSuccess");
         Program program = createProgram("New Env", "NEWENV", "NEWENV", BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
 
         Map<String, Object> newEnv = new HashMap<>();
@@ -401,6 +407,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyMissingDataThrowsError(boolean commit) {
+        log.debug("verifyMissingDataThrowsError");
         Program program = createProgram("Missing Req Cols "+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), "MISS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
 
         Map<String, Object> base = new HashMap<>();
@@ -470,6 +477,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importNewExpWithObsVar() {
+        log.debug("importNewExpWithObsVar");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Exp with Observations Vars", "EXPVRR", "EXPVRR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -508,6 +516,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyDiffYearSameEnvThrowsError(boolean commit) {
+        log.debug("verifyDiffYEarSameEnvThrowsError");
         Program program = createProgram("Diff Years "+(commit ? "C" : "P"), "YEARS"+(commit ? "C" : "P"), "YEARS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(2), null);
 
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -548,6 +557,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyDiffLocSameEnvThrowsError(boolean commit) {
+        log.debug("verifyDiffLocSameEnvThrowsError");
         Program program = createProgram("Diff Locations "+(commit ? "C" : "P"), "LOCS"+(commit ? "C" : "P"), "LOCS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(2), null);
 
         List<Map<String, Object>> rows = new ArrayList<>();
@@ -587,6 +597,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importNewExpWithObs(boolean commit) {
+        log.debug("importNewExpWithObs");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Exp with Observations "+(commit ? "C" : "P"), "NEXOB"+(commit ? "C" : "P"), "NEXOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -628,6 +639,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureImportNewExpWithInvalidObs(boolean commit) {
+        log.debug("verifyFailureImportNewExpWithInvalidObs");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("Invalid Observations "+(commit ? "C" : "P"), "INVOB"+(commit ? "C" : "P"), "INVOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -655,6 +667,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureNewOuExistingEnv(boolean commit) {
+        log.debug("verifyFailureNewOuExistingEnv");
         Program program = createProgram("New OU Existing Env "+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), "FLOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), null);
         Map<String, Object> newExp = new HashMap<>();
         newExp.put(Columns.GERMPLASM_GID, "1");
@@ -697,6 +710,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importNewObsVarExistingOu() {
+        log.debug("importNewObsVarExistingOu");
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram("New ObsVar Existing OU", "OUVAR", "OUVAR", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -761,6 +775,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importNewObsVarByObsUnitId() {
+        log.debug("importNewObsVarByObsUnitId");
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram("New ObsVar Referring to OU by ID", "OUVAR", "VAROU", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -813,6 +828,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importNewObservationDataByObsUnitId(boolean commit) {
+        log.debug("importNewObservationDataByObsUnitId");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Observation Referring to OU by ID"+(commit ? "C" : "P"), "OUDAT"+(commit ? "C" : "P"), "DATOU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -883,6 +899,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importNewObsExistingOu(boolean commit) {
+        log.debug("importNewObsExistingOu");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Obs Existing OU "+(commit ? "C" : "P"), "OUOBS"+(commit ? "C" : "P"), "OUOBS"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -949,6 +966,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void verifyFailureImportNewObsExistingOuWithExistingObs(boolean commit) {
+        log.debug("verifyFailureImportNewObsExistingOuWithExistingObs");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Obs Existing Obs "+(commit ? "C" : "P"), "FEXOB"+(commit ? "C" : "P"), "FEXOB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -1008,6 +1026,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @Test
     @SneakyThrows
     public void importSecondExpAfterFirstExpWithObs() {
+        log.debug("importSecondExpAfterFirstExpWithObs");
         List<Trait> traits = importTestUtils.createTraits(1);
         Program program = createProgram("New Exp After First", "NEAF", "NEAF", BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExpA = new HashMap<>();
@@ -1079,6 +1098,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importNewObsAfterFirstExpWithObs(boolean commit) {
+        log.debug("importNewObsAfterFirstExpWithObs");
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram("Exp with additional Uploads "+(commit ? "C" : "P"), "EXAU"+(commit ? "C" : "P"), "EXAU"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
@@ -1153,6 +1173,7 @@ public class ExperimentFileImportTest extends BrAPITest {
     @ValueSource(booleans = {true, false})
     @SneakyThrows
     public void importNewObsAfterFirstExpWithObs_blank(boolean commit) {
+        log.debug("importNewObsAfterFirstExpWithObs_blank");
         List<Trait> traits = importTestUtils.createTraits(2);
         Program program = createProgram("Exp with additional Uploads (blank) "+(commit ? "C" : "P"), "EXAUB"+(commit ? "C" : "P"), "EXAUB"+(commit ? "C" : "P"), BRAPI_REFERENCE_SOURCE, createGermplasm(1), traits);
         Map<String, Object> newExp = new HashMap<>();
