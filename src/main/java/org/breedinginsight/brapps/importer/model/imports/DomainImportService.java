@@ -26,7 +26,7 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
-import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
+import org.breedinginsight.brapps.importer.services.processors.experiment.WorkflowEnum;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -43,7 +43,7 @@ public abstract class DomainImportService implements BrAPIImportService {
     private final Provider<ProcessorManager> processorManagerProvider;
     private final Workflow workflowNavigator;
 
-
+    @Inject
     public DomainImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
                                Provider<ProcessorManager> processorManagerProvider,
                                Workflow workflowNavigator)
@@ -72,7 +72,7 @@ public abstract class DomainImportService implements BrAPIImportService {
 
         // TODO: return results from WorkflowNavigator once processing logic is in separate workflows
         // return workflowNavigator.process(context).flatMap(ImportWorkflowResult::getImportPreviewResponse).orElse(null);
-        if (ExperimentWorkflowNavigator.Workflow.NEW_OBSERVATION.getId().equals(context.getWorkflowId())) {
+        if (WorkflowEnum.NEW_OBSERVATION.getId().equals(context.getWorkflowId())) {
             Optional<ImportWorkflowResult> result = workflowNavigator.process(context);
 
             // Throw any exceptions caught during workflow processing

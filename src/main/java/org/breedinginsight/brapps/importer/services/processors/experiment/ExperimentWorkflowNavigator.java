@@ -6,6 +6,7 @@ import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ExperimentWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;
@@ -16,6 +17,7 @@ import java.util.stream.Collectors;
 public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
     private final List<ExperimentWorkflow> workflows;
 
+    @Inject
     public ExperimentWorkflowNavigator(List<ExperimentWorkflow> workflows) {
         this.workflows = workflows;
     }
@@ -60,28 +62,5 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
         }
 
         return workflowSummaryList; // Return the list of workflow metadata
-    }
-
-    public enum Workflow {
-        NEW_OBSERVATION("new-experiment","Create new experiment"),
-        APPEND_OVERWRITE("append-dataset", "Append experimental dataset");
-
-        private String id;
-        private String name;
-
-        Workflow(String id, String name) {
-
-            this.id = id;
-            this.name = name;
-        }
-
-        public String getId() {
-            return id;
-        }
-        public String getName() { return name; }
-
-        public boolean isEqual(String value) {
-            return Optional.ofNullable(id.equals(value)).orElse(false);
-        }
     }
 }
