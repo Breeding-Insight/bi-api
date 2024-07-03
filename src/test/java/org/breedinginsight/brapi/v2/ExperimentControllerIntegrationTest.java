@@ -342,7 +342,6 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
 
         // Check file contents.
         ByteArrayInputStream plantBodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
-        // TODO: find a way to build expected rows for plant dataset.
         parseAndCheck(plantBodyStream, extension, false, plantRows, false, 23);
     }
 
