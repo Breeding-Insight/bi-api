@@ -28,6 +28,7 @@ import io.micronaut.http.client.RxHttpClient;
 import io.micronaut.http.client.multipart.MultipartBody;
 import io.micronaut.http.netty.cookies.NettyCookie;
 import io.reactivex.Flowable;
+import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
@@ -57,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  *
  * To use, instantiate a new instance of this class, then use it like a regular static utility class
  */
+@Slf4j
 public class ImportTestUtils {
 
     Pattern UUID_REGEX = Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
@@ -139,6 +141,7 @@ public class ImportTestUtils {
 
         if (response.getStatus().equals(HttpStatus.ACCEPTED)) {
             Thread.sleep(1000);
+            log.debug("202 Accepted response. Sleeping for 1000ms.");
             return getUploadedFile(importId, client, program, mappingId);
         } else {
             return response;
