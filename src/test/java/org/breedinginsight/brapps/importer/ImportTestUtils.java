@@ -190,7 +190,34 @@ public class ImportTestUtils {
                       "securityFp", securityFp);
     }
 
+    /**
+     * TODO: assumes new workflow is first in list, doesn't look at position property, would be more robust to
+     * look at that instead of assuming order
+     * @return
+     */
+    public String getExperimentWorkflowId(RxHttpClient client, int workflowIndex) {
+        // Get the mapping id for experiment imports
+        Flowable<HttpResponse<String>> mappingCall = client.exchange(
+                GET("/import/mappings?importName=ExperimentsTemplateMap").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class);
+        HttpResponse<String> mappingResponse = mappingCall.blockingFirst();
+        String mappingId = JsonParser.parseString(mappingResponse.body()).getAsJsonObject()
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(0).getAsJsonObject().get("id").getAsString();
 
+        // Get the workflow id for the workflow at position workflowIndex in the collection of all available experiment workflows
+        // GET /import/mappings{?importName}
+        Flowable<HttpResponse<String>> call = client.exchange(
+                GET("/import/mappings/"+mappingId+"/workflows").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
+        );
+        HttpResponse<String> response = call.blockingFirst();
+        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
+
+        return JsonParser.parseString(response.body()).getAsJsonObject()
+                .getAsJsonObject("result")
+                .getAsJsonArray("data")
+                .get(workflowIndex).getAsJsonObject().get("id").getAsString();
+    }
 
     public JsonObject uploadAndFetch(File file, Map<String, String> userData, Boolean commit, RxHttpClient client, Program program, String mappingId) throws InterruptedException {
         Flowable<HttpResponse<String>> call = uploadDataFile(file, userData, commit, client, program, mappingId);

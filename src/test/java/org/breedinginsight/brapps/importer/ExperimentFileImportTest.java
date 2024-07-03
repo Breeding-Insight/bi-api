@@ -162,30 +162,10 @@ public class ExperimentFileImportTest extends BrAPITest {
         /**
          * Implicit test that the workflow ids are assigned in the following order
          */
-        newExperimentWorkflowId = getExperimentWorkflowId(0);
-        appendOverwriteWorkflowId = getExperimentWorkflowId(1);
-
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
+        appendOverwriteWorkflowId = importTestUtils.getExperimentWorkflowId(client, 1);
     }
 
-    /**
-     * TODO: assumes new workflow is first in list, doesn't look at position property, would be more robust to
-     * look at that instead of assuming order
-     * @return
-     */
-    public String getExperimentWorkflowId(int workflowIndex) {
-
-        // GET /import/mappings{?importName}
-        Flowable<HttpResponse<String>> call = client.exchange(
-                GET("/import/mappings/"+mappingId+"/workflows").cookie(new NettyCookie("phylo-token", "test-registered-user")), String.class
-        );
-        HttpResponse<String> response = call.blockingFirst();
-        JsonObject result = JsonParser.parseString(response.body()).getAsJsonObject().getAsJsonObject("result");
-
-        return JsonParser.parseString(response.body()).getAsJsonObject()
-                .getAsJsonObject("result")
-                .getAsJsonArray("data")
-                .get(workflowIndex).getAsJsonObject().get("id").getAsString();
-    }
     /*
     Tests
     - new experiment

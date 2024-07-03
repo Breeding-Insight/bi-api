@@ -148,6 +148,8 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                                          .registerTypeAdapter(BrAPIPagination.class, new PaginationTypeAdapter())
                                          .create();
 
+    private String newExperimentWorkflowId;
+
     @BeforeAll
     public void setup() {
         importTestUtils = new ImportTestUtils();
@@ -155,7 +157,7 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
         mappingId = (String) setupObjects.get("mappingId");
         testUser = (BiUserEntity) setupObjects.get("testUser");
         securityFp = (FannyPack) setupObjects.get("securityFp");
-
+        newExperimentWorkflowId = importTestUtils.getExperimentWorkflowId(client, 0);
     }
 
     /*
@@ -565,13 +567,14 @@ public class SampleSubmissionFileImportTest extends BrAPITest {
                 .getAsJsonArray("data")
                 .get(0).getAsJsonObject().get("id").getAsString();
 
-        JsonObject importResult = importTestUtils.uploadAndFetch(
+        JsonObject importResult = importTestUtils.uploadAndFetchWorkflow(
                 importTestUtils.writeExperimentDataToFile(List.of(makeExpImportRow("Env1")), null),
                 null,
                 true,
                 client,
                 program,
-                expMappingId);
+                expMappingId,
+                newExperimentWorkflowId);
         return importResult
                 .get("preview").getAsJsonObject()
                 .get("rows").getAsJsonArray()
