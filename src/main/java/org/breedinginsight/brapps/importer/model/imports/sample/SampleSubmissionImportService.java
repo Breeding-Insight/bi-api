@@ -21,7 +21,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
+import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
 import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 import org.breedinginsight.brapps.importer.services.processors.SampleSubmissionProcessor;
@@ -32,6 +34,7 @@ import tech.tablesaw.api.Table;
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 
 @Singleton
@@ -59,13 +62,19 @@ public class SampleSubmissionImportService implements BrAPIImportService {
     }
 
     @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports,
-                                         Table data,
-                                         Program program,
-                                         ImportUpload upload,
-                                         User user,
-                                         Boolean commit) throws Exception {
+    public List<ImportWorkflow> getWorkflows() {
+        return new ArrayList<>();
+    }
+
+    @Override
+    public ImportPreviewResponse process(ImportServiceContext context) throws Exception {
         List<Processor> processors = List.of(sampleProcessorProvider.get());
-        return processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
+        return processorManagerProvider.get().process(context.getBrAPIImports(),
+                processors,
+                context.getData(),
+                context.getProgram(),
+                context.getUpload(),
+                context.getUser(),
+                context.isCommit());
     }
 }

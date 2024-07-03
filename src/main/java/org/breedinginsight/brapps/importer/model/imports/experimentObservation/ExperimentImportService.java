@@ -18,36 +18,28 @@
 package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
+import org.breedinginsight.brapps.importer.model.imports.DomainImportService;
 import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
-import org.breedinginsight.brapps.importer.services.processors.Processor;
 import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
-import org.breedinginsight.model.Program;
-import org.breedinginsight.model.User;
-import tech.tablesaw.api.Table;
+import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 import javax.inject.Singleton;
-import java.util.List;
 
 @Singleton
 @Slf4j
-public class ExperimentImportService implements BrAPIImportService {
+public class ExperimentImportService extends DomainImportService {
 
     private final String IMPORT_TYPE_ID = "ExperimentImport";
 
-    private final Provider<ExperimentProcessor> experimentProcessorProvider;
-    private final Provider<ProcessorManager> processorManagerProvider;
-
+    // TODO: delete processor fields once WorkflowNavigator is used
     @Inject
-    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider, Provider<ProcessorManager> processorManagerProvider)
+    public ExperimentImportService(Provider<ExperimentProcessor> experimentProcessorProvider,
+                                   Provider<ProcessorManager> processorManagerProvider,
+                                   ExperimentWorkflowNavigator workflowNavigator)
     {
-        this.experimentProcessorProvider = experimentProcessorProvider;
-        this.processorManagerProvider = processorManagerProvider;
+        super(experimentProcessorProvider, processorManagerProvider, workflowNavigator);
     }
 
     @Override
@@ -60,20 +52,5 @@ public class ExperimentImportService implements BrAPIImportService {
         return IMPORT_TYPE_ID;
     }
 
-    @Override
-    public String getMissingColumnMsg(String columnName) {
-        return "Column heading does not match template or ontology";
-    }
-
-    @Override
-    public ImportPreviewResponse process(List<BrAPIImport> brAPIImports, Table data, Program program, ImportUpload upload, User user, Boolean commit)
-            throws Exception {
-
-        ImportPreviewResponse response = null;
-        List<Processor> processors = List.of(experimentProcessorProvider.get());
-        response = processorManagerProvider.get().process(brAPIImports, processors, data, program, upload, user, commit);
-        return response;
-
-    }
 }
 

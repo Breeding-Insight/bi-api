@@ -32,13 +32,7 @@ import java.util.*;
 @Singleton
 public class FileMappingUtil {
 
-    public static final String EXPERIMENT_TEMPLATE_NAME = "ExperimentsTemplateMap";
-    private FileImportService fileImportService;
-
-
-    @Inject
-    public FileMappingUtil(FileImportService fileImportService) {
-        this.fileImportService = fileImportService;
+    public FileMappingUtil() {
     }
 
     // Returns a list of integers to identify the target row of the relationship. -1 if no relationship was found
