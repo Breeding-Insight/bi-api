@@ -121,20 +121,39 @@ public class ObservationService {
         }
     }
 
+    /**
+     * Constructs a new BrAPI observation based on the provided parameters.
+     *
+     * @param commit boolean value indicating whether the operation should be committed
+     * @param germplasmName the name of the germplasm associated with the observation
+     * @param variableName the name of the observation variable
+     * @param study the BrAPI study object to associate with the observation
+     * @param seasonDbId the unique identifier of the season for the observation
+     * @param obsUnit the BrAPI observation unit object
+     * @param value the value of the observation
+     * @param trialId the identifier of the trial associated with the observation
+     * @param studyId the identifier of the study associated with the observation
+     * @param obsUnitId the identifier of the observation unit associated with the observation
+     * @param observationId the identifier of the observation
+     * @param referenceSource the source of the reference
+     * @param user the User object representing the creator of the observation
+     * @param program the Program object associated with the observation
+     * @return a newly constructed BrAPIObservation object
+     */
     public BrAPIObservation constructNewBrAPIObservation(boolean commit,
-                                                      String germplasmName,
-                                                      String variableName,
-                                                      BrAPIStudy study,
-                                                      String seasonDbId,
-                                                      BrAPIObservationUnit obsUnit,
-                                                      String value,
-                                                      UUID trialId,
-                                                      UUID studyId,
-                                                      UUID obsUnitId,
-                                                      UUID observationId,
-                                                      String referenceSource,
-                                                      User user,
-                                                      Program program) {
+                                                         String germplasmName,
+                                                         String variableName,
+                                                         BrAPIStudy study,
+                                                         String seasonDbId,
+                                                         BrAPIObservationUnit obsUnit,
+                                                         String value,
+                                                         UUID trialId,
+                                                         UUID studyId,
+                                                         UUID obsUnitId,
+                                                         UUID observationId,
+                                                         String referenceSource,
+                                                         User user,
+                                                         Program program) {
         BrAPIObservation observation = new BrAPIObservation();
         observation.setGermplasmName(germplasmName);
 
@@ -145,20 +164,21 @@ public class ObservationService {
         observation.setObservationUnitName(obsUnit.getObservationUnitName());
         observation.setValue(value);
 
-        // The BrApi server needs this.  Breedbase does not.
+        // The BrApi server needs this. Breedbase does not.
         BrAPISeason season = new BrAPISeason();
         season.setSeasonDbId(seasonDbId);
         observation.setSeason(season);
 
-        if(commit) {
+        if (commit) {
             Map<String, Object> createdBy = new HashMap<>();
             createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_ID, user.getId());
             createdBy.put(BrAPIAdditionalInfoFields.CREATED_BY_USER_NAME, user.getName());
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_BY, createdBy);
             observation.putAdditionalInfoItem(BrAPIAdditionalInfoFields.CREATED_DATE, DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(OffsetDateTime.now()));
 
-            observation.setExternalReferences(experimentUtilities.constructBrAPIExternalReferences(program, referenceSource, trialId,null, studyId, obsUnitId, observationId));
+            observation.setExternalReferences(experimentUtilities.constructBrAPIExternalReferences(program, referenceSource, trialId, null, studyId, obsUnitId, observationId));
         }
         return observation;
     }
+
 }
