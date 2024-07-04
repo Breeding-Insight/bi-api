@@ -75,14 +75,28 @@ public class ObservationVariableService {
         return traits;
     }
 
+    /**
+     * Validates that each timestamp column corresponds to a phenotype column.
+     *
+     * This method takes a Set of observationVariableNames and a List of timestamp columns, and checks
+     * if each timestamp column corresponds to a phenotype column by comparing it with the observationVariableNames.
+     *
+     * @param observationVariableNames A Set of observation variable names representing the phenotype columns.
+     * @param timestampCols A List of timestamp columns to be validated.
+     *
+     * @return An Optional containing a list of ValidationErrors if there are mismatches, or an empty
+     * Optional if all timestamp columns have corresponding phenotype columns.
+     */
     public Optional<List<ValidationError>> validateMatchedTimestamps(Set<String> observationVariableNames,
                                                                      List<Column<?>> timestampCols) {
         Optional<List<ValidationError>> ve = Optional.empty();
-        // Check that each ts column corresponds to a phenotype column
+
+        // Check that each timestamp column corresponds to a phenotype column
         List<ValidationError> valErrs = timestampCols.stream()
                 .filter(col -> !(observationVariableNames.contains(col.name().replaceFirst(ExpImportProcessConstants.TIMESTAMP_REGEX, StringUtils.EMPTY))))
                 .map(col -> new ValidationError(col.name().toString(), String.format("Timestamp column %s lacks corresponding phenotype column", col.name().toString()), HttpStatus.UNPROCESSABLE_ENTITY))
                 .collect(Collectors.toList());
+
         if (valErrs.size() > 0) {
             ve = Optional.of(valErrs);
         }
