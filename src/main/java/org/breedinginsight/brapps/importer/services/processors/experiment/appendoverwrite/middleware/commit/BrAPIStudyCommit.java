@@ -36,9 +36,8 @@ import java.util.Optional;
 @Slf4j
 @Prototype
 public class BrAPIStudyCommit extends AppendOverwriteMiddleware {
-    private BrAPICreationFactory brAPICreationFactory;
-    private WorkflowCreation<BrAPIStudy> brAPIStudyCreation;
-    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPIStudies;
+    private final BrAPICreationFactory brAPICreationFactory;
+    private Optional<WorkflowCreation<BrAPIStudy>.BrAPICreationState<BrAPIStudy>> createdBrAPIStudies;
 
     @Inject
     public BrAPIStudyCommit(BrAPICreationFactory brAPICreationFactory) {
@@ -47,9 +46,10 @@ public class BrAPIStudyCommit extends AppendOverwriteMiddleware {
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
-            brAPIStudyCreation = brAPICreationFactory.studyWorkflowCreationBean(context);
+            WorkflowCreation<BrAPIStudy> brAPIStudyCreation = brAPICreationFactory.studyWorkflowCreationBean(context);
+
             log.info("creating new studies in the BrAPI service");
-            createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
+            createdBrAPIStudies = brAPIStudyCreation.execute().map(s -> (WorkflowCreation<BrAPIStudy>.BrAPICreationState<BrAPIStudy>) s);
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);

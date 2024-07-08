@@ -39,7 +39,7 @@ public class WorkflowCreation<T> implements BrAPIAction<T> {
     private final ExperimentImportEntity<T> entity;
 
 
-    protected WorkflowCreation(ExperimentImportEntity entity) {
+    protected WorkflowCreation(ExperimentImportEntity<T> entity) {
         this.entity = entity;
     }
 
@@ -50,7 +50,7 @@ public class WorkflowCreation<T> implements BrAPIAction<T> {
      * @return an Optional containing the BrAPI state after execution
      * @throws ApiException if an error occurs during execution
      */
-    public Optional<BrAPIState> execute() throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
+    public Optional<BrAPIState<T>> execute() throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
         List<T> newMembers = entity.copyWorkflowMembers(ImportObjectState.NEW);
         try {
             List<T> createdMembers = entity.brapiPost(newMembers);
@@ -77,7 +77,7 @@ public class WorkflowCreation<T> implements BrAPIAction<T> {
      * @param <U> the type of entity
      */
     @Getter
-    public class BrAPICreationState<U> implements BrAPIState {
+    public class BrAPICreationState<U> implements BrAPIState<U> {
 
         private final List<U> members;
 

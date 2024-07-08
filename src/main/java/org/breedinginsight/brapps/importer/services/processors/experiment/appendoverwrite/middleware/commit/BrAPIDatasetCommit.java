@@ -41,11 +41,8 @@ import java.util.Optional;
 public class BrAPIDatasetCommit extends AppendOverwriteMiddleware {
     private final BrAPICreationFactory brAPICreationFactory;
     private final BrAPIUpdateFactory brAPIUpdateFactory;
-    private WorkflowCreation<BrAPIListDetails> datasetCreation;
-    private WorkflowUpdate<BrAPIListDetails> datasetUpdate;
-    private Optional<WorkflowCreation.BrAPICreationState> createdDatasets;
-    private Optional<WorkflowUpdate.BrAPIUpdateState> priorDatasets;
-    private Optional<WorkflowUpdate.BrAPIUpdateState> updatedDatasets;
+    private Optional<WorkflowCreation<BrAPIListDetails>.BrAPICreationState<BrAPIListDetails>> createdDatasets;
+    private Optional<WorkflowUpdate<BrAPIListDetails>.BrAPIUpdateState<BrAPIListDetails>> priorDatasets;
 
     @Inject
     public BrAPIDatasetCommit(BrAPICreationFactory brAPICreationFactory, BrAPIUpdateFactory brAPIUpdateFactory) {
@@ -56,13 +53,15 @@ public class BrAPIDatasetCommit extends AppendOverwriteMiddleware {
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
 
         try {
-            datasetCreation = brAPICreationFactory.datasetWorkflowCreationBean(context);
+            WorkflowCreation<BrAPIListDetails> datasetCreation = brAPICreationFactory.datasetWorkflowCreationBean(context);
+
             log.info("creating new datasets in the BrAPI service");
-            createdDatasets = datasetCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
-            datasetUpdate = brAPIUpdateFactory.datasetWorkflowUpdateBean(context);
-            priorDatasets = datasetUpdate.getBrAPIState().map(d -> d);
+            createdDatasets = datasetCreation.execute().map(s -> (WorkflowCreation<BrAPIListDetails>.BrAPICreationState<BrAPIListDetails>) s);
+            WorkflowUpdate<BrAPIListDetails> datasetUpdate = brAPIUpdateFactory.datasetWorkflowUpdateBean(context);
+            priorDatasets = datasetUpdate.getBrAPIState();
+
             log.info("adding new observation variables to datasets");
-            updatedDatasets = datasetUpdate.execute().map(d -> (WorkflowUpdate.BrAPIUpdateState) d);
+            datasetUpdate.execute().map(d -> (WorkflowUpdate<BrAPIListDetails>.BrAPIUpdateState<BrAPIListDetails>) d);
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);

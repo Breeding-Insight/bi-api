@@ -36,9 +36,8 @@ import java.util.Optional;
 @Slf4j
 @Prototype
 public class BrAPIObservationUnitCommit extends AppendOverwriteMiddleware {
-    private BrAPICreationFactory brAPICreationFactory;
-    private WorkflowCreation<BrAPIObservationUnit> brAPIObservationUnitCreation;
-    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPIObservationUnits;
+    private final BrAPICreationFactory brAPICreationFactory;
+    private Optional<WorkflowCreation<BrAPIObservationUnit>.BrAPICreationState<BrAPIObservationUnit>> createdBrAPIObservationUnits;
 
     @Inject
     public BrAPIObservationUnitCommit(BrAPICreationFactory brAPICreationFactory) {
@@ -47,9 +46,10 @@ public class BrAPIObservationUnitCommit extends AppendOverwriteMiddleware {
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try{
-            brAPIObservationUnitCreation = brAPICreationFactory.observationUnitWorkflowCreationBean(context);
+            WorkflowCreation<BrAPIObservationUnit> brAPIObservationUnitCreation = brAPICreationFactory.observationUnitWorkflowCreationBean(context);
+
             log.info("creating new observation units in the BrAPI service");
-            createdBrAPIObservationUnits = brAPIObservationUnitCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
+            createdBrAPIObservationUnits = brAPIObservationUnitCreation.execute().map(s -> (WorkflowCreation<BrAPIObservationUnit>.BrAPICreationState<BrAPIObservationUnit>) s);
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));
             return this.compensate(context);

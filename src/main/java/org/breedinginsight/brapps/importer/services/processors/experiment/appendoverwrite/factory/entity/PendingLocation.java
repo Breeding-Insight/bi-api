@@ -62,10 +62,9 @@ public class PendingLocation implements ExperimentImportEntity<ProgramLocation> 
      *
      * @param members List of entities to be created
      * @return List of created entities
-     * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<ProgramLocation> brapiPost(List<ProgramLocation> members) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
+    public List<ProgramLocation> brapiPost(List<ProgramLocation> members) throws MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
         // Construct requests
         List<ProgramLocationRequest> locationRequests = members.stream()
                 .map(location -> ProgramLocationRequest.builder()
@@ -99,11 +98,10 @@ public class PendingLocation implements ExperimentImportEntity<ProgramLocation> 
      *
      * @param members List of entities to be updated
      * @return List of updated entities
-     * @throws ApiException             if there is an issue with the API call
      * @throws IllegalArgumentException if method arguments are invalid
      */
     @Override
-    public <U> List<U> brapiPut(List<U> members) throws ApiException, IllegalArgumentException {
+    public <U> List<U> brapiPut(List<U> members) throws IllegalArgumentException {
         return new ArrayList<>();
     }
 
@@ -112,10 +110,9 @@ public class PendingLocation implements ExperimentImportEntity<ProgramLocation> 
      *
      * @param members List of entities to be deleted
      * @return true if deletion is successful, false otherwise
-     * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public <U> boolean brapiDelete(List<U> members) throws ApiException {
+    public <U> boolean brapiDelete(List<U> members) {
         // TODO: implement delete for program locations
         return false;
     }

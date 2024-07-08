@@ -35,12 +35,12 @@ import java.util.Optional;
 public class WorkflowUpdate<T> implements BrAPIAction<T> {
     private final ExperimentImportEntity<T> entity;
 
-    protected WorkflowUpdate(ExperimentImportEntity entity) {
+    protected WorkflowUpdate(ExperimentImportEntity<T> entity) {
 
         this.entity = entity;
     }
 
-    public Optional<BrAPIState> execute() throws ApiException {
+    public Optional<BrAPIState<T>> execute() throws ApiException {
         return saveAndUpdateCache(entity.copyWorkflowMembers(ImportObjectState.MUTATED));
     }
 
@@ -64,7 +64,7 @@ public class WorkflowUpdate<T> implements BrAPIAction<T> {
         }
 
     }
-    protected <V> Optional<BrAPIState> saveAndUpdateCache(List<V> members) throws IllegalArgumentException, ApiException {
+    protected <V> Optional<BrAPIState<V>> saveAndUpdateCache(List<V> members) throws IllegalArgumentException, ApiException {
 
         if (members == null) {
             throw new IllegalArgumentException("BrAPI entity cannot be null");
@@ -76,7 +76,7 @@ public class WorkflowUpdate<T> implements BrAPIAction<T> {
 
 
     @Getter
-    public class BrAPIUpdateState<U> implements BrAPIState {
+    public class BrAPIUpdateState<U> implements BrAPIState<U> {
         private final List<U> members;
 
         public BrAPIUpdateState(List<U> existingMembers) { this.members = existingMembers; }

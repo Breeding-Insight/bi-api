@@ -77,7 +77,7 @@ public class ImportController {
         Pagination pagination = new Pagination(configs.size(), 1, 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
-        Response<DataResponse<ImportConfigResponse>> response = new Response(metadata, new DataResponse<>(configs));
+        Response<DataResponse<ImportConfigResponse>> response = new Response<>(metadata, new DataResponse<>(configs));
         return HttpResponse.ok(response);
     }
 
@@ -96,7 +96,7 @@ public class ImportController {
             Pagination pagination = new Pagination(result.size(), 1, 1, 0);
             Metadata metadata = new Metadata(pagination, metadataStatus);
 
-            Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+            Response<DataResponse<ImportMapping>> response = new Response<>(metadata, new DataResponse<>(result));
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -117,7 +117,7 @@ public class ImportController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.createMapping(programId, actingUser, file);
-            Response<ImportMapping> response = new Response(result);
+            Response<ImportMapping> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -141,7 +141,7 @@ public class ImportController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.updateMappingFile(programId, mappingId, actingUser, file);
-            Response<ImportMapping> response = new Response(result);
+            Response<ImportMapping> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.info(e.getMessage());
@@ -166,7 +166,7 @@ public class ImportController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportMapping result = fileImportService.updateMapping(programId, actingUser, mappingId, mapping, validate);
-            Response<ImportMapping> response = new Response(result);
+            Response<ImportMapping> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -206,7 +206,7 @@ public class ImportController {
         Pagination pagination = new Pagination(result.size(), result.size(), 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
-        Response<DataResponse<ImportMapping>> response = new Response(metadata, new DataResponse<>(result));
+        Response<DataResponse<ImportMapping>> response = new Response<>(metadata, new DataResponse<>(result));
         return HttpResponse.ok(response);
     }
 
@@ -229,7 +229,7 @@ public class ImportController {
         Pagination pagination = new Pagination(workflows.size(), workflows.size(), 1, 0);
         Metadata metadata = new Metadata(pagination, metadataStatus);
 
-        Response<DataResponse<ImportWorkflow>> response = new Response(metadata, new DataResponse<>(workflows));
+        Response<DataResponse<ImportWorkflow>> response = new Response<>(metadata, new DataResponse<>(workflows));
         return HttpResponse.ok(response);
     }
 }

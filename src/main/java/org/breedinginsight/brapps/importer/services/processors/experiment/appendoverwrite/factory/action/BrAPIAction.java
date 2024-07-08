@@ -42,7 +42,7 @@ public interface BrAPIAction<T> {
      * @return An Optional containing the relevant BrAPI state after executing the action.
      * @throws ApiException if an error occurs during the execution of the action.
      */
-    Optional<BrAPIState> execute() throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException;
+    Optional<BrAPIState<T>> execute() throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException;
 
     /**
      * Get the BrAPI entity being acted on based on the provided ExpUnitMiddlewareContext.

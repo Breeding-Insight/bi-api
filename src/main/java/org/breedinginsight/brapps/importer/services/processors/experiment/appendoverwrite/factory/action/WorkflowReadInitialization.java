@@ -33,7 +33,7 @@ import java.util.Optional;
 public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
     private final ExperimentImportEntity<T> entity; // The entity used for read operations initialization
 
-    protected WorkflowReadInitialization(ExperimentImportEntity entity) {
+    protected WorkflowReadInitialization(ExperimentImportEntity<T> entity) {
         this.entity = entity;
     }
 
@@ -44,7 +44,7 @@ public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
      * @return an Optional containing the BrAPIState representing the completed read workflow
      * @throws ApiException if an error occurs during execution
      */
-    public Optional<BrAPIState> execute() throws ApiException {
+    public Optional<BrAPIState<T>> execute() throws ApiException {
         try {
             List<T> fetchedMembers = entity.brapiRead();
             entity.initializeWorkflow(fetchedMembers);
@@ -71,7 +71,7 @@ public class WorkflowReadInitialization<T> implements BrAPIAction<T> {
      * @param <T> the type of entity members contained in the state
      */
     @Getter
-    public static class BrAPIReadState<T> implements BrAPIState {
+    public static class BrAPIReadState<T> implements BrAPIState<T> {
 
         private final List<T> members; // The list of members fetched during the read operation
 

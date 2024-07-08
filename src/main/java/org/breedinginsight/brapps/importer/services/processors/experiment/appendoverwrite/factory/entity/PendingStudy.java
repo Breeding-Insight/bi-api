@@ -186,7 +186,7 @@ public class PendingStudy implements ExperimentImportEntity<BrAPIStudy>{
                 .collect(Collectors.toMap(Map.Entry::getKey,
                         e -> Optional.ofNullable(e.getValue().getBrAPIObject().getStudyName())
                                 .map(studyNameScoped -> Utilities.removeProgramKeyAndUnknownAdditionalData(studyNameScoped, importContext.getProgram().getKey()))
-                                .map(nameNoScope -> pendingStudyByNameNoScope.get(nameNoScope))
+                                .map(pendingStudyByNameNoScope::get)
                                 .orElseThrow(() -> new IllegalStateException("Observation unit missing study name: " + e.getKey()))));
 
         // Add the maps to the context for use in processing import

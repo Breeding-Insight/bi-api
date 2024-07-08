@@ -94,10 +94,9 @@ public class PendingObservation implements ExperimentImportEntity<BrAPIObservati
      * Fetch objects required by the workflow from the BrAPI service.
      *
      * @return List of fetched entities
-     * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIObservation> brapiRead() throws ApiException {
+    public List<BrAPIObservation> brapiRead() {
         return new ArrayList<>();
     }
 

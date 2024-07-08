@@ -36,8 +36,7 @@ import java.util.Optional;
 @Slf4j
 @Prototype
 public class LocationCommit extends AppendOverwriteMiddleware {
-    private BrAPICreationFactory brAPICreationFactory;
-    private WorkflowCreation<ProgramLocation> locationCreation;
+    private final BrAPICreationFactory brAPICreationFactory;
     private Optional<WorkflowCreation.BrAPICreationState> createdLocations;
 
     @Inject
@@ -47,7 +46,7 @@ public class LocationCommit extends AppendOverwriteMiddleware {
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
-            locationCreation = brAPICreationFactory.locationWorkflowCreationBean(context);
+            WorkflowCreation<ProgramLocation> locationCreation = brAPICreationFactory.locationWorkflowCreationBean(context);
             log.info("creating new locationss in the Deltabreed database");
             createdLocations = locationCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {

@@ -41,11 +41,8 @@ import java.util.Optional;
 public class BrAPITrialCommit extends AppendOverwriteMiddleware {
     private final BrAPICreationFactory brAPICreationFactory;
     private final BrAPIUpdateFactory brAPIUpdateFactory;
-    private WorkflowCreation<BrAPITrial> brAPITrialCreation;
-    private WorkflowUpdate<BrAPITrial> brAPITrialUpdate;
-    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPITrials;
-    private Optional<WorkflowUpdate.BrAPIUpdateState> priorBrAPITrials;
-    private Optional<WorkflowUpdate.BrAPIUpdateState> updatedTrials;
+    private Optional<WorkflowCreation<BrAPITrial>.BrAPICreationState<BrAPITrial>> createdBrAPITrials;
+    private Optional<WorkflowUpdate<BrAPITrial>.BrAPIUpdateState<BrAPITrial>> priorBrAPITrials;
 
     @Inject
     public BrAPITrialCommit(BrAPICreationFactory brAPICreationFactory, BrAPIUpdateFactory brAPIUpdateFactory) {
@@ -55,13 +52,15 @@ public class BrAPITrialCommit extends AppendOverwriteMiddleware {
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
-            brAPITrialCreation = brAPICreationFactory.trialWorkflowCreationBean(context);
+            WorkflowCreation<BrAPITrial> brAPITrialCreation = brAPICreationFactory.trialWorkflowCreationBean(context);
+
             log.info("creating new trials in the BrAPI service");
-            createdBrAPITrials = brAPITrialCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
-            brAPITrialUpdate = brAPIUpdateFactory.trialWorkflowUpdateBean(context);
-            priorBrAPITrials = brAPITrialUpdate.getBrAPIState().map(s -> s);
+            createdBrAPITrials = brAPITrialCreation.execute().map(s -> (WorkflowCreation<BrAPITrial>.BrAPICreationState<BrAPITrial>) s);
+            WorkflowUpdate<BrAPITrial> brAPITrialUpdate = brAPIUpdateFactory.trialWorkflowUpdateBean(context);
+            priorBrAPITrials = brAPITrialUpdate.getBrAPIState();
+
             log.info("updating existing trials in the BrAPI service");
-            updatedTrials = brAPITrialUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
+            brAPITrialUpdate.execute().map(s -> (WorkflowUpdate<BrAPITrial>.BrAPIUpdateState<BrAPITrial>) s);
 
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));

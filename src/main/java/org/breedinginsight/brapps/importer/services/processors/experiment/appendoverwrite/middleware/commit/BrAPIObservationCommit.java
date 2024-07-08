@@ -21,9 +21,10 @@ import io.micronaut.context.annotation.Prototype;
 import lombok.extern.slf4j.Slf4j;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.pheno.BrAPIObservation;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.BrAPIState;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPICreationFactory;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPIUpdateFactory;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
@@ -41,11 +42,8 @@ import java.util.Optional;
 public class BrAPIObservationCommit extends AppendOverwriteMiddleware {
     private final BrAPICreationFactory brAPICreationFactory;
     private final BrAPIUpdateFactory brAPIUpdateFactory;
-    private WorkflowCreation<BrAPIObservation> brAPIObservationCreation;
-    private WorkflowUpdate<BrAPIObservation> brAPIObservationUpdate;
-    private Optional<WorkflowCreation.BrAPICreationState> createdBrAPIObservations;
-    private Optional<WorkflowUpdate.BrAPIUpdateState> priorBrAPIObservations;
-    private Optional<WorkflowUpdate.BrAPIUpdateState> updatedObservations;
+    private Optional<WorkflowCreation<BrAPIObservation>.BrAPICreationState<BrAPIObservation>> createdBrAPIObservations;
+    private Optional<WorkflowUpdate<BrAPIObservation>.BrAPIUpdateState<BrAPIObservation>> priorBrAPIObservations;
 
     @Inject
     public BrAPIObservationCommit(BrAPICreationFactory brAPICreationFactory, BrAPIUpdateFactory brAPIUpdateFactory) {
@@ -55,13 +53,15 @@ public class BrAPIObservationCommit extends AppendOverwriteMiddleware {
     @Override
     public AppendOverwriteMiddlewareContext process(AppendOverwriteMiddlewareContext context) {
         try {
-            brAPIObservationCreation = brAPICreationFactory.observationWorkflowCreationBean(context);
+            WorkflowCreation<BrAPIObservation> brAPIObservationCreation = brAPICreationFactory.observationWorkflowCreationBean(context);
+
             log.info("creating new observations in the BrAPI service");
-            createdBrAPIObservations = brAPIObservationCreation.execute().map(s -> (WorkflowCreation.BrAPICreationState) s);
-            brAPIObservationUpdate = brAPIUpdateFactory.observationWorkflowUpdateBean(context);
-            priorBrAPIObservations = brAPIObservationUpdate.getBrAPIState().map(s -> s);
+            createdBrAPIObservations = brAPIObservationCreation.execute().map(s -> (WorkflowCreation<BrAPIObservation>.BrAPICreationState<BrAPIObservation>) s);
+            WorkflowUpdate<BrAPIObservation> brAPIObservationUpdate = brAPIUpdateFactory.observationWorkflowUpdateBean(context);
+            priorBrAPIObservations = brAPIObservationUpdate.getBrAPIState();
+
             log.info("updating existing observations in the BrAPI service");
-            updatedObservations = brAPIObservationUpdate.execute().map(s -> (WorkflowUpdate.BrAPIUpdateState) s);
+            brAPIObservationUpdate.execute().map(s -> (WorkflowUpdate<BrAPIObservation>.BrAPIUpdateState<BrAPIObservation>) s);
 
         } catch (ApiException | MissingRequiredInfoException | UnprocessableEntityException | DoesNotExistException e) {
             context.getAppendOverwriteWorkflowContext().setProcessError(new MiddlewareException(e));

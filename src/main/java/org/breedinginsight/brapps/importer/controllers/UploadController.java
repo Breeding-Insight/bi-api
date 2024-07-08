@@ -62,7 +62,7 @@ public class UploadController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.uploadData(programId, mappingId, actingUser, file);
-            Response<ImportResponse> response = new Response(result);
+            Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -94,7 +94,7 @@ public class UploadController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             Pair<HttpStatus, ImportResponse> result = fileImportService.getDataUpload(uploadId, mapping);
-            Response<ImportResponse> response = new Response(result.getRight());
+            Response<ImportResponse> response = new Response<>(result.getRight());
             if (result.getLeft().equals(HttpStatus.ACCEPTED)) {
                 return HttpResponse.ok(response).status(result.getLeft());
             } else {
@@ -141,7 +141,7 @@ public class UploadController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, null, actingUser, null, false);
-            Response<ImportResponse> response = new Response(result);
+            Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -167,7 +167,7 @@ public class UploadController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflow, actingUser, null, false);
-            Response<ImportResponse> response = new Response(result);
+            Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
@@ -194,7 +194,7 @@ public class UploadController {
         try {
             AuthenticatedUser actingUser = securityService.getUser();
             ImportResponse result = fileImportService.updateUpload(programId, uploadId, workflow, actingUser, userInput, true);
-            Response<ImportResponse> response = new Response(result);
+            Response<ImportResponse> response = new Response<>(result);
             return HttpResponse.ok(response).status(HttpStatus.ACCEPTED);
         } catch (DoesNotExistException e) {
             log.error(e.getMessage(), e);
