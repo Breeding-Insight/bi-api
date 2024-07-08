@@ -479,7 +479,8 @@ public class BrAPITrialService {
 
         // ObservationLevel entry for Sub-Obs Unit.
         BrAPIObservationUnitLevelRelationship level = new BrAPIObservationUnitLevelRelationship();
-        level.setLevelName(subEntityDatasetName);
+        // TODO: consider removing toLowerCase() after BI-2219 is implemented.
+        level.setLevelName(subEntityDatasetName.toLowerCase());
         level.setLevelCode(Utilities.appendProgramKey(subUnitId, program.getKey(), seqVal));
         level.setLevelOrder(DatasetLevel.SUB_OBS_UNIT.getValue());
         position.setObservationLevel(level);
@@ -510,7 +511,8 @@ public class BrAPITrialService {
         }
         // ObservationLevelRelationships for top-level Exp Unit linking.
         BrAPIObservationUnitLevelRelationship expUnitLevel = new BrAPIObservationUnitLevelRelationship();
-        expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString());
+        // TODO: consider removing toLowerCase() after BI-2219 is implemented.
+        expUnitLevel.setLevelName(expUnit.getAdditionalInfo().get(BrAPIAdditionalInfoFields.OBSERVATION_LEVEL).getAsString().toLowerCase());
         String expUnitUUID = Utilities.getExternalReference(expUnit.getExternalReferences(), referenceSource, ExternalReferenceSource.OBSERVATION_UNITS).orElseThrow().getReferenceId();
         expUnitLevel.setLevelCode(Utilities.appendProgramKey(expUnitUUID, program.getKey(), seqVal));
         expUnitLevel.setLevelOrder(DatasetLevel.EXP_UNIT.getValue());
