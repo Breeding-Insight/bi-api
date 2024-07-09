@@ -18,26 +18,15 @@
 package org.breedinginsight.brapps.importer.model.imports.experimentObservation;
 
 import lombok.extern.slf4j.Slf4j;
-import org.breedinginsight.brapps.importer.model.imports.BrAPIImportService;
 import org.breedinginsight.brapps.importer.model.imports.DomainImportService;
-import org.breedinginsight.brapps.importer.model.imports.ImportServiceContext;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
-import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 import javax.inject.Singleton;
-import java.util.List;
 
 @Singleton
 @Slf4j
 public class ExperimentImportService extends DomainImportService {
-
-    private final String IMPORT_TYPE_ID = "ExperimentImport";
 
     @Inject
     public ExperimentImportService(ExperimentWorkflowNavigator workflowNavigator)
@@ -52,7 +41,7 @@ public class ExperimentImportService extends DomainImportService {
 
     @Override
     public String getImportTypeId() {
-        return IMPORT_TYPE_ID;
+        return "ExperimentImport";
     }
 
 

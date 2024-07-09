@@ -14,23 +14,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.breedinginsight.brapps.importer.model.workflow;
+package org.breedinginsight.brapps.importer.services.processors.experiment.create.model;
 
 import lombok.*;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
+import org.brapi.v2.model.core.BrAPIStudy;
+import org.brapi.v2.model.core.BrAPITrial;
+import org.brapi.v2.model.pheno.BrAPIObservationUnit;
+import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 
-import java.util.Map;
-
-@Data
+@Getter
+@Setter
+@Builder
 @ToString
+@AllArgsConstructor
 @NoArgsConstructor
-public class ProcessedData {
-    // TODO: remove this, already in ImportPreviewResponse
-    //private Map<String, ImportPreviewStatistics> statistics;
-    // TODO
-    private Map<Integer, PendingImport> mappedBrAPIImport;
-    private ImportPreviewResponse importPreviewResponse;
+public class PendingImportObjectData {
+    private PendingImportObject<BrAPITrial> trialPIO;
+    private PendingImportObject<BrAPIStudy> studyPIO;
+    private PendingImportObject<BrAPIObservationUnit> obsUnitPIO;
+
 }

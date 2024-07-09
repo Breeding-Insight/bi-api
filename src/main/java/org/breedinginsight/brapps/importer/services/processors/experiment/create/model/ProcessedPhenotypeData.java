@@ -14,23 +14,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.breedinginsight.brapps.importer.model.workflow;
+package org.breedinginsight.brapps.importer.services.processors.experiment.create.model;
 
 import lombok.*;
-import org.breedinginsight.brapps.importer.model.imports.PendingImport;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
-import org.breedinginsight.brapps.importer.model.response.ImportPreviewStatistics;
+import org.breedinginsight.model.Trait;
+import tech.tablesaw.columns.Column;
 
+import java.util.List;
 import java.util.Map;
 
-@Data
+// TODO: move to common higher level location
+@Getter
+@Setter
+@Builder
 @ToString
+@AllArgsConstructor
 @NoArgsConstructor
-public class ProcessedData {
-    // TODO: remove this, already in ImportPreviewResponse
-    //private Map<String, ImportPreviewStatistics> statistics;
-    // TODO
-    private Map<Integer, PendingImport> mappedBrAPIImport;
-    private ImportPreviewResponse importPreviewResponse;
+public class ProcessedPhenotypeData {
+    private Map<String, Column<?>> timeStampColByPheno;
+    private List<Trait> referencedTraits;
+    private List<Column<?>> phenotypeCols;
 }

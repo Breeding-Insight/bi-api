@@ -1002,7 +1002,6 @@ public class ExperimentFileImportTest extends BrAPITest {
     - a new experiment is created after the first experiment
     - verify the second experiment gets created successfully
      */
-    //TODO: this one
     @Test
     @SneakyThrows
     public void importSecondExpAfterFirstExpWithObs() {

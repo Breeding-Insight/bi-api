@@ -39,7 +39,8 @@ public class ImportContext {
     private UUID workflowId;
     private ImportUpload upload;
     private List<BrAPIImport> importRows;
-    private Map<Integer, PendingImport> mappedBrAPIImport;
+    // TODO: move this out potentially
+    //private Map<Integer, PendingImport> mappedBrAPIImport;
     private Table data;
     private Program program;
     private User user;
