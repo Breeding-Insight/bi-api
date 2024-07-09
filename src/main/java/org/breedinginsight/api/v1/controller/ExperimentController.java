@@ -109,8 +109,12 @@ public class ExperimentController {
             @PathVariable("experimentId") UUID experimentId,
             @Body @Valid SubEntityDatasetRequest datasetRequest) {
         try {
-            Program program = programService.getById(programId).orElseThrow(() -> new DoesNotExistException("Program does not exist"));
-            Response<Dataset> response = new Response(experimentService.createSubEntityDataset(program, experimentId, datasetRequest));
+            Optional<Program> programOptional = programService.getById(programId);
+            if (programOptional.isEmpty()) {
+                return HttpResponse.status(HttpStatus.NOT_FOUND, "Program does not exist");
+            }
+
+            Response<Dataset> response = new Response(experimentService.createSubEntityDataset(programOptional.get(), experimentId, datasetRequest));
             return HttpResponse.ok(response);
         } catch (Exception e){
             log.info(e.getMessage());
