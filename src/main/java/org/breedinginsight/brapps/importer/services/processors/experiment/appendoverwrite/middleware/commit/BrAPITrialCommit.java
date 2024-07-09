@@ -24,7 +24,7 @@ import org.brapi.v2.model.core.BrAPITrial;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPICreationFactory;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowCreation;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPIUpdateFactory;
-import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.WorkflowUpdate;
+import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.action.BrAPIUpdateFactory.WorkflowUpdate;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddlewareContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.AppendOverwriteMiddleware;
 import org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.model.MiddlewareException;
@@ -42,7 +42,7 @@ public class BrAPITrialCommit extends AppendOverwriteMiddleware {
     private final BrAPICreationFactory brAPICreationFactory;
     private final BrAPIUpdateFactory brAPIUpdateFactory;
     private Optional<WorkflowCreation<BrAPITrial>.BrAPICreationState<BrAPITrial>> createdBrAPITrials;
-    private Optional<WorkflowUpdate<BrAPITrial>.BrAPIUpdateState<BrAPITrial>> priorBrAPITrials;
+    private Optional<BrAPIUpdateFactory.WorkflowUpdate<BrAPITrial>.BrAPIUpdateState<BrAPITrial>> priorBrAPITrials;
 
     @Inject
     public BrAPITrialCommit(BrAPICreationFactory brAPICreationFactory, BrAPIUpdateFactory brAPIUpdateFactory) {
