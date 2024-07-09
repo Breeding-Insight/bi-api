@@ -17,9 +17,10 @@
 
 name: maven build
 
+
 on:
   pull_request:
-    types: [opened, edited, synchronize]
+    type: [opened, edited]
 
 jobs:
   build:
