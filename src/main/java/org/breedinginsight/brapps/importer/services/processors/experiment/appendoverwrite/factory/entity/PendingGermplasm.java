@@ -55,10 +55,9 @@ public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> 
      *
      * @param members List of entities to be created
      * @return List of created entities
-     * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIGermplasm> brapiPost(List<BrAPIGermplasm> members) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
+    public List<BrAPIGermplasm> brapiPost(List<BrAPIGermplasm> members) {
         return null;
     }
 
@@ -82,11 +81,10 @@ public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> 
      *
      * @param members List of entities to be updated
      * @return List of updated entities
-     * @throws ApiException             if there is an issue with the API call
      * @throws IllegalArgumentException if method arguments are invalid
      */
     @Override
-    public <U> List<U> brapiPut(List<U> members) throws ApiException, IllegalArgumentException {
+    public <U> List<U> brapiPut(List<U> members) throws IllegalArgumentException {
         return new ArrayList<>();
     }
 
@@ -95,10 +93,9 @@ public class PendingGermplasm implements ExperimentImportEntity<BrAPIGermplasm> 
      *
      * @param members List of entities to be deleted
      * @return true if deletion is successful, false otherwise
-     * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public <U> boolean brapiDelete(List<U> members) throws ApiException {
+    public <U> boolean brapiDelete(List<U> members) {
         return false;
     }
 

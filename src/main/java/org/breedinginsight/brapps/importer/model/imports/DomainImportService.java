@@ -22,11 +22,7 @@ import org.breedinginsight.brapps.importer.model.response.ImportPreviewResponse;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflow;
 import org.breedinginsight.brapps.importer.model.workflow.ImportWorkflowResult;
 import org.breedinginsight.brapps.importer.model.workflow.Workflow;
-import org.breedinginsight.brapps.importer.services.processors.ExperimentProcessor;
-import org.breedinginsight.brapps.importer.services.processors.ProcessorManager;
-import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentWorkflowNavigator;
 
-import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.util.List;
 import java.util.Optional;

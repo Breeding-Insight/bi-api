@@ -122,44 +122,6 @@ public class ExperimentUtilities {
     }
 
     /**
-     * Retrieves a list of new objects of type T from the provided map of pending import objects by filtering out null previews and objects with state other than NEW,
-     * mapping the BrAPI object from each preview, cloning it to the specified class type, and collecting the non-empty results into a list.
-     *
-     * @param objectsByName a map of pending import objects with V keys and PendingImportObject<T> values
-     * @param clazz the target class type for cloning the BrAPI object
-     * @param <T> the type of new objects to be retrieved
-     * @param <V> the type of keys in the map of pending import objects
-     * @return a list of cloned new objects of type T extracted from the input map
-     */
-    public <T, V> List<T> getNewObjects(Map<V, PendingImportObject<T>> objectsByName, Class<T> clazz) {
-        return objectsByName.values().stream()
-                .filter(preview -> preview != null && preview.getState() == ImportObjectState.NEW)
-                .map(PendingImportObject::getBrAPIObject)
-                .map(b->clone(b, clazz))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Copies mutated objects from a cache map to a new list.
-     * Only objects with ImportObjectState MUTATED are included in the copied list.
-     *
-     * @param pendingCacheMap a map containing PendingImportObject objects to be copied
-     * @param clazz a Class object representing the type of objects to be copied
-     * @return a List of copied objects of type T
-     */
-    public <T, V> List<T> copyMutationsFromCache(Map<V, PendingImportObject<T>> pendingCacheMap, Class<T> clazz) {
-        return pendingCacheMap.values().stream()
-                .filter(preview -> preview != null && preview.getState() == ImportObjectState.MUTATED)
-                .map(PendingImportObject::getBrAPIObject)
-                .map(b -> clone(b, clazz))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors.toList());
-    }
-
-    /**
      * Copies the pending BrAPI objects from the workflow cache map based on the provided import object status.
      *
      * @param pendingCacheMap a map containing pending import objects with generic values V and T
@@ -183,35 +145,6 @@ public class ExperimentUtilities {
                 .map(Optional::get)
                 // Collect the cloned BrAPI objects into a list
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Retrieves mutations by object ID from a Map of PendingImportObject, filtering based on the object state and applying a DB ID filter.
-     *
-     * @param objectsByName A Map with values of type PendingImportObject, used for retrieving the mutations.
-     * @param dbIdFilter A Function that filters the objects based on their DB ID.
-     * @param clazz The Class type for the objects in the Map.
-     * @param <T> Type parameter for the objects in the Map.
-     * @param <V> Type parameter for the keys in the Map.
-     * @return A Map of String keys (DB IDs) and objects of type T as values based on the filter logic.
-     * @throws RuntimeException if an exception occurs while applying the DB ID filter to an object.
-     */
-    public <T, V> Map<String, T> getMutationsByObjectId(Map<V, PendingImportObject<T>> objectsByName, Function<T, String> dbIdFilter, Class<T> clazz) {
-        return objectsByName.values().stream()
-                .filter(preview -> preview != null && preview.getState() == ImportObjectState.MUTATED)
-                .map(PendingImportObject::getBrAPIObject)
-                .map(b -> clone(b, clazz))
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .collect(Collectors
-                        .toMap(brapiObj -> {
-                                    try {
-                                        return dbIdFilter.apply(brapiObj);
-                                    } catch (Exception e) {
-                                        throw new RuntimeException(e);
-                                    }
-                                },
-                                brapiObj -> brapiObj));
     }
 
     /**
@@ -254,21 +187,6 @@ public class ExperimentUtilities {
     public static String createObservationUnitKey(String studyName, String obsUnitName) {
         // Concatenate the study name and observation unit name to create the unique key
         return studyName + obsUnitName;
-    }
-
-    /**
-     * Returns the single value from the provided map if it contains exactly one entry.
-     *
-     * @param map the map from which to extract the single value
-     * @param message the message to be included in the exception thrown if the map does not contain exactly one entry
-     * @return the single value from the map
-     * @throws UnprocessableEntityException if the map does not contain only one entry
-     */
-    public <K, V> V getSingleEntryValue(Map<K, V> map, String message) throws UnprocessableEntityException {
-        if (map.size() != 1) {
-            throw new UnprocessableEntityException(message);
-        }
-        return map.values().iterator().next();
     }
 
 // Module/Script-level documentation

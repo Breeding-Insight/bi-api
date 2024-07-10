@@ -38,7 +38,6 @@ import org.breedinginsight.utilities.Utilities;
 import javax.inject.Inject;
 import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

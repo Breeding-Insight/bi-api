@@ -73,7 +73,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
                 .map(workflow -> workflow.process(null)) // Process each workflow with a null context
                 .filter(Optional::isPresent) // Filter out any workflows that do not return a result
                 .map(Optional::get) // Extract the result from Optional
-                .map(result -> result.getWorkflow()) // Retrieve the workflow metadata
+                .map(ImportWorkflowResult::getWorkflow) // Retrieve the workflow metadata
                 .collect(Collectors.toList()); // Collect the workflow metadata into a list
 
         // Set the order field for each workflow based on its position in the list
@@ -138,7 +138,7 @@ public class ExperimentWorkflowNavigator implements ExperimentWorkflow {
          * @return true if the value is equal to the ID, false otherwise.
          */
         public boolean isEqual(String value) {
-            return Optional.ofNullable(id.equals(value)).orElse(false);
+            return value.equals(id);
         }
     }
 }

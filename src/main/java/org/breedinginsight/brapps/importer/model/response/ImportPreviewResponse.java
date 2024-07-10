@@ -17,7 +17,6 @@
 
 package org.breedinginsight.brapps.importer.model.response;
 
-import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 import org.breedinginsight.brapps.importer.model.imports.PendingImport;

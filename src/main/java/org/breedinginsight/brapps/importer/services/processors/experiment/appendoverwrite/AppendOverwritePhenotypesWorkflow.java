@@ -156,7 +156,7 @@ public class AppendOverwritePhenotypesWorkflow implements ExperimentWorkflow {
 
             Optional<MiddlewareException> brapiCommitException = Optional.ofNullable(brapiCommittedContext.getAppendOverwriteWorkflowContext().getProcessError());
             if (brapiCommitException.isPresent()) {
-                log.debug(String.format("%s in %s", brapiCommitException.get().getException().getClass()), brapiCommitException.get().getLocalTransactionName());
+                log.debug(String.format("%s in %s", brapiCommitException.get().getException().getClass(), brapiCommitException.get().getLocalTransactionName()));
                 result.ifPresent(importWorkflowResult -> importWorkflowResult.setCaughtException(Optional.ofNullable(brapiCommitException.get().getException())));
                 return result;
             }

@@ -66,7 +66,7 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
      * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public List<BrAPIListDetails> brapiPost(List<BrAPIListDetails> members) throws ApiException, MissingRequiredInfoException, UnprocessableEntityException, DoesNotExistException {
+    public List<BrAPIListDetails> brapiPost(List<BrAPIListDetails> members) throws ApiException {
         // Construct BrAPI list requests
         List<BrAPIListNewRequest> requests = members.stream().map(details -> {
             BrAPIListNewRequest request = new BrAPIListNewRequest();
@@ -154,10 +154,9 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
      *
      * @param members List of entities to be deleted
      * @return true if deletion is successful, false otherwise
-     * @throws ApiException if there is an issue with the API call
      */
     @Override
-    public <U> boolean brapiDelete(List<U> members) throws ApiException {
+    public <U> boolean brapiDelete(List<U> members) {
         // TODO: implement delete list for BrAPIJavaTestServer
         return false;
     }
