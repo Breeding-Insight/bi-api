@@ -22,6 +22,9 @@ BEGIN
 
 user_id := (SELECT id FROM bi_user WHERE name = 'system');
 
+ALTER TABLE species
+    ADD CONSTRAINT unique_common_name UNIQUE (common_name);
+
 INSERT INTO species (common_name, description, created_by, updated_by)
 VALUES
     ('Hydrangea', 'TODO', user_id, user_id),
