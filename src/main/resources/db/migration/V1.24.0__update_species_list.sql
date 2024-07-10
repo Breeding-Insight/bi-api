@@ -15,15 +15,15 @@
  * limitations under the License.
  */
 
+ALTER TABLE species
+    ADD CONSTRAINT unique_common_name UNIQUE (common_name);
+
 DO $$
 DECLARE
 user_id UUID;
 BEGIN
 
 user_id := (SELECT id FROM bi_user WHERE name = 'system');
-
-ALTER TABLE species
-    ADD CONSTRAINT unique_common_name UNIQUE (common_name);
 
 INSERT INTO species (common_name, description, created_by, updated_by)
 VALUES
