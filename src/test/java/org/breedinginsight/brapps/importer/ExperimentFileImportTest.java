@@ -1230,7 +1230,7 @@ public class ExperimentFileImportTest extends BrAPITest {
         Map<String, String> requestBody = new HashMap<>();
         requestBody.put("overwrite", "true");
         requestBody.put("overwriteReason", "testing");
-        JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), null, commit, client, program, mappingId, appendOverwriteWorkflowId);
+        JsonObject result = importTestUtils.uploadAndFetchWorkflow(importTestUtils.writeExperimentDataToFile(List.of(newObservation), traits), requestBody, commit, client, program, mappingId, appendOverwriteWorkflowId);
 
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
