@@ -14,6 +14,7 @@ import io.reactivex.Flowable;
 import lombok.SneakyThrows;
 import org.apache.commons.io.FileUtils;
 import org.brapi.v2.model.BrAPIExternalReference;
+import org.brapi.v2.model.core.BrAPITrial;
 import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.breedinginsight.BrAPITest;
 import org.breedinginsight.TestUtils;
@@ -22,6 +23,7 @@ import org.breedinginsight.api.model.v1.request.ProgramRequest;
 import org.breedinginsight.api.model.v1.request.SpeciesRequest;
 import org.breedinginsight.api.v1.controller.TestTokenValidator;
 import org.breedinginsight.brapi.v2.dao.BrAPIGermplasmDAO;
+import org.breedinginsight.brapi.v2.services.BrAPITrialService;
 import org.breedinginsight.brapps.importer.ImportTestUtils;
 import org.breedinginsight.brapps.importer.model.exports.FileType;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
@@ -35,6 +37,7 @@ import org.breedinginsight.services.exceptions.ValidatorException;
 import org.breedinginsight.services.parsers.ParsingException;
 import org.breedinginsight.services.parsers.experiment.ExperimentFileColumns;
 import org.breedinginsight.services.writers.CSVWriter;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.FileUtil;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.*;
@@ -73,6 +76,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
     private SpeciesDAO speciesDAO;
     @Inject
     private OntologyService ontologyService;
+    @Inject
+    private BrAPITrialService experimentService;
     @Inject
     private BrAPIGermplasmDAO germplasmDAO;
 
@@ -212,6 +217,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             "true,XLSX,2", "false,XLSX,2",})
     @SneakyThrows
     void downloadDatasets(boolean includeTimestamps, String extension, int numberOfEnvsRequested) {
+        // How many columns are expected in the output?
+        int expectedColNumber = columns.size();
+        if (includeTimestamps) {
+            expectedColNumber += traits.size();
+        }
         // Temporary directory to extract zip into, test will clean up after use.
         String tempDir = "./zip_temp_dir/";
         // If more than 1 envId is sent as a query param, a zip file is expected response.
@@ -223,9 +233,11 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             String envs = numberOfEnvsRequested == 1 ? envIds.get(0) : String.join(",", envIds);
             envParam = "environments=" + envs;
         }
+        // Get datasetId to include in export request.
+        String datasetId = experimentService.getDatasetsMetadata(program, UUID.fromString(experimentId)).stream().findFirst().get().getId().toString();
         Flowable<HttpResponse<byte[]>> call = client.exchange(
-                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s",
-                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension))
+                GET(String.format("/programs/%s/experiments/%s/export?includeTimestamps=%s&%s&fileExtension=%s&datasetId=%s",
+                        program.getId().toString(), experimentId, includeTimestamps, envParam, extension, datasetId))
                         .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
         );
         HttpResponse<byte[]> response = call.blockingFirst();
@@ -254,18 +266,103 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 List<Map<String, Object>> filteredRows = rows.stream()
                         .filter(row -> file.getName().contains(row.get(ExperimentObservation.Columns.ENV).toString()))
                         .collect(Collectors.toList());
-                parseAndCheck(fileStream, extension, true, filteredRows, includeTimestamps);
+                parseAndCheck(fileStream, extension, true, filteredRows, includeTimestamps, expectedColNumber);
             }
         }
         else {
             assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
             // All (both) rows when 0 or 2 envs sent, first row when 1 env sent as query param.
             List<Map<String, Object>> filteredRows = numberOfEnvsRequested == 1 ? List.of(rows.get(0)) : rows;
-            parseAndCheck(bodyStream, extension, numberOfEnvsRequested > 0, filteredRows, includeTimestamps);
-
+            parseAndCheck(bodyStream, extension, numberOfEnvsRequested > 0, filteredRows, includeTimestamps, expectedColNumber);
         }
         // Remove temp directory after each test run.
         FileUtils.deleteDirectory(new File(tempDir));
+    }
+
+    /**
+     * Tests creating and subsequently downloading a sub-entity dataset.
+     * It also ensures no regressions with the top-level dataset download are introduced by the sub-entity features.
+     */
+    @ParameterizedTest
+    @CsvSource(value = {"CSV", "XLSX", "XLS"})
+    @SneakyThrows
+    void downloadSubEntityDataset(String extension) {
+
+        // Create sub-entity dataset.
+        Flowable<HttpResponse<byte[]>> postCall = client.exchange(
+                POST(String.format("/programs/%s/experiments/%s/dataset",
+                                program.getId().toString(), experimentId),
+                        "{\"name\":\"Plant\",\"repeatedMeasures\":3}")
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")),
+                byte[].class);
+        HttpResponse<byte[]> postResponse = postCall.blockingFirst();
+
+        // Assert 200 response
+        assertEquals(HttpStatus.OK, postResponse.getStatus());
+
+        // Get top-level datasetId to include in export request.
+        BrAPITrial experiment = experimentService.getTrialDataByUUID(program.getId(), UUID.fromString(experimentId), false);
+        String topLevelDatasetId = DatasetUtil.getTopLevelDataset(experiment).getId().toString();
+        Flowable<HttpResponse<byte[]>> topLevelExportCall = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/export?all=true&includeTimestamps=false&fileExtension=%s&datasetId=%s",
+                        program.getId().toString(), experimentId, extension, topLevelDatasetId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+        HttpResponse<byte[]> topLevelResponse = topLevelExportCall.blockingFirst();
+
+        // Assert 200 response
+        assertEquals(HttpStatus.OK, topLevelResponse.getStatus());
+
+        // Assert file format fidelity
+        Map<String, String> mediaTypeByExtension = new HashMap<>();
+        mediaTypeByExtension.put("CSV", FileType.CSV.getMimeType());
+        mediaTypeByExtension.put("XLS", FileType.XLS.getMimeType());
+        mediaTypeByExtension.put("XLSX", FileType.XLSX.getMimeType());
+        String downloadMediaType = topLevelResponse.getHeaders().getContentType().orElseThrow(Exception::new);
+        assertEquals(mediaTypeByExtension.get(extension), downloadMediaType);
+
+        // Check file contents.
+        ByteArrayInputStream bodyStream = new ByteArrayInputStream(Objects.requireNonNull(topLevelResponse.body()));
+        parseAndCheck(bodyStream, extension, false, rows, false, 25);
+
+        // Make sub-entity dataset export request.
+        String plantDatasetId = DatasetUtil.getDatasetIdByNameFromJson(experiment.getAdditionalInfo().getAsJsonArray("datasets"), "Plant");
+        Flowable<HttpResponse<byte[]>> plantExportCall = client.exchange(
+                GET(String.format("/programs/%s/experiments/%s/export?all=true&includeTimestamps=false&fileExtension=%s&datasetId=%s",
+                        program.getId().toString(), experimentId, extension, plantDatasetId))
+                        .cookie(new NettyCookie("phylo-token", "test-registered-user")), byte[].class
+        );
+        HttpResponse<byte[]> plantResponse = plantExportCall.blockingFirst();
+
+        // Assert 200 response
+        assertEquals(HttpStatus.OK, plantResponse.getStatus());
+
+        // Assert file format fidelity
+        assertEquals(mediaTypeByExtension.get(extension), plantResponse.getHeaders().getContentType().orElseThrow(Exception::new));
+
+        // The expected contents of the exported Plant dataset (3 sub-obs units for each top-level unit were requested).
+        List<Map<String, Object>> plantRows = buildSubEntityRows(rows, "Plant", 3);
+
+        // Check file contents.
+        ByteArrayInputStream plantBodyStream = new ByteArrayInputStream(Objects.requireNonNull(plantResponse.body()));
+        parseAndCheck(plantBodyStream, extension, false, plantRows, false, 23);
+    }
+
+    private List<Map<String, Object>> buildSubEntityRows(List<Map<String, Object>> topLevelRows, String entityName, int repeatedMeasures) {
+        List<Map<String, Object>> plantRows = new ArrayList<>();
+        for (Map<String, Object> row : topLevelRows) {
+            for (Integer i=1; i<=repeatedMeasures; i++) {
+                // Deep copy map entries.
+                Map<String, Object> plantRow = new HashMap<>(row);
+
+                plantRow.put("Exp Unit", entityName);
+                plantRow.put("Exp Unit ID", i.toString());
+                plantRow.remove("tt_test_1");
+                plantRow.remove("tt_test_2");
+                plantRows.add(plantRow);
+            }
+        }
+        return plantRows;
     }
 
     private File writeDataToFile(List<Map<String, Object>> data, List<Trait> traits) throws IOException {
@@ -367,7 +464,8 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                                String extension,
                                boolean requestEnv,
                                List<Map<String, Object>> rows,
-                               boolean includeTimestamps) throws ParsingException {
+                               boolean includeTimestamps,
+                               Integer expectedColNumber) throws ParsingException {
         Table download = Table.create();
         if (extension.equals("CSV")) {
             download = FileUtil.parseTableFromCsv(stream);
@@ -375,8 +473,9 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
         if (extension.equals("XLS") || extension.equals("XLSX")) {
             download = FileUtil.parseTableFromExcel(stream, 0);
         }
+
         // Assert import/export fidelity and presence of observation units in export
-        checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension);
+        checkDownloadTable(requestEnv, rows, download, includeTimestamps, extension, expectedColNumber);
     }
 
     private void checkDownloadTable(
@@ -384,15 +483,12 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             List<Map<String, Object>> requestedImportRows,
             Table table,
             boolean includeTimestamps,
-            String extension) {
+            String extension,
+            Integer expectedColNumber) {
         // Filename is correct: <exp-title>_Observation Dataset [<prog-key>-<exp-seq>]_<environment>_<export-timestamp>
         List<String> expectedEnvNames = requestedImportRows.stream()
                 .map(row -> row.get(ExperimentObservation.Columns.ENV).toString()).collect(Collectors.toList());
-        // All columns included
-        Integer expectedColNumber = columns.size();
-        if (includeTimestamps) {
-            expectedColNumber += traits.size();
-        }
+
         assertEquals(expectedColNumber, table.columnCount());
 
         // Check that requested envs are present.
@@ -405,15 +501,19 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
             Row downloadRow = table.row(rowNum);
 
             // sort order is not guaranteed to be th same as import, so find import row for corresponding export row
-            // by first matching environment and GID
+            // by first matching environment, GID and Exp Unit ID
             matchingImportRow = requestedImportRows.stream().filter(row -> {
                 String gid = ExperimentObservation.Columns.GERMPLASM_GID;
                 String env = ExperimentObservation.Columns.ENV;
+                String expUnitId = ExperimentObservation.Columns.EXP_UNIT_ID;
                 if (extension.equalsIgnoreCase(FileType.CSV.getName())) {
                     return Integer.parseInt(row.get(gid).toString()) == downloadRow.getInt(gid) &&
-                            row.get(env).equals(downloadRow.getString(env));
+                            row.get(env).equals(downloadRow.getString(env)) &&
+                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString());
                 } else {
-                    return row.get(gid).equals(downloadRow.getString(gid)) && row.get(env).equals(downloadRow.getString(env));
+                    return row.get(gid).equals(downloadRow.getString(gid)) &&
+                            row.get(env).equals(downloadRow.getString(env)) &&
+                            row.get(expUnitId).equals(downloadRow.getObject(expUnitId).toString());
                 }
             }).findAny();
             assertTrue(matchingImportRow.isPresent() && !matchingImportRow.get().isEmpty());
@@ -485,7 +585,7 @@ public class ExperimentControllerIntegrationTest extends BrAPITest {
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
                 .get(2).getAsJsonObject()
-                .get("referenceID").getAsString();
+                .get("referenceId").getAsString();
     }
 
 }

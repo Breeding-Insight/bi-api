@@ -252,7 +252,7 @@ public class BrAPIObservationLevelsControllerIntegrationTest extends BrAPITest {
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
                 .get(2).getAsJsonObject()
-                .get("referenceID").getAsString();
+                .get("referenceId").getAsString();
     }
 
     private List<BrAPIGermplasm> createGermplasm(int numToCreate) {

@@ -159,7 +159,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
         List<BrAPIGermplasm> germplasm = createGermplasm(1);
         BrAPIExternalReference newReference = new BrAPIExternalReference();
         newReference.setReferenceSource(String.format("%s/programs", BRAPI_REFERENCE_SOURCE));
-        newReference.setReferenceID(program.getId().toString());
+        newReference.setReferenceId(program.getId().toString());
 
         germplasm.forEach(germ -> germ.getExternalReferences().add(newReference));
 
@@ -348,7 +348,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
                 .get("brAPIObject").getAsJsonObject()
                 .get("externalReferences").getAsJsonArray()
                 .get(2).getAsJsonObject()
-                .get("referenceID").getAsString();
+                .get("referenceId").getAsString();
     }
 
     private List<BrAPIGermplasm> createGermplasm(int numToCreate) {
@@ -367,7 +367,7 @@ public class BrAPIV2ObservationVariableControllerIntegrationTest extends BrAPITe
             List<BrAPIExternalReference> externalRef = new ArrayList<>();
             BrAPIExternalReference testReference = new BrAPIExternalReference();
             testReference.setReferenceSource(BRAPI_REFERENCE_SOURCE);
-            testReference.setReferenceID(UUID.randomUUID().toString());
+            testReference.setReferenceId(UUID.randomUUID().toString());
             externalRef.add(testReference);
             testGermplasm.setExternalReferences(externalRef);
             germplasm.add(testGermplasm);

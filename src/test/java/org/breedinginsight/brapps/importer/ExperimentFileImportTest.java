@@ -442,10 +442,11 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
         JsonObject row = previewRows.get(0).getAsJsonObject();
+        JsonArray datasets = row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
 
         assertEquals("NEW", row.getAsJsonObject("trial").get("state").getAsString());
-        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
-        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertFalse(datasets.isEmpty());
+        assertTrue(importTestUtils.UUID_REGEX.matcher(datasets.get(0).getAsJsonObject().get("id").getAsString()).matches());
         assertEquals("NEW", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("NEW", row.getAsJsonObject("observationUnit").get("state").getAsString());
@@ -688,10 +689,11 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
         JsonObject row = previewRows.get(0).getAsJsonObject();
+        JsonArray datasets = row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
 
         assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
-        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
-        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertFalse(datasets.isEmpty());
+        assertTrue(importTestUtils.UUID_REGEX.matcher(datasets.get(0).getAsJsonObject().get("id").getAsString()).matches());
         assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
@@ -740,10 +742,11 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
         JsonObject row = previewRows.get(0).getAsJsonObject();
+        JsonArray datasets = row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
 
         assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
-        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
-        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertFalse(datasets.isEmpty());
+        assertTrue(importTestUtils.UUID_REGEX.matcher(datasets.get(0).getAsJsonObject().get("id").getAsString()).matches());
         assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());
@@ -806,10 +809,11 @@ public class ExperimentFileImportTest extends BrAPITest {
         JsonArray previewRows = result.get("preview").getAsJsonObject().get("rows").getAsJsonArray();
         assertEquals(1, previewRows.size());
         JsonObject row = previewRows.get(0).getAsJsonObject();
+        JsonArray datasets = row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
 
         assertEquals("EXISTING", row.getAsJsonObject("trial").get("state").getAsString());
-        assertTrue(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().has("observationDatasetId"));
-        assertTrue(importTestUtils.UUID_REGEX.matcher(row.getAsJsonObject("trial").get("brAPIObject").getAsJsonObject().get("additionalInfo").getAsJsonObject().get("observationDatasetId").getAsString()).matches());
+        assertFalse(datasets.isEmpty());
+        assertTrue(importTestUtils.UUID_REGEX.matcher(datasets.get(0).getAsJsonObject().get("id").getAsString()).matches());
         assertEquals("EXISTING", row.getAsJsonObject("location").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("study").get("state").getAsString());
         assertEquals("EXISTING", row.getAsJsonObject("observationUnit").get("state").getAsString());

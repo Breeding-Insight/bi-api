@@ -226,6 +226,24 @@ public class BrAPIObservationDAO {
                 .collect(Collectors.toList());
     }
 
+    public List<BrAPIObservation> getObservationsByObservationUnits(Collection<String> ouDbIds, Program program) throws ApiException {
+        if(ouDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<BrAPIObservation> getObservationsByObservationUnitsAndStudies(Collection<String> ouDbIds, Collection<String> studyDbIds, Program program) throws ApiException {
+        if(ouDbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> ouDbIds.contains(o.getObservationUnitDbId()) && studyDbIds.contains(o.getStudyDbId()))
+                .collect(Collectors.toList());
+    }
+
     @NotNull
     private ApiResponse<Pair<Optional<BrAPIObservationListResponse>, Optional<BrAPIAcceptedSearchResponse>>> searchObservationsSearchResultsDbIdGet(UUID programId, String searchResultsDbId, Integer page, Integer pageSize) throws ApiException {
         ObservationsApi api = brAPIEndpointProvider.get(programDAO.getCoreClient(programId), ObservationsApi.class);
