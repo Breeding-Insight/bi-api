@@ -18,6 +18,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.appendoverwrite.factory.entity;
 
 import io.micronaut.context.annotation.Prototype;
+import com.google.gson.JsonArray;
 import org.brapi.client.v2.model.exceptions.ApiException;
 import org.brapi.v2.model.core.BrAPIListSummary;
 import org.brapi.v2.model.core.request.BrAPIListNewRequest;
@@ -34,6 +35,7 @@ import org.breedinginsight.brapps.importer.services.processors.experiment.servic
 import org.breedinginsight.services.exceptions.DoesNotExistException;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.DatasetUtil;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -102,10 +104,10 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
     @Override
     public List<BrAPIListDetails> brapiRead() throws ApiException {
         // Get the id of the dataset belonging to the required exp units
-        String datasetId = cache.getTrialByNameNoScope().values().iterator().next().getBrAPIObject()
+        JsonArray datasetsJson = cache.getTrialByNameNoScope().values().iterator().next().getBrAPIObject()
                 .getAdditionalInfo()
-                .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
-                .getAsString();
+                .getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+        String datasetId = DatasetUtil.getTopLevelDatasetFromJson(datasetsJson).getId().toString();
 
         // Get the dataset belonging to required exp units
         return List.of(datasetService.fetchDatasetById(datasetId, importContext.getProgram()).orElseThrow(ApiException::new));
@@ -234,7 +236,7 @@ public class PendingDataset implements ExperimentImportEntity<BrAPIListDetails> 
                         e -> {
                             if (cache.getPendingTrialByOUId().isEmpty() ||
                                     pendingDatasetByName.isEmpty() ||
-                                    !cache.getPendingTrialByOUId().values().iterator().next().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
+                                    cache.getPendingTrialByOUId().values().iterator().next().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
                                 throw new IllegalStateException("There is not an observation data set for this unit: " + e.getKey());
                             }
                             return pendingDatasetByName.values().iterator().next();

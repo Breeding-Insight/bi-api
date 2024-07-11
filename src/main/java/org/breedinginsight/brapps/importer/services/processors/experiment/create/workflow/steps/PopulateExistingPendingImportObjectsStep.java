@@ -16,6 +16,7 @@
  */
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
+import com.google.gson.JsonArray;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.server.exceptions.InternalServerException;
 import lombok.extern.slf4j.Slf4j;
@@ -47,6 +48,7 @@ import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.Trait;
 import org.breedinginsight.services.ProgramLocationService;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 
 import javax.inject.Inject;
@@ -373,11 +375,12 @@ public class PopulateExistingPendingImportObjectsStep {
 
         Optional<PendingImportObject<BrAPITrial>> trialPIO = getTrialPIO(experimentImportRows, trialByNameNoScope);
 
-        if (trialPIO.isPresent() && trialPIO.get().getBrAPIObject().getAdditionalInfo().has(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)) {
-            String datasetId = trialPIO.get().getBrAPIObject()
+        if (trialPIO.isPresent() && !trialPIO.get().getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS).isEmpty()) {
+            JsonArray datasetsJson = trialPIO.get().getBrAPIObject()
                     .getAdditionalInfo()
-                    .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID)
-                    .getAsString();
+                    .getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            String datasetId = DatasetUtil.getTopLevelDatasetFromJson(datasetsJson).getId().toString();
+
             try {
                 List<BrAPIListSummary> existingDatasets = brAPIListDAO
                         .getListByTypeAndExternalRef(BrAPIListTypes.OBSERVATIONVARIABLES,

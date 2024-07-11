@@ -17,6 +17,7 @@
 package org.breedinginsight.brapps.importer.services.processors.experiment.create.workflow.steps;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import io.micronaut.context.annotation.Property;
 import io.micronaut.http.HttpStatus;
 import io.micronaut.http.exceptions.HttpStatusException;
@@ -52,6 +53,7 @@ import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
 import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
+import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
 import org.jooq.DSLContext;
 import tech.tablesaw.api.Table;
@@ -521,9 +523,10 @@ public class PopulateNewPendingImportObjectsStep {
             UUID trialID = trialPIO.getId();
             UUID datasetId = null;
             if (commit) {
-                datasetId = UUID.fromString(trialPIO.getBrAPIObject()
+                JsonArray datasetsArray = trialPIO.getBrAPIObject()
                         .getAdditionalInfo().getAsJsonObject()
-                        .get(BrAPIAdditionalInfoFields.OBSERVATION_DATASET_ID).getAsString());
+                        .getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+                datasetId = DatasetUtil.getTopLevelDatasetFromJson(datasetsArray).getId();
             }
             PendingImportObject<BrAPIStudy> studyPIO = studyByNameNoScope.get(importRow.getEnv());
             UUID studyID = studyPIO.getId();
