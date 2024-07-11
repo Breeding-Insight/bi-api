@@ -2,16 +2,23 @@ package org.breedinginsight.model.delta;
 
 import org.brapi.v2.model.core.BrAPILocation;
 
+import static org.breedinginsight.utilities.DatasetUtil.gson;
+
 public class DeltaLocation implements DeltaEntity<BrAPILocation> {
 
-    private BrAPILocation brAPIObject;
+    DeltaLocation(BrAPILocation brAPIObject) {
+        this.brAPIObject = brAPIObject;
+    }
+
+    private final BrAPILocation brAPIObject;
 
     private BrAPILocation getBrAPIObject() {
-        return null;
+        return brAPIObject;
     }
 
     @Override
     public BrAPILocation cloneBrAPIObject() {
-        return DeltaEntity.super.cloneBrAPIObject();
+        // Serialize and deserialize to deep copy.
+        return gson.fromJson(gson.toJson(getBrAPIObject()), BrAPILocation.class);
     }
 }

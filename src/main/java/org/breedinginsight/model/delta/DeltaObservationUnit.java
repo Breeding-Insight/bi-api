@@ -2,16 +2,22 @@ package org.breedinginsight.model.delta;
 
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 
+import static org.breedinginsight.utilities.DatasetUtil.gson;
+
 public class DeltaObservationUnit implements DeltaEntity<BrAPIObservationUnit> {
 
-    private BrAPIObservationUnit brAPIObject;
+    DeltaObservationUnit(BrAPIObservationUnit brAPIObject) {
+        this.brAPIObject = brAPIObject;
+    }
+
+    private final BrAPIObservationUnit brAPIObject;
 
     private BrAPIObservationUnit getBrAPIObject() {
-        return null;
+        return brAPIObject;
     }
 
     @Override
     public BrAPIObservationUnit cloneBrAPIObject() {
-        return DeltaEntity.super.cloneBrAPIObject();
-    }
+        // Serialize and deserialize to deep copy.
+        return gson.fromJson(gson.toJson(getBrAPIObject()), BrAPIObservationUnit.class);    }
 }

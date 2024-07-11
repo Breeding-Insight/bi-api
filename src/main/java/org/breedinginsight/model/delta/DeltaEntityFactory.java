@@ -3,11 +3,11 @@ package org.breedinginsight.model.delta;
 import io.micronaut.context.annotation.Bean;
 import io.micronaut.context.annotation.Factory;
 import io.micronaut.context.annotation.Prototype;
-import main.java.org.breedinginsight.model.delta.DeltaGermplasm;
-import main.java.org.breedinginsight.model.delta.DeltaObservation;
-import main.java.org.breedinginsight.model.delta.DeltaObservationUnit;
-import main.java.org.breedinginsight.model.delta.DeltaObservationVariable;
-import main.java.org.breedinginsight.model.delta.Environment;
+import org.breedinginsight.model.delta.DeltaGermplasm;
+import org.breedinginsight.model.delta.DeltaObservation;
+import org.breedinginsight.model.delta.DeltaObservationUnit;
+import org.breedinginsight.model.delta.DeltaObservationVariable;
+import org.breedinginsight.model.delta.Environment;
 
 import org.apache.commons.lang3.NotImplementedException;
 import org.brapi.v2.model.core.BrAPILocation;
