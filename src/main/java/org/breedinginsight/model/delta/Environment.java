@@ -6,6 +6,7 @@ import static org.breedinginsight.utilities.DatasetUtil.gson;
 
 public class Environment implements DeltaEntity<BrAPIStudy> {
 
+    // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
     Environment(BrAPIStudy brAPIObject) {
         this.brAPIObject = brAPIObject;
     }

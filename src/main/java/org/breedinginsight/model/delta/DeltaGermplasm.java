@@ -6,6 +6,7 @@ import static org.breedinginsight.utilities.DatasetUtil.gson;
 
 public class DeltaGermplasm implements DeltaEntity<BrAPIGermplasm> {
 
+    // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
     DeltaGermplasm(BrAPIGermplasm brAPIObject) {
         this.brAPIObject = brAPIObject;
     }

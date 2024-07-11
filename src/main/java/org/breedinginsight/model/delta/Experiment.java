@@ -6,6 +6,7 @@ import static org.breedinginsight.utilities.DatasetUtil.gson;
 
 public class Experiment implements DeltaEntity<BrAPITrial> {
 
+    // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
     Experiment(BrAPITrial brAPIObject) {
         this.brAPIObject = brAPIObject;
     }

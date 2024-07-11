@@ -6,6 +6,7 @@ import static org.breedinginsight.utilities.DatasetUtil.gson;
 
 public class DeltaLocation implements DeltaEntity<BrAPILocation> {
 
+    // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
     DeltaLocation(BrAPILocation brAPIObject) {
         this.brAPIObject = brAPIObject;
     }

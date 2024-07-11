@@ -21,15 +21,15 @@ import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 @Factory
 public class DeltaEntityFactory {
     public static Experiment makeExperiment(BrAPITrial brAPIObject) {
-        throw new NotImplementedException();
+        return new Experiment(brAPIObject);
     }
 
     public static Environment makeEnvironment(BrAPIStudy brAPIObject) {
-        throw new NotImplementedException();
+        return new Environment(brAPIObject);
     }
 
     public static DeltaGermplasm makeDeltaGermplasm(BrAPIGermplasm brAPIObject) {
-        throw new NotImplementedException();
+        return new DeltaGermplasm(brAPIObject);
     }
 
     public static DeltaLocation makeDeltaLocation(BrAPILocation brAPIObject) {
