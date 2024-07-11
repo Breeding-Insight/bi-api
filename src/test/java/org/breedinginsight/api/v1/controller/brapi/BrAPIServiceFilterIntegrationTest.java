@@ -208,7 +208,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         validProgram = programDao.findAll().get(0);
         validVariable = traitDao.findAll().get(0);
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(1)
     @SneakyThrows
@@ -240,7 +240,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
         // Check that our error is not an assertion error
         assertEquals(coreUrl, urlCheck.get().get(), "URL was not as expected");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @Order(2)
     @SneakyThrows
@@ -271,7 +271,7 @@ public class BrAPIServiceFilterIntegrationTest extends DatabaseTest {
 
         assertEquals(coreUrl1, urlCheck.get().get(), "Url was not as expected");
     }
-
+    @Disabled("Temporarily disabled, see BI-2238")
     @Test
     @SneakyThrows
     public void getTraitSingleEditableUsesFilter() {

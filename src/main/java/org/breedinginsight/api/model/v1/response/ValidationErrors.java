@@ -17,7 +17,9 @@
 
 package org.breedinginsight.api.model.v1.response;
 
-import lombok.*;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 import lombok.experimental.Accessors;
 
 import java.util.ArrayList;
