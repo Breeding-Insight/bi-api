@@ -32,9 +32,109 @@ public class DeltaEntityFactoryUnitTest {
     @Test
     @SneakyThrows
     void deltaGermplasmTest() {
-
         // Create BrAPIGermplasm
+        BrAPIGermplasm brAPIGermplasm = createBrAPIGermplasm();
 
+        // Use the factory to create a DeltaGermplasm from the BrAPIGermplasm
+        DeltaGermplasm deltaGermplasm = entityFactory.makeDeltaGermplasmBean(brAPIGermplasm);
+
+        // Check that clone makes a correct copy
+        BrAPIGermplasm clonedBrAPIGermplasm = deltaGermplasm.cloneBrAPIObject();
+        assertNotNull(clonedBrAPIGermplasm);
+        assertEquals(clonedBrAPIGermplasm, brAPIGermplasm);
+    }
+
+    @Test
+    @SneakyThrows
+    void deltaLocationTest() {
+        // Create BrAPILocation
+       BrAPILocation brAPILocation = createBrAPILocation();
+
+        // Use the factory to create a DeltaLocation from the BrAPILocation
+        DeltaLocation deltaLocation = entityFactory.makeDeltaLocationBean(brAPILocation);
+
+        // Check that clone makes a correct copy
+        BrAPILocation clonedBrAPILocation = deltaLocation.cloneBrAPIObject();
+        assertNotNull(clonedBrAPILocation);
+        assertEquals(clonedBrAPILocation, brAPILocation);
+    }
+
+    @Test
+    @SneakyThrows
+    void deltaObservationTest() {
+        // Create BrAPIObservation
+        BrAPIObservation brAPIObservation = createBrAPIObservation();
+
+        // Use the factory to create a DeltaObservation from the BrAPIObservation
+        DeltaObservation deltaObservation = entityFactory.makeDeltaObservationBean(brAPIObservation);
+
+        // Check that clone makes a correct copy
+        BrAPIObservation clonedBrAPIObservation = deltaObservation.cloneBrAPIObject();
+        assertNotNull(clonedBrAPIObservation);
+        assertEquals(clonedBrAPIObservation, brAPIObservation);
+    }
+
+    @Test
+    @SneakyThrows
+    void deltaObservationUnitTest() {
+        // Create BrAPIObservationUnit
+        BrAPIObservationUnit brAPIObservationUnit = createBrAPIObservationUnit();
+
+        // Use the factory to create a DeltaObservationUnit from the BrAPIObservationUnit
+        DeltaObservationUnit deltaObservationUnit = entityFactory.makeDeltaObservationUnitBean(brAPIObservationUnit);
+
+        // Check that clone makes a correct copy
+        BrAPIObservationUnit clonedBrAPIObservationUnit = deltaObservationUnit.cloneBrAPIObject();
+        assertNotNull(clonedBrAPIObservationUnit);
+        assertEquals(clonedBrAPIObservationUnit, brAPIObservationUnit);
+    }
+
+    @Test
+    @SneakyThrows
+    void deltaObservationVariableTest() {
+        // Create BrAPIObservationVariable
+        BrAPIObservationVariable brAPIObservationVariable = createBrAPIObservationVariable();
+
+        // Use the factory to create a DeltaObservationVariable from the BrAPIObservationVariable
+        DeltaObservationVariable deltaObservationVariable = entityFactory.makeDeltaObservationVariableBean(brAPIObservationVariable);
+
+        // Check that clone makes a correct copy
+        BrAPIObservationVariable clonedBrAPIObservationVariable = deltaObservationVariable.cloneBrAPIObject();
+        assertNotNull(clonedBrAPIObservationVariable);
+        assertEquals(clonedBrAPIObservationVariable, brAPIObservationVariable);
+    }
+
+    @Test
+    @SneakyThrows
+    void deltaEnvironmentTest() {
+        // Create BrAPIStudy
+        BrAPIStudy brAPIStudy = createBrAPIStudy();
+
+        // Use the factory to create a DeltaEnvironment from the BrAPIStudy
+        Environment environment = entityFactory.makeEnvironmentBean(brAPIStudy);
+
+        // Check that clone makes a correct copy
+        BrAPIStudy clonedBrAPIStudy = environment.cloneBrAPIObject();
+        assertNotNull(clonedBrAPIStudy);
+        assertEquals(clonedBrAPIStudy, brAPIStudy);
+    }
+
+    @Test
+    @SneakyThrows
+    void deltaExperimentTest() {
+        // Create BrAPITrial
+        BrAPITrial brAPITrial = createBrAPITrial();
+
+        // Use the factory to create a DeltaExperiment from the BrAPITrial
+        Experiment experiment = entityFactory.makeExperimentBean(brAPITrial);
+
+        // Check that clone makes a correct copy
+        BrAPITrial clonedBrAPITrial = experiment.cloneBrAPIObject();
+        assertNotNull(clonedBrAPITrial);
+        assertEquals(clonedBrAPITrial, brAPITrial);
+    }
+
+    private BrAPIGermplasm createBrAPIGermplasm() {
         String additionalInfoString = "{\"additionalInfo\":{\"createdBy\":{\"userId\":\"101e7314-ba2c-466b-a1e0-f02409ab0d3d\",\"userName\":\"BI-DEV Admin\"},\"createdDate\":\"14/06/2024 19:17:40\",\"femaleParentUUID\":\"2927a4a5-c204-4255-850b-a1eb2c291263\",\"listEntryNumbers\":{\"fa0f1715-84b8-4ca7-8abc-ff191f221048\":\"38356\"},\"importEntryNumber\":\"38356\",\"maleParentUnknown\":false}}";
 
         List<BrAPIGermplasmDonors> donors = new ArrayList<>();
@@ -54,11 +154,11 @@ public class DeltaEntityFactoryUnitTest {
         var storageType = new BrAPIGermplasmStorageTypes(BrAPIGermplasmStorageTypesEnum._10);
         storageType.setDescription("storage type description");
 
-        BrAPIGermplasm brAPIGermplasm = new BrAPIGermplasm()
+        return new BrAPIGermplasm()
                 .germplasmDbId("0d14b3ee-980c-41e3-ad7e-f9fb597e2eb6")
                 .accessionNumber("1")
                 .acquisitionDate(LocalDate.of(2020, Month.APRIL, 1))
-                .additionalInfo(toJson(additionalInfoString))
+                .additionalInfo(toJsonObject(additionalInfoString))
                 .biologicalStatusOfAccessionCode(BrAPIBiologicalStatusOfAccessionCode._100)
                 .biologicalStatusOfAccessionDescription("biological status")
                 .breedingMethodDbId("50ce8bcd-5c24-4e89-b7ad-5af127a8d99b")
@@ -87,26 +187,13 @@ public class DeltaEntityFactoryUnitTest {
                 .subtaxaAuthority("subtaxa authority")
                 .synonyms(synonyms)
                 .taxonIds(taxonIds);
-
-        // Use the factory to create a DeltaGermplasm from the BrAPIGermplasm
-        DeltaGermplasm deltaGermplasm = entityFactory.makeDeltaGermplasmBean(brAPIGermplasm);
-
-        // Check that clone makes a correct copy
-        BrAPIGermplasm clonedBrAPIGermplasm = deltaGermplasm.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPIGermplasm);
-        assertEquals(clonedBrAPIGermplasm, brAPIGermplasm);
     }
 
-    @Test
-    @SneakyThrows
-    void deltaLocationTest() {
-
-        // Create BrAPILocation
-        BrAPILocation brAPILocation = new BrAPILocation()
+    private BrAPILocation createBrAPILocation() {
+        return new BrAPILocation()
                 .locationDbId("522bcd9c-2b75-4c88-89d3-5059d5ac713b")
                 .abbreviation("f1")
-                .additionalInfo(toJson("{\"key\":\"value\"}"))
+                .additionalInfo(toJsonObject("{\"key\":\"value\"}"))
                 .coordinateDescription("description")
                 .coordinateUncertainty("12")
                 .coordinates(BrApiGeoJSON.builder().geometry(Point.from(34.24, 43.23)).type("Feature").build())
@@ -125,39 +212,9 @@ public class DeltaEntityFactoryUnitTest {
                 .siteStatus("active")
                 .slope("3.1")
                 .topography("topo");
-
-        // Use the factory to create a DeltaLocation from the BrAPILocation
-        DeltaLocation deltaLocation = entityFactory.makeDeltaLocationBean(brAPILocation);
-
-        // Check that clone makes a correct copy
-        BrAPILocation clonedBrAPILocation = deltaLocation.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPILocation);
-        assertEquals(clonedBrAPILocation, brAPILocation);
     }
 
-    @Test
-    @SneakyThrows
-    void deltaObservationTest() {
-
-        // Create BrAPIObservation
-        BrAPIObservation brAPIObservation = createBrAPIObservation();
-
-        // Use the factory to create a DeltaObservation from the BrAPIObservation
-        DeltaObservation deltaObservation = entityFactory.makeDeltaObservationBean(brAPIObservation);
-
-        // Check that clone makes a correct copy
-        BrAPIObservation clonedBrAPIObservation = deltaObservation.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPIObservation);
-        assertEquals(clonedBrAPIObservation, brAPIObservation);
-    }
-
-    @Test
-    @SneakyThrows
-    void deltaObservationUnitTest() {
-
-        // Create BrAPIObservationUnit
+    private BrAPIObservationUnit createBrAPIObservationUnit() {
         String positionJson = "{\"entryType\":\"TEST\",\"geoCoordinates\":null,\"observationLevel\":{\"levelName\":\"plot\",\"levelOrder\":0,\"levelCode\":\"1186 [SKTEST-2]\"},\"observationLevelRelationships\":[{\"levelName\":\"rep\",\"levelOrder\":null,\"levelCode\":\"3\",\"observationUnitDbId\":\"a677de20-a1cd-4982-ac71-1bc17ef08424\"},{\"levelName\":\"block\",\"levelOrder\":null,\"levelCode\":\"1\",\"observationUnitDbId\":\"a677de20-a1cd-4982-ac71-1bc17ef08424\"}],\"positionCoordinateX\":null,\"positionCoordinateXType\":null,\"positionCoordinateY\":null,\"positionCoordinateYType\":null}";
         BrAPIObservationUnitPosition position = gson.fromJson(positionJson, BrAPIObservationUnitPosition.class);
 
@@ -165,9 +222,9 @@ public class DeltaEntityFactoryUnitTest {
         treatments.add(new BrAPIObservationTreatment().factor("factor1").modality("modality1"));
         treatments.add(new BrAPIObservationTreatment().factor("factor2").modality("modality2"));
 
-        BrAPIObservationUnit brAPIObservationUnit = new BrAPIObservationUnit()
+        return new BrAPIObservationUnit()
                 .observationUnitDbId("0d12951f-cc68-436b-8493-060611383ef2")
-                .additionalInfo(toJson("{\"gid\":\"94\", \"observationLevel\":\"Plot\"}"))
+                .additionalInfo(toJsonObject("{\"gid\":\"94\", \"observationLevel\":\"Plot\"}"))
                 .externalReferences(createExternalReferences())
                 .germplasmDbId("8cbbbc0f-f3e2-4f24-82e6-5315d7bd9c8c")
                 .germplasmName("lucky")
@@ -188,118 +245,72 @@ public class DeltaEntityFactoryUnitTest {
                 .observations(List.of(createBrAPIObservation()))
                 .crossName("mix")
                 .crossDbId("f1a3b726-d9e3-4e12-b59c-9d03cc3c671a");
-
-        // Use the factory to create a DeltaObservationUnit from the BrAPIObservationUnit
-        DeltaObservationUnit deltaObservationUnit = entityFactory.makeDeltaObservationUnitBean(brAPIObservationUnit);
-
-        // Check that clone makes a correct copy
-        BrAPIObservationUnit clonedBrAPIObservationUnit = deltaObservationUnit.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPIObservationUnit);
-        assertEquals(clonedBrAPIObservationUnit, brAPIObservationUnit);
     }
 
-    @Test
-    @SneakyThrows
-    void deltaObservationVariableTest() {
-        // Create BrAPIObservationVariable
-
-        List<BrAPIExternalReference> xrefs = new ArrayList<>();
-        xrefs.add(new BrAPIExternalReference().referenceSource("breedinginsight.org").referenceId("e2d530b5-184a-4ef3-8b3a-1acd80a07a00"));
-        xrefs.add(new BrAPIExternalReference().referenceSource("breedinginsight.org/programs").referenceId("e1d21849-6107-4be9-984f-195b029c14e0"));
-
-        BrAPIObservationVariable brAPIObservationVariable = new BrAPIObservationVariable()
-            .observationVariableDbId("9f362177-a30f-42e1-993f-ba905767f481")
-            .observationVariableName("Height")
-            .observationVariablePUI("xyz")
-            .additionalInfo(toJson("{\"fullname\":\"Snail Height\"}"))
-            .commonCropName("Snail")
-            .contextOfUse(List.of("first", "second"))
-            .defaultValue("default")
-            .documentationURL("http://localhost")
-            .externalReferences(createExternalReferences())
-            .growthStage("stage")
-            .institution("Cornell")
-            .language("en-us")
-            .method(createBrAPIMethod())
-            .ontologyReference(createBrAPIOntologyReference())
-            .scale(createBrAPIScale())
-            .scientist("Scientist")
-            .status("active")
-            .submissionTimestamp(OffsetDateTime.now())
-            .synonyms(List.of("n1", "n2", "n3"))
-            .trait(createBrAPITrait());
-
-        // Use the factory to create a DeltaObservationVariable from the BrAPIObservationVariable
-        DeltaObservationVariable deltaObservationVariable = entityFactory.makeDeltaObservationVariableBean(brAPIObservationVariable);
-
-        // Check that clone makes a correct copy
-        BrAPIObservationVariable clonedBrAPIObservationVariable = deltaObservationVariable.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPIObservationVariable);
-        assertEquals(clonedBrAPIObservationVariable, brAPIObservationVariable);
+    private BrAPIObservationVariable createBrAPIObservationVariable() {
+        return new BrAPIObservationVariable()
+                .observationVariableDbId("9f362177-a30f-42e1-993f-ba905767f481")
+                .observationVariableName("Height")
+                .observationVariablePUI("xyz")
+                .additionalInfo(toJsonObject("{\"fullname\":\"Snail Height\"}"))
+                .commonCropName("Snail")
+                .contextOfUse(List.of("first", "second"))
+                .defaultValue("default")
+                .documentationURL("http://localhost")
+                .externalReferences(createExternalReferences())
+                .growthStage("stage")
+                .institution("Cornell")
+                .language("en-us")
+                .method(createBrAPIMethod())
+                .ontologyReference(createBrAPIOntologyReference())
+                .scale(createBrAPIScale())
+                .scientist("Scientist")
+                .status("active")
+                .submissionTimestamp(OffsetDateTime.now())
+                .synonyms(List.of("n1", "n2", "n3"))
+                .trait(createBrAPITrait());
     }
 
-    @Test
-    @SneakyThrows
-    void deltaEnvironmentTest() {
-        // Create BrAPIStudy
-
-        List<BrAPIExternalReference> xrefs = new ArrayList<>();
-        xrefs.add(new BrAPIExternalReference().referenceSource("breedinginsight.org").referenceId("e2d530b5-184a-4ef3-8b3a-1acd80a07a00"));
-        xrefs.add(new BrAPIExternalReference().referenceSource("breedinginsight.org/programs").referenceId("e1d21849-6107-4be9-984f-195b029c14e0"));
-
-        BrAPIStudy brAPIStudy = new BrAPIStudy()
-            .studyDbId("9d73d864-d0b4-45bd-a994-e4d2daf437fc")
-            .active(true)
-            .additionalInfo(toJson("{\"environmentNumber\": \"2\"}"))
-            .commonCropName("Snail")
-            .contacts(List.of(createBrAPIContact()))
-            .culturalPractices("practices")
-            .dataLinks(List.of(createBrAPIDataLink()))
-            .documentationURL("http://localhost")
-            .endDate(OffsetDateTime.now())
-            .environmentParameters(List.of(creatBrAPIEnvironmentParameter()))
-            .experimentalDesign(createBrAPIStudyExperimentalDesign())
-            .externalReferences(createExternalReferences())
-            .growthFacility(createBrAPIStudyGrowthFacility())
-            .lastUpdate(createBrAPIStudyLastUpdate())
-            .license("license")
-            .locationDbId("4abea286-a93a-44ca-812f-5420106a71c3")
-            .locationName("location")
-            .observationLevels(List.of(createBrAPIObservationUnitHierarchyLevel()))
-            .observationUnitsDescription("units description")
-            .observationVariableDbIds(List.of("67f6449b-b79f-4126-91bf-1b3903571a3f", "0684c99e-a01a-4f59-8c14-bbe3e550c8c5"))
-            .seasons(List.of("2021Fall", "2022Fall"))
-            .startDate(OffsetDateTime.now())
-            .studyCode("study code")
-            .studyDescription("description")
-            .studyName("Study name")
-            .studyPUI("d5295e32-da72-433f-b3bd-a40cf5b93bbb")
-            .studyType("phenotyping trial")
-            .trialDbId("703cb8d8-9167-457c-8934-6d065415d312")
-            .trialName("Snail Trial");
-
-        // Use the factory to create a DeltaEnvironment from the BrAPIStudy
-        Environment environment = entityFactory.makeEnvironmentBean(brAPIStudy);
-
-        // Check that clone makes a correct copy
-        BrAPIStudy clonedBrAPIStudy = environment.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPIStudy);
-        assertEquals(clonedBrAPIStudy, brAPIStudy);
+    private BrAPIStudy createBrAPIStudy() {
+        return new BrAPIStudy()
+                .studyDbId("9d73d864-d0b4-45bd-a994-e4d2daf437fc")
+                .active(true)
+                .additionalInfo(toJsonObject("{\"environmentNumber\": \"2\"}"))
+                .commonCropName("Snail")
+                .contacts(List.of(createBrAPIContact()))
+                .culturalPractices("practices")
+                .dataLinks(List.of(createBrAPIDataLink()))
+                .documentationURL("http://localhost")
+                .endDate(OffsetDateTime.now())
+                .environmentParameters(List.of(creatBrAPIEnvironmentParameter()))
+                .experimentalDesign(createBrAPIStudyExperimentalDesign())
+                .externalReferences(createExternalReferences())
+                .growthFacility(createBrAPIStudyGrowthFacility())
+                .lastUpdate(createBrAPIStudyLastUpdate())
+                .license("license")
+                .locationDbId("4abea286-a93a-44ca-812f-5420106a71c3")
+                .locationName("location")
+                .observationLevels(List.of(createBrAPIObservationUnitHierarchyLevel()))
+                .observationUnitsDescription("units description")
+                .observationVariableDbIds(List.of("67f6449b-b79f-4126-91bf-1b3903571a3f", "0684c99e-a01a-4f59-8c14-bbe3e550c8c5"))
+                .seasons(List.of("2021Fall", "2022Fall"))
+                .startDate(OffsetDateTime.now())
+                .studyCode("study code")
+                .studyDescription("description")
+                .studyName("Study name")
+                .studyPUI("d5295e32-da72-433f-b3bd-a40cf5b93bbb")
+                .studyType("phenotyping trial")
+                .trialDbId("703cb8d8-9167-457c-8934-6d065415d312")
+                .trialName("Snail Trial");
     }
 
-    @Test
-    @SneakyThrows
-    void deltaExperimentTest() {
-        // Create BrAPITrial
+    private BrAPITrial createBrAPITrial() {
         String additionalInfoString = "{\"datasets\":[{\"id\":\"0d9f03bf-4b0c-40e8-95b9-9ca0a107f30f\",\"name\":\"Plot\",\"level\":\"0\"}],\"createdBy\":{\"userId\":\"e3f92938-fae4-4d57-93c6-11970a8128a6\",\"userName\":\"BI-DEV Admin\"},\"createdDate\":\"2024-07-12\",\"experimentType\":\"Disease resistance screening\",\"experimentNumber\":\"1\",\"defaultObservationLevel\":\"Plot\"}";
 
-        BrAPITrial brAPITrial = new BrAPITrial()
+        return new BrAPITrial()
                 .trialDbId("429ff1cd-1a4a-4be7-bd6c-d10047d03230")
                 .active(true)
-                .additionalInfo(toJson(additionalInfoString))
+                .additionalInfo(toJsonObject(additionalInfoString))
                 .commonCropName("Snail")
                 .contacts(List.of(createBrAPIContact()))
                 .datasetAuthorships(List.of(createBrAPITrialDatasetAuthorship()))
@@ -314,14 +325,6 @@ public class DeltaEntityFactoryUnitTest {
                 .trialName("Snail Trial")
                 .trialPUI("9bfa3dba-5195-4a08-a891-cd2b105116fa");
 
-        // Use the factory to create a DeltaExperiment from the BrAPITrial
-        Experiment experiment = entityFactory.makeExperimentBean(brAPITrial);
-
-        // Check that clone makes a correct copy
-        BrAPITrial clonedBrAPITrial = experiment.cloneBrAPIObject();
-
-        assertNotNull(clonedBrAPITrial);
-        assertEquals(clonedBrAPITrial, brAPITrial);
     }
 
     private BrAPIObservation createBrAPIObservation() {
@@ -329,7 +332,7 @@ public class DeltaEntityFactoryUnitTest {
 
         return new BrAPIObservation()
             .observationDbId("192161b2-3f89-499b-8f04-7298128e9f1a")
-            .additionalInfo(toJson(additionalInfoString))
+            .additionalInfo(toJsonObject(additionalInfoString))
             .collector("intern")
             .externalReferences(createExternalReferences())
             .geoCoordinates(BrApiGeoJSON.builder().geometry(Point.from(34.24, 43.23)).type("Feature").build())
@@ -451,7 +454,7 @@ public class DeltaEntityFactoryUnitTest {
         return xrefs;
     }
 
-    private JsonObject toJson(String s) {
+    private JsonObject toJsonObject(String s) {
         return JsonParser.parseString(s).getAsJsonObject();
     }
 
