@@ -33,7 +33,7 @@ public class DeltaEntityFactory {
     }
 
     public static DeltaLocation makeDeltaLocation(BrAPILocation brAPIObject) {
-        throw new NotImplementedException();
+        return new DeltaLocation(brAPIObject);
     }
 
     public static DeltaObservation makeDeltaObservation(BrAPIObservation brAPIObject) {
