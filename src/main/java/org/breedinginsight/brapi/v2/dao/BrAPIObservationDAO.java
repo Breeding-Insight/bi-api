@@ -183,6 +183,27 @@ public class BrAPIObservationDAO {
         );
     }
 
+    /**
+     * Retrieves a list of observations based on their database IDs and a specific program.
+     *
+     * @param dbIds A list of database IDs representing the observations to retrieve.
+     * @param program The Program object for which the observations belong.
+     * @return A List of BrAPIObservation objects filtered by the provided database IDs.
+     * @throws ApiException if an error occurs during the retrieval process.
+     */
+    public List<BrAPIObservation> getObservationsByDbIds(List<String> dbIds, Program program) throws ApiException {
+        // Check if the dbIds list is empty and return an empty list if so
+        if(dbIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        // Filter the observations based on the provided program ID and the provided list of dbIds
+        // Collect the filtered observations into a List and return the result
+        return getProgramObservations(program.getId()).values().stream()
+                .filter(o -> dbIds.contains(o.getObservationDbId()))
+                .collect(Collectors.toList());
+    }
+
     public List<BrAPIObservation> getObservationsByTrialDbId(List<String> trialDbIds, Program program) throws ApiException {
         if(trialDbIds.isEmpty()) {
             return Collections.emptyList();

@@ -122,7 +122,9 @@ public class ProgramCache<R> {
                 } finally {
                     log.debug("Releasing semaphore: " + cacheKey);
                     connection.getAtomicLong(cacheKey+":refreshing").set(0);
+                    log.debug("Fetched connection: " + cacheKey);
                     semaphore.release();
+                    log.debug("connection released");
                 }
             });
         }
