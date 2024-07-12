@@ -37,15 +37,15 @@ public class DeltaEntityFactory {
     }
 
     public static DeltaObservation makeDeltaObservation(BrAPIObservation brAPIObject) {
-        throw new NotImplementedException();
+        return new DeltaObservation(brAPIObject);
     }
 
     public static DeltaObservationUnit makeDeltaObservationUnit(BrAPIObservationUnit brAPIObject) {
-        throw new NotImplementedException();
+        return new DeltaObservationUnit(brAPIObject);
     }
 
     public static DeltaObservationVariable makeDeltaObservationVariable(BrAPIObservationVariable brAPIObject) {
-        throw new NotImplementedException();
+        return new DeltaObservationVariable(brAPIObject);
     }
 
     @Bean
