@@ -20,6 +20,7 @@ import org.brapi.v2.model.pheno.BrAPIObservationVariable;
 
 @Factory
 public class DeltaEntityFactory {
+
     public static Experiment makeExperiment(BrAPITrial brAPIObject) {
         return new Experiment(brAPIObject);
     }

@@ -3,25 +3,12 @@ package org.breedinginsight.model.delta;
 import io.micronaut.context.annotation.Prototype;
 import org.brapi.v2.model.core.BrAPITrial;
 
-import static org.breedinginsight.utilities.DatasetUtil.gson;
-
 @Prototype
-public class Experiment implements DeltaEntity<BrAPITrial> {
+public class Experiment extends DeltaEntity<BrAPITrial> {
 
     // Note: do not use @Inject, DeltaEntity<T> are always constructed by DeltaEntityFactory.
     Experiment(BrAPITrial brAPIObject) {
-        this.brAPIObject = brAPIObject;
+        super(brAPIObject);
     }
 
-    private final BrAPITrial brAPIObject;
-    
-    private BrAPITrial getBrAPIObject() {
-        return brAPIObject;
-    }
-
-    @Override
-    public BrAPITrial cloneBrAPIObject() {
-        // Serialize and deserialize to deep copy.
-        return gson.fromJson(gson.toJson(getBrAPIObject()), BrAPITrial.class);
-    }
 }
