@@ -149,7 +149,7 @@ public class DeltaEntityFactoryUnitTest {
         taxonIds.add(new BrAPITaxonID().taxonId("testTaxon1").sourceName("test taxon source"));
         taxonIds.add(new BrAPITaxonID().taxonId("testTaxon2").sourceName("test taxon source"));
 
-        var coordinates = BrApiGeoJSON.builder().geometry(Point.from(34.24, 43.23)).type("Feature").build();
+        var coordinates = BrApiGeoJSON.builder().geometry(null).type("Feature").build();
         var origin = new BrAPIGermplasmOrigin().coordinates(coordinates).coordinateUncertainty("+/- 10");
         var storageType = new BrAPIGermplasmStorageTypes(BrAPIGermplasmStorageTypesEnum._10);
         storageType.setDescription("storage type description");
@@ -196,7 +196,7 @@ public class DeltaEntityFactoryUnitTest {
                 .additionalInfo(toJsonObject("{\"key\":\"value\"}"))
                 .coordinateDescription("description")
                 .coordinateUncertainty("12")
-                .coordinates(BrApiGeoJSON.builder().geometry(Point.from(34.24, 43.23)).type("Feature").build())
+                .coordinates(BrApiGeoJSON.builder().geometry(null).type("Feature").build())
                 .countryCode("US")
                 .countryName("United States")
                 .documentationURL("http://localhost")
@@ -335,7 +335,7 @@ public class DeltaEntityFactoryUnitTest {
             .additionalInfo(toJsonObject(additionalInfoString))
             .collector("intern")
             .externalReferences(createExternalReferences())
-            .geoCoordinates(BrApiGeoJSON.builder().geometry(Point.from(34.24, 43.23)).type("Feature").build())
+            .geoCoordinates(BrApiGeoJSON.builder().geometry(null).type("Feature").build())
             .germplasmDbId("2bb19ef2-fcc5-406d-b9c3-4517c665b699")
             .germplasmName("lucky")
             .observationTimeStamp(OffsetDateTime.now())
