@@ -32,22 +32,18 @@ import org.brapi.v2.model.germ.BrAPIGermplasm;
 import org.brapi.v2.model.pheno.BrAPIObservation;
 import org.brapi.v2.model.pheno.BrAPIObservationUnit;
 import org.breedinginsight.brapi.v2.constants.BrAPIAdditionalInfoFields;
-import org.breedinginsight.brapi.v2.dao.BrAPIObservationDAO;
 import org.breedinginsight.brapi.v2.dao.BrAPIObservationUnitDAO;
-import org.breedinginsight.brapps.importer.model.ImportUpload;
 import org.breedinginsight.brapps.importer.model.imports.BrAPIImport;
 import org.breedinginsight.brapps.importer.model.imports.experimentObservation.ExperimentObservation;
 import org.breedinginsight.brapps.importer.model.response.ImportObjectState;
 import org.breedinginsight.brapps.importer.model.response.PendingImportObject;
 import org.breedinginsight.brapps.importer.model.workflow.ImportContext;
-import org.breedinginsight.brapps.importer.model.workflow.ProcessedData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.ExperimentUtilities;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.PendingImportObjectData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessContext;
 import org.breedinginsight.brapps.importer.services.processors.experiment.create.model.ProcessedPhenotypeData;
 import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentSeasonService;
-import org.breedinginsight.brapps.importer.services.processors.experiment.services.ExperimentValidateService;
 import org.breedinginsight.model.Program;
 import org.breedinginsight.model.ProgramLocation;
 import org.breedinginsight.model.User;
@@ -55,8 +51,9 @@ import org.breedinginsight.services.exceptions.MissingRequiredInfoException;
 import org.breedinginsight.services.exceptions.UnprocessableEntityException;
 import org.breedinginsight.utilities.DatasetUtil;
 import org.breedinginsight.utilities.Utilities;
+import org.breedinginsight.model.DatasetMetadata;
+import org.breedinginsight.model.DatasetLevel;
 import org.jooq.DSLContext;
-import tech.tablesaw.api.Table;
 import org.breedinginsight.model.Trait;
 import tech.tablesaw.columns.Column;
 
@@ -371,7 +368,22 @@ public class PopulateNewPendingImportObjectsStep {
                     program,
                     trialPIO.getId().toString());
             pio = new PendingImportObject<BrAPIListDetails>(ImportObjectState.NEW, newDataset, id);
-            trialPIO.getBrAPIObject().putAdditionalInfoItem("observationDatasetId", id.toString());
+
+            JsonArray datasetsJson = trialPIO.getBrAPIObject().getAdditionalInfo().getAsJsonArray(BrAPIAdditionalInfoFields.DATASETS);
+            // If datasets property does not yet exist, create it
+            String datasetName = StringUtils.isNotBlank(importRow.getSubObsUnit()) ? importRow.getSubObsUnit() : importRow.getExpUnit();
+            List<DatasetMetadata> datasets = DatasetUtil.datasetsFromJson(datasetsJson);
+            DatasetMetadata dataset = DatasetMetadata.builder()
+                    .name(datasetName)
+                    .id(id)
+                    .level(StringUtils.isNotBlank(importRow.getSubObsUnit()) ? DatasetLevel.SUB_OBS_UNIT : DatasetLevel.EXP_UNIT)
+                    .build();
+
+            log.debug(dataset.getName());
+            datasets.add(dataset);
+            datasetsJson = DatasetUtil.jsonArrayFromDatasets(datasets);
+            trialPIO.getBrAPIObject().getAdditionalInfo().add(BrAPIAdditionalInfoFields.DATASETS, datasetsJson);
+
             if (ImportObjectState.EXISTING == trialPIO.getState()) {
                 trialPIO.setState(ImportObjectState.MUTATED);
             }
